@@ -197,41 +197,47 @@ void AnomalyStudy::process(o2::globaltracking::RecoContainer& recoData)
   auto nROF = o2::its::study::AnomalyStudyParamConfig::Instance().nRofTimeFrames;
   auto nLayProc = o2::its::study::AnomalyStudyParamConfig::Instance().nLayersToProcess;
   auto doROFAnalysis = o2::its::study::AnomalyStudyParamConfig::Instance().doROFAnalysis;
-  int rofCount = 0;
-  auto clusRofRecords = recoData.getITSClustersROFRecords();
-  auto compClus = recoData.getITSClusters();
-  auto clusPatt = recoData.getITSClustersPatterns();
-
-  getClusterPatterns(compClus, clusPatt, *mDict);
-
-  auto pattIt = clusPatt.begin();
-  std::vector<ITSCluster> globalClusters;
-  o2::its::ioutils::convertCompactClusters(compClus, pattIt, globalClusters, mDict);
-
   int lay, sta, ssta, mod, chipInMod;
-  for (auto& rofRecord : clusRofRecords) {
-    auto clustersInRof = rofRecord.getROFData(compClus);
-    auto patternsInRof = rofRecord.getROFData(mPatterns);
-    auto locClustersInRof = rofRecord.getROFData(globalClusters);
-    for (unsigned int clusInd{0}; clusInd < clustersInRof.size(); clusInd++) {
-      const auto& compClus = clustersInRof[clusInd];
-      auto& locClus = locClustersInRof[clusInd];
-      auto& clusPattern = patternsInRof[clusInd];
-      auto gloC = locClus.getXYZGlo(*mGeom);
-      mChipMapping.expandChipInfoHW(compClus.getChipID(), lay, sta, ssta, mod, chipInMod);
-      if (lay >= nLayProc) {
-        continue;
+  // in the staggered readout the clusters and their ROFs are provided per layer, every layer having its
+  // own ROF length and numbering; all the filled histograms are per layer, hence each layer slot is
+  // processed with its own ROF counter
+  int nLr = recoData.getITSPerLayer() ? o2::globaltracking::MaxITSLayers : 1;
+  for (int lr = 0; lr < nLr; lr++) { // with a single (monolithic) input all clusters are in the layer slot 0
+    int rofCount = 0;
+    auto clusRofRecords = recoData.getITSClustersROFRecords(lr);
+    auto compClus = recoData.getITSClusters(lr);
+    auto clusPatt = recoData.getITSClustersPatterns(lr);
+
+    getClusterPatterns(compClus, clusPatt, *mDict);
+
+    auto pattIt = clusPatt.begin();
+    std::vector<ITSCluster> globalClusters;
+    o2::its::ioutils::convertCompactClusters(compClus, pattIt, globalClusters, mDict);
+
+    for (auto& rofRecord : clusRofRecords) {
+      auto clustersInRof = rofRecord.getROFData(compClus);
+      auto patternsInRof = rofRecord.getROFData(mPatterns);
+      auto locClustersInRof = rofRecord.getROFData(globalClusters);
+      for (unsigned int clusInd{0}; clusInd < clustersInRof.size(); clusInd++) {
+        const auto& compClus = clustersInRof[clusInd];
+        auto& locClus = locClustersInRof[clusInd];
+        auto& clusPattern = patternsInRof[clusInd];
+        auto gloC = locClus.getXYZGlo(*mGeom);
+        mChipMapping.expandChipInfoHW(compClus.getChipID(), lay, sta, ssta, mod, chipInMod);
+        if (lay >= nLayProc) {
+          continue;
+        }
+        float phi = TMath::ATan2(gloC.Y(), gloC.X());
+        mTFvsPhiHist[lay]->Fill(phi, mTFCount);
+        mTFvsPhiClusSizeHist[lay]->Fill(phi, mTFCount, clusPattern.getNPixels());
+        if (doROFAnalysis) {
+          mROFvsPhiHist[lay]->Fill(phi, (mTFCount - 1) * nROF + rofCount);
+          mROFvsPhiClusSizeHist[lay]->Fill(phi, (mTFCount - 1) * nROF + rofCount, clusPattern.getNPixels());
+        }
       }
-      float phi = TMath::ATan2(gloC.Y(), gloC.X());
-      mTFvsPhiHist[lay]->Fill(phi, mTFCount);
-      mTFvsPhiClusSizeHist[lay]->Fill(phi, mTFCount, clusPattern.getNPixels());
-      if (doROFAnalysis) {
-        mROFvsPhiHist[lay]->Fill(phi, (mTFCount - 1) * nROF + rofCount);
-        mROFvsPhiClusSizeHist[lay]->Fill(phi, (mTFCount - 1) * nROF + rofCount, clusPattern.getNPixels());
-      }
+      ++rofCount;
     }
-    ++rofCount;
-  }
+  } // loop over the layer slots
   mStopwatch.Stop();
   LOGP(info, "Processed TF: {} in {} s", mTFCount, mStopwatch.RealTime());
 }
@@ -263,10 +269,11 @@ void AnomalyStudy::getClusterPatterns(gsl::span<const o2::itsmft::CompClusterExt
 }
 
 // getter
-DataProcessorSpec getAnomalyStudy(mask_t srcClustersMask, bool useMC)
+DataProcessorSpec getAnomalyStudy(mask_t srcClustersMask, bool useMC, bool itsStag)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
+  dataRequest->setITSPerLayer(itsStag);
   dataRequest->requestClusters(srcClustersMask, useMC);
   dataRequest->requestTracks(GTrackID::getSourcesMask(""), useMC);
 

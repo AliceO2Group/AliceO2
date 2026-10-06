@@ -105,11 +105,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::writeINI("o2tpcinterpolation-workflow_configuration.ini");
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   useMC = false; // force disabling MC as long as it is not implemented
+  auto doStag = o2::itsmft::DPLAlpideParamInitializer::isITSStaggeringEnabled(configcontext);
   auto sendTrackData = configcontext.options().get<bool>("send-track-data");
   auto debugOutput = configcontext.options().get<bool>("debug-output");
   auto extDetResid = !configcontext.options().get<bool>("skip-ext-det-residuals");
 
-  specs.emplace_back(o2::tpc::getTPCInterpolationSpec(srcClusters, srcVtx, srcTracks, srcTracksMap, useMC, processITSTPConly, sendTrackData, debugOutput, extDetResid));
+  specs.emplace_back(o2::tpc::getTPCInterpolationSpec(srcClusters, srcVtx, srcTracks, srcTracksMap, useMC, processITSTPConly, sendTrackData, debugOutput, extDetResid, doStag));
   if (!configcontext.options().get<bool>("disable-root-output")) {
     specs.emplace_back(o2::tpc::getTPCResidualWriterSpec(sendTrackData, debugOutput));
   }

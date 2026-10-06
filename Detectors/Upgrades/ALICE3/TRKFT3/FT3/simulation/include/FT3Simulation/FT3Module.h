@@ -15,10 +15,12 @@
 #ifndef FT3MODULE_H
 #define FT3MODULE_H
 
+#include <TGeoMedium.h>
 #include <TGeoVolume.h>
 #include <string>
 #include <vector>
 
+#include "FT3Simulation/FT3Materials.h"
 #include "FT3Simulation/FT3ModuleConstants.h"
 
 // define types for y positions, second element is the stack height
@@ -28,25 +30,12 @@ using PosNegPositionTypes = std::pair<PositionTypes, PositionTypes>;
 // define type of the y position range: First pair is (min, max) for positive y
 using PositionRangeType = std::pair<std::pair<double, double>, std::pair<double, double>>;
 namespace Constants = o2::ft3::ModuleConstants;
+namespace Materials = o2::ft3::Materials;
 
 class FT3Module
 {
 
  public:
-  static void initialize_materials();
-  static TGeoMaterial* siliconMat;
-  static TGeoMedium* siliconMed;
-  static TGeoMaterial* copperMat;
-  static TGeoMedium* copperMed;
-  static TGeoMixture* kaptonMat;
-  static TGeoMedium* kaptonMed;
-  static TGeoMaterial* epoxyMat;
-  static TGeoMedium* epoxyMed;
-  static TGeoMaterial* AluminumMat;
-  static TGeoMedium* AluminumMed;
-  static TGeoMaterial* carbonFiberMat;
-  static TGeoMedium* carbonFiberMed;
-
   const char* mDetName;
 
   static void createModule(
@@ -70,10 +59,39 @@ class FT3Module
     double Rout, double z_offset_local, const Constants::StaveConfig& staveConfig,
     TGeoVolume* motherVolume);
 
+  // Walk every stave of a layer, create its volumes and work out where its
+  // modules go, leaving the positions in y_positionsPosNeg
+  void build_staves_exact(
+    TGeoVolume* motherVolume, int layerNumber, int direction,
+    const Constants::StaveConfig& staveConfig,
+    const std::array<std::array<double, 3>, 4>& staveTriangles,
+    double z_offset_to_carbon_face,
+    std::vector<PosNegPositionTypes>& y_positionsPosNeg,
+    unsigned& staveVolumeCount);
+
+  void build_staves_greedy(
+    TGeoVolume* motherVolume, int layerNumber, int direction, double Rin, double Rout,
+    const Constants::StaveConfig& staveConfig,
+    const std::array<std::array<double, 3>, 4>& staveTriangles,
+    double z_offset_to_carbon_face,
+    std::vector<PosNegPositionTypes>& y_positionsPosNeg, unsigned& staveVolumeCount);
+
+  // Shared by both: one stave's carbon shell, plus its mirror where needed
+  void add_stave_volumes(
+    TGeoVolume* motherVolume, int layerNumber, int direction,
+    const Constants::StaveConfig& staveConfig, unsigned i_stave,
+    const std::array<std::array<double, 3>, 4>& staveTriangles,
+    double z_offset_to_carbon_face, std::pair<double, double>& absAllowedYRange,
+    double y_midpoint, bool mirrorStaveAroundX, unsigned* staveVolumeCount);
+
   // Helper functions
-  void fill_stave(PosNegPositionTypes& y_positions, double Rin, double Rout,
-                  double x_left, unsigned kSensorStack, PositionRangeType y_range,
-                  std::pair<double, double>& absAllowedYRange);
+  void fill_stave_greedy(
+    PosNegPositionTypes& y_positions, unsigned kSensorStack,
+    PositionRangeType y_range,
+    std::pair<double, double>& absAllowedYRange);
+
+  PositionTypes fill_stave_exact(const std::vector<Constants::StaveFill>& fills);
+
   void addStaveVolume(
     TGeoVolume* motherVolume, std::string volumeName, int direction,
     unsigned* volume_count, double staveLength,

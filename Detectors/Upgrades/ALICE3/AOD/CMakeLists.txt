@@ -12,4 +12,3 @@
 o2_add_library(UpgradesAODUtils
                SOURCES src/Run2LikeAO2D.cxx
                PUBLIC_LINK_LIBRARIES ROOT::Core)
-

@@ -96,7 +96,7 @@ class StepTHn : public TNamed
 
   THnSparse* mPrototype; // not filled used as prototype histogram for axis functionality etc.
 
-  ClassDef(StepTHn, 1) // THn like container
+  ClassDefOverride(StepTHn, 1) // THn like container
 };
 
 template <class TemplateArray>

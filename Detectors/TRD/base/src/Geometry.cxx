@@ -243,7 +243,7 @@ void Geometry::createPadPlane(int ilayer, int istack)
   padPlane.setPadRowSMOffset(rowTmp - CLENGTH[ilayer][istack] / 2.0);
 }
 
-void Geometry::createVolume(const char* name, const char* shape, int nmed, float* upar, int np)
+void Geometry::createVolume(const char* name, const char* shape, int nmed, double* upar, int np)
 {
   TVirtualMC::GetMC()->Gsvolu(name, shape, nmed, upar, np);
 
@@ -316,12 +316,12 @@ void Geometry::createVolumes(std::vector<int> const& idtmed)
   const int kNparTrd = 4;
   const int kNparCha = 3;
 
-  float xpos;
-  float ypos;
-  float zpos;
+  double xpos;
+  double ypos;
+  double zpos;
 
-  float parTrd[kNparTrd];
-  float parCha[kNparCha];
+  double parTrd[kNparTrd];
+  double parCha[kNparCha];
 
   const int kTag = 100;
   char cTagV[kTag];
@@ -820,20 +820,20 @@ void Geometry::createFrame(std::vector<int> const& idtmed)
 
   int ilayer = 0;
 
-  float xpos = 0.0;
-  float ypos = 0.0;
-  float zpos = 0.0;
+  double xpos = 0.0;
+  double ypos = 0.0;
+  double zpos = 0.0;
 
   const int kTag = 100;
   char cTagV[kTag];
   char cTagM[kTag];
 
   const int kNparTRD = 4;
-  float parTRD[kNparTRD];
+  double parTRD[kNparTRD];
   const int kNparBOX = 3;
-  float parBOX[kNparBOX];
+  double parBOX[kNparBOX];
   const int kNparTRP = 11;
-  float parTRP[kNparTRP];
+  double parTRP[kNparTRP];
 
   // The rotation matrices
   const int kNmatrix = 7;
@@ -851,7 +851,7 @@ void Geometry::createFrame(std::vector<int> const& idtmed)
   //
 
   const int kNparCrb = 3;
-  float parCrb[kNparCrb];
+  double parCrb[kNparCrb];
   parCrb[0] = 0.0;
   parCrb[1] = 0.0;
   parCrb[2] = 0.0;
@@ -937,12 +937,12 @@ void Geometry::createFrame(std::vector<int> const& idtmed)
   // The chamber support rails
   //
 
-  const float kSRLhgt = 2.00;
-  const float kSRLwidA = 2.3;
-  const float kSRLwidB = 1.947;
-  const float kSRLdst = 1.135;
+  const double kSRLhgt = 2.00;
+  const double kSRLwidA = 2.3;
+  const double kSRLwidB = 1.947;
+  const double kSRLdst = 1.135;
   const int kNparSRL = 11;
-  float parSRL[kNparSRL];
+  double parSRL[kNparSRL];
   // Trapezoidal shape
   parSRL[0] = SLENGTH / 2.0;
   parSRL[1] = 0.0;
@@ -979,17 +979,17 @@ void Geometry::createFrame(std::vector<int> const& idtmed)
   // The cross bars between the chambers
   //
 
-  const float kSCBwid = 1.0;
-  const float kSCBthk = 2.0;
-  const float kSCHhgt = 0.3;
+  const double kSCBwid = 1.0;
+  const double kSCBthk = 2.0;
+  const double kSCHhgt = 0.3;
 
   const int kNparSCB = 3;
-  float parSCB[kNparSCB];
+  double parSCB[kNparSCB];
   parSCB[1] = kSCBwid / 2.0;
   parSCB[2] = CH / 2.0 + VSPACE / 2.0 - kSCHhgt;
 
   const int kNparSCI = 3;
-  float parSCI[kNparSCI];
+  double parSCI[kNparSCI];
   parSCI[1] = -1;
 
   xpos = 0.0;
@@ -1002,7 +1002,7 @@ void Geometry::createFrame(std::vector<int> const& idtmed)
     createVolume(cTagV, "BOX ", idtmed[1], parSCB, kNparSCB);
 
     // The empty regions in the cross bars
-    float thkSCB = kSCBthk;
+    double thkSCB = kSCBthk;
     if (ilayer < 2) {
       thkSCB *= 1.5;
     }
@@ -1046,7 +1046,7 @@ void Geometry::createFrame(std::vector<int> const& idtmed)
   //
 
   const int kNparSCH = 3;
-  float parSCH[kNparSCH];
+  double parSCH[kNparSCH];
 
   for (ilayer = 1; ilayer < NLAYER - 1; ilayer++) {
     parSCH[0] = CWIDTH[ilayer] / 2.0;
@@ -1372,22 +1372,22 @@ void Geometry::createFrame(std::vector<int> const& idtmed)
   //
 
   const int kNparSCL = 3;
-  float parSCL[kNparSCL];
+  double parSCL[kNparSCL];
   const int kNparSCLb = 11;
-  float parSCLb[kNparSCLb];
+  double parSCLb[kNparSCLb];
 
   // Upper ledges
   // Thickness of the corner ledges
-  const float kSCLthkUa = 0.6;
-  const float kSCLthkUb = 0.6;
+  const double kSCLthkUa = 0.6;
+  const double kSCLthkUb = 0.6;
   // Width of the corner ledges
-  const float kSCLwidUa = 3.2;
-  const float kSCLwidUb = 4.8;
+  const double kSCLwidUa = 3.2;
+  const double kSCLwidUb = 4.8;
   // Position of the corner ledges
-  const float kSCLposxUa = 0.7;
-  const float kSCLposxUb = 3.3;
-  const float kSCLposzUa = 1.65;
-  const float kSCLposzUb = 0.3;
+  const double kSCLposxUa = 0.7;
+  const double kSCLposxUb = 3.3;
+  const double kSCLposzUa = 1.65;
+  const double kSCLposzUb = 0.3;
   // Vertical
   parSCL[0] = kSCLthkUa / 2.0;
   parSCL[1] = SLENGTH / 2.0;
@@ -1421,16 +1421,16 @@ void Geometry::createFrame(std::vector<int> const& idtmed)
 
   // Lower ledges
   // Thickness of the corner ledges
-  const float kSCLthkLa = 2.464;
-  const float kSCLthkLb = 1.0;
+  const double kSCLthkLa = 2.464;
+  const double kSCLthkLb = 1.0;
   // Width of the corner ledges
-  const float kSCLwidLa = 8.3;
-  const float kSCLwidLb = 4.0;
+  const double kSCLwidLa = 8.3;
+  const double kSCLwidLb = 4.0;
   // Position of the corner ledges
-  const float kSCLposxLa = (3.0 * kSCLthkLb - kSCLthkLa) / 4.0 + 0.05;
-  const float kSCLposxLb = kSCLthkLb + kSCLwidLb / 2.0 + 0.05;
-  const float kSCLposzLa = kSCLwidLa / 2.0;
-  const float kSCLposzLb = kSCLthkLb / 2.0;
+  const double kSCLposxLa = (3.0 * kSCLthkLb - kSCLthkLa) / 4.0 + 0.05;
+  const double kSCLposxLb = kSCLthkLb + kSCLwidLb / 2.0 + 0.05;
+  const double kSCLposzLa = kSCLwidLa / 2.0;
+  const double kSCLposzLb = kSCLthkLb / 2.0;
   // Vertical
   // Trapezoidal shape
   parSCLb[0] = SLENGTH / 2.0;
@@ -1480,7 +1480,7 @@ void Geometry::createFrame(std::vector<int> const& idtmed)
   //
 
   const int kNparTrd = 4;
-  float parTrd[kNparTrd];
+  double parTrd[kNparTrd];
   parTrd[0] = SWIDTH1 / 2.0 - 2.5;
   parTrd[1] = SWIDTH2 / 2.0 - 2.5;
   parTrd[2] = SMPLTT / 2.0;
@@ -1493,7 +1493,7 @@ void Geometry::createFrame(std::vector<int> const& idtmed)
   TVirtualMC::GetMC()->Gspos("UTA1", 2, "UTF2", xpos, -ypos, zpos, 0, "ONLY");
 
   const int kNparPlt = 3;
-  float parPlt[kNparPlt];
+  double parPlt[kNparPlt];
   parPlt[0] = 0.0;
   parPlt[1] = 0.0;
   parPlt[2] = 0.0;
@@ -1549,27 +1549,27 @@ void Geometry::createServices(std::vector<int> const& idtmed)
   int ilayer = 0;
   int istack = 0;
 
-  float xpos = 0.0;
-  float ypos = 0.0;
-  float zpos = 0.0;
+  double xpos = 0.0;
+  double ypos = 0.0;
+  double zpos = 0.0;
 
   const int kTag = 100;
   char cTagV[kTag];
   char cTagM[kTag];
 
   const int kNparBox = 3;
-  float parBox[kNparBox];
+  double parBox[kNparBox];
 
   const int kNparTube = 3;
-  float parTube[kNparTube];
+  double parTube[kNparTube];
 
   // Services inside the baby frame
-  const float kBBMdz = 223.0;
-  const float kBBSdz = 8.5;
+  const double kBBMdz = 223.0;
+  const double kBBSdz = 8.5;
 
   // Services inside the back frame
-  const float kBFMdz = 118.0;
-  const float kBFSdz = 8.5;
+  const double kBFMdz = 118.0;
+  const double kBFSdz = 8.5;
 
   // The rotation matrices
   const int kNmatrix = 10;
@@ -1590,16 +1590,16 @@ void Geometry::createServices(std::vector<int> const& idtmed)
   //
 
   // Width of the cooling arterias
-  const float kCOLwid = 0.8;
+  const double kCOLwid = 0.8;
   // Height of the cooling arterias
-  const float kCOLhgt = 6.5;
+  const double kCOLhgt = 6.5;
   // Positioning of the cooling
-  const float kCOLposx = 1.0;
-  const float kCOLposz = -1.2;
+  const double kCOLposx = 1.0;
+  const double kCOLposz = -1.2;
   // Thickness of the walls of the cooling arterias
-  const float kCOLthk = 0.1;
+  const double kCOLthk = 0.1;
   const int kNparCOL = 3;
-  float parCOL[kNparCOL];
+  double parCOL[kNparCOL];
   parCOL[0] = 0.0;
   parCOL[1] = 0.0;
   parCOL[2] = 0.0;
@@ -1740,15 +1740,15 @@ void Geometry::createServices(std::vector<int> const& idtmed)
   // The power bus bars
   //
 
-  const float kPWRwid = 0.6;
+  const double kPWRwid = 0.6;
   // Increase the height of the power bus bars to take into
   // account the material of additional cables, etc.
-  const float kPWRhgtA = 5.0 + 0.2;
-  const float kPWRhgtB = 5.0;
-  const float kPWRposx = 2.0;
-  const float kPWRposz = 0.1;
+  const double kPWRhgtA = 5.0 + 0.2;
+  const double kPWRhgtB = 5.0;
+  const double kPWRposx = 2.0;
+  const double kPWRposz = 0.1;
   const int kNparPWR = 3;
-  float parPWR[kNparPWR];
+  double parPWR[kNparPWR];
   parPWR[0] = 0.0;
   parPWR[1] = 0.0;
   parPWR[2] = 0.0;
@@ -1925,7 +1925,7 @@ void Geometry::createServices(std::vector<int> const& idtmed)
   //
 
   const int kNparServ = 3;
-  float parServ[kNparServ];
+  double parServ[kNparServ];
 
   for (int istack : {0, 2}) {
     for (ilayer = 0; ilayer < NLAYER; ilayer++) {
@@ -1966,7 +1966,7 @@ void Geometry::createServices(std::vector<int> const& idtmed)
       int iDet = getDetectorSec(ilayer, istack);
       int iCopy = getDetector(ilayer, istack, 0) * 100;
       int nMCMrow = getRowMax(ilayer, istack, 0);
-      float ySize = (getChamberLength(ilayer, istack) - 2.0 * RPADW) / ((float)nMCMrow);
+      double ySize = (getChamberLength(ilayer, istack) - 2.0 * RPADW) / ((double)nMCMrow);
       snprintf(cTagV, kTag, "UU%02d", shapeClass(ilayer, istack));
       snprintf(cTagM, kTag, "UCP%01d", ilayer);
       for (int iMCMrow = 0; iMCMrow < nMCMrow; iMCMrow++) {
@@ -1997,7 +1997,7 @@ void Geometry::createServices(std::vector<int> const& idtmed)
       int iDet = getDetectorSec(ilayer, istack);
       int iCopy = getDetector(ilayer, istack, 0) * 100;
       int nMCMrow = getRowMax(ilayer, istack, 0);
-      float ySize = (getChamberLength(ilayer, istack) - 2.0 * RPADW) / ((float)nMCMrow);
+      double ySize = (getChamberLength(ilayer, istack) - 2.0 * RPADW) / ((double)nMCMrow);
       snprintf(cTagV, kTag, "UU%02d", shapeClass(ilayer, istack));
       snprintf(cTagM, kTag, "UPL%01d", ilayer);
       for (int iMCMrow = 0; iMCMrow < nMCMrow; iMCMrow++) {
@@ -2013,18 +2013,18 @@ void Geometry::createServices(std::vector<int> const& idtmed)
   // The MCMs
   //
 
-  const float kMCMx = 3.0;
-  const float kMCMy = 3.0;
-  const float kMCMz = 0.3;
+  const double kMCMx = 3.0;
+  const double kMCMy = 3.0;
+  const double kMCMz = 0.3;
 
-  const float kMCMpcTh = 0.1;
-  const float kMCMcuTh = 0.0025;
-  const float kMCMsiTh = 0.03;
-  const float kMCMcoTh = 0.04;
+  const double kMCMpcTh = 0.1;
+  const double kMCMcuTh = 0.0025;
+  const double kMCMsiTh = 0.03;
+  const double kMCMcoTh = 0.04;
 
   // The mother volume for the MCMs (air)
   const int kNparMCM = 3;
-  float parMCM[kNparMCM];
+  double parMCM[kNparMCM];
   parMCM[0] = kMCMx / 2.0;
   parMCM[1] = kMCMy / 2.0;
   parMCM[2] = kMCMz / 2.0;
@@ -2082,9 +2082,9 @@ void Geometry::createServices(std::vector<int> const& idtmed)
       int iDet = getDetectorSec(ilayer, istack);
       int iCopy = getDetector(ilayer, istack, 0) * 1000;
       int nMCMrow = getRowMax(ilayer, istack, 0);
-      float ySize = (getChamberLength(ilayer, istack) - 2.0 * RPADW) / ((float)nMCMrow);
+      double ySize = (getChamberLength(ilayer, istack) - 2.0 * RPADW) / ((double)nMCMrow);
       int nMCMcol = 8;
-      float xSize = (getChamberWidth(ilayer) - 2.0 * CPADW) / ((float)nMCMcol + 6); // Introduce 6 gaps
+      double xSize = (getChamberWidth(ilayer) - 2.0 * CPADW) / ((double)nMCMcol + 6); // Introduce 6 gaps
       int iMCM[8] = {1, 2, 3, 5, 8, 9, 10, 12};                                     // 0..7 MCM + 6 gap structure
       snprintf(cTagV, kTag, "UU%02d", shapeClass(ilayer, istack));
       for (int iMCMrow = 0; iMCMrow < nMCMrow; iMCMrow++) {
@@ -2111,17 +2111,17 @@ void Geometry::createServices(std::vector<int> const& idtmed)
   // The DCS boards
   //
 
-  const float kDCSx = 9.0;
-  const float kDCSy = 14.5;
-  const float kDCSz = 0.3;
+  const double kDCSx = 9.0;
+  const double kDCSy = 14.5;
+  const double kDCSz = 0.3;
 
-  const float kDCSpcTh = 0.15;
-  const float kDCScuTh = 0.01;
-  const float kDCScoTh = 0.04;
+  const double kDCSpcTh = 0.15;
+  const double kDCScuTh = 0.01;
+  const double kDCScoTh = 0.04;
 
   // The mother volume for the DCSs (air)
   const int kNparDCS = 3;
-  float parDCS[kNparDCS];
+  double parDCS[kNparDCS];
   parDCS[0] = kDCSx / 2.0;
   parDCS[1] = kDCSy / 2.0;
   parDCS[2] = kDCSz / 2.0;
@@ -2159,7 +2159,7 @@ void Geometry::createServices(std::vector<int> const& idtmed)
       int iDet = getDetectorSec(ilayer, istack);
       int iCopy = iDet + 1;
       xpos = CWIDTH[ilayer] / 2.0 -
-             1.9 * (getChamberLength(ilayer, istack) - 2.0 * RPADW) / ((float)getRowMax(ilayer, istack, 0));
+             1.9 * (getChamberLength(ilayer, istack) - 2.0 * RPADW) / ((double)getRowMax(ilayer, istack, 0));
       ypos = 0.05 * CLENGTH[ilayer][istack];
       zpos = kDCSz / 2.0 - CSVH / 2.0;
       snprintf(cTagV, kTag, "UU%02d", shapeClass(ilayer, istack));
@@ -2171,17 +2171,17 @@ void Geometry::createServices(std::vector<int> const& idtmed)
   // The ORI boards
   //
 
-  const float kORIx = 4.2;
-  const float kORIy = 13.5;
-  const float kORIz = 0.3;
+  const double kORIx = 4.2;
+  const double kORIy = 13.5;
+  const double kORIz = 0.3;
 
-  const float kORIpcTh = 0.15;
-  const float kORIcuTh = 0.01;
-  const float kORIcoTh = 0.04;
+  const double kORIpcTh = 0.15;
+  const double kORIcuTh = 0.01;
+  const double kORIcoTh = 0.04;
 
   // The mother volume for the ORIs (air)
   const int kNparORI = 3;
-  float parORI[kNparORI];
+  double parORI[kNparORI];
   parORI[0] = kORIx / 2.0;
   parORI[1] = kORIy / 2.0;
   parORI[2] = kORIz / 2.0;
@@ -2219,13 +2219,13 @@ void Geometry::createServices(std::vector<int> const& idtmed)
       int iDet = getDetectorSec(ilayer, istack);
       int iCopy = iDet + 1;
       xpos = CWIDTH[ilayer] / 2.0 -
-             1.92 * (getChamberLength(ilayer, istack) - 2.0 * RPADW) / ((float)getRowMax(ilayer, istack, 0));
+             1.92 * (getChamberLength(ilayer, istack) - 2.0 * RPADW) / ((double)getRowMax(ilayer, istack, 0));
       ypos = -16.0;
       zpos = kORIz / 2.0 - CSVH / 2.0;
       snprintf(cTagV, kTag, "UU%02d", shapeClass(ilayer, istack));
       TVirtualMC::GetMC()->Gspos("UORI", iCopy, cTagV, xpos, ypos, zpos, 0, "ONLY");
       xpos = -CWIDTH[ilayer] / 2.0 +
-             3.8 * (getChamberLength(ilayer, istack) - 2.0 * RPADW) / ((float)getRowMax(ilayer, istack, 0));
+             3.8 * (getChamberLength(ilayer, istack) - 2.0 * RPADW) / ((double)getRowMax(ilayer, istack, 0));
       ypos = -16.0;
       zpos = kORIz / 2.0 - CSVH / 2.0;
       snprintf(cTagV, kTag, "UU%02d", shapeClass(ilayer, istack));

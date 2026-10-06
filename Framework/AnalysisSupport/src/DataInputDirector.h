@@ -107,7 +107,10 @@ class DataInputDescriptor
 
   uint64_t getTimeFrameNumber(int counter, int numTF, int wantedParentLevel, std::string_view wantedOrigin);
   arrow::dataset::FileSource getFileFolder(int counter, int numTF, int wantedParentLevel, std::string_view wantedOrigin);
-  uint64_t markTimeFrameSkipped(int numTF);
+  // Start tracking the file/DF pairs participating in one output timeframe.
+  void beginTimeFrame();
+  // Commit or discard a timeframe, then close retained parents and report statistics.
+  void finishTimeFrame(bool skipped = false);
   // Open the current file to populate the parent map, then return the parent descriptor and
   // the TF index within it that corresponds to numTF at this level. Returns {nullptr, -1} on failure.
   std::pair<std::shared_ptr<DataInputDescriptor>, int> navigateToLevel(int counter, int numTF, int wantedParentLevel, std::string_view wantedOrigin);
@@ -123,6 +126,10 @@ class DataInputDescriptor
   bool isAlienSupportOn() { return mAlienSupport; }
 
  private:
+  void recordTimeFrameRead(int counter, int numTF);
+  void releaseParentFile();
+  void reportFileStatistics(int counter, std::string monitoringInfo);
+
   o2::framework::RootObjectReadingFactory mFactory;
   std::string minputfilesFile;
   std::string* minputfilesFilePtr = nullptr;
@@ -132,11 +139,16 @@ class DataInputDescriptor
   std::vector<FileNameHolder> mdefaultFilenamesPtr;
   std::shared_ptr<arrow::fs::FileSystem> mCurrentFilesystem;
   int mCurrentFileID = -1;
+  // File-local DF indices visited during the current output timeframe.
+  std::vector<std::pair<int, int>> mTimeFrameReads;
   bool mAlienSupport = false;
 
   DataInputDirectorContext& mContext;
   TMap* mParentFileMap = nullptr;
   std::shared_ptr<DataInputDescriptor> mParentFile = nullptr;
+  std::vector<std::shared_ptr<DataInputDescriptor>> mRetainedParents;
+  bool mTimeFrameActive = false;
+  std::vector<std::pair<int, std::string>> mPendingFileStatistics;
   int mLevel = 0; // level of parent files
 
   int mtotalNumberTimeFrames = 0;
@@ -173,7 +185,10 @@ class DataInputDirector
   bool readTree(DataAllocator& outputs, header::DataHeader dh, int counter, int numTF, size_t& totalSizeCompressed, size_t& totalSizeUncompressed, bool wasAOD);
   uint64_t getTimeFrameNumber(header::DataHeader dh, int counter, int numTF);
   arrow::dataset::FileSource getFileFolder(header::DataHeader dh, int counter, int numTF);
-  void markTimeFrameSkipped(header::DataHeader dh, int numTF);
+  // Start tracking the file/DF pairs participating in one output timeframe.
+  void beginTimeFrame();
+  // Commit or discard a timeframe, then close retained parents and report statistics.
+  void finishTimeFrame(bool skipped = false);
   int getTimeFramesInFile(header::DataHeader dh, int counter);
 
   uint64_t getTotalSizeCompressed();

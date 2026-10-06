@@ -59,6 +59,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   bool drawOnly = configcontext.options().get<bool>("draw-external-only");
   bool postProcOnly = configcontext.options().get<bool>("postproc-external-only");
+  bool doStag = o2::itsmft::DPLAlpideParamInitializer::isITSStaggeringEnabled(configcontext);
   GID::mask_t allowedSourcesTrc = GID::getSourcesMask("ITS,TPC,ITS-TPC,ITS-TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
   GID::mask_t allowedSourcesClus = GID::getSourcesMask("ITS");
 
@@ -75,7 +76,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     allowedSourcesTrc = {};
     allowedSourcesClus = {};
   }
-  specs.emplace_back(o2::checkresid::getCheckResidSpec(srcTrc, srcCls, drawOnly, postProcOnly));
+  specs.emplace_back(o2::checkresid::getCheckResidSpec(srcTrc, srcCls, drawOnly, postProcOnly, doStag));
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   if (!drawOnly) {

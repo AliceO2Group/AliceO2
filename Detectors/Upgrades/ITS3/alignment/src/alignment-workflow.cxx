@@ -54,6 +54,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfg)
   const auto useMC = !cfg.options().get<bool>("disable-mc");
   const auto withPV = !cfg.options().get<bool>("without-pv");
   const auto withITS = cfg.options().get<bool>("with-its");
+  const auto doStag = o2::itsmft::DPLAlpideParamInitializer::isITSStaggeringEnabled(cfg);
   const OutputEnum output(cfg.options().get<std::string>("output"));
 
   WorkflowSpec specs;
@@ -66,7 +67,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfg)
     specs.emplace_back(o2::globaltracking::getNoInpDummyOutSpec(0));
   }
 
-  specs.emplace_back(o2::its3::align::getAlignmentSpec(srcTrc, srcCls, useMC, withPV, withITS, output));
+  specs.emplace_back(o2::its3::align::getAlignmentSpec(srcTrc, srcCls, useMC, withPV, withITS, output, doStag));
 
   o2::raw::HBFUtilsInitializer hbfIni(cfg, specs);
   return std::move(specs);

@@ -32,10 +32,13 @@ import argparse
 import csv
 import json
 import math
+import multiprocessing
+import os
 import random
 import re
 import struct
 import sys
+import time
 from array import array
 from collections import Counter
 from dataclasses import dataclass
@@ -66,7 +69,7 @@ from OCC.Core.GeomAbs import (
 )
 from OCC.Core.TopExp import TopExp_Explorer, topexp
 from OCC.Core.TopLoc import TopLoc_Location
-from OCC.Core.TopAbs import TopAbs_REVERSED, TopAbs_WIRE, TopAbs_EDGE, TopAbs_FACE, TopAbs_SOLID
+from OCC.Core.TopAbs import TopAbs_REVERSED, TopAbs_WIRE, TopAbs_EDGE, TopAbs_FACE, TopAbs_SHELL, TopAbs_SOLID
 from OCC.Core.TopTools import TopTools_IndexedMapOfShape
 from OCC.Core.TopoDS import topods
 from OCC.Extend.TopologyUtils import TopologyExplorer
@@ -256,11 +259,12 @@ def triangulate_asbbox(shape, scale_to_cm: float = 1.0):
     return tris * scale_to_cm if scale_to_cm != 1.0 else tris
 
 
-def triangulate_CAD_solid(my_solid, meshparam, scale_to_cm: float = 1.0):
+def triangulate_CAD_solid(my_solid, meshparam, scale_to_cm: float = 1.0,
+                          in_parallel: bool = True):
     lin_defl = float(meshparam.get("lin_defl", 0.1))
     ang_defl = float(meshparam.get("ang_defl", 0.1))
 
-    BRepMesh_IncrementalMesh(my_solid, lin_defl, False, ang_defl, True)
+    BRepMesh_IncrementalMesh(my_solid, lin_defl, False, ang_defl, in_parallel)
 
     chunks = []
     for face in TopologyExplorer(my_solid).faces():
@@ -1963,14 +1967,22 @@ def _self_test_assembly(shape_tool, components):
     return label
 
 
-def _self_test_convert(shape_tool):
+def _self_test_named(shape_tool, label, name: str):
+    """Give an in-memory label the XCAF name a STEP file would carry."""
+    from OCC.Core.TDataStd import TDataStd_Name
+    TDataStd_Name.Set(label, name)
+    return label
+
+
+def _self_test_convert(shape_tool, name_filter: Optional["NameFilter"] = None):
     """Run the production traversal over an in-memory assembly and report what it placed.
 
     Returns (report, leaf occurrences), where the occurrences are (definition, world transform
     signature) pairs -- measured by walking the emitted graph, not read back out of the rule.
     """
     reset_graph()
-    report = expand_free_shapes(shape_tool, meshparam=None, scale_to_cm=1.0)
+    report = expand_free_shapes(shape_tool, meshparam=None, scale_to_cm=1.0,
+                                name_filter=name_filter)
     leaves = [occ for occ in enumerate_occurrences(placements, top_defs)
               if occ[0] in logical_volumes]
     return report, leaves
@@ -2232,6 +2244,318 @@ def run_multibody_leaf_self_test() -> int:
     report(ok_empty and len(logical_volumes) == 1 and len(occ) == 1,
            "an empty leaf label is dropped with a warning and its siblings still convert",
            detail or f"{len(logical_volumes)} volume(s), {len(occ)} placed")
+
+    # --- 4. faces that enclose no volume, as in the ALICE3 OTR stave -------------------------
+    from OCC.Core.BRepGProp import brepgprop
+    from OCC.Core.GProp import GProp_GProps
+    from OCC.Core.TopoDS import TopoDS_Shell
+
+    def volume_of(shape):
+        props = GProp_GProps()
+        brepgprop.VolumeProperties(shape, props)
+        return props.Mass()
+
+    def n_faces(shape):
+        exp = TopExp_Explorer(shape, TopAbs_FACE)
+        n = 0
+        while exp.More():
+            n += 1
+            exp.Next()
+        return n
+
+    def faces_of(shape):
+        exp = TopExp_Explorer(shape, TopAbs_FACE)
+        out = []
+        while exp.More():
+            out.append(exp.Current())
+            exp.Next()
+        return out
+
+    def one_face_shells(faces):
+        shells = []
+        for face in faces:
+            shell = TopoDS_Shell()
+            BRep_Builder().MakeShell(shell)
+            BRep_Builder().Add(shell, face)
+            shells.append(shell)
+        return compound_of(*shells)
+
+    box = BRepPrimAPI_MakeBox(2., 3., 4.)
+    _doc, st = _self_test_shape_tool()
+    sheets = st.AddShape(one_face_shells(faces_of(box.Shape())[:3]), False)
+    good = st.AddShape(BRepPrimAPI_MakeBox(3., 3., 3.).Shape(), False)
+    _self_test_assembly(st, [(sheets, gp_Trsf()), (good, _self_test_shift(dx=10.0))])
+    st.UpdateAssemblies()
+    _rep, occ = _self_test_convert(st)
+    report(len(logical_volumes) == 1 and len(occ) == 1,
+           "a leaf of open faces that enclose no volume is dropped, its sibling still converts",
+           f"{len(logical_volumes)} volume(s), {len(occ)} placed")
+
+    # --- 5. a closed shell with no solid around it still encloses a volume and is kept --------
+    _doc, st = _self_test_shape_tool()
+    shell_only = st.AddShape(box.Shell(), False)
+    _self_test_assembly(st, [(shell_only, gp_Trsf())])
+    st.UpdateAssemblies()
+    _rep, occ = _self_test_convert(st)
+    vol = volume_of(next(iter(def_shapes.values()))) if len(def_shapes) == 1 else 0.0
+    report(len(logical_volumes) == 1 and len(occ) == 1 and abs(vol - 24.0) < 1e-9,
+           "a closed shell without a solid is kept as one volume enclosing the right volume",
+           f"{len(logical_volumes)} volume(s), volume {vol:.6g} (expected 24)")
+
+    # --- 6. a solid with a stray face beside it keeps only the solid --------------------------
+    _doc, st = _self_test_shape_tool()
+    stray = compound_of(box.Shape(), faces_of(BRepPrimAPI_MakeBox(gp_Pnt(9., 0., 0.), 1., 1., 1.)
+                                              .Shape())[0])
+    part = st.AddShape(stray, False)
+    _self_test_assembly(st, [(part, gp_Trsf())])
+    st.UpdateAssemblies()
+    _rep, occ = _self_test_convert(st)
+    shape = next(iter(def_shapes.values())) if len(def_shapes) == 1 else None
+    report(shape is not None and len(occ) == 1 and n_faces(shape) == 6,
+           "a solid with a stray face keeps its 6 faces and drops the stray one",
+           f"{len(def_shapes)} volume(s), {n_faces(shape) if shape is not None else '-'} face(s)")
+
+    print(f"\n{tally.checks} checks, {tally.failures} failure(s)")
+    return tally.failures
+
+
+def _self_test_dangling() -> List[str]:
+    """Placement children that are neither a logical volume nor an assembly."""
+    return sorted({child for _parent, child, _trsf in placements
+                   if child not in logical_volumes and child not in assemblies})
+
+
+def run_name_filter_self_test() -> int:
+    """Assert that --include-name keeps exactly the matching subtrees, whatever the visit order.
+
+    Returns the number of failures; prints one line per check.
+    """
+    tally = _Checks()
+    report = tally.report
+
+    print("\nName filters: a part shared by included and excluded subtrees")
+
+    def disc_like(cable_first: bool):
+        # A screw used both by a matching cable and by a non-matching bracket, as in the OT disc.
+        doc, st = _self_test_shape_tool()
+        screw = _self_test_named(st, _self_test_leaf(st, 1.0), "screw")
+        flat = _self_test_named(st, _self_test_leaf(st, 2.0), "A-flat print")
+        own = _self_test_named(st, _self_test_leaf(st, 3.0), "bracket plate")
+        cable = _self_test_named(st, _self_test_assembly(
+            st, [(flat, gp_Trsf()), (screw, _self_test_shift(dx=10.0))]), "A-flat cable")
+        bracket = _self_test_named(st, _self_test_assembly(
+            st, [(screw, gp_Trsf()), (own, _self_test_shift(dx=5.0))]), "bracket")
+        parts = [(cable, _self_test_shift(dy=100.0)), (bracket, gp_Trsf())]
+        _self_test_assembly(st, parts if cable_first else parts[::-1])
+        st.UpdateAssemblies()
+        return doc, st
+
+    include = NameFilter.from_patterns(["A-flat"], [])
+
+    # --- 1. the shared screw is first met outside the included subtree ------------------------
+    _doc, st = disc_like(cable_first=False)
+    _rep, occ = _self_test_convert(st, include)
+    report(not _self_test_dangling(),
+           "no placement points at a volume that was never defined",
+           f"dangling: {_self_test_dangling()}")
+    report(len(occ) == 2, "the cable's two parts are placed, the bracket's are not",
+           f"{len(occ)} placed")
+
+    # --- 2. the same model visited in the other order gives the same answer -------------------
+    _doc, st = disc_like(cable_first=True)
+    _rep, occ = _self_test_convert(st, include)
+    report(not _self_test_dangling() and len(occ) == 2,
+           "visit order does not matter: the screw met first inside the cable is not placed in "
+           "the bracket too", f"{len(occ)} placed, dangling: {_self_test_dangling()}")
+
+    # --- 3. one assembly needed both whole and pruned ------------------------------------------
+    _doc, st = _self_test_shape_tool()
+    screw = _self_test_named(st, _self_test_leaf(st, 1.0), "screw")
+    flat = _self_test_named(st, _self_test_leaf(st, 2.0), "A-flat print")
+    module = _self_test_named(st, _self_test_assembly(
+        st, [(screw, gp_Trsf()), (flat, _self_test_shift(dx=20.0))]), "module")
+    wrap = _self_test_named(st, _self_test_assembly(st, [(module, gp_Trsf())]), "A-flat wrap")
+    _self_test_assembly(st, [(module, gp_Trsf()), (wrap, _self_test_shift(dz=50.0))])
+    st.UpdateAssemblies()
+    _rep, occ = _self_test_convert(st, include)
+    report(not _self_test_dangling() and len(occ) == 3,
+           "an assembly placed whole inside a match and pruned outside it gives 2 + 1 parts",
+           f"{len(occ)} placed, dangling: {_self_test_dangling()}")
+
+    # --- 4. an empty leaf placed twice is dropped twice, not dangled the second time ----------
+    from OCC.Core.BRep import BRep_Builder
+    from OCC.Core.TopoDS import TopoDS_Compound
+    _doc, st = _self_test_shape_tool()
+    comp = TopoDS_Compound()
+    BRep_Builder().MakeCompound(comp)
+    empty = st.AddShape(comp, False)
+    good = _self_test_leaf(st, 3.0)
+    _self_test_assembly(st, [(empty, gp_Trsf()), (empty, _self_test_shift(dx=5.0)),
+                             (good, _self_test_shift(dx=10.0))])
+    st.UpdateAssemblies()
+    _rep, occ = _self_test_convert(st)
+    report(not _self_test_dangling() and len(occ) == 1,
+           "an empty leaf instanced twice leaves no placement behind",
+           f"{len(occ)} placed, dangling: {_self_test_dangling()}")
+
+    # --- 5. the negative control: without a filter everything is placed ------------------------
+    _doc, st = disc_like(cable_first=False)
+    _rep, occ = _self_test_convert(st)
+    report(len(occ) == 4, "without a filter all four parts are placed", f"{len(occ)} placed")
+
+    print(f"\n{tally.checks} checks, {tally.failures} failure(s)")
+    return tally.failures
+
+
+def run_missing_root_self_test() -> int:
+    """Assert that a PyROOT that does not import is reported with its cause, and that
+    --csg required refuses to run instead of shipping the accepted parts as meshes.
+
+    Returns the number of failures; prints one line per check.
+    """
+    import subprocess
+    import tempfile
+
+    tally = _Checks()
+    report = tally.report
+
+    print("\nCSG without PyROOT: name the cause, and --csg required fails")
+
+    # Runs the converter with `import ROOT` raising, as in a broken environment.
+    blocker = ("import sys, runpy\n"
+               "class _NoRoot:\n"
+               "    def find_spec(self, name, path=None, target=None):\n"
+               "        if name == 'ROOT':\n"
+               "            raise ImportError('libCore.so: cannot open shared object file')\n"
+               "sys.meta_path.insert(0, _NoRoot())\n"
+               "sys.argv = sys.argv[1:]\n"
+               "sys.path.insert(0, sys.argv[0].rsplit('/', 1)[0])\n"
+               "runpy.run_path(sys.argv[0], run_name='__main__')\n")
+    step = _Path(__file__).resolve().parent.parent / "examples" / "as1-oc-214.stp"
+    if not step.exists():
+        report(False, "the example STEP file is there", f"missing: {step}")
+        return tally.failures
+
+    def convert(mode):
+        with tempfile.TemporaryDirectory() as out:
+            res = subprocess.run([sys.executable, "-c", blocker, str(_Path(__file__).resolve()),
+                                  str(step), "--output-folder", out, "--csg", mode],
+                                 capture_output=True, text=True)
+            return res.returncode, res.stdout + res.stderr
+
+    code, log = convert("required")
+    report(code != 0 and "PyROOT" in log and "libCore.so" in log,
+           "--csg required stops, naming PyROOT and the import error",
+           f"exit {code}; " + (log.strip().splitlines() or ["no output"])[-1][:160])
+    report("PyROOT" in log and "Placement check" not in log,
+           "and it stops before reading the STEP file",
+           "the conversion ran" if "Placement check" in log else "stopped early")
+
+    code, log = convert("auto")
+    report(code == 0 and "libCore.so" in log,
+           "--csg auto still converts, and says why the CSG parts are not shipped",
+           f"exit {code}")
+
+    print(f"\n{tally.checks} checks, {tally.failures} failure(s)")
+    return tally.failures
+
+
+def run_parallel_csg_self_test() -> int:
+    """Assert that recognising CSG in worker processes gives exactly the serial evidence.
+
+    Returns the number of failures; prints one line per check.
+    """
+    import subprocess
+    import tempfile
+
+    tally = _Checks()
+    report = tally.report
+
+    print("\nParallel CSG recognition: the same evidence as serial recognition")
+
+    step = _Path(__file__).resolve().parent.parent / "examples" / "as1-oc-214.stp"
+    if not step.exists():
+        report(False, "the example STEP file is there", f"missing: {step}")
+        return tally.failures
+
+    outs = {}
+    # Parallel first, for the same reason the mesher runs it first: a process that has meshed
+    # serially falls back to serial recognition by design.
+    with tempfile.TemporaryDirectory() as root:
+        for jobs in (2, 1):
+            out = _Path(root) / f"jobs{jobs}"
+            out.mkdir()
+            res = subprocess.run([sys.executable, str(_Path(__file__).resolve()), str(step),
+                                  "--output-folder", str(out), "--csg", "auto",
+                                  "--jobs", str(jobs)], capture_output=True, text=True)
+            if res.returncode != 0:
+                report(False, f"the --jobs {jobs} conversion succeeds",
+                       (res.stdout + res.stderr).strip().splitlines()[-1][:160])
+                return tally.failures
+            outs[jobs] = out
+
+        names = {jobs: sorted(f.name for f in outs[jobs].iterdir()) for jobs in outs}
+        report(names[1] == names[2] and len(names[1]) > 1,
+               "both runs write the same set of files",
+               f"{len(names[1])} vs {len(names[2])}")
+
+        # geom.C and the report name their own output folder, which differs per run.
+        def read(jobs, name):
+            data = (outs[jobs] / name).read_bytes()
+            return data.replace(str(outs[jobs]).encode(), b"OUT")
+
+        # csg_*.json is the recognition evidence, and shape_*.root is built from it. The .root
+        # files carry a per-file UUID and creation time, so they are compared by size.
+        differing = [n for n in names[1] if not n.endswith(".root")
+                     and read(1, n) != read(2, n)]
+        report(not differing, "every sidecar, and geom.C, is byte-identical",
+               f"{len(differing)} differ: {differing[:3]}")
+
+        sizes = {jobs: {n: (outs[jobs] / n).stat().st_size
+                        for n in names[jobs] if n.endswith(".root")} for jobs in outs}
+        report(sizes[1] == sizes[2], "and every CSG shape file has the serial size",
+               f"{sum(1 for n in sizes[1] if sizes[1][n] != sizes[2].get(n))} differ")
+
+        rep = {jobs: json.loads(read(jobs, "csg_report.json")) for jobs in outs}
+        tiers = {jobs: {row["part"]: row["representation"] for row in rep[jobs]["parts"]}
+                 for jobs in rep}
+        report(tiers[1] == tiers[2] and len(tiers[1]) > 1,
+               "and the CSG report names the same tier for every part",
+               f"{sum(1 for k in tiers[1] if tiers[1][k] != tiers[2].get(k))} of "
+               f"{len(tiers[1])} part(s) differ")
+
+    print(f"\n{tally.checks} checks, {tally.failures} failure(s)")
+    return tally.failures
+
+
+def run_parallel_mesh_self_test() -> int:
+    """Assert that meshing in worker processes gives exactly the serial triangles.
+
+    Returns the number of failures; prints one line per check.
+    """
+    tally = _Checks()
+    report = tally.report
+
+    print("\nParallel meshing: the same triangles as serial meshing")
+
+    step = _Path(__file__).resolve().parent.parent / "examples" / "ExcavatorArm.step"
+    if not step.exists():
+        report(False, "the example STEP file is there", f"missing: {step}")
+        return tally.failures
+    meshparam = {"do_meshing": True, "lin_defl": 0.1, "ang_defl": 0.1}
+    runs = {}
+    # Parallel first: a process that has meshed serially falls back, by design.
+    for jobs in (2, 1):
+        extract_graph(str(step), meshparam=meshparam, scale_to_cm=0.1, jobs=jobs)
+        runs[jobs] = dict(logical_volumes)
+    serial, parallel = runs[1], runs[2]
+    report(set(serial) == set(parallel) and len(serial) > 1,
+           "both runs mesh the same volumes", f"{len(serial)} vs {len(parallel)}")
+    same = [k for k in serial if k in parallel and np.array_equal(serial[k], parallel[k])]
+    report(len(same) == len(serial) and all(len(serial[k]) > 0 for k in serial),
+           "and every volume gets identical, non-empty triangles",
+           f"{len(same)}/{len(serial)} identical")
+    report(not pending_mesh, "nothing is left waiting to be meshed", f"{len(pending_mesh)} pending")
 
     print(f"\n{tally.checks} checks, {tally.failures} failure(s)")
     return tally.failures
@@ -3478,6 +3802,7 @@ assemblies = set()                       # def_lid
 placements = []                          # (parent_def_lid, child_def_lid, gp_Trsf local)
 top_defs = set()                         # top definition lids
 visited_defs = set()                     # expanded defs
+pending_mesh: List[str] = []             # def keys waiting for mesh_pending_volumes()
 
 
 def reset_graph() -> None:
@@ -3491,6 +3816,7 @@ def reset_graph() -> None:
     placements = []
     top_defs = set()
     visited_defs = set()
+    pending_mesh.clear()
 
 
 def cpp_var_for_def(lid: str) -> str:
@@ -3515,6 +3841,24 @@ def solid_bodies_of(shape) -> list:
     return out
 
 
+def shells_outside_solids(shape) -> Tuple[list, int]:
+    """The closed shells a shape carries outside any solid, and the count of its open faces."""
+    closed, n_open = [], 0
+    exp = TopExp_Explorer(shape, TopAbs_SHELL, TopAbs_SOLID)
+    while exp.More():
+        shell = exp.Current()
+        if BRep_Tool.IsClosed(shell):
+            closed.append(shell)
+        else:
+            n_open += sum(1 for _ in TopologyExplorer(shell).faces())
+        exp.Next()
+    exp = TopExp_Explorer(shape, TopAbs_FACE, TopAbs_SHELL)
+    while exp.More():
+        n_open += 1
+        exp.Next()
+    return closed, n_open
+
+
 def _register_leaf_shape(def_key: str, shape, meshparam, scale_to_cm: float,
                          clip_enabled: bool, clip_box, clip_box_shape,
                          world_trsf, def_lid: str) -> bool:
@@ -3532,9 +3876,70 @@ def _register_leaf_shape(def_key: str, shape, meshparam, scale_to_cm: float,
     def_shapes[def_key] = shape
 
     do_meshing = (meshparam is not None) and meshparam.get("do_meshing", None) is True
-    logical_volumes[def_key] = (triangulate_CAD_solid(shape, meshparam=meshparam, scale_to_cm=scale_to_cm)
-                                if do_meshing else triangulate_asbbox(shape, scale_to_cm=scale_to_cm))
+    if do_meshing:
+        # Meshed after the walk, by mesh_pending_volumes(), possibly in parallel.
+        logical_volumes[def_key] = None
+        pending_mesh.append(def_key)
+    else:
+        logical_volumes[def_key] = triangulate_asbbox(shape, scale_to_cm=scale_to_cm)
     return True
+
+
+_MESH_ARGS: tuple = (None, 1.0)
+_meshed_in_process = False
+
+
+def _mesh_worker(def_key: str):
+    """Mesh one volume in a forked worker, which inherits the parent's shapes.
+
+    OCCT's own face-level parallelism is off here: the parts already run in parallel, and nested
+    threads would only contend. It gives the same triangles either way.
+    """
+    meshparam, scale_to_cm = _MESH_ARGS
+    return def_key, triangulate_CAD_solid(def_shapes[def_key], meshparam=meshparam,
+                                          scale_to_cm=scale_to_cm, in_parallel=False)
+
+
+def _print_progress(label: str, done: int, total: int, t0: float) -> None:
+    """One progress line with an ETA: redrawn in place on a terminal, every 10% in a log."""
+    elapsed = time.time() - t0
+    eta = elapsed / done * (total - done) if done else 0.0
+    line = f"{label}: {done}/{total} ({100.0 * done / total:.0f}%), {elapsed:.0f} s elapsed, ETA {eta:.0f} s"
+    if sys.stdout.isatty():
+        print("\r" + line, end="\n" if done == total else "", flush=True)
+    elif done == total or (done * 10) // total != ((done - 1) * 10) // total:
+        print(line, flush=True)
+
+
+def mesh_pending_volumes(meshparam, scale_to_cm: float, jobs: int = 1) -> None:
+    """Triangulate every volume queued by the walk; in `jobs` worker processes when jobs > 1."""
+    keys = list(pending_mesh)
+    pending_mesh.clear()
+    if not keys:
+        return
+    global _MESH_ARGS, _meshed_in_process
+    t0 = time.time()
+    jobs = max(1, min(jobs, len(keys)))
+    if jobs > 1 and "fork" not in multiprocessing.get_all_start_methods():
+        print("  [WARN] this platform cannot fork: meshing serially in one process.")
+        jobs = 1
+    if jobs > 1 and _meshed_in_process:
+        # Forking a process that already holds OCCT's meshing threads deadlocks.
+        print("  [WARN] this process has already meshed serially: meshing serially again.")
+        jobs = 1
+    label = f"Meshing {len(keys)} volume(s)" + (f" in {jobs} processes" if jobs > 1 else "")
+    if jobs == 1:
+        _meshed_in_process = True
+        for i, key in enumerate(keys):
+            logical_volumes[key] = triangulate_CAD_solid(def_shapes[key], meshparam=meshparam,
+                                                         scale_to_cm=scale_to_cm)
+            _print_progress(label, i + 1, len(keys), t0)
+        return
+    _MESH_ARGS = (meshparam, scale_to_cm)
+    with multiprocessing.get_context("fork").Pool(jobs) as pool:
+        for i, (key, tris) in enumerate(pool.imap_unordered(_mesh_worker, keys)):
+            logical_volumes[key] = tris
+            _print_progress(label, i + 1, len(keys), t0)
 
 
 def expand_definition(
@@ -3586,11 +3991,17 @@ def expand_definition(
                     include_subtree=subtree_included,
                 )
 
-    def_key = f"{def_lid}@{occ_path}" if clip_enabled else def_lid
-    if not clip_enabled and def_lid in visited_defs:
-        return def_lid
-    if not clip_enabled:
-        visited_defs.add(def_lid)
+    # Outside an included subtree an --include-name filter prunes the definition, so the pruned
+    # expansion gets its own key; the whole one keeps the bare label entry.
+    pruned = name_filter is not None and name_filter.has_include and not subtree_included
+    if clip_enabled:
+        def_key = f"{def_lid}@{occ_path}"
+    else:
+        def_key = f"{def_lid}@pruned" if pruned else def_lid
+        if def_key in visited_defs:
+            # A definition that produced nothing (pruned away, empty) must not be placed.
+            return def_key if (def_key in logical_volumes or def_key in assemblies) else None
+        visited_defs.add(def_key)
 
     if nm and def_key not in def_names:
         def_names[def_key] = nm
@@ -3691,7 +4102,18 @@ def expand_definition(
             return def_key
 
         shape = shape_tool.GetShape(def_label)
-        bodies = solid_bodies_of(shape)
+        closed_shells, n_open = shells_outside_solids(shape)
+        bodies = solid_bodies_of(shape) + closed_shells
+        if n_open:
+            # Open faces enclose no volume: a sheet body, not something to fill with material.
+            if not bodies:
+                print(f"WARNING: CAD leaf {def_lid} ('{nm}') carries only {n_open} open face(s) "
+                      f"that enclose no volume; skipping it.")
+                return None
+            print(f"WARNING: CAD leaf {def_lid} ('{nm}') carries {n_open} open face(s) beside "
+                  f"its {len(bodies)} closed bod(y/ies); dropping the faces.")
+            if len(bodies) == 1:
+                shape = bodies[0]
 
         # A leaf label may hold several bodies; each becomes a volume the label places once.
         if len(bodies) > 1:
@@ -3946,6 +4368,7 @@ def extract_graph(
     clip_box: Optional[ClipBox] = None,
     clip_deduplicate: str = "intact",
     name_filter: Optional[NameFilter] = None,
+    jobs: int = 1,
 ):
     reset_graph()
     doc, shape_tool = load_step_with_xcaf(step_path)
@@ -3957,6 +4380,7 @@ def extract_graph(
         clip_deduplicate=clip_deduplicate,
         name_filter=name_filter,
     )
+    mesh_pending_volumes(meshparam, scale_to_cm, jobs=jobs)
     return doc, shape_tool
 
 
@@ -4000,6 +4424,11 @@ def expand_free_shapes(
                                                              set(logical_volumes))
     report_duplicate_placements(dup_report, def_names)
     verify_placement_invariant(placements, top_defs, set(logical_volumes), emitted)
+    dangling = sorted({child for _parent, child, _trsf in placements
+                       if child not in logical_volumes and child not in assemblies})
+    if dangling:
+        raise RuntimeError(f"{len(dangling)} placement target(s) were never defined, e.g. "
+                           f"{dangling[:5]}; geom.C would not compile")
     return dup_report
 
 
@@ -4113,6 +4542,7 @@ def emit_root_macro(
     max_splits: Optional[int] = None,
     decompose_timeout: Optional[float] = None,
     mesh_solid: str = "o2",
+    jobs: int = 1,
 ):
     # exact_surfaces mode:
     #   off      : tessellated output only (default; leaves generated output unchanged).
@@ -4143,6 +4573,7 @@ def emit_root_macro(
         clip_box=clip_box,
         clip_deduplicate=clip_deduplicate,
         name_filter=name_filter,
+        jobs=jobs,
     )
 
     out_folder = out_folder.expanduser().resolve()
@@ -4183,7 +4614,10 @@ def emit_root_macro(
         brep_files: Dict[str, str] = {}  # def_lid -> absolute path of brep_*.brep (--dump-brep)
         failures: Dict[str, List[str]] = {}  # def_lid -> unsupported-face reasons
         extracted: Dict[str, int] = {}   # def_lid -> number of surface records written
-        for lid, shape in def_shapes.items():
+        t_extract = time.time()
+        extract_label = f"Extracting exact surfaces from {len(def_shapes)} leaf solid(s)"
+        for i_leaf, (lid, shape) in enumerate(def_shapes.items()):
+            _print_progress(extract_label, i_leaf + 1, len(def_shapes), t_extract)
             surfaces, reasons, n_model_edges = extract_surfaces_for_shape(
                 shape, scale_to_cm, recognize_surfaces=recognize_flag, recognition=recognition,
                 lid=lid)
@@ -4278,9 +4712,14 @@ def emit_root_macro(
                 print(f"  decomposition timeout raised: {_decomp.TIMEOUT_S} -> "
                       f"{decompose_timeout} s")
                 _decomp.TIMEOUT_S = decompose_timeout
+        # Forking a process that has already meshed in-process deadlocks in OCCT's threads,
+        # exactly as it does for the mesher, so that fallback decides this phase too.
+        csg_jobs = 1 if _meshed_in_process else jobs
+        if jobs > 1 and csg_jobs == 1:
+            print("  [WARN] this process has already meshed serially: recognising CSG serially.")
         csg_files, flat_files, csg_records = hook.recognise_and_emit(
             def_shapes, def_names, scale_to_cm, out_folder, sanitize_filename, mode=csg_mode,
-            scaled=scaled_shapes)
+            scaled=scaled_shapes, jobs=csg_jobs, progress=_print_progress)
         csg_report_path = _Path(csg_report) if csg_report else (out_folder / "csg_report.json")
         # The lid -> sidecar mapping lets write_report compute tessellation exactness.
         csg_report_data = hook.write_report(csg_records, csg_report_path, dict(surface_files),
@@ -4370,9 +4809,15 @@ def emit_root_macro(
         materials_cpp, medium_var_map = emit_materials_cpp(used_materials, in_field=in_field)
 
     # --- emit C++ macro ---
-    if surface_files:
-        print(f"Emitting {len(surface_files)}/{len(logical_volumes)} logical volumes as exact O2BVHSurfaceSolid "
-              f"(macro requires the ALICE O2 environment)")
+    # What the cascade actually hands to each tier, not what its extraction managed: a part
+    # recognised as CSG ships as CSG even though its surface sidecar was written too.
+    surface_lids = [lid for lid in surface_files
+                    if lid not in flat_files and lid not in csg_files]
+    if surface_lids:
+        outranked = len(surface_files) - len(surface_lids)
+        note = f", {outranked} more extracted but carried as CSG" if outranked else ""
+        print(f"Emitting {len(surface_lids)}/{len(logical_volumes)} logical volumes as exact "
+              f"O2BVHSurfaceSolid{note} (macro requires the ALICE O2 environment)")
 
     # The tessellated fallback's shape class; "tgeo" navigates as bounding boxes.
     if mesh_solid not in ("o2", "tgeo"):
@@ -4584,6 +5029,9 @@ def main():
     ap.add_argument("--mesh", action="store_true", help="Use full BRepMesh triangulation instead of bounding boxes")
     ap.add_argument("--print-tree", action="store_true", help="Just prints the geometry tree")
     ap.add_argument("--mesh-prec", type=float, default=0.1, help="meshing precision. lower --> slower")
+    ap.add_argument("--jobs", "-j", type=int, default=os.cpu_count() or 1,
+                    help="Processes that mesh the volumes with --mesh and recognise them with "
+                         "--csg (default: all cores); 1 runs both serially in this process")
     ap.add_argument("--in-field", nargs="?", const="2,10", default=None, metavar="IFIELD,FIELDM",
                     help="Treat this module as sitting in the magnetic field: write the eight Geant "
                          "medium parameters, with ifield and fieldm taken from the live field. "
@@ -4637,6 +5085,10 @@ def main():
                        + run_planar_trim_self_test()
                        + run_duplicate_placement_self_test()
                        + run_multibody_leaf_self_test()
+                       + run_name_filter_self_test()
+                       + run_missing_root_self_test()
+                       + run_parallel_mesh_self_test()
+                       + run_parallel_csg_self_test()
                        + run_in_field_media_self_test()
                        + run_bom_token_self_test()) else 0)
     if args.step is None:
@@ -4646,6 +5098,16 @@ def main():
     if args.print_tree:
         print_geom(step_path)
         return
+
+    if args.csg in ("auto", "required"):
+        # CSG shapes are written through PyROOT; say up front when it does not import.
+        root_error = import_csg_hook().root_import_error()
+        if root_error and args.csg == "required":
+            ap.error(f"--csg required needs PyROOT, which does not import in {sys.executable}: "
+                     f"{root_error}")
+        if root_error:
+            print(f"[WARN] PyROOT does not import in {sys.executable}: {root_error}. Accepted CSG "
+                  "parts will ship one tier down (exact surfaces or mesh).")
 
     out_folder = _Path(args.output_folder)
 
@@ -4720,6 +5182,7 @@ def main():
         max_splits=args.max_splits,
         decompose_timeout=args.decompose_timeout,
         mesh_solid=args.mesh_solid,
+        jobs=args.jobs,
     )
     out_macro.write_text(code)
 

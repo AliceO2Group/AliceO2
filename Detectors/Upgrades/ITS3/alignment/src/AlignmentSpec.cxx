@@ -31,6 +31,7 @@
 #include "Framework/Task.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "DataFormatsITSMFT/ClustersPerLayer.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsBase/Propagator.h"
 #include "DetectorsBase/GRPGeomHelper.h"
@@ -124,7 +125,7 @@ class AlignmentSpec final : public Task
   bool prepareITSTrack(int iTrk, const o2::its::TrackITS& itsTrack, Track& resTrack);
 
   // prepare ITS measuremnt points
-  void prepareMeasurments(std::span<const itsmft::CompClusterExt> clusters, std::span<const unsigned char> pattIt);
+  void prepareMeasurments();
 
   // build track to vertex association
   void buildT2V();
@@ -143,7 +144,7 @@ class AlignmentSpec final : public Task
   const o2::its3::TopologyDictionary* mIT3Dict{nullptr};
   o2::globaltracking::RecoContainer* mRecoData = nullptr;
   std::unique_ptr<steer::MCKinematicsReader> mcReader;
-  std::vector<FrameInfoExt> mITSTrackingInfo;
+  o2::itsmft::ClustersPerLayer<FrameInfoExt> mITSTrackingInfo; // addressed by the composed (layer,index) ID
   std::shared_ptr<DataRequest> mDataRequest;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   std::unique_ptr<AlignableVolume> mHierarchy;   // tree-hiearchy
@@ -194,13 +195,11 @@ void AlignmentSpec::process()
   const auto bz = prop->getNominalBz();
   const auto itsTracks = mRecoData->getITSTracks();
   const auto itsClRefs = mRecoData->getITSTracksClusterRefs();
-  const auto clusITS = mRecoData->getITSClusters();
-  const auto patterns = mRecoData->getITSClustersPatterns();
   std::span<const o2::MCCompLabel> mcLbls;
   if (mUseMC) {
     mcLbls = mRecoData->getITSTracksMCLabels();
   }
-  prepareMeasurments(clusITS, patterns);
+  prepareMeasurments();
 
   if (mWithPV) {
     buildT2V();
@@ -731,53 +730,60 @@ bool AlignmentSpec::prepareITSTrack(int iTrk, const o2::its::TrackITS& itsTrack,
   return true;
 }
 
-void AlignmentSpec::prepareMeasurments(std::span<const itsmft::CompClusterExt> clusters, std::span<const unsigned char> patterns)
+void AlignmentSpec::prepareMeasurments()
 {
-  LOGP(info, "Preparing {} measurments", clusters.size());
   auto geom = its::GeometryTGeo::Instance();
   geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
-  mITSTrackingInfo.clear();
-  mITSTrackingInfo.reserve(clusters.size());
-  auto pattIt = patterns.begin();
-  for (const auto& cls : clusters) {
-    const auto sens = cls.getSensorID();
-    const auto lay = geom->getLayer(sens);
-    double sigmaY2{0}, sigmaZ2{0};
-    math_utils::Point3D<float> locXYZ;
-    if (mIsITS3) {
-      locXYZ = o2::its3::ioutils::extractClusterData(cls, pattIt, mIT3Dict, sigmaY2, sigmaZ2);
-    } else {
-      locXYZ = o2::its::ioutils::extractClusterData(cls, pattIt, mITSDict, sigmaY2, sigmaZ2);
+  int nLr = mRecoData->getITSPerLayer() ? o2::globaltracking::MaxITSLayers : 1;
+  mITSTrackingInfo.init(nLr);
+  for (int lr = 0; lr < nLr; lr++) { // with a single (monolithic) input all clusters are in the layer slot 0
+    mITSTrackingInfo.beginLayer(lr);
+    const auto clusters = mRecoData->getITSClusters(lr);
+    const auto patterns = mRecoData->getITSClustersPatterns(lr);
+    LOGP(info, "Preparing {} measurments of the layer slot {}", clusters.size(), lr);
+    mITSTrackingInfo.getClusters().reserve(mITSTrackingInfo.size() + clusters.size());
+    auto pattIt = patterns.begin();
+    for (const auto& cls : clusters) {
+      const auto sens = cls.getSensorID();
+      const auto lay = geom->getLayer(sens);
+      double sigmaY2{0}, sigmaZ2{0};
+      math_utils::Point3D<float> locXYZ;
+      if (mIsITS3) {
+        locXYZ = o2::its3::ioutils::extractClusterData(cls, pattIt, mIT3Dict, sigmaY2, sigmaZ2);
+      } else {
+        locXYZ = o2::its::ioutils::extractClusterData(cls, pattIt, mITSDict, sigmaY2, sigmaZ2);
+      }
+      sigmaY2 += mParams->extraClsErrY[lay] * mParams->extraClsErrY[lay];
+      sigmaZ2 += mParams->extraClsErrZ[lay] * mParams->extraClsErrZ[lay];
+      // Transformation to the local --> global
+      const auto gloXYZ = geom->getMatrixL2G(sens) * locXYZ;
+      // Inverse transformation to the local --> tracking
+      auto trkXYZf = geom->getMatrixT2L(sens) ^ locXYZ;
+      o2::math_utils::Point3D<double> trkXYZ;
+      trkXYZ.SetCoordinates(trkXYZf.X(), trkXYZf.Y(), trkXYZf.Z());
+      // Tracking alpha angle
+      // We want that each cluster rotates its tracking frame to the clusters phi
+      // that way the track linearization around the measurement is less biases to the arc
+      // this means automatically that the measurement on the arc is at 0 for the curved layers
+      double alpha = geom->getSensorRefAlpha(sens);
+      double x = trkXYZ.x();
+      if (mIsITS3 && constants::detID::isDetITS3(sens)) {
+        trkXYZ.SetY(0.f);
+        // alpha&x always have to be defined wrt to the global Z axis!
+        x = std::hypot(gloXYZ.x(), gloXYZ.y());
+        trkXYZ.SetX(x);
+        alpha = std::atan2(gloXYZ.y(), gloXYZ.x());
+        auto chip = constants::detID::getSensorID(sens);
+        sigmaY2 += mParams->extraClsErrY[chip] * mParams->extraClsErrY[chip];
+        sigmaZ2 += mParams->extraClsErrZ[chip] * mParams->extraClsErrZ[chip];
+      }
+      math_utils::bringToPMPid(alpha);
+      mITSTrackingInfo.getClusters().emplace_back(sens, lay, x, alpha,
+                                                  std::array<double, 2>{trkXYZ.y(), trkXYZ.z()},
+                                                  std::array<double, 3>{sigmaY2, 0., sigmaZ2});
     }
-    sigmaY2 += mParams->extraClsErrY[lay] * mParams->extraClsErrY[lay];
-    sigmaZ2 += mParams->extraClsErrZ[lay] * mParams->extraClsErrZ[lay];
-    // Transformation to the local --> global
-    const auto gloXYZ = geom->getMatrixL2G(sens) * locXYZ;
-    // Inverse transformation to the local --> tracking
-    auto trkXYZf = geom->getMatrixT2L(sens) ^ locXYZ;
-    o2::math_utils::Point3D<double> trkXYZ;
-    trkXYZ.SetCoordinates(trkXYZf.X(), trkXYZf.Y(), trkXYZf.Z());
-    // Tracking alpha angle
-    // We want that each cluster rotates its tracking frame to the clusters phi
-    // that way the track linearization around the measurement is less biases to the arc
-    // this means automatically that the measurement on the arc is at 0 for the curved layers
-    double alpha = geom->getSensorRefAlpha(sens);
-    double x = trkXYZ.x();
-    if (mIsITS3 && constants::detID::isDetITS3(sens)) {
-      trkXYZ.SetY(0.f);
-      // alpha&x always have to be defined wrt to the global Z axis!
-      x = std::hypot(gloXYZ.x(), gloXYZ.y());
-      trkXYZ.SetX(x);
-      alpha = std::atan2(gloXYZ.y(), gloXYZ.x());
-      auto chip = constants::detID::getSensorID(sens);
-      sigmaY2 += mParams->extraClsErrY[chip] * mParams->extraClsErrY[chip];
-      sigmaZ2 += mParams->extraClsErrZ[chip] * mParams->extraClsErrZ[chip];
-    }
-    math_utils::bringToPMPid(alpha);
-    mITSTrackingInfo.emplace_back(sens, lay, x, alpha,
-                                  std::array<double, 2>{trkXYZ.y(), trkXYZ.z()},
-                                  std::array<double, 3>{sigmaY2, 0., sigmaZ2});
-  }
+  } // loop over the layer slots
+  mITSTrackingInfo.finalize();
 }
 
 void AlignmentSpec::buildT2V()
@@ -941,9 +947,10 @@ void AlignmentSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   }
 }
 
-DataProcessorSpec getAlignmentSpec(GTrackID::mask_t srcTracks, GTrackID::mask_t srcClusters, bool useMC, bool withPV, bool withITS, OutputEnum out)
+DataProcessorSpec getAlignmentSpec(GTrackID::mask_t srcTracks, GTrackID::mask_t srcClusters, bool useMC, bool withPV, bool withITS, OutputEnum out, bool itsStag)
 {
   auto dataRequest = std::make_shared<DataRequest>();
+  dataRequest->setITSPerLayer(itsStag);
   std::shared_ptr<o2::base::GRPGeomRequest> ggRequest{nullptr};
   if (!out[OutputOpt::MilleRes]) {
     dataRequest->requestTracks(srcTracks, useMC);

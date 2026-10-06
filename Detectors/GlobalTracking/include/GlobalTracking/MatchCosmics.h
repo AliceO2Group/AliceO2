@@ -23,6 +23,7 @@
 #include "ReconstructionDataFormats/GlobalTrackAccessor.h"
 #include "ReconstructionDataFormats/BaseCluster.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
+#include "DataFormatsITSMFT/ClustersPerLayer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "GlobalTracking/MatchCosmicsParams.h"
 #include "CommonUtils/TreeStreamRedirector.h"
@@ -134,7 +135,7 @@ class MatchCosmics
   bool validateMatch(int partner0);
   void selectWinners();
   void refitWinners(const o2::globaltracking::RecoContainer& data);
-  std::vector<o2::BaseCluster<float>> prepareITSClusters(const o2::globaltracking::RecoContainer& data) const;
+  o2::itsmft::ClustersPerLayer<o2::BaseCluster<float>> prepareITSClusters(const o2::globaltracking::RecoContainer& data) const;
 
   std::vector<TrackSeed> mSeeds;
   std::vector<MatchRecord> mRecords;

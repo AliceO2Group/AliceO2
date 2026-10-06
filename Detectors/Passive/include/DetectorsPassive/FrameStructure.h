@@ -53,10 +53,10 @@ class FrameStructure : public PassiveBase
   /**  copy constructor (used in MT mode only)   */
   FrameStructure(const FrameStructure& rhs);
 
-  void makeHeatScreen(const char* name, float dyP, int rot1, int rot2);
-  void createWebFrame(const char* name, float dHz, float theta0, float phi0);
+  void makeHeatScreen(const char* name, double dyP, int rot1, int rot2);
+  void createWebFrame(const char* name, double dHz, double theta0, double phi0);
   void createMaterials();
-  TGeoCompositeShape* createTOFRail(float y);
+  TGeoCompositeShape* createTOFRail(double y);
 
   bool mCaveIsAvailable = false; ///! if the mother volume is available (to hook the frame)
 
