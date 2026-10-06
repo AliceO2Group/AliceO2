@@ -45,6 +45,15 @@ using namespace o2::globaltracking;
 using GTrackID = o2d::GlobalTrackID;
 using MatCorrType = o2::base::Propagator::MatCorrType;
 
+namespace
+{
+// energy-loss sign of the propagations: the propagator applies the loss along the direction of the track parameters, and the refit runs
+// from the bottom leg up through the top leg (parameters of an upward-moving particle); the cosmic muon flies from the top leg to the
+// bottom leg, so the sign is imposed along its flight
+constexpr int ELossGain = 1;
+constexpr int ELossLoss = -1;
+} // namespace
+
 //________________________________________________________
 void MatchCosmics::process(const o2::globaltracking::RecoContainer& data)
 {
@@ -64,7 +73,12 @@ void MatchCosmics::process(const o2::globaltracking::RecoContainer& data)
   for (int i = 0; i < ntr; i++) {
     auto& trc = mSeeds[i];
     if (trc.matchID != Reject) {
-      if (!prop->propagateToDCABxByBz(v, trc, mMatchParams->maxStep, mMatchParams->matCorr)) {
+      // a cosmic muon flies downward: along a leg whose outward direction points up (top leg) the inward propagation follows the flight,
+      // so the energy is lost; along the bottom leg it goes back in the flight, so the energy is gained
+      std::array<float, 3> momentum{};
+      trc.getPxPyPzGlo(momentum);
+      const int eLossSign = momentum[1] > 0.f ? ELossLoss : ELossGain;
+      if (!prop->propagateToDCABxByBz(v, trc, mMatchParams->maxStep, mMatchParams->matCorr, nullptr, nullptr, eLossSign)) {
         trc.matchID = Reject; // reject track
         continue;
       }
@@ -154,7 +168,7 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
     }
   }
 
-  auto refitITSTrack = [this, &data, &itsTracksROF, &itsClusters](o2::track::TrackParCov& trFit, GTrackID gidx, float& chi2, bool inward = false) {
+  auto refitITSTrack = [this, &data, &itsTracksROF, &itsClusters](o2::track::TrackParCov& trFit, GTrackID gidx, float& chi2, bool inward, int eLossSign) {
     const auto& itsTrOrig = data.getITSTrack(gidx);
     int nclRefit = 0, ncl = itsTrOrig.getNumberOfClusters(), rof = itsTracksROF[gidx.getIndex()];
     const auto& itsTrackClusRefs = data.getITSTracksClusterRefs();
@@ -170,7 +184,7 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
     for (int icl = from; icl != to; icl += step) { // ITS clusters are referred in layer decreasing order
       const auto& clus = itsClusters[itsTrackClusRefs[clEntry + icl]];
       float alpha = geomITS->getSensorRefAlpha(clus.getSensorID()), x = clus.getX();
-      if (!trFit.rotate(alpha) || !propagator->propagateToX(trFit, x, propagator->getNominalBz(), this->mMatchParams->maxSnp, this->mMatchParams->maxStep, this->mMatchParams->matCorr)) {
+      if (!trFit.rotate(alpha) || !propagator->propagateToX(trFit, x, propagator->getNominalBz(), this->mMatchParams->maxSnp, this->mMatchParams->maxStep, this->mMatchParams->matCorr, nullptr, eLossSign)) {
         break;
       }
       chi2 += trFit.getPredictedChi2(clus);
@@ -221,7 +235,7 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
       if (!mFieldON) {
         trCosm.setQ2Pt(-o2::track::kMostProbablePt);
       }
-      int retVal = tpcRefitter->RefitTrackAsTrackParCov(trCosm, tpcTrOrig.getClusterRef(), t0 * tpcTBinMUSInv, &chi2, false, false); // inward refit, reset
+      int retVal = tpcRefitter->RefitTrackAsTrackParCov(trCosm, tpcTrOrig.getClusterRef(), t0 * tpcTBinMUSInv, &chi2, false, false, ELossGain); // inward refit, reset
       if (retVal < 0) {                                                                                                             // refit failed
         LOG(debug) << "Inward refit of btm TPC track failed.";
         continue;
@@ -247,7 +261,7 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
     }
     trCosm.invert();
     if (!trCosm.rotate(mSeeds[poolEntryID[top]].getAlpha()) ||
-        !o2::base::Propagator::Instance()->PropagateToXBxByBz(trCosm, mSeeds[poolEntryID[top]].getX(), mMatchParams->maxSnp, mMatchParams->maxStep, mMatchParams->matCorr)) {
+        !o2::base::Propagator::Instance()->PropagateToXBxByBz(trCosm, mSeeds[poolEntryID[top]].getX(), mMatchParams->maxSnp, mMatchParams->maxStep, mMatchParams->matCorr, nullptr, ELossGain)) {
       LOG(debug) << "Rotation/propagation of btm-track to top-track frame failed.";
       continue;
     }
@@ -260,7 +274,7 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
 
     // is there ITS sub-track?
     if (gidxListTop[GTrackID::ITS].isIndexSet()) {
-      auto nclfit = refitITSTrack(trCosm, gidxListTop[GTrackID::ITS], chi2, false);
+      auto nclfit = refitITSTrack(trCosm, gidxListTop[GTrackID::ITS], chi2, false, ELossGain);
       if (nclfit < 0) {
         continue;
       }
@@ -273,13 +287,13 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
       if (trCosm.getX() * trCosm.getX() + trCosm.getY() * trCosm.getY() <= o2::constants::geom::XTPCInnerRef * o2::constants::geom::XTPCInnerRef) {
         float xtogo = 0;
         if (!trCosm.getXatLabR(o2::constants::geom::XTPCInnerRef, xtogo, mBz, o2::track::DirOutward) ||
-            !o2::base::Propagator::Instance()->PropagateToXBxByBz(trCosm, xtogo, mMatchParams->maxSnp, mMatchParams->maxStep, mMatchParams->matCorr)) {
+            !o2::base::Propagator::Instance()->PropagateToXBxByBz(trCosm, xtogo, mMatchParams->maxSnp, mMatchParams->maxStep, mMatchParams->matCorr, nullptr, ELossGain)) {
           LOG(debug) << "Propagation to inner TPC boundary X=" << xtogo << " failed";
           continue;
         }
       }
       const auto& tpcTrOrig = data.getTPCTrack(gidxListTop[GTrackID::TPC]);
-      int retVal = tpcRefitter->RefitTrackAsTrackParCov(trCosm, tpcTrOrig.getClusterRef(), t0 * tpcTBinMUSInv, &chi2, true, false); // outward refit, no reset
+      int retVal = tpcRefitter->RefitTrackAsTrackParCov(trCosm, tpcTrOrig.getClusterRef(), t0 * tpcTBinMUSInv, &chi2, true, false, ELossGain); // outward refit, no reset
       if (retVal < 0) {                                                                                                             // refit failed
         LOG(debug) << "Outward refit of top TPC track failed.";
         continue;
@@ -293,15 +307,15 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
     auto trCosmTop = outerLegs[top];
     if (gidxListTop[GTrackID::TPC].isIndexSet()) { // inward refit in TPC
       const auto& tpcTrOrig = data.getTPCTrack(gidxListTop[GTrackID::TPC]);
-      int retVal = tpcRefitter->RefitTrackAsTrackParCov(trCosmTop, tpcTrOrig.getClusterRef(), t0 * tpcTBinMUSInv, &chi2Dummy, false, true); // inward refit, reset
+      int retVal = tpcRefitter->RefitTrackAsTrackParCov(trCosmTop, tpcTrOrig.getClusterRef(), t0 * tpcTBinMUSInv, &chi2Dummy, false, true, ELossLoss); // inward refit, reset
       if (retVal < 0) {                                                                                                                     // refit failed
-        LOG(debug) << "Outward refit of top TPC track failed.";
+        LOG(debug) << "Inward refit of top TPC track failed.";
         continue;
       } // inward refit in TPC
     }
     // is there ITS sub-track ?
     if (gidxListTop[GTrackID::ITS].isIndexSet()) {
-      auto nclfit = refitITSTrack(trCosmTop, gidxListTop[GTrackID::ITS], chi2Dummy, true);
+      auto nclfit = refitITSTrack(trCosmTop, gidxListTop[GTrackID::ITS], chi2Dummy, true, ELossLoss);
       if (nclfit < 0) {
         continue;
       }
@@ -309,7 +323,7 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
     } // ITS refit
     // propagate to bottom param
     if (!trCosmTop.rotate(trCosmBtm.getAlpha()) ||
-        !o2::base::Propagator::Instance()->PropagateToXBxByBz(trCosmTop, trCosmBtm.getX(), mMatchParams->maxSnp, mMatchParams->maxStep, mMatchParams->matCorr)) {
+        !o2::base::Propagator::Instance()->PropagateToXBxByBz(trCosmTop, trCosmBtm.getX(), mMatchParams->maxSnp, mMatchParams->maxStep, mMatchParams->matCorr, nullptr, ELossLoss)) {
       LOG(debug) << "Rotation/propagation of top-track to bottom-track frame failed.";
       continue;
     }

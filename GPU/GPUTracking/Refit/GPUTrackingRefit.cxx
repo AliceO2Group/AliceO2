@@ -221,6 +221,7 @@ GPUd() int32_t GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov
   convertTrack<S, T, typename internal::refitTrackTypes<S>::propagator>(trk, trkX, prop, &TrackParCovChi2);
   int32_t begin = 0, count;
   float tOffset;
+  [[maybe_unused]] int32_t eLossSign = 0; // energy-loss sign of the TrackParCov propagations (0: from the direction, outward = loss)
   if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
     count = trkX.NClusters();
     tOffset = trkX.GetParam().GetTOffset();
@@ -230,6 +231,7 @@ GPUd() int32_t GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov
   } else if constexpr (std::is_same_v<T, TrackParCovWithArgs>) {
     count = trkX.clusRef.getEntries();
     tOffset = trkX.time0;
+    eLossSign = trkX.eLossSign;
   } else {
     static_assert("Invalid template");
   }
@@ -357,7 +359,7 @@ GPUd() int32_t GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov
         IgnoreErrors(trk.getSnp());
         return -1;
       }
-      if (!prop->PropagateToXBxByBz(trk, x, constants::MAX_SIN_PHI_LOW)) {
+      if (!prop->PropagateToXBxByBz(trk, x, constants::MAX_SIN_PHI_LOW, Propagator::MAX_STEP, Propagator::MatCorrType::USEMatCorrLUT, nullptr, eLossSign)) {
         IgnoreErrors(trk.getSnp());
         return -2;
       }
@@ -401,11 +403,13 @@ GPUd() int32_t GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov
     constexpr float kDeg2Rad = M_PI / 180.f;
     constexpr float kSectAngle = 2 * M_PI / 18.f;
     if (mPparam->rec.tpc.trackReferenceX <= 500) {
-      if (prop->PropagateToXBxByBz(trk, mPparam->rec.tpc.trackReferenceX)) {
+      // a forced energy-loss sign holds along the refit direction: the way to the reference X can run against it
+      const int32_t eLossSignRef = (mPparam->rec.tpc.trackReferenceX > trk.getX()) == outward ? eLossSign : -eLossSign;
+      if (prop->PropagateToXBxByBz(trk, mPparam->rec.tpc.trackReferenceX, Propagator::MAX_SIN_PHI, Propagator::MAX_STEP, Propagator::MatCorrType::USEMatCorrLUT, nullptr, eLossSignRef)) {
         if (CAMath::Abs(trk.getY()) > trk.getX() * CAMath::Tan(kSectAngle / 2.f)) {
           float newAlpha = trk.getAlpha() + CAMath::Round(CAMath::ATan2(trk.getY(), trk.getX()) / kDeg2Rad / 20.f) * kSectAngle;
           GPUTPCGMTrackParam::NormalizeAlpha(newAlpha);
-          trk.rotate(newAlpha) && prop->PropagateToXBxByBz(trk, mPparam->rec.tpc.trackReferenceX);
+          trk.rotate(newAlpha) && prop->PropagateToXBxByBz(trk, mPparam->rec.tpc.trackReferenceX, Propagator::MAX_SIN_PHI, Propagator::MAX_STEP, Propagator::MatCorrType::USEMatCorrLUT, nullptr, eLossSignRef);
         }
       }
     }
