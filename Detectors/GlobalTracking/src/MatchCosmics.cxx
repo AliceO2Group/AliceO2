@@ -57,8 +57,10 @@ void MatchCosmics::process(const o2::globaltracking::RecoContainer& data)
   createSeeds(data);
   int ntr = mSeeds.size();
   const auto prop = o2::base::Propagator::Instance();
-  // propagate to DCA to origin
-  const o2::math_utils::Point3D<float> v{0., 0., 0};
+  // propagate to DCA to origin. A VertexBase (origin, zero covariance) selects the TrackParCov overload of propagateToDCABxByBz:
+  // with a Point3D the TrackPar_t overload is used and only the parameters are propagated, the covariance stays the one at the
+  // track's reference X (TPC inner radius), which makes the y/snp cuts and the chi2 of checkPair far too tight.
+  const o2::dataformats::VertexBase v;
   for (int i = 0; i < ntr; i++) {
     auto& trc = mSeeds[i];
     if (trc.matchID != Reject) {
