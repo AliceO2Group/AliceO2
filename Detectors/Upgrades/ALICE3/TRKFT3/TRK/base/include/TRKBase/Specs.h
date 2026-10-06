@@ -108,6 +108,16 @@ constexpr double width{constants::moduleMLOT::width * 1}; // width of the stave
 constexpr double length{124 * cm};                                                   // length of the stave, hardcoded to fit the implemented geometry
 constexpr int nRows{static_cast<int>(width / constants::moduleMLOT::chip::pitchX)};  // number of rows in the stave
 constexpr int nCols{static_cast<int>(length / constants::moduleMLOT::chip::pitchZ)}; // number of columns in the stave
+
+namespace eosCard // end-of-stave readout card, one per ML stave, A-side (+z) only,
+{                 // placed in front of the TRK_MIDBARCONN_DISK (fibre, power, ...)
+constexpr double length{90 * mm};           // z-extent (fits the gap to the conn disk)
+constexpr double width{50 * mm};            // phi-extent
+constexpr double thickness{1.5 * mm};       // r-extent, FR4 + copper planes
+constexpr int nCopperLayers{4};             // copper planes, spread over the thickness
+constexpr double copperThickness{122 * mu}; // per copper plane; default of TRKBase.mlEosCardCuThickness
+constexpr double zGap{0.1 * mm};            // z-clearance from the last module / stave end
+} // namespace eosCard
 } // namespace ML
 
 namespace OT
