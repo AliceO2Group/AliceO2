@@ -73,11 +73,11 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int32_t /*nBlocks*/, int32_t nTh
     return;
   }
 
-  static constexpr uint32_t UNROLL_GLOBAL = GPUCA_PAR_NEIGHBOURS_FINDER_UNROLL_GLOBAL > 1 ? GPUCA_PAR_NEIGHBOURS_FINDER_UNROLL_GLOBAL : 1;
+  constexpr uint32_t UNROLL_GLOBAL = GPUCA_PAR_NEIGHBOURS_FINDER_UNROLL_GLOBAL > 1 ? GPUCA_PAR_NEIGHBOURS_FINDER_UNROLL_GLOBAL : 1;
   static_assert(constants::NEIGHBOURS_MAX_N % UNROLL_GLOBAL == 0);
-  static constexpr uint32_t MAX_SHARED = GPUCA_PAR_NEIGHBOURS_FINDER_MAX_NNEIGHUP;
-  static constexpr uint32_t MAX_GLOBAL = (MAX_SHARED < constants::NEIGHBOURS_MAX_N) ? (((constants::NEIGHBOURS_MAX_N - MAX_SHARED - 1) / UNROLL_GLOBAL + 1) * UNROLL_GLOBAL) : 0;
-  static constexpr uint32_t MAX_TOTAL = MAX_SHARED + MAX_GLOBAL;
+  constexpr uint32_t MAX_SHARED = GPUCA_PAR_NEIGHBOURS_FINDER_MAX_NNEIGHUP;
+  constexpr uint32_t MAX_GLOBAL = (MAX_SHARED < constants::NEIGHBOURS_MAX_N) ? (((constants::NEIGHBOURS_MAX_N - MAX_SHARED - 1) / UNROLL_GLOBAL + 1) * UNROLL_GLOBAL) : 0;
+  constexpr uint32_t MAX_TOTAL = MAX_SHARED + MAX_GLOBAL;
 
   const float chi2Cut = 3.f * 3.f * 4 * (s.mUpDx * s.mUpDx + s.mDnDx * s.mDnDx);
   // float chi2Cut = 3.f*3.f*(s.mUpDx*s.mUpDx + s.mDnDx*s.mDnDx ); //SG

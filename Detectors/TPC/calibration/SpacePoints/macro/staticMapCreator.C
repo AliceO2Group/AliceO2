@@ -320,6 +320,11 @@ void staticMapCreator(std::string fileInput = "files.txt",
           if (useResidualsForVd && residualsVd.size() < 10'000'000UL) {
             residualsVd.push_back(residIn);
           }
+          if (residIn.isTgSlpClamped()) {
+            // scdcalib.clampTgSlp: tgSlp saturated -- the voxel fit (dX from dY vs tan(phi)) and the map correction below
+            // use it, so keep this residual out of the binned residuals
+            continue;
+          }
           int sec = residIn.sec;
           auto& residVecOut = binnedResidualsSec[sec];
           auto& statVecOut = voxStatsSec[sec];

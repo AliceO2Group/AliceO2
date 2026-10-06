@@ -995,7 +995,7 @@ void TRKServices::createOTServicesPeacock(TGeoVolume* motherVolume)
   float zLengthOuterBarrelTubeServices = 215.f;                   // cm, IA, May 11, 2026: temporary length (?)
 
   // geometry of service "tubes" for OT disks
-  float rMinOuterDiskServices = 70.5f;    // cm
+  float rMinOuterDiskServices = 71.f;     // cm
   float zStartOuterDiskServices = 149.f;  // cm
   float zLengthOuterDiskServices = 201.f; // cm
 

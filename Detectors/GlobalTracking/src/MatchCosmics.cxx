@@ -622,17 +622,22 @@ void MatchCosmics::init()
 }
 
 //________________________________________________________
-std::vector<o2::BaseCluster<float>> MatchCosmics::prepareITSClusters(const o2::globaltracking::RecoContainer& data) const
+o2::itsmft::ClustersPerLayer<o2::BaseCluster<float>> MatchCosmics::prepareITSClusters(const o2::globaltracking::RecoContainer& data) const
 {
-  std::vector<o2::BaseCluster<float>> itscl;
-  const auto& clusITS = data.getITSClusters();
-  if (clusITS.size()) {
-    const auto& patterns = data.getITSClustersPatterns();
-    itscl.reserve(clusITS.size());
-    auto pattIt = patterns.begin();
-    o2::its::ioutils::convertCompactClusters(clusITS, pattIt, itscl, mITSDict);
+  o2::itsmft::ClustersPerLayer<o2::BaseCluster<float>> itscl;
+  int nLr = data.getITSPerLayer() ? o2::globaltracking::MaxITSLayers : 1;
+  itscl.init(nLr);
+  for (int lr = 0; lr < nLr; lr++) {
+    itscl.beginLayer(lr);
+    const auto& clusITS = data.getITSClusters(lr);
+    if (clusITS.size()) {
+      auto pattIt = data.getITSClustersPatterns(lr).begin();
+      itscl.getClusters().reserve(itscl.size() + clusITS.size());
+      o2::its::ioutils::convertCompactClusters(clusITS, pattIt, itscl.getClusters(), mITSDict);
+    }
   }
-  return std::move(itscl);
+  itscl.finalize();
+  return itscl;
 }
 
 //______________________________________________

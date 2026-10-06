@@ -203,10 +203,17 @@ void Detector::SetOneMCP(TGeoVolume* ins)
 
   Double_t x, y, z;
 
-  Float_t ptop[3] = {1.324, 1.324, 1.};      // Cherenkov radiator
-  Float_t ptopref[3] = {1.3241, 1.3241, 1.}; // Cherenkov radiator wrapped with reflector
-  Double_t prfv[3] = {0.0002, 1.323, 1.};    // Vertical refracting layer bettwen radiators and between radiator and not optical Air
-  Double_t prfh[3] = {1.323, 0.0002, 1.};    // Horizontal refracting layer bettwen radiators and ...
+  Float_t ptop[3] = {1.324, 1.324, 1.};   // Cherenkov radiator
+  Double_t prfv[3] = {0.0002, 1.323, 1.}; // Vertical refracting layer bettwen radiators and between radiator and not optical Air
+  Double_t prfh[3] = {1.323, 0.0002, 1.}; // Horizontal refracting layer bettwen radiators and ...
+  // Cherenkov radiator wrapped with reflector. The container has to hold the radiator plus one
+  // reflector strip on each side, so its half-width is the radiator's plus the full strip
+  // thickness. It was written as the radiator plus 1 um while a strip is 4 um thick, which left
+  // each strip sticking 3 um out of its own mother. The clearance keeps the strips off the
+  // container wall, so no daughter face sits exactly on the mother's.
+  const double kWrapClearance = 1.e-4; // cm
+  Float_t ptopref[3] = {static_cast<Float_t>(ptop[0] + 2 * prfv[0] + kWrapClearance),
+                        static_cast<Float_t>(ptop[1] + 2 * prfh[1] + kWrapClearance), 1.};
   Float_t pmcp[3] = {2.949, 2.949, 0.66};    // MCP
   Float_t pmcpinner[3] = {2.749, 2.749, 0.1};
   Float_t pmcpbase[3] = {2.949, 2.949, 0.675};
@@ -231,14 +238,31 @@ void Detector::SetOneMCP(TGeoVolume* ins)
   Int_t ntops = 0, nrfvs = 0, nrfhs = 0;
   x = y = z = 0;
   topref->AddNode(top, 1, new TGeoTranslation(0, 0, 0));
-  float xinv = -ptop[0] - prfv[0];
+  // Each reflector strip has to sit against the radiator with no gap: SetBorderSurface below
+  // makes 0TOP/0RFV and 0TOP/0RFH mirrors, and a border surface only acts where the two
+  // volumes actually touch. Rounding the offset to float left 0.33 nm of air between them, so
+  // the mirrors never applied and the light left through the side.
+  auto seat = [](Float_t half, Double_t strip) { return double(half) + strip; };
+  double xinv = -seat(ptop[0], prfv[0]);
   topref->AddNode(rfv, 1, new TGeoTranslation(xinv, 0, 0));
-  xinv = ptop[0] + prfv[0];
+  xinv = seat(ptop[0], prfv[0]);
   topref->AddNode(rfv, 2, new TGeoTranslation(xinv, 0, 0));
-  float yinv = -ptop[1] - prfh[1];
+  double yinv = -seat(ptop[1], prfh[1]);
   topref->AddNode(rfh, 1, new TGeoTranslation(0, yinv, 0));
-  yinv = ptop[1] + prfh[1];
+  yinv = seat(ptop[1], prfh[1]);
   topref->AddNode(rfh, 2, new TGeoTranslation(0, yinv, 0));
+
+  // The wrapped radiator, the MCP top glass, the photocathode and the MCP are stacked along z
+  // with no gap between them. Each layer's position is built here from the back face of the one
+  // before it, using the same double addition the box shape uses for its own half-length, so
+  // adjacent faces land on the same double. Summing the float thicknesses in a different order
+  // for each layer, as this code did, left the faces up to 0.24 nm apart.
+  const double zRadiatorCentre = -mInStart[2] + double(ptopref[2]);
+  const double zRadiatorBack = zRadiatorCentre + double(ptopref[2]);
+  const double zTopGlassCentre = zRadiatorBack + double(pmcptopglass[2]);
+  const double zTopGlassBack = zTopGlassCentre + double(pmcptopglass[2]);
+  const double zCathodeCentre = zTopGlassBack + double(preg[2]);
+  const double zCathodeBack = zCathodeCentre + double(preg[2]);
 
   // container for radiator, cathode
   for (Int_t ix = 0; ix < 2; ix++) {
@@ -246,24 +270,20 @@ void Detector::SetOneMCP(TGeoVolume* ins)
     for (Int_t iy = 0; iy < 2; iy++) {
       float yin = -mInStart[1] + 0.3 + (iy + 0.5) * 2 * ptopref[1];
       ntops++;
-      z = -mInStart[2] + ptopref[2];
-      ins->AddNode(topref, ntops, new TGeoTranslation(xin, yin, z));
-      LOG(debug) << " n " << ntops << " x " << xin << " y " << yin << " z radiator " << z;
-      z += ptopref[2] + 2. * pmcptopglass[2] + preg[2];
-      ins->AddNode(cat, ntops, new TGeoTranslation(xin, yin, z));
-      LOG(debug) << " n " << ntops << " x " << xin << " y " << yin << " z cathod " << z;
+      ins->AddNode(topref, ntops, new TGeoTranslation(xin, yin, zRadiatorCentre));
+      LOG(debug) << " n " << ntops << " x " << xin << " y " << yin << " z radiator " << zRadiatorCentre;
+      ins->AddNode(cat, ntops, new TGeoTranslation(xin, yin, zCathodeCentre));
+      LOG(debug) << " n " << ntops << " x " << xin << " y " << yin << " z cathod " << zCathodeCentre;
     }
   }
   // MCP
   TVirtualMC::GetMC()->Gsvolu("0MTO", "BOX", getMediumID(kOpGlass), pmcptopglass, 3); // Op  Glass
   TGeoVolume* mcptop = gGeoManager->GetVolume("0MTO");
-  z = -mInStart[2] + 2 * ptopref[2] + pmcptopglass[2];
-  ins->AddNode(mcptop, 1, new TGeoTranslation(0, 0, z));
+  ins->AddNode(mcptop, 1, new TGeoTranslation(0, 0, zTopGlassCentre));
 
   TVirtualMC::GetMC()->Gsvolu("0MCP", "BOX", getMediumID(kAir), pmcp, 3); // glass
   TGeoVolume* mcp = gGeoManager->GetVolume("0MCP");
-  z = -mInStart[2] + 2 * ptopref[2] + 2 * pmcptopglass[2] + 2 * preg[2] + pmcp[2];
-  ins->AddNode(mcp, 1, new TGeoTranslation(0, 0, z));
+  ins->AddNode(mcp, 1, new TGeoTranslation(0, 0, zCathodeBack + double(pmcp[2])));
 
   TVirtualMC::GetMC()->Gsvolu("0MSI", "BOX", getMediumID(kMCPwalls), pmcpside, 3); // glass
   TGeoVolume* mcpside = gGeoManager->GetVolume("0MSI");

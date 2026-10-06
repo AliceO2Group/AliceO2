@@ -16,6 +16,7 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
 #include "CommonConstants/LHCConstants.h"
+#include "DataFormatsITSMFT/ClusterID.h"
 #include <string_view>
 
 namespace o2
@@ -76,6 +77,10 @@ struct DPLAlpideParam : public o2::conf::ConfigurableParamHelper<DPLAlpideParam<
   }
 
   static_assert(N == o2::detectors::DetID::ITS || N == o2::detectors::DetID::MFT, "only DetID::ITS orDetID:: MFT are allowed");
+  // the per-layer clusters are referred to by the composed ID of ClusterID.h, whose layer field must
+  // match the number of layers of this detector, see composeClusID
+  static_assert(getNLayers() == (N == o2::detectors::DetID::ITS ? MaxITSClusLayers : MaxMFTClusLayers),
+                "layers count mismatch between DPLAlpideParam and the composed cluster ID encoding of ClusterID.h");
   static_assert(o2::constants::lhc::LHCMaxBunches % DEFROFLengthBC() == 0); // make sure ROF length is divisor of the orbit
 };
 

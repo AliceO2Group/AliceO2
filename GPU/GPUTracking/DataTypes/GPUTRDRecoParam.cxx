@@ -45,18 +45,18 @@ void GPUTRDRecoParam::init(float bz, const GPUSettingsRec* rec)
   if (CAMath::Abs(CAMath::Abs(bz) - 2) < 0.1) {
     if (bz > 0) {
       // magnetic field +0.2 T
-      mRPhiC2 = 4.55e-2f;
+      mRPhiC2 = 0.098f;
     } else {
       // magnetic field -0.2 T
-      mRPhiC2 = 4.55e-2f;
+      mRPhiC2 = 0.098f;
     }
   } else if (CAMath::Abs(CAMath::Abs(bz) - 5) < 0.1) {
     if (bz > 0) {
       // magnetic field +0.5 T
-      mRPhiC2 = 0.0961f;
+      mRPhiC2 = 0.058f;
     } else {
       // magnetic field -0.5 T
-      mRPhiC2 = 0.1156f;
+      mRPhiC2 = 0.072f;
     }
   } else {
     LOGP(warning, "No error parameterization available for Bz= {}. Keeping default value (sigma_y = const. = 1cm)", bz);

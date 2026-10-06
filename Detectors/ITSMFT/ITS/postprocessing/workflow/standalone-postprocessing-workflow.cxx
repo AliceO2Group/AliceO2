@@ -71,6 +71,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   auto useMC = !configcontext.options().get<bool>("disable-mc");
+  auto doStag = o2::itsmft::DPLAlpideParamInitializer::isITSStaggeringEnabled(configcontext);
 
   std::shared_ptr<o2::steer::MCKinematicsReader> mcKinematicsReader;
   if (useMC) {
@@ -90,14 +91,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     srcTrc = GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
     srcCls = GID::getSourcesMask(configcontext.options().get<std::string>("cluster-sources"));
     o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCls, srcTrc, srcTrc, useMC, srcCls, srcTrc);
-    specs.emplace_back(o2::its::study::getAvgClusSizeStudy(srcTrc, srcCls, useMC, mcKinematicsReader));
+    specs.emplace_back(o2::its::study::getAvgClusSizeStudy(srcTrc, srcCls, useMC, mcKinematicsReader, doStag));
   }
   if (configcontext.options().get<bool>("pid-study")) {
     anyStudy = true;
     srcTrc = GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
     srcCls = GID::getSourcesMask(configcontext.options().get<std::string>("cluster-sources"));
     o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCls, srcTrc, srcTrc, useMC, srcCls, srcTrc);
-    specs.emplace_back(o2::its::study::getPIDStudy(srcTrc, srcCls, useMC, mcKinematicsReader));
+    specs.emplace_back(o2::its::study::getPIDStudy(srcTrc, srcCls, useMC, mcKinematicsReader, doStag));
   }
   if (configcontext.options().get<bool>("track-study")) {
     anyStudy = true;
@@ -106,7 +107,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     if (!configcontext.options().get<bool>("input-from-upstream")) {
       o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCls, srcTrc, srcTrc, useMC, srcCls, srcTrc);
     }
-    specs.emplace_back(o2::its::study::getTrackCheckStudy(GID::getSourcesMask("ITS"), GID::getSourcesMask("ITS"), useMC, mcKinematicsReader));
+    specs.emplace_back(o2::its::study::getTrackCheckStudy(GID::getSourcesMask("ITS"), GID::getSourcesMask("ITS"), useMC, mcKinematicsReader, doStag));
   }
   if (configcontext.options().get<bool>("anomaly-study")) {
     anyStudy = true;
@@ -114,7 +115,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     if (!configcontext.options().get<bool>("input-from-upstream")) {
       o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCls, srcTrc, srcTrc, useMC, srcCls, srcTrc);
     }
-    specs.emplace_back(o2::its::study::getAnomalyStudy(srcCls, useMC));
+    specs.emplace_back(o2::its::study::getAnomalyStudy(srcCls, useMC, doStag));
   }
   if (configcontext.options().get<bool>("its-beambkg-study")) {
     anyStudy = true;
@@ -125,7 +126,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     if (!configcontext.options().get<bool>("input-from-upstream")) {
       o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCls, srcTrc, srcTrc, useMC, srcCls, srcTrc);
     }
-    specs.emplace_back(o2::its::study::getITSBeamBackgroundStudy(srcTrc, srcCls, useMC));
+    specs.emplace_back(o2::its::study::getITSBeamBackgroundStudy(srcTrc, srcCls, useMC, doStag));
   }
   if (configcontext.options().get<bool>("track-extension-study")) {
     if (!useMC) {
@@ -135,7 +136,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     srcTrc = GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
     srcCls = GID::getSourcesMask("ITS");
     o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCls, srcTrc, srcTrc, true, srcCls, srcTrc);
-    specs.emplace_back(o2::its::study::getTrackExtensionStudy(srcTrc, srcCls, mcKinematicsReader));
+    specs.emplace_back(o2::its::study::getTrackExtensionStudy(srcTrc, srcCls, mcKinematicsReader, doStag));
   }
   if (configcontext.options().get<bool>("efficiency-study")) {
     anyStudy = true;
@@ -144,7 +145,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     if (!configcontext.options().get<bool>("input-from-upstream")) {
       o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCls, srcTrc, srcTrc, useMC, srcCls, srcTrc);
     }
-    specs.emplace_back(o2::its::study::getEfficiencyStudy(GID::getSourcesMask("ITS"), GID::getSourcesMask("ITS"), useMC, mcKinematicsReader));
+    specs.emplace_back(o2::its::study::getEfficiencyStudy(GID::getSourcesMask("ITS"), GID::getSourcesMask("ITS"), useMC, mcKinematicsReader, doStag));
   }
   if (!anyStudy) {
     LOGP(info, "No study selected, dryrunning");

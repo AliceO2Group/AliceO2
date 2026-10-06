@@ -16,6 +16,7 @@
 #include <iostream>
 #include <iomanip>
 #include "CommonUtils/StringUtils.h"
+#include "CommonConstants/LHCConstants.h"
 #include <fairlogger/Logger.h>
 
 using namespace o2::ctp;
@@ -544,8 +545,8 @@ int CTPRunScalers::printRates()
     CTPScalerRecordO2* scalrec1 = &mScalerRecordO2[i];
     double_t tt = (double_t)(scalrec1->intRecord.orbit - scalrec0->intRecord.orbit);
     double_t tinrun = (double_t)(scalrec1->intRecord.orbit - orbit0);
-    tt = tt * 88e-6;
-    tinrun = tinrun * 88e-6;
+    tt = tt * o2::constants::lhc::LHCOrbitMUS * 1.e-6;
+    tinrun = tinrun * o2::constants::lhc::LHCOrbitMUS * 1.e-6;
     std::cout << "==> Time wrt to SOR [s]:" << tinrun << " time intervale[s]:" << tt << std::endl;
     for (uint32_t j = 0; j < scalrec1->scalers.size(); j++) {
       CTPScalerO2* s0 = &(scalrec0->scalers[j]);
@@ -645,7 +646,7 @@ void CTPRunScalers::printLMBRateVsT() const
     auto prev = &mScalerRecordO2[i - 1];
     auto curr = &mScalerRecordO2[i];
     double_t tt = (double_t)(curr->intRecord.orbit - prev->intRecord.orbit);
-    tt = tt * 88e-6;
+    tt = tt * o2::constants::lhc::LHCOrbitMUS * 1.e-6;
 
     for (int j = 0; j < 1; j++) {    // loop over classes
       auto s0 = &(prev->scalers[j]); // type CTPScalerO2*
@@ -749,7 +750,7 @@ std::pair<double, double> CTPRunScalers::getRate(uint32_t orbit, int classindex,
   auto calcRate = [&](auto index1, auto index2) -> double {
     const auto& snext = mScalerRecordO2[index2];
     const auto& sprev = mScalerRecordO2[index1];
-    auto timedelta = (snext.intRecord.orbit - sprev.intRecord.orbit) * 88.e-6; // converts orbits into time
+    auto timedelta = (snext.intRecord.orbit - sprev.intRecord.orbit) * o2::constants::lhc::LHCOrbitMUS * 1.e-6; // converts orbits into time
     if (type < 7) {
       const auto& s0 = sprev.scalers[classindex]; // type CTPScalerO2*
       const auto& s1 = snext.scalers[classindex];
@@ -826,7 +827,7 @@ std::pair<double, double> CTPRunScalers::getRateGivenT(double timestamp, int cla
   auto calcRate = [&](auto index1, auto index2) -> double {
     const auto& snext = mScalerRecordO2[index2];
     const auto& sprev = mScalerRecordO2[index1];
-    auto timedelta = (snext.intRecord.orbit - sprev.intRecord.orbit) * 88.e-6; // converts orbits into time
+    auto timedelta = (snext.intRecord.orbit - sprev.intRecord.orbit) * o2::constants::lhc::LHCOrbitMUS * 1.e-6; // converts orbits into time
     // std::cout << "timedelta:" << timedelta << std::endl;
     if (type < 7) {
       const auto& s0 = sprev.scalers[classindex]; // type CTPScalerO2*

@@ -101,8 +101,8 @@ void Detector::SpecialProcess(Int_t numed, EProc parID, int val)
   mgr.SpecialProcess(GetName(), numed, parID, val);
 }
 
-void Detector::Matrix(Int_t& nmat, Float_t theta1, Float_t phi1, Float_t theta2, Float_t phi2, Float_t theta3,
-                      Float_t phi3) const
+void Detector::Matrix(Int_t& nmat, Double_t theta1, Double_t phi1, Double_t theta2, Double_t phi2, Double_t theta3,
+                      Double_t phi3) const
 {
   TVirtualMC::GetMC()->Matrix(nmat, theta1, phi1, theta2, phi2, theta3, phi3);
 }
@@ -215,17 +215,17 @@ void attachMessageBufferToParts(fair::mq::Parts& parts, fair::mq::Channel& chann
   o2::framework::TMessageSerializer::serialize(buffer, data, cl);
   parts.AddPart(std::move(msg));
 }
-void attachDetIDHeaderMessage(int id, fair::mq::Channel& channel, fair::mq::Parts& parts)
+void attachHitsHeaderMessage(HitsHeader const& header, fair::mq::Channel& channel, fair::mq::Parts& parts)
 {
-  std::unique_ptr<fair::mq::Message> message(channel.NewSimpleMessage(id));
+  std::unique_ptr<fair::mq::Message> message(channel.NewSimpleMessage(header));
   parts.AddPart(std::move(message));
 }
-void attachShmMessage(void* hits_ptr, fair::mq::Channel& channel, fair::mq::Parts& parts, bool* busy_ptr)
+void attachShmMessage(void* hits_ptr, fair::mq::Channel& channel, fair::mq::Parts& parts, ShmBusyFlag* busy_ptr)
 {
   struct shmcontext {
     int id;
     void* object_ptr;
-    bool* busy_ptr;
+    ShmBusyFlag* busy_ptr;
   };
 
   auto& instance = o2::utils::ShmManager::Instance();
@@ -237,13 +237,13 @@ void attachShmMessage(void* hits_ptr, fair::mq::Channel& channel, fair::mq::Part
   std::unique_ptr<fair::mq::Message> message(channel.NewSimpleMessage(info));
   parts.AddPart(std::move(message));
 }
-void* decodeShmCore(fair::mq::Parts& dataparts, int index, bool*& busy)
+void* decodeShmCore(fair::mq::Parts& dataparts, int index, ShmBusyFlag*& busy)
 {
   auto rawmessage = std::move(dataparts.At(index));
   struct shmcontext {
     int id;
     void* object_ptr;
-    bool* busy_ptr;
+    ShmBusyFlag* busy_ptr;
   };
 
   shmcontext* info = (shmcontext*)rawmessage->GetData();

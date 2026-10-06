@@ -30,13 +30,13 @@ enum BeamDirection : int { BeamA, // beamA = beam 0,
                            NBeamDirections,
                            InteractingBC = -1 // as used in the BunchFilling class
 };
-GPUglobalconstexpr() int LHCMaxBunches = 3564;                   // max N bunches
-constexpr double LHCRFFreq = 400.789e6;                          // LHC RF frequency in Hz
-constexpr double LHCBunchSpacingNS = 10 * 1.e9 / LHCRFFreq;      // bunch spacing in ns (10 RFbuckets)
-constexpr double LHCOrbitNS = LHCMaxBunches * LHCBunchSpacingNS; // orbit duration in ns
-constexpr double LHCRevFreq = 1.e9 / LHCOrbitNS;                 // revolution frequency
-constexpr double LHCBunchSpacingMUS = LHCBunchSpacingNS * 1e-3;  // bunch spacing in \mus (10 RFbuckets)
-constexpr double LHCOrbitMUS = LHCOrbitNS * 1e-3;                // orbit duration in \mus
+GPUglobalconstexpr() int LHCMaxBunches = 3564;                              // max N bunches
+GPUglobalconstexpr() double LHCRFFreq = 400.789e6;                          // LHC RF frequency in Hz
+GPUglobalconstexpr() double LHCBunchSpacingNS = 10 * 1.e9 / LHCRFFreq;      // bunch spacing in ns (10 RFbuckets)
+GPUglobalconstexpr() double LHCOrbitNS = LHCMaxBunches * LHCBunchSpacingNS; // orbit duration in ns
+GPUglobalconstexpr() double LHCRevFreq = 1.e9 / LHCOrbitNS;                 // revolution frequency
+GPUglobalconstexpr() double LHCBunchSpacingMUS = LHCBunchSpacingNS * 1e-3;  // bunch spacing in \mus (10 RFbuckets)
+GPUglobalconstexpr() double LHCOrbitMUS = LHCOrbitNS * 1e-3;                // orbit duration in \mus
 GPUglobalconstexpr() unsigned int MaxNOrbits = 0xffffffff;
 
 // Offsets of A, C beam bunches at P2

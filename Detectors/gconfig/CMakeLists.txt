@@ -14,10 +14,39 @@ o2_add_library(G3Setup
                PUBLIC_LINK_LIBRARIES MC::Geant3 FairRoot::Base O2::SimulationDataFormat O2::Generators O2::SimSetup
 )
 
+# Optional VecGeom navigation for Geant4 (G4.navmode=kVecGeom). It needs TGeo2VecGeom and a VecGeom
+# with the BVH navigator of the VNavigator family (BVHNavigatorV). Linked PRIVATE: VecGeom types
+# never appear in G4Setup's public headers.
+find_package(TGeo2VecGeom CONFIG QUIET)
+set(G4SETUP_WITH_VECGEOM OFF)
+if(TGeo2VecGeom_FOUND)
+  find_path(O2_VECGEOM_BVHNAVIGATORV_INCLUDE VecGeom/navigation/BVHNavigatorV.h
+            HINTS ${VecGeom_INCLUDE_DIRS} ${VecGeom_DIR}/../../../include $ENV{VECGEOM_ROOT}/include)
+  if(O2_VECGEOM_BVHNAVIGATORV_INCLUDE)
+    set(G4SETUP_WITH_VECGEOM ON)
+  endif()
+endif()
+
+set(G4SETUP_SOURCES src/G4Config.cxx src/G4RunConfiguration.cxx src/G4LocalFieldConstruction.cxx
+                    src/VecGeomNavigation.cxx src/O2MonopolePhysics.cxx)
+if(G4SETUP_WITH_VECGEOM)
+  list(APPEND G4SETUP_SOURCES src/VecGeomG4Map.cxx src/VecGeomChecks.cxx src/VecGeomG4NavigatorBase.cxx
+                              src/VecGeomG4Navigator.cxx
+                              src/VecGeomG4PropagatingNavigator.cxx)
+endif()
+
 o2_add_library(G4Setup
-               SOURCES src/G4Config.cxx src/O2MonopolePhysics.cxx
-               PUBLIC_LINK_LIBRARIES MC::Geant4VMC MC::Geant4 FairRoot::Base O2::SimulationDataFormat O2::Generators O2::SimSetup O2::FastSim
+               TARGETVARNAME targetG4Setup
+               SOURCES ${G4SETUP_SOURCES}
+               PUBLIC_LINK_LIBRARIES MC::Geant4VMC MC::Geant4 FairRoot::Base O2::SimulationDataFormat O2::Generators O2::SimSetup O2::FastSim O2::DetectorsBase
 )
+
+if(G4SETUP_WITH_VECGEOM)
+  target_compile_definitions(${targetG4Setup} PRIVATE O2_WITH_VECGEOM)
+  target_link_libraries(${targetG4Setup} PRIVATE TGeo2VecGeom::TGeo2VecGeom)
+else()
+  message(STATUS "G4.navmode=kVecGeom not built: it needs TGeo2VecGeom and a VecGeom with BVHNavigatorV")
+endif()
 
 o2_add_library(FLUKASetup
                SOURCES src/FlukaConfig.cxx

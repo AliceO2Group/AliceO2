@@ -595,7 +595,7 @@ TGeoVolume* V3Layer::createModuleInnerB(const Double_t xchip, const Double_t zch
 {
   //
   // Creates the FPC and glue volumes
-  // (zimilar to previous method, except the Chips)
+  // (similar to previous method, except the Chips)
   //
   // Input:
   //         xchip : the Chip width
@@ -699,6 +699,16 @@ void V3Layer::createIBCapacitors(TGeoVolume* modvol, Double_t zchip, Double_t yz
 {
   //
   // Adds the capacitors to the IB FPC
+  //
+  // Input:
+  //         modvol : the IB module mother volume
+  //         zchip  : the chip half Z length
+  //         yzero  : the Y base position of capacitors
+  //         mgr    : the GeoManager
+  //
+  // Output:
+  //
+  // Return:
   //
   // Created:      13 Feb 2018  Mario Sitta
   // Updated:      03 Apr 2019  Mario Sitta  Fix positions (180' rotation)
@@ -833,6 +843,7 @@ void V3Layer::createIBCapacitors(TGeoVolume* modvol, Double_t zchip, Double_t yz
 
   // Place the resistors
   xpos = xResist;
+  ypos = yzero + sIBFlexResistorYHi / 2;
   for (Int_t j = 0; j < nResist; j++) {
     zpos = zResist[j];
     modvol->AddNode(resistor, j + 1, new TGeoTranslation(-xpos, ypos, -zpos));

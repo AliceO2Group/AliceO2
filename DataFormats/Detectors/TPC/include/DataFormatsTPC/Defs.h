@@ -42,9 +42,9 @@ enum Side { A = 0,
 GPUglobalconstexpr() unsigned char SECTORSPERSIDE = 18;
 GPUglobalconstexpr() unsigned char SIDES = 2;
 
-constexpr double PI = 3.14159265358979323846;
-constexpr double TWOPI = 2. * PI;
-constexpr double SECPHIWIDTH = TWOPI / 18.;
+GPUglobalconstexpr() double PI = 3.14159265358979323846;
+GPUglobalconstexpr() double TWOPI = 2. * PI;
+GPUglobalconstexpr() double SECPHIWIDTH = TWOPI / 18.;
 
 /// TPC ROC types
 enum RocType { IROC = 0,

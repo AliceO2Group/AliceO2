@@ -33,6 +33,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/CCDBParamSpec.h"
 #include "FT0Reconstruction/InteractionTag.h"
+#include "DataFormatsITSMFT/ClustersPerLayer.h"
 #include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsBase/GRPGeomHelper.h"
@@ -80,6 +81,7 @@ using VTIndex = o2::dataformats::VtxTrackIndex;
 using VTIndexV = std::pair<int, o2::dataformats::VtxTrackIndex>;
 using GTrackID = o2::dataformats::GlobalTrackID;
 using TBracket = o2::math_utils::Bracketf_t;
+using ITSClusters = o2::itsmft::ClustersPerLayer<o2::BaseCluster<float>>;
 
 using timeEst = o2::dataformats::TimeStampWithError<float, float>;
 
@@ -121,7 +123,7 @@ class TrackMCStudy final : public Task
   std::vector<long> mIntBC;                                 ///< interaction global BC wrt TF start
   std::vector<float> mTPCOcc;                               ///< TPC occupancy for this interaction time
   std::vector<int> mITSOcc;                                 //< N ITS clusters in the ROF containing collision
-  std::vector<o2::BaseCluster<float>> mITSClustersArray;    ///< ITS clusters created in run() method from compact clusters
+  ITSClusters mITSClustersArray;                            ///< ITS clusters from compact clusters, by composed ID
   const o2::itsmft::TopologyDictionary* mITSDict = nullptr; ///< cluster patterns dictionary
 
   bool mCheckSV = false;      //< check SV binding (apart from prongs availability)
@@ -321,10 +323,18 @@ void TrackMCStudy::process(const o2::globaltracking::RecoContainer& recoData)
   {
     const auto* digconst = mcReader.getDigitizationContext();
     const auto& mcEvRecords = digconst->getEventRecords(false);
-    int ITSTimeBias = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance().roFrameBiasInBC;
-    int ITSROFLen = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance().roFrameLengthInBC;
-    unsigned int rofCount = 0;
-    const auto ITSClusROFRec = recoData.getITSClustersROFRecords();
+    // in the staggered readout every layer has its own ROF length, bias and ROFRecords, hence the
+    // occupancy is summed over the layer slots, each with its own (monotonic) ROF cursor
+    const int nLrOcc = recoData.getITSPerLayer() ? o2::globaltracking::MaxITSLayers : 1;
+    const auto& alpParITS = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
+    std::array<gsl::span<const o2::itsmft::ROFRecord>, o2::globaltracking::MaxITSLayers> ITSClusROFRec{};
+    std::array<int, o2::globaltracking::MaxITSLayers> ITSTimeBias{}, ITSROFLen{};
+    std::array<unsigned int, o2::globaltracking::MaxITSLayers> rofCount{};
+    for (int lr = 0; lr < nLrOcc; lr++) {
+      ITSClusROFRec[lr] = recoData.getITSClustersROFRecords(lr);
+      ITSTimeBias[lr] = alpParITS.getROFBiasInBC(lr);
+      ITSROFLen[lr] = alpParITS.getROFLengthInBC(lr);
+    }
     for (const auto& mcIR : mcEvRecords) {
       long tbc = mcIR.differenceInBC(recoData.startIR);
       auto& mcVtx = mMCVtVec.emplace_back();
@@ -335,18 +345,21 @@ void TrackMCStudy::process(const o2::globaltracking::RecoContainer& recoData)
       mTPCOcc.push_back(occBin < 0 ? mTBinClOcc[0] : (occBin >= mTBinClOcc.size() ? mTBinClOcc.back() : mTBinClOcc[occBin]));
       // fill ITS occupancy
       long gbc = mcIR.toLong();
-      while (rofCount < ITSClusROFRec.size()) {
-        long rofbcMin = ITSClusROFRec[rofCount].getBCData().toLong() + ITSTimeBias, rofbcMax = rofbcMin + ITSROFLen;
-        if (gbc < rofbcMin) { // IRs and ROFs are sorted, so this IR is prior of all ROFs
-          mITSOcc.push_back(0);
-        } else if (gbc < rofbcMax) {
-          mITSOcc.push_back(ITSClusROFRec[rofCount].getNEntries());
-        } else {
-          rofCount++; // test next ROF
-          continue;
+      int itsOcc = 0;
+      for (int lr = 0; lr < nLrOcc; lr++) {
+        const auto& rofs = ITSClusROFRec[lr];
+        while (rofCount[lr] < rofs.size()) {
+          long rofbcMin = rofs[rofCount[lr]].getBCData().toLong() + ITSTimeBias[lr], rofbcMax = rofbcMin + ITSROFLen[lr];
+          if (gbc < rofbcMin) { // IRs and ROFs are sorted, so this IR is prior of all remaining ROFs of this layer
+            break;
+          } else if (gbc < rofbcMax) {
+            itsOcc += rofs[rofCount[lr]].getNEntries();
+            break;
+          }
+          rofCount[lr]++; // test next ROF
         }
-        break;
       }
+      mITSOcc.push_back(itsOcc); // 0 if the IR is before the 1st or after the last ROF of every layer
       if (mNTPCOccBinLengthInv > 0.f) {
         mcVtx.occTPCV.resize(params.nOccBinsDrift);
         int grp = TMath::Max(1, TMath::Nint(params.nTBPerOccBin * mNTPCOccBinLengthInv));
@@ -361,9 +374,6 @@ void TrackMCStudy::process(const o2::globaltracking::RecoContainer& recoData)
           }
           mcVtx.occTPCV[ib] = smb;
         }
-      }
-      if (rofCount >= ITSClusROFRec.size()) {
-        mITSOcc.push_back(0); // IR after the last ROF
       }
     }
   }
@@ -940,18 +950,21 @@ void TrackMCStudy::fillMCClusterInfo(const o2::globaltracking::RecoContainer& re
     }
   }
   // fill ITS cluster info
-  const auto* mcITSClusters = recoData.getITSClustersMCLabels();
-  const auto& ITSClusters = recoData.getITSClusters();
-  for (unsigned int icl = 0; icl < ITSClusters.size(); icl++) {
-    const auto labels = mcITSClusters->getLabels(icl);
-    for (const auto& lbl : labels) {
-      auto entry = mSelMCTracks.find(lbl);
-      if (entry == mSelMCTracks.end()) { // not selected
-        continue;
+  int nLrCl = recoData.getITSPerLayer() ? o2::globaltracking::MaxITSLayers : 1;
+  for (int lr = 0; lr < nLrCl; lr++) { // with a single (monolithic) input all clusters are in the layer slot 0
+    const auto* mcITSClusters = recoData.getITSClustersMCLabels(lr);
+    const auto& ITSClusters = recoData.getITSClusters(lr);
+    for (unsigned int icl = 0; icl < ITSClusters.size(); icl++) {
+      const auto labels = mcITSClusters->getLabels(icl);
+      for (const auto& lbl : labels) {
+        auto entry = mSelMCTracks.find(lbl);
+        if (entry == mSelMCTracks.end()) { // not selected
+          continue;
+        }
+        auto& mctr = entry->second.mcTrackInfo;
+        mctr.nITSCl++;
+        mctr.pattITSCl |= 0x1 << o2::itsmft::ChipMappingITS::getLayer(ITSClusters[icl].getChipID());
       }
-      auto& mctr = entry->second.mcTrackInfo;
-      mctr.nITSCl++;
-      mctr.pattITSCl |= 0x1 << o2::itsmft::ChipMappingITS::getLayer(ITSClusters[icl].getChipID());
     }
   }
 
@@ -1306,17 +1319,22 @@ void TrackMCStudy::processITSTracks(const o2::globaltracking::RecoContainer& rec
   const auto itsTracks = recoData.getITSTracks();
   const auto itsLbls = recoData.getITSTracksMCLabels();
   const auto itsClRefs = recoData.getITSTracksClusterRefs();
-  const auto clusITS = recoData.getITSClusters();
-  const auto patterns = recoData.getITSClustersPatterns();
   const auto& params = o2::trackstudy::TrackMCStudyConfig::Instance();
-  auto pattIt = patterns.begin();
-  mITSClustersArray.clear();
-  mITSClustersArray.reserve(clusITS.size());
-
-  o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray, mITSDict);
+  int nLr = recoData.getITSPerLayer() ? o2::globaltracking::MaxITSLayers : 1;
+  mITSClustersArray.init(nLr);
+  for (int lr = 0; lr < nLr; lr++) { // with a single (monolithic) input all clusters are in the layer slot 0
+    mITSClustersArray.beginLayer(lr);
+    const auto clusITS = recoData.getITSClusters(lr);
+    const auto patterns = recoData.getITSClustersPatterns(lr);
+    auto pattIt = patterns.begin();
+    mITSClustersArray.getClusters().reserve(mITSClustersArray.size() + clusITS.size());
+    o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray.getClusters(), mITSDict);
+    LOGP(info, "We have {} ITS clusters and the number of patterns is {} on the layer slot {}", clusITS.size(), patterns.size(), lr);
+  }
+  mITSClustersArray.finalize();
   auto geom = o2::its::GeometryTGeo::Instance();
   int ntr = itsLbls.size();
-  LOGP(info, "We have {} ITS clusters and the number of patterns is {}, ITSdict:{} NMCLabels: {}", clusITS.size(), patterns.size(), mITSDict != nullptr, itsLbls.size());
+  LOGP(info, "In total {} ITS clusters, ITSdict:{} NMCLabels: {}", mITSClustersArray.size(), mITSDict != nullptr, itsLbls.size());
 
   std::vector<int> evord(ntr);
   std::iota(evord.begin(), evord.end(), 0);
@@ -1376,7 +1394,7 @@ void TrackMCStudy::processITSTracks(const o2::globaltracking::RecoContainer& rec
   }
 }
 
-DataProcessorSpec getTrackMCStudySpec(GTrackID::mask_t srcTracks, GTrackID::mask_t srcClusters, bool checkSV)
+DataProcessorSpec getTrackMCStudySpec(GTrackID::mask_t srcTracks, GTrackID::mask_t srcClusters, bool checkSV, bool itsStag)
 {
   std::vector<OutputSpec> outputs;
   Options opts{
@@ -1387,6 +1405,7 @@ DataProcessorSpec getTrackMCStudySpec(GTrackID::mask_t srcTracks, GTrackID::mask
     {"max-tpc-dcaz", VariantType::Float, 2.f, {"Cut on TPC dcaZ"}},
     {"min-x-prop", VariantType::Float, 6.f, {"track should be propagated to this X at least"}}};
   auto dataRequest = std::make_shared<DataRequest>();
+  dataRequest->setITSPerLayer(itsStag);
   bool useMC = true;
   dataRequest->requestTracks(srcTracks, useMC);
   dataRequest->requestClusters(srcClusters, useMC);

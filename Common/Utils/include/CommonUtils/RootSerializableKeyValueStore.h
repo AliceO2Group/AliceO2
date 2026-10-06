@@ -65,7 +65,7 @@ class RootSerializableKeyValueStore
     ~SerializedInfo()
     {
       // we are the owner of this ... so delete it
-      delete bufferptr;
+      delete[] bufferptr;
     }
 
     void* objptr = nullptr; //! pointer for "caching"

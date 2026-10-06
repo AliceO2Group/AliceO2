@@ -157,6 +157,9 @@ class Pdg(Enum):
     kK1_1270_0 = 10313
     kK1_1270Plus = 10323
     kCDeuteron = 2010010020
+    kXi1820Minus = 123314  # Xi(1820)-, not in ROOT/PYTHIA PDG_t (see O2DatabasePDG.h)
+    kXi1820Zero = 123324  # Xi(1820)0, not in ROOT/PYTHIA PDG_t (see O2DatabasePDG.h)
+    kOmega2012Minus = 123334  # Omega(2012)-, not in ROOT/PYTHIA PDG_t (see O2DatabasePDG.h)
 
 
 dbPdg = o2.O2DatabasePDG
@@ -171,7 +174,7 @@ def mass(code):
 
 def declare_mass(pdg, mass_type="double") -> str:
     """Returns a C++ declaration of a particle mass constant."""
-    return f"constexpr {mass_type} Mass{pdg.name[1:]} = {mass(pdg.value)};"
+    return f"GPUglobalconstexpr() {mass_type} Mass{pdg.name[1:]} = {mass(pdg.value)};"
 
 
 def main():

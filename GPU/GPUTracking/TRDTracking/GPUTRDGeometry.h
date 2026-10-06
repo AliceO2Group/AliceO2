@@ -42,6 +42,7 @@ class GPUTRDpadPlane : private o2::trd::PadPlane
   GPUd() float GetNrows() const { return getNrows(); }
   GPUd() float GetNcols() const { return getNcols(); }
   GPUd() int32_t GetPadRowNumber(double z) const { return getPadRowNumber(z); }
+  GPUd() int32_t GetPadColNumber(double y) const { return getPadColNumber(y); }
 };
 
 class GPUTRDGeometry : private o2::trd::GeometryFlat

@@ -39,6 +39,7 @@
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "DetectorsBase/Propagator.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "DataFormatsITSMFT/ClustersPerLayer.h"
 #include "GPUTRDRecoParam.h"
 #include "TRDBase/Geometry.h"
 #include "CommonUtils/TreeStreamRedirector.h"
@@ -94,6 +95,8 @@ struct UnbinnedResid {
   short channel{-1};    ///< extra channel info (ITS chip ID, TRD chamber, TOF main pad within the sector)
   bool rejected{false}; ///< residual is flagged as rejected in the validateTrack
 
+  /// true if tgSlp was saturated at +-param::MaxTgSlp (scdcalib.clampTgSlp): unclamped values have |tgSlp| <= 0x7fff - 1
+  bool isTgSlpClamped() const { return tgSlp == 0x7fff || tgSlp == -0x7fff; }
   bool isTPC() const { return row < constants::MAXGLOBALPADROW; }
   bool isTRD() const { return row >= 160 && row < 166; }
   bool isTOF() const { return row == 170; }
@@ -245,6 +248,7 @@ class TrackInterpolation
 {
  public:
   using MatCorrType = o2::base::Propagator::MatCorrType;
+  using ITSClusters = o2::itsmft::ClustersPerLayer<o2::BaseCluster<float>>;
 
   /// Default constructor
   TrackInterpolation() = default;
@@ -468,7 +472,7 @@ class TrackInterpolation
 
   // ITS specific input only needed for debugging
   gsl::span<const int> mITSTrackClusIdx;                    ///< input ITS track cluster indices span
-  std::vector<o2::BaseCluster<float>> mITSClustersArray;    ///< ITS clusters created in run() method from compact clusters
+  ITSClusters mITSClustersArray;                            ///< ITS clusters created in run() from compact clusters, by composed ID
   std::vector<int> mITSRefitSeedID;                         ///< seed ID first using refitted ITS track
   const o2::itsmft::TopologyDictionary* mITSDict = nullptr; ///< cluster patterns dictionary
 

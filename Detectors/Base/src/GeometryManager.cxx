@@ -49,6 +49,14 @@
 #include <VecGeom/navigation/VNavigator.h>
 #include <VecGeom/volumes/LogicalVolume.h>
 #include <mutex>
+// The BVH navigator of the VNavigator family, which Geant4 navigation needs on every volume.
+#if __has_include(<VecGeom/navigation/BVHNavigatorV.h>)
+#define O2_VECGEOM_HAS_BVH_VNAVIGATOR
+#include <VecGeom/navigation/BVHNavigatorV.h>
+#include <VecGeom/navigation/BVHLevelLocator.h>
+#include <VecGeom/navigation/BVHSafetyEstimator.h>
+#include <VecGeom/navigation/SimpleSafetyEstimator.h>
+#endif
 #endif
 
 using namespace o2::detectors;
@@ -575,30 +583,62 @@ bool usesBvhAcceleration(vecgeom::LogicalVolume const* vol)
 /// which every job calls regardless of whether it ever uses the VecGeom backend.
 void ensureVecGeomWorldBuilt()
 {
+  GeometryManager::buildVecGeomGeometry(true);
+}
+} // namespace
+
+void GeometryManager::buildVecGeomGeometry(bool flattenAssemblies, int booleanThreshold)
+{
   static std::once_flag onceFlag;
-  std::call_once(onceFlag, []() {
+  std::call_once(onceFlag, [flattenAssemblies, booleanThreshold]() {
     if (!gGeoManager) {
       LOG(fatal) << "Cannot build VecGeom geometry: no TGeo geometry loaded (call GeometryManager::loadGeometry() first)";
     }
     // Translate geometry and material pointers, then build acceleration structures.
     tgeo2vecgeom::RootGeoManager::Instance().SetMaterialConversionHook([](TGeoMaterial const* m) { return (void*)m; });
-    tgeo2vecgeom::RootGeoManager::Instance().SetFlattenAssemblies(true);
+    LOG(info) << "VecGeom conversion: flattenAssemblies=" << flattenAssemblies;
+    tgeo2vecgeom::RootGeoManager::Instance().SetFlattenAssemblies(flattenAssemblies);
+#if __has_include(<VecGeom/management/BooleanFactory.h>)
+    // Applied when the conversion closes the geometry.
+    LOG(info) << "VecGeom conversion: booleanThreshold=" << booleanThreshold;
+    vecgeom::GeoManager::Instance().SetBooleanOptimizationThreshold(booleanThreshold > 0 ? booleanThreshold : 0);
+#else
+    if (booleanThreshold > 0) {
+      LOG(warning) << "VecGeom without BooleanFactory: Boolean solids are kept as converted";
+    }
+#endif
     tgeo2vecgeom::RootGeoManager::Instance().LoadRootGeometry();
 
     // Acceleration structures must be built before the navigators/locators reference them.
+#if VECGEOM_VERSION < 0x020000
+    // VecGeom 2 has no ABBoxManager: the BVH below is built directly.
     vecgeom::ABBoxManager::Instance().InitABBoxesForCompleteGeometry();
-    // Builds a BVH per logical volume from the ABBoxes computed above.
+#endif
+    // Builds a BVH per logical volume.
     vecgeom::BVHManager::Init();
 
-    // For each logical volume, set both a navigator (used for ComputeStep) and a matched
-    // level locator (used for point relocation after a boundary crossing via GlobalLocator).
+    // For each logical volume, set a navigator (used for ComputeStep), a matched level locator
+    // (used for point relocation after a boundary crossing via GlobalLocator) and, where the
+    // VNavigator family is complete, the safety estimator LogicalVolume::GetSafetyEstimator()
+    // hands out, which is separate from the one a navigator uses internally.
     for (auto& lvol : vecgeom::GeoManager::Instance().GetLogicalVolumesMap()) {
       auto* vol = lvol.second;
       if (!usesBvhAcceleration(vol)) {
         vol->SetNavigator(vecgeom::NewSimpleNavigator<>::Instance());
+#ifdef O2_VECGEOM_HAS_BVH_VNAVIGATOR
+        vol->SetLevelLocator(vol->ContainsAssembly() ? vecgeom::SimpleAssemblyLevelLocator::GetInstance()
+                                                     : vecgeom::SimpleLevelLocator::GetInstance());
+        vol->SetSafetyEstimator(vecgeom::SimpleSafetyEstimator::Instance());
+#else
         vol->SetLevelLocator(vecgeom::SimpleLevelLocator::GetInstance());
+#endif
       } else {
-#if VECGEOM_VERSION >= 0x020000
+#if defined(O2_VECGEOM_HAS_BVH_VNAVIGATOR)
+        vol->SetNavigator(vecgeom::BVHNavigatorV<>::Instance());
+        vol->SetLevelLocator(vol->ContainsAssembly() ? vecgeom::BVHAssemblyAwareLevelLocator::GetInstance()
+                                                     : vecgeom::BVHLevelLocator::GetInstance());
+        vol->SetSafetyEstimator(vecgeom::BVHSafetyEstimator::Instance());
+#elif VECGEOM_VERSION >= 0x020000
         // VecGeom 2 turned BVHNavigator into a plain class with static entry points instead of a
         // VNavigator singleton, so there is nothing to attach: vecGeomMaterialBudget() calls it
         // directly.
@@ -624,7 +664,6 @@ void ensureVecGeomWorldBuilt()
     }
   });
 }
-} // namespace
 
 //_____________________________________________________________________________________
 o2::base::MatBudget GeometryManager::vecGeomMaterialBudget(float x0, float y0, float z0, float x1, float y1, float z1)
@@ -752,9 +791,15 @@ bool GeometryManager::vecGeomLocate(double x, double y, double z, std::vector<TG
   chain.clear();
 #ifdef O2_WITH_VECGEOM
   ensureVecGeomWorldBuilt();
-  // One state per thread, as for the material budget above.
+  // One state per thread, as for the material budget above, and allocated the
+  // same way: see the comment there on NavStatePath vs NavStateIndex.
+#if VECGEOM_VERSION >= 0x020000
+  thread_local vecgeom::NavigationState stateStorage;
+  thread_local vecgeom::NavigationState* state = &stateStorage;
+#else
   thread_local vecgeom::NavigationState* state =
     vecgeom::NavigationState::MakeInstance(vecgeom::GeoManager::Instance().getMaxDepth());
+#endif
   state->Clear();
   const vecgeom::Vector3D<vecgeom::Precision> point(x, y, z);
   if (vecgeom::GlobalLocator::LocateGlobalPoint(vecgeom::GeoManager::Instance().GetWorld(), point, *state, true) ==
