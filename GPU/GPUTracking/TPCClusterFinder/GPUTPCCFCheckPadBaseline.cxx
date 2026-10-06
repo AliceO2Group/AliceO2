@@ -55,12 +55,6 @@ static GPUdi() Charge UpdateHIPTailFilter(Charge filteredCharge, Charge charge, 
   return filteredCharge + alpha * (charge - filteredCharge);
 }
 
-static GPUdi() float HIPTailTimeMean(const HIPTailDescriptor& tail)
-{
-  const float length = tail.tailEnd > tail.tailStart ? float(tail.tailEnd - tail.tailStart) : 1.f;
-  return tail.tailStart + 0.5f * (length - 1.f);
-}
-
 static GPUdi() float HIPTailTimeVariance(const HIPTailDescriptor& tail)
 {
   const float length = tail.tailEnd > tail.tailStart ? float(tail.tailEnd - tail.tailStart) : 1.f;
@@ -111,12 +105,14 @@ static GPUdi() uint16_t CloseHIPTails(
         if (idx < GPUTPCCFHIPTailConnector::MaxHIPTailsPerRow) {
           hipTails[idx] = {0, 0, (uint16_t)iPadHandle,
                            (uint16_t)acc.activeHIPTail.start, (uint16_t)acc.activeHIPTail.end,
+                           acc.activeSatStart, acc.activeSatEnd,
                            0.f, 0.f};
         }
       }
 
       acc.tailFilterCharge = 0;
       acc.activeHIPTail.Reset();
+      acc.activeSatStart = acc.activeSatEnd = -1;
     }
 
     GPUbarrier();
@@ -183,9 +179,25 @@ static GPUdi() void ScanCachedCharges(Kernel::GPUSharedMemory& smem, uint16_t ti
     }
 
     if constexpr (CheckHIPTrigger) {
-      if (acc.HIPtb < 0 && qs >= Charge(Kernel::MaxADC)) {
+      // Track saturated plateaus. A plateau continuing from the previous chunk always triggers there as well,
+      // so tracking them only in chunks with a trigger is sufficient.
+      const bool isSaturated = qs >= Charge(Kernel::MaxADC);
+      if (isSaturated && !acc.plateauOpen) {
+        acc.plateauStart = curTB;
+      }
+      acc.plateauOpen = isSaturated;
+      // Plateau of the active tail continues from a previous chunk
+      if (isSaturated && acc.activeSatStart > -1 && acc.activeSatStart == acc.plateauStart) {
+        acc.activeSatEnd = curTB;
+      }
+
+      if (acc.HIPtb < 0 && isSaturated) {
         acc.HIPtb = acc.aboveThresholdStart; // start of rising edge, not first sat TB
+        acc.satStart = acc.plateauStart;     // Plateau may have started in the previous chunk if it crosses the chunk boundary
         smem.tails[pad] = {acc.HIPtb, 0};    // Broadcast HIP start TB to neighboring pads / threads
+      }
+      if (isSaturated && acc.satStart > -1 && acc.satStart == acc.plateauStart) {
+        acc.satEnd = curTB;
       }
     }
 
@@ -278,6 +290,10 @@ GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineGPU(int32_t nBlocks, int32_t 
     }
 
     acc.HIPtb = -1;
+    acc.satStart = acc.satEnd = -1;
+    if (!hasHIPTrigger) {
+      acc.plateauOpen = false; // No saturated TB in this chunk
+    }
 
     if (handlePad) {
 
@@ -323,9 +339,25 @@ GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineGPU(int32_t nBlocks, int32_t 
       }
 
       bool shouldCloseTail = acc.HIPtb > -1 && acc.activeHIPTail.HasValue();
-      if (shouldCloseTail && acc.activeHIPTail.IsOpen()) {
+      // End the old tail at the rising edge of the new trigger, also if the tail filter already ended it later in this chunk.
+      // Otherwise the old tail would take the saturated samples of the new trigger.
+      if (shouldCloseTail && (acc.activeHIPTail.IsOpen() || acc.activeHIPTail.end > acc.HIPtb)) {
         DPRINT("%d: end = %d\n", iThread, acc.HIPtb);
         acc.activeHIPTail.end = acc.HIPtb;
+      }
+
+      // Tails are closed at the rising edge of the new trigger, which can lie before the saturated plateau of the old tail.
+      // The new tail inherits the plateau if it now contains saturated samples, the old one keeps it only if it still does.
+      int16_t newSatStart = acc.satStart;
+      int16_t newSatEnd = acc.satEnd;
+      if (shouldCloseTail && acc.activeSatStart > -1) {
+        if (acc.satStart < 0 && acc.activeSatEnd >= acc.activeHIPTail.end) {
+          newSatStart = acc.activeSatStart;
+          newSatEnd = acc.activeSatEnd;
+        }
+        if (acc.activeSatStart >= acc.activeHIPTail.end) {
+          acc.activeSatStart = acc.activeSatEnd = -1;
+        }
       }
 
       CloseHIPTails(smem, clusterer, iThread, nThreads, iPadHandle, basePos, chargeMap, acc, shouldCloseTail);
@@ -336,6 +368,8 @@ GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineGPU(int32_t nBlocks, int32_t 
         DPRINT("%d: start = %d\n", iThread, acc.HIPtb);
         acc.activeHIPTail.SetOpen(acc.HIPtb);
         acc.tailFilterCharge = Charge(MaxADC);
+        acc.activeSatStart = newSatStart;
+        acc.activeSatEnd = newSatEnd;
       }
 
       // Clear smem between iterations to prevent stale entries
@@ -404,9 +438,15 @@ GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineCPU(int32_t nBlocks, int32_t 
 
   std::vector<Short8> localHipTbV(nVecPads, -1);
   std::vector<Short8> broadcastHipTbV(nVecPads, -1);
+  std::vector<Short8> localSatStartV(nVecPads, -1); // start of the saturated plateau that triggered in the current chunk, only set for pads with a local trigger
+  std::vector<Short8> localSatEndV(nVecPads, -1);   // end of that plateau as far as seen in the current chunk
+  std::vector<Short8> plateauStartV(nVecPads, -1);  // first TB of the current / last saturated plateau on this pad
+  std::vector<Short8> plateauOpenV(nVecPads, 0);    // 1 while the previous TB was saturated
   std::vector<Short8> aboveThresholdStartV(nVecPads, -1);
   std::vector<Short8> activeHIPTailStartV(nVecPads, -1);
   std::vector<Short8> activeHIPTailEndV(nVecPads, -1);
+  std::vector<Short8> activeHIPTailSatStartV(nVecPads, -1); // start of the saturated plateau that triggered the active tail, -1 if inherited from a neighbor
+  std::vector<Short8> activeHIPTailSatEndV(nVecPads, -1);   // end of that plateau, extended while the plateau continues into later chunks
   std::vector<Charge8> tailFilterChargeV(nVecPads, Charge8{Vc::Zero});
 
   for (int16_t t = 0; t < fragment.length; t += NumOfCachedTBs) {
@@ -422,6 +462,12 @@ GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineCPU(int32_t nBlocks, int32_t 
       auto maxCharge = maxChargeV[iVecPad];
 
       auto hipTb = Short8(-1);
+      auto satStart = Short8(-1);
+      auto satEnd = Short8(-1);
+      auto plateauStart = plateauStartV[iVecPad];
+      auto plateauOpen = plateauOpenV[iVecPad];
+      const auto activeHIPTailSatStart = activeHIPTailSatStartV[iVecPad];
+      auto activeHIPTailSatEnd = activeHIPTailSatEndV[iVecPad];
       auto aboveThresholdStart = aboveThresholdStartV[iVecPad];
       auto activeHIPTailStart = activeHIPTailStartV[iVecPad];
       auto activeHIPTailEnd = activeHIPTailEndV[iVecPad];
@@ -458,12 +504,23 @@ GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineCPU(int32_t nBlocks, int32_t 
           aboveThresholdStart(startRisingEdge) = t + localtime;
           aboveThresholdStart(!aboveRisingEdge) = -1;
 
-          const auto hasNewTrigger = hipTb < 0 && unpackedCharges >= Charge(MaxADC);
+          // Track saturated plateaus across chunk boundaries
+          const auto isSaturated = unpackedCharges >= Charge(MaxADC);
+          plateauStart(isSaturated && plateauOpen < 1) = t + localtime;
+          plateauOpen = 0;
+          plateauOpen(isSaturated) = 1;
+          // Plateau of the active tail continues from a previous chunk
+          activeHIPTailSatEnd(isSaturated && activeHIPTailSatStart > -1 && (activeHIPTailSatStart - plateauStart) == 0) = t + localtime;
+
+          const auto hasNewTrigger = hipTb < 0 && isSaturated;
           hipTb(hasNewTrigger) = aboveThresholdStart;
+          satStart(hasNewTrigger) = plateauStart; // Plateau may have started in the previous chunk if it crosses the chunk boundary
+          satEnd(isSaturated && satStart > -1 && (satStart - plateauStart) == 0) = t + localtime;
           hasAnyTrigger |= hasNewTrigger.isNotEmpty();
         } else {
           consecCharges = 0;
           aboveThresholdStart = -1;
+          plateauOpen = 0;
         }
 
         const auto tailOpen = activeHIPTailStart > -1 && activeHIPTailEnd < 0;
@@ -477,6 +534,11 @@ GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineCPU(int32_t nBlocks, int32_t 
       maxChargeV[iVecPad] = maxCharge;
 
       localHipTbV[iVecPad] = hipTb;
+      localSatStartV[iVecPad] = satStart;
+      localSatEndV[iVecPad] = satEnd;
+      plateauStartV[iVecPad] = plateauStart;
+      plateauOpenV[iVecPad] = plateauOpen;
+      activeHIPTailSatEndV[iVecPad] = activeHIPTailSatEnd;
       aboveThresholdStartV[iVecPad] = aboveThresholdStart;
       activeHIPTailStartV[iVecPad] = activeHIPTailStart;
       activeHIPTailEndV[iVecPad] = activeHIPTailEnd;
@@ -522,13 +584,30 @@ GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineCPU(int32_t nBlocks, int32_t 
     for (int16_t iVecPad = 0; iVecPad < nVecPads && hasAnyTrigger; iVecPad++) {
 
       auto hipTb = broadcastHipTbV[iVecPad];
+      const auto satStart = localSatStartV[iVecPad];
+      const auto satEnd = localSatEndV[iVecPad];
       auto aboveThresholdStart = aboveThresholdStartV[iVecPad];
       auto activeHIPTailStart = activeHIPTailStartV[iVecPad];
       auto activeHIPTailEnd = activeHIPTailEndV[iVecPad];
+      auto activeHIPTailSatStart = activeHIPTailSatStartV[iVecPad];
+      auto activeHIPTailSatEnd = activeHIPTailSatEndV[iVecPad];
       auto tailFilterCharge = tailFilterChargeV[iVecPad];
 
       const auto shouldCloseTail = hipTb > -1 && activeHIPTailStart > -1;
-      activeHIPTailEnd(shouldCloseTail && activeHIPTailEnd < 0) = hipTb;
+      // End the old tail at the rising edge of the new trigger, also if the tail filter already ended it later in this chunk.
+      // Otherwise the old tail would take the saturated samples of the new trigger.
+      activeHIPTailEnd(shouldCloseTail && !(activeHIPTailEnd >= 0 && (activeHIPTailEnd - hipTb) < 1)) = hipTb;
+
+      // Tails are closed at the rising edge of the new trigger, which can lie before the saturated plateau of the old tail.
+      // The new tail inherits the plateau if it now contains saturated samples, the old one keeps it only if it still does.
+      auto newSatStart = satStart;
+      auto newSatEnd = satEnd;
+      const auto inheritSat = shouldCloseTail && satStart < 0 && activeHIPTailSatStart > -1 && (activeHIPTailSatEnd - activeHIPTailEnd) >= 0;
+      newSatStart(inheritSat) = activeHIPTailSatStart;
+      newSatEnd(inheritSat) = activeHIPTailSatEnd;
+      const auto oldLosesSat = shouldCloseTail && activeHIPTailSatStart > -1 && (activeHIPTailSatStart - activeHIPTailEnd) >= 0;
+      activeHIPTailSatStart(oldLosesSat) = -1;
+      activeHIPTailSatEnd(oldLosesSat) = -1;
 
       // Closing tails will store them to global memory and zero the range
       // So it's enough to disable this part to fully disable the tail filter
@@ -556,6 +635,8 @@ GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineCPU(int32_t nBlocks, int32_t 
                   .pad = uint16_t(pad),
                   .tailStart = uint16_t(activeHIPTailStart[p]),
                   .tailEnd = uint16_t(activeHIPTailEnd[p]),
+                  .satStart = int16_t(activeHIPTailSatStart[p]),
+                  .satEnd = int16_t(activeHIPTailSatEnd[p]),
                   .qTot = tailQtot,
                   .qMax = tailQMax,
                 };
@@ -568,11 +649,15 @@ GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineCPU(int32_t nBlocks, int32_t 
 
       activeHIPTailStart(hipTb > -1) = hipTb;
       activeHIPTailEnd(hipTb > -1) = -1;
+      activeHIPTailSatStart(hipTb > -1) = newSatStart;
+      activeHIPTailSatEnd(hipTb > -1) = newSatEnd;
       tailFilterCharge(hipTb > -1) = MaxADC;
 
       aboveThresholdStartV[iVecPad] = aboveThresholdStart;
       activeHIPTailStartV[iVecPad] = activeHIPTailStart;
       activeHIPTailEndV[iVecPad] = activeHIPTailEnd;
+      activeHIPTailSatStartV[iVecPad] = activeHIPTailSatStart;
+      activeHIPTailSatEndV[iVecPad] = activeHIPTailSatEnd;
       tailFilterChargeV[iVecPad] = tailFilterCharge;
 
     } // for (int32_t iVecPad = 0; iVecPad < nVecPads; iVecPad++)
@@ -583,6 +668,8 @@ GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineCPU(int32_t nBlocks, int32_t 
 
     auto activeHIPTailStart = activeHIPTailStartV[iVecPad];
     auto activeHIPTailEnd = activeHIPTailEndV[iVecPad];
+    const auto activeHIPTailSatStart = activeHIPTailSatStartV[iVecPad];
+    const auto activeHIPTailSatEnd = activeHIPTailSatEndV[iVecPad];
 
     const auto shouldCloseTail = activeHIPTailStart > -1;
     activeHIPTailEnd(shouldCloseTail && activeHIPTailEnd < 0) = fragment.length;
@@ -611,6 +698,8 @@ GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineCPU(int32_t nBlocks, int32_t 
                 .pad = uint16_t(pad),
                 .tailStart = uint16_t(activeHIPTailStart[p]),
                 .tailEnd = uint16_t(activeHIPTailEnd[p]),
+                .satStart = int16_t(activeHIPTailSatStart[p]),
+                .satEnd = int16_t(activeHIPTailSatEnd[p]),
                 .qTot = tailQtot,
                 .qMax = tailQMax,
               };
@@ -675,6 +764,10 @@ GPUd() void GPUTPCCFHIPTailConnector::Thread<0>(int32_t nBlocks, int32_t nThread
       return t1.tailStart < t2.tailStart;
     } else if (t1.tailEnd != t2.tailEnd) {
       return t1.tailEnd < t2.tailEnd;
+    } else if (t1.satStart != t2.satStart) {
+      return t1.satStart < t2.satStart;
+    } else if (t1.satEnd != t2.satEnd) {
+      return t1.satEnd < t2.satEnd;
     } else if (t1.qTot != t2.qTot) {
       return t1.qTot < t2.qTot;
     } else {
@@ -747,7 +840,8 @@ GPUd() void GPUTPCCFHIPClusterizer::Thread<0>(int32_t nBlocks, int32_t nThreads,
     float qMax = 0;
     float padSum = 0;
     float padSqSum = 0;
-    float timeSum = 0;
+    float satTimeSum = 0;
+    uint32_t nSatTails = 0;
     uint32_t tailStart = (uint32_t)-1;
     uint32_t tailEnd = 0;
 
@@ -755,12 +849,14 @@ GPUd() void GPUTPCCFHIPClusterizer::Thread<0>(int32_t nBlocks, int32_t nThreads,
     for (; tail != tails; tail = &tails[tail->iNext]) {
       const float tailWeight = tail->qTot;
       const float tailPad = tail->pad;
-      const float tailTime = HIPTailTimeMean(*tail);
       qMax = CAMath::Max(qMax, tail->qMax);
       qTot += tail->qTot;
       padSum += tailWeight * tailPad;
       padSqSum += tailWeight * tailPad * tailPad;
-      timeSum += tailWeight * tailTime;
+      if (tail->satStart >= 0 && tail->satEnd >= 0) {
+        satTimeSum += 0.5f * (tail->satStart + tail->satEnd);
+        nSatTails++;
+      }
       tailStart = CAMath::Min<uint32_t>(tailStart, tail->tailStart);
       tailEnd = CAMath::Max<uint32_t>(tailEnd, tail->tailEnd);
 
@@ -769,19 +865,23 @@ GPUd() void GPUTPCCFHIPClusterizer::Thread<0>(int32_t nBlocks, int32_t nThreads,
 
     const float weightSum = CAMath::Max(qTot, 1.f);
     const float padMean = padSum / weightSum;
-    const float timeMean = timeSum / weightSum; // TODO: Use timebin of saturated signal instead! Time mean is biased for long tails.
     const float padSigma = CAMath::Sqrt(CAMath::Max(0.f, padSqSum / weightSum - padMean * padMean));
 
     tpc::ClusterNative cn;
     cn.qMax = qMax;
     cn.setSaturatedQtot(qTot);
     cn.setSaturatedTailLength(tailEnd - tailStart);
-    float clusterTime = fragment.start + timeMean - clusterer.Param().rec.tpc.clustersShiftTimebinsClusterizer;
-    cn.setTimeFlags(clusterTime, 0);
     cn.setPad(padMean);
     cn.setSigmaPad(padSigma);
 
     if (cn.qMax >= 1023) {
+
+      // Use the middle of the saturated plateau, averaged over all tails of the cluster that were triggered by saturation on their own pad.
+      // Computed only here: chains consisting only of tails inherited from neighboring pads have no saturated plateau,
+      // but these never contain a saturated charge and are dropped by the qMax cut.
+      const float clusterTime = fragment.start + satTimeSum / nSatTails - clusterer.Param().rec.tpc.clustersShiftTimebinsClusterizer;
+      assert(!CAMath::IsNaN(clusterTime));
+      cn.setTimeFlags(clusterTime, 0);
 
       uint32_t index;
 
