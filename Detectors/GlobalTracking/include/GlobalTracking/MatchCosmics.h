@@ -17,6 +17,8 @@
 #define ALICEO2_MATCH_COSMICS
 
 #include <Rtypes.h>
+#include <array>
+#include <cstdint>
 #include <MathUtils/Primitive2D.h>
 #include "ReconstructionDataFormats/TrackCosmics.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
@@ -67,7 +69,8 @@ class MatchCosmics
     RejTime,
     RejProp,
     RejChi2,
-    RejOther
+    RejOther,
+    RejSameHalf
   };
 
   using InfoAccessor = o2d::AbstractRefAccessor<int, GTrackID::NSources>; // there is no unique <Info> structure, so the default return type is dummy (int)
@@ -78,6 +81,8 @@ class MatchCosmics
     int id1 = MinusOne;  ///< id of 2nd parnter
     float chi2 = -1.f;   ///< matching chi2
     int next = MinusOne; ///< index of eventual next record
+    float tCommon = 0.f; ///< common time [mus] fixed by z continuity of TPC-only legs on opposite TPC sides
+    float tCommonErr = -1.f; ///< its 1 sigma error [mus]; < 0: not fixed, the refit uses the centre of the time-bracket overlap and the cosmic's time error is the overlap's half-width
   };
 
   struct TrackSeed : public o2::track::TrackParCov {
@@ -86,6 +91,9 @@ class MatchCosmics
     int matchID = MinusOne; ///< entry (none if MinusOne) of its match in the vector of matches
     short vtIDMin = -1;     ///< id of the 1st compatible vertex
     short vtIDMax = -1;     ///< id of the last compatible vertex
+    float tRef = 0.f;       ///< time [mus] the z of the parameters refers to (TPC-only: the TrackTPC time0; others: bracket centre)
+    int8_t tpcSide = 0;     ///< TPC-only seed with clusters on one side: +1 A, -1 C (z = z(t) - side*vD*(t-tRef)); 0: z absolute
+    std::array<float, 3> xyzRef{}; ///< global position of the reference point before the propagation to the DCA (same-half veto)
   };
   void setTPCCorrMaps(const o2::gpu::TPCFastTransformPOD* maph);
   void setTPCVDrift(const o2::tpc::VDriftCorrFact& v);
@@ -129,7 +137,7 @@ class MatchCosmics
  private:
   void updateTimeDependentParams();
   RejFlag checkPair(int i, int j);
-  void registerMatch(int i, int j, float chi2);
+  void registerMatch(int i, int j, float chi2, float tCommon = 0.f, float tCommonErr = -1.f);
   void suppressMatch(int partner0, int partner1);
   void createSeeds(const o2::globaltracking::RecoContainer& data);
   bool validateMatch(int partner0);
@@ -154,6 +162,7 @@ class MatchCosmics
   bool mUseMC = true;
   float mITSROFrameLengthMUS = 0.;
   float mQ2PtCutoff = 1e9;
+  float mQ2PtCutoffOppositeSides = 1e9;
   const MatchCosmicsParams* mMatchParams = nullptr;
 
   std::vector<o2d::TrackCosmics> mCosmicTracks;

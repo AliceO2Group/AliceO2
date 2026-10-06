@@ -18,6 +18,7 @@
 #include "CommonUtils/ConfigurableParamHelper.h"
 #include "DetectorsBase/Propagator.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
+#include <string>
 
 namespace o2
 {
@@ -29,10 +30,17 @@ struct MatchCosmicsParams : public o2::conf::ConfigurableParamHelper<MatchCosmic
   float systSigma2[o2::track::kNParams] = {0.01f, 0.01f, 1e-4f, 1e-4f, 0.f}; // extra error to be added at legs comparison
   float crudeNSigma2Cut[o2::track::kNParams] = {49.f, 49.f, 49.f, 49.f, 49.f};
   float crudeChi2Cut = 999.f;
+  float maxChi2Match = -1.f;      // reject cosmics whose top/bottom refitted legs disagree by more than this chi2 (< 0: no cut)
+  float minPtOppositeSides = 0.f; // TPC-only legs on opposite TPC sides: reject cosmics with the pT of either leg or of the refitted cosmic below this (scaled with field; 0: no cut)
   float timeToleranceMUS = 0.f;
   float maxStep = 10.f;
   float maxSnp = 0.99f;
   float minSeedPt = 0.10f;     // use only tracks above this pT (scaled with field)
+  int minSeedNClTPC = 0;       // use only TPC-only seeds with at least this number of clusters (0: no cut)
+  float minSeedDCAxy = 0.f;    // use only tracks with |DCA_xy| to the beam line >= this [cm] (0: no cut; rejects collision tracks in physics data)
+  float minSeedDCAxyNSigma = 0.f; // use only tracks with |DCA_xy| >= this * sigma(DCA_xy) (0: no cut; poorly measured collision tracks)
+  bool constrainTPCOnlyZ = false; // TPC-only legs: test z at a common time (same side, or a leg with known time), else require the time implied by z continuity in both brackets
+  bool vetoSameHalf = false;      // reject pairs whose two legs lie on the same side of the closest approach (two pieces of one leg)
   float nSigmaTError = 4.f;    // number of sigmas on track time error for matching (except for TPC which provides an interval)
   float tpcExtraZError2 = 1.f; // extra error^2 on the TPC-only track Z coordinate
   float fiducialRIP = 1.0f;    // consider track having |Y@x=0|< this as passing DCA cut (if requested)
@@ -43,6 +51,12 @@ struct MatchCosmicsParams : public o2::conf::ConfigurableParamHelper<MatchCosmic
 
   O2ParamDef(MatchCosmicsParams, "cosmicsMatch");
 };
+
+/// key=value string (configKeyValues syntax) of a named set of MatchCosmicsParams settings; the cosmics-match workflow applies it before
+/// --configKeyValues, so single keys can still be overridden. Unknown names are fatal.
+/// "physics-v1": cosmics in collision data (seed cuts against collision tracks, realistic systematic errors for the pair chi2, tgl window,
+/// pT cut on pairs of TPC-only legs on opposite TPC sides)
+std::string getMatchCosmicsPreset(const std::string& name);
 
 } // namespace globaltracking
 } // end namespace o2

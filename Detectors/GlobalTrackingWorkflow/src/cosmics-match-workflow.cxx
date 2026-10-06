@@ -26,6 +26,7 @@
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
 #include "GlobalTrackingWorkflow/CosmicsMatchingSpec.h"
+#include "GlobalTracking/MatchCosmicsParams.h"
 #include "GlobalTrackingWorkflow/TrackCosmicsWriterSpec.h"
 #include "Algorithm/RangeTokenizer.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
@@ -52,6 +53,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
     {"use-pv-info", o2::framework::VariantType::Bool, false, {"request primary vertex for relevant cuts in the collision/cosmics interleaved data"}},
+    {"cosmics-preset", VariantType::String, "", {"named set of cosmicsMatch settings applied before --configKeyValues (which can override single keys): physics-v1 = cosmics in collision data"}},
     {"track-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::itsmft::DPLAlpideParamInitializer::addITSConfigOption(options);
@@ -82,7 +84,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   WorkflowSpec specs;
   GID::mask_t alowedSources = GID::getSourcesMask("ITS,TPC,ITS-TPC,TPC-TRD,TPC-TOF,TPC-TRD-TOF,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
 
-  // Update the (declared) parameters if changed from the command line
+  // Update the (declared) parameters if changed from the command line: first an eventual preset, then the explicit key=values
+  auto preset = configcontext.options().get<std::string>("cosmics-preset");
+  if (!preset.empty()) {
+    o2::conf::ConfigurableParam::updateFromString(o2::globaltracking::getMatchCosmicsPreset(preset));
+  }
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   // write the configuration used for the workflow
   o2::conf::ConfigurableParam::writeINI("o2match-cosmics-workflow_configuration.ini");

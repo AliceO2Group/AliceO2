@@ -68,6 +68,11 @@ void MatchCosmics::process(const o2::globaltracking::RecoContainer& data)
         trc.matchID = Reject; // reject track
         continue;
       }
+      if (std::abs(trc.getY()) < mMatchParams->minSeedDCAxy || trc.getY() * trc.getY() < mMatchParams->minSeedDCAxyNSigma * mMatchParams->minSeedDCAxyNSigma * trc.getSigmaY2()) {
+        // passes close to the beam line, absolutely or within its errors: indistinguishable from collision tracks
+        trc.matchID = Reject;
+        continue;
+      }
       if (mMatchParams->dcaCutChi2[trc.origID.getSource()] > 0.f && mUsePVInfo && trc.vtIDMin >= 0 && (std::abs(trc.getY()) < mMatchParams->fiducialRIP && std::abs(trc.getZ()) < mMatchParams->fiducialZIP)) {
         // do the propagation only if we are in the fiducial IP range.
         for (int iv = trc.vtIDMin; iv <= trc.vtIDMax; iv++) { // vtIDMax is the last compatible vertex (inclusive); vtIDMin < 0: no compatible vertex
@@ -180,9 +185,16 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
   for (auto winRID : mWinners) {
     const auto& rec = mRecords[winRID];
     int poolEntryID[2] = {rec.id0, rec.id1};
-    const o2::track::TrackParCov outerLegs[2] = {data.getTrackParamOut(mSeeds[rec.id0].origID), data.getTrackParamOut(mSeeds[rec.id1].origID)};
+    o2::track::TrackParCov outerLegs[2] = {data.getTrackParamOut(mSeeds[rec.id0].origID), data.getTrackParamOut(mSeeds[rec.id1].origID)};
+    for (auto& leg : outerLegs) {
+      leg.setPID(o2::track::PID::Muon, true); // as the seeds
+    }
     auto tOverlap = mSeeds[rec.id0].tBracket.getOverlap(mSeeds[rec.id1].tBracket);
     float t0 = tOverlap.mean(), dt = tOverlap.delta() * 0.5;
+    if (rec.tCommonErr >= 0.f) { // TPC-only legs on opposite sides: their z continuity fixes the time, refit both legs with it
+      t0 = rec.tCommon;
+      dt = rec.tCommonErr;
+    }
     auto pnt0 = outerLegs[0].getXYZGlo(), pnt1 = outerLegs[1].getXYZGlo();
     int btm = 0, top = 1;
     // we fit topward from bottom
@@ -304,8 +316,17 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
     // calculate weighted average of 2 legs and chi2
     o2::track::TrackParCov::MatrixDSym5 cov5;
     float chi2Match = trCosmBtm.getPredictedChi2(trCosmTop, cov5);
+    if (mMatchParams->maxChi2Match >= 0.f && chi2Match > mMatchParams->maxChi2Match) {
+      LOG(debug) << "Top/Bottom refitted legs disagree, chi2Match " << chi2Match;
+      continue;
+    }
     if (!trCosmBtm.update(trCosmTop, cov5)) {
       LOG(debug) << "Top/Bottom update failed";
+      continue;
+    }
+    // TPC-only legs on opposite sides: the legs' pT is required in checkPair, the refitted cosmic's here
+    if (mSeeds[rec.id0].tpcSide * mSeeds[rec.id1].tpcSide < 0 && std::abs(trCosmBtm.getQ2Pt()) > mQ2PtCutoffOppositeSides) {
+      LOG(debug) << "Cosmic with legs on opposite TPC sides below minPtOppositeSides";
       continue;
     }
     // create final track
@@ -424,10 +445,18 @@ MatchCosmics::RejFlag MatchCosmics::checkPair(int i, int j)
     return (rej = RejTime); // since the brackets are sorted in tmin, all following tbj will also exceed tbi
   }
   float chi2 = 1.e9f;
+  float tCommon = 0.f;     // time fixed by z continuity of TPC-only legs on opposite sides, used by the refit
+  float tCommonErr = -1.f; // its error (< 0: not fixed)
 
   // check
   // 1) crude check on tgl and q/pt (if B!=0). Note: back-to-back tracks will have mutually params (see TrackPar::invertParam)
   while (1) {
+    // TPC-only legs on opposite sides: their z continuity defines the time, so z does not reject random pairs of collision tracks; require
+    // the pT of a cosmic for both legs already here, so that such a pair cannot win against the true partner of one of its legs
+    if (seed0.tpcSide * seed1.tpcSide < 0 && std::max(std::abs(seed0.getQ2Pt()), std::abs(seed1.getQ2Pt())) > mQ2PtCutoffOppositeSides) {
+      rej = RejQ2Pt;
+      break;
+    }
     auto dTgl = seed0.getTgl() + seed1.getTgl();
     if (dTgl * dTgl > (mMatchParams->systSigma2[o2::track::kTgl] + seed0.getSigmaTgl2() + seed1.getSigmaTgl2()) * mMatchParams->crudeNSigma2Cut[o2::track::kTgl]) {
       rej = RejTgl;
@@ -437,6 +466,27 @@ MatchCosmics::RejFlag MatchCosmics::checkPair(int i, int j)
       auto dQ2Pt = seed0.getQ2Pt() + seed1.getQ2Pt();
       if (dQ2Pt * dQ2Pt > (mMatchParams->systSigma2[o2::track::kQ2Pt] + seed0.getSigma1Pt2() + seed1.getSigma1Pt2()) * mMatchParams->crudeNSigma2Cut[o2::track::kQ2Pt]) {
         rej = RejQ2Pt;
+        break;
+      }
+    }
+    if (mMatchParams->vetoSameHalf) {
+      // a cosmic has its two legs on opposite sides of its closest approach to the beam line: project the legs' reference points (before
+      // the propagation to the DCA) on the transverse direction of seed0 at its DCA; pieces of one leg are on the same side. Transverse
+      // only: the z of a TPC-only track refers to its own time0, so z differences between the legs are meaningless. Skipped for
+      // reference points close to the DCA (e.g. ITS-containing tracks), where the sign is undefined.
+      std::array<float, 3> pca{};
+      seed0.getXYZGlo(pca);
+      const float phi = seed0.getAlpha() + std::asin(seed0.getSnp());
+      const float dir[2] = {std::cos(phi), std::sin(phi)};
+      float proj0 = 0.f;
+      float proj1 = 0.f;
+      for (int k = 0; k < 2; k++) {
+        proj0 += (seed0.xyzRef[k] - pca[k]) * dir[k];
+        proj1 += (seed1.xyzRef[k] - pca[k]) * dir[k];
+      }
+      constexpr float MinDist = 20.f; // cm
+      if (std::abs(proj0) > MinDist && std::abs(proj1) > MinDist && proj0 * proj1 > 0.f) {
+        rej = RejSameHalf;
         break;
       }
     }
@@ -462,9 +512,47 @@ MatchCosmics::RejFlag MatchCosmics::checkPair(int i, int j)
       break;
     }
     bool ignoreZ = seed0.origID.getSource() == o2d::GlobalTrackID::TPC || seed1.origID.getSource() == o2d::GlobalTrackID::TPC;
-    // RSTODO this is simplification: one should constraint the TPC-only track Z by the time of other candidate (at least their difference of both tracks are TPC only).
-    // If the shift is large, eventually the tracks need to be refitted.
-    if (!ignoreZ) { // cut on Z makes no sense for TPC only tracks
+    if (ignoreZ && mMatchParams->constrainTPCOnlyZ) {
+      // a TPC-only track with clusters on one side has z relative to its time0: z(t) = z + side * vD * (t - tRef); a CE-crossing or
+      // non-TPC-only track has an absolute z (side 0). Bring both legs to a common time where possible and test z; for legs on opposite
+      // sides, z continuity fixes the common time, which must lie in both time brackets.
+      const int side0 = seed0.tpcSide;
+      const int side1 = seed1.tpcSide;
+      const float sigZ2 = (seed0.getSigmaZ2() + seed1Inv.getSigmaZ2()) * mMatchParams->crudeNSigma2Cut[o2::track::kZ];
+      if (side0 == 0 || side1 == 0 || side0 == side1) {
+        float dZ = seed0.getZ() - seed1Inv.getZ();
+        float dZTimeTol = 0.f;          // the time of a non-TPC absolute leg is only known within its bracket (tRef is the bracket centre)
+        if (side0 != 0 && side1 != 0) { // same side: the z offset is fixed by the difference of the reference times
+          dZ -= side0 * mTPCVDrift * (seed0.tRef - seed1.tRef);
+        } else if (side1 != 0) { // seed0 absolute: move seed1 to the time of seed0
+          dZ -= side1 * mTPCVDrift * (seed0.tRef - seed1.tRef);
+          if (seed0.origID.getSource() != o2d::GlobalTrackID::TPC) {
+            dZTimeTol = 0.5f * mTPCVDrift * seed0.tBracket.delta();
+          }
+        } else if (side0 != 0) { // seed1 absolute: move seed0 to the time of seed1
+          dZ += side0 * mTPCVDrift * (seed1.tRef - seed0.tRef);
+          if (seed1.origID.getSource() != o2d::GlobalTrackID::TPC) {
+            dZTimeTol = 0.5f * mTPCVDrift * seed1.tBracket.delta();
+          }
+        }
+        const float dZTol = std::sqrt(sigZ2) + dZTimeTol;
+        if (dZ * dZ > dZTol * dZTol) {
+          rej = RejZ;
+          break;
+        }
+      } else { // opposite sides
+        const float t = 0.5f * (side0 * (seed1Inv.getZ() - seed0.getZ()) / mTPCVDrift + seed0.tRef + seed1.tRef);
+        const float tTol = std::sqrt(sigZ2) / (2.f * mTPCVDrift);
+        if (t < std::max(seed0.tBracket.getMin(), seed1.tBracket.getMin()) - tTol || t > std::min(seed0.tBracket.getMax(), seed1.tBracket.getMax()) + tTol) {
+          rej = RejZ;
+          break;
+        }
+        tCommon = t;
+        tCommonErr = std::sqrt(seed0.getSigmaZ2() + seed1Inv.getSigmaZ2()) / (2.f * mTPCVDrift);
+      }
+    }
+    // the z of a TPC-only leg refers to its own time0: it is tested above at a common time with constrainTPCOnlyZ, otherwise ignored
+    if (!ignoreZ) { // both legs have an absolute z
       auto dZ = seed0.getZ() - seed1Inv.getZ();
       if (dZ * dZ > (seed0.getSigmaZ2() + seed1Inv.getSigmaZ2()) * mMatchParams->crudeNSigma2Cut[o2::track::kZ]) {
         rej = RejZ;
@@ -484,8 +572,8 @@ MatchCosmics::RejFlag MatchCosmics::checkPair(int i, int j)
       break;
     }
     rej = Accept;
-    registerMatch(i, j, chi2);
-    registerMatch(j, i, chi2); // the reverse reference can be also done in a separate loop
+    registerMatch(i, j, chi2, tCommon, tCommonErr);
+    registerMatch(j, i, chi2, tCommon, tCommonErr); // the reverse reference can be also done in a separate loop
     LOG(debug) << "Chi2 = " << chi2 << " NMatches " << mRecords.size();
     break;
   }
@@ -497,7 +585,8 @@ MatchCosmics::RejFlag MatchCosmics::checkPair(int i, int j)
     if (seed1I.rotate(seed0.getAlpha()) && o2::base::Propagator::Instance()->PropagateToXBxByBz(seed1I, seed0.getX(), mMatchParams->maxSnp, mMatchParams->maxStep, mMatchParams->matCorr)) {
       int rejI = int(rej);
       (*mDBGOut) << "match"
-                 << "tf=" << mTFCount << "seed0=" << seed0 << "seed1=" << seed1I << "chi2Match=" << chi2 << "rej=" << rejI << "\n";
+                 << "tf=" << mTFCount << "seed0=" << seed0 << "seed1=" << seed1I << "chi2Match=" << chi2 << "rej=" << rejI
+                 << "side0=" << int(seed0.tpcSide) << "side1=" << int(seed1.tpcSide) << "tCommon=" << tCommon << "tCommonErr=" << tCommonErr << "\n";
     }
   }
 #endif
@@ -506,11 +595,11 @@ MatchCosmics::RejFlag MatchCosmics::checkPair(int i, int j)
 }
 
 //________________________________________________________
-void MatchCosmics::registerMatch(int i, int j, float chi2)
+void MatchCosmics::registerMatch(int i, int j, float chi2, float tCommon, float tCommonErr)
 {
   /// register track index j as a match for track index i
   int newRef = mRecords.size();
-  auto& matchRec = mRecords.emplace_back(MatchRecord{i, j, chi2, MinusOne});
+  auto& matchRec = mRecords.emplace_back(MatchRecord{i, j, chi2, MinusOne, tCommon, tCommonErr});
   auto* best = &mSeeds[i].matchID;
   while (*best > MinusOne) {
     auto& oldMatchRec = mRecords[*best];
@@ -540,7 +629,7 @@ void MatchCosmics::createSeeds(const o2::globaltracking::RecoContainer& data)
         return true;
       }
       if constexpr (isTPCTrack<decltype(_tr)>()) {
-        if (!this->mMatchParams->allowTPCOnly) {
+        if (!this->mMatchParams->allowTPCOnly || _tr.getNClusters() < this->mMatchParams->minSeedNClTPC) {
           return true;
         }
         // unconstrained TPC track, with t0 = TrackTPC.getTime0+0.5*(DeltaFwd-DeltaBwd) and terr = 0.5*(DeltaFwd+DeltaBwd) in TimeBins
@@ -554,9 +643,14 @@ void MatchCosmics::createSeeds(const o2::globaltracking::RecoContainer& data)
       }
       terr += this->mMatchParams->timeToleranceMUS;
       trackEntry[_origID] = mSeeds.size();
-      mSeeds.emplace_back(TrackSeed{_tr, {t0 - terr, t0 + terr}, _origID, MinusOne});
+      auto& seed = mSeeds.emplace_back(TrackSeed{_tr, {t0 - terr, t0 + terr}, _origID, MinusOne});
+      seed.setPID(o2::track::PID::Muon, true); // muon mass and charge for the material corrections, whatever the leg's dE/dx PID
+      seed.getXYZGlo(seed.xyzRef);
+      seed.tRef = t0;
       if constexpr (isTPCTrack<decltype(_tr)>()) {
-        mSeeds.back().setCov(this->mMatchParams->tpcExtraZError2 + _tr.getCov()[o2::track::kSigZ2], o2::track::kSigZ2);
+        seed.setCov(this->mMatchParams->tpcExtraZError2 + _tr.getCov()[o2::track::kSigZ2], o2::track::kSigZ2);
+        seed.tRef = _tr.getTime0() * this->mTPCTBinMUS; // the z of a TPC-only track refers to its time0
+        seed.tpcSide = _tr.hasASideClustersOnly() ? 1 : (_tr.hasCSideClustersOnly() ? -1 : 0);
       }
       return true;
     } else {
@@ -603,10 +697,13 @@ void MatchCosmics::updateTimeDependentParams()
   mBz = o2::base::Propagator::Instance()->getNominalBz();
   mFieldON = std::abs(mBz) > 0.01;
   mQ2PtCutoff = 1.f / std::max(0.05f, mMatchParams->minSeedPt);
+  mQ2PtCutoffOppositeSides = mMatchParams->minPtOppositeSides > 0.f ? 1.f / mMatchParams->minPtOppositeSides : 1e9;
   if (mFieldON) {
     mQ2PtCutoff *= 5.00668 / std::abs(mBz);
+    mQ2PtCutoffOppositeSides *= 5.00668 / std::abs(mBz);
   } else {
     mQ2PtCutoff = 1e9;
+    mQ2PtCutoffOppositeSides = 1e9;
   }
 }
 
