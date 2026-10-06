@@ -28,15 +28,17 @@ struct StackParam : public o2::conf::ConfigurableParamHelper<StackParam> {
   std::string transportPrimaryFileName = "";
   std::string transportPrimaryFuncName = "";
   bool transportPrimaryInvert = false;
-  // Used when transportPrimary="onnx". The model is fetched as raw ONNX bytes
-  // and class 1 means "this track and all descendants produce no hits".
-  // Despite the legacy parameter name, ONNX runs at PreTrack for primaries
-  // AND secondaries. Output is a single [batch, scores] float tensor; select
-  // the class-1 score below. Disable ApplySigmoid for probability outputs.
+  // simnet.birth.v1: 34 raw birth features. The ONNX graph selects its inputs,
+  // embeds preprocessing/domain guards and returns [batch,1] class-1 probability.
+  // Class 1 means no recorded hits in the entire subtree. Invalid scores keep tracks.
   std::string transportPrimaryOnnxCCDBPath = "";
-  float transportPrimaryOnnxThreshold = 0.5f;
+  // Double preserves validation cuts just above tied float32 scores.
+  double transportPrimaryOnnxThreshold = -1.; // require explicit configuration
   int transportPrimaryOnnxOutputIndex = 0;
-  bool transportPrimaryOnnxApplySigmoid = true;
+  bool transportPrimaryOnnxApplySigmoid = false; // probability already in graph
+  // Saved roots-v3 models only saw simulation roots, including injected tracks.
+  // Enable only for a model trained/validated on transport secondaries too.
+  bool transportPrimaryOnnxSecondaries = false;
 
   // boilerplate stuff + make principal key "Stack"
   O2ParamDef(StackParam, "Stack");

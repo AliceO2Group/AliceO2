@@ -19,6 +19,13 @@
 #include "SimulationDataFormat/BaseHits.h"
 #include "TFile.h"
 #include "TMCProcess.h"
+#include "TGeoManager.h"
+#include "TGeoNavigator.h"
+#include "TGeoCache.h"
+#include "TGeoMaterial.h"
+#include "TGeoMedium.h"
+#include "TGeoMatrix.h"
+#include "TGeoVolume.h"
 #include "TRefArray.h"
 #include <map>
 #include <string>
@@ -182,36 +189,143 @@ BOOST_AUTO_TEST_CASE(Offsetting_keeps_an_invalid_index_invalid)
   BOOST_CHECK_EQUAL(o2::base::Detector::offsetTrackIndex(-1, nprimaries, primaryOffset, secondaryOffset), -1);
 }
 
-BOOST_AUTO_TEST_CASE(Track_transport_features_match_training_units)
+BOOST_AUTO_TEST_CASE(Track_transport_features_match_birth_v1)
 {
-  // A secondary displaced from the actual event vertex, with negative phi.
-  TParticle p(211, 0, 0, -1, -1, -1, 0., -2., 0., 2.1, 11., 22., 33., 7.e-9);
-  auto f = o2::data::detail::makeTrackTransportFeatures(p, 1., 2., 3.);
-  BOOST_REQUIRE_EQUAL(f.size(), 25);
-  BOOST_CHECK_CLOSE(f[18], 7.f, 1.e-4f); // nanoseconds, not seconds
-  BOOST_CHECK_CLOSE(f[12], -std::acos(-1.f) / 2.f, 1.e-4f); // atan2 range
-  BOOST_CHECK_EQUAL(f[19], 10.f);
-  BOOST_CHECK_EQUAL(f[20], 20.f);
-  BOOST_CHECK_EQUAL(f[21], 30.f);
-  BOOST_CHECK_CLOSE(f[23], std::sqrt(500.f), 1.e-4f);
-  BOOST_CHECK_EQUAL(f[2], 1.f);
-  // Undefined angular inputs retain CSV missing-value semantics.
-  p.SetMomentum(0., 0., 0., 0.);
-  f = o2::data::detail::makeTrackTransportFeatures(p, 1., 2., 3.);
-  BOOST_CHECK(std::isnan(f[11]));
-  BOOST_CHECK(std::isnan(f[13]));
+  using namespace o2::data::detail;
+  TParticle p(211, 0, 0, -1, -1, -1, 0., -2., 1., 2.5, 0., 0., 3., 7.e-9);
+  auto f = makeTrackTransportFeatures(p, 2212, trackTransportMediumCode("TPC_DriftGas2"));
+  BOOST_REQUIRE_EQUAL(f.size(), 34);
+  BOOST_CHECK(validTrackTransportFeatures(f));
+  BOOST_CHECK_EQUAL(f[0], 1.f);
+  BOOST_CHECK_CLOSE(f[1], 0.13957039f, 0.01f);
+  BOOST_CHECK_CLOSE(f[2], std::sqrt(5.f + f[1] * f[1]) - f[1], 1.e-4f);
+  BOOST_CHECK_EQUAL(f[3], 2.f);
+  BOOST_CHECK_CLOSE(f[4], std::asinh(0.5f), 1.e-4f);
+  BOOST_CHECK_CLOSE(f[5], -std::acos(-1.f) / 2.f, 1.e-4f);
+  BOOST_CHECK_CLOSE(f[6], std::acos(1.f / std::sqrt(5.f)), 1.e-4f);
+  BOOST_CHECK_EQUAL(f[7], 0.f);
+  BOOST_CHECK_EQUAL(f[8], 0.f);
+  BOOST_CHECK_EQUAL(f[9], 3.f);
+  BOOST_CHECK_EQUAL(f[10], 0.f);
+  BOOST_CHECK_CLOSE(f[11], 7.f, 1.e-4f);
+  BOOST_CHECK_EQUAL(f[12], 4.f);
+  BOOST_CHECK(f[13] > 0.f);
+  BOOST_CHECK_CLOSE(f[14], 2.f / 0.15f * 100.f, 1.e-4f);
+  BOOST_CHECK_EQUAL(f[15], 23.f);
+  BOOST_CHECK_EQUAL(f[16], 128.f);
+  BOOST_CHECK_EQUAL(f[17], 2.f);
+  BOOST_CHECK_EQUAL(f[18], 1.f);
+  BOOST_CHECK_EQUAL(f[19], 211.f);
+  BOOST_CHECK_EQUAL(f[20], 211.f);
+  BOOST_CHECK_EQUAL(f[22], 0.f);
+  BOOST_CHECK_EQUAL(f[23], -2.f);
+  BOOST_CHECK_EQUAL(f[24], 1.f);
+  BOOST_CHECK_EQUAL(f[32], 2212.f);
+  BOOST_CHECK_EQUAL(f[33], 2212.f);
+  const auto displaced = makeTrackTransportFeatures(p, 0., 0.f, 1., 2., 3.);
+  BOOST_CHECK_EQUAL(displaced[27], -1.f);
+  BOOST_CHECK_EQUAL(displaced[28], -2.f);
+  BOOST_CHECK_EQUAL(displaced[29], 0.f);
+  BOOST_CHECK_EQUAL(makeTrackTransportFeatures(p, 0, 0.f)[18], 0.f);
+  BOOST_CHECK_EQUAL(trackTransportMediumCode("PIPE_VACUUM"), 1.f);
+  BOOST_CHECK_EQUAL(trackTransportMediumCode("TPC_Air"), 3.f);
+  BOOST_CHECK_EQUAL(trackTransportMediumCode("other"), 0.f);
+
+  p.SetPdgCode(22);
+  f = makeTrackTransportFeatures(p, 0, 0.f);
+  BOOST_CHECK_EQUAL(f[0], 0.f);
+  BOOST_CHECK_EQUAL(f[12], 0.f);
+  BOOST_CHECK_EQUAL(f[14], 0.f);
+  p.SetPdgCode(-211);
+  f = makeTrackTransportFeatures(p, 0, 0.f);
+  BOOST_CHECK_EQUAL(f[0], -1.f);
+  BOOST_CHECK_EQUAL(f[12], 4.f);
+  p.SetProductionVertex(300., 0., 3., 0.);
+  BOOST_CHECK_EQUAL(trackTransportZAtRadius(p, 40.), 3.);
 }
 
-BOOST_AUTO_TEST_CASE(Track_transport_class_one_rejects_and_invalid_scores_fail)
+BOOST_AUTO_TEST_CASE(Track_transport_passes_unused_nonfinite_inputs_to_graph)
+{
+  using namespace o2::data::detail;
+  TParticle p(211, 0, -1, -1, -1, -1, 1., 0., 0., 1.1, 0., 0., 0., 0.);
+  auto f = makeTrackTransportFeatures(p, 0, 0.f);
+  BOOST_REQUIRE(validTrackTransportFeatures(f));
+  f[3] = 21.f;
+  BOOST_CHECK(validTrackTransportFeatures(f));
+  f[3] = std::numeric_limits<float>::quiet_NaN();
+  BOOST_CHECK(validTrackTransportFeatures(f));
+  f[3] = std::numeric_limits<float>::infinity();
+  BOOST_CHECK(validTrackTransportFeatures(f));
+  f.pop_back();
+  BOOST_CHECK(!validTrackTransportFeatures(f));
+  p.SetMomentum(0., 0., 0., 0.);
+  f = makeTrackTransportFeatures(p, 0, 0.f);
+  BOOST_CHECK(std::isnan(f[4]));
+  BOOST_CHECK(std::isnan(f[6]));
+  BOOST_CHECK(std::isnan(f[15]));
+  BOOST_CHECK(validTrackTransportFeatures(f)); // graph selects/checks its own inputs
+}
+
+BOOST_AUTO_TEST_CASE(Track_transport_accepts_existing_squeezed_nn_output)
+{
+  using o2::data::detail::validTrackTransportOutput;
+  BOOST_CHECK(validTrackTransportOutput({{-1}}, 0));
+  BOOST_CHECK(validTrackTransportOutput({{1}}, 0));
+  BOOST_CHECK(validTrackTransportOutput({{-1, 1}}, 0));
+  BOOST_CHECK(validTrackTransportOutput({{-1, 2}}, 1));
+  BOOST_CHECK(!validTrackTransportOutput({{-1}}, 1));
+  BOOST_CHECK(!validTrackTransportOutput({{-1, 1}}, 1));
+  BOOST_CHECK(!validTrackTransportOutput({{-1, -1}}, 0));
+  BOOST_CHECK(!validTrackTransportOutput({{2}}, 0));
+  BOOST_CHECK(!validTrackTransportOutput({{}}, 0));
+  BOOST_CHECK(!validTrackTransportOutput({}, 0));
+  BOOST_CHECK(!validTrackTransportOutput({{-1}, {-1}}, 0));
+  BOOST_CHECK(!validTrackTransportOutput({{-1, 1, 1}}, 0));
+  BOOST_CHECK(!validTrackTransportOutput({{-1}}, -1));
+}
+
+BOOST_AUTO_TEST_CASE(Track_transport_class_one_rejects_and_invalid_scores_keep)
 {
   using o2::data::detail::transportFromOnnxScore;
   BOOST_CHECK(transportFromOnnxScore(0.1f, 0.5f, false));
   BOOST_CHECK(!transportFromOnnxScore(0.9f, 0.5f, false));
+  BOOST_CHECK(transportFromOnnxScore(0.5f, std::nextafter(0.5, 1.), false));
+  BOOST_CHECK(transportFromOnnxScore(1.f, std::nextafter(1., 2.), false));
   BOOST_CHECK(!transportFromOnnxScore(0.f, 0.5f, true));
   BOOST_CHECK(transportFromOnnxScore(-1000.f, 0.5f, true));
   BOOST_CHECK(!transportFromOnnxScore(1000.f, 0.5f, true));
-  BOOST_CHECK_THROW(transportFromOnnxScore(std::numeric_limits<float>::quiet_NaN(), 0.5f, false), std::runtime_error);
-  BOOST_CHECK_THROW(transportFromOnnxScore(std::numeric_limits<float>::infinity(), 0.5f, true), std::runtime_error);
-  BOOST_CHECK_THROW(transportFromOnnxScore(2.f, 0.5f, false), std::runtime_error);
+  BOOST_CHECK(transportFromOnnxScore(0.9f, 0.5f, false, true));
+  for (const bool invert : {false, true}) {
+    BOOST_CHECK(transportFromOnnxScore(std::numeric_limits<float>::quiet_NaN(), 0.5f, false, invert));
+    BOOST_CHECK(transportFromOnnxScore(std::numeric_limits<float>::infinity(), 0.5f, true, invert));
+    BOOST_CHECK(transportFromOnnxScore(2.f, 0.5f, false, invert));
+    BOOST_CHECK(transportFromOnnxScore(-0.1f, 0.5f, false, invert));
+  }
   BOOST_CHECK_THROW(transportFromOnnxScore(0.5f, -1.f, false), std::runtime_error);
+  BOOST_CHECK_THROW(transportFromOnnxScore(0.5f, std::numeric_limits<float>::quiet_NaN(), false), std::runtime_error);
+}
+
+BOOST_AUTO_TEST_CASE(Track_transport_private_navigator_preserves_transport_state)
+{
+  TGeoManager geometry("pruning_test", "birth medium lookup");
+  auto* material = new TGeoMaterial("material", 0., 0., 0.);
+  auto* air = new TGeoMedium("TPC_Air", 1, material);
+  auto* gas = new TGeoMedium("TPC_DriftGas2", 2, material);
+  auto* world = geometry.MakeBox("world", air, 100., 100., 100.);
+  auto* inner = geometry.MakeBox("inner", gas, 10., 10., 10.);
+  world->AddNode(inner, 1);
+  geometry.SetTopVolume(world);
+  geometry.CloseGeometry();
+  auto* transportNode = geometry.FindNode(50., 0., 0.);
+  auto* transportNavigator = geometry.GetCurrentNavigator();
+  TGeoNavigator lookup(&geometry);
+  lookup.BuildCache();
+  lookup.GetCache()->BuildInfoBranch();
+  lookup.CdTop();
+  auto* birthNode = lookup.FindNode(0., 0., 0.);
+  BOOST_REQUIRE(birthNode);
+  BOOST_CHECK_EQUAL(o2::data::detail::trackTransportMediumCode(birthNode->GetVolume()->GetMedium()->GetName()), 2.f);
+  BOOST_CHECK(geometry.GetCurrentNavigator() == transportNavigator);
+  BOOST_CHECK(geometry.GetCurrentNode() == transportNode);
+  BOOST_CHECK_EQUAL(transportNavigator->GetCurrentPoint()[0], 50.);
 }

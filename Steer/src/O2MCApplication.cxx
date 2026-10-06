@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include <stdexcept>
+#include <limits>
 #include <cstdlib>
 
 #include <Steer/O2MCApplication.h>
@@ -213,10 +213,11 @@ void O2MCApplicationBase::PreTrack()
     TParticle particle(fMC->TrackPid(), 0, -1, -1, -1, -1,
                        momentum.Px(), momentum.Py(), momentum.Pz(), momentum.E(),
                        position.X(), position.Y(), position.Z(), fMC->TrackTime());
-    if (!fMCEventHeader) {
-      throw std::runtime_error("ONNX track pruning requires the MC event vertex");
-    }
-    if (!stack->transportTrack(particle, fMCEventHeader->GetX(), fMCEventHeader->GetY(), fMCEventHeader->GetZ())) {
+    const double missing = std::numeric_limits<double>::quiet_NaN();
+    if (!stack->transportTrack(particle,
+                               fMCEventHeader ? fMCEventHeader->GetX() : missing,
+                               fMCEventHeader ? fMCEventHeader->GetY() : missing,
+                               fMCEventHeader ? fMCEventHeader->GetZ() : missing)) {
       fMC->StopTrack();
     }
   }

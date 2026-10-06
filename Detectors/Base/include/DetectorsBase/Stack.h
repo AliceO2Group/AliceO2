@@ -305,7 +305,7 @@ class Stack : public FairGenericStack
 
   TransportFcn mTransportPrimary = [](const TParticle& p, const std::vector<TParticle>& particles) { return false; }; //! a function to inhibit the tracking of a particle
 
-  std::function<bool(const TParticle&, double, double, double)> mTransportTrack; //! ONNX decision for primaries and secondaries
+  std::function<bool(const TParticle&, double, double, double, double)> mTransportTrack; //! ONNX decision for primaries and secondaries
 
   // storage for track references
   std::vector<o2::TrackReference>* mTrackRefs = nullptr; //!

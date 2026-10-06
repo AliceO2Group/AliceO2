@@ -35,6 +35,11 @@
 #include "TVirtualMC.h"     // for VMC
 #include "TMCProcess.h"     // for VMC Particle Production Process
 #include "TParticlePDG.h"
+#include "TGeoManager.h"
+#include "TGeoNavigator.h"
+#include "TGeoCache.h"
+#include "TGeoMedium.h"
+#include "TGeoVolume.h"
 
 #include <algorithm>
 #include <cassert>
@@ -44,6 +49,7 @@
 #include <memory>
 #include <limits>
 #include <mutex>
+#include <thread>
 #include <stdexcept>
 #include <unordered_map>
 
@@ -54,12 +60,8 @@ using namespace o2::data;
 
 namespace
 {
-// Feature contract used by the sim-pruning models, in order:
-// pdg, abs_pdg, charge_sign, mass, energy, ekin, px, py, pz, p, pt, eta,
-// phi, theta, rapidity, vx, vy, vz, t_ns, dx/dy/dz_from_event, r_xy,
-// r_from_event_xy, r3_from_event. Input normalisation can be embedded in the
-// ONNX graph, keeping this code independent of model topology.
-constexpr size_t OnnxFeatureCount = 25;
+// Versioned raw birth-feature superset; selection and preprocessing live in ONNX.
+constexpr size_t OnnxFeatureCount = o2::data::detail::TrackTransportFeatureCount;
 
 class OnnxTrackTransport
 {
@@ -67,10 +69,14 @@ class OnnxTrackTransport
   explicit OnnxTrackTransport(const o2::sim::StackParam& param)
     : mThreshold(param.transportPrimaryOnnxThreshold),
       mOutputIndex(param.transportPrimaryOnnxOutputIndex),
-      mApplySigmoid(param.transportPrimaryOnnxApplySigmoid)
+      mApplySigmoid(param.transportPrimaryOnnxApplySigmoid),
+      mInvert(param.transportPrimaryInvert)
   {
-    if (!std::isfinite(mThreshold) || mThreshold < 0.f || mThreshold > 1.f) {
-      throw std::runtime_error("ONNX pruning threshold must be finite and in [0,1]");
+    if (!std::isfinite(mThreshold) || mThreshold < 0. || mThreshold > std::nextafter(1., std::numeric_limits<double>::infinity())) {
+      throw std::runtime_error("ONNX pruning requires an explicit probability threshold (or nextafter(1,+inf) to keep all)");
+    }
+    if (mApplySigmoid || mOutputIndex != 0) {
+      throw std::runtime_error("simnet.birth.v1 outputs one probability: set OnnxApplySigmoid=false and OnnxOutputIndex=0");
     }
     if (param.transportPrimaryOnnxCCDBPath.empty()) {
       throw std::runtime_error("Stack.transportPrimaryOnnxCCDBPath must be configured");
@@ -102,37 +108,61 @@ class OnnxTrackTransport
     const auto inputShapes = mModel.getNumInputNodes();
     if (inputShapes.size() != 1 || inputShapes[0].size() != 2 ||
         (inputShapes[0][0] != 1 && inputShapes[0][0] != -1) ||
-        inputShapes[0][1] != OnnxFeatureCount) {
-      throw std::runtime_error("primary transport ONNX model must have one float input with 25 features");
+        inputShapes[0][1] != OnnxFeatureCount ||
+        mModel.getInputNames() != std::vector<std::string>{"birth_features_v1"}) {
+      throw std::runtime_error("track transport ONNX model must have one birth_features_v1 float input with 34 features");
     }
     const auto outputShapes = mModel.getNumOutputNodes();
-    if (outputShapes.size() != 1 || outputShapes[0].size() != 2 ||
-        (outputShapes[0][0] != 1 && outputShapes[0][0] != -1) ||
-        outputShapes[0][1] <= 0 || mOutputIndex < 0 || mOutputIndex >= outputShapes[0][1]) {
-      throw std::runtime_error("track transport ONNX model must have one [batch, scores] output and a valid score index");
+    if (!o2::data::detail::validTrackTransportOutput(outputShapes, mOutputIndex) ||
+        outputShapes[0].size() != 2 || outputShapes[0][1] != 1 ||
+        mModel.getOutputNames() != std::vector<std::string>{"probability_hit_free_subtree"}) {
+      throw std::runtime_error("track transport ONNX model must output probability_hit_free_subtree as [batch,1]");
     }
   }
 
-  bool transport(const TParticle& particle, double eventX, double eventY, double eventZ)
+  bool transport(const TParticle& particle, double motherPdg, double eventX, double eventY, double eventZ)
   {
     // OrtModel mutates its shape buffers during inference. Stack clones share
     // this classifier, so protect the session and those buffers together.
     std::lock_guard<std::mutex> lock(mMutex);
-    std::vector<std::vector<float>> inputs{o2::data::detail::makeTrackTransportFeatures(particle, eventX, eventY, eventZ)};
+    float medium = std::numeric_limits<float>::quiet_NaN();
+    if (gGeoManager && gGeoManager->IsClosed() && std::isfinite(particle.Vx()) &&
+        std::isfinite(particle.Vy()) && std::isfinite(particle.Vz())) {
+      // Private per-thread navigators preserve the engine's geometry state.
+      // Missing medium stays NaN: only graphs that select it must keep the track.
+      auto& navigator = mNavigators[std::this_thread::get_id()];
+      if (!navigator) {
+        navigator = std::make_unique<TGeoNavigator>(gGeoManager);
+        navigator->BuildCache();
+        navigator->GetCache()->BuildInfoBranch();
+      }
+      navigator->CdTop();
+      auto* node = navigator->FindNode(particle.Vx(), particle.Vy(), particle.Vz());
+      if (node && node->GetVolume() && node->GetVolume()->GetMedium()) {
+        medium = o2::data::detail::trackTransportMediumCode(node->GetVolume()->GetMedium()->GetName());
+      }
+    }
+    auto features = o2::data::detail::makeTrackTransportFeatures(particle, motherPdg, medium, eventX, eventY, eventZ);
+    if (!o2::data::detail::validTrackTransportFeatures(features)) {
+      return true;
+    }
+    std::vector<std::vector<float>> inputs{std::move(features)};
     auto output = mModel.inference<float, float>(inputs);
     if (static_cast<size_t>(mOutputIndex) >= output.size()) {
       throw std::runtime_error("Stack.transportPrimaryOnnxOutputIndex is outside the model output");
     }
-    return o2::data::detail::transportFromOnnxScore(output[mOutputIndex], mThreshold, mApplySigmoid);
+    return o2::data::detail::transportFromOnnxScore(output[mOutputIndex], mThreshold, mApplySigmoid, mInvert);
   }
 
  private:
   std::vector<char> mModelBytes; // Must outlive the session (members are destroyed in reverse order).
   o2::ml::OrtModel mModel;
   std::mutex mMutex;
-  float mThreshold;
+  std::map<std::thread::id, std::unique_ptr<TGeoNavigator>> mNavigators;
+  double mThreshold;
   int mOutputIndex;
   bool mApplySigmoid;
+  bool mInvert;
 };
 } // namespace
 
@@ -201,15 +231,15 @@ Stack::Stack(Int_t size)
   } else if (param.transportPrimary.compare("onnx") == 0) {
     try {
       auto classifier = std::make_shared<OnnxTrackTransport>(param);
-      mTransportTrack = [classifier, invert = param.transportPrimaryInvert](const TParticle& p, double x, double y, double z) {
-        const bool transport = classifier->transport(p, x, y, z);
-        return invert ? !transport : transport;
+      mTransportTrack = [classifier](const TParticle& p, double motherPdg, double eventX, double eventY, double eventZ) {
+        return classifier->transport(p, motherPdg, eventX, eventY, eventZ);
       };
-      // ONNX runs at PreTrack, where the true event vertex and both primary
-      // and secondary birth states are available, also in parallel simulation.
+      // ONNX runs at PreTrack, where geometry and the birth state are available,
+      // also in parallel simulation. Secondaries require an explicit opt-in.
       transportPrimary = [](const TParticle&, const std::vector<TParticle>&) { return true; };
       LOG(info) << "Successfully configured ONNX track transport pruning from CCDB path "
-                << param.transportPrimaryOnnxCCDBPath;
+                << param.transportPrimaryOnnxCCDBPath
+                << "; secondary pruning=" << param.transportPrimaryOnnxSecondaries;
     } catch (const std::exception& error) {
       LOG(fatal) << "Failed to configure ONNX track transport pruning: " << error.what();
     }
@@ -384,7 +414,41 @@ void Stack::handleTransportPrimary(TParticle& p)
 
 bool Stack::transportTrack(const TParticle& particle, double eventX, double eventY, double eventZ)
 {
-  if (!mTransportTrack || mTransportTrack(particle, eventX, eventY, eventZ)) {
+  if (!mTransportTrack) {
+    return true;
+  }
+  const int id = mIndexOfCurrentTrack;
+  const bool isRoot = id >= 0 && id < static_cast<int>(mPrimaryParticles.size());
+  if (!isRoot && !o2::sim::StackParam::Instance().transportPrimaryOnnxSecondaries) {
+    return true;
+  }
+  // Read ancestry from the indexed MCTrack, never mCurrentParticle0: Geant4
+  // owns its secondary queue and that cache can describe a different sibling.
+  auto trackByID = [this](int trackID) -> const MCTrack* {
+    if (trackID < 0) {
+      return nullptr;
+    }
+    if (trackID < static_cast<int>(mPrimaryParticles.size())) {
+      return trackID < static_cast<int>(mTracks->size()) ? &(*mTracks)[trackID] : nullptr;
+    }
+    if (trackID < static_cast<int>(mTrackIDtoParticlesEntry.size())) {
+      const int entry = mTrackIDtoParticlesEntry[trackID];
+      if (entry >= 0 && entry < static_cast<int>(mParticles.size())) {
+        return &mParticles[entry];
+      }
+    }
+    return nullptr;
+  };
+  const auto* current = trackByID(id);
+  if (!current) {
+    return true;
+  }
+  double motherPdg = 0.;
+  if (const int motherID = current->getMotherTrackId(); motherID >= 0) {
+    const auto* mother = trackByID(motherID);
+    motherPdg = mother ? mother->GetPdgCode() : std::numeric_limits<double>::quiet_NaN();
+  }
+  if (mTransportTrack(particle, motherPdg, eventX, eventY, eventZ)) {
     return true;
   }
   // Keep bookkeeping and ancestry, but mark the birth track as inhibited.
@@ -395,7 +459,6 @@ bool Stack::transportTrack(const TParticle& particle, double eventX, double even
     p.SetBit(ParticleStatus::kInhibited, 1);
   };
   inhibit(mCurrentParticle);
-  const int id = mIndexOfCurrentTrack;
   if (id >= 0 && id < static_cast<int>(mPrimaryParticles.size())) {
     inhibit(mPrimaryParticles[id]);
     (*mTracks)[id].setToBeDone(false);
