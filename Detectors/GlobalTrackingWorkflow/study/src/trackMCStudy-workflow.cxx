@@ -60,6 +60,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   WorkflowSpec specs;
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   auto checkSV = !configcontext.options().get<bool>("ignore-sv-check");
+  auto doStag = o2::itsmft::DPLAlpideParamInitializer::isITSStaggeringEnabled(configcontext);
   if (!useMC) {
     throw std::runtime_error("MC cannot be disabled for this workflow");
   }
@@ -86,7 +87,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt));
   }
 
-  specs.emplace_back(o2::trackstudy::getTrackMCStudySpec(srcTrc, srcCls, checkSV));
+  specs.emplace_back(o2::trackstudy::getTrackMCStudySpec(srcTrc, srcCls, checkSV, doStag));
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
 

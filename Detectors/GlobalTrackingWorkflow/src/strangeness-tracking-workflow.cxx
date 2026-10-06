@@ -64,13 +64,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto useRootInput = !configcontext.options().get<bool>("disable-root-input");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
   auto useGeom = configcontext.options().get<bool>("use-full-geometry");
+  auto doStag = o2::itsmft::DPLAlpideParamInitializer::isITSStaggeringEnabled(configcontext);
 
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   o2::conf::ConfigurableParam::writeINI("o2strangeness_tracking_workflow_configuration.ini");
   GID::mask_t itsSource = GID::getSourceMask(GID::ITS); // ITS tracks and clusters
 
   WorkflowSpec specs;
-  specs.emplace_back(o2::strangeness_tracking::getStrangenessTrackerSpec(itsSource, useMC, useGeom));
+  specs.emplace_back(o2::strangeness_tracking::getStrangenessTrackerSpec(itsSource, useMC, useGeom, doStag));
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, itsSource, itsSource, itsSource, useMC, itsSource);
   o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC); // P-vertex is always needed
   o2::globaltracking::InputHelper::addInputSpecsSVertex(configcontext, specs);        // S-vertex is always needed

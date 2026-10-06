@@ -11,6 +11,7 @@
 
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "DataFormatsITSMFT/ClustersPerLayer.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DetectorsBase/GRPGeomHelper.h"
@@ -96,9 +97,10 @@ class TrackExtensionStudy final : public Task
   gsl::span<const o2::itsmft::ROFRecord> mTracksROFRecords;
   gsl::span<const o2::its::TrackITS> mTracks;
   gsl::span<const o2::MCCompLabel> mTracksMCLabels;
-  gsl::span<const o2::itsmft::CompClusterExt> mClusters;
+  std::array<gsl::span<const o2::itsmft::CompClusterExt>, o2::globaltracking::MaxITSLayers> mClusters; // per layer slot
+  int mNLayerSlots = 1;                                                                                // 1 for the monolithic input
   gsl::span<const int> mInputITSidxs;
-  const o2::dataformats::MCLabelContainer* mClustersMCLCont{};
+  std::array<const o2::dataformats::MCLabelContainer*, o2::globaltracking::MaxITSLayers> mClustersMCLCont{}; // per layer slot
 
   GTrackID::mask_t mTracksSrc{};
   std::shared_ptr<DataRequest> mDataRequest;
@@ -253,12 +255,18 @@ void TrackExtensionStudy::run(ProcessingContext& pc)
   mTracksROFRecords = recoData.getITSTracksROFRecords();
   mTracks = recoData.getITSTracks();
   mTracksMCLabels = recoData.getITSTracksMCLabels();
-  mClusters = recoData.getITSClusters();
-  mClustersMCLCont = recoData.getITSClustersMCLabels();
+  mNLayerSlots = recoData.getITSPerLayer() ? o2::globaltracking::MaxITSLayers : 1;
+  size_t nClTot = 0, nClLbl = 0;
+  for (int lr = 0; lr < mNLayerSlots; lr++) { // with a single (monolithic) input all clusters are in the layer slot 0
+    mClusters[lr] = recoData.getITSClusters(lr);
+    mClustersMCLCont[lr] = recoData.getITSClustersMCLabels(lr);
+    nClTot += mClusters[lr].size();
+    nClLbl += mClustersMCLCont[lr]->getIndexedSize();
+  }
   mInputITSidxs = recoData.getITSTracksClusterRefs();
 
   LOGP(info, "** Found in {} rofs:\n\t- {} clusters with {} labels\n\t- {} tracks with {} labels",
-       mTracksROFRecords.size(), mClusters.size(), mClustersMCLCont->getIndexedSize(), mTracks.size(), mTracksMCLabels.size());
+       mTracksROFRecords.size(), nClTot, nClLbl, mTracks.size(), mTracksMCLabels.size());
   LOGP(info, "** Found {} sources from kinematic files", mKineReader->getNSources());
 
   process();
@@ -293,23 +301,25 @@ void TrackExtensionStudy::process()
   }
   LOGP(info, "** Creating particle/clusters correspondance ... ");
   for (auto iSource{0}; iSource < mParticleInfo.size(); ++iSource) {
-    for (auto iCluster{0}; iCluster < mClusters.size(); ++iCluster) {
-      auto labs = mClustersMCLCont->getLabels(iCluster); // ideally I can have more than one label per cluster
-      for (auto& lab : labs) {
-        if (!lab.isValid()) {
-          continue; // We want to skip channels related to noise, e.g. sID = 99: QED
-        }
-        int trackID, evID, srcID;
-        bool fake;
-        lab.get(trackID, evID, srcID, fake);
-        auto& cluster = mClusters[iCluster];
-        auto layer = mGeometry->getLayer(cluster.getSensorID());
-        mParticleInfo[srcID][evID][trackID].clusters |= (1 << layer);
-        if (fake) {
-          mParticleInfo[srcID][evID][trackID].fakeClusters |= (1 << layer);
+    for (int lr = 0; lr < mNLayerSlots; lr++) {
+      for (auto iCluster{0}; iCluster < mClusters[lr].size(); ++iCluster) {
+        auto labs = mClustersMCLCont[lr]->getLabels(iCluster); // ideally I can have more than one label per cluster
+        for (auto& lab : labs) {
+          if (!lab.isValid()) {
+            continue; // We want to skip channels related to noise, e.g. sID = 99: QED
+          }
+          int trackID, evID, srcID;
+          bool fake;
+          lab.get(trackID, evID, srcID, fake);
+          auto& cluster = mClusters[lr][iCluster];
+          auto layer = mGeometry->getLayer(cluster.getSensorID());
+          mParticleInfo[srcID][evID][trackID].clusters |= (1 << layer);
+          if (fake) {
+            mParticleInfo[srcID][evID][trackID].fakeClusters |= (1 << layer);
+          }
         }
       }
-    }
+    } // loop over the layer slots
   }
 
   LOGP(info, "** Analysing tracks ... ");
@@ -628,10 +638,11 @@ void TrackExtensionStudy::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   }
 }
 
-DataProcessorSpec getTrackExtensionStudy(mask_t srcTracksMask, mask_t srcClustersMask, std::shared_ptr<o2::steer::MCKinematicsReader> kineReader)
+DataProcessorSpec getTrackExtensionStudy(mask_t srcTracksMask, mask_t srcClustersMask, std::shared_ptr<o2::steer::MCKinematicsReader> kineReader, bool itsStag)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
+  dataRequest->setITSPerLayer(itsStag);
   dataRequest->requestTracks(srcTracksMask, true);
   dataRequest->requestClusters(srcClustersMask, true);
 

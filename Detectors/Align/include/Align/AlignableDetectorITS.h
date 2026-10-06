@@ -22,6 +22,7 @@
 #include "ReconstructionDataFormats/TrackParametrizationWithError.h"
 #include "ReconstructionDataFormats/BaseCluster.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
+#include "DataFormatsITSMFT/ClustersPerLayer.h"
 
 namespace o2
 {
@@ -76,9 +77,9 @@ class AlignableDetectorITS : public AlignableDetector
   //
  protected:
   //
-  std::vector<ClusterD> mITSClustersArray;
-  std::vector<int> mOverlapCandidateID; // pool of indices for potentially overlapping clusters
-  std::vector<int> mOverlapClusRef;     // 1st entry in mOverlapCandidateID for the overlapping cluster indices of each cluster
+  o2::itsmft::ClustersPerLayer<ClusterD> mITSClustersArray;
+  std::vector<int> mOverlapCandidateID; // pool of composed IDs of the potentially overlapping clusters
+  std::vector<int> mOverlapClusRef;     // 1st entry in mOverlapCandidateID for the overlapping clusters of each cluster, indexed by the flat cluster index
   std::vector<o2::itsmft::ChipMappingITS::Overlaps> mOverlaps;
   const o2::itsmft::TopologyDictionary* mITSDict{nullptr}; // cluster patterns dictionary
   //

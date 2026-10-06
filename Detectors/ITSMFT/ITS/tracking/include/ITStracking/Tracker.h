@@ -59,6 +59,10 @@ class Tracker
     const LogFunc& = [](const std::string& s) { std::cout << s << '\n'; },
     const LogFunc& = [](const std::string& s) { std::cerr << s << '\n'; });
 
+  // Self-contained seeding-vertex phase (own TimeFrame init + own timer), run before clustersToTracks.
+  float clustersToVertices(
+    const LogFunc& = [](const std::string& s) { std::cout << s << '\n'; });
+
   void setParameters(const std::vector<TrackingParameters>& p) { mTrkParams = p; }
   void setMemoryPool(std::shared_ptr<BoundedMemoryResource> pool) { mMemoryPool = pool; }
   std::vector<TrackingParameters>& getParameters() { return mTrkParams; }
@@ -72,6 +76,9 @@ class Tracker
   void initialiseTimeFrame(int iteration) { mTraits->initialiseTimeFrame(iteration); }
   void computeTracklets(int iteration, int iVertex) { mTraits->computeLayerTracklets(iteration, iVertex); }
   void computeCells(int iteration) { mTraits->computeLayerCells(iteration); }
+  void computeVertexCandidates(int iteration) { mTraits->computeVertexCandidates(iteration); }
+  void computeBeamFromVertices(int iteration) { mTraits->computeBeamFromVertices(iteration); }
+  void computeVertices(int iteration) { mTraits->computeVertices(iteration); }
   void findCellsNeighbours(int iteration) { mTraits->findCellsNeighbours(iteration); }
   void findRoads(int iteration) { mTraits->findRoads(iteration); }
 
@@ -100,10 +107,13 @@ class Tracker
     Neighbouring,
     Roading,
     Extending,
+    CellLinearising,
+    BeamPositioning,
+    SeedingVertices,
     NSteps,
   };
   Steps mCurStep{TFInit};
-  static constexpr std::array<const char*, NSteps> StateNames{"TimeFrame initialisation", "Tracklet finding", "Cell finding", "Neighbour finding", "Road finding", "Track extending"};
+  static constexpr std::array<const char*, NSteps> StateNames{"TimeFrame initialisation", "Tracklet finding", "Cell finding", "Neighbour finding", "Road finding", "Track extending", "Cell linearisation", "Beam positioning", "Seeding vertices"};
   std::vector<std::array<TimingStats, NSteps>> mTimingStats;
   void addTimingStatCurStep(int iteration, double timeMs);
 };

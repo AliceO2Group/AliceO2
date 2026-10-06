@@ -638,7 +638,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, cons
   }
   double r1pr2Inv = 1. / (r1 + r2), r2inv = 1. / r2, r1inv = 1. / r1;
   double dy2dx = (f1 + f2) * r1pr2Inv, dx2r1pr2 = dx * r1pr2Inv;
-  value_t step = (gpu::CAMath::Abs(x2r) < 0.05f) ? dx * gpu::CAMath::Abs(r2 + f2 * dy2dx)                                                   // chord
+  value_t step = (gpu::CAMath::Abs(x2r) < 0.05f) ? value_t(dx * gpu::CAMath::Abs(r2 + f2 * dy2dx))                                          // chord
                                                  : 2.f * gpu::CAMath::ASin(0.5f * dx * gpu::CAMath::Sqrt(1.f + dy2dx * dy2dx) * crv) / crv; // arc
   step *= gpu::CAMath::Sqrt(1.f + this->getTgl() * this->getTgl());
   //

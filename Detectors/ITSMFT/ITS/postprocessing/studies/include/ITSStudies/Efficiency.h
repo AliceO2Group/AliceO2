@@ -26,7 +26,7 @@ namespace its
 namespace study
 {
 using mask_t = o2::dataformats::GlobalTrackID::mask_t;
-o2::framework::DataProcessorSpec getEfficiencyStudy(mask_t srcTracksMask, mask_t srcClustersMask, bool useMC, std::shared_ptr<o2::steer::MCKinematicsReader> kineReader);
+o2::framework::DataProcessorSpec getEfficiencyStudy(mask_t srcTracksMask, mask_t srcClustersMask, bool useMC, std::shared_ptr<o2::steer::MCKinematicsReader> kineReader, bool itsStag);
 
 float mEtaCuts[2] = {-1.0, 1.0};
 float mPtCuts[2] = {0, 10}; /// no cut for B=0

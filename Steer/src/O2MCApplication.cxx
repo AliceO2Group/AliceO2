@@ -667,17 +667,17 @@ void addSpecialParticles()
     psratio[j] = 0.;
   }
 
-  TVirtualMC::GetMC()->DefineParticle(3335, "Omega2012", kPTHadron, 2.012, -1.0, 1.0285e-22, "Hadron", 0.0064, 3, -1, 0, 0, 0, 0, 0, 1, kTRUE);
+  TVirtualMC::GetMC()->DefineParticle(123334, "Omega_Minus_2012", kPTHadron, 2.0125, -1.0, 1.0285e-22, "Hadron", 0.0064, 3, -1, 0, 0, 0, 0, 0, 1, kTRUE);
   psmode[0][0] = 3312; // Xi-
   psmode[0][1] = 310;  // K0S
   psratio[0] = 100.;
-  TVirtualMC::GetMC()->SetDecayMode(3335, psratio, psmode);
+  TVirtualMC::GetMC()->SetDecayMode(123334, psratio, psmode);
 
-  TVirtualMC::GetMC()->DefineParticle(-3335, "AntiOmega2012", kPTHadron, 2.012, 1.0, 1.0285e-22, "Hadron", 0.0064, 3, 1, 0, 0, 0, 0, 0, -1, kTRUE);
+  TVirtualMC::GetMC()->DefineParticle(-123334, "Omega_Plus_2012", kPTHadron, 2.0125, 1.0, 1.0285e-22, "Hadron", 0.0064, 3, 1, 0, 0, 0, 0, 0, -1, kTRUE);
   psmode[0][0] = -3312; // anti-Xi+
   psmode[0][1] = 310;   // K0S
   psratio[0] = 100.;
-  TVirtualMC::GetMC()->SetDecayMode(-3335, psratio, psmode);
+  TVirtualMC::GetMC()->SetDecayMode(-123334, psratio, psmode);
 
   // d*(2380) - dibaryon resonance
   TVirtualMC::GetMC()->DefineParticle(900010020, "d*_2380", kPTHadron, 2.38, 1.0, 0.94e-23, "Ion", 0.07, 6, 1, 0, 0, 0, 0, 0, 2, kTRUE);

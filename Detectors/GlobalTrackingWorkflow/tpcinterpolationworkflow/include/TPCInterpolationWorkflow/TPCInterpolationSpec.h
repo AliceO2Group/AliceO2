@@ -68,7 +68,7 @@ class TPCInterpolationDPL : public Task
 
 /// create a processor spec
 framework::DataProcessorSpec getTPCInterpolationSpec(o2::dataformats::GlobalTrackID::mask_t srcCls, o2::dataformats::GlobalTrackID::mask_t srcVtx, o2::dataformats::GlobalTrackID::mask_t srcTrk,
-                                                     o2::dataformats::GlobalTrackID::mask_t srcTrkMap, bool useMC, bool processITSTPConly, bool sendTrackData, bool debugOutput, bool extDetResid);
+                                                     o2::dataformats::GlobalTrackID::mask_t srcTrkMap, bool useMC, bool processITSTPConly, bool sendTrackData, bool debugOutput, bool extDetResid, bool itsStag);
 
 } // namespace tpc
 } // namespace o2

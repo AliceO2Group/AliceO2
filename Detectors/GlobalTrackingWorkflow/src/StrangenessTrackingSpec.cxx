@@ -154,10 +154,11 @@ void StrangenessTrackerSpec::endOfStream(framework::EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getStrangenessTrackerSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useMC, bool useGeom)
+DataProcessorSpec getStrangenessTrackerSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useMC, bool useGeom, bool itsStag)
 {
   // ITS
   auto dataRequest = std::make_shared<DataRequest>();
+  dataRequest->setITSPerLayer(itsStag);
   dataRequest->requestITSClusters(useMC);
   dataRequest->requestTracks(src, useMC);
   dataRequest->requestPrimaryVertices(useMC);

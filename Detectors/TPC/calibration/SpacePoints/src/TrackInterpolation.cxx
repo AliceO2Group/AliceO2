@@ -351,13 +351,18 @@ void TrackInterpolation::process()
       return;
     }
     mITSTrackClusIdx = mRecoCont->getITSTracksClusterRefs();
-    const auto clusITS = mRecoCont->getITSClusters();
-    const auto patterns = mRecoCont->getITSClustersPatterns();
-    auto pattIt = patterns.begin();
-    mITSClustersArray.clear();
-    mITSClustersArray.reserve(clusITS.size());
-    LOGP(info, "We have {} ITS clusters and the number of patterns is {}", clusITS.size(), patterns.size());
-    o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray, mITSDict);
+    int nLr = mRecoCont->getITSPerLayer() ? o2::globaltracking::MaxITSLayers : 1;
+    mITSClustersArray.init(nLr);
+    for (int lr = 0; lr < nLr; lr++) { // with a single (monolithic) input all clusters are in the layer slot 0
+      mITSClustersArray.beginLayer(lr);
+      const auto clusITS = mRecoCont->getITSClusters(lr);
+      const auto patterns = mRecoCont->getITSClustersPatterns(lr);
+      auto pattIt = patterns.begin();
+      mITSClustersArray.getClusters().reserve(mITSClustersArray.size() + clusITS.size());
+      LOGP(info, "We have {} ITS clusters and the number of patterns is {} on the layer slot {}", clusITS.size(), patterns.size(), lr);
+      o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray.getClusters(), mITSDict);
+    }
+    mITSClustersArray.finalize();
   }
 
   // In case we have more input tracks available than are required per TF
@@ -725,8 +730,11 @@ void TrackInterpolation::interpolateTrack(int iSeed)
       const auto z = clusterResiduals[iCl].z;
       const auto sec = clusterResiduals[iCl].sec;
       const short flags = clusterResiduals[iCl].flags;
-      if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(y) < param::MaxY) && (std::abs(z) < param::MaxZ) && (std::abs(tgPhi) < param::MaxTgSlp)) {
-        mClRes.emplace_back(dy, dz, tgPhi, y, z, iRow, sec, flags, rej);
+      // scdcalib.clampTgSlp: keep a cluster whose |tan(phi)| exceeds the packing range, with tgSlp saturated, instead of dropping it
+      const bool tgPhiOK = (std::abs(tgPhi) < param::MaxTgSlp) || mParams->clampTgSlp;
+      const float tgPhiStore = std::clamp(tgPhi, -param::MaxTgSlp, param::MaxTgSlp);
+      if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(y) < param::MaxY) && (std::abs(z) < param::MaxZ) && tgPhiOK) {
+        mClRes.emplace_back(dy, dz, tgPhiStore, y, z, iRow, sec, flags, rej);
         mDetInfoRes.emplace_back().setTPC(mCacheDEDX[iRow].first, mCacheDEDX[iRow].second); // qtot, qmax
         ++nClValidated;
       } else {
@@ -1076,8 +1084,11 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
       const auto y = clusterResiduals[iCl].y;
       const auto z = clusterResiduals[iCl].z;
       const short flags = clusterResiduals[iCl].flags;
-      if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(y) < param::MaxY) && (std::abs(z) < param::MaxZ) && (std::abs(tgPhi) < param::MaxTgSlp)) {
-        mClRes.emplace_back(dy, dz, tgPhi, y, z, iRow, clusterResiduals[iCl].sec, flags, rej);
+      // scdcalib.clampTgSlp: keep a cluster whose |tan(phi)| exceeds the packing range, with tgSlp saturated, instead of dropping it
+      const bool tgPhiOK = (std::abs(tgPhi) < param::MaxTgSlp) || mParams->clampTgSlp;
+      const float tgPhiStore = std::clamp(tgPhi, -param::MaxTgSlp, param::MaxTgSlp);
+      if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(y) < param::MaxY) && (std::abs(z) < param::MaxZ) && tgPhiOK) {
+        mClRes.emplace_back(dy, dz, tgPhiStore, y, z, iRow, clusterResiduals[iCl].sec, flags, rej);
         mDetInfoRes.emplace_back().setTPC(mCacheDEDX[iRow].first, mCacheDEDX[iRow].second); // qtot, qmax
         ++nClValidated;
       } else {

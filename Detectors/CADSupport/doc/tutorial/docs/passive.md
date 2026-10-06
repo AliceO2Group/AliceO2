@@ -56,3 +56,30 @@ Setting special cuts for passive module EXCV
 
 Those three lines mean your CAD geometry is in the simulation and particles are being transported
 through it. You can list as many modules in the same array as you like.
+
+## Combine it with the built-in detectors
+
+A custom `--detectorList` replaces the official list, it does not extend it. `o2-sim` takes the
+module set from the one list you name, and `-m` may only select from that set. To simulate your CAD
+module together with, say, the ALICE 3 detectors, put all of them in the same list:
+
+`detectorlist.json`
+
+```json
+{ "EXTCAD": ["A3IP", "TRK", "FT3", "TF3", "EOS"] }
+```
+
+```bash
+o2-sim-serial-run5 -n 1 -g boxgen \
+    --detectorList EXTCAD:detectorlist.json \
+    --extGeomFile externalGeometry.json
+```
+
+Here `EOS` is the `name` of the module in `externalGeometry.json`. Leave `-m` out, so that every
+module in the list is active. If you pass `-m A3IP TRK` together with a list that does not contain
+them, you get `Modules specified that are not present in detector list`.
+
+- Copy the entries of the official list you want from `$O2_ROOT/share/config/o2simdefaultdetectorlist.json`.
+- Use `o2-sim-serial-run5` (or `o2-sim-run5`) for ALICE 3 modules, and `o2-sim-serial` for Run 3 ones.
+- Switch a module off by removing it from the list, or with `--skipModules`.
+- The cave is always built, so `barrel` stays a valid anchor.

@@ -697,15 +697,17 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
                 if (Param().rec.trd.addDeflectionInChi2 == 2 || Param().rec.trd.addDeflectionInChi2 == 3) {
                   // In this case we take into account the full likelihood, so we replace (deltaDy/sigmaDy)^2 by -2*ln(likelihood), which is the same in the default Gaussian case
                   double likelihood = mRecoParam->getDyLikelihood(trkWork->getSnp(), spacePoints[trkltIdx].getDy() + dyTiltCorr, nTrackletsChamber);
-                  if (likelihood < 1e-6f)
+                  if (likelihood < 1e-6f) {
                     continue; // likelihood of 1e-6 is equivalent to 5 sigma deviation, so we can safely cut it to avoid numerical instability in log calculation
+                  }
                   deltaDy = CAMath::Sqrt(-2.f * CAMath::Log(likelihood) * sigmaDy2) * (deltaDy > 0.f ? 1.f : -1.f);
                 }
                 if (Param().rec.trd.addDeflectionInChi2 == 3) {
                   // We do the same for deltaZ
                   double likelihood = mRecoParam->getZLikelihood(deltaZ, pad->GetRowSize(tracklets[trkltIdx].GetZbin()), CAMath::Sqrt(trkWork->getSigmaZ2()));
-                  if (likelihood < 1e-6f)
+                  if (likelihood < 1e-6f) {
                     continue;
+                  }
                   deltaZ = CAMath::Sqrt(-2.f * CAMath::Log(likelihood) * sigmaZ2) * (deltaZ > 0.f ? 1.f : -1.f);
                 }
                 chi2 = deltaY * trkltCovTmpWithDy[0] * deltaY + 2 * deltaY * trkltCovTmpWithDy[1] * deltaZ + 2 * deltaY * trkltCovTmpWithDy[3] * deltaDy + deltaZ * trkltCovTmpWithDy[2] * deltaZ + 2 * deltaZ * trkltCovTmpWithDy[4] * deltaDy + deltaDy * trkltCovTmpWithDy[5] * deltaDy;

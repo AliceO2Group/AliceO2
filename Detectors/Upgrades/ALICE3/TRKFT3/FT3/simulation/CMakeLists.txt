@@ -11,6 +11,7 @@
 
 o2_add_library(FT3Simulation
                SOURCES
+                       src/FT3Materials.cxx
                        src/FT3Module.cxx
                        src/FT3Layer.cxx
                        src/Detector.cxx

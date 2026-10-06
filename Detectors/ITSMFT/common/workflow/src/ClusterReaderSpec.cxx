@@ -33,7 +33,7 @@ namespace itsmft
 {
 
 template <int N>
-ClusterReader<N>::ClusterReader(bool useMC, bool doStag, bool usePatterns, bool triggerOut) : mUseMC(useMC), mUsePatterns(usePatterns), mTriggerOut(triggerOut), mDetName(Origin.as<std::string>()), mDetNameLC(mDetName)
+ClusterReader<N>::ClusterReader(bool useMC, bool doStag, bool usePatterns, bool triggerOut) : mUseMC(useMC), mDoStaggering(doStag), mUsePatterns(usePatterns), mTriggerOut(triggerOut), mDetName(Origin.as<std::string>()), mDetNameLC(mDetName)
 {
   std::transform(mDetNameLC.begin(), mDetNameLC.end(), mDetNameLC.begin(), ::tolower);
   if (doStag) {

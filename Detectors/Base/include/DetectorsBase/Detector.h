@@ -87,8 +87,8 @@ class Detector : public FairDetector
   /// \param phi1 azimuthal angle for axis I
   /// \param phi2 azimuthal angle for axis II
   /// \param phi3 azimuthal angle for axis III
-  void Matrix(Int_t& nmat, Float_t theta1, Float_t phi1, Float_t theta2, Float_t phi2, Float_t theta3,
-              Float_t phi3) const;
+  void Matrix(Int_t& nmat, Double_t theta1, Double_t phi1, Double_t theta2, Double_t phi2, Double_t theta3,
+              Double_t phi3) const;
 
   static void setDensityFactor(Float_t density)
   {

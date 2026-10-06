@@ -24,7 +24,6 @@ using namespace o2::framework::expressions;
 
 namespace o2::aod
 {
-O2ORIGIN("EMB");
 using TracksPlus = soa::Join<StoredTracksIU, StoredTracksExtra>;
 template <is_aod_hash T>
 using TracksPlusFrom = soa::Join<StoredTracksIUFrom<T>, StoredTracksExtra_002From<T>>;

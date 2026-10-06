@@ -245,7 +245,7 @@ void SecondaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
 }
 
 DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCasc, bool enable3body, bool enableStrangenesTracking, bool enableCCDBParams,
-                                            bool useMC, bool useGeom)
+                                            bool useMC, bool useGeom, bool itsStag)
 {
   std::vector<OutputSpec> outputs;
   Options opts{
@@ -255,6 +255,7 @@ DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCas
   if (enableCCDBParams) {
     dataRequest->inputs.emplace_back("SVParam", "GLO", "SVPARAM", 0, Lifetime::Condition, ccdbParamSpec("GLO/Config/SVertexerParam"));
   }
+  dataRequest->setITSPerLayer(itsStag);
   GTrackID::mask_t srcClus{};
   if (enableStrangenesTracking) {
     src |= (srcClus = GTrackID::getSourceMask(GTrackID::ITS));

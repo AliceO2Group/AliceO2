@@ -51,6 +51,9 @@ if(${ENABLE_VTUNE_PROFILER})
   target_link_libraries(${LIBRANS} INTERFACE PkgConfig::Vtune)
 endif()
 
+# o2_add_test() returns early when BUILD_TESTING is off, so TARGETVARNAME is
+# never set and the target_compile_options() below would see an empty target.
+if(BUILD_TESTING)
 o2_add_test(Utils
             NAME ransUtils
             SOURCES test/test_ransUtils.cxx
@@ -186,6 +189,7 @@ o2_add_test(Serialize
             TARGETVARNAME TEST_SERIALIZE
             LABELS utils)
             target_compile_options(${TEST_SERIALIZE} PRIVATE ${RANS_TEST_ARCH})
+endif()
 
 if (TARGET benchmark::benchmark)
     o2_add_header_only_library(libransBenchmark

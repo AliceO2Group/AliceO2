@@ -21,6 +21,7 @@
 #include "Framework/DataProcessingHeader.h"
 #include "DataFormatsTRD/TrackTRD.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "DataFormatsITSMFT/ClustersPerLayer.h"
 #include "EveWorkflow/EveConfiguration.h"
 #include "EventVisualisationDataConverter/VisualisationEvent.h"
 #include "MFTBase/GeometryTGeo.h"
@@ -201,7 +202,7 @@ class EveWorkflowHelper
   std::unordered_map<std::size_t, std::vector<GID>> mPrimaryVertexTriggerGIDs;
   std::unordered_map<GID, unsigned int> mGIDTrackTime;
   std::vector<Bracket> mItsROFBrackets;
-  std::vector<o2::BaseCluster<float>> mITSClustersArray;
+  o2::itsmft::ClustersPerLayer<o2::BaseCluster<float>> mITSClustersArray; // addressed by the composed (layer,index) ID
   std::vector<o2::BaseCluster<float>> mMFTClustersArray;
   o2::mft::GeometryTGeo* mMFTGeom;
   o2::its::GeometryTGeo* mITSGeom;
