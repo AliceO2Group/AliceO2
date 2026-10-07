@@ -44,7 +44,7 @@ void Digitizer::init()
 
   const auto& specsConfig = ChipSpecificsParam::Instance();
   const auto& digitizerParams = o2::iotof::DPLDigitizerParam::Instance();
-  const double nReadOutCols = specsConfig.NCols / digitizerParams.nColsPerGroup + 1;
+  const int nReadOutCols = specsConfig.NCols / digitizerParams.nColsPerGroup + 1;
   for (int i = numberOfChips; i--;) {
     mChips[i].setChipIndex(i);
     /// Noise map to be implemented
