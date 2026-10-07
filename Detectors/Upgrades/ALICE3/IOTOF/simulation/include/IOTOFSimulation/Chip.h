@@ -85,7 +85,7 @@ class Chip
  protected:
   Int_t mChipIndex = -1;                                ///< Chip ID
   bool mDisabled = false;                               ///< Flag to indicate if the chip is disabled (e.g. due to dead channels)
-  std::map<DigitKey, o2::iotof::LabeledDigit> mDigits; ///< Map of fired digits, possibly in multiple frames
+  std::map<DigitKey, o2::iotof::LabeledDigit> mDigits;  ///< Map of fired digits, possibly in multiple frames
   std::vector<std::array<double, 2>> mTDCStates;        ///< Vector of the last times the TDC pairs went busy
 
   ClassDefNV(Chip, 1);

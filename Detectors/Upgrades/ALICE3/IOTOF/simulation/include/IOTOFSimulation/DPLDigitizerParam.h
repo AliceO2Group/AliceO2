@@ -38,8 +38,8 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
   float energyToNElectrons = 1. / 3.6e-9; // conversion of eloss to Nelectrons
   int responseMatrixSize = 1;             ///< size of the response matrix (odd number)
 
-  int nColsPerGroup = 4;                  ///< number of pixel columns grouped into a readout column
-  double tdcBusyTime = 0.100f;            ///< tdc pair bsuy time (default 100 ps)
+  int nColsPerGroup = 4;       ///< number of pixel columns grouped into a readout column
+  double tdcBusyTime = 0.100f; ///< tdc pair bsuy time (default 100 ps)
 
   std::string noiseFilePath{}; ///< optional noise masks file path. FIXME to be removed once switch to CCDBFetcher
 

@@ -29,7 +29,8 @@ struct DigitKey {
   ULong64_t high;
   UInt_t low;
 
-  bool operator<(const DigitKey& other) const {
+  bool operator<(const DigitKey& other) const
+  {
     if (high != other.high) {
       return high < other.high;
     }
