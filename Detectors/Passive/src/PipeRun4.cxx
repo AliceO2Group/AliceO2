@@ -1568,7 +1568,7 @@ void PipeRun4::ConstructGeometry()
   TGeoVolumeAssembly* voRB243 = new TGeoVolumeAssembly("RB243");
   TGeoVolumeAssembly* voRB243A = new TGeoVolumeAssembly("RB243A");
 
-  voRB243A->AddNode(voRB243CuTube, 1, gGeoIdentity);
+  voRB243A->AddNode(voRB243CuTubeM, 1, gGeoIdentity);
   z = -kRB243CuTubeL / 2 + kRB24CuTubeFL / 2.;
   voRB243A->AddNode(voRB24CuTubeF, 5, new TGeoTranslation(0., 0., z));
   z = +kRB243CuTubeL / 2 - kRB24CuTubeFL / 2.;

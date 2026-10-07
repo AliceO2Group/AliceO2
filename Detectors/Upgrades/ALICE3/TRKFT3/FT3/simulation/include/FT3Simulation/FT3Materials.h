@@ -49,7 +49,8 @@ enum class MaterialID : unsigned {
   Epoxy,
   Aluminum,
   Foam,
-  Water
+  Water,
+  FR4
 };
 
 // Transport parameters of a medium, in the order expected by Detector::Medium()
@@ -108,7 +109,10 @@ inline const std::unordered_map<MaterialID, MaterialProperties> materials = {
   // Carbon foam core of the disk separation layer
   {MaterialID::Foam, {"Foam", kBlack, 0.17f, 0.0f, 0.0f, 0, {12.0107f}, {6.0f}, {}, passiveTracking}},
   // Coolant inside the kapton pipes
-  {MaterialID::Water, {"Water", kBlue, 1.064f, 0.0f, 0.0f, 0, {18.01528f}, {8.0f}, {}, passiveTracking}}};
+  {MaterialID::Water, {"Water", kBlue, 1.064f, 0.0f, 0.0f, 0, {18.01528f}, {8.0f}, {}, passiveTracking}},
+  // FR4 board of the disk end-of-stave cards: 60% glass (SiO2) + 40% epoxy by
+  // weight -> Si, O, C, H ; rho = 1.85 g/cm3 (same recipe as the TRK barrel)
+  {MaterialID::FR4, {"FR4", kGreen + 3, 1.85f, 0.0f, 0.0f, 4, {28.0855f, 15.9994f, 12.0107f, 1.00794f}, {14.0f, 8.0f, 6.0f, 1.0f}, {0.2804f, 0.3836f, 0.3040f, 0.0320f}, passiveTracking}}};
 // The inactive rim of a sensor is made of silicon as well, but is drawn
 // separately so that it can be told apart from the active area.
 const int SiInactiveColor = kRed;

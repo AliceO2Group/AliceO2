@@ -24,6 +24,7 @@
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/MatchInfoTOF.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITSMFT/TrkClusRef.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
@@ -97,6 +98,10 @@ struct UnbinnedResid {
 
   /// true if tgSlp was saturated at +-param::MaxTgSlp (scdcalib.clampTgSlp): unclamped values have |tgSlp| <= 0x7fff - 1
   bool isTgSlpClamped() const { return tgSlp == 0x7fff || tgSlp == -0x7fff; }
+  /// tgSlp marker of a position-only TPC cluster (scdcalib.keepClustersOnPropFail): no reference track at this cluster,
+  /// y and z are the cluster position, dy = dz = 0. Not reachable by the tgSlp packing (|tgSlp| <= 0x7fff)
+  static constexpr short TgSlpPositionOnly = -0x8000;
+  bool isPositionOnly() const { return tgSlp == TgSlpPositionOnly; }
   bool isTPC() const { return row < constants::MAXGLOBALPADROW; }
   bool isTRD() const { return row >= 160 && row < 166; }
   bool isTOF() const { return row == 170; }
@@ -238,6 +243,44 @@ struct TrackData {
   float getMultStackPacked(int stack) const { return multStack[stack]; }
 
   ClassDefNV(TrackData, 12);
+};
+
+/// MC truth for a TrackData entry (stored only for MC, aligned 1:1 with the TrackData vector)
+struct TrackDataMC {
+  enum Flags : uint8_t { HasITSOut = 0x1,    ///< parITSOut is filled
+                         HasTPCIn = 0x2,     ///< parTPCIn is filled
+                         FakeITSTPC = 0x4,   ///< ITS and TPC parts of the track have different MC labels
+                         HasTRDIn = 0x8,     ///< parTRDIn is filled
+                         IsPrimary = 0x10 }; ///< the particle of the ITS-TPC part is a primary (MCTrack::isPrimary)
+  o2::MCCompLabel label{};                   ///< MC label of the ITS-TPC part of the seeding track
+  o2::MCCompLabel labelITS{};                ///< MC label of its ITS part
+  o2::MCCompLabel labelTPC{};                ///< MC label of its TPC part
+  o2::track::TrackPar parITSOut{};           ///< truth at x and alpha of TrackData::par, from the nearest ITS track reference (propagated with the material correction, true mass)
+  o2::track::TrackPar parTPCIn{};            ///< truth at the first TPC track reference (sector frame)
+  float distITSRef{-1.f};                    ///< 3D distance between the ITS track reference used and TrackData::par in cm
+  float distTPCRef{-1.f};                    ///< distance (y,z) between parTPCIn propagated to the innermost TPC cluster of the track and that cluster in cm (large: wrong leg, looper, fake)
+  o2::track::TrackPar parTRDIn{};            ///< truth at the first TRD track reference (sector frame), TRD-matched seeds only
+  float yTRD[6] = {};                        ///< truth y at the x of the TRD tracklet of each layer (tracklet sector frame), see trdLayerMask
+  float zTRD[6] = {};                        ///< truth z at the x of the TRD tracklet of each layer (tracklet sector frame), see trdLayerMask
+  uint8_t trdLayerMask{0};                   ///< bit i set: yTRD[i], zTRD[i] filled
+  int pdg{0};                                ///< PDG code of the particle of the ITS-TPC part (as for the origin and TRD fields)
+  o2::MCCompLabel motherLabel{};             ///< MC label of the mother of the particle of the ITS-TPC part (for primaries the generator-level parent)
+  int motherPdg{0};                          ///< PDG code of that mother (0: none)
+  float prodX{0.f};                          ///< production vertex x of the particle of the ITS-TPC part (global, cm)
+  float prodY{0.f};                          ///< production vertex y (global, cm)
+  float prodZ{0.f};                          ///< production vertex z (global, cm)
+  float prodPx{0.f};                         ///< momentum at production x (global, GeV/c), e.g. to compare a track propagated to the vertex
+  float prodPy{0.f};                         ///< momentum at production y (global, GeV/c)
+  float prodPz{0.f};                         ///< momentum at production z (global, GeV/c)
+  int sisterIdx{-1};                         ///< index in the TrackData vector of another stored track with the same mother (cycling through all of them if more than two), -1: none
+  uint8_t process{0};                        ///< production process of the particle of the ITS-TPC part (TMCProcess)
+  uint8_t flags{0};
+  bool hasITSOut() const { return flags & HasITSOut; }
+  bool hasTPCIn() const { return flags & HasTPCIn; }
+  bool isFakeITSTPC() const { return flags & FakeITSTPC; }
+  bool hasTRDIn() const { return flags & HasTRDIn; }
+  bool isPrimary() const { return flags & IsPrimary; }
+  ClassDefNV(TrackDataMC, 3);
 };
 
 /// \class TrackInterpolation
@@ -420,6 +463,8 @@ class TrackInterpolation
   std::vector<TrackDataCompact>& getTrackDataCompact() { return mTrackDataCompact; }
   std::vector<TrackDataExtended>& getTrackDataExtended() { return mTrackDataExtended; }
   std::vector<TrackData>& getReferenceTracks() { return mTrackData; }
+  /// ITS-TPC-TRD track whose tracklets gave the TRD residuals of each stored track (not set if none), aligned with getReferenceTracks()
+  const std::vector<o2::dataformats::GlobalTrackID>& getTRDGIDsSuccess() const { return mTRDGIDsSuccess; }
 
   void setLane(int lID, int nL)
   {
@@ -487,6 +532,7 @@ class TrackInterpolation
   // cache
   std::array<CacheStruct, constants::MAXGLOBALPADROW> mCache{{}}; ///< caching positions, covariances and angles for track extrapolations and interpolation
   std::vector<o2::dataformats::GlobalTrackID> mGIDsSuccess;       ///< keep track of the GIDs which could be processed successfully
+  std::vector<o2::dataformats::GlobalTrackID> mTRDGIDsSuccess;    ///< ITS-TPC-TRD track used for the TRD residuals of each stored track (not set if none)
 
   TrackValidationData mTrackValidation;
 
@@ -500,6 +546,8 @@ class TrackInterpolation
   size_t mNRejRefit = 0;
   size_t mNRejProp = 0;
   size_t mNRejLoop = 0;
+  size_t mNPosOnlyTracks = 0;   ///< tracks kept with position-only clusters after a propagation failure (keepClustersOnPropFail)
+  size_t mNPosOnlyClusters = 0; ///< position-only TPC clusters stored (keepClustersOnPropFail)
 
   ClassDefNV(TrackInterpolation, 1);
 };
