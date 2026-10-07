@@ -76,7 +76,6 @@ void Digitizer::init()
   LOG(info) << "  Detection efficiency: " << digitizerParams.efficiency * 100 << " %";
   LOG(info) << "  Continuous mode: " << (mContinuous ? "ON" : "OFF");
   sSegmentation = o2::iotof::Segmentation::Instance();
-
 }
 
 //_______________________________________________________________________
@@ -428,11 +427,9 @@ void Digitizer::fillOutputContainer()
       if (digitTime - tdcStates[colInGroup][0] < digitizerParams.tdcBusyTime && digitTime - tdcStates[colInGroup][1] < digitizerParams.tdcBusyTime) {
         // TODO: improve labels treatment if multiple hits cross the same pixel during
         continue; // both tdc pairs are busy
-      }
-      else if (digitTime - tdcStates[colInGroup][0] > digitizerParams.tdcBusyTime) {
+      } else if (digitTime - tdcStates[colInGroup][0] > digitizerParams.tdcBusyTime) {
         tdcStates[colInGroup][0] = digitTime;
-      }
-      else if (digitTime - tdcStates[colInGroup][1] > digitizerParams.tdcBusyTime) {
+      } else if (digitTime - tdcStates[colInGroup][1] > digitizerParams.tdcBusyTime) {
         tdcStates[colInGroup][1] = digitTime;
       }
 
