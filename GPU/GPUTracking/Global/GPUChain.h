@@ -87,6 +87,9 @@ class GPUChain
   inline GPUParam& param() { return mRec->param(); }
   inline const GPUConstantMem* processors() const { return mRec->processors(); }
   inline void SynchronizeStream(int32_t stream) { mRec->SynchronizeStream(stream); }
+  // Borrowed native stream; ownership and synchronization remain with the reconstruction.
+  inline int32_t GetNativeGPUDevice() const { return mRec->GetNativeGPUDevice(); }
+  inline void* GetNativeGPUStream(int32_t stream) const { return mRec->GetNativeGPUStream(stream); }
   inline void SetONNXGPUStream(Ort::SessionOptions& opt, int32_t stream, int32_t* deviceId) { mRec->SetONNXGPUStream(opt, stream, deviceId); }
   inline void SynchronizeEvents(deviceEvent* evList, int32_t nEvents = 1) { mRec->SynchronizeEvents(evList, nEvents); }
   inline void SynchronizeEventAndRelease(deviceEvent& ev, bool doGPU = true)

@@ -27,10 +27,29 @@
 #include <onnxruntime_cxx_api.h>
 #endif
 
+#ifdef GPUCA_HAS_SOFIE
+#include <TMVA/RGPUModel.hxx>
+#include <TMVA/RModelParser_ONNX.hxx>
+#endif
+#include <array>
+#include <limits>
+
 using namespace o2::gpu;
+
+struct GPUTPCNNClusterizerHost::SofieState {
+#ifdef GPUCA_HAS_SOFIE
+  std::array<std::shared_ptr<TMVA::Experimental::SOFIE::RGPUModel>, 3> models;
+  std::array<std::unique_ptr<TMVA::Experimental::SOFIE::RGPUModel::Session>, 3> sessions;
+#endif
+  size_t workspaceSize = 0;
+  unsigned int maxBatch = 0;
+};
 
 void GPUTPCNNClusterizerHost::init(const GPUSettingsProcessingNNclusterizer& settings, bool useDeterministicMode)
 {
+#ifndef GPUCA_HAS_ONNX
+  throw std::runtime_error("ONNXRuntime was not enabled in this build");
+#else
   std::string class_model_path = settings.nnClassificationPath, reg_model_path = settings.nnRegressionPath;
   std::vector<std::string> reg_model_paths_local;
   std::vector<std::string> evalMode = o2::utils::Str::tokenize(settings.nnEvalMode, ':');
@@ -83,6 +102,7 @@ void GPUTPCNNClusterizerHost::init(const GPUSettingsProcessingNNclusterizer& set
       mModelsUsed[2] = true;
     }
   }
+#endif
 }
 
 void GPUTPCNNClusterizerHost::initClusterizer(const GPUSettingsProcessingNNclusterizer& settings, GPUTPCNNClusterizer& clustererNN, int32_t maxFragmentLen, int32_t maxAllowedTimebin)
@@ -134,13 +154,29 @@ void GPUTPCNNClusterizerHost::initClusterizer(const GPUSettingsProcessingNNclust
   } else {
     clustererNN.mNnInferenceOutputDType = 1; // Default to float16
   }
-  clustererNN.mNnClusterizerModelClassNumOutputNodes = mModelClass.getNumOutputNodes()[0][1];
+#ifdef GPUCA_HAS_SOFIE
+  if (mSofie) {
+    if (settings.nnClusterizerBatchedMode != mSofie->maxBatch) {
+      throw std::runtime_error("Changing SOFIE batch capacity requires chain reinitialization");
+    }
+    clustererNN.mSofieWorkspaceSize = mSofie->workspaceSize;
+    for (const auto& model : mSofie->models) {
+      if (model && ((model->GetPrecision() == TMVA::Experimental::SOFIE::RGPUModel::Precision::Float16) != (clustererNN.mNnInferenceInputDType == 1) || clustererNN.mNnInferenceInputDType != clustererNN.mNnInferenceOutputDType)) {
+        throw std::runtime_error("Changing SOFIE precision requires chain reinitialization");
+      }
+      if (model && model->InputSize() != static_cast<size_t>(clustererNN.mNnClusterizerElementSize)) {
+        throw std::runtime_error("SOFIE input shape does not match the configured clusterizer window");
+      }
+    }
+  }
+#endif
+  clustererNN.mNnClusterizerModelClassNumOutputNodes = modelOutputs(0);
   if (!settings.nnClusterizerUseCfRegression) {
-    if (mModelClass.getNumOutputNodes()[0][1] == 1 || !mModelReg2.isInitialized()) {
-      clustererNN.mNnClusterizerModelReg1NumOutputNodes = mModelReg1.getNumOutputNodes()[0][1];
+    if (modelOutputs(0) == 1 || !mModelsUsed[2]) {
+      clustererNN.mNnClusterizerModelReg1NumOutputNodes = modelOutputs(1);
     } else {
-      clustererNN.mNnClusterizerModelReg1NumOutputNodes = mModelReg1.getNumOutputNodes()[0][1];
-      clustererNN.mNnClusterizerModelReg2NumOutputNodes = mModelReg2.getNumOutputNodes()[0][1];
+      clustererNN.mNnClusterizerModelReg1NumOutputNodes = modelOutputs(1);
+      clustererNN.mNnClusterizerModelReg2NumOutputNodes = modelOutputs(2);
     }
   }
 }
@@ -178,6 +214,7 @@ void GPUTPCNNClusterizerHost::initClusterizer(const GPUSettingsProcessingNNclust
 //   }
 // }
 
+#ifdef GPUCA_HAS_ONNX
 // MockedOrtAllocator implementation to be able to use volatile assignment
 struct MockedOrtAllocator : OrtAllocator {
   MockedOrtAllocator(GPUReconstruction* = nullptr, OrtMemoryInfo* = nullptr);
@@ -277,4 +314,148 @@ const OrtMemoryInfo* GPUTPCNNClusterizerHost::getMockedMemoryInfo()
 MockedOrtAllocator* GPUTPCNNClusterizerHost::getMockedAllocator()
 {
   return mMockedAlloc.get();
+}
+
+#endif
+
+void GPUTPCNNClusterizerHost::initSofie(const GPUSettingsProcessingNNclusterizer& settings, void* stream, int32_t device, bool hip, const GPUTPCNNClusterizerHost* source)
+{
+#ifdef GPUCA_HAS_SOFIE
+  using Model = TMVA::Experimental::SOFIE::RGPUModel;
+  if (settings.nnLoadFromCCDB) {
+    throw std::runtime_error("SOFIE currently requires local ONNX files; disable nnLoadFromCCDB");
+  }
+  if (!settings.nnClusterizerBatchedMode || settings.nnClusterizerBatchedMode > static_cast<unsigned>(std::numeric_limits<int32_t>::max())) {
+    throw std::runtime_error("SOFIE requires a positive batch capacity within int32 range");
+  }
+  auto precision = [](const std::string& value) {
+    if (value == "FP32" || value == "fp32") {
+      return Model::Precision::Float32;
+    }
+    if (value == "FP16" || value == "fp16") {
+      return Model::Precision::Float16;
+    }
+    throw std::runtime_error("SOFIE precision must be FP32 or FP16");
+  };
+  const auto inputType = precision(settings.nnInferenceInputDType);
+  if (inputType != precision(settings.nnInferenceOutputDType)) {
+    throw std::runtime_error("SOFIE requires matching model, input and output precision");
+  }
+  if (settings.nnInferenceDevice != (hip ? "rocm" : "cuda") && settings.nnInferenceDevice != (hip ? "ROCM" : "CUDA")) {
+    throw std::runtime_error("SOFIE inference device must match the reconstruction backend (cuda or rocm)");
+  }
+  size_t inputSize = 1;
+  for (int radius : {settings.nnClusterizerSizeInputRow, settings.nnClusterizerSizeInputPad, settings.nnClusterizerSizeInputTime}) {
+    if (radius < 0 || radius > 16383 || inputSize > static_cast<size_t>(std::numeric_limits<int32_t>::max()) / (2 * radius + 1)) {
+      throw std::runtime_error("SOFIE clusterizer input window is too large or invalid");
+    }
+    inputSize *= 2 * radius + 1;
+  }
+  inputSize += settings.nnClusterizerAddIndexData ? 3 : 0;
+  if (inputSize > static_cast<size_t>(std::numeric_limits<int32_t>::max()) / settings.nnClusterizerBatchedMode) {
+    throw std::runtime_error("SOFIE input batch exceeds the clusterizer's index range");
+  }
+  auto state = std::make_shared<SofieState>();
+  state->maxBatch = settings.nnClusterizerBatchedMode;
+  std::array<std::string, 3> paths{settings.nnClassificationPath, "", ""};
+  if (!settings.nnClusterizerUseCfRegression) {
+    auto regression = o2::utils::Str::tokenize(settings.nnRegressionPath, ':');
+    if (regression.empty() || regression.size() > 2) {
+      throw std::runtime_error("SOFIE expects one or two regression paths");
+    }
+    for (size_t i = 0; i < regression.size(); i++) {
+      paths[i + 1] = regression[i];
+    }
+  }
+  TMVA::Experimental::SOFIE::RModelParser_ONNX parser;
+  std::unordered_map<std::string, std::shared_ptr<Model>> compiled;
+  for (size_t i = 0; i < paths.size(); i++) {
+    mModelsUsed[i] = !paths[i].empty();
+    if (!mModelsUsed[i]) {
+      continue;
+    }
+    if (source) {
+      state->models[i] = source->mSofie->models[i];
+    } else {
+      auto& model = compiled[paths[i]];
+      if (!model) {
+        model = std::make_shared<Model>(parser.ParseGPU(paths[i]));
+        if (model->GetPrecision() != inputType) {
+          throw std::runtime_error("SOFIE model precision differs from nnInferenceInputDType: " + paths[i]);
+        }
+        if (model->InputSize() != inputSize || model->OutputSize() > static_cast<size_t>(std::numeric_limits<int32_t>::max()) / settings.nnClusterizerBatchedMode) {
+          throw std::runtime_error("SOFIE model shape does not match the clusterizer window or index range: " + paths[i]);
+        }
+        model->WorkspaceSize(settings.nnClusterizerBatchedMode);
+        model->Compile({hip ? Model::Backend::HIP : Model::Backend::CUDA, settings.sofieCompiler, settings.sofieArchitecture});
+      }
+      state->models[i] = model;
+    }
+    state->sessions[i] = state->models[i]->CreateSession(stream, device, settings.nnClusterizerBatchedMode);
+    if (state->sessions[i]->WorkspaceSize() > std::numeric_limits<size_t>::max() - state->workspaceSize) {
+      throw std::overflow_error("SOFIE combined workspace size overflow");
+    }
+    state->workspaceSize += state->sessions[i]->WorkspaceSize();
+  }
+  mSofie = std::move(state);
+  mDeviceId = device;
+#else
+  throw std::runtime_error("SOFIE was not enabled in this build");
+#endif
+}
+
+void GPUTPCNNClusterizerHost::useSofie(const GPUTPCNNClusterizerHost& source)
+{
+  mSofie = source.mSofie;
+  mModelsUsed = source.mModelsUsed;
+  mDeviceId = source.mDeviceId;
+}
+
+void GPUTPCNNClusterizerHost::bindSofieWorkspace(void* workspace, size_t bytes)
+{
+#ifdef GPUCA_HAS_SOFIE
+  if (!mSofie) {
+    return;
+  }
+  if (!workspace || bytes < mSofie->workspaceSize) {
+    throw std::runtime_error("O2 supplied insufficient SOFIE workspace");
+  }
+  auto* next = static_cast<char*>(workspace);
+  for (const auto& session : mSofie->sessions) {
+    if (session) {
+      session->SetWorkspace(next, session->WorkspaceSize());
+      next += session->WorkspaceSize();
+    }
+  }
+#endif
+}
+
+void GPUTPCNNClusterizerHost::inferenceSofie(int model, const void* input, size_t batch, void* output)
+{
+#ifdef GPUCA_HAS_SOFIE
+  if (!mSofie || model < 0 || model >= 3 || !mSofie->sessions[model]) {
+    throw std::runtime_error("SOFIE model is not initialized");
+  }
+  mSofie->sessions[model]->Infer(input, output, batch);
+#else
+  throw std::runtime_error("SOFIE was not enabled in this build");
+#endif
+}
+
+int32_t GPUTPCNNClusterizerHost::modelOutputs(int model) const
+{
+#ifdef GPUCA_HAS_SOFIE
+  if (mSofie) {
+    return mSofie->models.at(model) ? static_cast<int32_t>(mSofie->models.at(model)->OutputSize()) : 0;
+  }
+#endif
+#ifdef GPUCA_HAS_ONNX
+  return (model == 0 ? mModelClass : model == 1 ? mModelReg1
+                                                : mModelReg2)
+    .getNumOutputNodes()
+    .at(0)
+    .at(1);
+#else
+  throw std::runtime_error("No initialized inference backend");
+#endif
 }

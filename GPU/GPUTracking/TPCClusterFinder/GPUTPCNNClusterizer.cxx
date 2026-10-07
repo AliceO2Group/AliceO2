@@ -145,6 +145,9 @@ void* GPUTPCNNClusterizer::setIOPointers(void* mem)
     }
   }
 
+  if (mSofieWorkspaceSize) {
+    computePointerWithAlignment<256>(mem, mSofieWorkspace, mSofieWorkspaceSize);
+  }
   return mem;
 }
 

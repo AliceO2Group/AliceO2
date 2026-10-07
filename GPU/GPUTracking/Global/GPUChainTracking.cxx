@@ -18,6 +18,10 @@
 #include <chrono>
 
 #include "GPUChainTracking.h"
+#ifdef GPUCA_HAS_SOFIE
+#include "GPUTPCNNClusterizerHost.h"
+#include "GPUTPCNNClusterizer.h"
+#endif
 #include "GPUChainTrackingGetters.inc"
 #include "GPUReconstructionIO.h"
 #include "GPUChainTrackingDefs.h"
@@ -68,7 +72,16 @@ GPUChainTracking::GPUChainTracking(GPUReconstruction* rec, uint32_t maxTPCHits, 
   mFlatObjectsDevice.mChainTracking = this;
 }
 
-GPUChainTracking::~GPUChainTracking() = default;
+GPUChainTracking::~GPUChainTracking()
+{
+#ifdef GPUCA_HAS_SOFIE
+  if (!mSofieApplications.empty()) {
+    const auto context = GetThreadContext();
+    SynchronizeGPU();
+    mSofieApplications.clear();
+  }
+#endif
+}
 
 void GPUChainTracking::RegisterPermanentMemoryAndProcessors()
 {
@@ -102,7 +115,7 @@ void GPUChainTracking::RegisterPermanentMemoryAndProcessors()
   if (GetRecoSteps() & RecoStep::TPCClusterFinding) {
     for (uint32_t i = 0; i < NSECTORS; i++) {
       mRec->RegisterGPUProcessor(&processors()->tpcClusterer[i], GetRecoStepsGPU() & RecoStep::TPCClusterFinding);
-#ifdef GPUCA_HAS_ONNX
+#if defined(GPUCA_HAS_ONNX) || defined(GPUCA_HAS_SOFIE)
       mRec->RegisterGPUProcessor(&processors()->tpcNNClusterer[i], GetRecoStepsGPU() & RecoStep::TPCClusterFinding);
 #endif
     }
@@ -147,7 +160,7 @@ void GPUChainTracking::RegisterGPUProcessors()
   if (GetRecoStepsGPU() & RecoStep::TPCClusterFinding) {
     for (uint32_t i = 0; i < NSECTORS; i++) {
       mRec->RegisterGPUDeviceProcessor(&processorsShadow()->tpcClusterer[i], &processors()->tpcClusterer[i]);
-#ifdef GPUCA_HAS_ONNX
+#if defined(GPUCA_HAS_ONNX) || defined(GPUCA_HAS_SOFIE)
       mRec->RegisterGPUDeviceProcessor(&processorsShadow()->tpcNNClusterer[i], &processors()->tpcNNClusterer[i]);
 #endif
     }
@@ -392,6 +405,7 @@ int32_t GPUChainTracking::Init()
     }
   }
 
+  InitSofieClusterizer();
   return 0;
 }
 
@@ -470,6 +484,13 @@ int32_t GPUChainTracking::ForceInitQA()
 
 int32_t GPUChainTracking::Finalize()
 {
+#ifdef GPUCA_HAS_SOFIE
+  if (!mSofieApplications.empty()) {
+    const auto context = GetThreadContext();
+    SynchronizeGPU();
+    mSofieApplications.clear();
+  }
+#endif
   if (GetProcessingSettings().runQA && GetQA()->IsInitialized() && !(mConfigQA && mConfigQA->shipToQC) && !mQAFromForeignChain) {
     GetQA()->UpdateChain(this);
     GetQA()->DrawQAHistograms();
@@ -1005,4 +1026,45 @@ void GPUChainTracking::ApplySyncSettings(GPUSettingsProcessing& proc, GPUSetting
   if (dEdxMode != -2) {
     steps.setBits(gpudatatypes::RecoStep::TPCdEdx, dEdxMode == -1 ? !syncMode : (dEdxMode > 0));
   }
+}
+
+void GPUChainTracking::InitSofieClusterizer()
+{
+  const auto& settings = GetProcessingSettings().nn;
+  if (settings.mlFramework != "ORT" && settings.mlFramework != "SOFIE") {
+    throw std::runtime_error("ml-framework must be ORT or SOFIE");
+  }
+  if (!settings.applyNNclusterizer) {
+    return;
+  }
+  if (settings.mlFramework == "ORT") {
+#ifndef GPUCA_HAS_ONNX
+    throw std::runtime_error("ORT was requested but GPUCA_BUILD_ORT is disabled or ONNXRuntime is unavailable");
+#endif
+    return;
+  }
+#ifdef GPUCA_HAS_SOFIE
+  if (!mSofieApplications.empty()) {
+    throw std::runtime_error("SOFIE clusterizer is already initialized");
+  }
+  const bool hip = mRec->GetDeviceType() == GPUReconstruction::GetDeviceType("HIP");
+  if ((!hip && mRec->GetDeviceType() != GPUReconstruction::GetDeviceType("CUDA")) || !(GetRecoStepsGPU() & RecoStep::TPCClusterFinding)) {
+    throw std::runtime_error("SOFIE requires TPC cluster finding on CUDA or HIP");
+  }
+  const int lanes = GetProcessingSettings().nTPCClustererLanes;
+  if (lanes < 1 || lanes > 4 || static_cast<uint32_t>(lanes) > mRec->NStreams()) {
+    throw std::runtime_error("SOFIE clusterizer requires 1..4 lanes and a stream for each lane");
+  }
+  std::vector<std::unique_ptr<GPUTPCNNClusterizerHost>> applications;
+  for (int lane = 0; lane < lanes; lane++) {
+    auto host = std::make_unique<GPUTPCNNClusterizerHost>();
+    host->initSofie(settings, GetNativeGPUStream(lane), GetNativeGPUDevice(), hip, lane ? applications.front().get() : nullptr);
+    GPUTPCNNClusterizer check;
+    host->initClusterizer(settings, check);
+    applications.push_back(std::move(host));
+  }
+  mSofieApplications = std::move(applications);
+#else
+  throw std::runtime_error("SOFIE was requested but GPUCA_BUILD_SOFIE is disabled");
+#endif
 }

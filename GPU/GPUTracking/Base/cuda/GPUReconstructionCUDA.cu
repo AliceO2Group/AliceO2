@@ -635,11 +635,26 @@ void GPUReconstructionCUDA::loadKernelModules(bool perKernel)
     }                                                 \
   }
 
+int32_t GPUReconstructionCUDA::GetNativeGPUDevice() const
+{
+  int device = -1;
+  GPUChkErr(cudaGetDevice(&device));
+  return device;
+}
+
+void* GPUReconstructionCUDA::GetNativeGPUStream(int32_t stream) const
+{
+  if (stream < 0 || stream >= mNStreams) {
+    throw std::out_of_range("GPU stream index out of range");
+  }
+  return mInternals->Streams[stream];
+}
+
 void GPUReconstructionCUDA::SetONNXGPUStream(Ort::SessionOptions& sessionOptions, int32_t stream, int32_t* deviceId)
 {
   GPUChkErr(cudaGetDevice(deviceId));
 
-#if !defined(__HIPCC__) && defined(ORT_CUDA_BUILD)
+#if defined(GPUCA_HAS_ONNX) && !defined(__HIPCC__) && defined(ORT_CUDA_BUILD)
   const OrtApi* api = OrtGetApiBase()->GetApi(ORT_API_VERSION);
 
 #ifdef ORT_TENSORRT_BUILD
@@ -666,7 +681,7 @@ void GPUReconstructionCUDA::SetONNXGPUStream(Ort::SessionOptions& sessionOptions
   ORTCHK(api->SessionOptionsAppendExecutionProvider_CUDA_V2(sessionOptions, cudaOptions));
   api->ReleaseCUDAProviderOptions(cudaOptions);
 
-#elif defined(ORT_ROCM_BUILD)
+#elif defined(GPUCA_HAS_ONNX) && defined(ORT_ROCM_BUILD)
   // const auto& api = Ort::GetApi();
   // api.GetCurrentGpuDeviceId(deviceId);
   OrtROCMProviderOptions rocmOptions;
