@@ -84,6 +84,14 @@ class FT3Module
     double z_offset_to_carbon_face, std::pair<double, double>& absAllowedYRange,
     double y_midpoint, bool mirrorStaveAroundX, unsigned* staveVolumeCount);
 
+  // FR4 + Cu end-of-stave card at the outer-radius tip of a disk stave. One card
+  // per stave tip, placed downstream of the stave (away from the IP), in front of
+  // the connection disk. Dimensions from Constants::getEosCardParams(isML).
+  void addEndOfStaveCard(
+    TGeoVolume* motherVolume, const std::string& name, int direction,
+    unsigned volume_count, double x_mid, double y_tip, double z_sensor,
+    bool isML, double cuThickness);
+
   // Helper functions
   void fill_stave_greedy(
     PosNegPositionTypes& y_positions, unsigned kSensorStack,
