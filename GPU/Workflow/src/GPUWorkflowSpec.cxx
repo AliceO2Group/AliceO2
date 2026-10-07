@@ -1120,6 +1120,7 @@ void GPURecoWorkflowSpec::doCalibUpdates(o2::framework::ProcessingContext& pc, c
     needCalibUpdate = true;
   }
   if (mSpecConfig.nnLoadFromCCDB) {
+    needCalibUpdate |= mConfig->configProcessing.nn.mlFramework == "SOFIE";
     auto dumpToFile = [](const char* buffer, std::size_t validSize, const std::string& path) {
       std::ofstream out(path, std::ios::binary | std::ios::trunc);
       if (!out.is_open()) {

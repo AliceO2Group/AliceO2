@@ -20,6 +20,7 @@
 #include "GPUChainTracking.h"
 #ifdef GPUCA_HAS_SOFIE
 #include "GPUTPCNNClusterizerHost.h"
+#include "ORTRootSerializer.h"
 #include "GPUTPCNNClusterizer.h"
 #endif
 #include "GPUChainTrackingGetters.inc"
@@ -405,7 +406,7 @@ int32_t GPUChainTracking::Init()
     }
   }
 
-  InitSofieClusterizer();
+  InitSofieClusterizer(true);
   return 0;
 }
 
@@ -1028,7 +1029,7 @@ void GPUChainTracking::ApplySyncSettings(GPUSettingsProcessing& proc, GPUSetting
   }
 }
 
-void GPUChainTracking::InitSofieClusterizer()
+void GPUChainTracking::InitSofieClusterizer(bool deferCCDB)
 {
   const auto& settings = GetProcessingSettings().nn;
   if (settings.mlFramework != "ORT" && settings.mlFramework != "SOFIE") {
@@ -1044,8 +1045,18 @@ void GPUChainTracking::InitSofieClusterizer()
     return;
   }
 #ifdef GPUCA_HAS_SOFIE
-  if (!mSofieApplications.empty()) {
-    throw std::runtime_error("SOFIE clusterizer is already initialized");
+  std::array<std::string_view, 3> buffers{};
+  if (settings.nnLoadFromCCDB) {
+    for (size_t i = 0; i < buffers.size(); i++) {
+      const auto* network = processors()->calibObjects.nnClusterizerNetworks[i];
+      if (network && network->getONNXModelSize()) {
+        buffers[i] = std::string_view(network->getONNXModel(), network->getONNXModelSize());
+      }
+    }
+  }
+  const auto* previous = mSofieApplications.empty() ? nullptr : mSofieApplications.front().get();
+  if (previous && (!settings.nnLoadFromCCDB || previous->hasSofieBuffers(buffers))) {
+    return;
   }
   const bool hip = mRec->GetDeviceType() == GPUReconstruction::GetDeviceType("HIP");
   if ((!hip && mRec->GetDeviceType() != GPUReconstruction::GetDeviceType("CUDA")) || !(GetRecoStepsGPU() & RecoStep::TPCClusterFinding)) {
@@ -1055,13 +1066,19 @@ void GPUChainTracking::InitSofieClusterizer()
   if (lanes < 1 || lanes > 4 || static_cast<uint32_t>(lanes) > mRec->NStreams()) {
     throw std::runtime_error("SOFIE clusterizer requires 1..4 lanes and a stream for each lane");
   }
+  if (deferCCDB && settings.nnLoadFromCCDB) {
+    return;
+  }
   std::vector<std::unique_ptr<GPUTPCNNClusterizerHost>> applications;
   for (int lane = 0; lane < lanes; lane++) {
     auto host = std::make_unique<GPUTPCNNClusterizerHost>();
-    host->initSofie(settings, GetNativeGPUStream(lane), GetNativeGPUDevice(), hip, lane ? applications.front().get() : nullptr);
+    host->initSofie(settings, GetNativeGPUStream(lane), GetNativeGPUDevice(), hip, lane ? applications.front().get() : nullptr, buffers, lane ? nullptr : previous);
     GPUTPCNNClusterizer check;
     host->initClusterizer(settings, check);
     applications.push_back(std::move(host));
+  }
+  if (previous) {
+    SynchronizeGPU();
   }
   mSofieApplications = std::move(applications);
 #else

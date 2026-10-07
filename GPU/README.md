@@ -29,18 +29,29 @@ an explicit compiler path; otherwise `nvcc`/`hipcc` is found on PATH at runtime.
 The compiler and GPU toolkit must be available on the worker at startup.
 
 Use GPU TPC cluster finding, `nnInferenceDevice=cuda` or `rocm` as appropriate,
-`nnLoadFromCCDB=0`, and local classification/regression ONNX paths. Set both
+local classification/regression ONNX paths with `nnLoadFromCCDB=0`, or
+`nnLoadFromCCDB=1` to parse the ONNX buffers fetched by the existing CCDB workflow.
+CCDB model slots follow `nnEvalMode` (classification, regression 1, optional regression 2). Set both
 `nnInferenceInputDType` and `nnInferenceOutputDType` to `FP32` or `FP16` to match
 the model. Mixed input/output precision, unsupported graphs, CPU SOFIE inference
-and CCDB model loading are rejected explicitly.
+are rejected explicitly.
 
-Each distinct model path is parsed and compiled once during chain initialization.
+Each distinct local model path is parsed and compiled once during chain initialization.
+For CCDB, initialization is deferred until the first event has loaded its calibration
+objects, before NN inference. Identical model buffers share a compiled program.
+Later events reuse the sessions while the model bytes are unchanged. When CCDB
+provides changed bytes, only new model contents are parsed and compiled, sharing
+unchanged programs across lanes. All replacement sessions are prepared and
+validated before synchronizing GPU work and replacing the old sessions. A failed
+reload propagates an error without replacing the active sessions. O2 sizes the
+workspace for the new models before inference.
+Missing or empty required buffers fail explicitly. No temporary ONNX files are needed.
 Each lane then gets a session bound to its existing native stream. O2 allocates
 input, output, weights and intermediate storage through its registered clusterizer
 memory. When O2 recycles the scratch arena, weights are uploaded again on the
-lane's stream; this does not recompile the model. Sessions persist until chain
-finalization, which synchronizes before unloading the generated libraries.
-Changing models, batch capacity or backend requires reinitializing the chain.
+lane's stream; this does not recompile the model. Sessions persist until a model
+reload or chain finalization, with GPU synchronization before unloading their libraries.
+Changing local model paths, batch capacity, precision or backend requires reinitializing the chain.
 
 The supplied classification/regression networks have six Gemm layers, five Relu
 layers, 246 input values and respectively 1/5 output values. The clusterizer's
@@ -51,5 +62,8 @@ the maximum batch; smaller final batches reuse the same code and workspace.
 Validation to run after building: ROOT's `TestSofieGPU` and CUDA/HIP
 `TestSofieGPUDevice`, then compare SOFIE against ORT using both supplied
 precisions and multiple batch sizes. Check numerical tolerances and downstream
-cluster decisions; the scalar dense kernels are not performance tuned.
+cluster decisions; the scalar dense kernels are not performance tuned. For CCDB,
+check identical bytes in a new buffer, one changed model, changed hidden-layer
+sizes, and invalid replacement data. Only changed contents should compile; an
+invalid replacement must fail before switching sessions.
 No ROOT/O2 build or GPU test was run while implementing this change.

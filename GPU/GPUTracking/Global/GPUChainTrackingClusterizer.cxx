@@ -817,6 +817,7 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   HighResTimer* nnTimers[12];
 
   if (nn_settings.applyNNclusterizer) {
+    InitSofieClusterizer();
     int32_t deviceId = nn_settings.mlFramework == "SOFIE" ? GetNativeGPUDevice() : -1;
     int32_t numLanes = GetProcessingSettings().nTPCClustererLanes;
 #ifdef GPUCA_HAS_ONNX

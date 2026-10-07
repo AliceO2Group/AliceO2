@@ -33,6 +33,7 @@
 #endif
 #include <array>
 #include <limits>
+#include <sstream>
 
 using namespace o2::gpu;
 
@@ -41,6 +42,7 @@ struct GPUTPCNNClusterizerHost::SofieState {
   std::array<std::shared_ptr<TMVA::Experimental::SOFIE::RGPUModel>, 3> models;
   std::array<std::unique_ptr<TMVA::Experimental::SOFIE::RGPUModel::Session>, 3> sessions;
 #endif
+  std::array<std::string, 3> buffers;
   size_t workspaceSize = 0;
   unsigned int maxBatch = 0;
 };
@@ -318,13 +320,10 @@ MockedOrtAllocator* GPUTPCNNClusterizerHost::getMockedAllocator()
 
 #endif
 
-void GPUTPCNNClusterizerHost::initSofie(const GPUSettingsProcessingNNclusterizer& settings, void* stream, int32_t device, bool hip, const GPUTPCNNClusterizerHost* source)
+void GPUTPCNNClusterizerHost::initSofie(const GPUSettingsProcessingNNclusterizer& settings, void* stream, int32_t device, bool hip, const GPUTPCNNClusterizerHost* source, const std::array<std::string_view, 3>& buffers, const GPUTPCNNClusterizerHost* previous)
 {
 #ifdef GPUCA_HAS_SOFIE
   using Model = TMVA::Experimental::SOFIE::RGPUModel;
-  if (settings.nnLoadFromCCDB) {
-    throw std::runtime_error("SOFIE currently requires local ONNX files; disable nnLoadFromCCDB");
-  }
   if (!settings.nnClusterizerBatchedMode || settings.nnClusterizerBatchedMode > static_cast<unsigned>(std::numeric_limits<int32_t>::max())) {
     throw std::runtime_error("SOFIE requires a positive batch capacity within int32 range");
   }
@@ -358,7 +357,19 @@ void GPUTPCNNClusterizerHost::initSofie(const GPUSettingsProcessingNNclusterizer
   auto state = std::make_shared<SofieState>();
   state->maxBatch = settings.nnClusterizerBatchedMode;
   std::array<std::string, 3> paths{settings.nnClassificationPath, "", ""};
-  if (!settings.nnClusterizerUseCfRegression) {
+  if (settings.nnLoadFromCCDB) {
+    auto mode = o2::utils::Str::tokenize(settings.nnEvalMode, ':');
+    if (mode.size() != 2 || (mode[0] != "c1" && mode[0] != "c2") || (mode[1] != "r1" && mode[1] != "r2")) {
+      throw std::runtime_error("SOFIE CCDB loading requires nnEvalMode c1:r1, c1:r2, c2:r1 or c2:r2");
+    }
+    paths[0] = "CCDB classification";
+    if (!settings.nnClusterizerUseCfRegression) {
+      paths[1] = "CCDB regression 1";
+      if (mode[1] == "r2") {
+        paths[2] = "CCDB regression 2";
+      }
+    }
+  } else if (!settings.nnClusterizerUseCfRegression) {
     auto regression = o2::utils::Str::tokenize(settings.nnRegressionPath, ':');
     if (regression.empty() || regression.size() > 2) {
       throw std::runtime_error("SOFIE expects one or two regression paths");
@@ -369,6 +380,13 @@ void GPUTPCNNClusterizerHost::initSofie(const GPUSettingsProcessingNNclusterizer
   }
   TMVA::Experimental::SOFIE::RModelParser_ONNX parser;
   std::unordered_map<std::string, std::shared_ptr<Model>> compiled;
+  if (settings.nnLoadFromCCDB && previous && previous->mSofie) {
+    for (size_t i = 0; i < previous->mSofie->models.size(); i++) {
+      if (previous->mSofie->models[i] && !previous->mSofie->buffers[i].empty()) {
+        compiled.emplace(previous->mSofie->buffers[i], previous->mSofie->models[i]);
+      }
+    }
+  }
   for (size_t i = 0; i < paths.size(); i++) {
     mModelsUsed[i] = !paths[i].empty();
     if (!mModelsUsed[i]) {
@@ -377,9 +395,20 @@ void GPUTPCNNClusterizerHost::initSofie(const GPUSettingsProcessingNNclusterizer
     if (source) {
       state->models[i] = source->mSofie->models[i];
     } else {
-      auto& model = compiled[paths[i]];
+      if (settings.nnLoadFromCCDB && buffers[i].empty()) {
+        throw std::runtime_error("Missing or empty ONNX buffer for " + paths[i]);
+      }
+      auto& model = compiled[settings.nnLoadFromCCDB ? std::string(buffers[i]) : paths[i]];
+      if (settings.nnLoadFromCCDB) {
+        state->buffers[i] = buffers[i];
+      }
       if (!model) {
-        model = std::make_shared<Model>(parser.ParseGPU(paths[i]));
+        if (settings.nnLoadFromCCDB) {
+          std::istringstream input(state->buffers[i], std::ios::in | std::ios::binary);
+          model = std::make_shared<Model>(parser.ParseGPU(input));
+        } else {
+          model = std::make_shared<Model>(parser.ParseGPU(paths[i]));
+        }
         if (model->GetPrecision() != inputType) {
           throw std::runtime_error("SOFIE model precision differs from nnInferenceInputDType: " + paths[i]);
         }
@@ -402,6 +431,19 @@ void GPUTPCNNClusterizerHost::initSofie(const GPUSettingsProcessingNNclusterizer
 #else
   throw std::runtime_error("SOFIE was not enabled in this build");
 #endif
+}
+
+bool GPUTPCNNClusterizerHost::hasSofieBuffers(const std::array<std::string_view, 3>& buffers) const
+{
+  if (!mSofie) {
+    return false;
+  }
+  for (size_t i = 0; i < buffers.size(); i++) {
+    if (mModelsUsed[i] && buffers[i] != mSofie->buffers[i]) {
+      return false;
+    }
+  }
+  return true;
 }
 
 void GPUTPCNNClusterizerHost::useSofie(const GPUTPCNNClusterizerHost& source)

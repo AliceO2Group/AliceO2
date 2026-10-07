@@ -15,6 +15,8 @@
 #ifndef O2_GPUTPCNNCLUSTERIZERHOST_H
 #define O2_GPUTPCNNCLUSTERIZERHOST_H
 
+#include <array>
+#include <string_view>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -56,7 +58,8 @@ class GPUTPCNNClusterizerHost
   void createBoundary(GPUTPCNNClusterizer&);
   void createIndexLookup(GPUTPCNNClusterizer&);
 
-  void initSofie(const GPUSettingsProcessingNNclusterizer&, void* stream, int32_t device, bool hip, const GPUTPCNNClusterizerHost* source = nullptr);
+  void initSofie(const GPUSettingsProcessingNNclusterizer&, void* stream, int32_t device, bool hip, const GPUTPCNNClusterizerHost* source = nullptr, const std::array<std::string_view, 3>& buffers = {}, const GPUTPCNNClusterizerHost* previous = nullptr);
+  bool hasSofieBuffers(const std::array<std::string_view, 3>& buffers) const;
   void useSofie(const GPUTPCNNClusterizerHost&);
   void bindSofieWorkspace(void* workspace, size_t bytes);
   void inferenceSofie(int model, const void* input, size_t batch, void* output);

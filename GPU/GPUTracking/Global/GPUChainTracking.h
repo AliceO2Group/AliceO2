@@ -299,7 +299,7 @@ class GPUChainTracking : public GPUChain
   int32_t RunChainFinalize();
   void OutputSanityCheck();
   int32_t RunTPCTrackingSectors_internal();
-  void InitSofieClusterizer();
+  void InitSofieClusterizer(bool deferCCDB = false);
 #ifdef GPUCA_HAS_SOFIE
   std::vector<std::unique_ptr<GPUTPCNNClusterizerHost>> mSofieApplications;
 #endif
