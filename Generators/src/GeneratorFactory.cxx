@@ -60,6 +60,11 @@ namespace eventgen
 // using the configured GeneratorExternalParam. This makes the simulation parallelisation automatic
 // on Hyperloop.
 // To-do: Define the behaviour with ini configuration which are already definining a hybrid gen
+//
+// Note on GeneratorHybrid.num_workers: expanding to 8 sub-generators does not by itself raise
+// the number of TBB workers that actually run them in parallel. This is controlled by
+// the parameter GeneratorHybrid.num_workers. On Hyperloop this will be part
+// of the standard train configuration
 std::string buildHyperloopExternalHybridConfig(GeneratorExternalParam const& extparams)
 {
   rapidjson::Document doc;
@@ -84,10 +89,12 @@ std::string buildHyperloopExternalHybridConfig(GeneratorExternalParam const& ext
   doc.AddMember("generators", generators, alloc);
   doc.AddMember("fractions", fractions, alloc);
 
+  // The generated config file is deliberatelly left on disk for possible inspection after the process ran.
   std::string path = "hyperloop_exttohybrid_" + std::to_string(getpid()) + ".json";
   std::ofstream ofs(path);
   if (!ofs.is_open()) {
     LOG(fatal) << "Failed to open " << path << " for writing the Hyperloop hybrid generator configuration";
+    exit(1);
   }
   rapidjson::OStreamWrapper osw(ofs);
   rapidjson::Writer<rapidjson::OStreamWrapper> writer(osw);
