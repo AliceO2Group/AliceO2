@@ -638,7 +638,9 @@ void GPUReconstructionCUDA::loadKernelModules(bool perKernel)
 int32_t GPUReconstructionCUDA::GetNativeGPUDevice() const
 {
   int device = -1;
-  GPUChkErr(cudaGetDevice(&device));
+  if (GPUChkErrInternal(cudaGetDevice(&device), __FILE__, __LINE__)) {
+    throw std::runtime_error("GPU device query failed");
+  }
   return device;
 }
 
