@@ -9,13 +9,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#ifndef O2_FV0_HV_CONFIGURATION
+#define O2_FV0_HV_CONFIGURATION
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include "DataFormatsFIT/Configuration.h"
+#include <Rtypes.h>
 
-#pragma link C++ std::unordered_map < uint8_t, bool> + ;
-// TODO AM: Move this to DataFormatsFIT when unused class warning is solved.
-#pragma link C++ class std::unordered_map < o2::dcs::DataPointIdentifier, o2::fit::DCSDPValues> + ;
+namespace o2::fv0
+{
+struct Fv0HvConfiguration {
+  static constexpr int NChannels = 48;
+  o2::fit::HvChannelsConfig<NChannels> channels;
+  ClassDefNV(Fv0HvConfiguration, 1);
+};
+} // namespace o2::fv0
 #endif

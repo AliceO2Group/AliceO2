@@ -9,13 +9,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+/// \file FITDCSConfigurationDataParser.h
+/// \brief DCS configuration reader for FIT
+///
+/// \author Andreas Molander <andreas.molander@cern.ch>, University of Jyvaskyla, Finland
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#ifndef O2_FIT_DCS_CONFIGURATION_DATA_PARSER_H
+#define O2_FIT_DCS_CONFIGURATION_DATA_PARSER_H
 
-#pragma link C++ std::unordered_map < uint8_t, bool> + ;
-// TODO AM: Move this to DataFormatsFIT when unused class warning is solved.
-#pragma link C++ class std::unordered_map < o2::dcs::DataPointIdentifier, o2::fit::DCSDPValues> + ;
 #endif

@@ -9,13 +9,14 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-o2_add_test_root_macro(makeFDDCCDBEntryForDCS.C
-                       PUBLIC_LINK_LIBRARIES O2::CCDB
-                                             O2::DetectorsDCS
-                       LABELS fdd)
+o2_add_test(FITFEEConfigurationReader
+            COMPONENT_NAME fit_fee_config_reader
+            LABELS fit
+            PUBLIC_LINK_LIBRARIES O2::DataFormatsFIT O2::FITDCSMonitoring
+            SOURCES dcsmonitoring/FITFEEConfigurationReaderTest.cxx)
 
-o2_add_test_root_macro(fetchFddFeeConfig.C
-                       PUBLIC_LINK_LIBRARIES
-                       O2::CCDB
-                       O2::DataFormatsFDD
-                       LABELS fdd)
+o2_add_test(FITHvConfigurationReader
+            COMPONENT_NAME fit_hv_config_reader
+            LABELS fit
+            PUBLIC_LINK_LIBRARIES O2::DataFormatsFIT O2::FITDCSMonitoring
+            SOURCES dcsmonitoring/FITHvConfigurationReaderTest.cxx)

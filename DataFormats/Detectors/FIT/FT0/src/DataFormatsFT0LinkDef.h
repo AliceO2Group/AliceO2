@@ -57,5 +57,9 @@
 #pragma link C++ class o2::ft0::SlewingCoef + ;
 
 #pragma link C++ class o2::ft0::EventsPerBc + ;
-
+#pragma link C++ struct o2::ft0::Ft0FeeConfiguration + ;
+#pragma link C++ struct o2::ft0::TriggersConfig + ;
+#pragma link C++ struct o2::fit::ChannelsConfig < 208> + ;
+#pragma link C++ struct o2::ft0::Ft0HvConfiguration + ;
+#pragma link C++ struct o2::fit::HvChannelsConfig < 208> + ;
 #endif

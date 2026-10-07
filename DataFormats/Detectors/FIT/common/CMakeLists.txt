@@ -23,4 +23,6 @@ o2_target_root_dictionary(DataFormatsFIT
           include/DataFormatsFIT/LookUpTable.h
           include/DataFormatsFIT/Triggers.h
           include/DataFormatsFIT/ChannelData.h
-          include/DataFormatsFIT/Digit.h)
+          include/DataFormatsFIT/Digit.h
+          include/DataFormatsFIT/Configuration.h
+          include/DataFormatsFIT/DeadChannelMap.h)

@@ -35,4 +35,6 @@ o2_target_root_dictionary(DataFormatsFV0
           include/DataFormatsFV0/RecPoints.h
           include/DataFormatsFV0/RawEventData.h
           include/DataFormatsFV0/LookUpTable.h
-          include/DataFormatsFV0/CTF.h)
+          include/DataFormatsFV0/CTF.h
+          include/DataFormatsFV0/FeeConfiguration.h
+          include/DataFormatsFV0/HvConfiguration.h)

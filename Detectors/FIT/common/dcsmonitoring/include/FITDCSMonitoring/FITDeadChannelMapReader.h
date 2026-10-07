@@ -9,13 +9,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file FITDCSConfigReader.h
+/// \file FITDeadChannelMapReader.h
 /// \brief DCS configuration reader for FIT
 ///
 /// \author Andreas Molander <andreas.molander@cern.ch>, University of Jyvaskyla, Finland
 
-#ifndef O2_FIT_DCSCONFIGREADER_H
-#define O2_FIT_DCSCONFIGREADER_H
+#ifndef O2_FIT_DEAD_CHANNEL_MAP_READER_H
+#define O2_FIT_DEAD_CHANNEL_MAP_READER_H
 
 #include "CCDB/CcdbObjectInfo.h"
 #include "DataFormatsFIT/DeadChannelMap.h"
@@ -28,11 +28,11 @@ namespace o2
 namespace fit
 {
 
-class FITDCSConfigReader
+class FITDeadChannelMapReader
 {
  public:
-  FITDCSConfigReader() = default;
-  ~FITDCSConfigReader() = default;
+  FITDeadChannelMapReader() = default;
+  ~FITDeadChannelMapReader() = default;
 
   virtual void processDChM(gsl::span<const char> configBuf);
   void updateDChMCcdbObjectInfo();
@@ -73,10 +73,10 @@ class FITDCSConfigReader
   o2::ccdb::CcdbObjectInfo mCcdbObjectInfoDChM;                           ///< CCDB object info for the dead channel map
   bool mValidateUpload = true;                                            ///< Validate upload mode
 
-  ClassDefNV(FITDCSConfigReader, 1);
+  std::string mFilenameFeeConfig;
 };
 
 } // namespace fit
 } // namespace o2
 
-#endif // O2_FIT_DCSCONFIGREADER_H
+#endif // O2_FIT_DEAD_CHANNEL_MAP_READER_H
