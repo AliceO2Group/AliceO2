@@ -426,6 +426,7 @@ void Digitizer::fillOutputContainer()
       const int colInGroup = digit.getColumn() / digitizerParams.nColsPerGroup;
       const double digitTime = digit.getTime();
       if (digitTime - tdcStates[colInGroup][0] < digitizerParams.tdcBusyTime && digitTime - tdcStates[colInGroup][1] < digitizerParams.tdcBusyTime) {
+        // TODO: improve labels treatment if multiple hits cross the same pixel during
         continue; // both tdc pairs are busy
       }
       else if (digitTime - tdcStates[colInGroup][0] > digitizerParams.tdcBusyTime) {
@@ -471,7 +472,7 @@ void Digitizer::registerDigits(Chip& chip, uint32_t roFrame, double time, int nR
   int tdc = int((time - nbc * o2::constants::lhc::LHCBunchSpacingNS) / digitizerParams.tdcBin);
   nbc += mEventTime.toLong();
 
-  double absoluteTime = tdc * digitizerParams.tdcBin * 1.e-9 + nbc * o2::constants::lhc::LHCBunchSpacingNS;
+  double absoluteTime = tdc * digitizerParams.tdcBin + nbc * o2::constants::lhc::LHCBunchSpacingNS;
 
   auto key = o2::iotof::Digit::getOrderingKey(nbc, tdc, row, col);
   o2::iotof::LabeledDigit* existingDigit = chip.findDigit(key);
