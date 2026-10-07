@@ -15,7 +15,7 @@
 #if defined(__CLING__)
 #error "Please do not include this file in ROOT dictionary generation"
 #endif
-#include "Framework/Concepts.h"
+#include "Framework/Concepts.h" // IWYU pragma: export
 #include "Framework/ConcreteDataMatcher.h"
 #include "Framework/Pack.h"                   // IWYU pragma: export
 #include "Framework/FunctionalHelpers.h"      // IWYU pragma: export
