@@ -23,6 +23,7 @@
 #include "GPUTRDRecoParam.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "DataFormatsITSMFT/ClustersPerLayer.h"
 #include "DataFormatsTRD/TrackTRD.h"
 #include "DataFormatsTRD/TrackTriggerRecord.h"
 #include "DataFormatsTRD/PID.h"
@@ -51,6 +52,8 @@ namespace trd
 class TRDGlobalTracking : public o2::framework::Task
 {
  public:
+  using ITSClusters = o2::itsmft::ClustersPerLayer<o2::BaseCluster<float>>;
+
   TRDGlobalTracking(bool useMC, bool withPID, PIDPolicy policy, std::shared_ptr<o2::globaltracking::DataRequest> dataRequest, std::shared_ptr<o2::base::GRPGeomRequest> gr,
                     o2::dataformats::GlobalTrackID::mask_t src, bool trigRecFilterActive, bool strict, bool requestCTPLumi) : mUseMC(useMC), mWithPID(withPID), mDataRequest(dataRequest), mGGCCDBRequest(gr), mTrkMask(src), mTrigRecFilter(trigRecFilterActive), mStrict(strict), mPolicy(policy), mRequestCTPLumi(requestCTPLumi) {}
   ~TRDGlobalTracking() override = default;
@@ -78,6 +81,8 @@ class TRDGlobalTracking : public o2::framework::Task
   float mTPCTBinMUSInv{1.f / mTPCTBinMUS};                       ///< inverse width of a TPC time bin in 1/us
   float mTPCVdrift{2.58f};                                       ///< TPC drift velocity (for shifting TPC tracks along Z)
   float mTPCTDriftOffset{0.f};                                   ///< TPC drift time additive offset
+  int32_t mTCorrPileUp{0};                                       ///< most probable correction in number of BCs due to pile-up in TRD
+  float mTErrPileUp2{0.f};                                       ///< error on correction in number of BCs due to pile-up in TRD
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest; ///< seeding input (TPC-only, ITS-TPC or both)
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   o2::tpc::VDriftHelper mTPCVDriftHelper{};
@@ -97,7 +102,7 @@ class TRDGlobalTracking : public o2::framework::Task
   gsl::span<const o2::itsmft::TrkClusRef> mITSABRefsArray;            ///< input ITS-TPC Afterburner ITS tracklets references
   gsl::span<const int> mITSTrackClusIdx;                              ///< input ITS track cluster indices span
   gsl::span<const int> mITSABTrackClusIdx;                            ///< input ITSAB track cluster indices span
-  std::vector<o2::BaseCluster<float>> mITSClustersArray;              ///< ITS clusters created in run() method from compact clusters
+  ITSClusters mITSClustersArray;                                      ///< ITS clusters created in run() from compact clusters, by composed ID
   const o2::itsmft::TopologyDictionary* mITSDict = nullptr;           ///< ITS cluster patterns dictionary
 #ifdef ENABLE_UPGRADES
   const o2::its3::TopologyDictionary* mIT3Dict = nullptr; ///< IT3 cluster patterns dictionary
@@ -112,7 +117,7 @@ class TRDGlobalTracking : public o2::framework::Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, o2::dataformats::GlobalTrackID::mask_t src, bool trigRecFilterActive, bool strict /* = false*/, bool withPID /* = false*/, PIDPolicy policy /* = PIDPolicy::DEFAULT*/, bool requestCTPLumi);
+framework::DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, o2::dataformats::GlobalTrackID::mask_t src, bool trigRecFilterActive, bool strict /* = false*/, bool withPID /* = false*/, PIDPolicy policy /* = PIDPolicy::DEFAULT*/, bool requestCTPLumi, bool itsStag);
 
 } // namespace trd
 } // namespace o2

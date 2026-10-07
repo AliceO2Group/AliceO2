@@ -152,6 +152,8 @@ class trackInterface<GPUTPCGMTrackParam> : public GPUTPCGMTrackParam
   GPUd() float getSigmaY2() const { return GetErr2Y(); }
   GPUd() float getSigmaZ2() const { return GetErr2Z(); }
   GPUd() float getSigmaZY() const { return GetCov(1); }
+  GPUd() float getSigmaSnpY() const { return GetCov(3); }
+  GPUd() float getSigmaSnpZ() const { return GetCov(4); }
 
   GPUd() const float* getPar() const { return GetPar(); }
   GPUd() const float* getCov() const { return GetCov(); }

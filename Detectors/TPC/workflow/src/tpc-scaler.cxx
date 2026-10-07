@@ -23,9 +23,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
   std::vector<ConfigParamSpec> options{
-    ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
-    {"enable-M-shape-correction", VariantType::Bool, false, {"Enable M-shape distortion correction"}},
-    {"disable-IDC-scalers", VariantType::Bool, false, {"Disable TPC scalers for space-charge distortion fluctuation correction"}}};
+    ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
   o2::tpc::CorrectionMapsOptions::addGlobalOptions(options);
   std::swap(workflowOptions, options);
 }
@@ -36,9 +34,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
 {
   WorkflowSpec workflow;
   o2::conf::ConfigurableParam::updateFromString(config.options().get<std::string>("configKeyValues"));
-  const auto enableMShape = config.options().get<bool>("enable-M-shape-correction");
-  const auto enableIDCs = !config.options().get<bool>("disable-IDC-scalers");
   auto sclOpt = o2::tpc::CorrectionMapsOptions::parseGlobalOptions(config.options());
-  workflow.emplace_back(o2::tpc::getTPCScalerSpec(enableIDCs, enableMShape, sclOpt));
+  workflow.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt));
   return workflow;
 }

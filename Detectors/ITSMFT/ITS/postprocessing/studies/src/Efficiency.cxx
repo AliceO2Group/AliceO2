@@ -45,6 +45,7 @@
 #include <TString.h>
 #include <TAttMarker.h>
 #include <TArrayD.h>
+#include <cmath>
 #include <numeric>
 
 #define NLAYERS 3
@@ -558,6 +559,14 @@ void EfficiencyStudy::run(ProcessingContext& pc)
 void EfficiencyStudy::initialiseRun(o2::globaltracking::RecoContainer& recoData)
 {
   LOGP(info, "--------------- initialiseRun");
+  if (recoData.getITSPerLayer()) {
+    // The duplicated-cluster search scans the cluster ROF whose index equals that of the track ROF and
+    // relies on the two ROF series being the same. With the staggered readout every layer has its own
+    // ROF length and numbering, while the track ROFs follow the clock layer only, so the ROF of the
+    // layer to scan has to be found from the track time instead. This requires deciding whether a
+    // duplicate is searched in a single ROF or in all the ROFs compatible with the track time bracket.
+    LOGP(fatal, "EfficiencyStudy does not support the per-layer (staggered) ITS clusters input yet");
+  }
   if (mUseMC) {
     mTracksMCLabels = recoData.getITSTracksMCLabels();
     mClustersMCLCont = recoData.getITSClustersMCLabels();
@@ -902,11 +911,11 @@ void EfficiencyStudy::countDuplicatedAfterCuts()
         o2::math_utils::Point3D<float> clusOriginalPointGlob = mGeometry->getMatrixT2G(clusOriginal.getSensorID()) * clusOriginalPointTrack;
         phiOriginal = clusOriginalPointGlob.phi(); // * 180 / M_PI;
 
-        if (abs(clusOriginalPointGlob.y()) < 0.5) { ///// excluding gap between bottom and top barrels
+        if (std::abs(clusOriginalPointGlob.y()) < 0.5) { ///// excluding gap between bottom and top barrels
           continue;
         }
 
-        if (abs(clusOriginalPointGlob.z()) >= 10) { /// excluding external z
+        if (std::abs(clusOriginalPointGlob.z()) >= 10) { /// excluding external z
           continue;
         }
 
@@ -1139,10 +1148,10 @@ void EfficiencyStudy::studyDCAcutsMC()
               }
               /// checking the DCA for 20 different sigma ranges
               for (int i = 0; i < 20; i++) {
-                if (abs(dcaXY[layerDuplicated] - clusDuplicatedDCA[0]) < (i + 1) * sigmaDcaXY[layerDuplicated] && abs(dcaZ[layerDuplicated] - clusDuplicatedDCA[1]) < (i + 1) * sigmaDcaZ[layerDuplicated]) { // check if the DCA is within the cut i*sigma
+                if (std::abs(dcaXY[layerDuplicated] - clusDuplicatedDCA[0]) < (i + 1) * sigmaDcaXY[layerDuplicated] && std::abs(dcaZ[layerDuplicated] - clusDuplicatedDCA[1]) < (i + 1) * sigmaDcaZ[layerDuplicated]) { // check if the DCA is within the cut i*sigma
 
                   if (mVerboseOutput) {
-                    LOGP(info, "Check DCA ok: {} < {}; {} < {}", abs(meanDCAxyDuplicated[layerDuplicated] - clusDuplicatedDCA[0]), (i + 1) * sigmaDCAxyDuplicated[layerDuplicated], abs(meanDCAzDuplicated[layerDuplicated] - clusDuplicatedDCA[1]), (i + 1) * sigmaDCAzDuplicated[layerDuplicated]);
+                    LOGP(info, "Check DCA ok: {} < {}; {} < {}", std::abs(meanDCAxyDuplicated[layerDuplicated] - clusDuplicatedDCA[0]), (i + 1) * sigmaDCAxyDuplicated[layerDuplicated], std::abs(meanDCAzDuplicated[layerDuplicated] - clusDuplicatedDCA[1]), (i + 1) * sigmaDCAzDuplicated[layerDuplicated]);
                   }
                   nDCAMatches[i]++;
                   bool isGoodMatch = false;
@@ -2279,11 +2288,11 @@ void EfficiencyStudy::getEfficiency(bool isMC)
         o2::math_utils::Point3D<float> clusOriginalPointGlob = mGeometry->getMatrixT2G(clusOriginal.getSensorID()) * clusOriginalPointTrack;
         phiOriginal = clusOriginalPointGlob.phi(); // * 180 / M_PI;
 
-        if (abs(clusOriginalPointGlob.y()) < 0.5) { ///// excluding gap between bottom and top barrels
+        if (std::abs(clusOriginalPointGlob.y()) < 0.5) { ///// excluding gap between bottom and top barrels
           continue;
         }
 
-        if (abs(clusOriginalPointGlob.z()) >= 10) { /// excluding external z
+        if (std::abs(clusOriginalPointGlob.z()) >= 10) { /// excluding external z
           continue;
         }
 
@@ -2837,10 +2846,11 @@ void EfficiencyStudy::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   }
 }
 
-DataProcessorSpec getEfficiencyStudy(mask_t srcTracksMask, mask_t srcClustersMask, bool useMC, std::shared_ptr<o2::steer::MCKinematicsReader> kineReader)
+DataProcessorSpec getEfficiencyStudy(mask_t srcTracksMask, mask_t srcClustersMask, bool useMC, std::shared_ptr<o2::steer::MCKinematicsReader> kineReader, bool itsStag)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
+  dataRequest->setITSPerLayer(itsStag);
   dataRequest->requestTracks(srcTracksMask, useMC);
   dataRequest->requestClusters(srcClustersMask, useMC);
 

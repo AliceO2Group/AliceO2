@@ -99,7 +99,7 @@ int32_t GPUReconstructionDeviceBase::InitDevice()
     return (1);
   }
   if ((size_t)GetProcessingSettings().nStreams > constants::GPU_MAX_STREAMS) {
-    GPUError("Too many straems requested %d > %d\n", GetProcessingSettings().nStreams, constants::GPU_MAX_STREAMS);
+    GPUError("Too many straems requested %d > %zu\n", GetProcessingSettings().nStreams, constants::GPU_MAX_STREAMS);
     return (1);
   }
 

@@ -210,15 +210,10 @@ void TPCITSMatchingDPL::updateTimeDependentParams(ProcessingContext& pc)
     pc.inputs().get<o2::globaltracking::MatchTPCITSParams*>("MatchParam");
 
     //  Note: ITS/CLUSDICT and ITS/ALPIDEPARAM are requested/loaded by the recocontainer
-    const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
-    if (mMatching.isITSTriggered()) {
-      mMatching.setITSROFrameLengthMUS(alpParams.roFrameLengthTrig / 1.e3); // ITS ROFrame duration in \mus
-    } else {
-      mMatching.setITSROFrameLengthInBC(alpParams.roFrameLengthInBC); // ITS ROFrame duration in \mus
-    }
-    mMatching.setITSTimeBiasInBC(alpParams.roFrameBiasInBC);
-    mMatching.setSkipTPCOnly(mSkipTPCOnly);
+    // all per-layer ITS ROF lengths and biases are derived in MatchTPCITS::setAlpideParam()
     mMatching.setITSTriggered(!o2::base::GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::ITS));
+    mMatching.setAlpideParam(&o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance());
+    mMatching.setSkipTPCOnly(mSkipTPCOnly);
     mMatching.setNHBPerTF(o2::base::GRPGeomHelper::instance().getGRPECS()->getNHBFPerTF());
     mMatching.setMCTruthOn(mUseMC);
     mMatching.setUseFT0(mUseFT0);
@@ -250,10 +245,11 @@ void TPCITSMatchingDPL::updateTimeDependentParams(ProcessingContext& pc)
   }
 }
 
-DataProcessorSpec getTPCITSMatchingSpec(GTrackID::mask_t src, bool useFT0, bool calib, bool skipTPCOnly, bool useGeom, bool useMC, bool requestCTPLumi)
+DataProcessorSpec getTPCITSMatchingSpec(GTrackID::mask_t src, bool useFT0, bool calib, bool skipTPCOnly, bool useGeom, bool useMC, bool requestCTPLumi, bool itsStag)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
+  dataRequest->setITSPerLayer(itsStag);
   if ((src & GTrackID::getSourcesMask("TPC-TRD,TPC-TOF,TPC-TRD-TOF")).any()) { // preliminary stage of extended workflow ?
     dataRequest->setMatchingInputStrict();
   }

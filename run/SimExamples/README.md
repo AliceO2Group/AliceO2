@@ -25,6 +25,7 @@
 * \subpage refrunSimExamplesForceDecay_Lambda_Neutron_Dalitz
 * \subpage refrunSimExamplesJustPrimaryKinematics
 * \subpage refrunSimExamplesEventPool_Chaining
+* \subpage refrunSimExamplesMergeEventPools
 * \subpage refrunSimExamplesSelective_Transport
 * \subpage refrunSimExamplesSelective_Transport_pi0
 * \subpage refrunSimExamplesStepMonitoringSimple1

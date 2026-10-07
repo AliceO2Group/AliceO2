@@ -126,6 +126,32 @@ void Detector::configMLOT()
       }
       break;
     }
+    case kSimplifiedRealistic: {
+      // Same ML as segmented; OT uses the detailed (realistic) barrel.
+      const std::vector<float> tiltAngles{11.2f, 11.9f, 11.4f, 0.f, 0.f, 0.f, 0.f, 0.f};
+      const std::vector<int> nMods{11, 11, 11, 11, 11, 22, 22, 22};
+      const std::vector<float> stagOffsets{0.f, 0.f, 0.f, 1.17f, 0.89f};
+
+      // OT radii chosen at the top of a stave-count band, where the paving closes with
+      // ~1.5-1.9 mm of neighbour overlap; the outermost also clears TRKServices::sOTShellRMin.
+      std::vector<float> rInnReal = rInn;
+      rInnReal[constants::ML::nLayers + 0] = 44.0f;
+      rInnReal[constants::ML::nLayers + 1] = 61.5f;
+      rInnReal[constants::ML::nLayers + 2] = 79.3f;
+      // OT counts are informational: TRKOTLayerRealistic derives its own from the radius.
+      const std::vector<int> nStaves{10, 14, 18, 26, 38, 30, 42, 54};
+
+      LOGP(warning, "Loading simplified-realistic configuration for ALICE3 TRK");
+      for (int i{0}; i < constants::ML::nLayers + constants::OT::nLayers; ++i) {
+        std::string name = GeometryTGeo::getTRKLayerPattern() + std::to_string(i);
+        if (i < constants::ML::nLayers) {
+          mLayers.push_back(std::make_unique<TRKMLLayer>(i, name, rInnReal[i], stagOffsets[i], tiltAngles[i], nStaves[i], nMods[i], thick, MatBudgetParamMode::Thickness));
+        } else {
+          mLayers.push_back(std::make_unique<TRKOTLayerRealistic>(i, name, rInnReal[i], tiltAngles[i], nStaves[i], nMods[i], thick, MatBudgetParamMode::Thickness));
+        }
+      }
+      break;
+    }
     default:
       LOGP(fatal, "Unknown option {} for configMLOT", static_cast<int>(trkPars.layoutMLOT));
       break;
@@ -189,7 +215,8 @@ void Detector::configFromFile(std::string fileName)
         mLayers.push_back(std::make_unique<TRKCylindricalLayer>(layerCount, name, rInn, length, thick, matBudgetMode));
         break;
       }
-      case kSegmented: {
+      case kSegmented:
+      case kSimplifiedRealistic: {
         // Expected column mapping in the text file (separated by \t):
         // tmpBuff[0] = rInn
         // tmpBuff[1] = thick
@@ -231,7 +258,11 @@ void Detector::configFromFile(std::string fileName)
             matBudgetMode = static_cast<MatBudgetParamMode>(static_cast<int>(tmpBuff[5]));
           }
 
-          mLayers.push_back(std::make_unique<TRKOTLayer>(layerCount, name, rInn, tiltAngle, nStaves, nMods, thick, matBudgetMode));
+          if (trkPars.layoutMLOT == kSimplifiedRealistic) {
+            mLayers.push_back(std::make_unique<TRKOTLayerRealistic>(layerCount, name, rInn, tiltAngle, nStaves, nMods, thick, matBudgetMode));
+          } else {
+            mLayers.push_back(std::make_unique<TRKOTLayer>(layerCount, name, rInn, tiltAngle, nStaves, nMods, thick, matBudgetMode));
+          }
         }
         break;
       }
@@ -283,6 +314,13 @@ void Detector::createMaterials()
   float epsilCer = 1.0E-4;      // .10000E+01;
   float stminCer = 0.0;         // cm "Default value used"
 
+  // Tracking parameters shared by the passive materials below
+  float tmaxfdPas = 0.1;
+  float stemaxPas = 1.0;
+  float deemaxPas = 0.1;
+  float epsilPas = 1.0E-4;
+  float stminPas = 0.0;
+
   // AIR
   float aAir[4] = {12.0107, 14.0067, 15.9994, 39.948};
   float zAir[4] = {6., 7., 8., 18.};
@@ -293,11 +331,59 @@ void Detector::createMaterials()
   float aCf[2] = {12.0107, 1.00794};
   float zCf[2] = {6., 1.};
 
+  // FPC: Kapton+Cu effective mixture, X0 ~ 5 cm
+  float aFpc[2] = {63.546f, 12.0107f}; // Cu, C (Kapton proxy)
+  float zFpc[2] = {29.f, 6.f};
+  float wFpc[2] = {0.40f, 0.60f};
+  float dFpc = 3.4f;
+
+  // ZIF connector: LCP+Cu effective mixture, X0 ~ 2.9 cm
+  float aLcpCu[2] = {63.546f, 12.0107f};
+  float zLcpCu[2] = {29.f, 6.f};
+  float wLcpCu[2] = {0.60f, 0.40f};
+  float dLcpCu = 5.5f;
+
+  // SMD capacitors: BaTiO3 ceramic, X0 ~ 1.9 cm
+  float aBaTiO3[3] = {137.327f, 47.867f, 15.9994f};
+  float zBaTiO3[3] = {56.f, 22.f, 8.f};
+  float wBaTiO3[3] = {0.5879f, 0.2054f, 0.2067f};
+  float dBaTiO3 = 6.0f;
+
+  // FR4 (PCB laminate) for the end-of-stave cards: 60% glass (SiO2) + 40% epoxy by weight
+  float aFr4[4] = {28.0855f, 15.9994f, 12.0107f, 1.00794f}; // Si, O, C, H
+  float zFr4[4] = {14.f, 8.f, 6.f, 1.f};
+  float wFr4[4] = {0.2804f, 0.3836f, 0.3040f, 0.0320f};
+  float dFr4 = 1.85f;
+
   o2::base::Detector::Mixture(1, "AIR$", aAir, zAir, dAir, 4, wAir);
   o2::base::Detector::Medium(1, "AIR$", 1, 0, ifield, fieldm, tmaxfdAir, stemaxAir, deemaxAir, epsilAir, stminAir);
 
   o2::base::Detector::Material(3, "SILICON$", 0.28086E+02, 0.14000E+02, 0.23300E+01, 0.93600E+01, 0.99900E+03);
   o2::base::Detector::Medium(3, "SILICON$", 3, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+
+  // Carbon fibre: density tuned so X0 ~ 27 cm
+  o2::base::Detector::Material(4, "CARBONFIBER$", 12.0107f, 6.f, 1.45f, 27.0f, 999.f);
+  o2::base::Detector::Medium(4, "CARBONFIBER$", 4, 0, ifield, fieldm, tmaxfdPas, stemaxPas, deemaxPas, epsilPas, stminPas);
+
+  o2::base::Detector::Mixture(5, "FPC$", aFpc, zFpc, dFpc, 2, wFpc);
+  o2::base::Detector::Medium(5, "FPC$", 5, 0, ifield, fieldm, tmaxfdPas, stemaxPas, deemaxPas, epsilPas, stminPas);
+
+  o2::base::Detector::Mixture(6, "LCPCU$", aLcpCu, zLcpCu, dLcpCu, 2, wLcpCu);
+  o2::base::Detector::Medium(6, "LCPCU$", 6, 0, ifield, fieldm, tmaxfdPas, stemaxPas, deemaxPas, epsilPas, stminPas);
+
+  o2::base::Detector::Mixture(7, "BATIO3$", aBaTiO3, zBaTiO3, dBaTiO3, 3, wBaTiO3);
+  o2::base::Detector::Medium(7, "BATIO3$", 7, 0, ifield, fieldm, tmaxfdPas, stemaxPas, deemaxPas, epsilPas, stminPas);
+
+  // PEEK polymer for mounting brackets: X0 ~ 20 cm
+  o2::base::Detector::Material(8, "PEEK$", 12.0107f, 6.f, 1.32f, 20.0f, 999.f);
+  o2::base::Detector::Medium(8, "PEEK$", 8, 0, ifield, fieldm, tmaxfdPas, stemaxPas, deemaxPas, epsilPas, stminPas);
+
+  o2::base::Detector::Mixture(9, "FR4$", aFr4, zFr4, dFr4, 4, wFr4);
+  o2::base::Detector::Medium(9, "FR4$", 9, 0, ifield, fieldm, tmaxfdPas, stemaxPas, deemaxPas, epsilPas, stminPas);
+
+  // Copper planes of the end-of-stave cards: X0 = 1.436 cm
+  o2::base::Detector::Material(10, "COPPER$", 63.546f, 29.f, 8.96f, 1.436f, 999.f);
+  o2::base::Detector::Medium(10, "COPPER$", 10, 0, ifield, fieldm, tmaxfdPas, stemaxPas, deemaxPas, epsilPas, stminPas);
 }
 
 void Detector::createGeometry()
@@ -562,6 +648,25 @@ bool Detector::ProcessHits(FairVolume* vol)
         } else {
           LOGP(fatal, "Wrong number of halfstaves for layer {}", layer);
         }
+      } else if (trkPars.layoutMLOT == o2::trk::eMLOTLayout::kSimplifiedRealistic) {
+        // Stave/half-stave/module are assembly volumes here, for which CurrentVolOffID copy
+        // numbers all read 0; resolve the indices from the TGeo path at the hit mid-point.
+        const TVector3 mid = (mTrackData.mPositionStart.Vect() + positionStop.Vect()) * 0.5;
+        gGeoManager->PushPath();
+        if (gGeoManager->FindNode(mid.X(), mid.Y(), mid.Z())) {
+          auto copyUp = [](int up) { TGeoNode* n = gGeoManager->GetMother(up); return n ? n->GetNumber() : 0; };
+          chip = copyUp(1);
+          mod = copyUp(2);
+          if (mGeometryTGeo->getNumberOfHalfStaves(layer) == 2) {
+            halfstave = copyUp(3);
+            stave = copyUp(4);
+          } else if (mGeometryTGeo->getNumberOfHalfStaves(layer) == 1) {
+            stave = copyUp(3);
+          } else {
+            LOGP(fatal, "Wrong number of halfstaves for layer {}", layer);
+          }
+        }
+        gGeoManager->PopPath();
       }
     } /// if VD, for the moment the volume is the "chipID" so no need to retrieve other elments
 

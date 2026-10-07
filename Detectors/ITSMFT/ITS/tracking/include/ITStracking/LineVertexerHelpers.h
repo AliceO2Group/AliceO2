@@ -15,11 +15,14 @@
 #include <memory>
 #include <span>
 
-#include "ITStracking/BoundedAllocator.h"
+#include "ITSMFTTracking/BoundedAllocator.h"
 #include "ITStracking/ClusterLines.h"
 
 namespace o2::its::line_vertexer
 {
+
+using o2::itsmft::tracking::bounded_vector;
+using o2::itsmft::tracking::BoundedMemoryResource;
 
 struct Settings {
   float beamX = 0.f;
@@ -39,7 +42,20 @@ struct Settings {
   std::shared_ptr<BoundedMemoryResource> memoryPool;
 };
 
-bounded_vector<ClusterLines> buildClusters(std::span<const Line> lines, const Settings& settings);
+struct ClusterWithLines {
+  ClusterLines fit;
+  bounded_vector<int> lineIndices;
+
+  const float* getVertex() const noexcept { return fit.getVertex(); }
+  const float* getRMS2() const noexcept { return fit.getRMS2(); }
+  int getSize() const noexcept { return fit.getSize(); }
+  float getAvgDistance2() const noexcept { return fit.getAvgDistance2(); }
+  const auto& getTimeStamp() const noexcept { return fit.getTimeStamp(); }
+  bool isValid() const noexcept { return fit.isValid(); }
+  const auto& getLabels() const noexcept { return lineIndices; }
+};
+
+bounded_vector<ClusterWithLines> buildClusters(std::span<const Line> lines, const Settings& settings);
 
 } // namespace o2::its::line_vertexer
 

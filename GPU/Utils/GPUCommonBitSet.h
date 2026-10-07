@@ -37,12 +37,17 @@ class bitset
 
  public:
   GPUdDefault() constexpr bitset() = default;
+#ifndef __METAL__
+  // MSL will not use a user-declared copy constructor to build an object in the
+  // constant address space, where GPUconstexpr() arrays of bitset live. Leaving
+  // it implicit is what makes those arrays constructible.
   GPUdDefault() constexpr bitset(const bitset&) = default;
+#endif
 #ifdef __OPENCL__
   GPUdDefault() constexpr bitset(const __constant bitset&) = default;
 #endif // __OPENCL__
   GPUd() constexpr bitset(uint32_t vv) : v(vv) {};
-  static constexpr uint32_t full_set = ((1ul << N) - 1ul);
+  static GPUglobalconstexpr() uint32_t full_set = ((1ul << N) - 1ul);
 
   GPUd() constexpr bool all() const { return (v & full_set) == full_set; }
   GPUd() constexpr bool any() const { return v & full_set; }

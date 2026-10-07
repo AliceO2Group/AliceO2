@@ -23,15 +23,17 @@
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsITS/Vertex.h"
 
+#include "ITSMFTTracking/CapacityEstimator.h"
 #include "ITStracking/Cell.h"
 #include "ITStracking/Cluster.h"
 #include "ITStracking/Configuration.h"
 #include "ITStracking/ClusterLines.h"
+#include "ITStracking/LineProjection.h"
 #include "ITStracking/Tracklet.h"
 #include "ITStracking/IndexTableUtils.h"
 #include "ITStracking/ExternalAllocator.h"
-#include "ITStracking/BoundedAllocator.h"
-#include "ITStracking/ROFLookupTables.h"
+#include "ITSMFTTracking/BoundedAllocator.h"
+#include "ITSMFTTracking/ROFLookupTables.h"
 #include "ITStracking/TrackingTopology.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -55,6 +57,11 @@ class ROFRecord;
 
 namespace its
 {
+
+using o2::itsmft::tracking::bounded_vector;
+using o2::itsmft::tracking::BoundedMemoryResource;
+using o2::itsmft::tracking::CapacityEstimator;
+
 namespace gpu
 {
 template <int>
@@ -71,8 +78,10 @@ struct TimeFrame {
   using TrackSeedN = TrackSeed<NLayers>;
   friend class gpu::TimeFrameGPU<NLayers>;
 
-  TimeFrame() = default;
-  virtual ~TimeFrame() = default;
+  TimeFrame();
+  virtual ~TimeFrame();
+  TimeFrame(const TimeFrame&) = delete;
+  TimeFrame& operator=(const TimeFrame&) = delete;
 
   const Vertex& getPrimaryVertex(const int ivtx) const { return mPrimaryVertices[ivtx]; }
   auto& getPrimaryVertices() { return mPrimaryVertices; };
@@ -108,6 +117,7 @@ struct TimeFrame {
 
   float getBeamX() const { return mBeamPos[0]; }
   float getBeamY() const { return mBeamPos[1]; }
+  bool isBeamOverridden() const { return isBeamPositionOverridden; }
   std::array<float, 2>& getBeamXY() { return mBeamPos; }
 
   auto& getMinRs() { return mMinR; }
@@ -163,6 +173,12 @@ struct TimeFrame {
     mROFMaskView = mROFMask->getView();
   }
   void setUPCCutMask(ROFMaskTableN cutMask) { mUPCCutMask = std::move(cutMask); }
+  void setSeedingUPCMask(ROFMaskTableN cutMask) { mSeedingUPCMask = std::move(cutMask); }
+  void useSeedingUPCMask() noexcept
+  {
+    mROFMask = &mSeedingUPCMask;
+    mROFMaskView = mROFMask->getView();
+  }
   void useUPCMask() noexcept
   {
     mROFMask = &mUPCCutMask;
@@ -227,11 +243,16 @@ struct TimeFrame {
   /// staggering
   void setIsStaggered(bool b) noexcept { mIsStaggered = b; }
 
+  CapacityEstimator& getCapacityEstimator() noexcept { return mCapacityEstimator; }
+  const CapacityEstimator& getCapacityEstimator() const noexcept { return mCapacityEstimator; }
+
   // Vertexer
   void computeTrackletsPerROFScans();
   void computeTracletsPerClusterScans();
   int& getNTrackletsROF(int rofId, int combId) { return mNTrackletsPerROF[combId][rofId]; }
   auto& getLines(int rofId) { return mLines[rofId]; }
+  auto& getLinesQuality(int rofId) { return mLinesQuality[rofId]; }
+  const auto& getLinesQuality(int rofId) const { return mLinesQuality[rofId]; }
   int getNLinesTotal() const noexcept { return mTotalLines; }
   void setNLinesTotal(uint32_t a) noexcept { mTotalLines = a; }
   auto& getTrackletClusters(int rofId) { return mTrackletClusters[rofId]; }
@@ -269,6 +290,7 @@ struct TimeFrame {
 
   std::array<bounded_vector<Cluster>, NLayers> mClusters;
   std::array<bounded_vector<TrackingFrameInfo>, NLayers> mTrackingFrameInfo;
+  LayerMask mSystErrorsApplied{};
   std::array<bounded_vector<int>, NLayers> mClusterExternalIndices;
   std::array<bounded_vector<int>, NLayers> mROFramesClusters;
   std::array<const dataformats::MCTruthContainer<MCCompLabel>*, NLayers> mClusterLabels{nullptr};
@@ -299,7 +321,8 @@ struct TimeFrame {
   virtual const char* getName() const noexcept { return "CPU"; }
 
  protected:
-  void prepareClusters(const TrackingParameters& trkParam, const int maxLayers = NLayers);
+  virtual void prepareClusters(const TrackingParameters& trkParam, const int maxLayers = NLayers);
+  virtual void allocateClusterSortStorage(const TrackingParameters& trkParam, const int maxLayers);
   float mBz = 5.;
   unsigned int mNTotalLowPtVertices = 0;
   int mBeamPosWeight = 0;
@@ -318,11 +341,14 @@ struct TimeFrame {
   std::vector<bounded_vector<int>> mCellsNeighboursLUT;
   bounded_vector<int> mBogusClusters; /// keep track of clusters with wild coordinates
 
+  CapacityEstimator mCapacityEstimator;
+
   // Vertexer
   bounded_vector<Vertex> mPrimaryVertices;
   bounded_vector<VertexLabel> mPrimaryVerticesLabels;
   std::vector<bounded_vector<int>> mNTrackletsPerROF;
   std::vector<bounded_vector<Line>> mLines;
+  std::vector<bounded_vector<LineQuality>> mLinesQuality; // lockstep with mLines, see getLinesQuality()
   std::vector<bounded_vector<ClusterLines>> mTrackletClusters;
   std::array<bounded_vector<int>, 2> mTrackletsIndexROF;
   std::vector<bounded_vector<MCCompLabel>> mLinesLabels;
@@ -342,6 +368,7 @@ struct TimeFrame {
   ROFVertexLookupTableN::View mROFVertexLookupTableView;
   ROFMaskTableN mMultiplicityCutMask;
   ROFMaskTableN mUPCCutMask;
+  ROFMaskTableN mSeedingUPCMask;
   ROFMaskTableN* mROFMask = &mMultiplicityCutMask;
   ROFMaskTableN::View mROFMaskView;
 

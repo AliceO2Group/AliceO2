@@ -22,14 +22,15 @@ namespace o2::its
 template <int NLayers>
 class TrackerTraitsGPU final : public TrackerTraits<NLayers>
 {
-  using typename TrackerTraits<NLayers>::IndexTableUtilsN;
-
  public:
   TrackerTraitsGPU() = default;
   ~TrackerTraitsGPU() final = default;
 
   void adoptTimeFrame(TimeFrame<NLayers>* tf) final;
   void initialiseTimeFrame(const int iteration) final;
+
+  void computeVertexCandidates(const int iteration) final;
+  void computeVertices(const int iteration) final;
 
   void computeLayerTracklets(const int iteration, int) final;
   void computeLayerCells(const int iteration) final;
@@ -47,7 +48,6 @@ class TrackerTraitsGPU final : public TrackerTraits<NLayers>
   int getTFNumberOfCells() const override;
 
  private:
-  IndexTableUtilsN* mDeviceIndexTableUtils;
   gpu::TimeFrameGPU<NLayers>* mTimeFrameGPU;
 };
 

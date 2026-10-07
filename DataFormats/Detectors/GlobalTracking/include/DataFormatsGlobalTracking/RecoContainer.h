@@ -27,6 +27,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "DataFormatsCTP/LumiInfo.h"
+#include "DataFormatsITSMFT/ClusterID.h"
 #include <gsl/span>
 #include <memory>
 
@@ -187,11 +188,22 @@ namespace o2
 namespace globaltracking
 {
 
+// max number of layers for which the ITS/MFT clusters, ROF records and patterns can be provided separately
+constexpr int MaxITSLayers = o2::itsmft::MaxITSClusLayers;
+constexpr int MaxMFTLayers = o2::itsmft::MaxMFTClusLayers;
+
 // helper class to request DPL input data from the processor specs definition
 struct DataRequest {
   std::vector<o2::framework::InputSpec> inputs;
   std::unordered_map<std::string, bool> requestMap;
   MatchingType matchingInputType = MatchingType::Standard; // use subspec = 0 for inputs
+  bool ITSPerLayer = false;                                // ITS clusters, ROFs and patterns are provided per layer
+  bool MFTPerLayer = false;                                // MFT clusters, ROFs and patterns are provided per layer
+
+  auto getITSPerLayer() const { return ITSPerLayer; }
+  auto getMFTPerLayer() const { return MFTPerLayer; }
+  void setITSPerLayer(bool v = true);
+  void setMFTPerLayer(bool v = true);
 
   auto getMatchingInputType() const { return matchingInputType; }
   void setMatchingInputStrict() { matchingInputType = MatchingType::Strict; }
@@ -314,11 +326,19 @@ struct RecoContainer {
                       COSM_TRACKS_MC,
                       NCOSMSLOTS };
 
+  // slots to register ITS/MFT clusters data (per layer, or all layers together in the slot 0)
+  enum ITSMFTClusSlots { ITSMFT_ROF, // ROF records
+                         ITSMFT_CLS, // compact clusters
+                         ITSMFT_PAT, // cluster patterns
+                         NITSMFTCLUSSLOTS };
+
   using AccSlots = o2::dataformats::AbstractRefAccessor<int, NCOMMONSLOTS>; // int here is a dummy placeholder
   using PVertexAccessor = o2::dataformats::AbstractRefAccessor<int, NPVTXSLOTS>;
   using SVertexAccessor = o2::dataformats::AbstractRefAccessor<int, NSVTXSLOTS>;
   using STrackAccessor = o2::dataformats::AbstractRefAccessor<int, NSTRKSLOTS>;
   using CosmicsAccessor = o2::dataformats::AbstractRefAccessor<int, NCOSMSLOTS>;
+  using ITSClusAccessor = o2::dataformats::AbstractRefAccessor<int, MaxITSLayers>;
+  using MFTClusAccessor = o2::dataformats::AbstractRefAccessor<int, MaxMFTLayers>;
   using GTrackID = o2::dataformats::GlobalTrackID;
   using GlobalIDSet = std::array<GTrackID, GTrackID::NSources>;
 
@@ -332,7 +352,14 @@ struct RecoContainer {
   STrackAccessor strkPool;  // containers for strangeness tracking related objects
   CosmicsAccessor cosmPool; // containers for cosmics track data
 
-  std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mcITSClusters;
+  bool ITSPerLayer = false; // ITS clusters, ROFs and patterns are provided per layer
+  bool MFTPerLayer = false; // MFT clusters, ROFs and patterns are provided per layer
+
+  std::array<ITSClusAccessor, NITSMFTCLUSSLOTS> ITSClustersData; // [ROF/Clus/Patt][MaxITSLayers slots, non-staggered == 0]
+  std::array<MFTClusAccessor, NITSMFTCLUSSLOTS> MFTClustersData; // [ROF/Clus/Patt][MaxMFTLayers slots, non-staggered == 0]
+
+  std::array<std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>>, MaxITSLayers> mcITSClusters;
+  std::array<std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>>, MaxMFTLayers> mcMFTClusters;
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mcTOFClusters;
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mcHMPClusters;
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mcCPVClusters;
@@ -349,6 +376,9 @@ struct RecoContainer {
 
   std::unique_ptr<o2::tpc::internal::getWorkflowTPCInput_ret> inputsTPCclusters; // special struct for TPC clusters access
   std::unique_ptr<o2::trd::RecoInputContainer> inputsTRD;                        // special struct for TRD tracklets, trigger records
+
+  auto getITSPerLayer() const { return ITSPerLayer; }
+  auto getMFTPerLayer() const { return MFTPerLayer; }
 
   void collectData(o2::framework::ProcessingContext& pc, const DataRequest& request);
   void createTracks(std::function<bool(const o2::track::TrackParCov&, GTrackID)> const& creator) const;
@@ -497,11 +527,11 @@ struct RecoContainer {
   auto getITSABClusterRefs() const { return getSpan<int>(GTrackID::ITSAB, INDICES); }
   auto getITSABMCLabels() const { return getSpan<o2::MCCompLabel>(GTrackID::ITSAB, MCLABELS); }
 
-  // ITS clusters
-  auto getITSClustersROFRecords() const { return getSpan<o2::itsmft::ROFRecord>(GTrackID::ITS, CLUSREFS); }
-  auto getITSClusters() const { return getSpan<o2::itsmft::CompClusterExt>(GTrackID::ITS, CLUSTERS); }
-  auto getITSClustersPatterns() const { return getSpan<unsigned char>(GTrackID::ITS, PATTERNS); }
-  auto getITSClustersMCLabels() const { return mcITSClusters.get(); }
+  // ITS clusters (layer is ignored unless the data was provided per layer)
+  auto getITSClustersROFRecords(int layer = 0) const { return ITSClustersData[ITSMFT_ROF].getSpan<o2::itsmft::ROFRecord>(layer); }
+  auto getITSClusters(int layer = 0) const { return ITSClustersData[ITSMFT_CLS].getSpan<o2::itsmft::CompClusterExt>(layer); }
+  auto getITSClustersPatterns(int layer = 0) const { return ITSClustersData[ITSMFT_PAT].getSpan<unsigned char>(layer); }
+  auto getITSClustersMCLabels(int layer = 0) const { return mcITSClusters[layer].get(); }
 
   // MFT
   const o2::mft::TrackMFT& getMFTTrack(GTrackID gid) const { return getTrack<o2::mft::TrackMFT>(gid); }
@@ -510,10 +540,11 @@ struct RecoContainer {
   auto getMFTTracksClusterRefs() const { return getSpan<int>(GTrackID::MFT, INDICES); }
   auto getMFTTracksMCLabels() const { return getSpan<o2::MCCompLabel>(GTrackID::MFT, MCLABELS); }
 
-  // MFT clusters
-  auto getMFTClustersROFRecords() const { return getSpan<o2::itsmft::ROFRecord>(GTrackID::MFT, CLUSREFS); }
-  auto getMFTClusters() const { return getSpan<o2::itsmft::CompClusterExt>(GTrackID::MFT, CLUSTERS); }
-  auto getMFTClustersPatterns() const { return getSpan<unsigned char>(GTrackID::MFT, PATTERNS); }
+  // MFT clusters (layer is ignored unless the data was provided per layer)
+  auto getMFTClustersROFRecords(int layer = 0) const { return MFTClustersData[ITSMFT_ROF].getSpan<o2::itsmft::ROFRecord>(layer); }
+  auto getMFTClusters(int layer = 0) const { return MFTClustersData[ITSMFT_CLS].getSpan<o2::itsmft::CompClusterExt>(layer); }
+  auto getMFTClustersPatterns(int layer = 0) const { return MFTClustersData[ITSMFT_PAT].getSpan<unsigned char>(layer); }
+  auto getMFTClustersMCLabels(int layer = 0) const { return mcMFTClusters[layer].get(); }
 
   // MCH
   const o2::mch::TrackMCH& getMCHTrack(GTrackID gid) const { return getTrack<o2::mch::TrackMCH>(gid); }

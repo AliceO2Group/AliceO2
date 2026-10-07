@@ -49,6 +49,11 @@ class Geometry : public GeometryBase, public o2::detectors::DetMatrixCacheIndire
   void fillMatrixCache(int mask) override;
 
  private:
+  /// Index of the chamber shape a (layer, stack) uses, 0..11. The chamber length is the
+  /// same for every stack except the middle one, so the thirty chambers of a supermodule
+  /// are built from twelve distinct sets of volumes.
+  static int shapeClass(int layer, int stack) { return layer + constants::NLAYER * (stack == 2 ? 1 : 0); }
+
   void createVolumes(std::vector<int> const& idtmed);
   void assembleChamber(int ilayer, int istack);
   void createFrame(std::vector<int> const& idtmed);
@@ -59,7 +64,7 @@ class Geometry : public GeometryBase, public o2::detectors::DetMatrixCacheIndire
   static const o2::detectors::DetID sDetID;
 
   // helper function to create volumes and registering them automatically
-  void createVolume(const char* name, const char* shape, int nmed, float* upar, int np);
+  void createVolume(const char* name, const char* shape, int nmed, double* upar, int np);
 
   Geometry();
 

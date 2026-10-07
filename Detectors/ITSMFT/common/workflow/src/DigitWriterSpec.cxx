@@ -23,6 +23,7 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/IOMCTruthContainerView.h"
+#include "Framework/Logger.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include <vector>
 #include <string>
@@ -72,6 +73,31 @@ DataProcessorSpec getDigitWriterSpec(bool mctruth, bool doStag, bool dec, bool c
         LOG(error) << "Branches have different number of entries";
       }
       nent = n;
+    }
+    if (nent == 0) {
+      // A timeframe holds no collision at all whenever the interaction rate is low enough, and no
+      // branch is then filled. Write one empty entry in every branch, so that the file has the same
+      // shape as an ordinary timeframe that happens to contain nothing. The label branch matters
+      // here: it is declared as std::vector<char> and only becomes an IOMCTruthContainerView when a
+      // fill remaps it, so without this a reader binding that type gets a class mismatch instead of
+      // an empty tree.
+      LOG(info) << "No branch was filled, writing one empty entry per branch";
+      std::vector<TBranch*> branches;
+      for (auto* o : *brArr) {
+        branches.push_back((TBranch*)o);
+      }
+      o2::dataformats::IOMCTruthContainerView emptyLabels;
+      auto* labelptr = &emptyLabels;
+      for (auto* br : branches) {
+        if (TString(br->GetName()).Contains("MCTruth")) {
+          auto* remapped = framework::RootTreeWriter::remapBranch(*br, &labelptr);
+          remapped->Fill();
+          remapped->ResetAddress();
+        } else {
+          br->Fill();
+        }
+      }
+      nent = 1;
     }
     outputtree->SetEntries(nent);
     // do not use TTree::Write .. as this writes to default directory (not the associated file)

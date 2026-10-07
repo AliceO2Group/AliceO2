@@ -27,6 +27,7 @@
 #include "MathUtils/Cartesian.h"
 #include "DetectorsBase/MatCell.h"
 #include <mutex>
+#include <vector>
 class TGeoHMatrix; // lines 11-11
 class TGeoManager; // lines 9-9
 class TGeoNavigator;
@@ -134,9 +135,28 @@ class GeometryManager : public TObject
   /// Mean material budget between two points, using the VecGeom backend. On first call,
   /// lazily converts the currently loaded TGeo geometry to VecGeom (once per process).
   static o2::base::MatBudget vecGeomMaterialBudget(float x0, float y0, float z0, float x1, float y1, float z1);
+  /// Converts the currently loaded TGeo geometry to VecGeom and assigns a navigator, a level
+  /// locator and a safety estimator to every logical volume. Does the work once per process; later
+  /// calls, whatever they ask for, return the geometry already built, so a caller that needs a
+  /// particular assembly treatment must come first. \param flattenAssemblies dissolves TGeo
+  /// assemblies into their content. \param booleanThreshold lets VecGeom turn Boolean solids with at
+  /// least this many components into MultiUnions; 0 keeps them as converted.
+  static void buildVecGeomGeometry(bool flattenAssemblies, int booleanThreshold = 0);
 #else
   static constexpr bool isVecGeomAvailable() { return false; }
 #endif
+
+  /// Builds the VecGeom world from the currently loaded TGeo geometry, once per process,
+  /// and reports whether a VecGeom navigator is available at all. Unlike
+  /// isVecGeomAvailable() this is a runtime answer, so a caller outside this library --
+  /// which does not see the private O2_WITH_VECGEOM define -- can still ask.
+  static bool ensureVecGeomWorld();
+
+  /// The VecGeom navigator's answer for a point: fills \p chain with the TGeo nodes of the
+  /// located path, top node first. False when this build has no VecGeom backend or the
+  /// point lies outside the world. Assemblies are flattened in the VecGeom geometry, so
+  /// the chain is shorter than the TGeo path through the same point.
+  static bool vecGeomLocate(double x, double y, double z, std::vector<TGeoNode*>& chain);
 
  private:
   /// Default constructor

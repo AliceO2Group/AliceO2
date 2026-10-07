@@ -287,10 +287,11 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     auto context = pc.inputs().get<o2::steer::DigitizationContext*>(inputref);
     context->initSimChains(o2::detectors::DetID::TPC, mSimChains);
     auto& irecords = context->getEventRecords();
+    // A timeframe holds no collision at all whenever the interaction rate is low enough. Do not
+    // return here: the sector still has to produce its usual output, an empty one, so that the
+    // digit file has the same shape as an ordinary timeframe that happens to contain nothing.
+    // Returning also left the chunked writer without a file and a null tree to flush.
     LOG(info) << "TPC: Processing " << irecords.size() << " collisions";
-    if (irecords.size() == 0) {
-      return;
-    }
     auto const* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(inputref);
 
     bool isContinuous = mDigitizer.isContinuousReadout();
@@ -411,7 +412,9 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
       auto& hbfu = o2::raw::HBFUtils::Instance();
       double time = hbfu.getFirstIRofTF(o2::InteractionRecord(0, hbfu.orbitFirstSampled)).bc2ns() / 1000.;
       mDigitizer.setOutputDigitTimeOffset(time);
-      mDigitizer.setStartTime(irecords[0].getTimeNS() / 1000.f);
+      if (!irecords.empty()) {
+        mDigitizer.setStartTime(irecords[0].getTimeNS() / 1000.f);
+      }
     }
 
     TStopwatch timer;

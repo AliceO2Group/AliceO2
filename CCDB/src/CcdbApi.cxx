@@ -15,6 +15,8 @@
 ///
 
 #include "CCDB/CcdbApi.h"
+#include "CCDB/CCDBDownloader.h"
+#include <curl/curl.h>
 #include "CCDB/CCDBQuery.h"
 
 #include "CommonUtils/StringUtils.h"
@@ -46,6 +48,8 @@
 #include <regex>
 #include <cstdio>
 #include <string>
+#include <string_view>
+#include <utility>
 #include <TAlienUserAgent.h>
 #include <unordered_set>
 #include "rapidjson/document.h"
@@ -59,6 +63,79 @@ using namespace std;
 
 std::mutex gIOMutex; // to protect TMemFile IO operations
 unique_ptr<TJAlienCredentials> CcdbApi::mJAlienCredentials = nullptr;
+
+namespace
+{
+/// Strip surrounding whitespace, CR and LF included.
+///
+/// A value that keeps its line's trailing CRLF ends the header block early when
+/// it is spliced back into a request, silently dropping every header after it.
+std::string_view trimHeaderValue(std::string_view value)
+{
+  constexpr std::string_view whitespace = " \t\r\n";
+  const auto first = value.find_first_not_of(whitespace);
+  return first == std::string_view::npos
+           ? std::string_view{}
+           : value.substr(first, value.find_last_not_of(whitespace) - first + 1);
+}
+
+/// Gate tokens per endpoint, "<url>=<token>;<url>=<token>", from
+/// ALICEO2_CCDB_AUTH_TOKENS. Set when CCDB sits behind a broker that
+/// authenticates its callers: the broker mints tokens per route, so a process
+/// facing two CCDBs (writable test instance, production) carries one per
+/// endpoint. Longest prefix first; read once into a static, since getenv races
+/// setenv and these paths run from several threads.
+const std::vector<std::pair<std::string, std::string>>& gateTokenTable()
+{
+  static const auto table = []() {
+    std::vector<std::pair<std::string, std::string>> entries;
+    const char* spec = getenv("ALICEO2_CCDB_AUTH_TOKENS");
+    std::string_view rest = spec ? spec : "";
+    while (!rest.empty()) {
+      const auto sep = rest.find(';');
+      const auto entry = trimHeaderValue(rest.substr(0, sep));
+      rest = (sep == std::string_view::npos) ? std::string_view{} : rest.substr(sep + 1);
+      const auto eq = entry.find('=');
+      if (eq == std::string_view::npos) {
+        continue;
+      }
+      auto url = trimHeaderValue(entry.substr(0, eq));
+      // Trimmed: a stray newline in a token makes the request malformed, which
+      // a strict broker rejects with an opaque 400 rather than an auth error.
+      const auto token = trimHeaderValue(entry.substr(eq + 1));
+      while (url.size() > 1 && url.back() == '/') { // normalise, so the boundary test below is exact
+        url.remove_suffix(1);
+      }
+      if (!url.empty() && !token.empty()) {
+        entries.emplace_back(std::string(url), std::string("Authorization: Bearer ").append(token));
+      }
+    }
+    std::sort(entries.begin(), entries.end(),
+              [](const auto& a, const auto& b) { return a.first.size() > b.first.size(); });
+    return entries;
+  }();
+  return table;
+}
+
+/// Append the gate token for `url`, if any, to a header list.
+///
+/// The URL decides the token, so a multi-host pool (initHostsPool splits on
+/// ',') gets the right one per host -- which also means the list must be built
+/// per host, never shared across a pool. Matching stops at a path boundary:
+/// ".../ccdb" is a prefix of ".../ccdb-prod", and a bare startswith would hand
+/// production the test instance's token whenever the production entry is
+/// missing -- an opaque 401. No match, no token.
+curl_slist* appendGateToken(curl_slist* list, std::string_view url)
+{
+  for (const auto& [prefix, header] : gateTokenTable()) {
+    if (url.substr(0, prefix.size()) == prefix &&
+        (url.size() == prefix.size() || url[prefix.size()] == '/')) {
+      return curl_slist_append(list, header.c_str());
+    }
+  }
+  return list;
+}
+} // namespace
 
 /**
  * Object, encapsulating a semaphore, regulating
@@ -405,7 +482,7 @@ int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::strin
   }
 
   // Curl preparation
-  CURL* curl = nullptr;
+  CurlHandle* curl = nullptr;
   curl = curl_easy_init();
 
   // checking that all metadata keys do not contain invalid characters
@@ -424,14 +501,9 @@ int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::strin
       curl_mime_data(field, "", 0);
     }
 
-    struct curl_slist* headerlist = nullptr;
-    static const char buf[] = "Expect:";
-    headerlist = curl_slist_append(headerlist, buf);
-
     curlSetSSLOptions(curl);
 
     curl_easy_setopt(curl, CURLOPT_MIMEPOST, mime);
-    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
     curl_easy_setopt(curl, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
     curl_easy_setopt(curl, CURLOPT_TIMEOUT, mCurlTimeoutUpload);
@@ -444,8 +516,13 @@ int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::strin
       /* what URL that receives this POST */
       curl_easy_setopt(curl, CURLOPT_URL, fullUrl.c_str());
 
+      // Per host: the gate token is per endpoint (see appendGateToken).
+      struct curl_slist* headerlist = curl_slist_append(nullptr, "Expect:");
+      headerlist = appendGateToken(headerlist, fullUrl);
+      curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
+
       /* Perform the request, res will get the return code */
-      res = CURL_perform(curl);
+      res = static_cast<CURLcode>(CURL_perform(curl));
       /* Check for errors */
       if (res != CURLE_OK) {
         if (res == CURLE_OPERATION_TIMEDOUT) {
@@ -455,13 +532,12 @@ int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::strin
         }
         returnValue = res;
       }
+      curl_slist_free_all(headerlist);
     }
 
     /* always cleanup */
     curl_easy_cleanup(curl);
 
-    /* free slist */
-    curl_slist_free_all(headerlist);
     /* free mime */
     curl_mime_free(mime);
   } else {
@@ -484,7 +560,7 @@ int CcdbApi::storeAsTFile(const TObject* rootObject, std::string const& path, st
   return storeAsBinaryFile(img->data(), img->size(), info.getFileName(), info.getObjectType(), path, metadata, startValidityTimestamp, endValidityTimestamp, maxSize);
 }
 
-std::string CcdbApi::getFullUrlForStorage(CURL* curl, const std::string& path, const std::string& objtype,
+std::string CcdbApi::getFullUrlForStorage(CurlHandle* curl, const std::string& path, const std::string& objtype,
                                           const std::map<std::string, std::string>& metadata,
                                           long startValidityTimestamp, long endValidityTimestamp, int hostIndex) const
 {
@@ -515,7 +591,7 @@ std::string CcdbApi::getFullUrlForStorage(CURL* curl, const std::string& path, c
 }
 
 // todo make a single method of the one above and below
-std::string CcdbApi::getFullUrlForRetrieval(CURL* curl, const std::string& path, const std::map<std::string, std::string>& metadata, long timestamp, int hostIndex) const
+std::string CcdbApi::getFullUrlForRetrieval(CurlHandle* curl, const std::string& path, const std::map<std::string, std::string>& metadata, long timestamp, int hostIndex) const
 {
   if (mInSnapshotMode) {
     return getSnapshotFile(mSnapshotTopPath, path);
@@ -600,7 +676,7 @@ static size_t WriteToFileCallback(void* ptr, size_t size, size_t nmemb, FILE* st
  * @param parm
  * @return
  */
-static CURLcode ssl_ctx_callback(CURL*, void*, void* parm)
+static CURLcode ssl_ctx_callback(CurlHandle*, void*, void* parm)
 {
   std::string msg((const char*)parm);
   int start = 0, end = msg.find('\n');
@@ -617,7 +693,7 @@ static CURLcode ssl_ctx_callback(CURL*, void*, void* parm)
   return CURLE_OK;
 }
 
-void CcdbApi::curlSetSSLOptions(CURL* curl_handle)
+void CcdbApi::curlSetSSLOptions(CurlHandle* curl_handle)
 {
   CredentialsKind cmk = mJAlienCredentials->getPreferedCredentials();
 
@@ -645,7 +721,7 @@ void CcdbApi::curlSetSSLOptions(CURL* curl_handle)
 
 using CurlWriteCallback = size_t (*)(void*, size_t, size_t, void*);
 
-void CcdbApi::initCurlOptionsForRetrieve(CURL* curlHandle, void* chunk, CurlWriteCallback writeCallback, bool followRedirect) const
+void CcdbApi::initCurlOptionsForRetrieve(CurlHandle* curlHandle, void* chunk, CurlWriteCallback writeCallback, bool followRedirect) const
 {
   curl_easy_setopt(curlHandle, CURLOPT_WRITEFUNCTION, writeCallback);
   curl_easy_setopt(curlHandle, CURLOPT_WRITEDATA, chunk);
@@ -700,8 +776,8 @@ size_t header_map_callback(char* buffer, size_t size, size_t nitems, void* userd
 }
 } // namespace
 
-void CcdbApi::initCurlHTTPHeaderOptionsForRetrieve(CURL* curlHandle, curl_slist*& option_list, long timestamp, std::map<std::string, std::string>* headers, std::string const& etag,
-                                                   const std::string& createdNotAfter, const std::string& createdNotBefore) const
+void CcdbApi::initCurlHTTPHeaderOptionsForRetrieve(CurlHandle* curlHandle, curl_slist*& option_list, long timestamp, std::map<std::string, std::string>* headers, std::string const& etag,
+                                                   const std::string& createdNotAfter, const std::string& createdNotBefore, std::string_view url) const
 {
   // struct curl_slist* list = nullptr;
   if (!etag.empty()) {
@@ -722,9 +798,11 @@ void CcdbApi::initCurlHTTPHeaderOptionsForRetrieve(CURL* curlHandle, curl_slist*
     curl_easy_setopt(curlHandle, CURLOPT_HEADERDATA, headers);
   }
 
-  if (option_list) {
-    curl_easy_setopt(curlHandle, CURLOPT_HTTPHEADER, option_list);
-  }
+  option_list = appendGateToken(option_list, url);
+
+  // Unconditionally, nullptr included: the handle is reused across hosts, and
+  // skipping the set would leave a previous host's freed list installed.
+  curl_easy_setopt(curlHandle, CURLOPT_HTTPHEADER, option_list);
 
   curl_easy_setopt(curlHandle, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
 }
@@ -747,7 +825,7 @@ bool CcdbApi::receiveObject(void* dataHolder, std::string const& path, std::map<
                             long timestamp, std::map<std::string, std::string>* headers, std::string const& etag,
                             const std::string& createdNotAfter, const std::string& createdNotBefore, bool followRedirect, CurlWriteCallback writeCallback) const
 {
-  CURL* curlHandle;
+  CurlHandle* curlHandle;
 
   curlHandle = curl_easy_init();
   curl_easy_setopt(curlHandle, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
@@ -756,9 +834,6 @@ bool CcdbApi::receiveObject(void* dataHolder, std::string const& path, std::map<
 
     curlSetSSLOptions(curlHandle);
     initCurlOptionsForRetrieve(curlHandle, dataHolder, writeCallback, followRedirect);
-    curl_slist* option_list = nullptr;
-    initCurlHTTPHeaderOptionsForRetrieve(curlHandle, option_list, timestamp, headers, etag, createdNotAfter, createdNotBefore);
-
     long responseCode = 0;
     CURLcode curlResultCode = CURL_LAST;
 
@@ -766,7 +841,11 @@ bool CcdbApi::receiveObject(void* dataHolder, std::string const& path, std::map<
       std::string fullUrl = getFullUrlForRetrieval(curlHandle, path, metadata, timestamp, hostIndex);
       curl_easy_setopt(curlHandle, CURLOPT_URL, fullUrl.c_str());
 
-      curlResultCode = CURL_perform(curlHandle);
+      // Per host: the gate token is per endpoint (see appendGateToken).
+      curl_slist* option_list = nullptr;
+      initCurlHTTPHeaderOptionsForRetrieve(curlHandle, option_list, timestamp, headers, etag, createdNotAfter, createdNotBefore, fullUrl);
+
+      curlResultCode = static_cast<CURLcode>(CURL_perform(curlHandle));
 
       if (curlResultCode != CURLE_OK) {
         LOGP(alarm, "curl_easy_perform() failed: {}", curl_easy_strerror(curlResultCode));
@@ -784,9 +863,9 @@ bool CcdbApi::receiveObject(void* dataHolder, std::string const& path, std::map<
           }
         }
       }
+      curl_slist_free_all(option_list);
     }
 
-    curl_slist_free_all(option_list);
     curl_easy_cleanup(curlHandle);
   }
   return false;
@@ -795,7 +874,7 @@ bool CcdbApi::receiveObject(void* dataHolder, std::string const& path, std::map<
 TObject* CcdbApi::retrieve(std::string const& path, std::map<std::string, std::string> const& metadata,
                            long timestamp) const
 {
-  struct MemoryStruct chunk {
+  struct MemoryStruct chunk{
     (char*)malloc(1) /*memory*/, 0 /*size*/
   };
 
@@ -1027,7 +1106,7 @@ void* CcdbApi::interpretAsTMemFileAndExtract(char* contentptr, size_t contentsiz
 }
 
 // navigate sequence of URLs until TFile content is found; object is extracted and returned
-void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string const& url, std::type_info const& tinfo, std::map<std::string, std::string>* headers) const
+void* CcdbApi::navigateURLsAndRetrieveContent(CurlHandle* curl_handle, std::string const& url, std::type_info const& tinfo, std::map<std::string, std::string>* headers) const
 {
   // a global internal data structure that can be filled with HTTP header information
   // static --> to avoid frequent alloc/dealloc as optimization
@@ -1054,7 +1133,7 @@ void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string con
 
   curlSetSSLOptions(curl_handle);
 
-  auto res = CURL_perform(curl_handle);
+  auto res = static_cast<CURLcode>(CURL_perform(curl_handle));
   long response_code = -1;
   void* content = nullptr;
   bool errorflag = false;
@@ -1173,7 +1252,7 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
 
   // normal mode follows
 
-  CURL* curl_handle = curl_easy_init();
+  CurlHandle* curl_handle = curl_easy_init();
   curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
   std::string fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp); // todo check if function still works correctly in case mInSnapshotMode
   // if we are in snapshot mode we can simply open the file; extract the object and return
@@ -1186,11 +1265,15 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
   }
 
   curl_slist* option_list = nullptr;
-  initCurlHTTPHeaderOptionsForRetrieve(curl_handle, option_list, timestamp, headers, etag, createdNotAfter, createdNotBefore);
+  initCurlHTTPHeaderOptionsForRetrieve(curl_handle, option_list, timestamp, headers, etag, createdNotAfter, createdNotBefore, fullUrl);
   auto content = navigateURLsAndRetrieveContent(curl_handle, fullUrl, tinfo, headers);
 
   for (size_t hostIndex = 1; hostIndex < hostsPool.size() && !(content); hostIndex++) {
     fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp, hostIndex);
+    // Per host: the gate token is per endpoint (see appendGateToken).
+    curl_slist_free_all(option_list);
+    option_list = nullptr;
+    initCurlHTTPHeaderOptionsForRetrieve(curl_handle, option_list, timestamp, headers, etag, createdNotAfter, createdNotBefore, fullUrl);
     content = navigateURLsAndRetrieveContent(curl_handle, fullUrl, tinfo, headers);
   }
   if (content) {
@@ -1218,7 +1301,7 @@ size_t CurlWrite_CallbackFunc_StdString2(void* contents, size_t size, size_t nme
 
 std::string CcdbApi::list(std::string const& path, bool latestOnly, std::string const& returnFormat, long createdNotAfter, long createdNotBefore) const
 {
-  CURL* curl;
+  CurlHandle* curl;
   CURLcode res = CURL_LAST;
   std::string result;
 
@@ -1227,17 +1310,6 @@ std::string CcdbApi::list(std::string const& path, bool latestOnly, std::string 
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWrite_CallbackFunc_StdString2);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result);
     curl_easy_setopt(curl, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
-
-    struct curl_slist* headers = nullptr;
-    headers = curl_slist_append(headers, (std::string("Accept: ") + returnFormat).c_str());
-    headers = curl_slist_append(headers, (std::string("Content-Type: ") + returnFormat).c_str());
-    if (createdNotAfter >= 0) {
-      headers = curl_slist_append(headers, ("If-Not-After: " + std::to_string(createdNotAfter)).c_str());
-    }
-    if (createdNotBefore >= 0) {
-      headers = curl_slist_append(headers, ("If-Not-Before: " + std::to_string(createdNotBefore)).c_str());
-    }
-    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 
     curlSetSSLOptions(curl);
 
@@ -1249,12 +1321,25 @@ std::string CcdbApi::list(std::string const& path, bool latestOnly, std::string 
       fullUrl += path;
       curl_easy_setopt(curl, CURLOPT_URL, fullUrl.c_str());
 
-      res = CURL_perform(curl);
+      // Per host: the gate token is per endpoint (see appendGateToken).
+      struct curl_slist* headers = nullptr;
+      headers = curl_slist_append(headers, (std::string("Accept: ") + returnFormat).c_str());
+      headers = curl_slist_append(headers, (std::string("Content-Type: ") + returnFormat).c_str());
+      if (createdNotAfter >= 0) {
+        headers = curl_slist_append(headers, ("If-Not-After: " + std::to_string(createdNotAfter)).c_str());
+      }
+      if (createdNotBefore >= 0) {
+        headers = curl_slist_append(headers, ("If-Not-Before: " + std::to_string(createdNotBefore)).c_str());
+      }
+      headers = appendGateToken(headers, fullUrl);
+      curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+
+      res = static_cast<CURLcode>(CURL_perform(curl));
       if (res != CURLE_OK) {
         LOGP(alarm, "CURL_perform() failed: {}", curl_easy_strerror(res));
       }
+      curl_slist_free_all(headers);
     }
-    curl_slist_free_all(headers);
     curl_easy_cleanup(curl);
   }
 
@@ -1270,37 +1355,51 @@ std::string CcdbApi::getTimestampString(long timestamp) const
 
 void CcdbApi::deleteObject(std::string const& path, long timestamp) const
 {
-  CURL* curl;
+  CurlHandle* curl;
   CURLcode res;
-  stringstream fullUrl;
   long timestampLocal = timestamp == -1 ? getCurrentTimestamp() : timestamp;
 
   curl = curl_easy_init();
   if (curl != nullptr) {
     curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
     curl_easy_setopt(curl, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
     curlSetSSLOptions(curl);
 
     for (size_t hostIndex = 0; hostIndex < hostsPool.size(); hostIndex++) {
+      // Inside the loop: hoisted out, the stream accumulates and the second
+      // host's URL is the first with the second appended.
+      stringstream fullUrl;
       fullUrl << getHostUrl(hostIndex) << "/" << path << "/" << timestampLocal;
       curl_easy_setopt(curl, CURLOPT_URL, fullUrl.str().c_str());
 
+      // A DELETE is a write, so it needs the gate token as storing does -- per
+      // host, since the token is per endpoint (see appendGateToken).
+      struct curl_slist* list = appendGateToken(nullptr, fullUrl.str());
+      curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list);
+
       // Perform the request, res will get the return code
-      res = CURL_perform(curl);
+      res = static_cast<CURLcode>(CURL_perform(curl));
       if (res != CURLE_OK) {
         LOGP(alarm, "CURL_perform() failed: {}", curl_easy_strerror(res));
       }
-      curl_easy_cleanup(curl);
+      curl_slist_free_all(list);
     }
+    // After the loop, not inside it: cleaning up per host left every later
+    // iteration using a freed handle.
+    curl_easy_cleanup(curl);
   }
 }
 
 void CcdbApi::truncate(std::string const& path) const
 {
-  CURL* curl;
+  CurlHandle* curl;
   CURLcode res;
-  stringstream fullUrl;
   for (size_t i = 0; i < hostsPool.size(); i++) {
+    // Declared inside the loop: a stringstream hoisted out of it accumulates,
+    // so the second host's URL would be the first one with the second appended
+    // to it. Latent until now -- every caller used a single-host pool.
+    stringstream fullUrl;
     std::string url = getHostUrl(i);
     fullUrl << url << "/truncate/" << path;
 
@@ -1309,14 +1408,22 @@ void CcdbApi::truncate(std::string const& path) const
     if (curl != nullptr) {
       curl_easy_setopt(curl, CURLOPT_URL, fullUrl.str().c_str());
 
+      // Truncating is a write, so it needs the gate token exactly as storing
+      // does. This was the one write path left without it, which a broker
+      // answers 401 -- failing every CCDB suite in their teardown, since each
+      // one truncates the path it just wrote.
+      struct curl_slist* list = appendGateToken(nullptr, fullUrl.str());
+      curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list);
+      curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
       curlSetSSLOptions(curl);
 
       // Perform the request, res will get the return code
-      res = CURL_perform(curl);
+      res = static_cast<CURLcode>(CURL_perform(curl));
       if (res != CURLE_OK) {
         LOGP(alarm, "CURL_perform() failed: {}", curl_easy_strerror(res));
       }
       curl_easy_cleanup(curl);
+      curl_slist_free_all(list);
     }
   }
 }
@@ -1328,18 +1435,29 @@ size_t write_data(void*, size_t size, size_t nmemb, void*)
 
 bool CcdbApi::isHostReachable() const
 {
-  CURL* curl;
+  CurlHandle* curl;
   CURLcode res = CURL_LAST;
   bool result = false;
 
   curl = curl_easy_init();
   curl_easy_setopt(curl, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
   if (curl) {
+    // NOTE: mUrl, not getHostUrl(hostIndex), even though hostIndex is unused.
+    // For a failover setup mUrl is the whole comma-separated list, which curl
+    // rejects as malformed, so every multi-host instance reports itself
+    // unreachable however healthy its hosts are -- and testCcdbApiMultipleUrls,
+    // whose cases are gated on this, is skipped rather than run.
+    //
+    // Fixing it is a separate change: the suite then runs for the first time
+    // and its storeAndRetrieve fails, so the multi-host store/retrieve path
+    // needs looking at before this can be corrected. Callers outside the tests
+    // are affected too -- HMPID/PedestalsCalculationSpec sets mWriteToDB from
+    // this, and TPC workflows branch on it.
     for (size_t hostIndex = 0; hostIndex < hostsPool.size() && res != CURLE_OK; hostIndex++) {
       curl_easy_setopt(curl, CURLOPT_URL, mUrl.data());
       curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
       curlSetSSLOptions(curl);
-      res = CURL_perform(curl);
+      res = static_cast<CURLcode>(CURL_perform(curl));
       result = (res == CURLE_OK);
     }
 
@@ -1445,7 +1563,7 @@ std::map<std::string, std::string> CcdbApi::retrieveHeaders(std::string const& p
 {
   // lambda that actually does the call to the CCDB server
   auto do_remote_header_call = [this, &path, &metadata, timestamp]() -> std::map<std::string, std::string> {
-    CURL* curl = curl_easy_init();
+    CurlHandle* curl = curl_easy_init();
     CURLcode res = CURL_LAST;
     std::string fullUrl = getFullUrlForRetrieval(curl, path, metadata, timestamp);
     std::map<std::string, std::string> headers;
@@ -1453,6 +1571,7 @@ std::map<std::string, std::string> CcdbApi::retrieveHeaders(std::string const& p
     if (curl != nullptr) {
       struct curl_slist* list = nullptr;
       list = curl_slist_append(list, ("If-None-Match: " + std::to_string(timestamp)).c_str());
+      list = appendGateToken(list, fullUrl);
 
       curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list);
 
@@ -1470,7 +1589,7 @@ std::map<std::string, std::string> CcdbApi::retrieveHeaders(std::string const& p
       CURLcode getCodeRes = CURL_LAST;
       for (size_t hostIndex = 0; hostIndex < hostsPool.size() && (httpCode >= 400 || res > 0 || getCodeRes > 0); hostIndex++) {
         curl_easy_setopt(curl, CURLOPT_URL, fullUrl.c_str());
-        res = CURL_perform(curl);
+        res = static_cast<CURLcode>(CURL_perform(curl));
         if (res != CURLE_OK && res != CURLE_UNSUPPORTED_PROTOCOL) {
           // We take out the unsupported protocol error because we are only querying
           // header info which is returned in any case. Unsupported protocol error
@@ -1531,6 +1650,7 @@ bool CcdbApi::getCCDBEntryHeaders(std::string const& url, std::string const& eta
 
   struct curl_slist* list = nullptr;
   list = curl_slist_append(list, ("If-None-Match: " + etag).c_str());
+  list = appendGateToken(list, url);
 
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list);
 
@@ -1560,11 +1680,13 @@ void CcdbApi::parseCCDBHeaders(std::vector<std::string> const& headers, std::vec
 {
   static std::string etagHeader = "ETag: ";
   static std::string locationHeader = "Content-Location: ";
+  // Trimmed: `headers` holds raw header lines, CRLF and all, and the etag goes
+  // straight back out as an If-None-Match request header.
   for (auto h : headers) {
     if (h.find(etagHeader) == 0) {
-      etag = std::string(h.data() + etagHeader.size());
+      etag = trimHeaderValue(std::string_view(h).substr(etagHeader.size()));
     } else if (h.find(locationHeader) == 0) {
-      pfns.emplace_back(std::string(h.data() + locationHeader.size(), h.size() - locationHeader.size()));
+      pfns.emplace_back(trimHeaderValue(std::string_view(h).substr(locationHeader.size())));
     }
   }
 }
@@ -1627,12 +1749,14 @@ TClass* CcdbApi::tinfo2TClass(std::type_info const& tinfo)
 int CcdbApi::updateMetadata(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp, std::string const& id, long newEOV)
 {
   int ret = -1;
-  CURL* curl = curl_easy_init();
+  CurlHandle* curl = curl_easy_init();
   curl_easy_setopt(curl, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
   if (curl != nullptr) {
     CURLcode res;
-    stringstream fullUrl;
     for (size_t hostIndex = 0; hostIndex < hostsPool.size(); hostIndex++) {
+      // Inside the loop: hoisted out, the stream accumulates and the second
+      // host's URL is the first with the second appended.
+      stringstream fullUrl;
       fullUrl << getHostUrl(hostIndex) << "/" << path << "/" << timestamp;
       if (newEOV > 0) {
         fullUrl << "/" << newEOV;
@@ -1659,19 +1783,26 @@ int CcdbApi::updateMetadata(std::string const& path, std::map<std::string, std::
         curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT"); // make sure we use PUT
         curl_easy_setopt(curl, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
         curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+        // A PUT is a write, so it needs the gate token as storing does -- per
+        // host, since the token is per endpoint (see appendGateToken).
+        struct curl_slist* list = appendGateToken(nullptr, fullUrl.str());
+        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list);
         curlSetSSLOptions(curl);
 
         // Perform the request, res will get the return code
-        res = CURL_perform(curl);
+        res = static_cast<CURLcode>(CURL_perform(curl));
         if (res != CURLE_OK) {
           LOGP(alarm, "CURL_perform() failed: {}, code: {}", curl_easy_strerror(res), int(res));
           ret = int(res);
         } else {
           ret = 0;
         }
-        curl_easy_cleanup(curl);
+        curl_slist_free_all(list);
       }
     }
+    // After the loop, not inside it: cleaning up per host left every later
+    // iteration using a freed handle.
+    curl_easy_cleanup(curl);
   }
   return ret;
 }
@@ -1728,12 +1859,9 @@ void CcdbApi::scheduleDownload(RequestContext& requestContext, size_t* requestCo
     return realsize;
   };
 
-  CURL* curl_handle = curl_easy_init();
+  CurlHandle* curl_handle = curl_easy_init();
   curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
   std::string fullUrl = getFullUrlForRetrieval(curl_handle, requestContext.path, requestContext.metadata, requestContext.timestamp);
-  curl_slist* options_list = nullptr;
-  initCurlHTTPHeaderOptionsForRetrieve(curl_handle, options_list, requestContext.timestamp, &requestContext.headers,
-                                       requestContext.etag, requestContext.createdNotAfter, requestContext.createdNotBefore);
 
   data->headers = &requestContext.headers;
   data->hosts = hostsPool;
@@ -1741,7 +1869,28 @@ void CcdbApi::scheduleDownload(RequestContext& requestContext, size_t* requestCo
   data->timestamp = requestContext.timestamp;
   data->localContentCallback = localContentCallback;
   data->userAgent = mUniqueAgentID;
-  data->optionsList = options_list;
+
+  // One header list per host, built HERE because this is where the gate-token
+  // table is visible -- the downloader only indexes them. A single shared list
+  // sent the first host's token to every host it failed over to, which a broker
+  // answers 401: the failover then retrieved nothing while looking like a
+  // network failure (testCcdbApi multi_host_test).
+  data->optionsLists.reserve(hostsPool.size());
+  for (size_t hostIndex = 0; hostIndex < hostsPool.size(); hostIndex++) {
+    curl_slist* hostOptions = nullptr;
+    const std::string hostUrl = getFullUrlForRetrieval(curl_handle, requestContext.path, requestContext.metadata,
+                                                       requestContext.timestamp, hostIndex);
+    initCurlHTTPHeaderOptionsForRetrieve(curl_handle, hostOptions, requestContext.timestamp, &requestContext.headers,
+                                         requestContext.etag, requestContext.createdNotAfter, requestContext.createdNotBefore,
+                                         hostUrl);
+    data->optionsLists.push_back(hostOptions);
+  }
+  // initCurlHTTPHeaderOptionsForRetrieve sets CURLOPT_HTTPHEADER as a side
+  // effect, so the handle currently points at the LAST host's list. Point it
+  // back at host 0, which is the one this transfer starts with.
+  if (!data->optionsLists.empty()) {
+    curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, data->optionsLists.front());
+  }
 
   curl_easy_setopt(curl_handle, CURLOPT_URL, fullUrl.c_str());
   initCurlOptionsForRetrieve(curl_handle, (void*)(&data->hoPair), writeCallback, false);
@@ -2122,12 +2271,12 @@ void CcdbApi::logReading(const std::string& path, long ts, const std::map<std::s
   LOGP(info, "ccdb reads {}{}{} for {} ({}, agent_id: {}), ", mUrl, mUrl.back() == '/' ? "" : "/", upath, ts < 0 ? getCurrentTimestamp() : ts, comment, mUniqueAgentID);
 }
 
-void CcdbApi::asynchPerform(CURL* handle, size_t* requestCounter) const
+void CcdbApi::asynchPerform(CurlHandle* handle, size_t* requestCounter) const
 {
   mDownloader->asynchSchedule(handle, requestCounter);
 }
 
-CURLcode CcdbApi::CURL_perform(CURL* handle) const
+int CcdbApi::CURL_perform(CurlHandle* handle) const
 {
   if (mIsCCDBDownloaderPreferred) {
     return mDownloader->perform(handle);

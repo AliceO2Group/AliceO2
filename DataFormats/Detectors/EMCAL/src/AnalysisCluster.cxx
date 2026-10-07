@@ -11,11 +11,13 @@
 
 /// \file AnalysisCluster.cxx
 
+#include "DataFormatsEMCAL/AnalysisCluster.h"
+#include <TLorentzVector.h>
+
 #include <fairlogger/Logger.h>
 #include <gsl/span>
+
 #include <array>
-#include <TLorentzVector.h>
-#include "DataFormatsEMCAL/AnalysisCluster.h"
 
 using namespace o2::emcal;
 
@@ -34,7 +36,7 @@ TLorentzVector AnalysisCluster::getMomentum(std::array<const float, 3> vertex) c
 
   TLorentzVector p;
 
-  float pos[3] = {mGlobalPos.X(), mGlobalPos.Y(), mGlobalPos.Z()};
+  std::array<float, 3> pos = {mGlobalPos.X(), mGlobalPos.Y(), mGlobalPos.Z()};
   pos[0] -= vertex[0];
   pos[1] -= vertex[1];
   pos[2] -= vertex[2];
@@ -51,7 +53,7 @@ TLorentzVector AnalysisCluster::getMomentum(std::array<const float, 3> vertex) c
 }
 
 //______________________________________________________________________________
-void AnalysisCluster::setGlobalPosition(math_utils::Point3D<float> x)
+void AnalysisCluster::setGlobalPosition(const math_utils::Point3D<float>& x)
 {
   mGlobalPos.SetX(x.X());
   mGlobalPos.SetY(x.Y());
@@ -59,7 +61,7 @@ void AnalysisCluster::setGlobalPosition(math_utils::Point3D<float> x)
 }
 
 //______________________________________________________________________________
-void AnalysisCluster::setLocalPosition(math_utils::Point3D<float> x)
+void AnalysisCluster::setLocalPosition(const math_utils::Point3D<float>& x)
 {
   mLocalPos.SetX(x.X());
   mLocalPos.SetY(x.Y());

@@ -21,75 +21,37 @@ namespace iotof
 {
 
 struct ChipSpecifics {
-  int NCols = 0;
-  int NRows = 0;
-  float PitchCol = 0.;
-  float PitchRow = 0.;
+  int NCols = 129;
+  int NRows = 271;
+  float PitchCol = 250.00e-4;
+  float PitchRow = 100.00e-4;
   float PassiveEdgeReadOut = 0.;
   float PassiveEdgeTop = 0.;
   float PassiveEdgeSide = 0.;
   float PixelPassiveEdgeX = 0.;
   float PixelPassiveEdgeZ = 0.;
-  float SensorLayerThicknessEff = 0.;
-  float SensorLayerThickness = 0.;
+  float SensorLayerThicknessEff = 50.e-4;
+  float SensorLayerThickness = 50.e-4;
 
   int NPixels() const { return NCols * NRows; }
   float ActiveMatrixSizeCols() const { return PitchCol * NCols; }
   float ActiveMatrixSizeRows() const { return PitchRow * NRows; }
-  float SensorSizeCols() const { return ActiveMatrixSizeCols() + 2 * PassiveEdgeSide; }
+  float SensorSizeCols() const { return ActiveMatrixSizeCols() + PassiveEdgeSide + PassiveEdgeSide; }
   float SensorSizeRows() const { return ActiveMatrixSizeRows() + PassiveEdgeTop + PassiveEdgeReadOut; }
 };
 
-struct ITOFChipSpecifics : ChipSpecifics {
-  ITOFChipSpecifics()
-  {
-    NCols = 129;
-    NRows = 271;
-    PitchCol = 250.00e-4;
-    PitchRow = 100.00e-4;
-    PassiveEdgeReadOut = 0.;
-    PassiveEdgeTop = 0.;
-    PassiveEdgeSide = 0.;
-    PixelPassiveEdgeX = 0.;
-    PixelPassiveEdgeZ = 0.;
-    SensorLayerThicknessEff = 50.e-4;
-    SensorLayerThickness = 50.e-4;
-  }
-};
-
-struct OTOFChipSpecifics : ChipSpecifics {
-  OTOFChipSpecifics()
-  {
-    NCols = 125;
-    NRows = 243;
-    PitchCol = 250.00e-4;
-    PitchRow = 100.00e-4;
-    PassiveEdgeTop = 50.e-4;
-    PassiveEdgeSide = 115.8e-4;
-    PassiveEdgeReadOut = 50.e-4;
-    PixelPassiveEdgeX = 0.;
-    PixelPassiveEdgeZ = 0.;
-    SensorLayerThicknessEff = 50.e-4;
-    SensorLayerThickness = 50.e-4;
-  }
-};
-
-struct ITOFChipSpecificParam : public o2::conf::ConfigurableParamPromoter<ITOFChipSpecificParam, ITOFChipSpecifics> {
-  O2ParamDef(ITOFChipSpecificParam, "ITOFChipSpecific");
-};
-
-struct OTOFChipSpecificParam : public o2::conf::ConfigurableParamPromoter<OTOFChipSpecificParam, OTOFChipSpecifics> {
-  O2ParamDef(OTOFChipSpecificParam, "OTOFChipSpecific");
+struct ChipSpecificsParam : public o2::conf::ConfigurableParamPromoter<ChipSpecificsParam, ChipSpecifics> {
+  O2ParamDef(ChipSpecificsParam, "ChipSpecificsParam")
 };
 
 struct IOTOFBaseParam : public o2::conf::ConfigurableParamHelper<IOTOFBaseParam> {
   bool enableInnerTOF = true;       // Enable Inner TOF layer
   bool enableOuterTOF = true;       // Enable Outer TOF layer
-  bool enableForwardTOF = true;     // Enable Forward TOF layer
-  bool enableBackwardTOF = true;    // Enable Backward TOF layer
+  bool enableForwardTOF = false;    // Enable Forward TOF layer
+  bool enableBackwardTOF = false;   // Enable Backward TOF layer
   std::string detectorPattern = ""; // Layouts of the detector
-  bool segmentedInnerTOF = false;   // If the inner TOF layer is segmented
-  bool segmentedOuterTOF = false;   // If the outer TOF layer is segmented
+  bool segmentedInnerTOF = true;    // If the inner TOF layer is segmented
+  bool segmentedOuterTOF = true;    // If the outer TOF layer is segmented
   float x2x0 = 0.02f;               // thickness expressed in radiation length, for all layers for the moment
   float sensorThickness = 0.0050f;  // thickness of the sensor in cm, for all layers for the moment, the default is set to 50 microns
 

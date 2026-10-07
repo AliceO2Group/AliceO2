@@ -17,6 +17,8 @@
 #ifndef ALICEO2_GPU_TPCFastTransformPOD_H
 #define ALICEO2_GPU_TPCFastTransformPOD_H
 
+#include "GPUCommonDef.h"
+
 #include "GPUCommonRtypes.h"
 #include "TPCFastTransform.h"
 #include "TPCFastTransformGeoPOD.h"
@@ -240,10 +242,10 @@ class TPCFastTransformPOD
 
   GPUd() float convDriftLengthToTime(float driftLength, float vertexTime) const;
 
-  static constexpr int NROWS = o2::tpc::constants::MAXGLOBALPADROW;
-  static constexpr int NSECTORS = o2::tpc::constants::MAXSECTOR;
-  static constexpr int NSECTORSA = o2::tpc::constants::MAXSECTOR / 2;
-  static constexpr int NSplineIDs = 3; ///< number of spline data sets for each sector/row
+  static GPUglobalconstexpr() int NROWS = o2::tpc::constants::MAXGLOBALPADROW;
+  static GPUglobalconstexpr() int NSECTORS = o2::tpc::constants::MAXSECTOR;
+  static GPUglobalconstexpr() int NSECTORSA = o2::tpc::constants::MAXSECTOR / 2;
+  static GPUglobalconstexpr() int NSplineIDs = 3; ///< number of spline data sets for each sector/row
 
  private:
 #if !defined(GPUCA_GPUCODE)

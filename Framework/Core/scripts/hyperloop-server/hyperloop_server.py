@@ -24,7 +24,8 @@ Usage
 
 Credentials come from the security-proxy (see ~/src/ali-bot/security-proxy): the
 random port and the per-service "alimonitor" gate token are read from its agent
-socket (~/.security-proxy/agent.sock; override with SECURITY_PROXY_AGENT_SOCK).
+socket (/usr/local/var/run/security-proxy/agent/agent.sock, falling back to the
+legacy ~/.security-proxy/agent.sock; override with SECURITY_PROXY_AGENT_SOCK).
 """
 
 from __future__ import annotations
@@ -35,9 +36,7 @@ import datetime
 import json
 import os
 import re
-import socket
 import sys
-import time
 
 import httpx
 from mcp.server.fastmcp import FastMCP
@@ -49,53 +48,26 @@ mcp = FastMCP("hyperloop")
 # Everything is routed through the single "/alimonitor/" route (upstream =
 # alimonitor.cern.ch root), so one "alimonitor" token covers both the
 # alihyperloop-data API and the train-workdir artefacts.
-_AGENT_SOCK = os.path.expanduser(
-    os.environ.get("SECURITY_PROXY_AGENT_SOCK", "~/.security-proxy/agent.sock")
-)
-_PROXY_SERVICE = os.environ.get("SECURITY_PROXY_SERVICE", "alimonitor")
-_creds_cache: dict[str, tuple[int, str, float]] = {}
+# The security-proxy client is shared with the sibling MCP servers; it lives one
+# directory up so all of them import the same copy (it used to be duplicated, and
+# the copies drifted). See security_proxy_client.__doc__.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import security_proxy_client as _spc  # noqa: E402
+
+_AGENT_SOCK = _spc.AGENT_SOCK
+_PROXY_SERVICE = _spc.DEFAULT_SERVICE
 
 
 def _proxy_creds() -> tuple[int, str]:
     """(port, gate_token) for the alimonitor service from the security-proxy agent
     socket; cached ~5 min (the proxy accepts current+previous token, so a stale
     cached token survives the daily rotation)."""
-    svc = _PROXY_SERVICE
-    now = time.time()
-    hit = _creds_cache.get(svc)
-    if hit and now - hit[2] < 300:
-        return hit[0], hit[1]
-    try:
-        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        s.settimeout(5.0)
-        s.connect(_AGENT_SOCK)
-        s.sendall((svc + "\n").encode())
-        buf = b""
-        while not buf.endswith(b"\n"):
-            chunk = s.recv(4096)
-            if not chunk:
-                break
-            buf += chunk
-        s.close()
-        data = json.loads(buf.decode())
-    except (OSError, ValueError) as exc:
-        raise RuntimeError(
-            f"security-proxy agent not reachable at {_AGENT_SOCK} ({exc}); "
-            "is the proxy running? (see ~/src/ali-bot/security-proxy)"
-        ) from exc
-    if "error" in data:
-        raise RuntimeError(
-            f"security-proxy: {data['error']}; known services: {data.get('services', [])}"
-        )
-    port, token = int(data["port"]), data.get("token", "")
-    _creds_cache[svc] = (port, token, now)
-    return port, token
+    return _spc.proxy_creds(_PROXY_SERVICE)
 
 
 def _alimon() -> str:
     """Base URL of the /alimonitor/ proxy route (= alimonitor.cern.ch root)."""
-    port, _ = _proxy_creds()
-    return f"http://127.0.0.1:{port}/{_PROXY_SERVICE}"
+    return _spc.proxy_base_url(_PROXY_SERVICE)
 
 
 def _api() -> str:
@@ -114,11 +86,7 @@ ALLOW_WRITE = os.environ.get("HYPERLOOP_ALLOW_WRITE", "").strip().lower() in ("1
 
 
 def _headers() -> dict[str, str]:
-    _, tok = _proxy_creds()
-    h = {"Accept-Encoding": "identity"}
-    if tok:
-        h["Authorization"] = f"Bearer {tok}"
-    return h
+    return _spc.bearer_headers(_PROXY_SERVICE)
 
 
 async def _get(path: str, params: dict | None = None) -> any:
@@ -1381,6 +1349,117 @@ async def set_wagon_config(wagon_id: int, params: dict) -> str:
     changed = ", ".join(f"{e['task_name']}.{e['name']}={coerce(e, v)}" for e, v in resolved)
     return (f"Updated wagon {wagon_id} in analysis {ALLOWED_ANALYSIS}: {changed}.\n"
             f"Server response: {resp.strip()[:300]}")
+
+
+@mcp.tool()
+async def sync_wagon(wagon_id: int) -> str:
+    """Re-synchronise a wagon's configuration against its workflow (analysis 50446).
+
+    WRITE operation. Refuses unless the wagon belongs to analysis 50446. Inert
+    unless the server was started with HYPERLOOP_ALLOW_WRITE=1.
+
+    A wagon's editable parameter list is a set of server-side rows created when the
+    wagon is made; it is NOT re-derived when a newer package adds options. So a task
+    that gains a configurable (e.g. a new CCDB column registering "ccdb:fXxx") stays
+    unconfigurable on existing wagons, and cloning does not help because a clone
+    copies the rows. This is the UI's "sync" action: it re-reads the workflow and
+    adds the missing parameters. Run it after a wagon's task gains options, then
+    set them with set_wagon_config.
+
+    Also syncs derived-data settings, mirroring what the UI does in one step.
+    """
+    if not ALLOW_WRITE:
+        return ("Refused: writes are disabled. Start the server with "
+                f"HYPERLOOP_ALLOW_WRITE=1 (locked to analysis {ALLOWED_ANALYSIS}).")
+    if not await _wagon_in_allowed(wagon_id):
+        return (f"Refused: wagon {wagon_id} is not in analysis {ALLOWED_ANALYSIS} "
+                "(or could not be verified). Writes are restricted to that analysis.")
+    try:
+        w = await _get("analysis/wagon/wagon.jsp",
+                       {"wagon_id": int(wagon_id), "referenceTime": 0})
+    except Exception as e:
+        return f"Could not read wagon {wagon_id} ({e})."
+    wf = w.get("work_flow_name", "") if isinstance(w, dict) else ""
+    if not wf:
+        return f"Refused: could not determine the workflow name of wagon {wagon_id}."
+
+    def _count_params(conf) -> int:
+        entries = conf.get("subwagons_conf", []) if isinstance(conf, dict) else []
+        return len(entries)
+
+    before = 0
+    try:
+        before = _count_params(await _get("analysis/wagon/get-subwagons-configuration.jsp",
+                                          {"lists": "subwagons_configuration",
+                                           "wagon_id": int(wagon_id), "referenceTime": 0}))
+    except Exception:
+        pass
+    params = {"wagon_id": int(wagon_id), "work_flow_name": wf}
+    try:
+        resp = await _get_text("analysis/wagon/sync-wagon.jsp", params)
+        resp_dd = await _get_text("analysis/wagon/sync-wagon-derived-data.jsp", params)
+    except Exception as e:
+        return f"Sync of wagon {wagon_id} failed ({e})."
+    # The UI treats -1 from either call as failure.
+    if resp.strip() == "-1" or resp_dd.strip() == "-1":
+        return (f"Hyperloop reported a sync failure for wagon {wagon_id} "
+                f"(workflow '{wf}'): sync={resp.strip()[:80]} "
+                f"derived-data={resp_dd.strip()[:80]}")
+    after = before
+    try:
+        after = _count_params(await _get("analysis/wagon/get-subwagons-configuration.jsp",
+                                         {"lists": "subwagons_configuration",
+                                          "wagon_id": int(wagon_id), "referenceTime": 0}))
+    except Exception:
+        pass
+    return (f"Synced wagon {wagon_id} ('{w.get('name')}') against workflow '{wf}'. "
+            f"Parameters: {before} -> {after}. Inspect with wagon_config({wagon_id}).")
+
+
+@mcp.tool()
+async def create_wagon(name: str, work_flow_name: str, package_tag: str) -> str:
+    """Create a NEW wagon in the O2 Development analysis (50446) from a workflow.
+
+    WRITE operation. HARD-LOCKED to analysis 50446, like clone_wagon: the
+    destination is baked in and there is no analysis argument. Inert unless the
+    server was started with HYPERLOOP_ALLOW_WRITE=1.
+
+    Unlike clone_wagon, this derives the configuration from `package_tag`, so the
+    wagon gets the options the workflow has in THAT package. Use it when a clone
+    would inherit a stale parameter list (see sync_wagon for fixing an existing
+    wagon instead). `package_tag` is a full tag, e.g. "daily-20260922-0000-1".
+
+    The name is always prefixed with 'Test'; you may pass it with or without.
+    """
+    if not ALLOW_WRITE:
+        return ("Refused: writes are disabled. Start the server with "
+                f"HYPERLOOP_ALLOW_WRITE=1 (locked to analysis {ALLOWED_ANALYSIS}).")
+    if not name or not work_flow_name or not package_tag:
+        return "Refused: name, work_flow_name and package_tag are all required."
+    full = name if name.startswith(WAGON_PREFIX) else WAGON_PREFIX + name
+    params = {"name": full, "package_tag": package_tag,
+              "work_flow_name": work_flow_name, "analysis_id": ALLOWED_ANALYSIS}
+    try:
+        resp = await _get_text("analysis/wagon/add-wagon.jsp", params)
+    except Exception as e:
+        return f"Wagon creation failed ({e})."
+    if resp.strip() in ("-1", ""):
+        return (f"Hyperloop refused to create '{full}' (workflow '{work_flow_name}', "
+                f"package '{package_tag}'). Response: {resp.strip()[:200]}")
+    found = ""
+    try:
+        back = await _get("analysis/wagons-by-analyses.jsp",
+                          {"analysis_ids": ALLOWED_ANALYSIS})
+        rows = back.get("wagons", []) if isinstance(back, dict) else []
+        for r in rows:
+            if r.get("name") == full:
+                found = f" (confirmed as wagon {r.get('id') or r.get('wagon_id')})"
+                break
+    except Exception:
+        pass
+    return (f"Created wagon '{full}' in analysis {ALLOWED_ANALYSIS} from workflow "
+            f"'{work_flow_name}' @ {package_tag}{found}.\n"
+            f"Server response: {resp.strip()[:200]}")
 
 
 @mcp.tool()

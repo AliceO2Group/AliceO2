@@ -19,7 +19,7 @@
 #include "ITStracking/TrackerTraits.h"
 #include "ITStracking/Vertexer.h"
 #include "ITStracking/VertexerTraits.h"
-#include "ITStracking/BoundedAllocator.h"
+#include "ITSMFTTracking/BoundedAllocator.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsCalibration/MeanVertexObject.h"
@@ -29,6 +29,8 @@
 #include "GPUChainITS.h"
 
 #include <oneapi/tbb/task_arena.h>
+#include <utility>
+#include <vector>
 
 namespace o2::its
 {

@@ -20,12 +20,12 @@
 
 namespace o2::gpu::internal
 {
-int32_t __attribute__((weak)) GPUReconstructionCUDAChkErr(const int64_t error, const char* file, int32_t line)
+int32_t __attribute__((weak)) GPUReconstructionCUDAChkErr(const int64_t retVal, const char* file, int32_t line)
 {
-  if (error != cudaSuccess) {
-    GPUError("CUDA Error: %ld / %s (%s:%d)", error, cudaGetErrorString((cudaError_t)error), file, line);
+  if (retVal != cudaSuccess) {
+    GPUError("CUDA Error: %ld / %s (%s:%d)", retVal, cudaGetErrorString((cudaError_t)retVal), file, line);
   }
-  return error != cudaSuccess;
+  return retVal != cudaSuccess;
 }
 } // namespace o2::gpu::internal
 

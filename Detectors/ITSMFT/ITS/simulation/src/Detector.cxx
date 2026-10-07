@@ -101,10 +101,10 @@ void Detector::configOuterBarrelITS(int nInnerBarrelLayers, int buildLevel)
   // Radii are from last TDR (ALICE-TDR-017.pdf Tab. 1.1, rMid is mean value)
 
   const double tdr5dat[kNLr][kNPar] = {
-    {-1, 19.45, -1, 4., 7.5, 24},  // for others: -, rMid, -, NMod/HStave, phi0, nStaves // 24 was 49
-    {-1, 24.40, -1, 4., 6., 30},   // 30 was 61
-    {-1, 34.24, -1, 7., 4.29, 42}, // 42 was 88
-    {-1, 39.20, -1, 7., 3.75, 48}  // 48 was 100
+    {-1, 19.40, -1, 4., 7.5, 24},  // for others: -, rMid, -, NMod/HStave, phi0, nStaves // 24 was 49
+    {-1, 24.35, -1, 4., 6., 30},   // 30 was 61
+    {-1, 34.19, -1, 7., 4.29, 42}, // 42 was 88
+    {-1, 39.15, -1, 7., 3.75, 48}  // 48 was 100
   };
 
   double rLr, phi0, turbo;

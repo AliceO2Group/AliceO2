@@ -128,7 +128,7 @@ class FixedSkipBC_InteractionSampler : public InteractionSampler
  private:
   int mEveryN;       // the skip number ---> fills every N-th BC in the bunch filling scheme
   int mMultiplicity; // how many events to put if bc is filled
-  ClassDef(FixedSkipBC_InteractionSampler, 1);
+  ClassDefOverride(FixedSkipBC_InteractionSampler, 1);
 };
 
 // A version of the interaction sampler which can sample according to non-uniform mu(bc) as
@@ -152,7 +152,7 @@ class NonUniformMuInteractionSampler : public InteractionSampler
  private:
   // non-uniformity
   std::vector<float> mBCIntensityScales;
-  ClassDef(NonUniformMuInteractionSampler, 1);
+  ClassDefOverride(NonUniformMuInteractionSampler, 1);
 };
 
 } // namespace steer

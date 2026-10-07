@@ -9,7 +9,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "TGeoBBox.h"
+#include "TGeoCompositeShape.h"
 #include "TGeoManager.h" // for TGeoManager
+#include "TGeoMatrix.h"
+#include "TGeoVolume.h"
 #include "TMath.h"
 #include "TString.h"
 
@@ -21,7 +25,14 @@
 
 #include <TVirtualMC.h> // for TVirtualMC, gMC
 #include "DetectorsBase/GeometryManager.h"
+#include "DetectorsBase/MaterialManager.h"
 #include "DetectorsBase/Stack.h"
+
+#include <algorithm>
+#include <array>
+#include <map>
+#include <utility>
+#include <vector>
 
 using namespace o2::tof;
 
@@ -92,7 +103,9 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   Geo::getPadDxDyDz(pos, det, delta);
   auto channel = Geo::getIndex(det);
   HitType newhit(posx, posy, posz, time, enDep, trackID, sensID);
-  if (channel != mLastChannelID || !isMergable(newhit, mHits->back())) {
+  // an invalid channel (getIndex returns -1 off a valid pad) never merges, and
+  // there is nothing to merge with before the first hit of the event
+  if (channel < 0 || mHits->empty() || channel != mLastChannelID || !isMergable(newhit, mHits->back())) {
     mHits->push_back(newhit);
     stack->addHit(GetDetId());
   } else {
@@ -303,23 +316,23 @@ void Detector::ConstructGeometry()
   /*
     xTof = 124.5;//fTOFGeometry->StripLength()+2.*(0.3+0.03); // cm,  x-dimension of FTOA volume
     yTof = fTOFGeometry->Rmax()-fTOFGeometry->Rmin(); // cm,  y-dimension of FTOA volume
-    Float_t zTof = fTOFGeometry->ZlenA();             // cm,  z-dimension of FTOA volume
+    Double_t zTof = fTOFGeometry->ZlenA();             // cm,  z-dimension of FTOA volume
    */
 
-  Float_t xTof = Geo::STRIPLENGTH + 2.5, yTof = Geo::RMAX - Geo::RMIN, zTof = Geo::ZLENA;
+  Double_t xTof = Geo::STRIPLENGTH + 2.5, yTof = Geo::RMAX - Geo::RMIN, zTof = Geo::ZLENA;
   DefineGeometry(xTof, yTof, zTof);
 
   LOG(info) << "Loaded TOF geometry";
 }
 
 void Detector::EndOfEvent() { Reset(); }
-void Detector::DefineGeometry(Float_t xtof, Float_t ytof, Float_t zlenA)
+void Detector::DefineGeometry(Double_t xtof, Double_t ytof, Double_t zlenA)
 {
   //
   // Definition of the Time Of Fligh Resistive Plate Chambers
   //
 
-  Float_t xFLT, yFLT, zFLTA;
+  Double_t xFLT, yFLT, zFLTA;
   xFLT = xtof - 2. * Geo::MODULEWALLTHICKNESS;
   yFLT = ytof * 0.5 - Geo::MODULEWALLTHICKNESS;
   zFLTA = zlenA - 2. * Geo::MODULEWALLTHICKNESS;
@@ -335,6 +348,7 @@ void Detector::DefineGeometry(Float_t xtof, Float_t ytof, Float_t zlenA)
   makeNinoMask(xtof);
   makeSuperModuleCooling(xtof, ytof, zlenA);
   makeSuperModuleServices(xtof, ytof, zlenA);
+  makeCentralFEAContainer(ytof);
 
   makeModulesInBTOFvolumes(ytof, zlenA);
   makeCoversInBTOFvolumes();
@@ -343,7 +357,7 @@ void Detector::DefineGeometry(Float_t xtof, Float_t ytof, Float_t zlenA)
   makeReadoutCrates(ytof);
 }
 
-void Detector::createModules(Float_t xtof, Float_t ytof, Float_t zlenA, Float_t xFLT, Float_t yFLT, Float_t zFLTA) const
+void Detector::createModules(Double_t xtof, Double_t ytof, Double_t zlenA, Double_t xFLT, Double_t yFLT, Double_t zFLTA) const
 {
   //
   // Create supermodule volume
@@ -356,7 +370,7 @@ void Detector::createModules(Float_t xtof, Float_t ytof, Float_t zlenA, Float_t 
   }
 
   // Definition of the of fibre glass modules (FTOA, FTOB and FTOC)
-  Float_t par[3];
+  Double_t par[3];
   par[0] = xtof * 0.5;
   par[1] = ytof * 0.25;
   par[2] = zlenA * 0.5;
@@ -377,7 +391,7 @@ void Detector::createModules(Float_t xtof, Float_t ytof, Float_t zlenA, Float_t 
   par[2] = zFLTA * 0.5;
   TVirtualMC::GetMC()->Gsvolu("FLTA", "BOX ", getMediumID(kFre), par, 3); // Freon mix
 
-  Float_t xcoor, ycoor, zcoor;
+  Double_t xcoor, ycoor, zcoor;
   xcoor = 0.;
   ycoor = Geo::MODULEWALLTHICKNESS * 0.5;
   zcoor = 0.;
@@ -397,7 +411,7 @@ void Detector::createModules(Float_t xtof, Float_t ytof, Float_t zlenA, Float_t 
 
   // Definition and positioning
   // of the fibre glass walls between central and intermediate modules (FWZ1 and FWZ2)
-  Float_t alpha, tgal, beta, tgbe, trpa[11];
+  Double_t alpha, tgal, beta, tgbe, trpa[11];
   // tgal  = (yFLT - 2.*Geo::LENGTHINCEMODBORDER)/(Geo::INTERCENTRMODBORDER2 - Geo::INTERCENTRMODBORDER1);
   tgal = (yFLT - Geo::LENGTHINCEMODBORDERU - Geo::LENGTHINCEMODBORDERD) /
          (Geo::INTERCENTRMODBORDER2 - Geo::INTERCENTRMODBORDER1);
@@ -433,7 +447,7 @@ void Detector::createModules(Float_t xtof, Float_t ytof, Float_t zlenA, Float_t 
   TVirtualMC::GetMC()->Gspos("FWZ1D", 1, "FLTA", xcoor, ycoor, zcoor, idrotm[0], "ONLY");
   TVirtualMC::GetMC()->Gspos("FWZ1D", 2, "FLTA", xcoor, ycoor, -zcoor, idrotm[1], "ONLY");
 
-  Float_t y0B, ycoorB, zcoorB;
+  Double_t y0B, ycoorB, zcoorB;
 
   if (mTOFHoles) {
     // y0B = Geo::LENGTHINCEMODBORDER - Geo::MODULEWALLTHICKNESS*tgbe;
@@ -631,39 +645,64 @@ void Detector::createModules(Float_t xtof, Float_t ytof, Float_t zlenA, Float_t 
   }
 }
 
-void Detector::makeStripsInModules(Float_t ytof, Float_t zlenA) const
+void Detector::makeStripsInModules(Double_t ytof, Double_t zlenA) const
 {
   //
   // Define MRPC strip volume, called FSTR
   // Insert FSTR volume in FLTA/B/C volumes
   //
-  Float_t yFLT = ytof * 0.5 - Geo::MODULEWALLTHICKNESS;
+  Double_t yFLT = ytof * 0.5 - Geo::MODULEWALLTHICKNESS;
 
   ///////////////// Detector itself //////////////////////
 
   // new description for strip volume -double stack strip-
   // -- all constants are expressed in cm
   // height of different layers
-  constexpr Float_t HGLFY = Geo::HFILIY + 2. * Geo::HGLASSY; // height of GLASS Layer
+  constexpr Double_t HGLFY = Geo::HFILIY + 2. * Geo::HGLASSY; // height of GLASS Layer
 
-  constexpr Float_t LSENSMX = Geo::NPADX * Geo::XPAD; // length of Sensitive Layer
-  constexpr Float_t HSENSMY = Geo::HSENSMY;           // height of Sensitive Layer
-  constexpr Float_t WSENSMZ = Geo::NPADZ * Geo::ZPAD; // width of Sensitive Layer
+  constexpr Double_t LSENSMX = Geo::NPADX * Geo::XPAD; // length of Sensitive Layer
+  constexpr Double_t HSENSMY = Geo::HSENSMY;           // height of Sensitive Layer
+  constexpr Double_t WSENSMZ = Geo::NPADZ * Geo::ZPAD; // width of Sensitive Layer
 
   // height of the FSTR Volume (the strip volume)
-  constexpr Float_t HSTRIPY = 2. * Geo::HHONY + 2. * Geo::HPCBY + 4. * Geo::HRGLY + 2. * HGLFY + Geo::HCPCBY;
+  constexpr Double_t HSTRIPY = 2. * Geo::HHONY + 2. * Geo::HPCBY + 4. * Geo::HRGLY + 2. * HGLFY + Geo::HCPCBY;
 
   // width  of the FSTR Volume (the strip volume)
-  constexpr Float_t WSTRIPZ = Geo::WCPCBZ;
+  constexpr Double_t WSTRIPZ = Geo::WCPCBZ;
   // length of the FSTR Volume (the strip volume)
-  constexpr Float_t LSTRIPX = Geo::STRIPLENGTH;
+  constexpr Double_t LSTRIPX = Geo::STRIPLENGTH;
 
   // FSTR volume definition-filling this volume with non sensitive Gas Mixture
-  Float_t parfp[3] = {static_cast<Float_t>(LSTRIPX * 0.5), static_cast<Float_t>(HSTRIPY * 0.5),
-                      static_cast<Float_t>(WSTRIPZ * 0.5)};
+  Double_t parfp[3] = {(LSTRIPX * 0.5), (HSTRIPY * 0.5),
+                       (WSTRIPZ * 0.5)};
   TVirtualMC::GetMC()->Gsvolu("FSTR", "BOX", getMediumID(kFre), parfp, 3); // Freon mix
 
-  Float_t posfp[3] = {0., 0., 0.};
+  Double_t posfp[3] = {0., 0., 0.};
+
+  // The strip is a stack of layers that fills FSTR symmetrically about y = 0. Every layer's
+  // centre used to be summed in its own order -- the outer ones from the strip's lower edge,
+  // the inner ones from the centre outwards -- so faces that are algebraically the same plane
+  // came out up to 0.34 nm apart. TGeo's navigator relocates from a point pushed far further
+  // than that and never notices; nothing else does. Build the stack from two running planes
+  // instead, one from the centre and one from the strip's edge, using the same double halves the
+  // box shapes are given, so every touching pair shares a face bit for bit. The two meet inside
+  // the glass slot, which carries a freon gap either side of the glass by design and is the one
+  // place with slack to absorb the rounding.
+  const double hStrip = (HSTRIPY * 0.5);
+  const double hHon = (Geo::HHONY * 0.5);
+  const double hPcb = (Geo::HPCBY * 0.5);
+  const double hRgl = (Geo::HRGLY * 0.5);
+  const double hCpcb = (Geo::HCPCBY * 0.5);
+  // outwards from the central PCB, which sits at y = 0
+  const double yRglIn = hCpcb + hRgl;
+  const double yGlassSlotIn = yRglIn + hRgl;
+  // inwards from the strip's outer face
+  const double yHon = hStrip - hHon;
+  const double yPcbOut = (yHon - hHon) - hPcb;
+  const double yRglOut = (yPcbOut - hPcb) - hRgl;
+  const double yGlassSlotOut = yRglOut - hRgl;
+  // the glass is centred in what remains between them
+  const double yGlf = 0.5 * (yGlassSlotIn + yGlassSlotOut);
 
   // NOMEX (HONEYCOMB) Layer definition
   // parfp[0] = LSTRIPX*0.5;
@@ -672,10 +711,8 @@ void Detector::makeStripsInModules(Float_t ytof, Float_t zlenA) const
   TVirtualMC::GetMC()->Gsvolu("FHON", "BOX", getMediumID(kNomex), parfp, 3); // Nomex (Honeycomb)
   // positioning 2 NOMEX Layers on FSTR volume
   // posfp[0] = 0.;
-  posfp[1] = -HSTRIPY * 0.5 + parfp[1];
-  // posfp[2] = 0.;
-  TVirtualMC::GetMC()->Gspos("FHON", 1, "FSTR", 0., posfp[1], 0., 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("FHON", 2, "FSTR", 0., -posfp[1], 0., 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("FHON", 1, "FSTR", 0., -yHon, 0., 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("FHON", 2, "FSTR", 0., yHon, 0., 0, "ONLY");
 
   // Lower PCB Layer definition
   // parfp[0] = LSTRIPX*0.5;
@@ -691,10 +728,8 @@ void Detector::makeStripsInModules(Float_t ytof, Float_t zlenA) const
 
   // positioning 2 external PCB Layers in FSTR volume
   // posfp[0] = 0.;
-  posfp[1] = -HSTRIPY * 0.5 + Geo::HHONY + parfp[1];
-  // posfp[2] = 0.;
-  TVirtualMC::GetMC()->Gspos("FPC1", 1, "FSTR", 0., -posfp[1], 0., 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("FPC2", 1, "FSTR", 0., posfp[1], 0., 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("FPC1", 1, "FSTR", 0., yPcbOut, 0., 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("FPC2", 1, "FSTR", 0., -yPcbOut, 0., 0, "ONLY");
 
   // Central PCB layer definition
   // parfp[0] = LSTRIPX*0.5;
@@ -707,8 +742,8 @@ void Detector::makeStripsInModules(Float_t ytof, Float_t zlenA) const
   TVirtualMC::GetMC()->Gspos("FPCB", 1, "FSTR", 0., 0., 0., 0, "ONLY");
 
   // Sensitive volume definition
-  Float_t parfs[3] = {static_cast<Float_t>(LSENSMX * 0.5), static_cast<Float_t>(HSENSMY * 0.5),
-                      static_cast<Float_t>(WSENSMZ * 0.5)};
+  Double_t parfs[3] = {(LSENSMX * 0.5), (HSENSMY * 0.5),
+                       (WSENSMZ * 0.5)};
   TVirtualMC::GetMC()->Gsvolu("FSEN", "BOX", getMediumID(kCuS), parfs, 3); // Cu sensitive
 
   // printf("check material\n");
@@ -729,15 +764,10 @@ void Detector::makeStripsInModules(Float_t ytof, Float_t zlenA) const
   TVirtualMC::GetMC()->Gsvolu("FRGL", "BOX", getMediumID(kGlass), parfp, 3); // red glass
   // positioning 4 RED GLASS Layers in FSTR volume
   // posfp[0] = 0.;
-  posfp[1] = -HSTRIPY * 0.5 + Geo::HHONY + Geo::HPCBY + parfp[1];
-  // posfp[2] = 0.;
-  TVirtualMC::GetMC()->Gspos("FRGL", 1, "FSTR", 0., posfp[1], 0., 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("FRGL", 4, "FSTR", 0., -posfp[1], 0., 0, "ONLY");
-  // posfp[0] = 0.;
-  posfp[1] = (Geo::HCPCBY + Geo::HRGLY) * 0.5;
-  // posfp[2] = 0.;
-  TVirtualMC::GetMC()->Gspos("FRGL", 2, "FSTR", 0., -posfp[1], 0., 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("FRGL", 3, "FSTR", 0., posfp[1], 0., 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("FRGL", 1, "FSTR", 0., -yRglOut, 0., 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("FRGL", 4, "FSTR", 0., yRglOut, 0., 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("FRGL", 2, "FSTR", 0., -yRglIn, 0., 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("FRGL", 3, "FSTR", 0., yRglIn, 0., 0, "ONLY");
 
   // GLASS Layer definition
   // parfp[0] = LSTRIPX*0.5;
@@ -746,10 +776,8 @@ void Detector::makeStripsInModules(Float_t ytof, Float_t zlenA) const
   TVirtualMC::GetMC()->Gsvolu("FGLF", "BOX", getMediumID(kGlass), parfp, 3); // glass
   // positioning 2 GLASS Layers in FSTR volume
   // posfp[0] = 0.;
-  posfp[1] = (Geo::HCPCBY + HGLFY) * 0.5 + Geo::HRGLY;
-  // posfp[2] = 0.;
-  TVirtualMC::GetMC()->Gspos("FGLF", 1, "FSTR", 0., -posfp[1], 0., 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("FGLF", 2, "FSTR", 0., posfp[1], 0., 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("FGLF", 1, "FSTR", 0., -yGlf, 0., 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("FGLF", 2, "FSTR", 0., yGlf, 0., 0, "ONLY");
 
   // Positioning the Strips (FSTR volumes) in the FLT volumes
   Int_t maxStripNumbers[5] = {Geo::NSTRIPC, Geo::NSTRIPB, Geo::NSTRIPA, Geo::NSTRIPB, Geo::NSTRIPC};
@@ -760,7 +788,7 @@ void Detector::makeStripsInModules(Float_t ytof, Float_t zlenA) const
   }
 
   Int_t totalStrip = 0;
-  Float_t xpos, zpos, ypos, ang;
+  Double_t xpos, zpos, ypos, ang;
   for (Int_t iplate = 0; iplate < Geo::NPLATES; iplate++) {
     if (iplate > 0) {
       totalStrip += maxStripNumbers[iplate - 1];
@@ -800,7 +828,7 @@ void Detector::makeStripsInModules(Float_t ytof, Float_t zlenA) const
   }
 }
 
-void Detector::createModuleCovers(Float_t xtof, Float_t zlenA) const
+void Detector::createModuleCovers(Double_t xtof, Double_t zlenA) const
 {
   //
   // Create covers for module:
@@ -812,7 +840,7 @@ void Detector::createModuleCovers(Float_t xtof, Float_t zlenA) const
   //   and plastic and Cu corresponding to the flat cables.
   //
 
-  Float_t par[3];
+  Double_t par[3];
   par[0] = xtof * 0.5 + 2.;
   par[1] = Geo::MODULECOVERTHICKNESS * 0.5;
   par[2] = zlenA * 0.5 + 2.;
@@ -821,11 +849,11 @@ void Detector::createModuleCovers(Float_t xtof, Float_t zlenA) const
     TVirtualMC::GetMC()->Gsvolu("FPEB", "BOX ", getMediumID(kAir), par, 3); // Air
   }
 
-  constexpr Float_t ALCOVERTHICKNESS = 1.5;
-  constexpr Float_t INTERFACECARDTHICKNESS = 0.16;
-  constexpr Float_t ALSKINTHICKNESS = 0.1;
-  constexpr Float_t PLASTICFLATCABLETHICKNESS = 0.25;
-  constexpr Float_t COPPERFLATCABLETHICKNESS = 0.01;
+  constexpr Double_t ALCOVERTHICKNESS = 1.5;
+  constexpr Double_t INTERFACECARDTHICKNESS = 0.16;
+  constexpr Double_t ALSKINTHICKNESS = 0.1;
+  constexpr Double_t PLASTICFLATCABLETHICKNESS = 0.25;
+  constexpr Double_t COPPERFLATCABLETHICKNESS = 0.01;
 
   // par[0] = xtof*0.5 + 2.;
   par[1] = ALCOVERTHICKNESS * 0.5;
@@ -834,7 +862,7 @@ void Detector::createModuleCovers(Float_t xtof, Float_t zlenA) const
   if (mTOFHoles) {
     TVirtualMC::GetMC()->Gsvolu("FALB", "BOX ", getMediumID(kAlFrame), par, 3); // Al
   }
-  Float_t xcoor, ycoor, zcoor;
+  Double_t xcoor, ycoor, zcoor;
   xcoor = 0.;
   ycoor = 0.;
   zcoor = 0.;
@@ -996,7 +1024,139 @@ void Detector::createModuleCovers(Float_t xtof, Float_t zlenA) const
   TVirtualMC::GetMC()->Gspos("FCC3", 0, "FFC3", 0., 0., 0., 0, "ONLY");
 }
 
-void Detector::createBackZone(Float_t xtof, Float_t ytof, Float_t zlenA) const
+std::vector<Detector::FEAContainer> Detector::feaContainers(Double_t zlenA, Bool_t holes) const
+{
+  //
+  // Returns the FEA card containers of one supermodule in placement order, each with the z it
+  // sits at, its copy number and whether it is rotated. Creates and places nothing itself. The
+  // modules with the PHOS hole (holes) carry four row blocks instead of five. The container at
+  // the centre of the supermodule is not in the list: makeCentralFEAContainer builds that one.
+  //
+
+  const Double_t rowstep = 6.66;
+  const Double_t rowgap[5] = {13.5, 22.9, 16.94, 23.8, 20.4};
+  const Int_t rowb[5] = {6, 7, 6, 19, 7};
+  const Int_t nblocks = holes ? 4 : 5;
+
+  std::vector<FEAContainer> cont;
+  Int_t row = 1;
+  for (Int_t sg = -1; sg < 2; sg += 2) {
+    Double_t zcoor = sg * zlenA * 0.5 - 0.8;
+    for (Int_t nb = 0; nb < nblocks; ++nb) {
+      zcoor = zcoor - sg * (rowgap[nb] - rowstep);
+      const Int_t nrow = row + rowb[nb];
+      for (; row < nrow; ++row) {
+        zcoor -= sg * rowstep;
+        cont.push_back({zcoor, row, sg == -1 && nb != 4});
+      }
+    }
+  }
+  return cont;
+}
+
+void Detector::makeCentralFEAContainer(Double_t ytof) const
+{
+  //
+  // Creates FCM1 and FCM2, the FEA card container at the centre of a supermodule, as assemblies
+  // of the FCA1/FCA2 content, and places one in FAIA and one in FAIC. Here it is the container
+  // that gives way to the cooling bars and not the other way round, and an assembly has no shape
+  // of its own to overlap them. What was its air is now the FAIA/FAIC air around it, which is the
+  // same medium.
+  //
+
+  const Double_t carY = Geo::FEAPARAMETERS[1] + Geo::ROOF1PARAMETERS[1] + Geo::ROOF2PARAMETERS[1] * 0.5;
+  const Double_t ycoor = -(ytof * 0.5 - Geo::MODULECOVERTHICKNESS) * 0.5 + carY;
+
+  const char* source[2] = {"FCA1", "FCA2"};
+  const char* central[2] = {"FCM1", "FCM2"};
+  const char* mother[2] = {"FAIA", "FAIC"};
+  for (Int_t i = 0; i < 2; ++i) {
+    TGeoVolume* from = gGeoManager->GetVolume(source[i]);
+    auto* assembly = new TGeoVolumeAssembly(central[i]);
+    for (Int_t k = 0; k < from->GetNdaughters(); ++k) {
+      TGeoNode* nd = from->GetNode(k);
+      assembly->AddNode(nd->GetVolume(), nd->GetNumber(), new TGeoHMatrix(*nd->GetMatrix()));
+    }
+    gGeoManager->GetVolume(mother[i])->AddNode(assembly, 91, new TGeoTranslation(0., ycoor, -0.8));
+  }
+}
+
+TGeoVolume* Detector::coolingBarPiece(Double_t dx, Double_t dy, Double_t dz) const
+{
+  //
+  // Returns the volume for one piece of a segmented longitudinal cooling bar, creating it the
+  // first time that size is asked for. The pieces come in a handful of sizes that repeat all
+  // along a supermodule, so each size becomes one volume placed many times. The sizes compare
+  // exactly because every caller derives them from the same arithmetic.
+  //
+
+  const std::array<Double_t, 3> key{dx, dy, dz};
+  auto it = mBarPieces.find(key);
+  if (it != mBarPieces.end()) {
+    return it->second;
+  }
+
+  const TString name = TString::Format("FLOS%zu", mBarPieces.size() + 1);
+  auto* vol = new TGeoVolume(name, new TGeoBBox(name + "box", dx, dy, dz),
+                             o2::base::MaterialManager::Instance().getTGeoMedium(GetName(), kAlFrame)); // Al
+  mBarPieces[key] = vol;
+  return vol;
+}
+
+void Detector::placeCoolingBar(const char* mother, const std::vector<FEAContainer>& cont, Double_t crateDZ,
+                               Double_t crateY0, Double_t crateY1, Double_t xcoor, Double_t dx, Double_t ycoor,
+                               Double_t dy, Double_t zcoor, Double_t dz, Int_t& copy) const
+{
+  //
+  // Places one longitudinal cooling bar in mother, as the pieces that survive between the FEA
+  // card containers it crosses. A bar crosses about nineteen of them, and they are placed ONLY
+  // and so take priority over it. Advances copy past the pieces it places.
+  //
+
+  const Double_t barZ0 = zcoor - dz, barZ1 = zcoor + dz;
+  const Double_t barY0 = ycoor - dy, barY1 = ycoor + dy;
+
+  // the container slabs that really cut this bar, along z
+  std::vector<std::pair<Double_t, Double_t>> cut;
+  if (crateY1 > barY0 && crateY0 < barY1) {
+    for (auto const& c : cont) {
+      const Double_t z0 = std::max(barZ0, c.z - crateDZ);
+      const Double_t z1 = std::min(barZ1, c.z + crateDZ);
+      if (z1 > z0) {
+        cut.emplace_back(z0, z1);
+      }
+    }
+    std::sort(cut.begin(), cut.end());
+  }
+
+  // the bar at full height, in the gaps between containers
+  Double_t z = barZ0;
+  for (auto const& c : cut) {
+    if (c.first > z) {
+      TVirtualMC::GetMC()->Gspos(coolingBarPiece(dx, dy, 0.5 * (c.first - z))->GetName(), ++copy, mother,
+                                 xcoor, ycoor, 0.5 * (z + c.first), 0, "ONLY");
+    }
+    z = std::max(z, c.second);
+  }
+  if (barZ1 > z) {
+    TVirtualMC::GetMC()->Gspos(coolingBarPiece(dx, dy, 0.5 * (barZ1 - z))->GetName(), ++copy, mother,
+                               xcoor, ycoor, 0.5 * (z + barZ1), 0, "ONLY");
+  }
+
+  // and, where the bar is taller than the container it crosses, the strip that stands proud of it
+  const Double_t strip[2][2] = {{barY0, std::min(barY1, crateY0)}, {std::max(barY0, crateY1), barY1}};
+  for (auto const& c : cut) {
+    for (auto const& sy : strip) {
+      if (sy[1] <= sy[0]) {
+        continue;
+      }
+      TVirtualMC::GetMC()->Gspos(coolingBarPiece(dx, 0.5 * (sy[1] - sy[0]), 0.5 * (c.second - c.first))->GetName(),
+                                 ++copy, mother, xcoor, 0.5 * (sy[0] + sy[1]), 0.5 * (c.first + c.second), 0, "ONLY");
+    }
+  }
+}
+
+void Detector::createBackZone(Double_t xtof, Double_t ytof, Double_t zlenA) const
 {
   //
   // Define:
@@ -1011,7 +1171,7 @@ void Detector::createBackZone(Float_t xtof, Float_t ytof, Float_t zlenA) const
 
   // Definition of the air card containers (FAIA, FAIC and FAIB)
 
-  Float_t par[3];
+  Double_t par[3];
   par[0] = xtof * 0.5;
   par[1] = (ytof * 0.5 - Geo::MODULECOVERTHICKNESS) * 0.5;
   par[2] = zlenA * 0.5;
@@ -1021,15 +1181,15 @@ void Detector::createBackZone(Float_t xtof, Float_t ytof, Float_t zlenA) const
   }
   TVirtualMC::GetMC()->Gsvolu("FAIC", "BOX ", getMediumID(kAir), par, 3);   // Air
 
-  Float_t feaParam[3] = {Geo::FEAPARAMETERS[0], Geo::FEAPARAMETERS[1], Geo::FEAPARAMETERS[2]};
-  Float_t feaRoof1[3] = {Geo::ROOF1PARAMETERS[0], Geo::ROOF1PARAMETERS[1], Geo::ROOF1PARAMETERS[2]};
-  Float_t al3[3] = {Geo::AL3PARAMETERS[0], Geo::AL3PARAMETERS[1], Geo::AL3PARAMETERS[2]};
-  // Float_t feaRoof2[3] = {Geo::ROOF2PARAMETERS[0], Geo::ROOF2PARAMETERS[1], Geo::ROOF2PARAMETERS[2]};
+  Double_t feaParam[3] = {Geo::FEAPARAMETERS[0], Geo::FEAPARAMETERS[1], Geo::FEAPARAMETERS[2]};
+  Double_t feaRoof1[3] = {Geo::ROOF1PARAMETERS[0], Geo::ROOF1PARAMETERS[1], Geo::ROOF1PARAMETERS[2]};
+  Double_t al3[3] = {Geo::AL3PARAMETERS[0], Geo::AL3PARAMETERS[1], Geo::AL3PARAMETERS[2]};
+  // Double_t feaRoof2[3] = {Geo::ROOF2PARAMETERS[0], Geo::ROOF2PARAMETERS[1], Geo::ROOF2PARAMETERS[2]};
 
   // FEA card mother-volume definition
-  Float_t carpar[3] = {static_cast<Float_t>(xtof * 0.5 - Geo::CBLW - Geo::SAWTHICKNESS),
-                       static_cast<Float_t>(feaParam[1] + feaRoof1[1] + Geo::ROOF2PARAMETERS[1] * 0.5),
-                       static_cast<Float_t>(feaRoof1[2] + Geo::BETWEENLANDMASK * 0.5 + al3[2])};
+  Double_t carpar[3] = {(xtof * 0.5 - Geo::CBLW - Geo::SAWTHICKNESS),
+                        (feaParam[1] + feaRoof1[1] + Geo::ROOF2PARAMETERS[1] * 0.5),
+                        (feaRoof1[2] + Geo::BETWEENLANDMASK * 0.5 + al3[2])};
   TVirtualMC::GetMC()->Gsvolu("FCA1", "BOX ", getMediumID(kAir), carpar, 3); // Air
   TVirtualMC::GetMC()->Gsvolu("FCA2", "BOX ", getMediumID(kAir), carpar, 3); // Air
 
@@ -1037,90 +1197,43 @@ void Detector::createBackZone(Float_t xtof, Float_t ytof, Float_t zlenA) const
   Matrix(idrotm[0], 90., 180., 90., 90., 180., 0.);
 
   // FEA card mother-volume positioning
-  Float_t rowstep = 6.66;
-  Float_t rowgap[5] = {13.5, 22.9, 16.94, 23.8, 20.4};
-  Int_t rowb[5] = {6, 7, 6, 19, 7};
-  Float_t carpos[3] = {0., static_cast<Float_t>(-(ytof * 0.5 - Geo::MODULECOVERTHICKNESS) * 0.5 + carpar[1]), -0.8};
-  TVirtualMC::GetMC()->Gspos("FCA1", 91, "FAIA", carpos[0], carpos[1], carpos[2], 0, "MANY");
-  TVirtualMC::GetMC()->Gspos("FCA2", 91, "FAIC", carpos[0], carpos[1], carpos[2], 0, "MANY");
+  Double_t carpos[3] = {0., (-(ytof * 0.5 - Geo::MODULECOVERTHICKNESS) * 0.5 + carpar[1]), -0.8};
 
-  Int_t row = 1;
-  Int_t nrow = 0;
-  for (Int_t sg = -1; sg < 2; sg += 2) {
-    carpos[2] = sg * zlenA * 0.5 - 0.8;
-    for (Int_t nb = 0; nb < 5; ++nb) {
-      carpos[2] = carpos[2] - sg * (rowgap[nb] - rowstep);
-      nrow = row + rowb[nb];
-      for (; row < nrow; ++row) {
-        carpos[2] -= sg * rowstep;
-
-        if (nb == 4) {
-          TVirtualMC::GetMC()->Gspos("FCA1", row, "FAIA", carpos[0], carpos[1], carpos[2], 0, "ONLY");
-          TVirtualMC::GetMC()->Gspos("FCA2", row, "FAIC", carpos[0], carpos[1], carpos[2], 0, "ONLY");
-
-        } else {
-          switch (sg) {
-            case 1:
-              TVirtualMC::GetMC()->Gspos("FCA1", row, "FAIA", carpos[0], carpos[1], carpos[2], 0, "ONLY");
-              TVirtualMC::GetMC()->Gspos("FCA2", row, "FAIC", carpos[0], carpos[1], carpos[2], 0, "ONLY");
-              break;
-            case -1:
-              TVirtualMC::GetMC()->Gspos("FCA1", row, "FAIA", carpos[0], carpos[1], carpos[2], idrotm[0], "ONLY");
-              TVirtualMC::GetMC()->Gspos("FCA2", row, "FAIC", carpos[0], carpos[1], carpos[2], idrotm[0], "ONLY");
-              break;
-          }
-        }
-      }
-    }
+  for (auto const& c : feaContainers(zlenA, kFALSE)) {
+    TVirtualMC::GetMC()->Gspos("FCA1", c.row, "FAIA", carpos[0], carpos[1], c.z, c.rotated ? idrotm[0] : 0, "ONLY");
+    TVirtualMC::GetMC()->Gspos("FCA2", c.row, "FAIC", carpos[0], carpos[1], c.z, c.rotated ? idrotm[0] : 0, "ONLY");
   }
 
   if (mTOFHoles) {
-    row = 1;
-    for (Int_t sg = -1; sg < 2; sg += 2) {
-      carpos[2] = sg * zlenA * 0.5 - 0.8;
-      for (Int_t nb = 0; nb < 4; ++nb) {
-        carpos[2] = carpos[2] - sg * (rowgap[nb] - rowstep);
-        nrow = row + rowb[nb];
-        for (; row < nrow; ++row) {
-          carpos[2] -= sg * rowstep;
-
-          switch (sg) {
-            case 1:
-              TVirtualMC::GetMC()->Gspos("FCA1", row, "FAIB", carpos[0], carpos[1], carpos[2], 0, "ONLY");
-              break;
-            case -1:
-              TVirtualMC::GetMC()->Gspos("FCA1", row, "FAIB", carpos[0], carpos[1], carpos[2], idrotm[0], "ONLY");
-              break;
-          }
-        }
-      }
+    for (auto const& c : feaContainers(zlenA, kTRUE)) {
+      TVirtualMC::GetMC()->Gspos("FCA1", c.row, "FAIB", carpos[0], carpos[1], c.z, c.rotated ? idrotm[0] : 0, "ONLY");
     }
   }
 }
 
-void Detector::makeFrontEndElectronics(Float_t xtof) const
+void Detector::makeFrontEndElectronics(Double_t xtof) const
 {
   //
   // Fill FCA1/2 volumes with FEA cards (FFEA volumes).
   //
 
   // FEA card volume definition
-  Float_t feaParam[3] = {Geo::FEAPARAMETERS[0], Geo::FEAPARAMETERS[1], Geo::FEAPARAMETERS[2]};
+  Double_t feaParam[3] = {Geo::FEAPARAMETERS[0], Geo::FEAPARAMETERS[1], Geo::FEAPARAMETERS[2]};
   TVirtualMC::GetMC()->Gsvolu("FFEA", "BOX ", getMediumID(kG10), feaParam, 3); // G10
 
-  Float_t al1[3] = {Geo::AL1PARAMETERS[0], Geo::AL1PARAMETERS[1], Geo::AL1PARAMETERS[2]};
-  Float_t al3[3] = {Geo::AL3PARAMETERS[0], Geo::AL3PARAMETERS[1], Geo::AL3PARAMETERS[2]};
-  Float_t feaRoof1[3] = {Geo::ROOF1PARAMETERS[0], Geo::ROOF1PARAMETERS[1], Geo::ROOF1PARAMETERS[2]};
-  // Float_t feaRoof2[3] = {Geo::ROOF2PARAMETERS[0], Geo::ROOF2PARAMETERS[1], Geo::ROOF2PARAMETERS[2]};
+  Double_t al1[3] = {Geo::AL1PARAMETERS[0], Geo::AL1PARAMETERS[1], Geo::AL1PARAMETERS[2]};
+  Double_t al3[3] = {Geo::AL3PARAMETERS[0], Geo::AL3PARAMETERS[1], Geo::AL3PARAMETERS[2]};
+  Double_t feaRoof1[3] = {Geo::ROOF1PARAMETERS[0], Geo::ROOF1PARAMETERS[1], Geo::ROOF1PARAMETERS[2]};
+  // Double_t feaRoof2[3] = {Geo::ROOF2PARAMETERS[0], Geo::ROOF2PARAMETERS[1], Geo::ROOF2PARAMETERS[2]};
 
-  Float_t carpar[3] = {static_cast<Float_t>(xtof * 0.5 - Geo::CBLW - Geo::SAWTHICKNESS),
-                       static_cast<Float_t>(feaParam[1] + feaRoof1[1] + Geo::ROOF2PARAMETERS[1] * 0.5),
-                       static_cast<Float_t>(feaRoof1[2] + Geo::BETWEENLANDMASK * 0.5 + al3[2])};
+  Double_t carpar[3] = {(xtof * 0.5 - Geo::CBLW - Geo::SAWTHICKNESS),
+                        (feaParam[1] + feaRoof1[1] + Geo::ROOF2PARAMETERS[1] * 0.5),
+                        (feaRoof1[2] + Geo::BETWEENLANDMASK * 0.5 + al3[2])};
 
   // FEA card volume positioning
-  Float_t xCoor = xtof * 0.5 - 25.;
-  Float_t yCoor = -carpar[1] + feaParam[1];
-  Float_t zCoor = -carpar[2] + (2. * feaRoof1[2] - 2. * al1[2] - feaParam[2]);
+  Double_t xCoor = xtof * 0.5 - 25.;
+  Double_t yCoor = -carpar[1] + feaParam[1];
+  Double_t zCoor = -carpar[2] + (2. * feaRoof1[2] - 2. * al1[2] - feaParam[2]);
   TVirtualMC::GetMC()->Gspos("FFEA", 1, "FCA1", -xCoor, yCoor, zCoor, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("FFEA", 4, "FCA1", xCoor, yCoor, zCoor, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("FFEA", 1, "FCA2", -xCoor, yCoor, zCoor, 0, "ONLY");
@@ -1132,7 +1245,7 @@ void Detector::makeFrontEndElectronics(Float_t xtof) const
   TVirtualMC::GetMC()->Gspos("FFEA", 3, "FCA2", xCoor, yCoor, zCoor, 0, "ONLY");
 }
 
-void Detector::makeFEACooling(Float_t xtof) const
+void Detector::makeFEACooling(Double_t xtof) const
 {
   //
   // Make cooling system attached to each FEA card
@@ -1141,44 +1254,47 @@ void Detector::makeFEACooling(Float_t xtof) const
   //
 
   // first FEA cooling element definition
-  Float_t al1[3] = {Geo::AL1PARAMETERS[0], Geo::AL1PARAMETERS[1], Geo::AL1PARAMETERS[2]};
+  Double_t al1[3] = {Geo::AL1PARAMETERS[0], Geo::AL1PARAMETERS[1], Geo::AL1PARAMETERS[2]};
   TVirtualMC::GetMC()->Gsvolu("FAL1", "BOX ", getMediumID(kAlFrame), al1, 3); // Al
 
-  // second FEA cooling element definition
-  Float_t feaRoof1[3] = {Geo::ROOF1PARAMETERS[0], Geo::ROOF1PARAMETERS[1], Geo::ROOF1PARAMETERS[2]};
-  TVirtualMC::GetMC()->Gsvolu("FRO1", "BOX ", getMediumID(kAlFrame), feaRoof1, 3); // Al
+  // second FEA cooling element definition: an Al roof with the FRO2 Nino-mask groove cut out of
+  // its shape. The groove is oversized by kGrooveEps where it leaves the box, so that the two
+  // solids share no face.
+  Double_t feaRoof1[3] = {Geo::ROOF1PARAMETERS[0], Geo::ROOF1PARAMETERS[1], Geo::ROOF1PARAMETERS[2]};
+  Double_t airHole[3] = {Geo::ROOF2PARAMETERS[0], (Geo::ROOF2PARAMETERS[1] * 0.5), feaRoof1[2]};
+  const Double_t kGrooveEps = 1.e-3; // cm
+  new TGeoBBox("FRO1box", feaRoof1[0], feaRoof1[1], feaRoof1[2]);
+  new TGeoBBox("FRO1groove", airHole[0], airHole[1] + kGrooveEps, airHole[2] + kGrooveEps);
+  auto* fro1GrooveTr = new TGeoTranslation("FRO1grooveTr", 0., feaRoof1[1] - airHole[1] + kGrooveEps, 0.);
+  fro1GrooveTr->RegisterYourself();
+  auto* fro1Shape = new TGeoCompositeShape("FRO1shape", "FRO1box-(FRO1groove:FRO1grooveTr)");
+  new TGeoVolume("FRO1", fro1Shape, o2::base::MaterialManager::Instance().getTGeoMedium(GetName(), kAlFrame)); // Al
 
-  Float_t al3[3] = {Geo::AL3PARAMETERS[0], Geo::AL3PARAMETERS[1], Geo::AL3PARAMETERS[2]};
-  // Float_t feaRoof2[3] = {Geo::ROOF2PARAMETERS[0], Geo::ROOF2PARAMETERS[1], Geo::ROOF2PARAMETERS[2]};
-
-  // definition and positioning of a small air groove in the FRO1 volume
-  Float_t airHole[3] = {Geo::ROOF2PARAMETERS[0], static_cast<Float_t>(Geo::ROOF2PARAMETERS[1] * 0.5), feaRoof1[2]};
-  TVirtualMC::GetMC()->Gsvolu("FREE", "BOX ", getMediumID(kAir), airHole, 3); // Air
-  TVirtualMC::GetMC()->Gspos("FREE", 1, "FRO1", 0., feaRoof1[1] - airHole[1], 0., 0, "ONLY");
-  gGeoManager->GetVolume("FRO1")->VisibleDaughters(kFALSE);
+  Double_t al3[3] = {Geo::AL3PARAMETERS[0], Geo::AL3PARAMETERS[1], Geo::AL3PARAMETERS[2]};
+  // Double_t feaRoof2[3] = {Geo::ROOF2PARAMETERS[0], Geo::ROOF2PARAMETERS[1], Geo::ROOF2PARAMETERS[2]};
 
   // third FEA cooling element definition
-  Float_t bar[3] = {Geo::BAR[0], Geo::BAR[1], Geo::BAR[2]};
+  Double_t bar[3] = {Geo::BAR[0], Geo::BAR[1], Geo::BAR[2]};
   TVirtualMC::GetMC()->Gsvolu("FBAR", "BOX ", getMediumID(kAlFrame), bar, 3); // Al
 
-  Float_t feaParam[3] = {Geo::FEAPARAMETERS[0], Geo::FEAPARAMETERS[1], Geo::FEAPARAMETERS[2]};
+  Double_t feaParam[3] = {Geo::FEAPARAMETERS[0], Geo::FEAPARAMETERS[1], Geo::FEAPARAMETERS[2]};
 
-  Float_t carpar[3] = {static_cast<Float_t>(xtof * 0.5 - Geo::CBLW - Geo::SAWTHICKNESS),
-                       static_cast<Float_t>(feaParam[1] + feaRoof1[1] + Geo::ROOF2PARAMETERS[1] * 0.5),
-                       static_cast<Float_t>(feaRoof1[2] + Geo::BETWEENLANDMASK * 0.5 + al3[2])};
+  Double_t carpar[3] = {(xtof * 0.5 - Geo::CBLW - Geo::SAWTHICKNESS),
+                        (feaParam[1] + feaRoof1[1] + Geo::ROOF2PARAMETERS[1] * 0.5),
+                        (feaRoof1[2] + Geo::BETWEENLANDMASK * 0.5 + al3[2])};
 
   // fourth FEA cooling element definition
-  Float_t bar1[3] = {Geo::BAR1[0], Geo::BAR1[1], Geo::BAR1[2]};
+  Double_t bar1[3] = {Geo::BAR1[0], Geo::BAR1[1], Geo::BAR1[2]};
   TVirtualMC::GetMC()->Gsvolu("FBA1", "BOX ", getMediumID(kAlFrame), bar1, 3); // Al
 
   // fifth FEA cooling element definition
-  Float_t bar2[3] = {Geo::BAR2[0], Geo::BAR2[1], Geo::BAR2[2]};
+  Double_t bar2[3] = {Geo::BAR2[0], Geo::BAR2[1], Geo::BAR2[2]};
   TVirtualMC::GetMC()->Gsvolu("FBA2", "BOX ", getMediumID(kAlFrame), bar2, 3); // Al
 
   // first FEA cooling element positioning
-  Float_t xcoor = xtof * 0.5 - 25.;
-  Float_t ycoor = carpar[1] - 2. * Geo::ROOF2PARAMETERS[1] * 0.5 - 2. * feaRoof1[1] - al1[1];
-  Float_t zcoor = -carpar[2] + 2. * feaRoof1[2] - al1[2];
+  Double_t xcoor = xtof * 0.5 - 25.;
+  Double_t ycoor = carpar[1] - 2. * Geo::ROOF2PARAMETERS[1] * 0.5 - 2. * feaRoof1[1] - al1[1];
+  Double_t zcoor = -carpar[2] + 2. * feaRoof1[2] - al1[2];
   TVirtualMC::GetMC()->Gspos("FAL1", 1, "FCA1", -xcoor, ycoor, zcoor, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("FAL1", 4, "FCA1", xcoor, ycoor, zcoor, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("FAL1", 1, "FCA2", -xcoor, ycoor, zcoor, 0, "ONLY");
@@ -1193,13 +1309,13 @@ void Detector::makeFEACooling(Float_t xtof) const
   xcoor = xtof * 0.5 - 25.;
   ycoor = carpar[1] - 2. * Geo::ROOF2PARAMETERS[1] * 0.5 - feaRoof1[1];
   zcoor = -carpar[2] + feaRoof1[2];
-  TVirtualMC::GetMC()->Gspos("FRO1", 1, "FCA1", -xcoor, ycoor, zcoor, 0, "MANY"); // (AdC)
-  TVirtualMC::GetMC()->Gspos("FRO1", 4, "FCA1", xcoor, ycoor, zcoor, 0, "MANY");  // (AdC)
+  TVirtualMC::GetMC()->Gspos("FRO1", 1, "FCA1", -xcoor, ycoor, zcoor, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("FRO1", 4, "FCA1", xcoor, ycoor, zcoor, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("FRO1", 1, "FCA2", -xcoor, ycoor, zcoor, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("FRO1", 4, "FCA2", xcoor, ycoor, zcoor, 0, "ONLY");
   xcoor = feaParam[0] + (Geo::FEAWIDTH2 * 0.5 - Geo::FEAWIDTH1);
-  TVirtualMC::GetMC()->Gspos("FRO1", 2, "FCA1", -xcoor, ycoor, zcoor, 0, "MANY"); // (AdC)
-  TVirtualMC::GetMC()->Gspos("FRO1", 3, "FCA1", xcoor, ycoor, zcoor, 0, "MANY");  // (AdC)
+  TVirtualMC::GetMC()->Gspos("FRO1", 2, "FCA1", -xcoor, ycoor, zcoor, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("FRO1", 3, "FCA1", xcoor, ycoor, zcoor, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("FRO1", 2, "FCA2", -xcoor, ycoor, zcoor, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("FRO1", 3, "FCA2", xcoor, ycoor, zcoor, 0, "ONLY");
 
@@ -1218,7 +1334,7 @@ void Detector::makeFEACooling(Float_t xtof) const
   TVirtualMC::GetMC()->Gspos("FBAR", 3, "FCA2", xcoor, ycoor, zcoor, 0, "ONLY");
 
   // fourth FEA cooling element positioning
-  Float_t tubepar[3] = {0., 0.4, static_cast<Float_t>(xtof * 0.5 - Geo::CBLW)};
+  Double_t tubepar[3] = {0., 0.4, (xtof * 0.5 - Geo::CBLW)};
   xcoor = xtof * 0.5 - 25.;
   ycoor = carpar[1] - 2. * Geo::ROOF2PARAMETERS[1] * 0.5 - 2. * feaRoof1[1] - bar[1];
   zcoor = -carpar[2] + 2. * bar[2] + 2. * tubepar[1] + bar1[2];
@@ -1260,7 +1376,7 @@ void Detector::makeFEACooling(Float_t xtof) const
   TVirtualMC::GetMC()->Gspos("FBA2", 7, "FCA2", xcoor, ycoor, zcoor, 0, "ONLY");
 }
 
-void Detector::makeNinoMask(Float_t xtof) const
+void Detector::makeNinoMask(Double_t xtof) const
 {
   //
   // Make cooling Nino mask
@@ -1269,28 +1385,28 @@ void Detector::makeNinoMask(Float_t xtof) const
   //
 
   // first Nino ASIC mask volume definition
-  Float_t al2[3] = {Geo::AL2PARAMETERS[0], Geo::AL2PARAMETERS[1], Geo::AL2PARAMETERS[2]};
+  Double_t al2[3] = {Geo::AL2PARAMETERS[0], Geo::AL2PARAMETERS[1], Geo::AL2PARAMETERS[2]};
   TVirtualMC::GetMC()->Gsvolu("FAL2", "BOX ", getMediumID(kAlFrame), al2, 3); // Al
 
   // second Nino ASIC mask volume definition
-  Float_t al3[3] = {Geo::AL3PARAMETERS[0], Geo::AL3PARAMETERS[1], Geo::AL3PARAMETERS[2]};
+  Double_t al3[3] = {Geo::AL3PARAMETERS[0], Geo::AL3PARAMETERS[1], Geo::AL3PARAMETERS[2]};
   TVirtualMC::GetMC()->Gsvolu("FAL3", "BOX ", getMediumID(kAlFrame), al3, 3); // Al
 
   // third Nino ASIC mask volume definition
-  Float_t feaRoof2[3] = {Geo::ROOF2PARAMETERS[0], Geo::ROOF2PARAMETERS[1], Geo::ROOF2PARAMETERS[2]};
+  Double_t feaRoof2[3] = {Geo::ROOF2PARAMETERS[0], Geo::ROOF2PARAMETERS[1], Geo::ROOF2PARAMETERS[2]};
   TVirtualMC::GetMC()->Gsvolu("FRO2", "BOX ", getMediumID(kAlFrame), feaRoof2, 3); // Al
 
-  Float_t feaRoof1[3] = {Geo::ROOF1PARAMETERS[0], Geo::ROOF1PARAMETERS[1], Geo::ROOF1PARAMETERS[2]};
-  Float_t feaParam[3] = {Geo::FEAPARAMETERS[0], Geo::FEAPARAMETERS[1], Geo::FEAPARAMETERS[2]};
+  Double_t feaRoof1[3] = {Geo::ROOF1PARAMETERS[0], Geo::ROOF1PARAMETERS[1], Geo::ROOF1PARAMETERS[2]};
+  Double_t feaParam[3] = {Geo::FEAPARAMETERS[0], Geo::FEAPARAMETERS[1], Geo::FEAPARAMETERS[2]};
 
-  Float_t carpar[3] = {static_cast<Float_t>(xtof * 0.5 - Geo::CBLW - Geo::SAWTHICKNESS),
-                       static_cast<Float_t>(feaParam[1] + feaRoof1[1] + Geo::ROOF2PARAMETERS[1] * 0.5),
-                       static_cast<Float_t>(feaRoof1[2] + Geo::BETWEENLANDMASK * 0.5 + al3[2])};
+  Double_t carpar[3] = {(xtof * 0.5 - Geo::CBLW - Geo::SAWTHICKNESS),
+                        (feaParam[1] + feaRoof1[1] + Geo::ROOF2PARAMETERS[1] * 0.5),
+                        (feaRoof1[2] + Geo::BETWEENLANDMASK * 0.5 + al3[2])};
 
   // first Nino ASIC mask volume positioning
-  Float_t xcoor = xtof * 0.5 - 25.;
-  Float_t ycoor = carpar[1] - 2. * al3[1];
-  Float_t zcoor = carpar[2] - 2. * al3[2] - al2[2];
+  Double_t xcoor = xtof * 0.5 - 25.;
+  Double_t ycoor = carpar[1] - 2. * al3[1];
+  Double_t zcoor = carpar[2] - 2. * al3[2] - al2[2];
   TVirtualMC::GetMC()->Gspos("FAL2", 1, "FCA1", -xcoor, ycoor, zcoor, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("FAL2", 4, "FCA1", xcoor, ycoor, zcoor, 0, "ONLY");
   xcoor = feaParam[0] + (Geo::FEAWIDTH2 * 0.5 - Geo::FEAWIDTH1);
@@ -1318,7 +1434,7 @@ void Detector::makeNinoMask(Float_t xtof) const
   TVirtualMC::GetMC()->Gspos("FRO2", 3, "FCA1", xcoor, ycoor, zcoor, 0, "ONLY");
 }
 
-void Detector::makeSuperModuleCooling(Float_t xtof, Float_t ytof, Float_t zlenA) const
+void Detector::makeSuperModuleCooling(Double_t xtof, Double_t ytof, Double_t zlenA) const
 {
   //
   // Make cooling tubes (FTUB volume)
@@ -1329,155 +1445,126 @@ void Detector::makeSuperModuleCooling(Float_t xtof, Float_t ytof, Float_t zlenA)
   Int_t idrotm[1] = {0};
 
   // cooling tube volume definition
-  Float_t tubepar[3] = {0., 0.4, static_cast<Float_t>(xtof * 0.5 - Geo::CBLW - Geo::SAWTHICKNESS)};
+  Double_t tubepar[3] = {0., 0.4, (xtof * 0.5 - Geo::CBLW - Geo::SAWTHICKNESS)};
   TVirtualMC::GetMC()->Gsvolu("FTUB", "TUBE", getMediumID(kCopper), tubepar, 3); // Cu
 
   // water cooling tube volume definition
-  Float_t tubeparW[3] = {0., 0.3, tubepar[2]};
+  Double_t tubeparW[3] = {0., 0.3, tubepar[2]};
   TVirtualMC::GetMC()->Gsvolu("FITU", "TUBE", getMediumID(kWater), tubeparW, 3); // H2O
 
   // Positioning of the water tube into the steel one
   TVirtualMC::GetMC()->Gspos("FITU", 1, "FTUB", 0., 0., 0., 0, "ONLY");
 
   // definition of transverse components of SM cooling system
-  Float_t trapar[3] = {tubepar[2], 6.175 /*6.15*/, 0.7};
+  Double_t trapar[3] = {tubepar[2], 6.175 /*6.15*/, 0.7};
   TVirtualMC::GetMC()->Gsvolu("FTLN", "BOX ", getMediumID(kAlFrame), trapar, 3); // Al
 
   // rotation matrix
   Matrix(idrotm[0], 180., 90., 90., 90., 90., 0.);
 
-  Float_t feaParam[3] = {Geo::FEAPARAMETERS[0], Geo::FEAPARAMETERS[1], Geo::FEAPARAMETERS[2]};
-  Float_t feaRoof1[3] = {Geo::ROOF1PARAMETERS[0], Geo::ROOF1PARAMETERS[1], Geo::ROOF1PARAMETERS[2]};
-  Float_t bar[3] = {Geo::BAR[0], Geo::BAR[1], Geo::BAR[2]};
-  Float_t bar2[3] = {Geo::BAR2[0], Geo::BAR2[1], Geo::BAR2[2]};
-  Float_t al3[3] = {Geo::AL3PARAMETERS[0], Geo::AL3PARAMETERS[1], Geo::AL3PARAMETERS[2]};
-  // Float_t feaRoof2[3] = {Geo::ROOF2PARAMETERS[0], Geo::ROOF2PARAMETERS[1], Geo::ROOF2PARAMETERS[2]};
+  Double_t feaParam[3] = {Geo::FEAPARAMETERS[0], Geo::FEAPARAMETERS[1], Geo::FEAPARAMETERS[2]};
+  Double_t feaRoof1[3] = {Geo::ROOF1PARAMETERS[0], Geo::ROOF1PARAMETERS[1], Geo::ROOF1PARAMETERS[2]};
+  Double_t bar[3] = {Geo::BAR[0], Geo::BAR[1], Geo::BAR[2]};
+  Double_t bar2[3] = {Geo::BAR2[0], Geo::BAR2[1], Geo::BAR2[2]};
+  Double_t al3[3] = {Geo::AL3PARAMETERS[0], Geo::AL3PARAMETERS[1], Geo::AL3PARAMETERS[2]};
+  // Double_t feaRoof2[3] = {Geo::ROOF2PARAMETERS[0], Geo::ROOF2PARAMETERS[1], Geo::ROOF2PARAMETERS[2]};
 
-  Float_t carpar[3] = {static_cast<Float_t>(xtof * 0.5 - Geo::CBLW - Geo::SAWTHICKNESS),
-                       static_cast<Float_t>(feaParam[1] + feaRoof1[1] + Geo::ROOF2PARAMETERS[1] * 0.5),
-                       static_cast<Float_t>(feaRoof1[2] + Geo::BETWEENLANDMASK * 0.5 + al3[2])};
+  Double_t carpar[3] = {(xtof * 0.5 - Geo::CBLW - Geo::SAWTHICKNESS),
+                        (feaParam[1] + feaRoof1[1] + Geo::ROOF2PARAMETERS[1] * 0.5),
+                        (feaRoof1[2] + Geo::BETWEENLANDMASK * 0.5 + al3[2])};
 
-  Float_t ytub = -(ytof * 0.5 - Geo::MODULECOVERTHICKNESS) * 0.5 + carpar[1] + carpar[1] -
-                 2. * Geo::ROOF2PARAMETERS[1] * 0.5 - 2. * feaRoof1[1] - 2. * bar2[1] - tubepar[1];
+  Double_t ytub = -(ytof * 0.5 - Geo::MODULECOVERTHICKNESS) * 0.5 + carpar[1] + carpar[1] -
+                  2. * Geo::ROOF2PARAMETERS[1] * 0.5 - 2. * feaRoof1[1] - 2. * bar2[1] - tubepar[1];
 
   // Positioning of tubes for the SM cooling system
-  Float_t ycoor = carpar[1] - 2. * Geo::ROOF2PARAMETERS[1] * 0.5 - 2. * feaRoof1[1] - 2. * bar2[1] - tubepar[1];
-  Float_t zcoor = -carpar[2] + 2. * bar[2] + tubepar[1];
+  Double_t ycoor = carpar[1] - 2. * Geo::ROOF2PARAMETERS[1] * 0.5 - 2. * feaRoof1[1] - 2. * bar2[1] - tubepar[1];
+  Double_t zcoor = -carpar[2] + 2. * bar[2] + tubepar[1];
   TVirtualMC::GetMC()->Gspos("FTUB", 1, "FCA1", 0., ycoor, zcoor, idrotm[0], "ONLY");
   TVirtualMC::GetMC()->Gspos("FTUB", 1, "FCA2", 0., ycoor, zcoor, idrotm[0], "ONLY");
   gGeoManager->GetVolume("FTUB")->VisibleDaughters(kFALSE);
 
-  Float_t yFLTN = trapar[1] - (ytof * 0.5 - Geo::MODULECOVERTHICKNESS) * 0.5;
+  Double_t yFLTN = trapar[1] - (ytof * 0.5 - Geo::MODULECOVERTHICKNESS) * 0.5;
   for (Int_t sg = -1; sg < 2; sg += 2) {
     // Positioning of transverse components for the SM cooling system
-    TVirtualMC::GetMC()->Gspos("FTLN", 5 + 4 * sg, "FAIA", 0., yFLTN, 369.9 * sg, 0, "MANY");
-    TVirtualMC::GetMC()->Gspos("FTLN", 5 + 3 * sg, "FAIA", 0., yFLTN, 366.9 * sg, 0, "MANY");
-    TVirtualMC::GetMC()->Gspos("FTLN", 5 + 2 * sg, "FAIA", 0., yFLTN, 198.8 * sg, 0, "MANY");
-    TVirtualMC::GetMC()->Gspos("FTLN", 5 + sg, "FAIA", 0., yFLTN, 56.82 * sg, 0, "MANY");
-    TVirtualMC::GetMC()->Gspos("FTLN", 5 + 4 * sg, "FAIC", 0., yFLTN, 369.9 * sg, 0, "MANY");
-    TVirtualMC::GetMC()->Gspos("FTLN", 5 + 3 * sg, "FAIC", 0., yFLTN, 366.9 * sg, 0, "MANY");
-    TVirtualMC::GetMC()->Gspos("FTLN", 5 + 2 * sg, "FAIC", 0., yFLTN, 198.8 * sg, 0, "MANY");
-    TVirtualMC::GetMC()->Gspos("FTLN", 5 + sg, "FAIC", 0., yFLTN, 56.82 * sg, 0, "MANY");
+    TVirtualMC::GetMC()->Gspos("FTLN", 5 + 4 * sg, "FAIA", 0., yFLTN, 369.9 * sg, 0, "ONLY");
+    TVirtualMC::GetMC()->Gspos("FTLN", 5 + 3 * sg, "FAIA", 0., yFLTN, 366.9 * sg, 0, "ONLY");
+    TVirtualMC::GetMC()->Gspos("FTLN", 5 + 2 * sg, "FAIA", 0., yFLTN, 198.8 * sg, 0, "ONLY");
+    TVirtualMC::GetMC()->Gspos("FTLN", 5 + sg, "FAIA", 0., yFLTN, 56.82 * sg, 0, "ONLY");
+    TVirtualMC::GetMC()->Gspos("FTLN", 5 + 4 * sg, "FAIC", 0., yFLTN, 369.9 * sg, 0, "ONLY");
+    TVirtualMC::GetMC()->Gspos("FTLN", 5 + 3 * sg, "FAIC", 0., yFLTN, 366.9 * sg, 0, "ONLY");
+    TVirtualMC::GetMC()->Gspos("FTLN", 5 + 2 * sg, "FAIC", 0., yFLTN, 198.8 * sg, 0, "ONLY");
+    TVirtualMC::GetMC()->Gspos("FTLN", 5 + sg, "FAIC", 0., yFLTN, 56.82 * sg, 0, "ONLY");
   }
 
   // definition of longitudinal components of SM cooling system
-  Float_t lonpar1[3] = {2., 0.5, static_cast<Float_t>(56.82 - trapar[2])};
-  Float_t lonpar2[3] = {lonpar1[0], lonpar1[1], static_cast<Float_t>((198.8 - 56.82) * 0.5 - trapar[2])};
-  Float_t lonpar3[3] = {lonpar1[0], lonpar1[1], static_cast<Float_t>((366.9 - 198.8) * 0.5 - trapar[2])};
-  TVirtualMC::GetMC()->Gsvolu("FLO1", "BOX ", getMediumID(kAlFrame), lonpar1, 3); // Al
-  TVirtualMC::GetMC()->Gsvolu("FLO2", "BOX ", getMediumID(kAlFrame), lonpar2, 3); // Al
-  TVirtualMC::GetMC()->Gsvolu("FLO3", "BOX ", getMediumID(kAlFrame), lonpar3, 3); // Al
+  Double_t lonpar1[3] = {2., 0.5, 56.82 - trapar[2]};
+  Double_t lonpar2[3] = {lonpar1[0], lonpar1[1], (198.8 - 56.82) * 0.5 - trapar[2]};
+  Double_t lonpar3[3] = {lonpar1[0], lonpar1[1], (366.9 - 198.8) * 0.5 - trapar[2]};
+  // Positioning of the longitudinal components of the SM cooling system, segmented between the
+  // FEA card containers rather than declared overlapping.
+  mBarPieces.clear();
+  const std::vector<FEAContainer> contFull = feaContainers(zlenA, kFALSE);
+  const std::vector<FEAContainer> contHoles = feaContainers(zlenA, kTRUE);
+  const Double_t crateY = -(ytof * 0.5 - Geo::MODULECOVERTHICKNESS) * 0.5 + carpar[1];
+  const Double_t crateY0 = crateY - carpar[1], crateY1 = crateY + carpar[1];
+  const Double_t zcoor2 = (198.8 + 56.82) * 0.5;
+  const Double_t zcoor3 = (366.9 + 198.8) * 0.5;
+  Int_t copyA = 0, copyB = 0, copyC = 0;
 
-  // Positioning of longitudinal components for the SM cooling system
-  ycoor = ytub + (tubepar[1] + 2. * bar2[1] + lonpar1[1]);
-  TVirtualMC::GetMC()->Gspos("FLO1", 4, "FAIA", -24., ycoor, 0., 0, "MANY");
-  TVirtualMC::GetMC()->Gspos("FLO1", 2, "FAIA", 24., ycoor, 0., 0, "MANY");
-  TVirtualMC::GetMC()->Gspos("FLO1", 4, "FAIC", -24., ycoor, 0., 0, "MANY");
-  TVirtualMC::GetMC()->Gspos("FLO1", 2, "FAIC", 24., ycoor, 0., 0, "MANY");
+  for (Int_t up = 0; up < 2; ++up) {
+    ycoor = up ? ytub + (tubepar[1] + 2. * bar2[1] + lonpar1[1]) : ytub - (tubepar[1] + 2. * bar2[1] + lonpar1[1]);
+    for (Int_t sx = -1; sx < 2; sx += 2) {
+      placeCoolingBar("FAIA", contFull, carpar[2], crateY0, crateY1, sx * 24., lonpar1[0], ycoor, lonpar1[1], 0.,
+                      lonpar1[2], copyA);
+      placeCoolingBar("FAIC", contFull, carpar[2], crateY0, crateY1, sx * 24., lonpar1[0], ycoor, lonpar1[1], 0.,
+                      lonpar1[2], copyC);
+      for (Int_t sz = -1; sz < 2; sz += 2) {
+        placeCoolingBar("FAIA", contFull, carpar[2], crateY0, crateY1, sx * 24., lonpar2[0], ycoor, lonpar2[1],
+                        sz * zcoor2, lonpar2[2], copyA);
+        placeCoolingBar("FAIC", contFull, carpar[2], crateY0, crateY1, sx * 24., lonpar2[0], ycoor, lonpar2[1],
+                        sz * zcoor2, lonpar2[2], copyC);
+        placeCoolingBar("FAIA", contFull, carpar[2], crateY0, crateY1, sx * 24., lonpar3[0], ycoor, lonpar3[1],
+                        sz * zcoor3, lonpar3[2], copyA);
+        placeCoolingBar("FAIC", contFull, carpar[2], crateY0, crateY1, sx * 24., lonpar3[0], ycoor, lonpar3[1],
+                        sz * zcoor3, lonpar3[2], copyC);
+      }
+    }
+  }
 
-  zcoor = (198.8 + 56.82) * 0.5;
-  TVirtualMC::GetMC()->Gspos("FLO2", 4, "FAIA", -24., ycoor, -zcoor, 0, "MANY");
-  TVirtualMC::GetMC()->Gspos("FLO2", 2, "FAIA", 24., ycoor, -zcoor, 0, "MANY");
-  TVirtualMC::GetMC()->Gspos("FLO2", 4, "FAIC", -24., ycoor, -zcoor, 0, "MANY");
-  TVirtualMC::GetMC()->Gspos("FLO2", 2, "FAIC", 24., ycoor, -zcoor, 0, "MANY");
-  TVirtualMC::GetMC()->Gspos("FLO2", 8, "FAIA", -24., ycoor, zcoor, 0, "MANY");
-  TVirtualMC::GetMC()->Gspos("FLO2", 6, "FAIA", 24., ycoor, zcoor, 0, "MANY");
-  TVirtualMC::GetMC()->Gspos("FLO2", 8, "FAIC", -24., ycoor, zcoor, 0, "MANY");
-  TVirtualMC::GetMC()->Gspos("FLO2", 6, "FAIC", 24., ycoor, zcoor, 0, "MANY");
-
-  zcoor = (366.9 + 198.8) * 0.5;
-  TVirtualMC::GetMC()->Gspos("FLO3", 4, "FAIA", -24., ycoor, -zcoor, 0, "MANY");
-  TVirtualMC::GetMC()->Gspos("FLO3", 2, "FAIA", 24., ycoor, -zcoor, 0, "MANY");
-  TVirtualMC::GetMC()->Gspos("FLO3", 4, "FAIC", -24., ycoor, -zcoor, 0, "MANY");
-  TVirtualMC::GetMC()->Gspos("FLO3", 2, "FAIC", 24., ycoor, -zcoor, 0, "MANY");
-  TVirtualMC::GetMC()->Gspos("FLO3", 8, "FAIA", -24., ycoor, zcoor, 0, "MANY");
-  TVirtualMC::GetMC()->Gspos("FLO3", 6, "FAIA", 24., ycoor, zcoor, 0, "MANY");
-  TVirtualMC::GetMC()->Gspos("FLO3", 8, "FAIC", -24., ycoor, zcoor, 0, "MANY");
-  TVirtualMC::GetMC()->Gspos("FLO3", 6, "FAIC", 24., ycoor, zcoor, 0, "MANY");
-
-  ycoor = ytub - (tubepar[1] + 2. * bar2[1] + lonpar1[1]);
-  TVirtualMC::GetMC()->Gspos("FLO1", 3, "FAIA", -24., ycoor, 0., 0, "MANY");
-  TVirtualMC::GetMC()->Gspos("FLO1", 1, "FAIA", 24., ycoor, 0., 0, "MANY");
-  TVirtualMC::GetMC()->Gspos("FLO1", 3, "FAIC", -24., ycoor, 0., 0, "MANY");
-  TVirtualMC::GetMC()->Gspos("FLO1", 1, "FAIC", 24., ycoor, 0., 0, "MANY");
-
-  zcoor = (198.8 + 56.82) * 0.5;
-  TVirtualMC::GetMC()->Gspos("FLO2", 3, "FAIA", -24., ycoor, -zcoor, 0, "MANY");
-  TVirtualMC::GetMC()->Gspos("FLO2", 1, "FAIA", 24., ycoor, -zcoor, 0, "MANY");
-  TVirtualMC::GetMC()->Gspos("FLO2", 3, "FAIC", -24., ycoor, -zcoor, 0, "MANY");
-  TVirtualMC::GetMC()->Gspos("FLO2", 1, "FAIC", 24., ycoor, -zcoor, 0, "MANY");
-  TVirtualMC::GetMC()->Gspos("FLO2", 7, "FAIA", -24., ycoor, zcoor, 0, "MANY");
-  TVirtualMC::GetMC()->Gspos("FLO2", 5, "FAIA", 24., ycoor, zcoor, 0, "MANY");
-  TVirtualMC::GetMC()->Gspos("FLO2", 7, "FAIC", -24., ycoor, zcoor, 0, "MANY");
-  TVirtualMC::GetMC()->Gspos("FLO2", 5, "FAIC", 24., ycoor, zcoor, 0, "MANY");
-
-  zcoor = (366.9 + 198.8) * 0.5;
-  TVirtualMC::GetMC()->Gspos("FLO3", 3, "FAIA", -24., ycoor, -zcoor, 0, "MANY");
-  TVirtualMC::GetMC()->Gspos("FLO3", 1, "FAIA", 24., ycoor, -zcoor, 0, "MANY");
-  TVirtualMC::GetMC()->Gspos("FLO3", 3, "FAIC", -24., ycoor, -zcoor, 0, "MANY");
-  TVirtualMC::GetMC()->Gspos("FLO3", 1, "FAIC", 24., ycoor, -zcoor, 0, "MANY");
-  TVirtualMC::GetMC()->Gspos("FLO3", 7, "FAIA", -24., ycoor, zcoor, 0, "MANY");
-  TVirtualMC::GetMC()->Gspos("FLO3", 5, "FAIA", 24., ycoor, zcoor, 0, "MANY");
-  TVirtualMC::GetMC()->Gspos("FLO3", 7, "FAIC", -24., ycoor, zcoor, 0, "MANY");
-  TVirtualMC::GetMC()->Gspos("FLO3", 5, "FAIC", 24., ycoor, zcoor, 0, "MANY");
-
-  Float_t carpos[3] = {static_cast<Float_t>(25. - xtof * 0.5),
-                       static_cast<Float_t>((11.5 - (ytof * 0.5 - Geo::MODULECOVERTHICKNESS)) * 0.5), 0.};
+  Double_t carpos[3] = {(25. - xtof * 0.5),
+                        ((11.5 - (ytof * 0.5 - Geo::MODULECOVERTHICKNESS)) * 0.5), 0.};
   if (mTOFHoles) {
     for (Int_t sg = -1; sg < 2; sg += 2) {
       carpos[2] = sg * zlenA * 0.5;
-      TVirtualMC::GetMC()->Gspos("FTLN", 5 + 4 * sg, "FAIB", 0., yFLTN, 369.9 * sg, 0, "MANY");
-      TVirtualMC::GetMC()->Gspos("FTLN", 5 + 3 * sg, "FAIB", 0., yFLTN, 366.9 * sg, 0, "MANY");
-      TVirtualMC::GetMC()->Gspos("FTLN", 5 + 2 * sg, "FAIB", 0., yFLTN, 198.8 * sg, 0, "MANY");
-      TVirtualMC::GetMC()->Gspos("FTLN", 5 + sg, "FAIB", 0., yFLTN, 56.82 * sg, 0, "MANY");
+      TVirtualMC::GetMC()->Gspos("FTLN", 5 + 4 * sg, "FAIB", 0., yFLTN, 369.9 * sg, 0, "ONLY");
+      TVirtualMC::GetMC()->Gspos("FTLN", 5 + 3 * sg, "FAIB", 0., yFLTN, 366.9 * sg, 0, "ONLY");
+      TVirtualMC::GetMC()->Gspos("FTLN", 5 + 2 * sg, "FAIB", 0., yFLTN, 198.8 * sg, 0, "ONLY");
+      TVirtualMC::GetMC()->Gspos("FTLN", 5 + sg, "FAIB", 0., yFLTN, 56.82 * sg, 0, "ONLY");
     }
 
-    ycoor = ytub + (tubepar[1] + 2. * bar2[1] + lonpar1[1]);
-    zcoor = (198.8 + 56.82) * 0.5;
-    TVirtualMC::GetMC()->Gspos("FLO2", 2, "FAIB", -24., ycoor, -zcoor, 0, "MANY");
-    TVirtualMC::GetMC()->Gspos("FLO2", 1, "FAIB", -24., ycoor, zcoor, 0, "MANY");
-    zcoor = (366.9 + 198.8) * 0.5;
-    TVirtualMC::GetMC()->Gspos("FLO3", 2, "FAIB", -24., ycoor, -zcoor, 0, "MANY");
-    TVirtualMC::GetMC()->Gspos("FLO3", 1, "FAIB", -24., ycoor, zcoor, 0, "MANY");
-    ycoor = ytub - (tubepar[1] + 2. * bar2[1] + lonpar1[1]);
-    zcoor = (198.8 + 56.82) * 0.5;
-    TVirtualMC::GetMC()->Gspos("FLO2", 4, "FAIB", 24., ycoor, -zcoor, 0, "MANY");
-    TVirtualMC::GetMC()->Gspos("FLO2", 3, "FAIB", 24., ycoor, zcoor, 0, "MANY");
-    zcoor = (366.9 + 198.8) * 0.5;
-    TVirtualMC::GetMC()->Gspos("FLO3", 4, "FAIB", 24., ycoor, -zcoor, 0, "MANY");
-    TVirtualMC::GetMC()->Gspos("FLO3", 3, "FAIB", 24., ycoor, zcoor, 0, "MANY");
+    // the modules with the PHOS hole carry one x side per cooling layer, and no FLO1 bar
+    for (Int_t up = 0; up < 2; ++up) {
+      ycoor = up ? ytub + (tubepar[1] + 2. * bar2[1] + lonpar1[1]) : ytub - (tubepar[1] + 2. * bar2[1] + lonpar1[1]);
+      const Double_t xcoor = up ? -24. : 24.;
+      for (Int_t sz = -1; sz < 2; sz += 2) {
+        placeCoolingBar("FAIB", contHoles, carpar[2], crateY0, crateY1, xcoor, lonpar2[0], ycoor, lonpar2[1],
+                        sz * zcoor2, lonpar2[2], copyB);
+        placeCoolingBar("FAIB", contHoles, carpar[2], crateY0, crateY1, xcoor, lonpar3[0], ycoor, lonpar3[1],
+                        sz * zcoor3, lonpar3[2], copyB);
+      }
+    }
   }
 
-  Float_t barS[3] = {Geo::BARS[0], Geo::BARS[1], Geo::BARS[2]};
+  Double_t barS[3] = {Geo::BARS[0], Geo::BARS[1], Geo::BARS[2]};
   TVirtualMC::GetMC()->Gsvolu("FBAS", "BOX ", getMediumID(kAlFrame), barS, 3); // Al
 
-  Float_t barS1[3] = {Geo::BARS1[0], Geo::BARS1[1], Geo::BARS1[2]};
+  Double_t barS1[3] = {Geo::BARS1[0], Geo::BARS1[1], Geo::BARS1[2]};
   TVirtualMC::GetMC()->Gsvolu("FBS1", "BOX ", getMediumID(kAlFrame), barS1, 3); // Al
 
-  Float_t barS2[3] = {Geo::BARS2[0], Geo::BARS2[1], Geo::BARS2[2]};
+  Double_t barS2[3] = {Geo::BARS2[0], Geo::BARS2[1], Geo::BARS2[2]};
   TVirtualMC::GetMC()->Gsvolu("FBS2", "BOX ", getMediumID(kAlFrame), barS2, 3); // Al
 
-  Float_t ytubBis = carpar[1] - 2. * Geo::ROOF2PARAMETERS[1] * 0.5 - 2. * feaRoof1[1] - 2. * barS2[1] - tubepar[1];
+  Double_t ytubBis = carpar[1] - 2. * Geo::ROOF2PARAMETERS[1] * 0.5 - 2. * feaRoof1[1] - 2. * barS2[1] - tubepar[1];
   ycoor = ytubBis;
   zcoor = -carpar[2] + barS[2];
   TVirtualMC::GetMC()->Gspos("FBAS", 1, "FCA1", -24., ycoor, zcoor, 0, "ONLY");
@@ -1507,7 +1594,7 @@ void Detector::makeSuperModuleCooling(Float_t xtof, Float_t ytof, Float_t zlenA)
 }
 
 //_____________________________________________________________________________
-void Detector::makeSuperModuleServices(Float_t xtof, Float_t ytof, Float_t zlenA) const
+void Detector::makeSuperModuleServices(Double_t xtof, Double_t ytof, Double_t zlenA) const
 {
   //
   // Make signal cables (FCAB/L and FCBL/B volumes),
@@ -1517,38 +1604,38 @@ void Detector::makeSuperModuleServices(Float_t xtof, Float_t ytof, Float_t zlenA
 
   Int_t idrotm[3] = {0, 0, 0};
 
-  Float_t tubepar[3] = {0., 0.4, static_cast<Float_t>(xtof * 0.5 - Geo::CBLW - Geo::SAWTHICKNESS)};
-  Float_t al1[3] = {Geo::AL1PARAMETERS[0], Geo::AL1PARAMETERS[1], Geo::AL1PARAMETERS[2]};
-  Float_t al3[3] = {Geo::AL3PARAMETERS[0], Geo::AL3PARAMETERS[1], Geo::AL3PARAMETERS[2]};
-  Float_t feaRoof1[3] = {Geo::ROOF1PARAMETERS[0], Geo::ROOF1PARAMETERS[1], Geo::ROOF1PARAMETERS[2]};
-  // Float_t feaRoof2[3] = {Geo::ROOF2PARAMETERS[0], Geo::ROOF2PARAMETERS[1], Geo::ROOF2PARAMETERS[2]};
-  Float_t feaParam[3] = {Geo::FEAPARAMETERS[0], Geo::FEAPARAMETERS[1], Geo::FEAPARAMETERS[2]};
+  Double_t tubepar[3] = {0., 0.4, (xtof * 0.5 - Geo::CBLW - Geo::SAWTHICKNESS)};
+  Double_t al1[3] = {Geo::AL1PARAMETERS[0], Geo::AL1PARAMETERS[1], Geo::AL1PARAMETERS[2]};
+  Double_t al3[3] = {Geo::AL3PARAMETERS[0], Geo::AL3PARAMETERS[1], Geo::AL3PARAMETERS[2]};
+  Double_t feaRoof1[3] = {Geo::ROOF1PARAMETERS[0], Geo::ROOF1PARAMETERS[1], Geo::ROOF1PARAMETERS[2]};
+  // Double_t feaRoof2[3] = {Geo::ROOF2PARAMETERS[0], Geo::ROOF2PARAMETERS[1], Geo::ROOF2PARAMETERS[2]};
+  Double_t feaParam[3] = {Geo::FEAPARAMETERS[0], Geo::FEAPARAMETERS[1], Geo::FEAPARAMETERS[2]};
 
   // FEA cables definition
-  Float_t cbpar[3] = {0., 0.5,
-                      static_cast<Float_t>((tubepar[2] - (Geo::FEAWIDTH2 - Geo::FEAWIDTH1 / 6.) * 0.5) * 0.5)};
+  Double_t cbpar[3] = {0., 0.5,
+                       ((tubepar[2] - (Geo::FEAWIDTH2 - Geo::FEAWIDTH1 / 6.) * 0.5) * 0.5)};
   TVirtualMC::GetMC()->Gsvolu("FCAB", "TUBE", getMediumID(kCable), cbpar, 3); // copper+alu
 
-  Float_t cbparS[3] = {cbpar[0], cbpar[1],
-                       static_cast<Float_t>(
-                         (tubepar[2] - (xtof * 0.5 - 25. + (Geo::FEAWIDTH1 - Geo::FEAWIDTH1 / 6.) * 0.5)) * 0.5)};
+  Double_t cbparS[3] = {cbpar[0], cbpar[1],
+                        (
+                          (tubepar[2] - (xtof * 0.5 - 25. + (Geo::FEAWIDTH1 - Geo::FEAWIDTH1 / 6.) * 0.5)) * 0.5)};
   TVirtualMC::GetMC()->Gsvolu("FCAL", "TUBE", getMediumID(kCable), cbparS, 3); // copper+alu
 
   // rotation matrix
   Matrix(idrotm[0], 180., 90., 90., 90., 90., 0.);
 
-  Float_t carpar[3] = {static_cast<Float_t>(xtof * 0.5 - Geo::CBLW - Geo::SAWTHICKNESS),
-                       static_cast<Float_t>(feaParam[1] + feaRoof1[1] + Geo::ROOF2PARAMETERS[1] * 0.5),
-                       static_cast<Float_t>(feaRoof1[2] + Geo::BETWEENLANDMASK * 0.5 + al3[2])};
+  Double_t carpar[3] = {(xtof * 0.5 - Geo::CBLW - Geo::SAWTHICKNESS),
+                        (feaParam[1] + feaRoof1[1] + Geo::ROOF2PARAMETERS[1] * 0.5),
+                        (feaRoof1[2] + Geo::BETWEENLANDMASK * 0.5 + al3[2])};
 
-  Float_t bar2[3] = {Geo::BAR2[0], Geo::BAR2[1], Geo::BAR2[2]};
-  Float_t ytub = -(ytof * 0.5 - Geo::MODULECOVERTHICKNESS) * 0.5 + carpar[1] + carpar[1] -
-                 2. * Geo::ROOF2PARAMETERS[1] * 0.5 - 2. * feaRoof1[1] - 2. * bar2[1] - tubepar[1];
+  Double_t bar2[3] = {Geo::BAR2[0], Geo::BAR2[1], Geo::BAR2[2]};
+  Double_t ytub = -(ytof * 0.5 - Geo::MODULECOVERTHICKNESS) * 0.5 + carpar[1] + carpar[1] -
+                  2. * Geo::ROOF2PARAMETERS[1] * 0.5 - 2. * feaRoof1[1] - 2. * bar2[1] - tubepar[1];
 
   // FEA cables positioning
-  Float_t xcoor = (tubepar[2] + (Geo::FEAWIDTH2 - Geo::FEAWIDTH1 / 6.) * 0.5) * 0.5;
-  Float_t ycoor = ytub - 3.;
-  Float_t zcoor = -carpar[2] + (2. * feaRoof1[2] - 2. * al1[2] - 2. * feaParam[2] - cbpar[1]);
+  Double_t xcoor = (tubepar[2] + (Geo::FEAWIDTH2 - Geo::FEAWIDTH1 / 6.) * 0.5) * 0.5;
+  Double_t ycoor = ytub - 3.;
+  Double_t zcoor = -carpar[2] + (2. * feaRoof1[2] - 2. * al1[2] - 2. * feaParam[2] - cbpar[1]);
   TVirtualMC::GetMC()->Gspos("FCAB", 1, "FCA1", -xcoor, ycoor, zcoor, idrotm[0], "ONLY");
   TVirtualMC::GetMC()->Gspos("FCAB", 2, "FCA1", xcoor, ycoor, zcoor, idrotm[0], "ONLY");
   TVirtualMC::GetMC()->Gspos("FCAB", 1, "FCA2", -xcoor, ycoor, zcoor, idrotm[0], "ONLY");
@@ -1562,16 +1649,16 @@ void Detector::makeSuperModuleServices(Float_t xtof, Float_t ytof, Float_t zlenA
 
   // Cables and tubes on the side blocks
   // constants definition
-  Float_t kCBLl = zlenA * 0.5;                              // length of block
-  Float_t kCBLlh = zlenA * 0.5 - Geo::INTERCENTRMODBORDER2; // length  of block in case of holes
-  // constexpr Float_t Geo::CBLW   = 13.5;      // width of block
-  // constexpr Float_t Geo::CBLH1  = 2.;        // min. height of block
-  // constexpr Float_t Geo::CBLH2  = 12.3;      // max. height of block
-  // constexpr Float_t Geo::SAWTHICKNESS = 1.; // Al wall thickness
+  Double_t kCBLl = zlenA * 0.5;                              // length of block
+  Double_t kCBLlh = zlenA * 0.5 - Geo::INTERCENTRMODBORDER2; // length  of block in case of holes
+  // constexpr Double_t Geo::CBLW   = 13.5;      // width of block
+  // constexpr Double_t Geo::CBLH1  = 2.;        // min. height of block
+  // constexpr Double_t Geo::CBLH2  = 12.3;      // max. height of block
+  // constexpr Double_t Geo::SAWTHICKNESS = 1.; // Al wall thickness
 
   // lateral cable and tube volume definition
-  Float_t tgal = (Geo::CBLH2 - Geo::CBLH1) / (2. * kCBLl);
-  Float_t cblpar[11];
+  Double_t tgal = (Geo::CBLH2 - Geo::CBLH1) / (2. * kCBLl);
+  Double_t cblpar[11];
   cblpar[0] = Geo::CBLW * 0.5;
   cblpar[1] = 0.;
   cblpar[2] = 0.;
@@ -1586,7 +1673,7 @@ void Detector::makeSuperModuleServices(Float_t xtof, Float_t ytof, Float_t zlenA
   TVirtualMC::GetMC()->Gsvolu("FCBL", "TRAP", getMediumID(kCableTubes), cblpar, 11); // cables and tubes mix
 
   // Side Al Walls definition
-  Float_t sawpar[3] = {static_cast<Float_t>(Geo::SAWTHICKNESS * 0.5), static_cast<Float_t>(Geo::CBLH2 * 0.5), kCBLl};
+  Double_t sawpar[3] = {(Geo::SAWTHICKNESS * 0.5), (Geo::CBLH2 * 0.5), kCBLl};
   TVirtualMC::GetMC()->Gsvolu("FSAW", "BOX ", getMediumID(kAlFrame), sawpar, 3); // Al
 
   Matrix(idrotm[1], 90., 90., 180., 0., 90., 180.);
@@ -1638,7 +1725,7 @@ void Detector::makeSuperModuleServices(Float_t xtof, Float_t ytof, Float_t zlenA
   }
 
   // TOF Supermodule cover definition and positioning
-  Float_t covpar[3] = {static_cast<Float_t>(xtof * 0.5), 0.075, static_cast<Float_t>(zlenA * 0.5)};
+  Double_t covpar[3] = {(xtof * 0.5), 0.075, (zlenA * 0.5)};
   TVirtualMC::GetMC()->Gsvolu("FCOV", "BOX ", getMediumID(kAlFrame), covpar, 3); // Al
   if (mTOFHoles) {
     covpar[2] = (zlenA * 0.5 - Geo::INTERCENTRMODBORDER2) * 0.5;
@@ -1662,7 +1749,7 @@ void Detector::makeSuperModuleServices(Float_t xtof, Float_t ytof, Float_t zlenA
 }
 
 //_____________________________________________________________________________
-void Detector::makeReadoutCrates(Float_t ytof) const
+void Detector::makeReadoutCrates(Double_t ytof) const
 {
   // Services Volumes
 
@@ -1697,12 +1784,12 @@ void Detector::makeReadoutCrates(Float_t ytof) const
   }
 
   // volume definition
-  Float_t serpar[3] = {29. * 0.5, 121. * 0.5, 90. * 0.5};
+  Double_t serpar[3] = {29. * 0.5, 121. * 0.5, 90. * 0.5};
   TVirtualMC::GetMC()->Gsvolu("FTOS", "BOX ", getMediumID(kCrates), serpar, 3); // Al + Cu + steel
 
-  Float_t xcoor, ycoor, zcoor;
+  Double_t xcoor, ycoor, zcoor;
   zcoor = (118. - 90.) * 0.5;
-  Float_t phi = -10., ra = Geo::RMIN + ytof * 0.5;
+  Double_t phi = -10., ra = Geo::RMIN + ytof * 0.5;
   for (Int_t i = 0; i < Geo::NSECTORS; i++) {
     phi += Geo::PHISEC;
     xcoor = ra * TMath::Cos(phi * TMath::DegToRad());
@@ -1715,7 +1802,7 @@ void Detector::makeReadoutCrates(Float_t ytof) const
   TVirtualMC::GetMC()->Gspos("FTOS", 1, "BBCE", ra, -3., zcoor, 0, "ONLY");
 }
 
-void Detector::makeModulesInBTOFvolumes(Float_t ytof, Float_t zlenA) const
+void Detector::makeModulesInBTOFvolumes(Double_t ytof, Double_t zlenA) const
 {
   //
   // Fill BTOF_%i (for i=0,...17) volumes
@@ -1731,7 +1818,7 @@ void Detector::makeModulesInBTOFvolumes(Float_t ytof, Float_t zlenA) const
   // Matrix(idrotm[0], 90.,  0., 0., 0., 90.,-90.);
   Matrix(idrotm[0], 90., 0., 0., 0., 90., 270.);
 
-  Float_t xcoor, ycoor, zcoor;
+  Double_t xcoor, ycoor, zcoor;
   xcoor = 0.;
 
   // Positioning of fibre glass modules (FTOA, FTOB and FTOC)
@@ -1782,7 +1869,7 @@ void Detector::makeCoversInBTOFvolumes() const
   // Matrix(idrotm[0], 90.,  0., 0., 0., 90.,-90.);
   Matrix(idrotm[0], 90., 0., 0., 0., 90., 270.);
 
-  Float_t xcoor, ycoor, zcoor;
+  Double_t xcoor, ycoor, zcoor;
   xcoor = 0.;
   ycoor = 0.;
   zcoor = Geo::MODULECOVERTHICKNESS * 0.5;
@@ -1804,7 +1891,7 @@ void Detector::makeCoversInBTOFvolumes() const
 }
 
 //_____________________________________________________________________________
-void Detector::makeBackInBTOFvolumes(Float_t ytof) const
+void Detector::makeBackInBTOFvolumes(Double_t ytof) const
 {
   //
   // Fill BTOF_%i (for i=0,...17) volumes with volumes called FAIA and
@@ -1820,7 +1907,7 @@ void Detector::makeBackInBTOFvolumes(Float_t ytof) const
   // Matrix(idrotm[0], 90.,  0., 0., 0., 90.,-90.);
   Matrix(idrotm[0], 90., 0., 0., 0., 90., 270.);
 
-  Float_t xcoor, ycoor, zcoor;
+  Double_t xcoor, ycoor, zcoor;
   xcoor = 0.;
   ycoor = 0.;
   zcoor = Geo::MODULECOVERTHICKNESS + (ytof * 0.5 - Geo::MODULECOVERTHICKNESS) * 0.5;

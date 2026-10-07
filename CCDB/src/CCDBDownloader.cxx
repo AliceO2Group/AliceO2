@@ -365,6 +365,14 @@ void CCDBDownloader::tryNewHost(PerformData* performData, CURL* easy_handle)
   LOG(debug) << "Connecting to another host " << newUrl << "\n";
   requestData->hoPair.header.clear();
   curl_easy_setopt(easy_handle, CURLOPT_URL, newUrl.c_str());
+  // The headers travel with the host, not with the request: a broker mints its
+  // gate token per endpoint, so carrying the previous host's list here is what
+  // made the failover arrive unauthenticated. The lists are built per host by
+  // CcdbApi::scheduleDownload, which is where the token table is visible.
+  if (performData->hostInd < static_cast<int>(requestData->optionsLists.size())) {
+    curl_easy_setopt(easy_handle, CURLOPT_HTTPHEADER,
+                     requestData->optionsLists.at(performData->hostInd));
+  }
   mHandlesToBeAdded.push_back(easy_handle);
 }
 
@@ -568,7 +576,9 @@ void CCDBDownloader::transferFinished(CURL* easy_handle, CURLcode curlCode)
           }
         }
         --(*performData->requestsLeft);
-        curl_slist_free_all(*performData->options);
+        for (auto* optionList : *performData->options) {
+          curl_slist_free_all(optionList);
+        }
         delete requestData;
         delete performData->codeDestination;
         curl_easy_cleanup(easy_handle);
@@ -729,7 +739,7 @@ void CCDBDownloader::asynchSchedule(CURL* handle, size_t* requestCounter)
   curl_easy_getinfo(handle, CURLINFO_PRIVATE, &requestData);
   headerMap = &(requestData->hoPair.header);
   hostsPool = &(requestData->hosts);
-  auto* options = &(requestData->optionsList);
+  auto* options = &(requestData->optionsLists);
 
   // Prepare temporary data about transfer
   auto* data = new CCDBDownloader::PerformData(); // Freed in transferFinished

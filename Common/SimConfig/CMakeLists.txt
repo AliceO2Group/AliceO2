@@ -21,6 +21,7 @@ o2_add_library(SimConfig
                        src/InteractionDiamondParam.cxx
                        src/GlobalProcessCutSimParam.cxx
 		       src/FluenceWeightCalculator.cxx
+                       src/G4ScoringMerger.cxx
                PUBLIC_LINK_LIBRARIES O2::CommonUtils
                                      O2::DetectorsCommonDataFormats O2::SimulationDataFormat
                                      FairRoot::Base Boost::program_options)

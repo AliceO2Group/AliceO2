@@ -364,7 +364,7 @@ GPUd() bool TrackParametrization<value_T>::propagateParamTo(value_t xk, value_t 
   if (gpu::CAMath::Abs(r2) < constants::math::Almost0) {
     return false;
   }
-  double dy2dx = (f1 + f2) / (r1 + r2);
+  value_t dy2dx = (f1 + f2) / (r1 + r2);
   bool arcz = gpu::CAMath::Abs(x2r) > 0.05f;
   if (arcz) {
     // for small dx/R the linear apporximation of the arc by the segment is OK,
@@ -869,6 +869,30 @@ GPUd() bool TrackParametrization<value_T>::getXatLabR(value_t r, value_t& x, val
 
 //______________________________________________
 template <typename value_T>
+GPUd() int TrackParametrization<value_T>::getELossSteps(value_t xrho, bool anglecorr) const
+{
+  // Copied from correctForMaterial before entering its energy-loss loop
+  const value_t m = getPID().getMass();
+  if (!(m > 0) || xrho == 0.f) {
+    return 0; // correctForMaterial skips the energy-loss block entirely
+  }
+  if (anglecorr) {
+    const value_t csp2 = (1.f - getSnp()) * (1.f + getSnp()); // cos(phi)^2
+    const value_t cst2I = (1.f + getTgl() * getTgl());        // 1/cos(lambda)^2
+    xrho *= gpu::CAMath::Sqrt(cst2I / csp2);
+  }
+  const value_t p = getP(), massInv = 1.f / m;
+  const value_t e = gpu::CAMath::Sqrt(p * p + getPID().getMass2()), ekin = e - m;
+  value_t dedx = getdEdxBBOpt(p * massInv);
+  const int charge2 = getAbsCharge() * getAbsCharge();
+  if (charge2 != 1) {
+    dedx *= charge2;
+  }
+  return nELossSteps(dedx * xrho, ekin);
+}
+
+//______________________________________________
+template <typename value_T>
 GPUd() bool TrackParametrization<value_T>::correctForELoss(value_t xrho, bool anglecorr)
 {
   //------------------------------------------------------------------
@@ -891,7 +915,7 @@ GPUd() bool TrackParametrization<value_T>::correctForELoss(value_t xrho, bool an
       xrho *= angle;
     }
     int charge2 = getAbsCharge() * getAbsCharge();
-    value_t p = getP(), p0 = p, p2 = p * p, e2 = p2 + getPID().getMass2(), massInv = 1. / m, bg = p * massInv;
+    value_t p = getP(), p0 = p, p2 = p * p, e2 = p2 + getPID().getMass2(), massInv = 1.f / m, bg = p * massInv;
     value_t e = gpu::CAMath::Sqrt(e2), ekin = e - m, dedx = getdEdxBBOpt(bg);
 #ifdef _BB_NONCONST_CORR_
     value_t dedxDer = 0., dedx1 = dedx;
@@ -900,10 +924,7 @@ GPUd() bool TrackParametrization<value_T>::correctForELoss(value_t xrho, bool an
       dedx *= charge2;
     }
     value_t dE = dedx * xrho;
-    int na = 1 + int(gpu::CAMath::Abs(dE) / ekin * ELoss2EKinThreshInv);
-    if (na > MaxELossIter) {
-      na = MaxELossIter;
-    }
+    int na = nELossSteps(dE, ekin);
     if (na > 1) {
       dE /= na;
       xrho /= na;

@@ -15,6 +15,8 @@
 #ifndef GPUTPCCOMPRESSION_H
 #define GPUTPCCOMPRESSION_H
 
+#include "GPUCommonDef.h"
+
 #include "GPUDef.h"
 #include "GPUProcessor.h"
 #include "GPUCommonMath.h"
@@ -46,14 +48,14 @@ class GPUTPCCompression : public GPUProcessor
   void* SetPointersMemory(void* mem);
 #endif
 
-  static constexpr uint32_t P_MAX_QMAX = 1 << 10;
-  static constexpr uint32_t P_MAX_REGULAR_QTOT = 5 * 5 * P_MAX_QMAX;
-  static constexpr uint32_t P_MAX_SATURATED_QTOT = 1 << 16; // Need two different limits as saturated clusters use full u16 range for qTot
-  static constexpr uint32_t P_MAX_TIME = 1 << 24;
-  static constexpr uint32_t P_MAX_PAD = 1 << 16;
-  static constexpr uint32_t P_MAX_SIGMA = 1 << 8;
-  static constexpr uint32_t P_MAX_FLAGS = 1 << 8;
-  static constexpr uint32_t P_MAX_QPT = 1 << 8;
+  static GPUglobalconstexpr() uint32_t P_MAX_QMAX = 1 << 10;
+  static GPUglobalconstexpr() uint32_t P_MAX_REGULAR_QTOT = 5 * 5 * P_MAX_QMAX;
+  static GPUglobalconstexpr() uint32_t P_MAX_SATURATED_QTOT = 1 << 16; // Need two different limits as saturated clusters use full u16 range for qTot
+  static GPUglobalconstexpr() uint32_t P_MAX_TIME = 1 << 24;
+  static GPUglobalconstexpr() uint32_t P_MAX_PAD = 1 << 16;
+  static GPUglobalconstexpr() uint32_t P_MAX_SIGMA = 1 << 8;
+  static GPUglobalconstexpr() uint32_t P_MAX_FLAGS = 1 << 8;
+  static GPUglobalconstexpr() uint32_t P_MAX_QPT = 1 << 8;
 
   GPUd() static void truncateSignificantBitsCharge(uint16_t& charge, const GPUParam& param) { truncateSignificantBits(charge, param.rec.tpc.sigBitsCharge, P_MAX_REGULAR_QTOT); }
   GPUd() static void truncateSignificantBitsChargeMax(uint16_t& charge, const GPUParam& param) { truncateSignificantBits(charge, param.rec.tpc.sigBitsCharge, P_MAX_QMAX); }
@@ -71,7 +73,7 @@ class GPUTPCCompression : public GPUProcessor
     uint32_t nStoredUnattachedClusters = 0;
   };
 
-  constexpr static uint32_t NSECTORS = GPUTPCGeometry::NSECTORS;
+  GPUglobalconstexpr() static uint32_t NSECTORS = GPUTPCGeometry::NSECTORS;
 
   o2::tpc::CompressedClustersPtrs mPtrs;
   o2::tpc::CompressedClusters* mOutput = nullptr;

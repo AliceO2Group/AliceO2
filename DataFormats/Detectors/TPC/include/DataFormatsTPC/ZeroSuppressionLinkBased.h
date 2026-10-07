@@ -30,16 +30,16 @@ namespace tpc
 namespace zerosupp_link_based
 {
 
-static constexpr uint32_t DataWordSizeBits = 128;                   ///< size of header word and data words in bits
-static constexpr uint32_t DataWordSizeBytes = DataWordSizeBits / 8; ///< size of header word and data words in bytes
-static constexpr uint32_t ChannelPerTBHeader = 80;
+static GPUglobalconstexpr() uint32_t DataWordSizeBits = 128;                   ///< size of header word and data words in bits
+static GPUglobalconstexpr() uint32_t DataWordSizeBytes = DataWordSizeBits / 8; ///< size of header word and data words in bytes
+static GPUglobalconstexpr() uint32_t ChannelPerTBHeader = 80;
 
 /// common header definition of the zero suppressed link based data
 struct CommonHeader {
-  static constexpr uint32_t MagicWordLinkZS = 0xFC;
-  static constexpr uint32_t MagicWordLinkZSMetaHeader = 0xFD;
-  static constexpr uint32_t MagicWordTrigger = 0xAA;
-  static constexpr uint32_t MagicWordTriggerV2 = 0xAB;
+  static GPUglobalconstexpr() uint32_t MagicWordLinkZS = 0xFC;
+  static GPUglobalconstexpr() uint32_t MagicWordLinkZSMetaHeader = 0xFD;
+  static GPUglobalconstexpr() uint32_t MagicWordTrigger = 0xAA;
+  static GPUglobalconstexpr() uint32_t MagicWordTriggerV2 = 0xAB;
 
   union {
     uint64_t word0 = 0;             ///< lower 64 bits

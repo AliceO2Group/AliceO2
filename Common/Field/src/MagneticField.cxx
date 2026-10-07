@@ -108,8 +108,8 @@ MagneticField::MagneticField(const char* name, const char* title, Double_t facto
     mBeamEnergy(be),
     mDefaultIntegration(integ),
     mPrecisionInteg(1),
-    mMultipicativeFactorSolenoid(factorSol),
-    mMultipicativeFactorDipole(factorDip),
+    mMultipicativeFactorSolenoid(1.),
+    mMultipicativeFactorDipole(1.),
     mMaxField(fmax),
     mDipoleOnOffFlag(factorDip == 0.),
     mQuadrupoleGradient(0),
@@ -122,6 +122,8 @@ MagneticField::MagneticField(const char* name, const char* title, Double_t facto
   /*
    * Constructor for human readable params
    */
+  setFactorSolenoid(factorSol);
+  setFactorDipole(factorDip);
   setDataFileName(path.c_str());
   if (!gOriginBias) {
     checkOriginBias();
@@ -139,8 +141,8 @@ MagneticField::MagneticField(const MagFieldParam& param)
     mBeamEnergy(param.GetBeamEnergy()),
     mDefaultIntegration(param.GetDefInt()),
     mPrecisionInteg(1),
-    mMultipicativeFactorSolenoid(param.GetFactorSol()), // temporary
-    mMultipicativeFactorDipole(param.GetFactorDip()),   // temporary
+    mMultipicativeFactorSolenoid(1.),
+    mMultipicativeFactorDipole(1.),
     mMaxField(param.GetMaxField()),
     mDipoleOnOffFlag(param.GetFactorDip() == 0.),
     mQuadrupoleGradient(0),
@@ -153,6 +155,8 @@ MagneticField::MagneticField(const MagFieldParam& param)
   /*
    * Constructor for FairParam derived params
    */
+  setFactorSolenoid(param.GetFactorSol());
+  setFactorDipole(param.GetFactorDip());
   setDataFileName(param.GetMapPath());
   if (!gOriginBias) {
     checkOriginBias();
@@ -235,8 +239,11 @@ void MagneticField::CreateField()
 
   loadParameterization();
   initializeMachineField(mBeamType, mBeamEnergy);
-  setFactorSolenoid(mMultipicativeFactorSolenoid);
-  setFactorDipole(mMultipicativeFactorDipole);
+  // The scaling factors are left alone: they already carry the polarity convention, and
+  // re-applying it would invert a field re-initialized after being read back from a file.
+  if (mFastField) {
+    mFastField->setFactorSol(getFactorSolenoid());
+  }
   double xyz[3] = {0., 0., 0.};
   mSolenoid = getBz(xyz);
   Print("a");

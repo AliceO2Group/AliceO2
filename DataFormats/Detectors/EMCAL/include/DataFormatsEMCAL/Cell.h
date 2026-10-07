@@ -12,14 +12,12 @@
 #ifndef ALICEO2_EMCAL_CELL_H_
 #define ALICEO2_EMCAL_CELL_H_
 
-#include <bitset>
-#include <cfloat>
-#include <climits>
 #include "DataFormatsEMCAL/Constants.h"
 
-namespace o2
-{
-namespace emcal
+#include <cfloat>
+#include <climits>
+
+namespace o2::emcal
 {
 
 /// \class Cell
@@ -90,7 +88,7 @@ class Cell
 
   /// \brief Get the tower ID
   /// \return Tower ID
-  short getTower() const { return mTowerID; }
+  [[nodiscard]] short getTower() const { return mTowerID; }
 
   /// \brief Set the time stamp
   /// \param timestamp Time in ns
@@ -98,7 +96,7 @@ class Cell
 
   /// \brief Get the time stamp
   /// \return Time in ns
-  float getTimeStamp() const { return mTimestamp; }
+  [[nodiscard]] float getTimeStamp() const { return mTimestamp; }
 
   /// \brief Set the energy of the cell
   /// \brief Energy of the cell in GeV
@@ -106,7 +104,7 @@ class Cell
 
   /// \brief Get the energy of the cell
   /// \return Energy of the cell
-  float getEnergy() const { return mEnergy; }
+  [[nodiscard]] float getEnergy() const { return mEnergy; }
 
   /// \brief Set the amplitude of the cell
   /// \param amplitude Cell amplitude
@@ -114,7 +112,7 @@ class Cell
 
   /// \brief Get cell amplitude
   /// \return Cell amplitude in GeV
-  float getAmplitude() const { return getEnergy(); }
+  [[nodiscard]] float getAmplitude() const { return getEnergy(); }
 
   /// \brief Set the type of the cell
   /// \param ctype Type of the cell (HIGH_GAIN, LOW_GAIN, LEDMON, TRU)
@@ -122,40 +120,40 @@ class Cell
 
   /// \brief Get the type of the cell
   /// \return Type of the cell (HIGH_GAIN, LOW_GAIN, LEDMON, TRU)
-  ChannelType_t getType() const { return mChannelType; }
+  [[nodiscard]] ChannelType_t getType() const { return mChannelType; }
 
   /// \brief Check whether the cell is of a given type
   /// \param ctype Type of the cell (HIGH_GAIN, LOW_GAIN, LEDMON, TRU)
   /// \return True if the type of the cell matches the requested type, false otherwise
-  bool isChannelType(ChannelType_t ctype) const { return mChannelType == ctype; }
+  [[nodiscard]] bool isChannelType(ChannelType_t ctype) const { return mChannelType == ctype; }
 
   /// \brief Mark cell as low gain cell
   void setLowGain() { setType(ChannelType_t::LOW_GAIN); }
 
   /// \brief Check whether the cell is a low gain cell
   /// \return True if the cell type is low gain, false otherwise
-  Bool_t getLowGain() const { return isChannelType(ChannelType_t::LOW_GAIN); }
+  [[nodiscard]] Bool_t getLowGain() const { return isChannelType(ChannelType_t::LOW_GAIN); }
 
   /// \brief Mark cell as high gain cell
   void setHighGain() { setType(ChannelType_t::HIGH_GAIN); }
 
   /// \brief Check whether the cell is a high gain cell
   /// \return True if the cell type is high gain, false otherwise
-  Bool_t getHighGain() const { return isChannelType(ChannelType_t::HIGH_GAIN); };
+  [[nodiscard]] Bool_t getHighGain() const { return isChannelType(ChannelType_t::HIGH_GAIN); };
 
   /// \brief Mark cell as LED monitor cell
   void setLEDMon() { setType(ChannelType_t::LEDMON); }
 
   /// \brief Check whether the cell is a LED monitor cell
   /// \return True if the cell type is LED monitor, false otherwise
-  Bool_t getLEDMon() const { return isChannelType(ChannelType_t::LEDMON); }
+  [[nodiscard]] Bool_t getLEDMon() const { return isChannelType(ChannelType_t::LEDMON); }
 
   /// \brief Mark cell as TRU cell
   void setTRU() { setType(ChannelType_t::TRU); }
 
   /// \brief Check whether the cell is a TRU cell
   /// \return True if the cell type is TRU, false otherwise
-  Bool_t getTRU() const { return isChannelType(ChannelType_t::TRU); }
+  [[nodiscard]] Bool_t getTRU() const { return isChannelType(ChannelType_t::TRU); }
 
   /// \brief Apply compression as done during writing to / reading from CTF
   /// \param version Encoder version
@@ -181,7 +179,7 @@ class Cell
   /// \return Encoded bit representation
   ///
   /// Same as getTower - no compression applied for tower ID
-  uint16_t getTowerIDEncoded() const;
+  [[nodiscard]] uint16_t getTowerIDEncoded() const;
 
   /// \brief Get encoded bit representation of timestamp (for CTF)
   /// \return Encoded bit representation
@@ -191,7 +189,7 @@ class Cell
   /// be stored is from -1023 to 1023 ns. In case the
   /// range is exceeded the time is set to the limit
   /// of the range.
-  uint16_t getTimeStampEncoded() const;
+  [[nodiscard]] uint16_t getTimeStampEncoded() const;
 
   /// \brief Get encoded bit representation of energy (for CTF)
   /// \param version Encoding verions
@@ -203,11 +201,11 @@ class Cell
   /// the limits is provided the energy is
   /// set to the limits (0 in case of negative
   /// energy, 250. in case of energies > 250 GeV)
-  uint16_t getEnergyEncoded(EncoderVersion version = EncoderVersion::EncodingV2) const;
+  [[nodiscard]] uint16_t getEnergyEncoded(EncoderVersion version = EncoderVersion::EncodingV2) const;
 
   /// \brief Get encoded bit representation of cell type (for CTF)
   /// \return Encoded bit representation
-  uint16_t getCellTypeEncoded() const;
+  [[nodiscard]] uint16_t getCellTypeEncoded() const;
 
   void initializeFromPackedBitfieldV0(const char* bitfield);
 
@@ -231,8 +229,8 @@ class Cell
  private:
   /// \brief Set cell energy from encoded bit representation (from CTF)
   /// \param energyBits Bit representation of energy
-  /// \param cellTypeBits Bit representation of cell type
-  void setEnergyEncoded(uint16_t energyBits, uint16_t cellTypeBits, EncoderVersion version = EncoderVersion::EncodingV1);
+  /// \param channelTypeBits Bit representation of cell type
+  void setEnergyEncoded(uint16_t energyBits, uint16_t channelTypeBits, EncoderVersion version = EncoderVersion::EncodingV1);
 
   /// \brief Set cell time from encoded bit representation (from CTF)
   /// \param timestampBits Bit representation of timestamp
@@ -259,7 +257,6 @@ class Cell
 /// \param cell Cell to be printed
 /// \return Stream after printing
 std::ostream& operator<<(std::ostream& stream, const Cell& cell);
-} // namespace emcal
-} // namespace o2
+} // namespace o2::emcal
 
 #endif

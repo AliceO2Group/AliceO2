@@ -538,12 +538,15 @@ void Detector::createMaterials()
   Medium(kAr, "Ar", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
 }
 //**************************************************************************************************
-TGeoVolume* Detector::createAbsorber(float tickness)
+TGeoVolume* Detector::createAbsorber(int chamber, float tickness)
 {
   double cm = 1, mm = 0.1 * cm, um = 0.001 * mm; // default is cm
   auto& matmgr = o2::base::MaterialManager::Instance();
   TGeoMedium* al = matmgr.getTGeoMedium("HMP_Al");
-  TGeoVolume* abs = gGeoManager->MakeBox("Habs", al, tickness * mm / 2, 1300.00 * mm / 2, 1300 * mm / 2);
+  // one volume per chamber: the two plates differ in thickness, so a shared name
+  // would leave two different volumes answering to "Habs" and two placements whose
+  // node paths are both /cave_1/barrel_1/Habs_0
+  TGeoVolume* abs = gGeoManager->MakeBox(Form("Habs%d", chamber), al, tickness * mm / 2, 1300.00 * mm / 2, 1300 * mm / 2);
   return abs;
 }
 //**************************************************************************************************
@@ -1260,8 +1263,8 @@ void Detector::ConstructGeometry()
 
   TGeoVolume* hmpcradle = CreateCradle();
 
-  TGeoVolume* hmpidabs_cham2 = createAbsorber(40.0);
-  TGeoVolume* hmpidabs_cham4 = createAbsorber(80.0);
+  TGeoVolume* hmpidabs_cham2 = createAbsorber(2, 40.0);
+  TGeoVolume* hmpidabs_cham4 = createAbsorber(4, 80.0);
 
   double theta = 33.5;
 
@@ -1270,14 +1273,14 @@ void Detector::ConstructGeometry()
   pMatrixAbs2->SetTranslation(trans2);
   pMatrixAbs2->RotateZ(theta);
 
-  gGeoManager->GetVolume("barrel")->AddNode(hmpidabs_cham2, 0, pMatrixAbs2);
+  gGeoManager->GetVolume("barrel")->AddNode(hmpidabs_cham2, 2, pMatrixAbs2);
 
   TGeoHMatrix* pMatrixAbs4 = new TGeoHMatrix;
   const double trans4[] = {435., 0., 155.};
   pMatrixAbs4->SetTranslation(trans4);
   pMatrixAbs4->RotateZ(theta);
 
-  gGeoManager->GetVolume("barrel")->AddNode(hmpidabs_cham4, 0, pMatrixAbs4);
+  gGeoManager->GetVolume("barrel")->AddNode(hmpidabs_cham4, 4, pMatrixAbs4);
 
   for (Int_t iCh = 0; iCh <= 6; iCh++) { // place 7 chambers
     TGeoVolume* hmpid = createChamber(iCh);

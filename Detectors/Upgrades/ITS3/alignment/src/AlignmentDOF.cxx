@@ -11,13 +11,11 @@
 
 #include "ITS3Align/AlignmentDOF.h"
 
-#include <array>
 #include <cmath>
 #include <stdexcept>
 
 #include "ITS3Align/AlignmentMath.h"
 #include "ITS3Base/SpecsV2.h"
-#include "CommonConstants/MathConstants.h"
 
 namespace
 {
@@ -36,22 +34,17 @@ void validateDerivativeOutput(const DOFSet& dofSet, Eigen::Ref<Eigen::MatrixXd> 
 void RigidBodyDOFSet::fillDerivatives(const DerivativeContext& ctx, Eigen::Ref<Eigen::MatrixXd> out) const
 {
   validateDerivativeOutput(*this, out);
-
-  const double csp = 1. / std::sqrt(1. + (ctx.tgl * ctx.tgl));
-  const double uP = ctx.snp * csp;
-  const double vP = ctx.tgl * csp;
-
-  out(0, TX) = uP;
+  out(0, TX) = ctx.dydx;
   out(0, TY) = -1.;
   out(0, RX) = ctx.trkZ;
-  out(0, RY) = ctx.trkZ * uP;
-  out(0, RZ) = -ctx.trkY * uP;
+  out(0, RY) = ctx.trkZ * ctx.dydx;
+  out(0, RZ) = -ctx.trkY * ctx.dydx;
 
-  out(1, TX) = vP;
+  out(1, TX) = ctx.dzdx;
   out(1, TZ) = -1.;
   out(1, RX) = -ctx.trkY;
-  out(1, RY) = ctx.trkZ * vP;
-  out(1, RZ) = -ctx.trkY * vP;
+  out(1, RY) = ctx.trkZ * ctx.dzdx;
+  out(1, RZ) = -ctx.trkY * ctx.dzdx;
 }
 
 void LegendreDOFSet::fillDerivatives(const DerivativeContext& ctx, Eigen::Ref<Eigen::MatrixXd> out) const
@@ -66,34 +59,12 @@ void LegendreDOFSet::fillDerivatives(const DerivativeContext& ctx, Eigen::Ref<Ei
   const auto [u, v] = o2::its3::align::computeUV(gloX, gloY, ctx.measZ, ctx.sensorID, o2::its3::constants::radii[ctx.layerID]);
   const auto pu = o2::its3::align::legendrePols(mOrder, u);
   const auto pv = o2::its3::align::legendrePols(mOrder, v);
-  const double phiWidth = o2::its3::align::getSensorPhiWidth(ctx.sensorID, o2::its3::constants::radii[ctx.layerID]);
-
-  // same intergration as `evaluateLegendreShift' but now for each order separateley
-  Eigen::VectorXd arcMismatch = Eigen::VectorXd::Zero(nDOFs());
-  if (std::abs(u) > o2::constants::math::Almost0) {
-    constexpr std::array<double, 8> x = {-0.9602898564975363, -0.7966664774136267, -0.5255324099163290, -0.1834346424956498, 0.1834346424956498, 0.5255324099163290, 0.7966664774136267, 0.9602898564975363};
-    constexpr std::array<double, 8> w = {0.1012285362903763, 0.2223810344533745, 0.3137066458778873, 0.3626837833783620, 0.3626837833783620, 0.3137066458778873, 0.2223810344533745, 0.1012285362903763};
-    const double mid = 0.5 * u;
-    const double half = 0.5 * u;
-    for (int iq = 0; iq < 8; ++iq) {
-      const double up = mid + (half * x[iq]);
-      const auto puQ = o2::its3::align::legendrePols(mOrder, up);
-      int idx = 0;
-      for (int i = 0; i <= mOrder; ++i) {
-        for (int j = 0; j <= i; ++j) {
-          arcMismatch[idx] += w[iq] * puQ[j] * pv[i - j];
-          ++idx;
-        }
-      }
-    }
-    arcMismatch *= 0.5 * phiWidth * half;
-  }
 
   int idx = 0;
   for (int i = 0; i <= mOrder; ++i) {
     for (int j = 0; j <= i; ++j) {
       const double basis = pu[j] * pv[i - j];
-      out(0, idx) = (ctx.dydx * basis) + arcMismatch[idx];
+      out(0, idx) = ctx.dydx * basis;
       out(1, idx) = ctx.dzdx * basis;
       ++idx;
     }
@@ -103,36 +74,48 @@ void LegendreDOFSet::fillDerivatives(const DerivativeContext& ctx, Eigen::Ref<Ei
 void InextensionalDOFSet::fillDerivatives(const DerivativeContext& ctx, Eigen::Ref<Eigen::MatrixXd> out) const
 {
   validateDerivativeOutput(*this, out);
-  if (ctx.layerID < 0) {
+  if (ctx.sensorID < 0 || ctx.layerID < 0) {
     throw std::invalid_argument("InextensionalDOFSet requires an ITS3 measurement context");
   }
 
   const double r = o2::its3::constants::radii[ctx.layerID];
-  const double phi = std::atan2(r * std::sin(ctx.measAlpha), r * std::cos(ctx.measAlpha));
-  const double z = ctx.measZ;
+  const double gloX = ctx.measX * std::cos(ctx.measAlpha);
+  const double gloY = ctx.measX * std::sin(ctx.measAlpha);
+  const auto [u, v] = o2::its3::align::computeUV(gloX, gloY, ctx.measZ, ctx.sensorID, r);
+  const double cPhi = o2::its3::align::phiScale(r);
+  const double zOverR = ctx.measZ / r;
 
-  for (int n = 2; n <= mMaxOrder; ++n) {
-    const double sn = std::sin(n * phi);
-    const double cn = std::cos(n * phi);
-    const double n2 = static_cast<double>(n * n);
-    const int off = modeOffset(n);
+  // The residual derivative for a mode with displacement M = (M_r, M_phi, M_z)
+  // along the local (r, phi, z) directions is
+  //   row0 = dydx * M_r - M_phi,   row1 = dzdx * M_r - M_z
+  // (cf. the rigid-body case, where M = (1,0,0) gives (dydx, dzdx)).
+  const auto fill = [&out, &ctx](int idx, double mR, double mPhi, double mZ) {
+    out(0, idx) = (ctx.dydx * mR) - mPhi;
+    out(1, idx) = (ctx.dzdx * mR) - mZ;
+  };
 
-    out(0, off + 0) = -(z / r) * (n * sn + ctx.dydx * n2 * cn);
-    out(1, off + 0) = -cn - ctx.dzdx * (z / r) * n2 * cn;
+  const int order = std::max(mMaxOrder, hasExtensional() ? mExtOrderPhi : 0);
+  const auto pu = o2::its3::align::legendrePols(order, u);
+  const auto pu1 = o2::its3::align::legendrePolsD1(mMaxOrder, u);
+  const auto pu2 = o2::its3::align::legendrePolsD2(mMaxOrder, u);
 
-    out(0, off + 1) = (z / r) * (n * cn - ctx.dydx * n2 * sn);
-    out(1, off + 1) = -sn * (1. + ctx.dzdx * (z / r) * n2);
-
-    out(0, off + 2) = -cn + ctx.dydx * n * sn;
-    out(1, off + 2) = ctx.dzdx * n * sn;
-
-    out(0, off + 3) = -sn - ctx.dydx * n * cn;
-    out(1, off + 3) = -ctx.dzdx * n * cn;
+  for (int k = 0; k <= mMaxOrder; ++k) {
+    // f_k: u_z = P_k, u_phi = -(z/r) c P'_k, u_r = (z/r) c^2 P''_k
+    fill(fIdx(k),
+         zOverR * cPhi * cPhi * pu2[k],
+         -zOverR * cPhi * pu1[k],
+         pu[k]);
+    // g_k: u_phi = P_k, u_r = -c P'_k
+    fill(gIdx(k), -cPhi * pu1[k], pu[k], 0.);
   }
 
-  out(0, alphaIdx()) = z / r;
-  out(1, alphaIdx()) = -phi;
-
-  out(0, betaIdx()) = -phi - ctx.dydx;
-  out(1, betaIdx()) = -ctx.dzdx;
+  if (hasExtensional()) {
+    const auto pv = o2::its3::align::legendrePols(mExtOrderZ, v);
+    for (int k = 0; k <= mExtOrderPhi; ++k) {
+      for (int l = 1; l <= mExtOrderZ; ++l) {
+        // h_{k,l}: strictly radial u_r = P_k(u) P_l(v)
+        fill(hIdx(k, l), pu[k] * pv[l], 0., 0.);
+      }
+    }
+  }
 }

@@ -47,4 +47,5 @@ o2_add_executable(get-run-parameters
       PUBLIC_LINK_LIBRARIES
       O2::DataFormatsCTP
       O2::CommonDataFormat
+      O2::CommonUtils
       O2::CCDB)

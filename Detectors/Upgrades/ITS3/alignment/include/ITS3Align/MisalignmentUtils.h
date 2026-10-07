@@ -24,10 +24,13 @@
 namespace o2::its3::align
 {
 
+// Legendre parameterisation of the open half-shell deformation, matching InextensionalDOFSet: inextensional
+// coefficients f_k, g_k of the normalised azimuth u, plus optional strictly radial modes h_{k,l} (l >= 1) in P_k(u)
+// P_l(v). See AlignmentDOF.h for the displacement field.
 struct InextensionalMisalignment {
-  std::map<int, std::array<double, 4>> modes; // n -> (a_n, b_n, c_n, d_n)
-  double alpha{0.};
-  double beta{0.};
+  std::map<int, double> f;                 // k -> f_k
+  std::map<int, double> g;                 // k -> g_k
+  std::map<std::pair<int, int>, double> h; // (k, l) -> h_{k,l}, l >= 1
 };
 
 struct SensorMisalignment {

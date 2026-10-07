@@ -66,6 +66,12 @@ GeneratorPythia8::GeneratorPythia8(Pythia8GenConfig const& config) : Generator("
   mInterface = reinterpret_cast<void*>(&mPythia);
   mInterfaceName = "pythia8";
 
+  // Decrease Pythia8 verbosity when running in Hyperloop
+  if (mIsHyperloop) {
+    LOG(info) << "Simulation running in Hyperloop => reducing Pythia8 logs";
+    mPythia.readString("Print:quiet on");
+  }
+
   LOG(info) << "Instance \'Pythia8\' generator with following parameters";
   LOG(info) << "config: " << config.config;
   LOG(info) << "hooksFileName: " << config.hooksFileName;

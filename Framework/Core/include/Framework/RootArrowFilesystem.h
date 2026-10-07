@@ -123,6 +123,11 @@ struct RootObjectReadingCapability {
   // Wether or not this actually supports reading an object of the following class
   std::function<bool(char const*)> checkSupport;
 
+  // Accounts the bytes of the object behind `handle` against the two counters, so that
+  // the generic reading code need not know how a given format reports its size. Left
+  // null by formats which cannot report it.
+  std::function<void(void* handle, size_t& compressed, size_t& uncompressed)> accountBytes = nullptr;
+
   // This must be implemented to load the actual RootArrowFactory plugin which
   // implements this capability. This way the detection of the file format
   // (via get handle) does not need to know about the actual code which performs

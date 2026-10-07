@@ -132,6 +132,9 @@ struct GeneratorTask {
       }
     }
     if (eventCounter >= nEvents || time_expired) {
+      // terminate and reap external generator subprocesses here: device
+      // teardown is not guaranteed to run the generators' destructors
+      genservice->stopGenerators();
       pc.services().get<ControlService>().endOfStream();
       pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 

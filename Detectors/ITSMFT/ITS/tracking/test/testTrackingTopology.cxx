@@ -72,6 +72,65 @@ BOOST_AUTO_TEST_CASE(trackingtopology_basic)
   }
 }
 
+/// Without holes the cell graph is a single chain, so cell i - spanning layers i, i+1, i+2 -
+/// can only ever be reached by the i cells below it.
+BOOST_AUTO_TEST_CASE(trackingtopology_max_cell_level_is_the_chain_depth)
+{
+  o2::its::TrackingTopology<7> topo;
+  topo.init(7, 0, 0);
+  const auto view = topo.getView();
+  view.print();
+
+  BOOST_REQUIRE_EQUAL(view.nLinks, 6);
+  BOOST_REQUIRE_EQUAL(view.nCells, 5);
+  for (int i{0}; i < view.nCells; ++i) {
+    BOOST_CHECK_EQUAL(int(view.getMaxCellLevel(i)), i + 1);
+  }
+}
+
+/// With a hole allowed the graph branches, and the depth is the longest path ending on a cell
+/// rather than its index. Every cell must still be reachable by at least one chain, and no cell
+/// may claim a level deeper than the number of cells that could precede it.
+BOOST_AUTO_TEST_CASE(trackingtopology_max_cell_level_follows_the_longest_path)
+{
+  o2::its::TrackingTopology<5> topo;
+  topo.init(5, 1, 1 << 2);
+  const auto view = topo.getView();
+  view.print();
+
+  bool sawBranching = false;
+  for (int i{0}; i < view.nCells; ++i) {
+    const auto level = int(view.getMaxCellLevel(i));
+    BOOST_CHECK_GE(level, 1);
+    BOOST_CHECK_LE(level, int(view.nCells));
+    // A cell reached by a chain of n predecessors needs n+2 layers below its outer one.
+    BOOST_CHECK_LE(level, view.getCell(i).hitLayerMask.last() - 1);
+    sawBranching |= level != i + 1;
+  }
+  BOOST_CHECK(sawBranching); // otherwise this is just the chain case again
+}
+
+/// Neighbour construction can finalize a target after one source-layer wave: every predecessor
+/// of a target ends on the destination layer of the target's first link.
+BOOST_AUTO_TEST_CASE(trackingtopology_predecessors_belong_to_one_layer_wave)
+{
+  o2::its::TrackingTopology<7> topo;
+  topo.init(7, 2, (1 << 2) | (1 << 4));
+  const auto view = topo.getView();
+
+  for (int sourceId{0}; sourceId < view.nCells; ++sourceId) {
+    const auto& source = view.getCell(sourceId);
+    const int sourceWave = source.hitLayerMask.last();
+    const auto successors = view.getCellsStartingWithLink(source.secondLink);
+    for (int i{0}; i < successors.getEntries(); ++i) {
+      const int targetId = view.cellsByFirstLink[successors.getFirstEntry() + i];
+      const auto& target = view.getCell(targetId);
+      BOOST_CHECK_EQUAL(target.firstLink, source.secondLink);
+      BOOST_CHECK_EQUAL(sourceWave, view.getLink(target.firstLink).toLayer);
+    }
+  }
+}
+
 BOOST_AUTO_TEST_CASE(trackingtopology_single_allowed_hole)
 {
   o2::its::TrackingTopology<5> topo;

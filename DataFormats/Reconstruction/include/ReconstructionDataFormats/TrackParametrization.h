@@ -97,15 +97,15 @@ enum DirType : int { DirInward = -1,
                      DirAuto = 0,
                      DirOutward = 1 };
 
-constexpr int kNParams = 5, kCovMatSize = 15, kLabCovMatSize = 21;
+GPUglobalconstexpr() int kNParams = 5, kCovMatSize = 15, kLabCovMatSize = 21;
 
-constexpr float kCY2max = 100 * 100, // SigmaY<=100cm
-  kCZ2max = 100 * 100,               // SigmaZ<=100cm
-  kCSnp2max = 1 * 1,                 // SigmaSin<=1
-  kCTgl2max = 1 * 1,                 // SigmaTan<=1
-  kC1Pt2max = 100 * 100,             // Sigma1/Pt<=100 1/GeV
-  kMostProbablePt = 0.6f,            // Most Probable Pt (GeV), for running with Bz=0
-  kCalcdEdxAuto = -999.f;            // value indicating request for dedx calculation
+GPUglobalconstexpr() float kCY2max = 100 * 100, // SigmaY<=100cm
+  kCZ2max = 100 * 100,                          // SigmaZ<=100cm
+  kCSnp2max = 1 * 1,                            // SigmaSin<=1
+  kCTgl2max = 1 * 1,                            // SigmaTan<=1
+  kC1Pt2max = 100 * 100,                        // Sigma1/Pt<=100 1/GeV
+  kMostProbablePt = 0.6f,                       // Most Probable Pt (GeV), for running with Bz=0
+  kCalcdEdxAuto = -999.f;                       // value indicating request for dedx calculation
 
 // access to covariance matrix by row and column
 GPUconstexpr() int CovarMap[kNParams][kNParams] = {{0, 1, 3, 6, 10},
@@ -117,13 +117,13 @@ GPUconstexpr() int CovarMap[kNParams][kNParams] = {{0, 1, 3, 6, 10},
 // access to covariance matrix diagonal elements
 GPUconstexpr() int DiagMap[kNParams] = {0, 2, 5, 9, 14};
 
-constexpr float HugeF = o2::constants::math::VeryBig;
-constexpr float MaxPT = 100000.;                  // do not allow pTs exceeding this value (to avoid NANs)
-constexpr float MinPTInv = 1. / MaxPT;            // do not allow q/pTs less this value (to avoid NANs)
-constexpr float ELoss2EKinThreshInv = 1. / 0.025; // do not allow E.Loss correction step with dE/Ekin above the inverse of this value
-constexpr int MaxELossIter = 50;                  // max number of iteration for the ELoss to account for BB dependence on beta*gamma
-constexpr float DefaultDCA = 999.f;               // default DCA value
-constexpr float DefaultDCACov = 999.f;            // default DCA cov value
+GPUglobalconstexpr() float HugeF = o2::constants::math::VeryBig;
+GPUglobalconstexpr() float MaxPT = 100000.;                  // do not allow pTs exceeding this value (to avoid NANs)
+GPUglobalconstexpr() float MinPTInv = 1. / MaxPT;            // do not allow q/pTs less this value (to avoid NANs)
+GPUglobalconstexpr() float ELoss2EKinThreshInv = 1. / 0.025; // do not allow E.Loss correction step with dE/Ekin above the inverse of this value
+GPUglobalconstexpr() int MaxELossIter = 50;                  // max number of iteration for the ELoss to account for BB dependence on beta*gamma
+GPUglobalconstexpr() float DefaultDCA = 999.f;               // default DCA value
+GPUglobalconstexpr() float DefaultDCACov = 999.f;            // default DCA cov value
 
 // uncomment this to enable correction for BB dependence on beta*gamma via BB derivative
 // #define _BB_NONCONST_CORR_
@@ -210,6 +210,13 @@ class TrackParametrization
   GPUd() value_t getE() const;
   GPUdi() static value_t getdEdxBB(value_t betagamma) { return BetheBlochSolid(betagamma); }
   GPUdi() static value_t getdEdxBBOpt(value_t betagamma) { return BetheBlochSolidOpt(betagamma); }
+
+  GPUdi() int nELossSteps(value_T dE, value_T ekin) const noexcept
+  {
+    const int n = 1 + int(gpu::CAMath::Abs(dE) / ekin * ELoss2EKinThreshInv);
+    return n > MaxELossIter ? MaxELossIter : n;
+  }
+  GPUd() int getELossSteps(value_t xrho, bool anglecorr) const;
   GPUdi() static value_t getBetheBlochSolidDerivativeApprox(value_T dedx, value_T bg) { return BetheBlochSolidDerivative(dedx, bg); }
 
   GPUd() value_t getTheta() const;
@@ -270,7 +277,7 @@ class TrackParametrization
 
  private:
   //
-  static constexpr value_t InvalidX = -99999.f;
+  static GPUglobalconstexpr() value_t InvalidX = -99999.f;
   value_t mX = 0.f;             /// X of track evaluation
   value_t mAlpha = 0.f;         /// track frame angle
   value_t mP[kNParams] = {0.f}; /// 5 parameters: Y,Z,sin(phi),tg(lambda),q/pT
@@ -548,7 +555,7 @@ GPUdi() void TrackParametrization<value_T>::getLineParams(o2::math_utils::Interv
 template <typename value_T>
 GPUdi() auto TrackParametrization<value_T>::getCurvature(value_t b) const -> value_t
 {
-  return mAbsCharge ? mP[kQ2Pt] * b * o2::constants::math::B2C : 0.;
+  return mAbsCharge ? mP[kQ2Pt] * b * o2::constants::math::B2C : value_T(0);
 }
 
 //____________________________________________________________

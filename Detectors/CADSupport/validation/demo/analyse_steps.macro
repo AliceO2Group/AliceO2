@@ -1,0 +1,70 @@
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+/// \author Sandro Wenzel <sandro.wenzel@cern.ch>
+/// \since 2026-08
+
+// Reduce an MCStepLogger output file to the numbers the representation comparison needs.
+//
+//   root -l -b -q 'analyse_steps.macro("MCStepLoggerOutput.root")'
+//
+// MCStepLogger writes one entry per event into TTree "StepLoggerTree" with branches
+//   Steps    : std::vector<o2::StepInfo>   (one record per Geant step)
+//   Lookups  : o2::StepLookups             (volume id -> name / medium / module)
+//   Calls    : magnetic-field calls
+// The volume id in a StepInfo indexes Lookups.volidtovolname.
+R__LOAD_LIBRARY(libMCStepLoggerCore)
+#include "MCStepLogger/StepInfo.h"
+
+void analyse_steps(const char* file, const char* prefix = "")
+{
+  TFile f(file);
+  auto* t = (TTree*)f.Get("StepLoggerTree");
+  if (!t) {
+    printf("%sNOTREE %s\n", prefix, file);
+    return;
+  }
+
+  std::vector<o2::StepInfo>* steps = nullptr;
+  o2::StepLookups* lookups = nullptr;
+  t->SetBranchAddress("Steps", &steps);
+  t->SetBranchAddress("Lookups", &lookups);
+
+  std::map<std::string, long> perVol;
+  std::map<std::string, double> lenVol;
+  long total = 0, secondaries = 0, nev = t->GetEntries();
+  double totlen = 0;
+  for (long i = 0; i < nev; i++) {
+    t->GetEntry(i);
+    for (auto& s : *steps) {
+      total++;
+      secondaries += s.nsecondaries;
+      totlen += s.step;
+      std::string vn = "?";
+      if (lookups && s.volId >= 0 && s.volId < (int)lookups->volidtovolname.size() &&
+          lookups->volidtovolname[s.volId]) {
+        vn = *lookups->volidtovolname[s.volId];
+      }
+      perVol[vn]++;
+      lenVol[vn] += s.step;
+    }
+  }
+  printf("%sEVENTS %ld\n", prefix, nev);
+  printf("%sSTEPS_TOTAL %ld\n", prefix, total);
+  printf("%sSTEPS_PER_EVENT %.2f\n", prefix, nev ? double(total) / nev : 0.);
+  printf("%sSECONDARIES %ld\n", prefix, secondaries);
+  printf("%sSTEPLENGTH_TOTAL_CM %.4f\n", prefix, totlen);
+  printf("%sNVOLUMES_TOUCHED %zu\n", prefix, perVol.size());
+  std::vector<std::pair<std::string, long>> v(perVol.begin(), perVol.end());
+  std::sort(v.begin(), v.end(), [](auto& a, auto& b) { return a.second > b.second; });
+  for (auto& kv : v) {
+    printf("%sVOL %-28s %8ld  %12.4f\n", prefix, kv.first.c_str(), kv.second, lenVol[kv.first]);
+  }
+}

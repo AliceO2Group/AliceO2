@@ -62,8 +62,17 @@ void DigitReader::run(ProcessingContext& pc)
     mTree->SetBranchAddress("FV0DigitLabels", &plabels);
   }
   auto ent = mTree->GetReadEntry() + 1;
-  assert(ent < mTree->GetEntries()); // this should not happen
-  mTree->GetEntry(ent);
+  // A timeframe holds no collision at all whenever the interaction rate is low enough, and
+  // the tree then has no entry to read. Publish empty containers instead of reading past the
+  // end and pushing branch addresses that GetEntry has not filled, so that the consumers
+  // downstream still see the timeframe. (This used to be an assert, which is compiled out of
+  // every production build since ENABLE_CASSERT defaults to OFF.)
+  const bool noEntry = ent >= mTree->GetEntries();
+  if (noEntry) {
+    LOG(info) << "no entry to read, publishing empty output";
+  } else {
+    mTree->GetEntry(ent);
+  }
   LOG(debug) << "FV0DigitReader pushed " << channels.size() << " channels in " << digits.size() << " digits";
   pc.outputs().snapshot(Output{"FV0", "DIGITSBC", 0}, digits);
   pc.outputs().snapshot(Output{"FV0", "DIGITSCH", 0}, channels);
@@ -73,7 +82,7 @@ void DigitReader::run(ProcessingContext& pc)
   if (mUseTrgInput) {
     pc.outputs().snapshot(Output{"FV0", "TRIGGERINPUT", 0}, trgInput);
   }
-  if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
+  if (noEntry || mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }

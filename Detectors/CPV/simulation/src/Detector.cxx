@@ -358,7 +358,7 @@ void Detector::ConstructGeometry()
   CreateMaterials();
 
   // Create a CPV modules-containers which will be filled with the stuff later.
-  float par[3], x, y, z;
+  double par[3], x, y, z;
 
   // The box containing all CPV filled with air
   par[0] = geomParams->GetCPVBoxSize(0) / 2.0;
@@ -372,11 +372,11 @@ void Detector::ConstructGeometry()
     if (!mActiveModule[iModule]) {
       continue;
     }
-    float angle[3][2] = {0};
+    double angle[3][2] = {0};
     geomParams->GetModuleAngle(iModule, angle);
     Matrix(idrotm[iModule], angle[0][0], angle[0][1], angle[1][0], angle[1][1], angle[2][0], angle[2][1]);
 
-    float pos[3] = {0};
+    double pos[3] = {0};
     geomParams->GetModuleCenter(iModule, pos);
 
     fMC->Gspos("CPV", iModule, "barrel", pos[0], pos[1] + 30., pos[2], idrotm[iModule], "ONLY");
@@ -396,8 +396,8 @@ void Detector::ConstructGeometry()
   fMC->Gspos("CPVC", 1, "CPVG", 0, y, 0, 0, "ONLY");
 
   // Position of the chip inside CPV
-  float xStep = geomParams->GetCPVActiveSize(0) / (geomParams->GetNumberOfCPVChipsPhi() + 1);
-  float zStep = geomParams->GetCPVActiveSize(1) / (geomParams->GetNumberOfCPVChipsZ() + 1);
+  double xStep = geomParams->GetCPVActiveSize(0) / (geomParams->GetNumberOfCPVChipsPhi() + 1);
+  double zStep = geomParams->GetCPVActiveSize(1) / (geomParams->GetNumberOfCPVChipsZ() + 1);
   int copy = 0;
   y = geomParams->GetCPVFrameSize(1) / 2 - geomParams->GetFTPosition(0) +
       geomParams->GetCPVTextoliteThickness() / 2 + geomParams->GetGassiplexChipSize(1) / 2 + 0.1;
@@ -451,10 +451,20 @@ void Detector::ConstructGeometry()
   par[2] = geomParams->GetCPVFrameSize(2) / 2;
   fMC->Gsvolu("CPVF2", "BOX ", getMediumID(ID_AL), par, 3);
 
+  // The frame's inner faces are the edges of the active plane. Deriving them from the box and
+  // frame sizes instead of from the active size left CPVF2 38 nm away from CPVF and CPVAr:
+  // algebraically the same plane, different float sums. TGeo relocates from a point pushed far
+  // past a boundary and never notices; VecGeom answers DistanceToOut = -1 and gives the volume
+  // back to its mother. Place the frame against the halves the active volumes were actually
+  // given, so the faces land on the same double.
+  const double activeHalfX = geomParams->GetCPVActiveSize(0) / 2;
+  const double activeHalfZ = geomParams->GetCPVActiveSize(1) / 2;
+  const double frameHalfX = geomParams->GetCPVFrameSize(0) / 2;
+  const double frameHalfZ = geomParams->GetCPVFrameSize(2) / 2;
   for (int j = 0; j <= 1; j++) {
-    x = TMath::Sign(1, 2 * j - 1) * (geomParams->GetCPVBoxSize(0) - geomParams->GetCPVFrameSize(0)) / 2;
+    x = TMath::Sign(1, 2 * j - 1) * (activeHalfX + frameHalfX);
     fMC->Gspos("CPVF1", j + 1, "CPV", x, 0, 0, 0, "ONLY");
-    z = TMath::Sign(1, 2 * j - 1) * (geomParams->GetCPVBoxSize(2) - geomParams->GetCPVFrameSize(2)) / 2;
+    z = TMath::Sign(1, 2 * j - 1) * (activeHalfZ + frameHalfZ);
     fMC->Gspos("CPVF2", j + 1, "CPV", 0, 0, z, 0, "ONLY");
   }
 
@@ -590,7 +600,7 @@ void Detector::addAlignableVolumes() const
     LOG(debug) << "Got TGeoPNEntry " << alignableEntry;
 
     if (alignableEntry) {
-      Float_t angle = geom->GetCPVAngle(iModule);
+      double angle = geom->GetCPVAngle(iModule);
       TGeoHMatrix* globMatrix = alignableEntry->GetGlobalOrig();
 
       TGeoHMatrix* matTtoL = new TGeoHMatrix;

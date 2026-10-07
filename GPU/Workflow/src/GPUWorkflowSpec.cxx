@@ -78,7 +78,7 @@
 #include "GPUReconstructionConvert.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "ITStracking/TrackingInterface.h"
-#include "ITStracking/TrackingConfigParam.h"
+#include "ITSMFTTracking/ITSTrackingConfigParam.h"
 #include "GPUWorkflowInternal.h"
 #include "GPUDataTypesQA.h"
 // #include "Framework/ThreadPool.h"
@@ -371,6 +371,9 @@ void GPURecoWorkflowSpec::stop()
 
 void GPURecoWorkflowSpec::endOfStream(EndOfStreamContext& ec)
 {
+  if (mSpecConfig.runITSTracking && mITSTrackingInterface != nullptr) {
+    mITSTrackingInterface->printSummary();
+  }
   handlePipelineEndOfStream(ec);
 }
 

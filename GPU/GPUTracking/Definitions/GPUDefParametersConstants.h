@@ -31,20 +31,20 @@
 
 namespace o2::gpu::constants
 {
-static constexpr size_t GPU_MAX_THREADS = 1024;
-static constexpr size_t GPU_MAX_STREAMS = o2::tpc::constants::MAXSECTOR;
+static GPUglobalconstexpr() size_t GPU_MAX_THREADS = 1024;
+static GPUglobalconstexpr() size_t GPU_MAX_STREAMS = o2::tpc::constants::MAXSECTOR;
 
-static constexpr size_t GPU_ROWALIGNMENT =  16;      // Align of Row Hits and Grid
-static constexpr size_t GPU_BUFFER_ALIGNMENT =  64;  // Alignment of buffers obtained from SetPointers
-static constexpr size_t GPU_MEMALIGN =  (64 * 1024); // Alignment of allocated memory blocks
+static GPUglobalconstexpr() size_t GPU_ROWALIGNMENT =  16;      // Align of Row Hits and Grid
+static GPUglobalconstexpr() size_t GPU_BUFFER_ALIGNMENT =  64;  // Alignment of buffers obtained from SetPointers
+static GPUglobalconstexpr() size_t GPU_MEMALIGN =  (64 * 1024); // Alignment of allocated memory blocks
 
 //; Default maximum numbers
-static constexpr size_t GPU_MEM_MAX_TPC_CLUSTERS =         1024 * 1024 * 1024ull; // Maximum number of TPC clusters
-static constexpr size_t GPU_MEM_MAX_TRD_TRACKLETS =                128 * 1024ull; // Maximum number of TRD tracklets
-static constexpr size_t GPU_DEFAULT_MEMORY_SIZE =      6 * 1024 * 1024 * 1024ull; // Size of memory allocated on Device
-static constexpr size_t GPU_DEFAULT_HOST_MEMORY_SIZE = 1 * 1024 * 1024 * 1024ull; // Size of memory allocated on Host
-static constexpr size_t GPU_STACK_SIZE =                             8 * 1024ull; // Stack size per GPU thread
-static constexpr size_t GPU_HEAP_SIZE =                      16 * 1025 * 1024ull; // Stack size per GPU thread
+static GPUglobalconstexpr() size_t GPU_MEM_MAX_TPC_CLUSTERS =         1024 * 1024 * 1024ull; // Maximum number of TPC clusters
+static GPUglobalconstexpr() size_t GPU_MEM_MAX_TRD_TRACKLETS =                128 * 1024ull; // Maximum number of TRD tracklets
+static GPUglobalconstexpr() size_t GPU_DEFAULT_MEMORY_SIZE =      6 * 1024 * 1024 * 1024ull; // Size of memory allocated on Device
+static GPUglobalconstexpr() size_t GPU_DEFAULT_HOST_MEMORY_SIZE = 1 * 1024 * 1024 * 1024ull; // Size of memory allocated on Host
+static GPUglobalconstexpr() size_t GPU_STACK_SIZE =                             8 * 1024ull; // Stack size per GPU thread
+static GPUglobalconstexpr() size_t GPU_HEAP_SIZE =                      16 * 1025 * 1024ull; // Stack size per GPU thread
 } // namespace o2::gpu::constants
 
 // clang-format on

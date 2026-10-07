@@ -1195,9 +1195,9 @@ int32_t GPUReconstruction::CheckErrorCodes(bool cpuOnly, bool forceShowErrors, s
   return retVal;
 }
 
-int32_t GPUReconstruction::GPUChkErrA(const int64_t error, const char* file, int32_t line, bool failOnError)
+int32_t GPUReconstruction::GPUChkErrA(const int64_t retval, const char* file, int32_t line, bool failOnError)
 {
-  if (error == 0 || !GPUChkErrInternal(error, file, line)) {
+  if (retval == 0 || !GPUChkErrInternal(retval, file, line)) {
     return 0;
   }
   if (failOnError) {

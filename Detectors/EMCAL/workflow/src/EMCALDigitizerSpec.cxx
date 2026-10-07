@@ -248,15 +248,19 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
     }
     LOG(debug) << "FTO mask: " << std::bitset<64>(ft0mask);
     LOG(debug) << "FVO mask: " << std::bitset<64>(fv0mask);
-    for (const auto& trg : ctx.inputs().get<gsl::span<o2::ft0::DetTrigInput>>("ft0inputs")) {
-      if (trg.mInputs.to_ulong() & ft0mask) {
-        mbtriggers.emplace_back(trg.mIntRecord);
+    if (mDetMask[o2::detectors::DetID::FT0]) {
+      for (const auto& trg : ctx.inputs().get<gsl::span<o2::ft0::DetTrigInput>>("ft0inputs")) {
+        if (trg.mInputs.to_ulong() & ft0mask) {
+          mbtriggers.emplace_back(trg.mIntRecord);
+        }
       }
     }
-    for (const auto& trg : ctx.inputs().get<gsl::span<o2::fv0::DetTrigInput>>("fv0inputs")) {
-      if (trg.mInputs.to_ulong() & fv0mask) {
-        if (std::find(mbtriggers.begin(), mbtriggers.end(), trg.mIntRecord) == mbtriggers.end()) {
-          mbtriggers.emplace_back(trg.mIntRecord);
+    if (mDetMask[o2::detectors::DetID::FV0]) {
+      for (const auto& trg : ctx.inputs().get<gsl::span<o2::fv0::DetTrigInput>>("fv0inputs")) {
+        if (trg.mInputs.to_ulong() & fv0mask) {
+          if (std::find(mbtriggers.begin(), mbtriggers.end(), trg.mIntRecord) == mbtriggers.end()) {
+            mbtriggers.emplace_back(trg.mIntRecord);
+          }
         }
       }
     }
@@ -460,7 +464,7 @@ void DigitizerSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, vo
   }
 }
 
-o2::framework::DataProcessorSpec getEMCALDigitizerSpec(int channel, bool requireCTPInput, bool mctruth, bool useccdb)
+o2::framework::DataProcessorSpec getEMCALDigitizerSpec(int channel, bool requireCTPInput, const std::vector<o2::detectors::DetID>& detList, bool mctruth, bool useccdb)
 {
   // create the full data processor spec using
   //  a name identifier
@@ -485,9 +489,16 @@ o2::framework::DataProcessorSpec getEMCALDigitizerSpec(int channel, bool require
     calibloader->enableFEEDCS(true);
     calibloader->defineInputSpecs(inputs);
   }
+  o2::detectors::DetID::mask_t detMask;
   if (requireCTPInput) {
-    inputs.emplace_back("ft0inputs", "FT0", "TRIGGERINPUT", 0, Lifetime::Timeframe);
-    inputs.emplace_back("fv0inputs", "FV0", "TRIGGERINPUT", 0, Lifetime::Timeframe);
+    if (std::find(detList.begin(), detList.end(), o2::detectors::DetID::FT0) != detList.end()) {
+      detMask.set(o2::detectors::DetID::FT0);
+      inputs.emplace_back("ft0inputs", "FT0", "TRIGGERINPUT", 0, Lifetime::Timeframe);
+    }
+    if (std::find(detList.begin(), detList.end(), o2::detectors::DetID::FV0) != detList.end()) {
+      detMask.set(o2::detectors::DetID::FV0);
+      inputs.emplace_back("fv0inputs", "FV0", "TRIGGERINPUT", 0, Lifetime::Timeframe);
+    }
     inputs.emplace_back("ctpconfig", "CTP", "CTPCONFIG", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/Config", true));
   }
 
@@ -495,7 +506,7 @@ o2::framework::DataProcessorSpec getEMCALDigitizerSpec(int channel, bool require
     "EMCALDigitizer", // Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}, InputSpec{"EMC_SimParam", o2::header::gDataOriginEMC, "SIMPARAM", 0, Lifetime::Condition, ccdbParamSpec("EMC/Config/SimParam")}},
     inputs,
     outputs,
-    AlgorithmSpec{o2::framework::adaptFromTask<DigitizerSpec>(calibloader, requireCTPInput)},
+    AlgorithmSpec{o2::framework::adaptFromTask<DigitizerSpec>(calibloader, requireCTPInput, detMask)},
     Options{
       {"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}},
       {"disable-dig-tru", VariantType::Bool, false, {"Disable TRU digitisation"}},

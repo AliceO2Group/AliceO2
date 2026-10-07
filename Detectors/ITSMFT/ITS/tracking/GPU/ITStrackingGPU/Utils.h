@@ -20,7 +20,7 @@
 #include <string>
 #include <tuple>
 
-#include "ITStracking/MathUtils.h"
+#include "ITSMFTTracking/MathUtils.h"
 #include "ITStracking/ExternalAllocator.h"
 
 #include "GPUCommonDef.h"
@@ -38,10 +38,17 @@
 #endif
 
 #ifdef ITS_GPU_LOG
-#define GPULog(...)                      \
-  do {                                   \
-    LOGP(info, __VA_ARGS__);             \
-    GPUChkErrS(cudaDeviceSynchronize()); \
+#if defined(__HIPCC__)
+#define GPULogSync() GPUChkErrS(hipDeviceSynchronize())
+#elif defined(__CUDACC__)
+#define GPULogSync() GPUChkErrS(cudaDeviceSynchronize())
+#else
+#define GPULogSync()
+#endif
+#define GPULog(...)          \
+  do {                       \
+    LOGP(info, __VA_ARGS__); \
+    GPULogSync();            \
   } while (0)
 #else
 #define GPULog(...)
@@ -343,28 +350,35 @@ struct TypedAllocator {
   ExternalAllocator* mInternalAllocator;
 };
 
-GPUdii() gpuSpan<const Vertex> getPrimaryVertices(const int rof,
-                                                  const int* roframesPV,
-                                                  const int nROF,
-                                                  const uint8_t* mask,
-                                                  const Vertex* vertices)
+// first i in [beg,end) with a[i] >= key
+template <typename T>
+GPUdii() int deviceLowerBound(const T* a, int beg, int end, const T key)
 {
-  const int start_pv_id = roframesPV[rof];
-  const int stop_rof = rof >= nROF - 1 ? nROF : rof + 1;
-  size_t delta = mask[rof] ? roframesPV[stop_rof] - start_pv_id : 0; // return empty span if ROF is excluded
-  return gpuSpan<const Vertex>(&vertices[start_pv_id], delta);
-};
+  while (beg < end) {
+    const int mid = beg + (end - beg) / 2;
+    if (a[mid] < key) {
+      beg = mid + 1;
+    } else {
+      end = mid;
+    }
+  }
+  return beg;
+}
 
-GPUdii() gpuSpan<const Vertex> getPrimaryVertices(const int romin,
-                                                  const int romax,
-                                                  const int* roframesPV,
-                                                  const int nROF,
-                                                  const Vertex* vertices)
+// first i in [beg,end) with a[i] > key
+template <typename T>
+GPUdii() int deviceUpperBound(const T* a, int beg, int end, const T key)
 {
-  const int start_pv_id = roframesPV[romin];
-  const int stop_rof = romax >= nROF - 1 ? nROF : romax + 1;
-  return gpuSpan<const Vertex>(&vertices[start_pv_id], roframesPV[stop_rof] - roframesPV[romin]);
-};
+  while (beg < end) {
+    const int mid = beg + (end - beg) / 2;
+    if (a[mid] <= key) {
+      beg = mid + 1;
+    } else {
+      end = mid;
+    }
+  }
+  return beg;
+}
 
 GPUdii() gpuSpan<const Cluster> getClustersOnLayer(const int rof,
                                                    const int totROFs,
@@ -381,78 +395,6 @@ GPUdii() gpuSpan<const Cluster> getClustersOnLayer(const int rof,
   return gpuSpan<const Cluster>(&(clusters[layer][start_clus_id]), delta);
 }
 
-GPUdii() gpuSpan<const Tracklet> getTrackletsPerCluster(const int rof,
-                                                        const int totROFs,
-                                                        const int mode,
-                                                        const int** roframesClus,
-                                                        const Tracklet** tracklets)
-{
-  if (rof < 0 || rof >= totROFs) {
-    return gpuSpan<const Tracklet>();
-  }
-  const int start_clus_id{roframesClus[1][rof]};
-  const int stop_rof = rof >= totROFs - 1 ? totROFs : rof + 1;
-  const unsigned int delta = roframesClus[1][stop_rof] - start_clus_id;
-  return gpuSpan<const Tracklet>(&(tracklets[mode][start_clus_id]), delta);
-}
-
-GPUdii() gpuSpan<int> getNTrackletsPerCluster(const int rof,
-                                              const int totROFs,
-                                              const int mode,
-                                              const int** roframesClus,
-                                              int** ntracklets)
-{
-  if (rof < 0 || rof >= totROFs) {
-    return gpuSpan<int>();
-  }
-  const int start_clus_id{roframesClus[1][rof]};
-  const int stop_rof = rof >= totROFs - 1 ? totROFs : rof + 1;
-  const unsigned int delta = roframesClus[1][stop_rof] - start_clus_id;
-  return gpuSpan<int>(&(ntracklets[mode][start_clus_id]), delta);
-}
-
-GPUdii() gpuSpan<const int> getNTrackletsPerCluster(const int rof,
-                                                    const int totROFs,
-                                                    const int mode,
-                                                    const int** roframesClus,
-                                                    const int** ntracklets)
-{
-  if (rof < 0 || rof >= totROFs) {
-    return gpuSpan<const int>();
-  }
-  const int start_clus_id{roframesClus[1][rof]};
-  const int stop_rof = rof >= totROFs - 1 ? totROFs : rof + 1;
-  const unsigned int delta = roframesClus[1][stop_rof] - start_clus_id;
-  return gpuSpan<const int>(&(ntracklets[mode][start_clus_id]), delta);
-}
-
-GPUdii() gpuSpan<int> getNLinesPerCluster(const int rof,
-                                          const int totROFs,
-                                          const int** roframesClus,
-                                          int* nlines)
-{
-  if (rof < 0 || rof >= totROFs) {
-    return gpuSpan<int>();
-  }
-  const int start_clus_id{roframesClus[1][rof]};
-  const int stop_rof = rof >= totROFs - 1 ? totROFs : rof + 1;
-  const unsigned int delta = roframesClus[1][stop_rof] - start_clus_id;
-  return gpuSpan<int>(&(nlines[start_clus_id]), delta);
-}
-
-GPUdii() gpuSpan<const int> getNLinesPerCluster(const int rof,
-                                                const int totROFs,
-                                                const int** roframesClus,
-                                                const int* nlines)
-{
-  if (rof < 0 || rof >= totROFs) {
-    return gpuSpan<const int>();
-  }
-  const int start_clus_id{roframesClus[1][rof]};
-  const int stop_rof = rof >= totROFs - 1 ? totROFs : rof + 1;
-  const unsigned int delta = roframesClus[1][stop_rof] - start_clus_id;
-  return gpuSpan<const int>(&(nlines[start_clus_id]), delta);
-}
 #endif
 } // namespace gpu
 } // namespace o2::its

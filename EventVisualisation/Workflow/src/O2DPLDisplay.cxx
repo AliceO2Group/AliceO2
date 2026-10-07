@@ -372,6 +372,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   };
 
   std::shared_ptr<DataRequest> dataRequest = std::make_shared<DataRequest>();
+  dataRequest->setITSPerLayer(o2::itsmft::DPLAlpideParamInitializer::isITSStaggeringEnabled(cfgc));
   dataRequest->requestTracks(srcTrk, useMC);
   dataRequest->requestClusters(srcCl, useMC);
 

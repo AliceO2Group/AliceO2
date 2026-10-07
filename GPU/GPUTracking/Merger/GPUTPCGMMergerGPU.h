@@ -81,7 +81,7 @@ class GPUTPCGMMergerResolve : public GPUTPCGMMergerGeneral
   };
 
   template <int32_t iKernel = defaultKernel, typename... Args>
-  GPUd() static void Thread(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer, Args... args);
+  GPUd() static void Thread(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& clusterer, Args... args);
 };
 
 class GPUTPCGMMergerClearLinks : public GPUTPCGMMergerGeneral

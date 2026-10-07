@@ -183,7 +183,7 @@ void CosmicsMatchingSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getCosmicsMatchingSpec(GTrackID::mask_t src, bool usePV, bool useMC)
+DataProcessorSpec getCosmicsMatchingSpec(GTrackID::mask_t src, bool usePV, bool useMC, bool itsStag)
 {
   std::vector<OutputSpec> outputs;
   Options opts{
@@ -191,6 +191,7 @@ DataProcessorSpec getCosmicsMatchingSpec(GTrackID::mask_t src, bool usePV, bool 
     {"debug-tree-flags", VariantType::Int, 0, {"DebugFlagTypes bit-pattern for debug tree"}}};
 
   auto dataRequest = std::make_shared<DataRequest>();
+  dataRequest->setITSPerLayer(itsStag);
 
   dataRequest->requestTracks(src, useMC);
   dataRequest->requestClusters(src, false); // no MC labels for clusters needed for refit only

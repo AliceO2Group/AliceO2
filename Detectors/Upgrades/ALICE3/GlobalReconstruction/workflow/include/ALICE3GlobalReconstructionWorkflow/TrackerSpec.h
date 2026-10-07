@@ -21,7 +21,7 @@
 
 #include <oneapi/tbb/task_arena.h>
 
-#include "ITStracking/BoundedAllocator.h"
+#include "ITSMFTTracking/BoundedAllocator.h"
 #include "ITStracking/ExternalAllocator.h"
 #include "ITStracking/TrackingInterface.h"
 #include "GPUDataTypesConfig.h"
@@ -69,7 +69,7 @@ class TrackerDPL : public framework::Task
   bool mIsMC{true};
   gpu::gpudatatypes::DeviceType mDeviceType{gpu::gpudatatypes::DeviceType::CPU};
   int mTrackingThreads{1};
-  std::shared_ptr<its::BoundedMemoryResource> mMemoryPool;
+  std::shared_ptr<itsmft::tracking::BoundedMemoryResource> mMemoryPool;
   std::shared_ptr<its::ExternalAllocator> mGPUAllocator;
   std::shared_ptr<tbb::task_arena> mTaskArena;
   std::vector<o2::its::TrackingParameters> mTrackingParams;

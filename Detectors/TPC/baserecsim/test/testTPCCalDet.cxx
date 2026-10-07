@@ -17,6 +17,7 @@
 #include <boost/test/unit_test.hpp>
 #include <vector>
 #include <limits>
+#include <cstdlib>
 
 #include "TMath.h"
 #include "TPCBase/Mapper.h"
@@ -348,8 +349,14 @@ BOOST_AUTO_TEST_CASE(CalDetTypeTest)
 BOOST_AUTO_TEST_CASE(CalDetStreamerTest)
 {
   // simple code executing the TPC IDCPadFlags loading in a standalone env --> easy to valgrind
+  //
+  // Deliberately NOT ALICEO2_CCDB_HOST: that names the writable test instance,
+  // which holds a *different* object at this path -- the timestamp below is
+  // pinned to the production object's validity. The variable lets a build
+  // container reach production through a broker; unset, behaviour is unchanged.
+  const char* productionHost = std::getenv("ALICEO2_CCDB_PRODUCTION_HOST");
   o2::tpc::DeadChannelMapCreator creator{};
-  creator.init("https://alice-ccdb.cern.ch");
+  creator.init((productionHost && *productionHost) ? productionHost : "https://alice-ccdb.cern.ch");
   creator.loadIDCPadFlags(1731274461770);
 }
 

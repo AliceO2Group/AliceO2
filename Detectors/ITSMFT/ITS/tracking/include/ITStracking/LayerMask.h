@@ -22,7 +22,7 @@
 
 #include "GPUCommonDef.h"
 #include "GPUCommonMath.h"
-#include "ITStracking/Constants.h"
+#include "ITSMFTTracking/Constants.h"
 
 namespace o2::its
 {

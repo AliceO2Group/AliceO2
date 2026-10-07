@@ -49,9 +49,10 @@
 #include "TGeoCompositeShape.h"
 #include "TGeoPara.h"
 #include "TGeoPhysicalNode.h"
-#include "TGeoHalfSpace.h"
 #include "TGeoArb8.h"
 #include "TGeoMatrix.h"
+
+#include "DetectorsBase/TGeoGeometryUtils.h"
 
 #include <iostream>
 #include <cmath>
@@ -61,6 +62,13 @@ using std::endl;
 using std::ifstream;
 using std::ios_base;
 using namespace o2::tpc;
+
+namespace
+{
+// Half-size of the boxes standing in for the half-space cuts of the TPC support structures.
+// Ten times the largest solid any of them is subtracted from, and small compared to the TPC.
+constexpr double kHalfSpaceReach = 100.;
+} // namespace
 
 Detector::Detector(Bool_t active) : o2::base::DetImpl<Detector>("TPC", active), mGeoFileName()
 {
@@ -148,7 +156,6 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 
   const float time = fMC->TrackTime() * 1.0e9;
   const int trackID = fMC->GetStack()->GetCurrentTrackNumber();
-  const int detID = vol->getMCid();
   o2::data::Stack* stack = (o2::data::Stack*)fMC->GetStack();
   if (fMC->IsTrackEntering() || fMC->IsTrackExiting()) {
     stack->addTrackReference(o2::TrackReference(position.X(), position.Y(), position.Z(), momentum.X(), momentum.Y(),
@@ -193,41 +200,52 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   Int_t numberOfElectrons = 0;
   // I.H. - the type expected in addHit is short
 
-  // ---| Stepsize in cm |---
-  const double stepSize = fMC->TrackStep();
+  // use Geant4 energy deposit directly for ionisation (Kr-83m calibration simulations)
+  if (detParam.UseGeant4Edep) {
+    // We have multiple collisions and add fluctuations: smear nel using
+    // gamma distr with mean = meanIon and variance = meanIon*FanoFactorG4.
+    // These parameters were tuned for GEANT4.
+    const double meanIon = fMC->Edep() / (gasParam.Wion * gasParam.ScaleFactorG4);
+    if (meanIon > 0.) {
+      numberOfElectrons = static_cast<int>(gasParam.FanoFactorG4 * Gamma(meanIon / gasParam.FanoFactorG4));
+    }
+  } else {
+    // ---| Stepsize in cm |---
+    const double stepSize = fMC->TrackStep();
 
-  double betaGamma = momentum.P() / fMC->TrackMass();
-  betaGamma = TMath::Max(betaGamma, 7.e-3); // protection against too small bg
+    double betaGamma = momentum.P() / fMC->TrackMass();
+    betaGamma = TMath::Max(betaGamma, 7.e-3); // protection against too small bg
 
-  // ---| number of primary ionisations per cm |---
-  const double primaryElectronsPerCM =
-    gasParam.Nprim * BetheBlochAleph(static_cast<float>(betaGamma), gasParam.BetheBlochParam[0],
-                                     gasParam.BetheBlochParam[1], gasParam.BetheBlochParam[2],
-                                     gasParam.BetheBlochParam[3], gasParam.BetheBlochParam[4]);
+    // ---| number of primary ionisations per cm |---
+    const double primaryElectronsPerCM =
+      gasParam.Nprim * BetheBlochAleph(static_cast<float>(betaGamma), gasParam.BetheBlochParam[0],
+                                       gasParam.BetheBlochParam[1], gasParam.BetheBlochParam[2],
+                                       gasParam.BetheBlochParam[3], gasParam.BetheBlochParam[4]);
 
-  // ---| mean number of collisions and random for this event |---
-  const double meanNcoll = stepSize * trackCharge * trackCharge * primaryElectronsPerCM;
-  const int nColl = static_cast<int>(fMC->GetRandom()->Poisson(meanNcoll));
+    // ---| mean number of collisions and random for this event |---
+    const double meanNcoll = stepSize * trackCharge * trackCharge * primaryElectronsPerCM;
+    const int nColl = static_cast<int>(fMC->GetRandom()->Poisson(meanNcoll));
 
-  // Variables needed to generate random powerlaw distributed energy loss
-  const double alpha_p1 = 1. - gasParam.Exp; // NA49/G3 value
-  const double oneOverAlpha_p1 = 1. / alpha_p1;
-  const double eMin = gasParam.Ipot;
-  const double eMax = gasParam.Eend;
-  const double kMin = TMath::Power(eMin, alpha_p1);
-  const double kMax = TMath::Power(eMax, alpha_p1);
-  const double wIon = gasParam.Wion;
+    // Variables needed to generate random powerlaw distributed energy loss
+    const double alpha_p1 = 1. - gasParam.Exp; // NA49/G3 value
+    const double oneOverAlpha_p1 = 1. / alpha_p1;
+    const double eMin = gasParam.Ipot;
+    const double eMax = gasParam.Eend;
+    const double kMin = TMath::Power(eMin, alpha_p1);
+    const double kMax = TMath::Power(eMax, alpha_p1);
+    const double wIon = gasParam.Wion;
 
-  for (Int_t n = 0; n < nColl; n++) {
-    // Use GEANT3 / NA49 expression:
-    // P(eDep) ~ k * edep^-gasParam.getExp()
-    // eMin(~I) < eDep < eMax(300 electrons)
-    // k fixed so that Int_Emin^EMax P(Edep) = 1.
-    const double rndm = fMC->GetRandom()->Rndm();
-    const double eDep = TMath::Power((kMax - kMin) * rndm + kMin, oneOverAlpha_p1);
-    int nel_step = static_cast<int>(((eDep - eMin) / wIon) + 1);
-    nel_step = TMath::Min(nel_step, gasParam.MaxElePerStep); // 300 electrons corresponds to 10 keV
-    numberOfElectrons += nel_step;
+    for (Int_t n = 0; n < nColl; n++) {
+      // Use GEANT3 / NA49 expression:
+      // P(eDep) ~ k * edep^-gasParam.getExp()
+      // eMin(~I) < eDep < eMax(300 electrons)
+      // k fixed so that Int_Emin^EMax P(Edep) = 1.
+      const double rndm = fMC->GetRandom()->Rndm();
+      const double eDep = TMath::Power((kMax - kMin) * rndm + kMin, oneOverAlpha_p1);
+      int nel_step = static_cast<int>(((eDep - eMin) / wIon) + 1);
+      nel_step = TMath::Min(nel_step, gasParam.MaxElePerStep); // 300 electrons corresponds to 10 keV
+      numberOfElectrons += nel_step;
+    }
   }
 
   // LOG(info) << "tpc::AddHit" << FairLogger::endl << "Eloss: "
@@ -239,37 +257,38 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   }
 
   // ADD HIT
-  static thread_local int oldTrackId = trackID;
-  static thread_local int oldDetId = detID;
-  static thread_local int groupCounter = 0;
-  static thread_local int oldSectorId = sectorID;
+  // the first hit of an event starts the grouping afresh
+  if (!mCurrentGroup) {
+    mOldTrackId = trackID;
+    mOldSectorId = sectorID;
+    mGroupCounter = 0;
+  }
 
   //  a new group is starting -> put it into the container
-  static thread_local HitGroup* currentgroup = nullptr;
-  if (groupCounter == 0) {
+  if (mGroupCounter == 0) {
     mHitsPerSectorCollection[sectorID]->emplace_back(trackID);
-    currentgroup = &(mHitsPerSectorCollection[sectorID]->back());
+    mCurrentGroup = &(mHitsPerSectorCollection[sectorID]->back());
   }
-  if (trackID == oldTrackId && oldSectorId == sectorID) {
-    groupCounter++;
+  if (trackID == mOldTrackId && mOldSectorId == sectorID) {
+    mGroupCounter++;
     mHitCounter++;
     mElectronCounter += numberOfElectrons;
-    currentgroup->addHit(position.X(), position.Y(), position.Z(), time, numberOfElectrons);
+    mCurrentGroup->addHit(position.X(), position.Y(), position.Z(), time, numberOfElectrons);
 
-    // add last buffered hit, which was not yet added to the currentgroup
+    // add last buffered hit, which was not yet added to the current group
     if (mHitLast.GetEnergyLoss() >= 0) {
-      currentgroup->addHit(mHitLast.GetX(), mHitLast.GetY(), mHitLast.GetZ(), mHitLast.GetTime(), mHitLast.GetEnergyLoss());
-      mHitLast.mELoss = -1;
-      groupCounter++;
+      mCurrentGroup->addHit(mHitLast.GetX(), mHitLast.GetY(), mHitLast.GetZ(), mHitLast.GetTime(), mHitLast.GetEnergyLoss());
+      mGroupCounter++;
       mHitCounter++;
       mElectronCounter += mHitLast.GetEnergyLoss();
+      mHitLast.mELoss = -1;
     }
   }
   // finish group
   else {
-    oldTrackId = trackID;
-    oldSectorId = sectorID;
-    groupCounter = 0;
+    mOldTrackId = trackID;
+    mOldSectorId = sectorID;
+    mGroupCounter = 0;
 
     // buffer this hit, otherwise it wouldnt be stored in the HitGroup
     mHitLast = ElementalHit(position.X(), position.Y(), position.Z(), time, numberOfElectrons);
@@ -291,6 +310,9 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 
 void Detector::EndOfEvent()
 {
+  // the hit grouping must not carry over into the next event
+  mCurrentGroup = nullptr;
+  mHitLast.mELoss = -1;
   if (!o2::utils::ShmManager::Instance().isOperational()) {
     for (int i = 0; i < Sector::MAXSECTOR; ++i) {
       mHitsPerSectorCollection[i]->clear();
@@ -1386,7 +1408,7 @@ void Detector::ConstructTPCGeometry()
   tv100->AddNode(tvep1, 1, new TGeoTranslation(0., 0., -177.925)); // epoxy
   tv100->AddNode(tvep1, 2, new TGeoTranslation(0., 0., 177.925));
   tv100->AddNode(tvpr1, 1, new TGeoTranslation(0., 0., -177.925)); // prepreg strip
-  tv100->AddNode(tvpr1, 2, new TGeoTranslation(0., 0., -177.925));
+  tv100->AddNode(tvpr1, 2, new TGeoTranslation(0., 0., 177.925));
   //
   // second segment - rotation 120 deg.
   //
@@ -2284,7 +2306,7 @@ void Detector::ConstructTPCGeometry()
   n[0] /= norm;
   n[1] /= norm;
   //
-  new TGeoHalfSpace("sp1", p, n);
+  o2::base::TGeoGeometryUtils::makeHalfSpaceBox("sp1", p, n, kHalfSpaceReach);
   //
   slope = -slope;
   //
@@ -2297,7 +2319,7 @@ void Detector::ConstructTPCGeometry()
   n[0] /= norm;
   n[1] /= norm;
   //
-  new TGeoHalfSpace("sp2", p, n);
+  o2::base::TGeoGeometryUtils::makeHalfSpaceBox("sp2", p, n, kHalfSpaceReach);
   // holes for rods
   // holes
   new TGeoTube("h1", 0., 0.5, 0.025);
@@ -2313,7 +2335,7 @@ void Detector::ConstructTPCGeometry()
   crr1->RotateZ(-22.);
   auto* ctr1 = new TGeoCombiTrans("ctr1", -0.36011, -1.09951, -0.325, crr1);
   ctr1->RegisterYourself();
-  auto* cs1 = new TGeoCompositeShape("cs1", "(((((tub-h1:ttr11)-h1:ttr22)-sp1)-sp2)-h2)+elcon:ctr1");
+  auto* cs1 = new TGeoCompositeShape("cs1", "(((((tub-h1:ttr11)-h1:ttr22)-(sp1:sp1_tr))-(sp2:sp2_tr))-h2)+elcon:ctr1");
   //
   auto* csvv = new TGeoVolume("TPC_RR_CU", cs1, m7);
   //
@@ -2388,7 +2410,7 @@ void Detector::ConstructTPCGeometry()
   n[1] = 1.0;
   n[2] = 0.0;
 
-  new TGeoHalfSpace("cutil1", p, n);
+  o2::base::TGeoGeometryUtils::makeHalfSpaceBox("cutil1", p, n, kHalfSpaceReach);
 
   //
   // transformations
@@ -2400,7 +2422,7 @@ void Detector::ConstructTPCGeometry()
   // support - composite volume
   //
   auto* tpcihs6 =
-    new TGeoCompositeShape("tpcihs6", "tpcihs1-(tpcihs2+tpcihs3)-(tpcihs4:trans2)-(tpcihs4:trans3)-cutil1");
+    new TGeoCompositeShape("tpcihs6", "tpcihs1-(tpcihs2+tpcihs3)-(tpcihs4:trans2)-(tpcihs4:trans3)-(cutil1:cutil1_tr)");
   //
   // volumes - all makrolon
   //
@@ -2537,7 +2559,7 @@ void Detector::ConstructTPCGeometry()
   n[1] = -1.0 * TMath::Tan(30. * TMath::DegToRad());
   n[2] = 1.0;
   //
-  new TGeoHalfSpace("cutomh1", p, n);
+  o2::base::TGeoGeometryUtils::makeHalfSpaceBox("cutomh1", p, n, kHalfSpaceReach);
   //
   // halfspace 2
   //
@@ -2549,7 +2571,7 @@ void Detector::ConstructTPCGeometry()
   n[1] = -1.0 * TMath::Tan(30. * TMath::DegToRad());
   n[2] = -1.0;
   //
-  new TGeoHalfSpace("cutomh2", p, n);
+  o2::base::TGeoGeometryUtils::makeHalfSpaceBox("cutomh2", p, n, kHalfSpaceReach);
   //
   // halfspace 3
   //
@@ -2561,7 +2583,7 @@ void Detector::ConstructTPCGeometry()
   n[1] = 0.0;
   n[2] = 1.0;
   //
-  new TGeoHalfSpace("cutomh3", p, n);
+  o2::base::TGeoGeometryUtils::makeHalfSpaceBox("cutomh3", p, n, kHalfSpaceReach);
   //
   // halfspace 4
   //
@@ -2573,7 +2595,7 @@ void Detector::ConstructTPCGeometry()
   n[1] = 0.0;
   n[2] = -1.0;
   //
-  new TGeoHalfSpace("cutomh4", p, n);
+  o2::base::TGeoGeometryUtils::makeHalfSpaceBox("cutomh4", p, n, kHalfSpaceReach);
   //
   // halsfspace 5
   //
@@ -2585,9 +2607,9 @@ void Detector::ConstructTPCGeometry()
   n[1] = -1.0 * TMath::Tan(20. * TMath::DegToRad());
   n[2] = 0.0;
   //
-  new TGeoHalfSpace("cutomh5", p, n);
+  o2::base::TGeoGeometryUtils::makeHalfSpaceBox("cutomh5", p, n, kHalfSpaceReach);
   //
-  auto* tpcomh5 = new TGeoCompositeShape("tpcomh5", "tpcomh3-cutomh1-cutomh2-cutomh3-cutomh4-cutomh5");
+  auto* tpcomh5 = new TGeoCompositeShape("tpcomh5", "tpcomh3-(cutomh1:cutomh1_tr)-(cutomh2:cutomh2_tr)-(cutomh3:cutomh3_tr)-(cutomh4:cutomh4_tr)-(cutomh5:cutomh5_tr)");
   //
   auto* tpcomh5v = new TGeoVolume("TPC_OMH5", tpcomh5, m6);
   auto* tpcomh4v = new TGeoVolume("TPC_OMH6", tpcomh4, m6);
@@ -2631,9 +2653,9 @@ void Detector::ConstructTPCGeometry()
   n[1] = -1.0;
   n[2] = 0.0;
   //
-  new TGeoHalfSpace("cutohs1", p, n);
+  o2::base::TGeoGeometryUtils::makeHalfSpaceBox("cutohs1", p, n, kHalfSpaceReach);
   //
-  auto* tpcohs5 = new TGeoCompositeShape("tpcohs5", "tpcohs1-tpcohs2-tpcohs3-cutohs1");
+  auto* tpcohs5 = new TGeoCompositeShape("tpcohs5", "tpcohs1-tpcohs2-tpcohs3-(cutohs1:cutohs1_tr)");
   auto* tpcohs5v = new TGeoVolume("TPC_OHS5", tpcohs5, m6);
   //
   auto* tpcohs = new TGeoVolumeAssembly("TPC_OHS");
@@ -2784,7 +2806,7 @@ void Detector::ConstructTPCGeometry()
   n[1] = 0.0;
   n[2] = 8.0 * TMath::Tan(13. * TMath::DegToRad());
   //
-  new TGeoHalfSpace("cutmmh1", p, n);
+  o2::base::TGeoGeometryUtils::makeHalfSpaceBox("cutmmh1", p, n, kHalfSpaceReach);
   //
   p[0] = -1.65;
   p[1] = 0.0;
@@ -2794,7 +2816,7 @@ void Detector::ConstructTPCGeometry()
   n[1] = 0.0;
   n[2] = -8.0 * TMath::Tan(13. * TMath::DegToRad());
   //
-  new TGeoHalfSpace("cutmmh2", p, n);
+  o2::base::TGeoGeometryUtils::makeHalfSpaceBox("cutmmh2", p, n, kHalfSpaceReach);
   //
   p[0] = 0.0;
   p[1] = 1.85;
@@ -2804,7 +2826,7 @@ void Detector::ConstructTPCGeometry()
   n[1] = -6.1;
   n[2] = 6.1 * TMath::Tan(20. * TMath::DegToRad());
   //
-  new TGeoHalfSpace("cutmmh3", p, n);
+  o2::base::TGeoGeometryUtils::makeHalfSpaceBox("cutmmh3", p, n, kHalfSpaceReach);
   //
   p[0] = 0.0;
   p[1] = 1.85;
@@ -2814,7 +2836,7 @@ void Detector::ConstructTPCGeometry()
   n[1] = -6.1;
   n[2] = -6.1 * TMath::Tan(20 * TMath::DegToRad());
   //
-  new TGeoHalfSpace("cutmmh4", p, n);
+  o2::base::TGeoGeometryUtils::makeHalfSpaceBox("cutmmh4", p, n, kHalfSpaceReach);
   //
   p[0] = 0.75;
   p[1] = 0.0;
@@ -2824,7 +2846,7 @@ void Detector::ConstructTPCGeometry()
   n[1] = 0.0;
   n[2] = 2.4;
   //
-  new TGeoHalfSpace("cutmmh5", p, n);
+  o2::base::TGeoGeometryUtils::makeHalfSpaceBox("cutmmh5", p, n, kHalfSpaceReach);
   //
   p[0] = 0.75;
   p[1] = 0.0;
@@ -2834,10 +2856,10 @@ void Detector::ConstructTPCGeometry()
   n[1] = 0.0;
   n[2] = -2.4;
   //
-  new TGeoHalfSpace("cutmmh6", p, n);
+  o2::base::TGeoGeometryUtils::makeHalfSpaceBox("cutmmh6", p, n, kHalfSpaceReach);
 
   auto* tpcmmhc =
-    new TGeoCompositeShape("TPC_MMHC", "tpcmmhc1-tpcmmhc2-cutmmh1-cutmmh2-cutmmh3-cutmmh4-cutmmh5-cutmmh6");
+    new TGeoCompositeShape("TPC_MMHC", "tpcmmhc1-tpcmmhc2-(cutmmh1:cutmmh1_tr)-(cutmmh2:cutmmh2_tr)-(cutmmh3:cutmmh3_tr)-(cutmmh4:cutmmh4_tr)-(cutmmh5:cutmmh5_tr)-(cutmmh6:cutmmh6_tr)");
 
   auto* tpcmmhcv = new TGeoVolume("TPC_MMHC", tpcmmhc, m6);
   //
@@ -3238,6 +3260,24 @@ std::string Detector::getHitBranchNames(int probe) const
     return std::string(name.Data());
   }
   return std::string();
+}
+
+void Detector::SetSpecialPhysicsCuts()
+{
+  // lower energy threshold to track low-energy electrons for Kr-83m calibration
+  auto const& detParam = ParameterDetector::Instance();
+  LOG(info) << "TPC SetSpecialPhysicsCuts: UseGeant4Edep=" << detParam.UseGeant4Edep;
+  if (detParam.UseGeant4Edep) {
+    auto& matmgr = o2::base::MaterialManager::Instance();
+    const float specialCut = detParam.SpecialCutsGeV;
+    for (int med : {(int)kDriftGas1, (int)kDriftGas2, (int)kCO2}) {
+      matmgr.SpecialCut(GetName(), med, o2::base::ECut::kCUTELE, specialCut);
+      matmgr.SpecialCut(GetName(), med, o2::base::ECut::kCUTGAM, specialCut);
+      matmgr.SpecialCut(GetName(), med, o2::base::ECut::kDCUTE, specialCut);
+      matmgr.SpecialCut(GetName(), med, o2::base::ECut::kBCUTE, specialCut);
+    }
+  }
+  o2::base::Detector::SetSpecialPhysicsCuts();
 }
 
 ClassImp(o2::tpc::Detector);

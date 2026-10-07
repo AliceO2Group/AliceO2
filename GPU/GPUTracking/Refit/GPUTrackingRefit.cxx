@@ -38,7 +38,7 @@ using namespace o2::track;
 using namespace o2::base;
 using namespace o2::tpc;
 
-static constexpr int32_t kIGNORE_ENDS = 3;
+static GPUglobalconstexpr() int32_t kIGNORE_ENDS = 3;
 
 #define IgnoreErrors(SNP)                                                                                            \
   if (mIgnoreErrorsOnTrackEnds) {                                                                                    \
@@ -398,8 +398,8 @@ GPUd() int32_t GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov
     trk.NormalizeAlpha(alpha);
     prop.SetAlpha(alpha);
   } else if constexpr (std::is_same_v<S, TrackParCov>) {
-    static constexpr float kDeg2Rad = M_PI / 180.f;
-    static constexpr float kSectAngle = 2 * M_PI / 18.f;
+    constexpr float kDeg2Rad = M_PI / 180.f;
+    constexpr float kSectAngle = 2 * M_PI / 18.f;
     if (mPparam->rec.tpc.trackReferenceX <= 500) {
       if (prop->PropagateToXBxByBz(trk, mPparam->rec.tpc.trackReferenceX)) {
         if (CAMath::Abs(trk.getY()) > trk.getX() * CAMath::Tan(kSectAngle / 2.f)) {

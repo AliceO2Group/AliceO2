@@ -19,6 +19,7 @@
 #include "Framework/PluginManager.h"
 #include <TBufferFile.h>
 #include <TDirectory.h>
+#include <TTree.h>
 #include <TDirectoryFile.h>
 #include <TClass.h>
 #include <arrow/dataset/file_base.h>
@@ -272,6 +273,10 @@ struct TTreeObjectReadingCapability : o2::framework::RootObjectReadingCapability
       .lfn2objectPath = [](std::string s) { return s; },
       .getHandle = getHandleByClass("TTree"),
       .checkSupport = matchClassByName("TTree"),
+      .accountBytes = [](void* handle, size_t& compressed, size_t& uncompressed) {
+        auto* tree = (TTree*)handle;
+        compressed += tree->GetZipBytes();
+        uncompressed += tree->GetTotBytes(); },
       .factory = [context]() -> RootArrowFactory& {
         lazyLoadFactory(context->implementations, "O2FrameworkAnalysisTTreeSupport:TTreeObjectReadingImplementation");
         return context->implementations.back();

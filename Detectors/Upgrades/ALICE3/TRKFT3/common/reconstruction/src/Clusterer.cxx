@@ -372,7 +372,7 @@ void Clusterer<DetID>::ClustererThread::finishChipSingleHitFast(gsl::span<const 
     int nlab = 0;
     fetchMCLabels(hit, labelsDigPtr, nlab);
     const auto cnt = static_cast<uint32_t>(clusters.size());
-    for (int i = nlab; i--;) {
+    for (int i = 0; i < nlab; i++) {
       labels.addElement(cnt, labelsBuff[i]);
     }
   }
@@ -404,7 +404,7 @@ void Clusterer<DetID>::ClustererThread::streamCluster(const BBox& bbox,
 {
   if (doLabels) {
     const auto cnt = static_cast<uint32_t>(clusters.size());
-    for (int i = nlab; i--;) {
+    for (int i = 0; i < nlab; i++) {
       labels.addElement(cnt, labelsBuff[i]); // accumulate in thread-local buffer
     }
   }
@@ -438,23 +438,28 @@ void Clusterer<DetID>::ClustererThread::streamCluster(const BBox& bbox,
 template <int DetID>
 void Clusterer<DetID>::ClustererThread::fetchMCLabels(uint32_t digID, const ConstDigitTruth* labelsDig, int& nfilled)
 {
-  if (nfilled >= MaxLabels) {
-    return;
-  }
   if (!labelsDig || digID >= labelsDig->getIndexedSize()) {
     return;
   }
-  const auto& lbls = labelsDig->getLabels(digID);
-  for (int i = lbls.size(); i--;) {
-    int ic = nfilled;
-    for (; ic--;) {
-      if (labelsBuff[ic] == lbls[i]) {
-        return; // already present
+  auto sortBuffer = [this]() { std::sort(this->labelsBuff.begin(), this->labelsBuff.end(), [](Label const& a, Label const& b) { return a.getTrackID() < b.getTrackID(); }); };
+  for (const auto& label : labelsDig->getLabels(digID)) {
+    bool skip = false;
+    for (int ic = 0; ic < nfilled; ic++) {
+      if (labelsBuff[ic] == label) {
+        skip = true;
+        break;
       }
     }
-    labelsBuff[nfilled++] = lbls[i];
-    if (nfilled >= MaxLabels) {
-      break;
+    if (!skip) {
+      if (nfilled < MaxLabels) {
+        labelsBuff[nfilled++] = label;
+        if (nfilled == MaxLabels) {
+          sortBuffer();
+        }
+      } else if (labelsBuff.back().getTrackID() > label.getTrackID()) {
+        labelsBuff.back() = label;
+        sortBuffer();
+      }
     }
   }
 }

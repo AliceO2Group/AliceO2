@@ -38,6 +38,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-root-input", VariantType::Bool, false, {"disable root-files input readers"}},
     {"disable-root-output", VariantType::Bool, false, {"disable root-files output writers"}},
     {"disable-mc", VariantType::Bool, false, {"disable MC propagation even if available"}},
+    {"enable-mc", VariantType::Bool, false, {"store the MC truth of the track data (needs MC input and send-track-data)"}},
     {"vtx-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources used for the vertex finding"}},
     {"tracking-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use for track inter-/extrapolation"}},
     {"tracking-sources-map-extraction", VariantType::String, std::string{GID::ALL}, {"can be subset of \"tracking-sources\""}},
@@ -103,19 +104,22 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   // write the configuration used for the workflow
   o2::conf::ConfigurableParam::writeINI("o2tpcinterpolation-workflow_configuration.ini");
-  auto useMC = !configcontext.options().get<bool>("disable-mc");
-  useMC = false; // force disabling MC as long as it is not implemented
+  // MC is opt-in: the residuals workflow is also run on data without passing disable-mc
+  auto useMC = configcontext.options().get<bool>("enable-mc") && !configcontext.options().get<bool>("disable-mc");
+  auto doStag = o2::itsmft::DPLAlpideParamInitializer::isITSStaggeringEnabled(configcontext);
   auto sendTrackData = configcontext.options().get<bool>("send-track-data");
   auto debugOutput = configcontext.options().get<bool>("debug-output");
   auto extDetResid = !configcontext.options().get<bool>("skip-ext-det-residuals");
 
-  specs.emplace_back(o2::tpc::getTPCInterpolationSpec(srcClusters, srcVtx, srcTracks, srcTracksMap, useMC, processITSTPConly, sendTrackData, debugOutput, extDetResid));
+  specs.emplace_back(o2::tpc::getTPCInterpolationSpec(srcClusters, srcVtx, srcTracks, srcTracksMap, useMC, processITSTPConly, sendTrackData, debugOutput, extDetResid, doStag));
   if (!configcontext.options().get<bool>("disable-root-output")) {
     specs.emplace_back(o2::tpc::getTPCResidualWriterSpec(sendTrackData, debugOutput));
   }
 
-  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcClusters, srcVtx, srcVtx, useMC);
-  o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC); // P-vertex is always needed
+  // MC labels only for the ITS-TPC tracks and their ITS and TPC parts (see getTPCInterpolationSpec)
+  GID::mask_t maskTracksMC = useMC ? GID::getSourcesMask("ITS,TPC,ITS-TPC") : GID::getSourcesMask(GID::NONE);
+  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcClusters, srcVtx, srcVtx, useMC, GID::getSourcesMask(GID::NONE), maskTracksMC);
+  o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, false); // P-vertex is always needed
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);

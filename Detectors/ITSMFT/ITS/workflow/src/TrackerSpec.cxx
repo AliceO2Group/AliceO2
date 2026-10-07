@@ -19,7 +19,7 @@
 #include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "ITSWorkflow/TrackerSpec.h"
 #include "ITStracking/Definitions.h"
-#include "ITStracking/TrackingConfigParam.h"
+#include "ITSMFTTracking/ITSTrackingConfigParam.h"
 
 namespace o2
 {

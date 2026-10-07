@@ -695,7 +695,9 @@ void Pipe::ConstructGeometry()
   Float_t rMin, rMax;
   Float_t zPos;
 
-  // The Aluminum Section till Flange
+  // The Aluminum Section till Flange. The sections are first defined with the real
+  // wall, so that the vacuum bore can be read off them, and the mother is then
+  // opened up to the beam axis so that it contains that bore itself.
   TGeoPcon* aluSideA = new TGeoPcon(0., 360., 14);
   rMax = kAluminum1stSectionOuterRadius;
   rMin = rMax - kAluminumSectionThickness;
@@ -727,21 +729,7 @@ void Pipe::ConstructGeometry()
   aluSideA->DefineSection(12, kZ35 + kAluminumSectionThickness, rMin, rMax);
   aluSideA->DefineSection(13, kZ36, rMin, rMax);
 
-  TGeoVolume* voaluSideA = new TGeoVolume("aluSideA", aluSideA, kMedAlu2219);
-  voaluSideA->SetLineColor(kBlue);
-  barrel->AddNode(voaluSideA, 1, new TGeoTranslation(0., 30., 0.));
-
-  // The Stainless Steel Flange Ring
-  rMax = kFlangeAExternalRadius;
-  rMin = rMax - kAluminumSectionThickness;
-  TGeoTube* flangeASteelRing = new TGeoTube(rMin, rMax, kFlangeASteelSectionLength / 2.);
-
-  TGeoVolume* voflangeASteelRing = new TGeoVolume("steelFlangeSideA", flangeASteelRing, kMedSteel);
-  voflangeASteelRing->SetLineColor(kRed);
-  zPos = aluSideA->GetZ(13) + flangeASteelRing->GetDz();
-  barrel->AddNode(voflangeASteelRing, 1, new TGeoTranslation(0., 30., zPos));
-
-  // The vacuum inside aluSideA and flangeASteelRing
+  // The vacuum inside aluSideA, taken from the wall radii before they are zeroed.
   TGeoPcon* aluSideAVac = new TGeoPcon(0., 360., 8);
   aluSideAVac->DefineSection(0, aluSideA->GetZ(0), 0., aluSideA->GetRmin(0));
   aluSideAVac->DefineSection(1, aluSideA->GetZ(1), 0., aluSideA->GetRmin(1));
@@ -752,10 +740,31 @@ void Pipe::ConstructGeometry()
   aluSideAVac->DefineSection(6, aluSideA->GetZ(12), 0., aluSideA->GetRmin(12));
   aluSideAVac->DefineSection(7, aluSideA->GetZ(13), 0., aluSideA->GetRmin(13));
 
+  // Open the aluminium to the beam axis. Without this the vacuum daughter lies
+  // entirely outside its mother, the navigator never enters it, and the bore is
+  // filled with the barrel's air instead of vacuum.
+  for (Int_t iSec = 0; iSec < aluSideA->GetNz(); ++iSec) {
+    aluSideA->DefineSection(iSec, aluSideA->GetZ(iSec), 0., aluSideA->GetRmax(iSec));
+  }
+
+  TGeoVolume* voaluSideA = new TGeoVolume("aluSideA", aluSideA, kMedAlu2219);
+  voaluSideA->SetLineColor(kBlue);
+  barrel->AddNode(voaluSideA, 1, new TGeoTranslation(0., 30., 0.));
+
   TGeoVolume* voaluSideAVac = new TGeoVolume("aluSideAVac", aluSideAVac, kMedVac);
   voaluSideAVac->SetLineColor(kGreen);
   voaluSideAVac->SetVisibility(1);
   voaluSideA->AddNode(voaluSideAVac, 1, gGeoIdentity);
+
+  // The Stainless Steel Flange Ring
+  rMax = kFlangeAExternalRadius;
+  rMin = rMax - kAluminumSectionThickness;
+  TGeoTube* flangeASteelRing = new TGeoTube(rMin, rMax, kFlangeASteelSectionLength / 2.);
+
+  TGeoVolume* voflangeASteelRing = new TGeoVolume("steelFlangeSideA", flangeASteelRing, kMedSteel);
+  voflangeASteelRing->SetLineColor(kRed);
+  zPos = aluSideA->GetZ(13) + flangeASteelRing->GetDz();
+  barrel->AddNode(voflangeASteelRing, 1, new TGeoTranslation(0., 30., zPos));
 
   // The support ring on A Side
   TGeoTube* sideASuppRing = new TGeoTube(kAluminum2ndSectionOuterRadius, kSupportRingRmax, kSupportRingLength / 2.);
@@ -1268,8 +1277,8 @@ void Pipe::ConstructGeometry()
   // Position all volumes
   Float_t y0;
   TGeoVolumeAssembly* voRB24ValveMo = new TGeoVolumeAssembly("RB24ValveMo");
-  voRB24ValveMo->AddNode(voRB24ValveFl, 1, new TGeoTranslation(0., 0., -7.5 / 2. + kRB24ValveFlD / 2.));
-  voRB24ValveMo->AddNode(voRB24ValveFl, 2, new TGeoTranslation(0., 0., +7.5 / 2. - kRB24ValveFlD / 2.));
+  voRB24ValveMo->AddNode(voRB24ValveFlI, 1, new TGeoTranslation(0., 0., -7.5 / 2. + kRB24ValveFlD / 2.));
+  voRB24ValveMo->AddNode(voRB24ValveFlI, 2, new TGeoTranslation(0., 0., +7.5 / 2. - kRB24ValveFlD / 2.));
   y0 = -21.5;
   voRB24ValveMo->AddNode(voRB24ValveBoM, 1, new TGeoTranslation(0., y0 + kRB24ValveBoWy / 2., 0.));
   y0 += kRB24ValveBoWy;
@@ -1582,6 +1591,15 @@ void Pipe::ConstructGeometry()
   z = kRB24VMABCRBT1L / 2. + newRB24B1BellowUndL + kRB24VMABBEConTubeL1 + kRB24VMABBEConTubeL2 - kRB24VMABCCTL + 1.;
   voRB24VMABCRB->AddNode(voRB24VMABRFCT, 1, new TGeoTranslation(0., 0., z));
 
+  // Vacuum in the bore, from the transition tube to the end of the RF contact, at the inner radius
+  // of both. Placed beside the copies in caveRB24 only: in the barrel the aluSideA pipe runs through it.
+  const double kRB24VMABCVacZ0 = -kRB24VMABCRBT1L / 2. - 1.;
+  const double kRB24VMABCVacZ1 = z + kRB24VMABCCTL;
+  const double kRB24VMABCVacZc = (kRB24VMABCVacZ0 + kRB24VMABCVacZ1) / 2.;
+  TGeoVolume* voRB24VMABCVac = new TGeoVolume(
+    "RB24VMABCVac", new TGeoTube(0., 6.3 / 2., (kRB24VMABCVacZ1 - kRB24VMABCVacZ0) / 2.), kMedVacNF);
+  voRB24VMABCVac->SetVisibility(0);
+
   //
   // Assembling RB24/1
   //
@@ -1603,6 +1621,7 @@ void Pipe::ConstructGeometry()
   // VMABC close to compensator magnet
   z = -kRB24cCuTubeL / 2. - (kRB24VMABCL - kRB24VMABCRBT1L / 2) + 1.;
   voRB24C->AddNode(voRB24VMABCRB, 2, new TGeoTranslation(0., 0., z));
+  voRB24C->AddNode(voRB24VMABCVac, 2, new TGeoTranslation(0., 0., z + kRB24VMABCVacZc));
   // <-
 
   // Bellow
@@ -1682,7 +1701,7 @@ void Pipe::ConstructGeometry()
 
   TGeoVolume* voRB243CuTubeM =
     new TGeoVolume("voRB243CuTubeM", new TGeoTube(0., kRB24CuTubeRo, kRB243CuTubeL / 2.), kMedVacNF);
-  voRB24CuTubeM->SetVisibility(0);
+  voRB243CuTubeM->SetVisibility(0);
   TGeoVolume* voRB243CuTube =
     new TGeoVolume("voRB243CuTube", new TGeoTube(kRB24CuTubeRi, kRB24CuTubeRo, kRB243CuTubeL / 2.), kMedCuNF);
   voRB243CuTubeM->AddNode(voRB243CuTube, 1, gGeoIdentity);
@@ -1690,7 +1709,7 @@ void Pipe::ConstructGeometry()
   TGeoVolumeAssembly* voRB243 = new TGeoVolumeAssembly("RB243");
   TGeoVolumeAssembly* voRB243A = new TGeoVolumeAssembly("RB243A");
 
-  voRB243A->AddNode(voRB243CuTube, 1, gGeoIdentity);
+  voRB243A->AddNode(voRB243CuTubeM, 1, gGeoIdentity);
   z = -kRB243CuTubeL / 2 + kRB24CuTubeFL / 2.;
   voRB243A->AddNode(voRB24CuTubeF, 5, new TGeoTranslation(0., 0., z));
   z = +kRB243CuTubeL / 2 - kRB24CuTubeFL / 2.;
@@ -1705,6 +1724,7 @@ void Pipe::ConstructGeometry()
 
   z = -2. * (kRB243CuTubeL + kRB24B1L) - (kRB24VMABCL - kRB24VMABCRBT1L / 2) + 1.;
   voRB243->AddNode(voRB24VMABCRB, 3, new TGeoTranslation(0., 0., z));
+  voRB243->AddNode(voRB24VMABCVac, 3, new TGeoTranslation(0., 0., z + kRB24VMABCVacZc));
 
   z = -kRB24cCuTubeL / 2 - kRB24VMABCL - kRB242CuTubeL - 1.2;
   voRB24C->AddNode(voRB243, 1, new TGeoTranslation(0., 0., z));
@@ -2300,14 +2320,24 @@ void Pipe::ConstructGeometry()
   TGeoVolume* voRB26s3Bellow =
     new TGeoVolume("RB26s3Bellow", new TGeoTube(kRB26s3BellowRi, kRB26s3BellowRo, zBellowTot), kMedVacHC);
 
-  // Positioning of the volumes
-  z0 = -kRB26s2BellowUndL / 2. + kRB26s2ConnectionPlieR;
-  voRB26s2Bellow->AddNode(voRB26s2WiggleL, 1, new TGeoTranslation(0., 0., z0));
-  z0 += kRB26s2ConnectionPlieR;
-  zsh = 4. * kRB26s2PlieR - 2. * kRB26s2PlieThickness;
-  for (Int_t iw = 0; iw < kRB26s2NumberOfPlies; iw++) {
-    Float_t zpos = z0 + iw * zsh;
-    voRB26s2Bellow->AddNode(voRB26s2Wiggle, iw + 1, new TGeoTranslation(0., 0., zpos - kRB26s2PlieThickness));
+  // Positioning of the volumes.
+  //
+  // A thirteen-convolution bellow has fourteen inner roots, so one lower plie
+  // leads the thirteen wiggles. The pitch is not 4*PlieR - 2*PlieThickness: a
+  // torus-and-disc wiggle is longer than the convolution it stands for, and at
+  // that pitch the stack does not fit the bellow. There is no room to grow it
+  // either, since only 0.01 cm separates this bellow from the right welding
+  // tube. The pitch is therefore the one that makes the fourteen roots span the
+  // bellow exactly, which is 1.5 per cent shorter.
+  const Float_t kRB26s3PliePitch =
+    (2. * zBellowTot - 2. * kRB26s3PlieR) / kRB26s3NumberOfPlies;
+  const Float_t kRB26s3RootToWiggle = 3. * kRB26s3PlieR - 5. * kRB26s3PlieThickness / 2.;
+
+  z0 = -zBellowTot + kRB26s3PlieR;
+  voRB26s3Bellow->AddNode(voRB26s3WiggleL, 1, new TGeoTranslation(0., 0., z0));
+  for (Int_t iw = 0; iw < kRB26s3NumberOfPlies; iw++) {
+    Float_t zpos = z0 + (iw + 1) * kRB26s3PliePitch - kRB26s3RootToWiggle;
+    voRB26s3Bellow->AddNode(voRB26s3Wiggle, iw + 1, new TGeoTranslation(0., 0., zpos));
   }
 
   voRB26s3Compensator->AddNode(voRB26s3Bellow, 1,

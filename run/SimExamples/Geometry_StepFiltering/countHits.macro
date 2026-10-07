@@ -1,0 +1,75 @@
+// Count hits per detector for an o2-sim output prefix.
+// Usage: root -b -q 'countHits.macro("dir/prefix")'
+// Prints:  <DET> <nHits>  and a TOTAL line.
+#include <TFile.h>
+#include <TTree.h>
+#include <TSystem.h>
+#include <TSystemDirectory.h>
+#include <TObjArray.h>
+#include <TBranch.h>
+#include <TString.h>
+#include <TLeaf.h>
+#include <iostream>
+#include <map>
+#include <string>
+
+void countHits(const char* prefix)
+{
+  TString p(prefix);
+  TString dir = gSystem->DirName(p);
+  TString base = gSystem->BaseName(p);
+
+  TSystemDirectory sdir(dir, dir);
+  TList* files = sdir.GetListOfFiles();
+  if (!files) {
+    std::cerr << "no dir " << dir << "\n";
+    return;
+  }
+  std::map<std::string, long long> counts;
+  long long total = 0;
+  TIter next(files);
+  TSystemFile* f;
+  while ((f = (TSystemFile*)next())) {
+    TString name = f->GetName();
+    if (!name.BeginsWith(base + "_Hits") || !name.EndsWith(".root")) {
+      continue;
+    }
+    TString det = name;
+    det.ReplaceAll(base + "_Hits", "");
+    det.ReplaceAll(".root", "");
+    TFile* file = TFile::Open(dir + "/" + name);
+    if (!file || file->IsZombie()) {
+      continue;
+    }
+    TTree* t = (TTree*)file->Get("o2sim");
+    if (!t) {
+      file->Close();
+      continue;
+    }
+    long long n = 0;
+    TObjArray* brs = t->GetListOfBranches();
+    for (int i = 0; i < brs->GetEntries(); ++i) {
+      TBranch* b = (TBranch*)brs->At(i);
+      TString bn = b->GetName();
+      if (!bn.Contains("Hit")) {
+        continue;
+      }
+      // number of elements of the vector branch, summed over entries
+      Long64_t nsel = t->Draw(Form("@%s.size()", bn.Data()), "", "goff");
+      if (nsel <= 0) {
+        continue;
+      }
+      double* v = t->GetV1();
+      for (Long64_t e = 0; e < nsel; ++e) {
+        n += (long long)v[e];
+      }
+    }
+    counts[det.Data()] += n;
+    total += n;
+    file->Close();
+  }
+  for (auto& kv : counts) {
+    std::cout << "HITS " << kv.first << " " << kv.second << "\n";
+  }
+  std::cout << "HITS TOTAL " << total << "\n";
+}

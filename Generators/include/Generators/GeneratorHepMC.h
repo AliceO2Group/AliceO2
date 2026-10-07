@@ -18,6 +18,10 @@
 #include "Generators/GeneratorFileOrCmd.h"
 #include "Generators/GeneratorHepMCParam.h"
 #include "Generators/GeneratorFileOrCmdParam.h"
+#include <iosfwd>
+#include <memory>
+#include <string>
+#include <vector>
 
 #ifdef GENERATORS_WITH_HEPMC3_DEPRECATED
 namespace HepMC
@@ -68,7 +72,7 @@ class GeneratorHepMC : public Generator, public GeneratorFileOrCmd
    * simulation configuration.  This is implemented as a member
    * function so as to better facilitate changes. */
   void setup(const GeneratorFileOrCmdParam& param0,
-             const GeneratorHepMCParam& param,
+             const HepMCGenConfig& param,
              const conf::SimConfig& config);
   // Generator configuration from external local parameters
   void setup(const FileOrCmdGenConfig& param0,
@@ -85,6 +89,9 @@ class GeneratorHepMC : public Generator, public GeneratorFileOrCmd
    * the vector.
    */
   Bool_t importParticles() override;
+
+  /** Terminate the background command (if any), see Generator::stop(). */
+  void stop() override;
 
   /** setters **/
   void setEventsToSkip(uint64_t val) { mEventsToSkip = val; };
@@ -105,8 +112,19 @@ class GeneratorHepMC : public Generator, public GeneratorFileOrCmd
 
   /** methods that can be overridded **/
   void updateHeader(o2::dataformats::MCEventHeader* eventHeader) override;
-  /** Make our reader */
+  /** Apply the HepMC-specific configuration */
+  void setupHepMC(const HepMCGenConfig& param);
+  /** Make our reader, taking the next file off the list of file names */
   bool makeReader();
+  /** Fix the order in which the entries of the input file are served */
+  void establishEventOrder();
+  /** Index the events of a file by byte offset and open the reader on it, so
+   *  that any entry can later be reached with a single seek. Available only for ASCII format */
+  bool buildIndex(const std::string& filename);
+  /** Read the given entry of the indexed file */
+  bool readEntry(int entry);
+  /** Generate an event following the established event order in random mode */
+  Bool_t generateEventOrdered();
 
   /** Type of function to select particles to keep when pruning
    * events */
@@ -124,8 +142,34 @@ class GeneratorHepMC : public Generator, public GeneratorFileOrCmd
   HepMC3::GenEvent* mEvent = nullptr;
   /** Option whether to prune event */
   bool mPrune; //!
+  /** Name of the file the reader is attached to, needed to re-open it */
+  std::string mCurrentFileName; //!
+  /** Order in which the entries of the input file are served */
+  std::vector<int> mEventOrder; //!
+  /** Events already delivered in the current pass over the file */
+  int mEventCounter = 0; //!
+  /** Events delivered in total */
+  int mEventsServed = 0; //!
+  /** Events contained in the input file */
+  int mEventsAvailable = 0; //!
+  /** Entry the reader is currently positioned on, -1 if none */
+  int mLastEntryRead = -1; //!
+  /** Option whether to serve the events in random order */
+  bool mRandomize = false; //!
+  /** Option whether to start over once all events have been used */
+  bool mRoundRobin = false; //!
+  /** Option to have a new order when round-robin enabled */
+  bool mReshuffleOnRepeat = true; //!
+  /** Randomizer seed, 0 to leave gRandom alone */
+  unsigned int mRngSeed = 0; //!
+  /** Whether the indexed input is HepMC2 rather than HepMC3 ASCII */
+  bool mIndexedHepMC2 = false; //!
+  /** The stream the reader is attached to, ours so that we may seek in it */
+  std::shared_ptr<std::istream> mIndexedStream; //!
+  /** Byte offset at which every entry of the input file starts */
+  std::vector<std::streamoff> mEventOffsets; //!
 
-  ClassDefOverride(GeneratorHepMC, 1);
+  ClassDefOverride(GeneratorHepMC, 2);
 
 }; /** class GeneratorHepMC **/
 

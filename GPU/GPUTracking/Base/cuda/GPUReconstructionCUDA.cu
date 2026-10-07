@@ -84,9 +84,9 @@ GPUReconstructionCUDA::~GPUReconstructionCUDA()
 }
 
 static_assert(sizeof(cudaError_t) <= sizeof(int64_t) && cudaSuccess == 0);
-int32_t GPUReconstructionCUDA::GPUChkErrInternal(const int64_t error, const char* file, int32_t line) const
+int32_t GPUReconstructionCUDA::GPUChkErrInternal(const int64_t retval, const char* file, int32_t line) const
 {
-  return internal::GPUReconstructionCUDAChkErr(error, file, line);
+  return internal::GPUReconstructionCUDAChkErr(retval, file, line);
 }
 
 GPUReconstruction* GPUReconstruction_Create_CUDA(const GPUSettingsDeviceBackend& cfg) { return new GPUReconstructionCUDA(cfg); }

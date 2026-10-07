@@ -1480,8 +1480,8 @@ struct GPUTPCGMMerger_CompareClusterIds {
 
 GPUd() void GPUTPCGMMerger::CollectMergedTracks(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread)
 {
-  static constexpr int32_t kMaxParts = 16;
-  static constexpr int32_t kMaxClusters = constants::MERGER_MAX_TRACK_CLUSTERS;
+  constexpr int32_t kMaxParts = 16;
+  constexpr int32_t kMaxClusters = constants::MERGER_MAX_TRACK_CLUSTERS;
 
   GPUTPCGMSectorTrack* trackParts[kMaxParts];
 
@@ -1627,7 +1627,10 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int32_t nBlocks, int32_t nThread
 
       // unpack and sort clusters
       if (nParts > 1 && (!revertInSegment ^ (leg & 1))) {
+#pragma GCC diagnostic push // TODO: Fixme, needed for bug in GCC 16
+#pragma GCC diagnostic ignored "-Warray-bounds"
         GPUCommonAlgorithm::sort(trackParts, trackParts + nParts, [](const GPUTPCGMSectorTrack* a, const GPUTPCGMSectorTrack* b) {
+#pragma GCC diagnostic pop
           GPUCA_DETERMINISTIC_CODE( // clang-format off
             if (a->X() != b->X()) {
               return (a->X() > b->X());

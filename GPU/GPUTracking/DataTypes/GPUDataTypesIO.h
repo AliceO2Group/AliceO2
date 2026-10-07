@@ -137,8 +137,8 @@ typedef GPUCalibObjectsTemplate<DefaultPtr> GPUCalibObjects; // NOTE: These 2 mu
 typedef GPUCalibObjectsTemplate<ConstPtr> GPUCalibObjectsConst;
 
 struct GPUTrackingInOutZS {
-  static constexpr uint32_t NSECTORS = o2::tpc::constants::MAXSECTOR;
-  static constexpr uint32_t NENDPOINTS = 20;
+  static GPUglobalconstexpr() uint32_t NSECTORS = o2::tpc::constants::MAXSECTOR;
+  static GPUglobalconstexpr() uint32_t NENDPOINTS = 20;
   struct GPUTrackingInOutZSSector {
     const void* const* zsPtr[NENDPOINTS];
     const uint32_t* nZSPtr[NENDPOINTS];
@@ -155,7 +155,7 @@ struct GPUTrackingInOutZS {
 };
 
 struct GPUTrackingInOutDigits {
-  static constexpr uint32_t NSECTORS = o2::tpc::constants::MAXSECTOR;
+  static GPUglobalconstexpr() uint32_t NSECTORS = o2::tpc::constants::MAXSECTOR;
   const o2::tpc::Digit* tpcDigits[NSECTORS] = {nullptr};
   size_t nTPCDigits[NSECTORS] = {0};
   const GPUTPCDigitsMCInput* tpcDigitsMC = nullptr;
@@ -165,7 +165,7 @@ struct GPUTrackingInOutPointers {
   GPUTrackingInOutPointers() = default;
 
   // TPC
-  static constexpr uint32_t NSECTORS = o2::tpc::constants::MAXSECTOR;
+  static GPUglobalconstexpr() uint32_t NSECTORS = o2::tpc::constants::MAXSECTOR;
   const GPUTrackingInOutZS* tpcZS = nullptr;
   const GPUTrackingInOutDigits* tpcPackedDigits = nullptr;
   const GPUTPCClusterData* clusterData[NSECTORS] = {nullptr};

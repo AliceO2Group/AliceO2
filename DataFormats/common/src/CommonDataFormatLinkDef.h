@@ -31,7 +31,7 @@
 #pragma link C++ class o2::dataformats::TimeStampWithError < float, float> + ;
 #pragma link C++ class o2::dataformats::TimeStampWithError < double, double> + ;
 #pragma link C++ class o2::dataformats::TimeStampWithError < int, int> + ;
-#pragma link C++ class o2::dataformats::TimeStampWithError < uint32_t, uint16_t> + ;
+#pragma link C++ class o2::dataformats::TimeStampWithError < uint32_t, uint32_t> + ;
 
 #pragma link C++ class o2::dataformats::EvIndex < int, int> + ;
 #pragma link C++ class o2::dataformats::RangeReference < int, int> + ;

@@ -5582,10 +5582,10 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
     }
     TGeoVolume* Torus2 =
       gGeoManager->MakeTorus(Form("Torus2_H%d_D%d", half, disk), mPipe,
-                             radius2, rin, rout, 0., -90.);
+                             radius2, rin, rout, 270., 90.);
     TGeoVolume* TorusW2 =
       gGeoManager->MakeTorus(Form("TorusW2_H%d_D%d", half, disk), mWater,
-                             radius2, 0., rin, 0., -90.);
+                             radius2, 0., rin, 270., 90.);
     TGeoRotation* rTorus2 = new TGeoRotation("rotationTorus2", 180.0, 0.0, 0.0);
     rTorus2->RegisterYourself();
     TGeoCombiTrans* transfoTorus2 = new TGeoCombiTrans(

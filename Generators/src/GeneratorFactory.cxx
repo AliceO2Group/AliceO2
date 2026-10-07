@@ -14,7 +14,7 @@
 #include <SimulationDataFormat/O2DatabasePDG.h>
 #include <Generators/GeneratorFactory.h>
 #include "FairGenerator.h"
-#include "FairBoxGenerator.h"
+#include <Generators/BoxGenerator.h>
 #include <fairlogger/Logger.h>
 #include <SimConfig/SimConfig.h>
 #include <Generators/GeneratorFromFile.h>
@@ -60,13 +60,8 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
 
   auto primGenO2 = dynamic_cast<PrimaryGenerator*>(primGen);
 
-  auto makeBoxGen = [](int pdgid, int mult, double etamin, double etamax, double pmin, double pmax, double phimin, double phimax, bool debug = false) {
-    auto gen = new FairBoxGenerator(pdgid, mult);
-    gen->SetEtaRange(etamin, etamax);
-    gen->SetPRange(pmin, pmax);
-    gen->SetPhiRange(phimin, phimax);
-    gen->SetDebug(debug);
-    return gen;
+  auto makeBoxGen = [](int pdgid, int mult, double etamin, double etamax, double pmin, double pmax, double phimin, double phimax) {
+    return new o2::eventgen::BoxGenerator(pdgid, mult, etamin, etamax, pmin, pmax, phimin, phimax);
   };
 
 #ifdef GENERATORS_WITH_PYTHIA8
@@ -105,7 +100,7 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     auto& boxparam = BoxGunParam::Instance();
     LOG(info) << "Init generic box generator with following parameters";
     LOG(info) << boxparam;
-    auto boxGen = makeBoxGen(boxparam.pdg, boxparam.number, boxparam.eta[0], boxparam.eta[1], boxparam.prange[0], boxparam.prange[1], boxparam.phirange[0], boxparam.phirange[1], boxparam.debug);
+    auto boxGen = makeBoxGen(boxparam.pdg, boxparam.number, boxparam.eta[0], boxparam.eta[1], boxparam.prange[0], boxparam.prange[1], boxparam.phirange[0], boxparam.phirange[1]);
     primGen->AddGenerator(boxGen);
   } else if (genconfig.compare("fwmugen") == 0) {
     // a simple "box" generator for forward muons
@@ -267,11 +262,7 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     LOG(info) << "Init tof test generator -> 1 muon per sector and per module";
     for (int i = 0; i < 18; i++) {
       for (int j = 0; j < 5; j++) {
-        auto boxGen = new FairBoxGenerator(13, 1); /*protons*/
-        boxGen->SetEtaRange(-0.8 + 0.32 * j + 0.15, -0.8 + 0.32 * j + 0.17);
-        boxGen->SetPRange(9, 10);
-        boxGen->SetPhiRange(10 + 20. * i - 1, 10 + 20. * i + 1);
-        boxGen->SetDebug(kTRUE);
+        auto boxGen = makeBoxGen(13 /*muons*/, 1, -0.8 + 0.32 * j + 0.15, -0.8 + 0.32 * j + 0.17, 9, 10, 10 + 20. * i - 1, 10 + 20. * i + 1);
         primGen->AddGenerator(boxGen);
       }
     }

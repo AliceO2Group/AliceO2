@@ -225,8 +225,8 @@ void SVertexer::produceOutput(o2::framework::ProcessingContext& pc)
 
     std::vector<int> sortIdx(strTracksTmp.size());
     std::iota(sortIdx.begin(), sortIdx.end(), 0);
-    // if mNTreads > 1 we need to sort tracks, clus and MCLabs by their mDecayRef
-    if (mNThreads > 1 && mNStrangeTracks > 1) {
+    // sort tracks, clus and MCLabs by their mDecayRef, also with one thread, so that they follow the vertex order
+    if (mNStrangeTracks > 1) {
       std::sort(sortIdx.begin(), sortIdx.end(), [&strTracksTmp](int i1, int i2) { return strTracksTmp[i1].mDecayRef < strTracksTmp[i2].mDecayRef; });
     }
 
@@ -352,6 +352,7 @@ void SVertexer::setupThreads()
   mBz = o2::base::Propagator::Instance()->getNominalBz();
   int fitCounter = 0;
   for (auto& fitter : mFitterV0) {
+    fitter.setOldMode(mSVParams->oldDCAFitterMode);
     fitter.setFitterID(fitCounter++);
     fitter.setBz(mBz);
     fitter.setUseAbsDCA(mSVParams->useAbsDCA);
@@ -372,6 +373,7 @@ void SVertexer::setupThreads()
   mFitterCasc.resize(mNThreads);
   fitCounter = 1000;
   for (auto& fitter : mFitterCasc) {
+    fitter.setOldMode(mSVParams->oldDCAFitterMode);
     fitter.setFitterID(fitCounter++);
     fitter.setBz(mBz);
     fitter.setUseAbsDCA(mSVParams->useAbsDCA);
@@ -393,6 +395,7 @@ void SVertexer::setupThreads()
   mFitter3body.resize(mNThreads);
   fitCounter = 2000;
   for (auto& fitter : mFitter3body) {
+    fitter.setOldMode(mSVParams->oldDCAFitterMode);
     fitter.setFitterID(fitCounter++);
     fitter.setBz(mBz);
     fitter.setUseAbsDCA(mSVParams->useAbsDCA);
@@ -463,7 +466,9 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
 
   std::unordered_map<GIndex, std::pair<int, int>> tmap;
   std::unordered_map<GIndex, bool> rejmap;
-  int nv = vtxRefs.size() - 1; // The last entry is for unassigned tracks, ignore them
+  // The last entry is for unassigned tracks, ignore them. A timeframe holding no collision at
+  // all has no entry, and the subtraction would then wrap around.
+  int nv = vtxRefs.size() > 0 ? vtxRefs.size() - 1 : 0;
   for (int i = 0; i < 2; i++) {
     mTracksPool[i].clear();
     mVtxFirstTrack[i].clear();

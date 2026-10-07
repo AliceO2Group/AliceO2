@@ -28,6 +28,8 @@
 #ifndef O2_BASE_DETID_
 #define O2_BASE_DETID_
 
+#include "GPUCommonDef.h"
+
 #include "GPUCommonRtypes.h"
 #include "GPUCommonBitSet.h"
 #include "MathUtils/Utils.h"
@@ -60,45 +62,45 @@ class DetID
   /// Detector identifiers: continuous, starting from 0
   typedef int ID;
 
-  static constexpr ID ITS = 0;
-  static constexpr ID TPC = 1;
-  static constexpr ID TRD = 2;
-  static constexpr ID TOF = 3;
-  static constexpr ID PHS = 4;
-  static constexpr ID CPV = 5;
-  static constexpr ID EMC = 6;
-  static constexpr ID HMP = 7;
-  static constexpr ID MFT = 8;
-  static constexpr ID MCH = 9;
-  static constexpr ID MID = 10;
-  static constexpr ID ZDC = 11;
-  static constexpr ID FT0 = 12;
-  static constexpr ID FV0 = 13;
-  static constexpr ID FDD = 14;
-  static constexpr ID TST = 15;
-  static constexpr ID CTP = 16;
-  static constexpr ID FOC = 17;
+  static GPUglobalconstexpr() ID ITS = 0;
+  static GPUglobalconstexpr() ID TPC = 1;
+  static GPUglobalconstexpr() ID TRD = 2;
+  static GPUglobalconstexpr() ID TOF = 3;
+  static GPUglobalconstexpr() ID PHS = 4;
+  static GPUglobalconstexpr() ID CPV = 5;
+  static GPUglobalconstexpr() ID EMC = 6;
+  static GPUglobalconstexpr() ID HMP = 7;
+  static GPUglobalconstexpr() ID MFT = 8;
+  static GPUglobalconstexpr() ID MCH = 9;
+  static GPUglobalconstexpr() ID MID = 10;
+  static GPUglobalconstexpr() ID ZDC = 11;
+  static GPUglobalconstexpr() ID FT0 = 12;
+  static GPUglobalconstexpr() ID FV0 = 13;
+  static GPUglobalconstexpr() ID FDD = 14;
+  static GPUglobalconstexpr() ID TST = 15;
+  static GPUglobalconstexpr() ID CTP = 16;
+  static GPUglobalconstexpr() ID FOC = 17;
 #ifdef ENABLE_UPGRADES
-  static constexpr ID IT3 = 18;
-  static constexpr ID TRK = 19;
-  static constexpr ID FT3 = 20;
-  static constexpr ID FCT = 21;
-  static constexpr ID TF3 = 22;
-  static constexpr ID RCH = 23;
-  static constexpr ID MI3 = 24;
-  static constexpr ID ECL = 25;
-  static constexpr ID FD3 = 26;
-  static constexpr ID Last = FD3;
+  static GPUglobalconstexpr() ID IT3 = 18;
+  static GPUglobalconstexpr() ID TRK = 19;
+  static GPUglobalconstexpr() ID FT3 = 20;
+  static GPUglobalconstexpr() ID FCT = 21;
+  static GPUglobalconstexpr() ID TF3 = 22;
+  static GPUglobalconstexpr() ID RCH = 23;
+  static GPUglobalconstexpr() ID MI3 = 24;
+  static GPUglobalconstexpr() ID ECL = 25;
+  static GPUglobalconstexpr() ID FD3 = 26;
+  static GPUglobalconstexpr() ID Last = FD3;
 #else
   static constexpr ID Last = FOC; ///< if extra detectors added, update this !!!
 #endif
-  static constexpr ID First = ITS;
+  static GPUglobalconstexpr() ID First = ITS;
 
-  static constexpr int nDetectors = Last + 1; ///< number of defined detectors
+  static GPUglobalconstexpr() int nDetectors = Last + 1; ///< number of defined detectors
   typedef o2::gpu::gpustd::bitset<32> mask_t;
   static_assert(nDetectors <= 32, "bitset<32> insufficient");
 
-  static constexpr mask_t FullMask = (0x1u << nDetectors) - 1;
+  static GPUglobalconstexpr() mask_t FullMask = (0x1u << nDetectors) - 1;
 
 #ifndef GPUCA_GPUCODE_DEVICE
   static constexpr std::string_view NONE{"none"}; ///< keywork for no-detector

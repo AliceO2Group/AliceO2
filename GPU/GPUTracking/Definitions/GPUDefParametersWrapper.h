@@ -28,8 +28,8 @@
 namespace o2::gpu
 {
 #if defined(GPUCA_GPUCODE) && !defined(GPUCA_GPUCODE_NO_LAUNCH_BOUNDS)
-  GPUhdi() static constexpr uint32_t GPUCA_GET_THREAD_COUNT(uint32_t val, ...) { return val; }
-  GPUhdi() static constexpr uint32_t GPUCA_GET_WARP_COUNT(uint32_t val, ...) { return val / GPUCA_WARP_SIZE; }
+  template <typename... Args> GPUhdi() static constexpr uint32_t GPUCA_GET_THREAD_COUNT(uint32_t val, Args...) { return val; }
+  template <typename... Args> GPUhdi() static constexpr uint32_t GPUCA_GET_WARP_COUNT(uint32_t val, Args...) { return val / GPUCA_WARP_SIZE; }
 #else
   static constexpr uint32_t GPUCA_WARP_SIZE = 1; // On the host, a thread is a block is a warp, and we run 1 "device thread" per block.
   #define GPUCA_GET_THREAD_COUNT(...) 1          // This must be a define not a constexpr function

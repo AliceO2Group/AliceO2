@@ -11,7 +11,7 @@
 
 #include "ITS3Workflow/RecoWorkflow.h"
 #include "CommonUtils/ConfigurableParam.h"
-#include "ITStracking/TrackingConfigParam.h"
+#include "ITSMFTTracking/ITSTrackingConfigParam.h"
 #include "ITStracking/Configuration.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "Framework/CallbacksPolicy.h"

@@ -34,6 +34,7 @@
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "MathUtils/Primitive2D.h"
 #include "CommonDataFormat/EvIndex.h"
+#include <DetectorsCommonDataFormats/DetID.h>
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "CommonDataFormat/BunchFilling.h"
@@ -42,6 +43,7 @@
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsFT0/RecPoints.h"
 #include "FT0Reconstruction/InteractionTag.h"
@@ -53,6 +55,7 @@
 #include "GlobalTracking/MatchTPCITSParams.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsITSMFT/TrkClusRef.h"
+#include "DataFormatsITSMFT/ClusterID.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "TPCFastTransformPOD.h"
 #if !defined(__CINT__) && !defined(__MAKECINT__) && !defined(__ROOTCLING__) && !defined(__CLING__)
@@ -106,6 +109,9 @@ constexpr int Zero = 0;
 constexpr int MinusOne = -1;
 constexpr int MinusTen = -10;
 constexpr int Validated = -2;
+
+///< per-layer status of ITS clusters (e.g. for the AfterBurner)
+using ITSClusStatus = std::array<std::vector<int>, o2::its::RecoGeomHelper::getNLayers()>;
 
 ///< flags to tell the status of TPC-ITS tracks comparison
 enum TrackRejFlag : int {
@@ -264,25 +270,25 @@ struct TPCABSeed {
   {
     return lowestLayer < o2::its::RecoGeomHelper::getNLayers() ? firstInLr[lowestLayer] : -1;
   }
-  bool checkLinkHasUsedClusters(int linkID, const std::vector<int>& clStatus) const
+  bool checkLinkHasUsedClusters(int linkID, const ITSClusStatus& clStatus) const
   {
     // check if some clusters used by the link or its parents are forbidden (already used by validatet track)
     while (linkID > MinusOne) {
       const auto& link = getLink(linkID);
-      if (link.clID > MinusOne && clStatus[link.clID] != MinusOne) {
+      if (link.clID > MinusOne && clStatus[o2::itsmft::clusID2Layer(link.clID)][o2::itsmft::clusID2Index(link.clID)] != MinusOne) {
         return true;
       }
       linkID = link.parentID;
     }
     return false;
   }
-  void flagLinkUsedClusters(int linkID, std::vector<int>& clStatus) const
+  void flagLinkUsedClusters(int linkID, ITSClusStatus& clStatus) const
   {
     // check if some clusters used by the link or its parents are forbidden (already used by validated track)
     while (linkID > MinusOne) {
       const auto& link = getLink(linkID);
       if (link.clID > MinusOne) {
-        clStatus[link.clID] = MinusTen;
+        clStatus[o2::itsmft::clusID2Layer(link.clID)][o2::itsmft::clusID2Index(link.clID)] = MinusTen;
       }
       linkID = link.parentID;
     }
@@ -293,40 +299,59 @@ struct TPCABSeed {
 
 struct InteractionCandidate : public o2::InteractionRecord {
   o2::math_utils::Bracketf_t tBracket;                // interaction time
-  int rofITS;                                         // corresponding ITS ROF entry (in the ROFRecord vectors)
+  int rofITS;                                         // corresponding ITS clock-layer cluster ROF entry (in the ROFRecord vectors)
   uint32_t flag;                                      // origin, etc.
   o2::dataformats::RangeReference<int, int> seedsRef; // references to AB seeds
-  InteractionCandidate(const o2::InteractionRecord& ir, float t, float dt, int rof, uint32_t f = 0) : o2::InteractionRecord(ir), tBracket(t - dt, t + dt), rofITS(rof), flag(f) {}
+  std::array<int, o2::its::RecoGeomHelper::getNLayers()> rofLr; // per ITS layer: cluster ROF entry compatible with the candidate time, -1: none
+  uint8_t rofNextLr = 0;                                        // bit lr set: the candidate time is compatible also with the ROF rofLr[lr]+1 of the layer
+  InteractionCandidate(const o2::InteractionRecord& ir, float t, float dt, int rof, uint32_t f = 0) : o2::InteractionRecord(ir), tBracket(t - dt, t + dt), rofITS(rof), flag(f)
+  {
+    rofLr.fill(MinusOne);
+  }
 };
 
-struct ITSChipClustersRefs {
-  ///< contaner for sorted cluster indices for certain time window (usually ROF) and reference on the start and N clusters
-  ///< for every chip
+struct ABClusterInfo {
+  ///< compact info on an ITS cluster usable by the AfterBurner
+  float y = 0.f, z = 0.f; ///< Y, Z of the cluster in the tracking frame of its sensor
+  int id = MinusOne;      ///< composed cluster ID, see o2::itsmft::composeClusID
+  int chip = -1;          ///< global chip (sensor) ID
+};
+
+struct ABLayerClusters {
+  ///< clusters of one ITS layer usable by the AfterBurner (not attached to ITS tracks), stored in per-ROF
+  ///< blocks sorted in (chip, Z). Only the blocks (ROFs) referenced by some interaction candidate are built.
   using ClusRange = o2::dataformats::RangeReference<int, int>;
-  std::vector<int> clusterID; // indices of sorted clusters
-
-#ifndef ENABLE_UPGRADES
-  std::array<ClusRange, o2::its::RecoGeomHelper::getNChips()> chipRefs; // offset and number of clusters in each chip
-  ITSChipClustersRefs(int nclIni = 50000)
-  {
-    clusterID.reserve(nclIni);
-  }
-#else
-  std::vector<ClusRange> chipRefs; // offset and number of clusters in each chip
-  ITSChipClustersRefs(int nchips = o2::its::RecoGeomHelper::getNChips(), int nclIni = 50000)
-  {
-    clusterID.reserve(nclIni);
-    chipRefs.resize(nchips, ClusRange());
-  }
-#endif
-
+  std::vector<o2::math_utils::Bracketf_t> rofTimes; ///< time brackets of all cluster ROFs of the layer
+  std::vector<ClusRange> rofRefs;                   ///< block of every ROF in the clus vector, firstEntry < 0 if the block was not built
+  std::vector<ABClusterInfo> clus;                  ///< clusters of the built blocks
+  std::vector<uint8_t> needROF;                     ///< scratch buffer: blocks to build for the current TF
   void clear()
   {
-    clusterID.clear();
-    std::memset(chipRefs.data(), 0, chipRefs.size() * sizeof(ClusRange)); // reset chip->cluster references
+    rofTimes.clear();
+    rofRefs.clear();
+    clus.clear();
+    needROF.clear();
   }
-  size_t sizeInternal() const { return sizeof(int) * clusterID.size(); }
-  size_t capInternal() const { return sizeof(int) * clusterID.capacity(); }
+  size_t sizeInternal() const { return sizeof(ABClusterInfo) * clus.size() + sizeof(o2::math_utils::Bracketf_t) * rofTimes.size() + sizeof(ClusRange) * rofRefs.size() + needROF.size(); }
+  size_t capInternal() const { return sizeof(ABClusterInfo) * clus.capacity() + sizeof(o2::math_utils::Bracketf_t) * rofTimes.capacity() + sizeof(ClusRange) * rofRefs.capacity() + needROF.capacity(); }
+};
+
+struct ABLayerView {
+  ///< thread-local view of the ABLayerClusters block(s) covering the time of the interaction candidate being processed
+  using ClusRange = o2::dataformats::RangeReference<int, int>;
+  int rofKey = -2;                     ///< 1st ROF of the loaded block(s): -1: no compatible ROF, -2: nothing loaded yet
+  int nROFsKey = 0;                    ///< number of consecutive ROFs loaded (1 or 2)
+  int chipOffs = 0;                    ///< global ID of the 1st chip of the layer
+  int nData = 0;                       ///< number of clusters in the view
+  const ABClusterInfo* data = nullptr; ///< clusters of the loaded block(s), sorted in (chip, Z)
+  std::vector<ClusRange> chipRefs;     ///< cluster range in data for every chip of the layer
+  std::vector<int> touchedChips;       ///< chips with non-empty chipRefs, for fast reset
+  std::vector<ABClusterInfo> merged;   ///< buffer to merge 2 blocks when the candidate time is compatible with 2 ROFs
+};
+
+struct ABThreadClusterViews {
+  ///< per-thread views of the AB clusters of all layers
+  std::array<ABLayerView, o2::its::RecoGeomHelper::getNLayers()> layers;
 };
 
 class MatchTPCITS
@@ -340,6 +365,7 @@ class MatchTPCITS
   using Params = o2::globaltracking::MatchTPCITSParams;
   using MatCorrType = o2::base::Propagator::MatCorrType;
   using VDTriplet = o2::dataformats::Triplet<float, float, float>;
+  using AlpParamITS = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>;
 
   MatchTPCITS(); // std::unique_ptr to forward declared type needs constructor / destructor in .cxx
   ~MatchTPCITS();
@@ -348,6 +374,8 @@ class MatchTPCITS
   static constexpr int MaxLadderCand = 2 * MaxUpDnLadders + 1; // max ladders to check for matching clusters
   static constexpr int MaxSeedsPerLayer = 50;                  // TODO
   static constexpr int NITSLayers = o2::its::RecoGeomHelper::getNLayers();
+  static_assert(NITSLayers == AlpParamITS::getNLayers(), "ITS layers count mismatch between geometry helper and DPLAlpideParam");
+  static_assert(NITSLayers == o2::itsmft::MaxITSClusLayers, "ITS layers count mismatch between geometry helper and the composed cluster ID encoding");
   ///< perform matching for provided input
 #if !defined(__CINT__) && !defined(__MAKECINT__) && !defined(__ROOTCLING__) && !defined(__CLING__)
   void run(const o2::globaltracking::RecoContainer& inp,
@@ -394,7 +422,13 @@ class MatchTPCITS
   void setNHBPerTF(int n) { mNHBPerTF = n; }
 
   ///< ITS readout mode
-  void setITSTriggered(bool v) { mITSTriggered = v; }
+  void setITSTriggered(bool v)
+  {
+    mITSTriggered = v;
+    if (mAlpParams) { // the ROF length depends on the readout mode
+      setAlpideParam(mAlpParams);
+    }
+  }
   bool isITSTriggered() const { return mITSTriggered; }
 
   void setUseFT0(bool v) { mUseFT0 = v; }
@@ -403,14 +437,29 @@ class MatchTPCITS
   void setUseBCFilling(bool v) { mUseBCFilling = v; }
   bool getUseBCFilling() const { return mUseBCFilling; }
 
-  ///< set ITS ROFrame duration in microseconds
-  void setITSROFrameLengthMUS(float fums);
-  ///< set ITS ROFrame duration in BC (continuous mode only)
-  void setITSROFrameLengthInBC(int nbc);
+  ///< set ITS Alpide parameters: all per-layer ITS ROF lengths, biases and the clock layer
+  ///< are derived from them, no other ITS timing setter is needed. Can be called in any order
+  ///< wrt setITSTriggered().
+  void setAlpideParam(const AlpParamITS* p);
+  const AlpParamITS* getAlpideParam() const { return mAlpParams; }
 
-  void setITSTimeBiasInBC(int n);
-  int getITSTimeBiasInBC() const { return mITSTimeBiasInBC; }
-  float getITSTimeBiasMUS() const { return mITSTimeBiasMUS; }
+  ///< layer whose ROF defines the granularity of the ITS tracks ROFRecords (0 if all layers share the same ROF)
+  int getITSClockLayer() const { return mITSClockLayer; }
+
+  ///< per-layer ITS ROF length and bias, always defined for all NITSLayers
+  int getITSROFrameLengthInBC(int lr) const { return mITSROFrameLengthInBC[lr]; }
+  float getITSROFrameLengthMUS(int lr) const { return mITSROFrameLengthMUS[lr]; }
+  float getITSROFrameLengthMUSInv(int lr) const { return mITSROFrameLengthMUSInv[lr]; }
+  float getITSTimeResMUS(int lr) const { return mITSTimeResMUS[lr]; }
+  int getITSTimeBiasInBC(int lr) const { return mITSTimeBiasInBC[lr]; }
+  float getITSTimeBiasMUS(int lr) const { return mITSTimeBiasMUS[lr]; }
+
+  ///< time bracket (wrt TF start) of the ROF starting at nBC of the given layer
+  BracketF getITSROFTimeBracket(long nBC, int lr) const
+  {
+    float tMin = (nBC + mITSTimeBiasInBC[lr]) * o2::constants::lhc::LHCBunchSpacingMUS;
+    return {tMin, tMin + mITSROFrameLengthMUS[lr]};
+  }
 
   // ==================== >> DPL-driven input >> =======================
   void setITSDictionary(const o2::itsmft::TopologyDictionary* d) { mITSDict = d; }
@@ -493,9 +542,8 @@ class MatchTPCITS
   int prepareTPCTracksAfterBurner();
   int addTPCSeed(const o2::track::TrackParCov& _tr, float t0, float terr, o2::dataformats::GlobalTrackID srcGID, int tpcID);
 
-  int preselectChipClusters(std::vector<int>& clVecOut, const ClusRange& clRange, const ITSChipClustersRefs& itsChipClRefs,
+  int preselectChipClusters(std::vector<int>& clVecOut, const ClusRange& clRange, const ABLayerView& clView,
                             float trackY, float trackZ, float tolerY, float tolerZ) const;
-  void fillClustersForAfterBurner(int rofStart, int nROFs, ITSChipClustersRefs& itsChipClRefs);
   void flagUsedITSClusters(const o2::its::TrackITS& track);
 
   void doMatching(int sec);
@@ -533,7 +581,7 @@ class MatchTPCITS
   ///< convert time to ITS ROFrame units in case of continuous ITS readout
   int time2ITSROFrameCont(float t) const
   {
-    int rof = (t - mITSTimeBiasMUS) * mITSROFrameLengthMUSInv;
+    int rof = (t - mITSTimeBiasMUS[mITSClockLayer]) * mITSROFrameLengthMUSInv[mITSClockLayer];
     if (rof < 0) {
       rof = 0;
     }
@@ -544,7 +592,7 @@ class MatchTPCITS
   ///< convert time to ITS ROFrame units in case of triggered ITS readout
   int time2ITSROFrameTrig(float t, int start) const
   {
-    t -= mITSTimeBiasMUS;
+    t -= mITSTimeBiasMUS[mITSClockLayer];
     while (start < int(mITSROFTimes.size())) {
       if (mITSROFTimes[start].getMax() > t) {
         return start;
@@ -575,10 +623,17 @@ class MatchTPCITS
     return delta > toler ? rejFlag : (delta < -toler ? -rejFlag : Accept);
   }
 
+  const ITSCluster& getITSCluster(int composedID) const
+  {
+    return mITSClustersArray[o2::itsmft::clusID2Layer(composedID)][o2::itsmft::clusID2Index(composedID)];
+  }
+
   // ========================= AFTERBURNER =========================
   int prepareABSeeds();
-  void processABSeed(int sid, const ITSChipClustersRefs& itsChipClRefs, uint8_t tID);
-  int followABSeed(const o2::track::TrackParCov& seed, const ITSChipClustersRefs& itsChipClRefs, int seedID, int lrID, TPCABSeed& ABSeed);
+  void prepareABClusters();
+  void updateABLayerView(ABLayerView& view, int lr, int rof, int nROFs) const;
+  void processABSeed(int sid, const ABThreadClusterViews& itsClViews, uint8_t tID);
+  int followABSeed(const o2::track::TrackParCov& seed, const ABLayerView& clView, int seedID, int lrID, TPCABSeed& ABSeed);
   int registerABTrackLink(TPCABSeed& ABSeed, const o2::track::TrackParCov& trc, int clID, int parentID, int lr, int laddID, float chi2Cl);
   bool isBetter(float chi2A, float chi2B) { return chi2A < chi2B; } // RS FIMXE TODO
   void accountForOverlapsAB(int lrSeed);
@@ -600,6 +655,7 @@ class MatchTPCITS
   ///========== Parameters to be set externally, e.g. from CCDB ====================
   const Params* mParams = nullptr;
   const o2::ft0::InteractionTag* mFT0Params = nullptr;
+  const AlpParamITS* mAlpParams = nullptr; ///< ITS Alpide parameters, set externally
 
   MatCorrType mUseMatCorrFlag = MatCorrType::USEMatCorrTGeo;
   bool mUseBCFilling = false; ///< use BC filling for candidates validation
@@ -618,12 +674,15 @@ class MatchTPCITS
   ///< assigned time0 and its track Z position (converted from mTPCTimeEdgeZSafeMargin)
   float mTPCTimeEdgeTSafeMargin = 0.f;
   float mTPCExtConstrainedNSigmaInv = 0.f; // inverse for NSigmas for TPC time-interval from external constraint time sigma
-  int mITSROFrameLengthInBC = 0;           ///< ITS RO frame in BC (for ITS cont. mode only)
-  float mITSROFrameLengthMUS = -1.;        ///< ITS RO frame in \mus
-  float mITSTimeResMUS = -1.;              ///< nominal ITS time resolution derived from ROF
-  float mITSROFrameLengthMUSInv = -1.;     ///< ITS RO frame in \mus inverse
-  int mITSTimeBiasInBC = 0;                ///< ITS RO frame shift in BCs, i.e. t_i = (I_ROF*mITSROFrameLengthInBC + mITSTimeBiasInBC)*BCLength_MUS
-  float mITSTimeBiasMUS = 0.;              ///< ITS RO frame shift in \mus, i.e. t_i = (I_ROF*mITSROFrameLengthInBC)*BCLength_MUS + mITSTimeBiasMUS
+  ///< ITS ROF timings, always filled for all NITSLayers, also when all layers share the same ROF.
+  ///< t_i(lr) = (I_ROF*mITSROFrameLengthInBC[lr] + mITSTimeBiasInBC[lr])*BCLength_MUS
+  int mITSClockLayer = 0;                                  ///< layer defining the ITS tracks ROFRecords granularity
+  std::array<int, NITSLayers> mITSROFrameLengthInBC{};     ///< ITS RO frame in BC per layer (cont. mode only)
+  std::array<float, NITSLayers> mITSROFrameLengthMUS{};    ///< ITS RO frame in \mus per layer
+  std::array<float, NITSLayers> mITSROFrameLengthMUSInv{}; ///< inverse ITS RO frame in \mus per layer
+  std::array<float, NITSLayers> mITSTimeResMUS{};          ///< nominal ITS time resolution derived from per-layer ROF
+  std::array<int, NITSLayers> mITSTimeBiasInBC{};          ///< ITS RO frame shift in BC per layer
+  std::array<float, NITSLayers> mITSTimeBiasMUS{};         ///< ITS RO frame shift in \mus per layer
   float mTPCVDrift = -1.;                  ///< TPC drift speed in cm/microseconds
   float mTPCVDriftInv = -1.;               ///< inverse TPC nominal drift speed in cm/microseconds
   float mTPCDriftTimeOffset = 0;           ///< drift time offset in mus
@@ -662,15 +721,14 @@ class MatchTPCITS
   gsl::span<const o2::itsmft::ROFRecord> mITSTrackROFRec;  ///< input ITS tracks ROFRecord span
   gsl::span<const o2::its::TrackITS> mITSTracksArray;      ///< input ITS tracks span
   gsl::span<const int> mITSTrackClusIdx;                   ///< input ITS track cluster indices span
-  std::vector<ITSCluster> mITSClustersArray;               ///< ITS clusters created in loadInput
-  std::vector<uint8_t> mITSClusterSizes;                   ///< ITS cluster sizes created in loadInput
-
-  gsl::span<const o2::itsmft::ROFRecord> mITSClusterROFRec; ///< input ITS clusters ROFRecord span
+  std::array<std::vector<ITSCluster>, NITSLayers> mITSClustersArray{};              ///< ITS clusters created in loadInput
+  std::array<std::vector<uint8_t>, NITSLayers> mITSClusterSizes{};                  ///< ITS cluster sizes created in loadInput
+  std::array<gsl::span<const o2::itsmft::ROFRecord>, NITSLayers> mITSClusterROFRec; ///< input ITS clusters ROFRecord span
+  int mNITSClusters = 0;
   gsl::span<const o2::ft0::RecPoints> mFITInfo;             ///< optional input FIT info span
 
   gsl::span<const unsigned char> mTPCRefitterShMap; ///< externally set TPC clusters sharing map
   gsl::span<const unsigned int> mTPCRefitterOccMap; ///< externally set TPC clusters occupancy map
-
   const o2::itsmft::TopologyDictionary* mITSDict{nullptr}; // cluster patterns dictionary
 #ifdef ENABLE_UPGRADES
   const o2::its3::TopologyDictionary* mIT3Dict{nullptr}; // cluster patterns dictionary
@@ -678,7 +736,7 @@ class MatchTPCITS
 
   const o2::tpc::ClusterNativeAccess* mTPCClusterIdxStruct = nullptr; ///< struct holding the TPC cluster indices
 
-  const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mITSClsLabels = nullptr; ///< input ITS Cluster MC labels
+  std::array<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*, NITSLayers> mITSClsLabels{}; ///< input ITS Cluster MC labels
   gsl::span<const o2::MCCompLabel> mITSTrkLabels;                                    ///< input ITS Track MC labels
   gsl::span<const o2::MCCompLabel> mTPCTrkLabels;                                    ///< input TPC Track MC labels
   /// <<<-----
@@ -711,7 +769,13 @@ class MatchTPCITS
   ///< indices of selected track entries in mTPCWork (for tracks selected by AfterBurner)
   std::vector<int> mTPCABIndexCache;
   std::vector<int> mABWinnersIDs;
-  std::vector<int> mABClusterLinkIndex; ///< index of 1st ABClusterLink for every cluster used by AfterBurner, -1: unused, -10: used by external ITS tracks
+  ///< per storage-slot status of ITS clusters wrt AfterBurner: -1: free, -10: used by an external ITS track or a validated AB track.
+  ///< The slot is the layer for per-layer clusters input, 0 for the monolithic one; only the slots used by the AfterBurner are booked
+  ITSClusStatus mABClusterStatus;
+  std::array<ABLayerClusters, NITSLayers> mABLayerClusters; ///< per (layer, ROF) blocks of AB-usable clusters; filled for the AB layers and the ROF times also for the clock layer
+  std::array<int, NITSLayers + 1> mABChipsBounds{};         ///< the layer lr owns the global chip IDs [mABChipsBounds[lr], mABChipsBounds[lr+1])
+  float mABROFMarginMUS = 0.f;                              ///< effective margin for candidate time to ITS ROF matching: abROFMarginMUS clamped to below half of the shortest AB layer ROF
+  float mITSMaxROFOverhangMUS = 0.f;                        ///< max excess of ITS track time brackets over the end of their clock-layer ROF in the current TF
   LinksPoolMT mABLinksPool;
 
   ///< per sector indices of TPC track entry in mTPCWork

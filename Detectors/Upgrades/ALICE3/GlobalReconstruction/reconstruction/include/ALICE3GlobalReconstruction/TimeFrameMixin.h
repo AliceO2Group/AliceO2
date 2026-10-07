@@ -19,7 +19,7 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsTRKFT3/Cluster.h"
 #include "DataFormatsTRKFT3/ROFRecord.h"
-#include "ITStracking/ROFLookupTables.h"
+#include "ITSMFTTracking/ROFLookupTables.h"
 #include "ITStracking/TimeFrame.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCEventHeader.h"

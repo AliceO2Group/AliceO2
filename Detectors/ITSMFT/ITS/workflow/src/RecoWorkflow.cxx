@@ -16,7 +16,7 @@
 #include "ITSMFTWorkflow/ClusterWriterSpec.h"
 #include "ITSWorkflow/TrackerSpec.h"
 #include "ITSWorkflow/TrackWriterSpec.h"
-#include "ITStracking/TrackingConfigParam.h"
+#include "ITSMFTTracking/ITSTrackingConfigParam.h"
 #include "ITSMFTWorkflow/DigitReaderSpec.h"
 #include "GlobalTrackingWorkflowWriters/IRFrameWriterSpec.h"
 #include "GPUWorkflow/GPUWorkflowSpec.h"

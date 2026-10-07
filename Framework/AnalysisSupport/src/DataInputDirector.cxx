@@ -34,6 +34,7 @@
 #include <arrow/dataset/file_base.h>
 #include <arrow/dataset/dataset.h>
 #include <uv.h>
+#include <exception>
 #include <memory>
 
 #if __has_include(<TJAlienFile.h>)
@@ -160,10 +161,13 @@ bool DataInputDescriptor::setFile(int counter, int wantedParentLevel, std::strin
   if (tfile == nullptr) {
     tfile = TFile::Open(filename.c_str());
   }
-  mCurrentFilesystem = std::make_shared<TFileFileSystem>(tfile, 50 * 1024 * 1024, mFactory, !externalFile);
-  if (!mCurrentFilesystem.get()) {
+  if (!tfile || tfile->IsZombie()) {
+    if (tfile && !externalFile) {
+      delete tfile;
+    }
     throw std::runtime_error(fmt::format("Couldn't open file \"{}\"!", filename));
   }
+  mCurrentFilesystem = std::make_shared<TFileFileSystem>(tfile, 50 * 1024 * 1024, mFactory, !externalFile);
   rootFS = std::dynamic_pointer_cast<TFileFileSystem>(mCurrentFilesystem);
   printFileOpening();
 
@@ -253,6 +257,10 @@ std::pair<std::shared_ptr<DataInputDescriptor>, int> DataInputDescriptor::naviga
   if (!setFile(counter, wantedParentLevel, wantedOrigin)) {
     return {nullptr, -1};
   }
+  if (numTF < 0 || numTF >= mfilenames[counter].numberOfTimeFrames) {
+    return {nullptr, -1};
+  }
+  recordTimeFrameRead(counter, numTF);
   auto folderName = fmt::format("DF_{}", mfilenames[counter].listOfTimeFrameNumbers[numTF]);
   auto parentFile = getParentFile(counter, numTF, "", wantedParentLevel, wantedOrigin);
   if (parentFile == nullptr) {
@@ -282,9 +290,65 @@ arrow::dataset::FileSource DataInputDescriptor::getFileFolder(int counter, int n
     return {};
   }
 
+  recordTimeFrameRead(counter, numTF);
   mfilenames[counter].alreadyRead[numTF] = true;
 
   return {fmt::format("DF_{}", mfilenames[counter].listOfTimeFrameNumbers[numTF]), mCurrentFilesystem};
+}
+
+void DataInputDescriptor::recordTimeFrameRead(int counter, int numTF)
+{
+  auto read = std::pair{counter, numTF};
+  if (std::find(mTimeFrameReads.begin(), mTimeFrameReads.end(), read) == mTimeFrameReads.end()) {
+    mTimeFrameReads.push_back(read);
+  }
+}
+
+void DataInputDescriptor::beginTimeFrame()
+{
+  mTimeFrameReads.clear();
+  mTimeFrameActive = true;
+  if (mParentFile) {
+    mParentFile->beginTimeFrame();
+  }
+}
+
+void DataInputDescriptor::finishTimeFrame(bool skipped)
+{
+  mTimeFrameActive = false;
+  if (skipped) {
+    for (auto [file, df] : mTimeFrameReads) {
+      mfilenames[file].alreadyRead[df] = false;
+      ++mfilenames[file].invalidReadSkipped;
+    }
+  }
+  mTimeFrameReads.clear();
+  if (mParentFile) {
+    mParentFile->finishTimeFrame(skipped);
+  }
+  for (auto& parent : mRetainedParents) {
+    parent->finishTimeFrame(skipped);
+    parent->closeInputFile();
+  }
+  mRetainedParents.clear();
+  for (auto& [counter, info] : mPendingFileStatistics) {
+    reportFileStatistics(counter, std::move(info));
+  }
+  mPendingFileStatistics.clear();
+}
+
+void DataInputDescriptor::releaseParentFile()
+{
+  if (!mParentFile) {
+    return;
+  }
+  if (mTimeFrameActive) {
+    // Keep both the read bookkeeping and the open file for final statistics.
+    mRetainedParents.push_back(std::move(mParentFile));
+  } else {
+    mParentFile->closeInputFile();
+    mParentFile.reset();
+  }
 }
 
 std::shared_ptr<DataInputDescriptor> DataInputDescriptor::getParentFile(int counter, int numTF, std::string treename, int wantedParentLevel, std::string_view wantedOrigin)
@@ -299,8 +363,7 @@ std::shared_ptr<DataInputDescriptor> DataInputDescriptor::getParentFile(int coun
   // The current DF is not found in the parent map (this should not happen and is a fatal error)
   auto rootFS = std::dynamic_pointer_cast<TFileFileSystem>(mCurrentFilesystem);
   if (!parentFileName) {
-    throw std::runtime_error(fmt::format(R"(parent file map exists but does not contain the current DF "{}" in file "{}")", folderName.c_str(), rootFS->GetFile()->GetName()));
-    return nullptr;
+    throw InvalidAODReadError(fmt::format(R"(parent file map exists but does not contain the current DF "{}" in file "{}")", folderName.c_str(), rootFS->GetFile()->GetName()));
   }
 
   if (mParentFile) {
@@ -309,8 +372,7 @@ std::shared_ptr<DataInputDescriptor> DataInputDescriptor::getParentFile(int coun
     if (parentFileName->GetString().CompareTo(parentRootFS->GetFile()->GetName()) == 0) {
       return mParentFile;
     } else {
-      mParentFile->closeInputFile();
-      mParentFile.reset();
+      releaseParentFile();
     }
   }
 
@@ -323,7 +385,15 @@ std::shared_ptr<DataInputDescriptor> DataInputDescriptor::getParentFile(int coun
   mParentFile = std::make_shared<DataInputDescriptor>(mAlienSupport, mLevel + 1, mContext);
   mParentFile->mdefaultFilenamesPtr.emplace_back(makeFileNameHolder(parentFileName->GetString().Data()));
   mParentFile->fillInputfiles();
-  mParentFile->setFile(0, wantedParentLevel, wantedOrigin);
+  try {
+    mParentFile->setFile(0, wantedParentLevel, wantedOrigin);
+    if (mTimeFrameActive) {
+      mParentFile->beginTimeFrame();
+    }
+  } catch (...) {
+    mParentFile.reset();
+    std::throw_with_nested(InvalidAODReadError(fmt::format("Unable to open parent file \"{}\" for {}", parentFileName->GetString().Data(), folderName)));
+  }
   return mParentFile;
 }
 
@@ -363,8 +433,8 @@ void DataInputDescriptor::printFileStatistics()
   }
   auto rootFS = std::dynamic_pointer_cast<TFileFileSystem>(mCurrentFilesystem);
   auto f = dynamic_cast<TFile*>(rootFS->GetFile());
-  std::string monitoringInfo(fmt::format("lfn={},size={},total_df={},read_df={},read_bytes={},read_calls={},io_time={:.1f},wait_time={:.1f},level={}", f->GetName(),
-                                         f->GetSize(), getTimeFramesInFile(mCurrentFileID), getReadTimeFramesInFile(mCurrentFileID), f->GetBytesRead(), f->GetReadCalls(),
+  std::string monitoringInfo(fmt::format("lfn={},size={},total_df={},read_bytes={},read_calls={},io_time={:.1f},wait_time={:.1f},level={}", f->GetName(),
+                                         f->GetSize(), getTimeFramesInFile(mCurrentFileID), f->GetBytesRead(), f->GetReadCalls(),
                                          ((float)mIOTime / 1e9), ((float)wait_time / 1e9), mLevel));
 #if __has_include(<TJAlienFile.h>)
   auto alienFile = dynamic_cast<TJAlienFile*>(f);
@@ -372,6 +442,17 @@ void DataInputDescriptor::printFileStatistics()
     monitoringInfo += fmt::format(",se={},open_time={:.1f}", alienFile->GetSE(), alienFile->GetElapsed());
   }
 #endif
+  if (mTimeFrameActive) {
+    // Snapshot I/O statistics now, but publish DF counts after commit or rollback.
+    mPendingFileStatistics.emplace_back(mCurrentFileID, std::move(monitoringInfo));
+  } else {
+    reportFileStatistics(mCurrentFileID, std::move(monitoringInfo));
+  }
+}
+
+void DataInputDescriptor::reportFileStatistics(int counter, std::string monitoringInfo)
+{
+  monitoringInfo += fmt::format(",read_df={},skipped_df={}", getReadTimeFramesInFile(counter), mfilenames.at(counter).invalidReadSkipped);
   if (mContext.monitoring) {
     mContext.monitoring->send(o2::monitoring::Metric{monitoringInfo, "aod-file-read-info"}.addTag(o2::monitoring::tags::Key::Subsystem, o2::monitoring::tags::Value::DPL));
   }
@@ -381,10 +462,7 @@ void DataInputDescriptor::printFileStatistics()
 void DataInputDescriptor::closeInputFile()
 {
   if (mCurrentFilesystem.get()) {
-    if (mParentFile) {
-      mParentFile->closeInputFile();
-      mParentFile.reset();
-    }
+    releaseParentFile();
 
     delete mParentFileMap;
     mParentFileMap = nullptr;
@@ -482,7 +560,7 @@ struct CalculateDelta {
 };
 
 bool DataInputDescriptor::readTree(DataAllocator& outputs, header::DataHeader dh, int counter, int numTF, std::string treename, size_t& totalSizeCompressed, size_t& totalSizeUncompressed)
-{
+try {
   CalculateDelta t(mIOTime);
   std::string wantedOrigin = dh.dataOrigin.as<std::string>();
   int wantedLevel = mContext.levelForOrigin(wantedOrigin);
@@ -491,13 +569,17 @@ bool DataInputDescriptor::readTree(DataAllocator& outputs, header::DataHeader dh
   // attempting to read from this level.
   if (wantedLevel != -1 && mLevel < wantedLevel) {
     auto [parentFile, parentNumTF] = navigateToLevel(counter, numTF, wantedLevel, wantedOrigin);
+    if (counter >= getNumberInputfiles() || numTF < 0 || numTF >= mfilenames[counter].numberOfTimeFrames) {
+      t.deactivate();
+      return false;
+    }
     if (parentFile == nullptr) {
       auto rootFS = std::dynamic_pointer_cast<TFileFileSystem>(mCurrentFilesystem);
-      throw std::runtime_error(fmt::format(R"(No parent file found for "{}" while looking for level {} in "{}")", treename, wantedLevel, rootFS->GetFile()->GetName()));
+      throw InvalidAODReadError(fmt::format(R"(No parent file found for "{}" while looking for level {} in "{}")", treename, wantedLevel, rootFS->GetFile()->GetName()));
     }
     if (parentNumTF == -1) {
       auto parentRootFS = std::dynamic_pointer_cast<TFileFileSystem>(parentFile->mCurrentFilesystem);
-      throw std::runtime_error(fmt::format(R"(DF not found in parent file "{}")", parentRootFS->GetFile()->GetName()));
+      throw InvalidAODReadError(fmt::format(R"(DF not found in parent file "{}")", parentRootFS->GetFile()->GetName()));
     }
     t.deactivate();
     return parentFile->readTree(outputs, dh, 0, parentNumTF, treename, totalSizeCompressed, totalSizeUncompressed);
@@ -527,6 +609,14 @@ bool DataInputDescriptor::readTree(DataAllocator& outputs, header::DataHeader dh
     if (handle) {
       format = capability.factory().format();
       creator = capability.factory().deferredOutputStreamer;
+      // Account for the bytes we are about to read. This used to sit further down, where
+      // the TTree was opened by hand; moving the reading to the arrow::Dataset API left
+      // the accounting behind, which is why aod-bytes-read-* and the --aod-max-read-rate
+      // pacing that derives from them both read zero. Each format reports its own size,
+      // so we just ask; here is where the object is resolved and its size is known.
+      if (capability.accountBytes) {
+        capability.accountBytes(handle, totalSizeCompressed, totalSizeUncompressed);
+      }
       break;
     }
   }
@@ -537,20 +627,23 @@ bool DataInputDescriptor::readTree(DataAllocator& outputs, header::DataHeader dh
     t.deactivate();
     LOGP(debug, "Could not find tree {}. Trying in parent file.", fullpath.path());
     auto parentFile = getParentFile(counter, numTF, treename, wantedLevel, wantedOrigin);
-    if (parentFile != nullptr) {
-      int parentNumTF = parentFile->findDFNumber(0, folder.path());
-      if (parentNumTF == -1) {
-        auto parentRootFS = std::dynamic_pointer_cast<TFileFileSystem>(parentFile->mCurrentFilesystem);
-        throw std::runtime_error(fmt::format(R"(DF {} listed in parent file map but not found in the corresponding file "{}")", folder.path(), parentRootFS->GetFile()->GetName()));
-      }
-      // first argument is 0 as the parent file object contains only 1 file
-      return parentFile->readTree(outputs, dh, 0, parentNumTF, treename, totalSizeCompressed, totalSizeUncompressed);
+    if (parentFile == nullptr) {
+      auto rootFS = std::dynamic_pointer_cast<TFileFileSystem>(mCurrentFilesystem);
+      throw std::runtime_error(fmt::format(R"(Couldn't get TTree "{}" from "{}". Please check https://aliceo2group.github.io/analysis-framework/docs/troubleshooting/#tree-not-found for more information.)", fullpath.path(), rootFS->GetFile()->GetName()));
     }
-    auto rootFS = std::dynamic_pointer_cast<TFileFileSystem>(mCurrentFilesystem);
-    throw std::runtime_error(fmt::format(R"(Couldn't get TTree "{}" from "{}". Please check https://aliceo2group.github.io/analysis-framework/docs/troubleshooting/#tree-not-found for more information.)", fullpath.path(), rootFS->GetFile()->GetName()));
+    int parentNumTF = parentFile->findDFNumber(0, folder.path());
+    if (parentNumTF == -1) {
+      auto parentRootFS = std::dynamic_pointer_cast<TFileFileSystem>(parentFile->mCurrentFilesystem);
+      throw InvalidAODReadError(fmt::format(R"(DF {} listed in parent file map but not found in the corresponding file "{}")", folder.path(), parentRootFS->GetFile()->GetName()));
+    }
+    // first argument is 0 as the parent file object contains only 1 file
+    return parentFile->readTree(outputs, dh, 0, parentNumTF, treename, totalSizeCompressed, totalSizeUncompressed);
   }
 
   auto schemaOpt = format->Inspect(fullpath);
+  if (!schemaOpt.ok()) {
+    throw InvalidAODReadError(fmt::format("Unable to inspect tree {}: {}", treename, schemaOpt.status().ToString()));
+  }
   auto physicalSchema = schemaOpt;
   std::vector<std::shared_ptr<arrow::Field>> fields;
   for (auto& original : (*schemaOpt)->fields()) {
@@ -573,9 +666,23 @@ bool DataInputDescriptor::readTree(DataAllocator& outputs, header::DataHeader dh
   //// add branches to read
   //// fill the table
   f2b->setLabel(treename.c_str());
-  f2b->fill(datasetSchema, format);
+  char const* operation = "read";
+  try {
+    f2b->fill(datasetSchema, format);
+    operation = "finalize";
+    f2b.release();
+  } catch (...) {
+    f2b.discard();
+    std::throw_with_nested(InvalidAODReadError(fmt::format("Unable to {} tree {}", operation, treename)));
+  }
 
   return true;
+} catch (InvalidAODReadError const&) {
+  auto rootFS = std::dynamic_pointer_cast<TFileFileSystem>(mCurrentFilesystem);
+  auto filename = rootFS ? std::string(rootFS->GetFile()->GetName()) : mfilenames.at(counter).fileName;
+  auto const& dfs = mfilenames.at(counter).listOfTimeFrameNumbers;
+  auto df = numTF >= 0 && static_cast<size_t>(numTF) < dfs.size() ? fmt::format("DF_{}", dfs[numTF]) : fmt::format("timeframe index {}", numTF);
+  std::throw_with_nested(InvalidAODReadError(fmt::format("Reading tree {} in {} from file \"{}\" at parent level {}", treename, df, filename, mLevel)));
 }
 
 DataInputDirector::DataInputDirector(std::vector<std::string> inputFiles, DataInputDirectorContext&& context)
@@ -865,6 +972,22 @@ arrow::dataset::FileSource DataInputDirector::getFileFolder(header::DataHeader d
   return didesc->getFileFolder(counter, numTF, wantedLevel, origin);
 }
 
+void DataInputDirector::beginTimeFrame()
+{
+  mdefaultDataInputDescriptor->beginTimeFrame();
+  for (auto& descriptor : mdataInputDescriptors) {
+    descriptor.beginTimeFrame();
+  }
+}
+
+void DataInputDirector::finishTimeFrame(bool skipped)
+{
+  mdefaultDataInputDescriptor->finishTimeFrame(skipped);
+  for (auto& descriptor : mdataInputDescriptors) {
+    descriptor.finishTimeFrame(skipped);
+  }
+}
+
 int DataInputDirector::getTimeFramesInFile(header::DataHeader dh, int counter)
 {
   auto didesc = getDataInputDescriptor(dh);
@@ -912,6 +1035,7 @@ bool DataInputDirector::readTree(DataAllocator& outputs, header::DataHeader dh, 
 
 void DataInputDirector::closeInputFiles()
 {
+  finishTimeFrame();
   mdefaultDataInputDescriptor->closeInputFile();
   for (auto& didesc : mdataInputDescriptors) {
     didesc.closeInputFile();

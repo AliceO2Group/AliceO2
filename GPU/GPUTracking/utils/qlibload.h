@@ -21,6 +21,12 @@
 #define LIBRARY_LOAD(name) LoadLibraryEx(name, nullptr, nullptr)
 #define LIBRARY_CLOSE FreeLibrary
 #define LIBRARY_FUNCTION GetProcAddress
+#elif defined(__APPLE__)
+#define LIBRARY_EXTENSION ".dylib"
+#define LIBRARY_TYPE void*
+#define LIBRARY_LOAD(name) dlopen(name, RTLD_NOW)
+#define LIBRARY_CLOSE dlclose
+#define LIBRARY_FUNCTION dlsym
 #else
 #define LIBRARY_EXTENSION ".so"
 #define LIBRARY_TYPE void*

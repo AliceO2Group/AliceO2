@@ -25,6 +25,7 @@
 #include "Framework/TableBuilder.h"
 #include "Framework/Traits.h"
 
+#include <fmt/format.h>
 #include <string>
 namespace o2::framework
 {
@@ -192,11 +193,13 @@ ConcreteDataMatcher replaceOrigin(ConcreteDataMatcher& matcher, const header::Da
 
 namespace o2::soa
 {
+// fmt::format, not std::string + const char*: GCC 14 turns the latter into a
+// spurious -Werror=array-bounds= on the temporary's SSO buffer.
 template <TableRef R>
 constexpr auto tableRef2ConfigParamSpec()
 {
   return o2::framework::ConfigParamSpec{
-    std::string{"input:"} + o2::aod::label<R>(),
+    fmt::format("input:{}", o2::aod::label<R>()),
     framework::VariantType::String,
     aod::sourceSpec<R>(),
     {"\"\""}};
@@ -206,7 +209,7 @@ template <TableRef R>
 constexpr auto tableRef2Schema()
 {
   return o2::framework::ConfigParamSpec{
-    std::string{"input-schema:"} + o2::aod::label<R>(),
+    fmt::format("input-schema:{}", o2::aod::label<R>()),
     framework::VariantType::String,
     framework::serializeSchema(o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata::getSchema()),
     {"\"\""}};
@@ -262,6 +265,12 @@ inline constexpr auto getCCDBUrls()
     result.push_back({std::string{"ccdb:"} + std::string{T::ccdb_bindings[i]},
                       framework::VariantType::String,
                       T::ccdb_urls[i],
+                      {"\"\""}});
+    // How this object is keyed in CCDB; the fetcher turns a non-zero value into a
+    // run-number-qualified query rather than a plain timestamp one.
+    result.push_back({std::string{"ccdb-run-dependent:"} + std::string{T::ccdb_bindings[i]},
+                      framework::VariantType::Int,
+                      T::ccdb_run_dependent[i],
                       {"\"\""}});
   }
   return result;
@@ -368,6 +377,11 @@ constexpr auto getCCDBMetadata() -> std::vector<framework::ConfigParamSpec>
   std::sort(results.begin(), results.end(), [](framework::ConfigParamSpec const& a, framework::ConfigParamSpec const& b) { return a.name < b.name; });
   auto last = std::unique(results.begin(), results.end(), [](framework::ConfigParamSpec const& a, framework::ConfigParamSpec const& b) { return a.name == b.name; });
   results.erase(last, results.end());
+  // Tell the fetcher which column carries the timestamp to query at, and which column
+  // it may group by (rows sharing a uniformity value resolve to the same object, so one
+  // query per distinct value suffices). Both default to the timestamp column.
+  results.push_back({std::string{"timestamp-column"}, framework::VariantType::String, std::string{T::timestamp_column_label}, {"\"\""}});
+  results.push_back({std::string{"uniformity-column"}, framework::VariantType::String, std::string{T::uniformity_column_label}, {"\"\""}});
   return results;
 }
 
@@ -953,7 +967,7 @@ auto getTableFromFilter(soa::is_not_filtered_table auto const& table, soa::Selec
   return std::make_unique<o2::soa::Filtered<std::decay_t<decltype(table)>>>(std::vector{table.asArrowTableRef()}, std::forward<soa::SelectionVector>(selection));
 }
 
-void initializePartitionCaches(std::set<uint32_t> const& hashes, std::shared_ptr<arrow::Schema> const& schema, expressions::Filter const& filter, gandiva::NodePtr& tree, gandiva::FilterPtr& gfilter);
+void initializePartitionCaches(std::span<const uint32_t> hashes, std::shared_ptr<arrow::Schema> const& schema, expressions::Filter const& filter, gandiva::NodePtr& tree, gandiva::FilterPtr& gfilter);
 
 /// Partition ties directly to the argument type
 /// in a case with several origins in subscriptions it will get the correct input, as the type contains the origin
@@ -975,14 +989,14 @@ struct Partition {
     setTable(table);
   }
 
-  void intializeCaches(std::set<uint32_t> const& hashes, std::shared_ptr<arrow::Schema> const& schema)
+  void intializeCaches(std::span<const uint32_t> hashes, std::shared_ptr<arrow::Schema> const& schema)
   {
     initializePartitionCaches(hashes, schema, filter, tree, gfilter);
   }
 
   void bindTable(T const& table)
   {
-    intializeCaches(T::table_t::hashes(), table.asArrowTableRef()->schema());
+    intializeCaches(T::table_t::column_hashes, table.asArrowTableRef()->schema());
     if (dataframeChanged) {
       mFiltered = getTableFromFilter(table, soa::selectionToVector(framework::expressions::createSelection(table.asArrowTable(), gfilter)));
       dataframeChanged = false;

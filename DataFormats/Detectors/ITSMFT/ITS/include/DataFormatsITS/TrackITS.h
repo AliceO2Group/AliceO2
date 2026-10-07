@@ -221,13 +221,6 @@ class TrackITSExt : public TrackITS
 
   GPUhdDefault() TrackITSExt(const TrackITSExt& t) = default;
 
-  void setClusterIndex(int l, int i)
-  {
-    int ncl = getNumberOfClusters();
-    mIndex[ncl++] = (l << 28) + i;
-    getClusterRefs().setEntries(ncl);
-  }
-
   GPUhdi() int getClusterIndex(int lr) const { return mIndex[lr]; }
 
   GPUh() int getFirstLayerClusterIndex() const
