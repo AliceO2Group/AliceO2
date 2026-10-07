@@ -1764,12 +1764,14 @@ void addSpecialParticles()
   if (!(monopoleMass > 0.)) {
     LOG(fatal) << "G4.monopoleMass must be positive, got " << monopoleMass;
   }
+  // kPTUndefined: Geant4-VMC attaches no process to them (a kPTHadron would get hIoni and hmsc);
+  // their ionisation and transport are attached by O2MonopolePhysics
   // Symmetric monopoles: same electric and magnetic charge
-  TVirtualMC::GetMC()->DefineParticle(4110000, "Monopole_symm", kPTHadron, monopoleMass, 0.0, 1e10, "BSM", 0.0, 0, 0, 0, 0, 0, 0, 0, 0, kTRUE);
-  TVirtualMC::GetMC()->DefineParticle(-4110000, "AntiMonopole_symm", kPTHadron, monopoleMass, 0.0, 1e10, "BSM", 0.0, 0, 0, 0, 0, 0, 0, 0, 0, kTRUE);
+  TVirtualMC::GetMC()->DefineParticle(4110000, "Monopole_symm", kPTUndefined, monopoleMass, 0.0, 1e10, "BSM", 0.0, 0, 0, 0, 0, 0, 0, 0, 0, kTRUE);
+  TVirtualMC::GetMC()->DefineParticle(-4110000, "AntiMonopole_symm", kPTUndefined, monopoleMass, 0.0, 1e10, "BSM", 0.0, 0, 0, 0, 0, 0, 0, 0, 0, kTRUE);
   // Asymmetric monopoles: opposite electric and magnetic charge
-  TVirtualMC::GetMC()->DefineParticle(4120000, "Monopole_asymm", kPTHadron, monopoleMass, 0.0, 1e10, "BSM", 0.0, 0, 0, 0, 0, 0, 0, 0, 0, kTRUE);
-  TVirtualMC::GetMC()->DefineParticle(-4120000, "AntiMonopole_asymm", kPTHadron, monopoleMass, 0.0, 1e10, "BSM", 0.0, 0, 0, 0, 0, 0, 0, 0, 0, kTRUE);
+  TVirtualMC::GetMC()->DefineParticle(4120000, "Monopole_asymm", kPTUndefined, monopoleMass, 0.0, 1e10, "BSM", 0.0, 0, 0, 0, 0, 0, 0, 0, 0, kTRUE);
+  TVirtualMC::GetMC()->DefineParticle(-4120000, "AntiMonopole_asymm", kPTUndefined, monopoleMass, 0.0, 1e10, "BSM", 0.0, 0, 0, 0, 0, 0, 0, 0, 0, kTRUE);
 }
 
 void O2MCApplicationBase::AddParticles()

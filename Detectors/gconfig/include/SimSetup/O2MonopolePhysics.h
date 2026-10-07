@@ -23,12 +23,12 @@ namespace o2
 namespace g4config
 {
 
-/// Build a Geant4-VMC run configuration which attaches the magnetic-monopole ionisation process
-/// (G4mplIonisation) to the requested reference physics list.
+/// Build a Geant4-VMC run configuration which, on top of the requested reference physics list,
+/// attaches the magnetic-monopole ionisation process (G4mplIonisation) and transport to
 /// the monopole particles already defined by O2 (PDG +-4110000 / +-4120000).
 ///
 /// Only used when G4Params.monopole == true;
-/// By default, the standard TG4RunConfiguration is created
+/// Otherwise o2::g4config::G4RunConfiguration is used (see g4Config.C)
 ///
 /// \param userGeometry        VMC geometry-navigation string (as for TG4RunConfiguration)
 /// \param physicsList         the reference physics-list selection string
