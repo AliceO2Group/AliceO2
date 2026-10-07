@@ -19,6 +19,7 @@
 #include "GPUDataTypesIO.h"
 #include "GPUDataTypesConfig.h"
 #include "GPUCommonAlignedAlloc.h"
+#include "utils/HashStreamBuf.h"
 #include <atomic>
 #include <mutex>
 #include <functional>
@@ -286,7 +287,9 @@ class GPUChainTracking : public GPUChain
   uint32_t mMaxTRDTracklets = 0;
 
   // Debug
-  std::unique_ptr<std::ofstream> mDebugFile;
+  std::filebuf mDebugFileBuffer;
+  HashStreamBuf mDebugFileStream;
+  std::unique_ptr<std::ostream> mDebugFile;
 
   // Synchronization and Locks
   eventStruct* mEvents = nullptr;
