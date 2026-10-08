@@ -41,7 +41,8 @@ class VDriftCorrFact;
 namespace gpu
 {
 class TPCFastTransformPOD;
-}
+class GPUO2InterfaceRefit;
+} // namespace gpu
 namespace globaltracking
 {
 
@@ -137,6 +138,7 @@ class MatchCosmics
  private:
   void updateTimeDependentParams();
   RejFlag checkPair(int i, int j);
+  bool refitSeedAtTime(const TrackSeed& seed, float timeMUS, TrackSeed& out);
   void registerMatch(int i, int j, float chi2, float tCommon = 0.f, float tCommonErr = -1.f);
   void suppressMatch(int partner0, int partner1);
   void createSeeds(const o2::globaltracking::RecoContainer& data);
@@ -164,6 +166,9 @@ class MatchCosmics
   float mQ2PtCutoff = 1e9;
   float mQ2PtCutoffOppositeSides = 1e9;
   const MatchCosmicsParams* mMatchParams = nullptr;
+  const o2::globaltracking::RecoContainer* mRecoData = nullptr; ///< inputs of the TF being processed
+  o2::gpu::GPUO2InterfaceRefit* mTPCRefitter = nullptr;         ///< TPC refitter of the TF being processed (owned by process())
+  size_t mNRefitsCommonTime = 0;                                ///< seeds refitted at the common time of a same-side pair in this TF
 
   std::vector<o2d::TrackCosmics> mCosmicTracks;
   std::vector<o2::MCCompLabel> mCosmicTracksLbl;
