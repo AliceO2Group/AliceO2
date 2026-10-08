@@ -118,12 +118,16 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
 
   GID::mask_t srcCl = src;
+  const bool useTOFClusters = o2::globaltracking::MatchCosmicsParams::Instance().tofFlightSelection;
+  if (useTOFClusters) {
+    srcCl |= GID::getSourceMask(GID::TOF);
+  }
   GID::mask_t dummy;
   if (!configcontext.options().get<bool>("disable-root-input")) {
     specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt));
   }
   bool usePV = configcontext.options().get<bool>("use-pv-info");
-  specs.emplace_back(o2::globaltracking::getCosmicsMatchingSpec(src, usePV, useMC, doStag));
+  specs.emplace_back(o2::globaltracking::getCosmicsMatchingSpec(src, usePV, useMC, doStag, useTOFClusters));
   bool clusterOutput = configcontext.options().get<bool>("enable-cluster-output");
   if (clusterOutput) {
     if (!src[GID::TPC]) {

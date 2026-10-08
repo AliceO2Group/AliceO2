@@ -183,7 +183,7 @@ void CosmicsMatchingSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getCosmicsMatchingSpec(GTrackID::mask_t src, bool usePV, bool useMC, bool itsStag)
+DataProcessorSpec getCosmicsMatchingSpec(GTrackID::mask_t src, bool usePV, bool useMC, bool itsStag, bool useTOFClusters)
 {
   std::vector<OutputSpec> outputs;
   Options opts{
@@ -195,6 +195,9 @@ DataProcessorSpec getCosmicsMatchingSpec(GTrackID::mask_t src, bool usePV, bool 
 
   dataRequest->requestTracks(src, useMC);
   dataRequest->requestClusters(src, false); // no MC labels for clusters needed for refit only
+  if (useTOFClusters) {
+    dataRequest->requestTOFClusters(false); // TOF flight pairs of the candidate pairs (MatchCosmicsParams::tofFlightSelection)
+  }
   if (usePV) {
     dataRequest->requestPrimaryVertices(useMC);
   }

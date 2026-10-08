@@ -83,7 +83,20 @@ class MatchCosmics
     float chi2 = -1.f;   ///< matching chi2
     int next = MinusOne; ///< index of eventual next record
     float tCommon = 0.f; ///< common time [mus] fixed by z continuity of TPC-only legs on opposite TPC sides
-    float tCommonErr = -1.f; ///< its 1 sigma error [mus]; < 0: not fixed, the refit uses the centre of the time-bracket overlap and the cosmic's time error is the overlap's half-width
+    float tCommonErr = -1.f;      ///< its 1 sigma error [mus]; < 0: not fixed, the refit uses the centre of the time-bracket overlap and the cosmic's time error is the overlap's half-width
+    float tofScore = -1.f;        ///< score of the top / bottom TOF hit pair matching the muon's flight (tofFlightSelection; < 0: none); a pair with one wins against pairs without
+    float tCommonNoTOF = 0.f;     ///< tCommon before a TOF flight pair replaced it: the refit falls back to it if the refit at the TOF time fails
+    float tCommonErrNoTOF = -1.f; ///< tCommonErr before a TOF flight pair replaced it
+  };
+
+  struct TOFCandidate { ///< TOF cluster along the outward continuation of a TPC-only seed
+    int index = -1;     ///< index of the TOF cluster
+    double timeNS = 0.; ///< its time since the start of the TF [ns]
+    float dy = 0.f;     ///< cluster - predicted y in the frame of the cluster's sector [cm]
+    float dz = 0.f;     ///< cluster - predicted z, the leg's z taken at its own reference time tRef [cm]
+    float gx = 0.f;     ///< global position of the cluster [cm]
+    float gy = 0.f;
+    float gz = 0.f;
   };
 
   struct TrackSeed : public o2::track::TrackParCov {
@@ -139,7 +152,10 @@ class MatchCosmics
   void updateTimeDependentParams();
   RejFlag checkPair(int i, int j);
   bool refitSeedAtTime(const TrackSeed& seed, float timeMUS, TrackSeed& out);
-  void registerMatch(int i, int j, float chi2, float tCommon = 0.f, float tCommonErr = -1.f);
+  void registerMatch(int i, int j, float chi2, float tCommon = 0.f, float tCommonErr = -1.f, float tofScore = -1.f, float tCommonNoTOF = 0.f, float tCommonErrNoTOF = -1.f);
+  void prepareTOFClusters(const o2::globaltracking::RecoContainer& data);
+  const std::vector<TOFCandidate>& getTOFCandidates(int iseed);
+  float findTOFFlightPair(int i, int j, float tMinMUS, float tMaxMUS, float& tofTimeMUS);
   void suppressMatch(int partner0, int partner1);
   void createSeeds(const o2::globaltracking::RecoContainer& data);
   bool validateMatch(int partner0);
@@ -169,6 +185,12 @@ class MatchCosmics
   const o2::globaltracking::RecoContainer* mRecoData = nullptr; ///< inputs of the TF being processed
   o2::gpu::GPUO2InterfaceRefit* mTPCRefitter = nullptr;         ///< TPC refitter of the TF being processed (owned by process())
   size_t mNRefitsCommonTime = 0;                                ///< seeds refitted at the common time of a same-side pair in this TF
+  std::vector<int> mTOFClusterOrder;                            ///< TOF clusters of the TF sorted in time (tofFlightSelection)
+  std::vector<float> mTOFClusterTimeMUS;                        ///< their times since the start of the TF [mus], same order
+  std::vector<std::vector<TOFCandidate>> mSeedTOFCandidates;    ///< TOF candidates per seed, filled on first use
+  std::vector<bool> mSeedTOFDone;                               ///< the TOF candidates of the seed are filled
+  size_t mNTOFConfirmed = 0;                                    ///< accepted pairs with a TOF flight pair in this TF
+  size_t mNTOFFallbacks = 0;                                    ///< TOF-confirmed winners refitted at their time without TOF in this TF
 
   std::vector<o2d::TrackCosmics> mCosmicTracks;
   std::vector<o2::MCCompLabel> mCosmicTracksLbl;

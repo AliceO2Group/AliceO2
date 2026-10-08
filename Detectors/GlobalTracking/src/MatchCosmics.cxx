@@ -33,6 +33,7 @@
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "GlobalTracking/MatchTPCITS.h"
 #include "CommonConstants/GeomConstants.h"
+#include "MathUtils/Utils.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
 #include "DataFormatsTPC/VDriftCorrFact.h"
 #include "TPCFastTransformPOD.h"
@@ -121,6 +122,11 @@ void MatchCosmics::process(const o2::globaltracking::RecoContainer& data)
   mTPCRefitter = tpcRefitter.get();
   mRecoData = &data;
   mNRefitsCommonTime = 0;
+  mNTOFConfirmed = 0;
+  mNTOFFallbacks = 0;
+  if (mMatchParams->tofFlightSelection) {
+    prepareTOFClusters(data);
+  }
 
   // sort in time bracket lower edge, putting rejected tracks in the end
   std::vector<int> sortID(ntr);
@@ -142,11 +148,17 @@ void MatchCosmics::process(const o2::globaltracking::RecoContainer& data)
       }
     }
   }
+  if (mMatchParams->tofFlightSelection) {
+    LOGP(info, "{} accepted pairs confirmed by a TOF flight pair", mNTOFConfirmed);
+  }
 
   selectWinners();
   refitWinners(data);
   if (mNRefitsCommonTime) {
     LOGP(info, "{} seeds refitted at the common time of same-side pairs", mNRefitsCommonTime);
+  }
+  if (mNTOFFallbacks) {
+    LOGP(info, "{} TOF-confirmed winners failed the refit at the TOF time and were refitted at their time without TOF", mNTOFFallbacks);
   }
   mTPCRefitter = nullptr;
   mRecoData = nullptr;
@@ -203,7 +215,8 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
     return nclRefit == ncl ? ncl : -1;
   };
 
-  for (auto winRID : mWinners) {
+  // refit the legs of winner winRID at the time t0 [mus] (error dt) and add the cosmic; false: a refit, propagation or cut failed
+  auto refitWinner = [&](int winRID, float t0, float dt) {
     const auto& rec = mRecords[winRID];
     int poolEntryID[2] = {rec.id0, rec.id1};
     o2::track::TrackParCov outerLegs[2] = {data.getTrackParamOut(mSeeds[rec.id0].origID), data.getTrackParamOut(mSeeds[rec.id1].origID)};
@@ -211,11 +224,6 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
       leg.setPID(o2::track::PID::Muon, true); // as the seeds
     }
     auto tOverlap = mSeeds[rec.id0].tBracket.getOverlap(mSeeds[rec.id1].tBracket);
-    float t0 = tOverlap.mean(), dt = tOverlap.delta() * 0.5;
-    if (rec.tCommonErr >= 0.f) { // TPC-only legs on opposite sides: their z continuity fixes the time, refit both legs with it
-      t0 = rec.tCommon;
-      dt = rec.tCommonErr;
-    }
     auto pnt0 = outerLegs[0].getXYZGlo(), pnt1 = outerLegs[1].getXYZGlo();
     int btm = 0, top = 1;
     // we fit topward from bottom
@@ -245,7 +253,7 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
       int retVal = tpcRefitter->RefitTrackAsTrackParCov(trCosm, tpcTrOrig.getClusterRef(), t0 * tpcTBinMUSInv, &chi2, false, false, ELossGain); // inward refit, reset
       if (retVal < 0) {                                                                                                             // refit failed
         LOG(debug) << "Inward refit of btm TPC track failed.";
-        continue;
+        return false;
       }
       nclTot += retVal;
       LOG(debug) << "chi2 after btm TPC refit with " << retVal << " clusters : " << chi2 << " orig.chi2 was " << tpcTrOrig.getChi2();
@@ -270,7 +278,7 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
     if (!trCosm.rotate(mSeeds[poolEntryID[top]].getAlpha()) ||
         !o2::base::Propagator::Instance()->PropagateToXBxByBz(trCosm, mSeeds[poolEntryID[top]].getX(), mMatchParams->maxSnp, mMatchParams->maxStep, mMatchParams->matCorr, nullptr, ELossGain)) {
       LOG(debug) << "Rotation/propagation of btm-track to top-track frame failed.";
-      continue;
+      return false;
     }
     // save bottom parameter at merging point
     auto trCosmBtm = trCosm;
@@ -283,7 +291,7 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
     if (gidxListTop[GTrackID::ITS].isIndexSet()) {
       auto nclfit = refitITSTrack(trCosm, gidxListTop[GTrackID::ITS], chi2, false, ELossGain);
       if (nclfit < 0) {
-        continue;
+        return false;
       }
       LOG(debug) << "chi2 after top ITS refit with " << nclfit << " clusters : " << chi2 << " orig.chi2 was " << data.getITSTrack(gidxListTop[GTrackID::ITS]).getChi2();
       nclTot += nclfit;
@@ -296,14 +304,14 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
         if (!trCosm.getXatLabR(o2::constants::geom::XTPCInnerRef, xtogo, mBz, o2::track::DirOutward) ||
             !o2::base::Propagator::Instance()->PropagateToXBxByBz(trCosm, xtogo, mMatchParams->maxSnp, mMatchParams->maxStep, mMatchParams->matCorr, nullptr, ELossGain)) {
           LOG(debug) << "Propagation to inner TPC boundary X=" << xtogo << " failed";
-          continue;
+          return false;
         }
       }
       const auto& tpcTrOrig = data.getTPCTrack(gidxListTop[GTrackID::TPC]);
       int retVal = tpcRefitter->RefitTrackAsTrackParCov(trCosm, tpcTrOrig.getClusterRef(), t0 * tpcTBinMUSInv, &chi2, true, false, ELossGain); // outward refit, no reset
       if (retVal < 0) {                                                                                                             // refit failed
         LOG(debug) << "Outward refit of top TPC track failed.";
-        continue;
+        return false;
       } // outward refit in TPC
       LOG(debug) << "chi2 after top TPC refit with " << retVal << " clusters : " << chi2 << " orig.chi2 was " << tpcTrOrig.getChi2();
       nclTot += retVal;
@@ -317,14 +325,14 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
       int retVal = tpcRefitter->RefitTrackAsTrackParCov(trCosmTop, tpcTrOrig.getClusterRef(), t0 * tpcTBinMUSInv, &chi2Dummy, false, true, ELossLoss); // inward refit, reset
       if (retVal < 0) {                                                                                                                     // refit failed
         LOG(debug) << "Inward refit of top TPC track failed.";
-        continue;
+        return false;
       } // inward refit in TPC
     }
     // is there ITS sub-track ?
     if (gidxListTop[GTrackID::ITS].isIndexSet()) {
       auto nclfit = refitITSTrack(trCosmTop, gidxListTop[GTrackID::ITS], chi2Dummy, true, ELossLoss);
       if (nclfit < 0) {
-        continue;
+        return false;
       }
       nclTot += nclfit;
     } // ITS refit
@@ -332,23 +340,23 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
     if (!trCosmTop.rotate(trCosmBtm.getAlpha()) ||
         !o2::base::Propagator::Instance()->PropagateToXBxByBz(trCosmTop, trCosmBtm.getX(), mMatchParams->maxSnp, mMatchParams->maxStep, mMatchParams->matCorr, nullptr, ELossLoss)) {
       LOG(debug) << "Rotation/propagation of top-track to bottom-track frame failed.";
-      continue;
+      return false;
     }
     // calculate weighted average of 2 legs and chi2
     o2::track::TrackParCov::MatrixDSym5 cov5;
     float chi2Match = trCosmBtm.getPredictedChi2(trCosmTop, cov5);
     if (mMatchParams->maxChi2Match >= 0.f && chi2Match > mMatchParams->maxChi2Match) {
       LOG(debug) << "Top/Bottom refitted legs disagree, chi2Match " << chi2Match;
-      continue;
+      return false;
     }
     if (!trCosmBtm.update(trCosmTop, cov5)) {
       LOG(debug) << "Top/Bottom update failed";
-      continue;
+      return false;
     }
     // TPC-only legs on opposite sides: the legs' pT is required in checkPair, the refitted cosmic's here
     if (mSeeds[rec.id0].tpcSide * mSeeds[rec.id1].tpcSide < 0 && std::abs(trCosmBtm.getQ2Pt()) > mQ2PtCutoffOppositeSides) {
       LOG(debug) << "Cosmic with legs on opposite TPC sides below minPtOppositeSides";
-      continue;
+      return false;
     }
     // create final track
     mCosmicTracks.emplace_back(mSeeds[poolEntryID[btm]].origID, mSeeds[poolEntryID[top]].origID, trCosmBtm, trCosmTop, chi2, chi2Match, nclTot, t0, dt);
@@ -356,6 +364,23 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
       o2::MCCompLabel lbl[2] = {data.getTrackMCLabel(mSeeds[poolEntryID[btm]].origID), data.getTrackMCLabel(mSeeds[poolEntryID[top]].origID)};
       auto& tlb = mCosmicTracksLbl.emplace_back((nclBtm > nclTot - nclBtm ? lbl[0] : lbl[1]));
       tlb.setFakeFlag(lbl[0] != lbl[1]);
+    }
+    return true;
+  };
+  for (auto winRID : mWinners) {
+    const auto& rec = mRecords[winRID];
+    // refit at the common time if one is fixed (z continuity of TPC-only legs on opposite sides, TOF flight pair), else at the centre of
+    // the overlap of the legs' time brackets
+    auto refitAt = [&](float tCommon, float tCommonErr) {
+      if (tCommonErr >= 0.f) {
+        return refitWinner(winRID, tCommon, tCommonErr);
+      }
+      auto tOverlap = mSeeds[rec.id0].tBracket.getOverlap(mSeeds[rec.id1].tBracket);
+      return refitWinner(winRID, tOverlap.mean(), tOverlap.delta() * 0.5f);
+    };
+    // a TOF-confirmed winner whose refit at the TOF time fails is refitted at the time it has without its TOF flight pair
+    if (!refitAt(rec.tCommon, rec.tCommonErr) && rec.tofScore >= 0.f && refitAt(rec.tCommonNoTOF, rec.tCommonErrNoTOF)) {
+      mNTOFFallbacks++;
     }
   }
   LOG(info) << "Validated " << mCosmicTracks.size() << " top-bottom tracks in TF# " << mTFCount;
@@ -468,6 +493,7 @@ MatchCosmics::RejFlag MatchCosmics::checkPair(int i, int j)
   float chi2 = 1.e9f;
   float tCommon = 0.f;     // time fixed by z continuity of TPC-only legs on opposite sides, used by the refit
   float tCommonErr = -1.f; // its error (< 0: not fixed)
+  float tofScore = -1.f;   // score of the TOF flight pair of an accepted pair (tofFlightSelection; < 0: none)
   TrackSeed seed0Common;   // same-side TPC-only legs refitted at a common time (refitSameSideAtCommonTime)
   TrackSeed seed1Common;
   bool commonTime = false;
@@ -605,8 +631,23 @@ MatchCosmics::RejFlag MatchCosmics::checkPair(int i, int j)
       break;
     }
     rej = Accept;
-    registerMatch(i, j, chi2, tCommon, tCommonErr);
-    registerMatch(j, i, chi2, tCommon, tCommonErr); // the reverse reference can be also done in a separate loop
+    const float tCommonNoTOF = tCommon; // the pair's time without a TOF flight pair: the fallback of the refit at the TOF time
+    const float tCommonErrNoTOF = tCommonErr;
+    if (mMatchParams->tofFlightSelection) { // a top / bottom TOF hit pair with the muon's flight time confirms the pair and gives its time
+      const bool timeFixed = tCommonErr >= 0.f;
+      const auto overlap = seed0.tBracket.getOverlap(seed1.tBracket);
+      const float tMin = timeFixed ? tCommon - mMatchParams->nSigmaTError * tCommonErr : overlap.getMin();
+      const float tMax = timeFixed ? tCommon + mMatchParams->nSigmaTError * tCommonErr : overlap.getMax();
+      float tofTimeMUS = 0.f;
+      tofScore = findTOFFlightPair(i, j, tMin, tMax, tofTimeMUS);
+      if (tofScore >= 0.f) {
+        tCommon = tofTimeMUS;
+        tCommonErr = mMatchParams->tofTimeError;
+        mNTOFConfirmed++;
+      }
+    }
+    registerMatch(i, j, chi2, tCommon, tCommonErr, tofScore, tCommonNoTOF, tCommonErrNoTOF);
+    registerMatch(j, i, chi2, tCommon, tCommonErr, tofScore, tCommonNoTOF, tCommonErrNoTOF); // the reverse reference can be also done in a separate loop
     LOG(debug) << "Chi2 = " << chi2 << " NMatches " << mRecords.size();
     break;
   }
@@ -621,7 +662,7 @@ MatchCosmics::RejFlag MatchCosmics::checkPair(int i, int j)
       int commonTimeI = commonTime;
       (*mDBGOut) << "match"
                  << "tf=" << mTFCount << "seed0=" << dbgLeg0 << "seed1=" << seed1I << "chi2Match=" << chi2 << "rej=" << rejI << "commonTime=" << commonTimeI
-                 << "side0=" << int(seed0.tpcSide) << "side1=" << int(seed1.tpcSide) << "tCommon=" << tCommon << "tCommonErr=" << tCommonErr << "\n";
+                 << "side0=" << int(seed0.tpcSide) << "side1=" << int(seed1.tpcSide) << "tCommon=" << tCommon << "tCommonErr=" << tCommonErr << "tofScore=" << tofScore << "\n";
     }
   }
 #endif
@@ -662,15 +703,161 @@ bool MatchCosmics::refitSeedAtTime(const TrackSeed& seed, float timeMUS, TrackSe
 }
 
 //________________________________________________________
-void MatchCosmics::registerMatch(int i, int j, float chi2, float tCommon, float tCommonErr)
+void MatchCosmics::prepareTOFClusters(const o2::globaltracking::RecoContainer& data)
 {
-  /// register track index j as a match for track index i
+  // TOF clusters of the TF sorted in time; the TOF candidates of a seed are searched on its first use
+  const auto clusters = data.getTOFClusters();
+  mTOFClusterOrder.resize(clusters.size());
+  std::iota(mTOFClusterOrder.begin(), mTOFClusterOrder.end(), 0);
+  std::sort(mTOFClusterOrder.begin(), mTOFClusterOrder.end(), [&clusters](int a, int b) { return clusters[a].getTime() < clusters[b].getTime(); });
+  mTOFClusterTimeMUS.resize(clusters.size());
+  for (size_t k = 0; k < clusters.size(); k++) {
+    mTOFClusterTimeMUS[k] = clusters[mTOFClusterOrder[k]].getTime() * 1e-6; // [ps] since the start of the TF
+  }
+  mSeedTOFCandidates.clear();
+  mSeedTOFCandidates.resize(mSeeds.size());
+  mSeedTOFDone.assign(mSeeds.size(), false);
+}
+
+//________________________________________________________
+const std::vector<MatchCosmics::TOFCandidate>& MatchCosmics::getTOFCandidates(int iseed)
+{
+  // TOF clusters along the outward continuation of a TPC-only seed (from its outer parameters, in the sector it points to and its two
+  // neighbours) within its time bracket: |dy| < tofRoad, and dz within tofRoad of the drift of a one-side leg's z over the bracket
+  auto& candidates = mSeedTOFCandidates[iseed];
+  if (mSeedTOFDone[iseed]) {
+    return candidates;
+  }
+  mSeedTOFDone[iseed] = true;
+  const auto& seed = mSeeds[iseed];
+  if (seed.origID.getSource() != GTrackID::TPC) {
+    return candidates;
+  }
+  constexpr float MaxFlightMUS = 0.1f; // flight time of the muon between the TPC and the TOF, slow tails
+  constexpr float RadiusTOF = 380.f;   // [cm], to find the sector the leg points to
+  const auto& tpcTrack = mRecoData->getTPCTrack(seed.origID);
+  const o2::track::TrackPar& parOut = tpcTrack.getParamOut();
+  std::array<float, 3> xyz{};
+  std::array<float, 3> dir{};
+  parOut.getXYZGlo(xyz);
+  parOut.getPxPyPzGlo(dir);
+  // straight line from the outer parameters to the TOF radius (the sector only)
+  const float a = dir[0] * dir[0] + dir[1] * dir[1];
+  const float b = xyz[0] * dir[0] + xyz[1] * dir[1];
+  const float c = xyz[0] * xyz[0] + xyz[1] * xyz[1] - RadiusTOF * RadiusTOF;
+  const float disc = b * b - a * c;
+  if (a <= 0.f || disc < 0.f) {
+    return candidates;
+  }
+  const float step = (-b + std::sqrt(disc)) / a;
+  const int sectorCentre = o2::math_utils::angle2Sector(std::atan2(xyz[1] + step * dir[1], xyz[0] + step * dir[0]));
+  constexpr int NSectors = 18;
+  o2::track::TrackPar parSector[3];
+  bool okSector[3] = {false, false, false};
+  for (int k = 0; k < 3; k++) {
+    parSector[k] = parOut;
+    okSector[k] = parSector[k].rotateParam(o2::math_utils::sector2Angle((sectorCentre + k - 1 + NSectors) % NSectors));
+  }
+  const float road = mMatchParams->tofRoad;
+  // range of z(t) - z(tRef) = side * vD * (t - tRef) over the bracket
+  const float dzDrift0 = seed.tpcSide * mTPCVDrift * (seed.tBracket.getMin() - seed.tRef);
+  const float dzDrift1 = seed.tpcSide * mTPCVDrift * (seed.tBracket.getMax() - seed.tRef);
+  const float dzMin = std::min(dzDrift0, dzDrift1) - road;
+  const float dzMax = std::max(dzDrift0, dzDrift1) + road;
+  const auto clusters = mRecoData->getTOFClusters();
+  auto first = std::lower_bound(mTOFClusterTimeMUS.begin(), mTOFClusterTimeMUS.end(), seed.tBracket.getMin() - MaxFlightMUS);
+  for (auto it = first; it != mTOFClusterTimeMUS.end() && *it <= seed.tBracket.getMax() + MaxFlightMUS; ++it) {
+    const int index = mTOFClusterOrder[it - mTOFClusterTimeMUS.begin()];
+    const auto& cl = clusters[index];
+    const int k = (cl.getSector() - sectorCentre + NSectors + 1) % NSectors; // 0, 1, 2 for the sectors before, at and after the centre
+    if (k > 2 || !okSector[k]) {
+      continue;
+    }
+    float y = 0.f;
+    float z = 0.f;
+    if (!parSector[k].getYZAt(cl.getX(), mBz, y, z)) {
+      continue;
+    }
+    const float dy = cl.getY() - y;
+    const float dz = cl.getZ() - z;
+    if (std::abs(dy) > road || dz < dzMin || dz > dzMax) {
+      continue;
+    }
+    const float alpha = o2::math_utils::sector2Angle(cl.getSector());
+    const float sinAlpha = std::sin(alpha);
+    const float cosAlpha = std::cos(alpha);
+    candidates.push_back(TOFCandidate{index, cl.getTime() * 1e-3, dy, dz, cl.getX() * cosAlpha - cl.getY() * sinAlpha, cl.getX() * sinAlpha + cl.getY() * cosAlpha, cl.getZ()});
+  }
+  return candidates;
+}
+
+//________________________________________________________
+float MatchCosmics::findTOFFlightPair(int i, int j, float tMinMUS, float tMaxMUS, float& tofTimeMUS)
+{
+  // best pair of TOF candidates of seeds i and j whose time difference matches the muon's flight between them along the helix (the higher
+  // hit first), with its mean time within [tMinMUS, tMaxMUS] and the z of both legs in the road at that time. Returns its score, the
+  // squared residuals in units of their cuts (< 0: no pair); tofTimeMUS is the mean time of the two hits
+  constexpr float MaxFlightMUS = 0.1f;
+  constexpr float CmPerNS = 29.9792458f;
+  const auto& candidates0 = getTOFCandidates(i);
+  const auto& candidates1 = getTOFCandidates(j);
+  if (candidates0.empty() || candidates1.empty()) {
+    return -1.f;
+  }
+  const auto& seed0 = mSeeds[i];
+  const auto& seed1 = mSeeds[j];
+  const float curvature = 0.5f * (std::abs(mRecoData->getTPCTrack(seed0.origID).getCurvature(mBz)) + std::abs(mRecoData->getTPCTrack(seed1.origID).getCurvature(mBz)));
+  const float road = mMatchParams->tofRoad;
+  const float tolerance = mMatchParams->tofFlightTolerance;
+  float bestScore = -1.f;
+  for (const auto& c0 : candidates0) {
+    for (const auto& c1 : candidates1) {
+      if (c0.index == c1.index) {
+        continue;
+      }
+      const auto& top = c0.gy > c1.gy ? c0 : c1;
+      const auto& bottom = c0.gy > c1.gy ? c1 : c0;
+      // flight path along the helix: arc in the transverse plane from the chord, then the dip
+      const float chordXY = std::hypot(top.gx - bottom.gx, top.gy - bottom.gy);
+      const float halfAngleSin = 0.5f * curvature * chordXY;
+      const float arcXY = halfAngleSin > 1e-4f && halfAngleSin < 1.f ? 2.f * std::asin(halfAngleSin) / curvature : chordXY;
+      const float length = std::hypot(arcXY, top.gz - bottom.gz);
+      const float flightDev = float(top.timeNS - bottom.timeNS) + length / CmPerNS; // the muon crosses the top TOF first
+      if (std::abs(flightDev) > tolerance) {
+        continue;
+      }
+      const float pairTimeMUS = float(0.5e-3 * (c0.timeNS + c1.timeNS));
+      if (pairTimeMUS < tMinMUS - MaxFlightMUS || pairTimeMUS > tMaxMUS + MaxFlightMUS) {
+        continue;
+      }
+      const float dz0 = c0.dz - seed0.tpcSide * mTPCVDrift * (pairTimeMUS - seed0.tRef);
+      const float dz1 = c1.dz - seed1.tpcSide * mTPCVDrift * (pairTimeMUS - seed1.tRef);
+      if (std::abs(dz0) > road || std::abs(dz1) > road) {
+        continue;
+      }
+      const float score = (c0.dy * c0.dy + c1.dy * c1.dy + dz0 * dz0 + dz1 * dz1) / (road * road) + flightDev * flightDev / (tolerance * tolerance);
+      if (bestScore < 0.f || score < bestScore) {
+        bestScore = score;
+        tofTimeMUS = pairTimeMUS;
+      }
+    }
+  }
+  return bestScore;
+}
+
+//________________________________________________________
+void MatchCosmics::registerMatch(int i, int j, float chi2, float tCommon, float tCommonErr, float tofScore, float tCommonNoTOF, float tCommonErrNoTOF)
+{
+  /// register track index j as a match for track index i; the matches of i are ordered in chi2, those confirmed by a TOF flight pair
+  /// (tofScore >= 0) in front of all others
   int newRef = mRecords.size();
-  auto& matchRec = mRecords.emplace_back(MatchRecord{i, j, chi2, MinusOne, tCommon, tCommonErr});
+  auto& matchRec = mRecords.emplace_back(MatchRecord{i, j, chi2, MinusOne, tCommon, tCommonErr, tofScore, tCommonNoTOF, tCommonErrNoTOF});
+  const bool confirmed = tofScore >= 0.f;
   auto* best = &mSeeds[i].matchID;
   while (*best > MinusOne) {
     auto& oldMatchRec = mRecords[*best];
-    if (oldMatchRec.chi2 > chi2) { // insert new match in front of the old one
+    const bool oldConfirmed = oldMatchRec.tofScore >= 0.f;
+    if ((confirmed && !oldConfirmed) || (confirmed == oldConfirmed && oldMatchRec.chi2 > chi2)) { // insert new match in front of the old one
       matchRec.next = *best;       // new record will refer to the one it is superseding
       *best = newRef;              // the reference on the superseded record should now refer to new one
       break;
