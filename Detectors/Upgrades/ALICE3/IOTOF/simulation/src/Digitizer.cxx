@@ -41,6 +41,10 @@ void Digitizer::init()
 {
   const int numberOfChips = mGeometry->getSize();
   mChips.resize(numberOfChips);
+
+  const auto& specsConfig = ChipSpecificsParam::Instance();
+  const auto& digitizerParams = o2::iotof::DPLDigitizerParam::Instance();
+  const int nReadOutCols = specsConfig.NCols / digitizerParams.nColsPerGroup + 1;
   for (int i = numberOfChips; i--;) {
     mChips[i].setChipIndex(i);
     /// Noise map to be implemented
@@ -53,9 +57,15 @@ void Digitizer::init()
     ///   mChips[i].disable(mDeadChanMap->isFullChipMasked(i));
     ///   mChips[i].setDeadChanMap(mDeadChanMap);
     /// }
+
+    // initialize the vector of TDC states
+    mChips[i].resizeTDCStates(nReadOutCols);
+    for (auto& tdcStates : mChips[i].getTDCStates()) {
+      tdcStates[0] = -999.f;
+      tdcStates[1] = -999.f;
+    }
   }
 
-  const auto& digitizerParams = o2::iotof::DPLDigitizerParam::Instance();
   if (!digitizerParams.efficiencyFilePath.empty()) {
     loadEfficiencyMap(digitizerParams.efficiencyFilePath);
   }
@@ -404,10 +414,23 @@ void Digitizer::fillOutputContainer()
     }
 
     auto& chipDigits = chip.getDigits();
+    auto& tdcStates = chip.getTDCStates();
+
     for (const auto& [key, digit] : chipDigits) {
 
       if (digit.getCharge() < digitizerParams.chargeThreshold) {
         continue; // skip digits below threshold
+      }
+
+      const int colInGroup = digit.getColumn() / digitizerParams.nColsPerGroup;
+      const double digitTime = digit.getTime();
+      if (digitTime - tdcStates[colInGroup][0] < digitizerParams.tdcBusyTime && digitTime - tdcStates[colInGroup][1] < digitizerParams.tdcBusyTime) {
+        // TODO: improve labels treatment if multiple hits cross the same pixel during
+        continue; // both tdc pairs are busy
+      } else if (digitTime - tdcStates[colInGroup][0] > digitizerParams.tdcBusyTime) {
+        tdcStates[colInGroup][0] = digitTime;
+      } else if (digitTime - tdcStates[colInGroup][1] > digitizerParams.tdcBusyTime) {
+        tdcStates[colInGroup][1] = digitTime;
       }
 
       int digitID = mDigits->size();
@@ -438,7 +461,7 @@ void Digitizer::fillOutputContainer()
 void Digitizer::registerDigits(Chip& chip, uint32_t roFrame, double time, int nROF,
                                uint16_t row, uint16_t col, int nElectrons, o2::MCCompLabel& label)
 {
-  (void)nROF;
+  // (void)nROF;
 
   const auto& digitizerParams = o2::iotof::DPLDigitizerParam::Instance();
 
@@ -448,8 +471,11 @@ void Digitizer::registerDigits(Chip& chip, uint32_t roFrame, double time, int nR
 
   double absoluteTime = tdc * digitizerParams.tdcBin + nbc * o2::constants::lhc::LHCBunchSpacingNS;
 
-  auto key = o2::iotof::Digit::getOrderingKey(nbc, row, col);
+  auto key = o2::iotof::Digit::getOrderingKey(nbc, tdc, row, col);
   o2::iotof::LabeledDigit* existingDigit = chip.findDigit(key);
+
+  chip.addDigit(row, col, nElectrons, absoluteTime, nbc, tdc, label);
+
   if (!existingDigit) {
     // No existing digit, create a new one
     chip.addDigit(row, col, nElectrons, absoluteTime, nbc, tdc, label);
