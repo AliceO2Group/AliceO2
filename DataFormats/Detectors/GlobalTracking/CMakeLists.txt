@@ -45,4 +45,5 @@ o2_target_root_dictionary(
   DataFormatsGlobalTracking
   HEADERS include/DataFormatsGlobalTracking/FilteredRecoTF.h
           include/DataFormatsGlobalTracking/TrackTuneParams.h
+          include/DataFormatsGlobalTracking/CosmicTrack.h
 )

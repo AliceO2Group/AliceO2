@@ -22,4 +22,16 @@
 #pragma link C++ class o2::globaltracking::TrackTuneParams + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::globaltracking::TrackTuneParams> + ;
 
+#pragma link C++ class o2::dataformats::CosmicTPCCluster + ;
+#pragma link C++ class std::vector < o2::dataformats::CosmicTPCCluster> + ;
+#pragma link C++ class o2::dataformats::CosmicITSCluster + ;
+#pragma link C++ class std::vector < o2::dataformats::CosmicITSCluster> + ;
+#pragma link C++ class o2::dataformats::CosmicTOFCluster + ;
+#pragma link C++ class std::vector < o2::dataformats::CosmicTOFCluster> + ;
+#pragma link C++ class o2::dataformats::CosmicTRDTracklet + ;
+#pragma link C++ class std::vector < o2::dataformats::CosmicTRDTracklet> + ;
+#pragma link C++ class o2::dataformats::CosmicTrack + ;
+#pragma link C++ class std::vector < o2::dataformats::CosmicTrack> + ;
+#pragma link C++ class o2::dataformats::CosmicsTFInfo + ;
+
 #endif

@@ -26,6 +26,7 @@ o2_add_library(GlobalTrackingWorkflow
                        src/StrangenessTrackingWriterSpec.cxx
                        src/CosmicsMatchingSpec.cxx
                        src/TrackCosmicsWriterSpec.cxx
+                       src/CosmicsClusterCollectorSpec.cxx
                        src/TOFMatcherSpec.cxx
                        src/TOFMatchChecker.cxx
                        src/HMPMatcherSpec.cxx

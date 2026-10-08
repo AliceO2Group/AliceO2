@@ -16,6 +16,8 @@
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "ReconstructionDataFormats/TrackCosmics.h"
 #include "SimulationDataFormat/MCCompLabel.h"
+#include "DataFormatsGlobalTracking/CosmicTrack.h"
+#include "CommonDataFormat/TFIDInfo.h"
 
 using namespace o2::framework;
 
@@ -49,6 +51,21 @@ DataProcessorSpec getTrackCosmicsWriterSpec(bool useMC)
                                                              "MCTruth",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled
                                                              ""})();
+}
+
+DataProcessorSpec getCosmicsFullWriterSpec()
+{
+  auto logger = [](std::vector<o2::dataformats::CosmicTrack> const& cosmics) {
+    LOG(info) << "Writing " << cosmics.size() << " cosmics with clusters";
+  };
+  return MakeRootTreeWriterSpec("cosmics-full-writer",
+                                "o2_cosmics_full.root",
+                                "cosmicsFull",
+                                -1,  // do not limit number of events to store
+                                100, // periodically autosave
+                                BranchDefinition<std::vector<o2::dataformats::CosmicTrack>>{InputSpec{"cosmics", "GLO", "COSMFULL", 0}, "cosmics", 1, logger},
+                                BranchDefinition<o2::dataformats::CosmicsTFInfo>{InputSpec{"tfinfo", "GLO", "COSMFULLTF", 0}, "tfInfo", 1},
+                                BranchDefinition<o2::dataformats::TFIDInfo>{InputSpec{"tfid", "GLO", "COSMFULLTFID", 0}, "tfID", 1})();
 }
 
 } // namespace globaltracking
