@@ -132,7 +132,7 @@ struct BuildState {
 constexpr double kUnitScalor = 10.0; // TGeo cm -> ACTS mm
 
 const ExtentEnvelope kLayerEnvelope =
-    ExtentEnvelope{{.z = {2. * 1_mm, 2. * 1_mm}, .r = {2. * 1_mm, 2. * 1_mm}}};
+  ExtentEnvelope{{.z = {2. * 1_mm, 2. * 1_mm}, .r = {2. * 1_mm, 2. * 1_mm}}};
 
 // binning of the proto-material (material receiver) on the layer faces is
 // geometry-config data: see cfg.matBinsPhi / matBinsZ / matBinsR.
@@ -147,9 +147,9 @@ using ElementPtr = std::shared_ptr<ActsPlugins::TGeoDetectorElement>;
 /// One reconstruction layer: surfaces at a common radius (cylinder) or z (disc)
 struct LayerGroup {
   bool isDisc = false;
-  double key = 0.;  // radius (cylinder) or z (disc), in mm
+  double key = 0.; // radius (cylinder) or z (disc), in mm
   std::vector<std::shared_ptr<Surface>> surfaces;
-  std::string name;     // set for passive layers; sensitive ones are auto-named
+  std::string name; // set for passive layers; sensitive ones are auto-named
   bool isPassive = false;
   // Extra material z-extent from attached End-of-Stave cards;
   // sentinels (max < min) mean "none". Used by assignProtoMaterial to stretch
@@ -159,12 +159,13 @@ struct LayerGroup {
 };
 
 /// Build the passive cylinder layers from the hardcoded table above.
-std::vector<LayerGroup> makePassiveLayers(BuildState& st) {
+std::vector<LayerGroup> makePassiveLayers(BuildState& st)
+{
   std::vector<LayerGroup> out;
   for (const auto& pc : st.cfg.passiveCylinders) {
     auto surface = Surface::makeShared<CylinderSurface>(
-        Transform3{Translation3{Vector3{0., 0., pc.zCentre * 1_mm}}},
-        pc.r * 1_mm, pc.halfZ * 1_mm);
+      Transform3{Translation3{Vector3{0., 0., pc.zCentre * 1_mm}}},
+      pc.r * 1_mm, pc.halfZ * 1_mm);
     st.passiveSurfaces.push_back(surface);
     LayerGroup g;
     g.isDisc = false;
@@ -178,14 +179,15 @@ std::vector<LayerGroup> makePassiveLayers(BuildState& st) {
 }
 
 /// Build the forward service shells for one side (negative or positive z).
-std::vector<LayerGroup> makeForwardShells(BuildState& st, bool negative) {
+std::vector<LayerGroup> makeForwardShells(BuildState& st, bool negative)
+{
   std::vector<LayerGroup> out;
   for (const auto& fc : st.cfg.forwardCylinders) {
     const double halfZ = 0.5 * (fc.zMax - fc.zMin);
     const double zc = (negative ? -1.0 : 1.0) * 0.5 * (fc.zMax + fc.zMin);
     auto surface = Surface::makeShared<CylinderSurface>(
-        Transform3{Translation3{Vector3{0., 0., zc * 1_mm}}}, fc.r * 1_mm,
-        halfZ * 1_mm);
+      Transform3{Translation3{Vector3{0., 0., zc * 1_mm}}}, fc.r * 1_mm,
+      halfZ * 1_mm);
     st.passiveSurfaces.push_back(surface);
     LayerGroup g;
     g.isDisc = false;
@@ -199,12 +201,13 @@ std::vector<LayerGroup> makeForwardShells(BuildState& st, bool negative) {
 }
 
 /// Build the passive service-disc layers from the hardcoded table above.
-std::vector<LayerGroup> makePassiveDiscs(BuildState& st) {
+std::vector<LayerGroup> makePassiveDiscs(BuildState& st)
+{
   std::vector<LayerGroup> out;
   for (const auto& pd : st.cfg.passiveDiscs) {
     auto surface = Surface::makeShared<DiscSurface>(
-        Transform3{Translation3{Vector3{0., 0., pd.z * 1_mm}}}, pd.rMin * 1_mm,
-        pd.rMax * 1_mm);
+      Transform3{Translation3{Vector3{0., 0., pd.z * 1_mm}}}, pd.rMin * 1_mm,
+      pd.rMax * 1_mm);
     st.passiveSurfaces.push_back(surface);
     LayerGroup g;
     g.isDisc = true;
@@ -223,12 +226,17 @@ std::vector<LayerGroup> makePassiveDiscs(BuildState& st) {
 /// the staggered TRK rows (188.62/200.30, 11.68 mm apart) needs a tolerance
 /// that would swallow ITOF (only 10.38 mm outside) and merge the vertex-detector
 /// cylinders (7.00 mm apart). Each subsystem gets its own tolerance instead.
-enum class Subsystem { VertexDetector, TrkBarrel, Itof, Otof, Ft3Disc };
+enum class Subsystem { VertexDetector,
+                       TrkBarrel,
+                       Itof,
+                       Otof,
+                       Ft3Disc };
 
 /// Classify from the TGeo *volume* name (what TGeoParser matched against).
-Subsystem classify(std::string_view volumeName) {
+Subsystem classify(std::string_view volumeName)
+{
   if (volumeName.find("PETALCASE") != std::string_view::npos) {
-    return Subsystem::VertexDetector;  // the 3 VD cylinders
+    return Subsystem::VertexDetector; // the 3 VD cylinders
   }
   if (volumeName.find("ITOFSensor") != std::string_view::npos) {
     return Subsystem::Itof;
@@ -239,13 +247,14 @@ Subsystem classify(std::string_view volumeName) {
   if (volumeName.find("FT3Sensor") != std::string_view::npos) {
     return Subsystem::Ft3Disc;
   }
-  return Subsystem::TrkBarrel;  // TRKSensor0 chips
+  return Subsystem::TrkBarrel; // TRKSensor0 chips
 }
 
 /// Radial (barrel) or longitudinal (disc) clustering tolerance per subsystem.
 /// The values are geometry-specific and live in the config header (kTol*); the
 /// mapping from Subsystem to value is behaviour and stays here.
-double clusterTolerance(const BuildState& st, Subsystem s) {
+double clusterTolerance(const BuildState& st, Subsystem s)
+{
   switch (s) {
     case Subsystem::VertexDetector:
       return st.cfg.tolVertexDetector * 1_mm;
@@ -270,7 +279,8 @@ struct SensitiveElement {
 /// Parse the TGeo file and convert all sensitive nodes into ACTS surfaces.
 /// (No logging here: the ACTS_* macros need a local `logger()` accessor, which
 /// is set up via ACTS_LOCAL_LOGGER in the entry point below.)
-std::vector<SensitiveElement> loadSensitiveElements(TGeoManager& tgeo, const BuildState& st) {
+std::vector<SensitiveElement> loadSensitiveElements(TGeoManager& tgeo, const BuildState& st)
+{
   std::vector<SensitiveElement> elements;
 
   // NOTE (O2 port): the standalone actsO2 builder called TGeoManager::Import()
@@ -306,19 +316,19 @@ std::vector<SensitiveElement> loadSensitiveElements(TGeoManager& tgeo, const Bui
     // are handled by the default "XYZ" - see the axes* comment above
     const auto axes = (sub == Subsystem::TrkBarrel || sub == Subsystem::Itof ||
                        sub == Subsystem::Otof)
-                          ? axesThinY
-                          : axesThinZ;
+                        ? axesThinY
+                        : axesThinZ;
     elements.push_back(SensitiveElement{
-        ActsPlugins::TGeoLayerBuilder::defaultElementFactory(
-            identifier, *snode.node, *snode.transform, axes, kUnitScalor,
-            nullptr),
-        sub});
+      ActsPlugins::TGeoLayerBuilder::defaultElementFactory(
+        identifier, *snode.node, *snode.transform, axes, kUnitScalor,
+        nullptr),
+      sub});
   }
 
   if (elements.empty()) {
     throw std::runtime_error(
-        "ALICE3 Gen3: no sensitive elements found in the TGeo geometry. Check "
-        "'sensitiveMatches' in the Gen3 geometry config.");
+      "ALICE3 Gen3: no sensitive elements found in the TGeo geometry. Check "
+      "'sensitiveMatches' in the Gen3 geometry config.");
   }
   return elements;
 }
@@ -330,7 +340,8 @@ std::vector<SensitiveElement> loadSensitiveElements(TGeoManager& tgeo, const Bui
 /// cluster may be wider than `tol` - needed for OTOF, whose four staggered radii
 /// span 6.36 mm but are only 1.5-2.8 mm apart consecutively.
 std::vector<std::pair<double, std::vector<std::shared_ptr<Surface>>>> clusterBy(
-    std::vector<std::pair<double, std::shared_ptr<Surface>>> items, double tol) {
+  std::vector<std::pair<double, std::shared_ptr<Surface>>> items, double tol)
+{
   std::vector<std::pair<double, std::vector<std::shared_ptr<Surface>>>> out;
   if (items.empty()) {
     return out;
@@ -366,7 +377,8 @@ std::vector<std::pair<double, std::vector<std::shared_ptr<Surface>>>> clusterBy(
 void groupSurfaces(const BuildState& st, const std::vector<SensitiveElement>& elements,
                    const GeometryContext& gctx,
                    std::vector<LayerGroup>& cylinders,
-                   std::vector<LayerGroup>& discs) {
+                   std::vector<LayerGroup>& discs)
+{
   using Keyed = std::vector<std::pair<double, std::shared_ptr<Surface>>>;
   std::map<Subsystem, Keyed> cylByR, discByZ;
 
@@ -422,7 +434,8 @@ struct EndOfStaveBox {
 /// surfaces - only their extent is needed to stretch a barrel layer's material
 /// representative in z. Empty match list -> no-op. Reuses the TGeoManager
 /// already imported by loadSensitiveElements.
-std::vector<EndOfStaveBox> loadEndOfStaveExtents(TGeoManager& tgeo, const BuildState& st) {
+std::vector<EndOfStaveBox> loadEndOfStaveExtents(TGeoManager& tgeo, const BuildState& st)
+{
   std::vector<EndOfStaveBox> out;
   if (st.cfg.endOfStaveMatches.empty()) {
     return out;
@@ -445,7 +458,7 @@ std::vector<EndOfStaveBox> loadEndOfStaveExtents(TGeoManager& tgeo, const BuildS
     // bounding box in the volume's local frame (cm), transformed to global
     auto* bb = dynamic_cast<TGeoBBox*>(snode.node->GetVolume()->GetShape());
     if (bb == nullptr) {
-      continue;  // non-box shapes (e.g. composites) skipped
+      continue; // non-box shapes (e.g. composites) skipped
     }
     const double dx = bb->GetDX(), dy = bb->GetDY(), dz = bb->GetDZ();
     const double* o = bb->GetOrigin();
@@ -474,7 +487,8 @@ std::vector<EndOfStaveBox> loadEndOfStaveExtents(TGeoManager& tgeo, const BuildS
 /// radius lies within kEndOfStaveRTol of the card's radial span, recording the
 /// card's z-extent as a material-extent hint on that layer.
 void attachEndOfStave(const BuildState& st, std::vector<LayerGroup>& cylinders,
-                      const std::vector<EndOfStaveBox>& boxes) {
+                      const std::vector<EndOfStaveBox>& boxes)
+{
   for (const auto& b : boxes) {
     LayerGroup* best = nullptr;
     double bestD = st.cfg.endOfStaveRTol;
@@ -501,7 +515,8 @@ void attachEndOfStave(const BuildState& st, std::vector<LayerGroup>& cylinders,
 // blueprint assembly
 // --------------------------------------------------------------------------
 
-void configureContainer(ContainerBlueprintNode& node) {
+void configureContainer(ContainerBlueprintNode& node)
+{
   node.setAttachmentStrategy(VolumeAttachmentStrategy::Gap);
   node.setResizeStrategies(VolumeResizeStrategy::Gap,
                            VolumeResizeStrategy::Gap);
@@ -516,7 +531,8 @@ void configureContainer(ContainerBlueprintNode& node) {
 /// gap between the two service shells dragged the inner edge from 1428 to 858 mm,
 /// into Central -> "Volumes overlap in z". `Midpoint` expands the two neighbours
 /// until they touch instead of inserting a volume, so no spurious child exists.
-void configureUnalignedRContainer(ContainerBlueprintNode& node) {
+void configureUnalignedRContainer(ContainerBlueprintNode& node)
+{
   node.setAttachmentStrategy(VolumeAttachmentStrategy::Midpoint);
   node.setResizeStrategies(VolumeResizeStrategy::Gap,
                            VolumeResizeStrategy::Gap);
@@ -527,17 +543,18 @@ void configureUnalignedRContainer(ContainerBlueprintNode& node) {
 /// land exactly on top of the existing surface. See assignProtoMaterial().
 std::shared_ptr<Surface> makeRepresentativeSurface(bool isDisc, double rmin,
                                                    double rmax, double zmin,
-                                                   double zmax) {
+                                                   double zmax)
+{
   if (isDisc) {
     const double z = 0.5 * (zmin + zmax);
     return Surface::makeShared<DiscSurface>(
-        Transform3{Translation3{Vector3{0., 0., z}}}, rmin, rmax);
+      Transform3{Translation3{Vector3{0., 0., z}}}, rmin, rmax);
   }
   const double r = 0.5 * (rmin + rmax);
   const double zc = 0.5 * (zmin + zmax);
   const double hz = 0.5 * (zmax - zmin);
   return Surface::makeShared<CylinderSurface>(
-      Transform3{Translation3{Vector3{0., 0., zc}}}, r, hz);
+    Transform3{Translation3{Vector3{0., 0., zc}}}, r, hz);
 }
 
 /// Mark a layer's surfaces as binned material receivers (proto material).
@@ -549,7 +566,8 @@ std::shared_ptr<Surface> makeRepresentativeSurface(bool isDisc, double rmin,
 /// rejects), so a planar layer gets a synthetic cylinder/disc receiver instead
 /// - see the needsRepresentative branch. These receivers, plus the passive
 /// cylinders/discs, are what extractMaterialSurfaces() returns for mapping.
-void assignProtoMaterial(BuildState& st, LayerGroup& group, const GeometryContext& gctx) {
+void assignProtoMaterial(BuildState& st, LayerGroup& group, const GeometryContext& gctx)
+{
   constexpr float kPi = std::numbers::pi_v<float>;
 
   double rmin = 1e9, rmax = -1e9, zmin = 1e9, zmax = -1e9;
@@ -621,11 +639,11 @@ void assignProtoMaterial(BuildState& st, LayerGroup& group, const GeometryContex
   // the navigator can't disambiguate, and the layer would drop out of the
   // propagated material tracks.
   const bool needsRepresentative =
-      !group.isPassive &&
-      std::ranges::any_of(group.surfaces, [](const auto& s) {
-        return s->type() != Surface::SurfaceType::Cylinder &&
-               s->type() != Surface::SurfaceType::Disc;
-      });
+    !group.isPassive &&
+    std::ranges::any_of(group.surfaces, [](const auto& s) {
+      return s->type() != Surface::SurfaceType::Cylinder &&
+             s->type() != Surface::SurfaceType::Disc;
+    });
 
   if (!needsRepresentative) {
     // passive layers, and sensitive layers already made of cylinders / discs
@@ -638,14 +656,15 @@ void assignProtoMaterial(BuildState& st, LayerGroup& group, const GeometryContex
   // Planar-sensor layer: the material goes on a synthetic cylinder / disc
   // spanning the layer, NOT on the sensors. See the note above.
   auto representative =
-      makeRepresentativeSurface(group.isDisc, rmin, rmax, zmin, zmax);
+    makeRepresentativeSurface(group.isDisc, rmin, rmax, zmin, zmax);
   representative->assignSurfaceMaterial(material);
   st.passiveSurfaces.push_back(representative);
   group.surfaces.push_back(representative);
 }
 
 void addLayer(BlueprintNode& parent, const std::string& nameIn,
-              const LayerGroup& group) {
+              const LayerGroup& group)
+{
   const std::string name = group.name.empty() ? nameIn : group.name;
   parent.addLayer(name, [&group](LayerBlueprintNode& layer) {
     layer.setSurfaces(group.surfaces);
@@ -712,8 +731,8 @@ o2::acts::TrackingGeometryOutput Gen3BlueprintBuilder::build(TGeoManager& tgeo,
   // geometry-specific parameters.
   if (mConfig.geometryConfigFile.empty()) {
     throw std::runtime_error(
-        "ALICE3 Gen3: no geometry config file given. Point Config::geometryConfigFile at the "
-        "gen3_geometry_config.json shipped with the geometry.");
+      "ALICE3 Gen3: no geometry config file given. Point Config::geometryConfigFile at the "
+      "gen3_geometry_config.json shipped with the geometry.");
   }
   ACTS_INFO("ALICE3 Gen3: loading geometry config from " << mConfig.geometryConfigFile);
   const Gen3GeometryConfig cfg = loadGen3GeometryConfig(mConfig.geometryConfigFile);
@@ -910,7 +929,7 @@ o2::acts::TrackingGeometryOutput Gen3BlueprintBuilder::build(TGeoManager& tgeo,
   // no new geometry (the discs are contiguous in z).
   if (!ft3InnerNeg.empty()) {
     auto& ft3NegNode =
-        pinIds(innerCore, cfg.volFt3InnerNeg, byZ).addCylinderContainer("MiddleDisksNeg", AxisZ);
+      pinIds(innerCore, cfg.volFt3InnerNeg, byZ).addCylinderContainer("MiddleDisksNeg", AxisZ);
     configureContainer(ft3NegNode);
     for (std::size_t i = 0; i < ft3InnerNeg.size(); ++i) {
       addLayer(ft3NegNode, layerName("MiddleDisksNeg", i), ft3InnerNeg[i]);
@@ -918,7 +937,7 @@ o2::acts::TrackingGeometryOutput Gen3BlueprintBuilder::build(TGeoManager& tgeo,
   }
 
   auto& innerBarrelNode =
-      pinIds(innerCore, cfg.volInnerBarrel, byMidRadius).addCylinderContainer("InnerBarrel", AxisR);
+    pinIds(innerCore, cfg.volInnerBarrel, byMidRadius).addCylinderContainer("InnerBarrel", AxisR);
   configureContainer(innerBarrelNode);
   for (std::size_t i = 0; i < innerBarrel.size(); ++i) {
     addLayer(innerBarrelNode, layerName("InnerBarrel", i), innerBarrel[i]);
@@ -926,7 +945,7 @@ o2::acts::TrackingGeometryOutput Gen3BlueprintBuilder::build(TGeoManager& tgeo,
 
   if (!ft3InnerPos.empty()) {
     auto& ft3PosNode =
-        pinIds(innerCore, cfg.volFt3InnerPos, byZ).addCylinderContainer("MiddleDisksPos", AxisZ);
+      pinIds(innerCore, cfg.volFt3InnerPos, byZ).addCylinderContainer("MiddleDisksPos", AxisZ);
     configureContainer(ft3PosNode);
     for (std::size_t i = 0; i < ft3InnerPos.size(); ++i) {
       addLayer(ft3PosNode, layerName("MiddleDisksPos", i), ft3InnerPos[i]);
@@ -935,7 +954,7 @@ o2::acts::TrackingGeometryOutput Gen3BlueprintBuilder::build(TGeoManager& tgeo,
 
   if (!midBarrel.empty()) {
     auto& midNode = pinIds(central, cfg.volOuterTrackerBarrel, byMidRadius)
-                        .addCylinderContainer("OuterTrackerBarrel", AxisR);
+                      .addCylinderContainer("OuterTrackerBarrel", AxisR);
     configureContainer(midNode);
     for (std::size_t i = 0; i < midBarrel.size(); ++i) {
       addLayer(midNode, layerName("OuterTrackerBarrel", i), midBarrel[i]);
