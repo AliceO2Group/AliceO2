@@ -23,6 +23,7 @@
 #include "GPUSettings.h"
 #include "ML/3rdparty/GPUORTFloat16.h"
 #include "GPUReconstruction.h"
+#include "GPULogging.h"
 #include "GPUTPCGeometry.h"
 #include "DataFormatsTPC/Constants.h"
 #include "clusterFinderDefs.h"
@@ -407,6 +408,9 @@ void GPUTPCNNClusterizerHost::initSofie(const GPUSettingsProcessingNNclusterizer
         state->buffers[i] = buffers[i];
       }
       if (!model) {
+        GPUInfo("SOFIE: preparing model %zu (%s), backend=%s, architecture=%s, precision=%s",
+                i, paths[i].c_str(), hip ? "HIP" : "CUDA", settings.sofieArchitecture.c_str(),
+                inputType == Model::Precision::Float16 ? "FP16" : "FP32");
         if (settings.nnLoadFromCCDB) {
           std::istringstream input(state->buffers[i], std::ios::in | std::ios::binary);
           model = std::make_shared<Model>(parser.ParseGPU(input));
@@ -421,6 +425,10 @@ void GPUTPCNNClusterizerHost::initSofie(const GPUSettingsProcessingNNclusterizer
         }
         model->WorkspaceSize(settings.nnClusterizerBatchedMode);
         model->Compile({hip ? Model::Backend::HIP : Model::Backend::CUDA, settings.sofieCompiler, settings.sofieArchitecture});
+        GPUInfo("SOFIE: model %zu compilation succeeded, input=%zu, output=%zu",
+                i, model->InputSize(), model->OutputSize());
+      } else {
+        GPUInfo("SOFIE: model %zu reuses an existing compiled program", i);
       }
       state->models[i] = model;
     }

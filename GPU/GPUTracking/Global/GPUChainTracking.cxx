@@ -1069,6 +1069,10 @@ void GPUChainTracking::InitSofieClusterizer(bool deferCCDB)
   if (deferCCDB && settings.nnLoadFromCCDB) {
     return;
   }
+  GPUInfo("SOFIE: %s, backend=%s, device=%d, lanes=%d, source=%s, batch capacity=%u",
+          previous ? "CCDB model change detected; reloading" : "initializing",
+          hip ? "HIP" : "CUDA", GetNativeGPUDevice(), lanes,
+          settings.nnLoadFromCCDB ? "CCDB" : "local ONNX files", settings.nnClusterizerBatchedMode);
   std::vector<std::unique_ptr<GPUTPCNNClusterizerHost>> applications;
   for (int lane = 0; lane < lanes; lane++) {
     auto host = std::make_unique<GPUTPCNNClusterizerHost>();
@@ -1080,7 +1084,10 @@ void GPUChainTracking::InitSofieClusterizer(bool deferCCDB)
   if (previous) {
     SynchronizeGPU();
   }
+  const bool reloaded = previous != nullptr;
   mSofieApplications = std::move(applications);
+  GPUInfo("SOFIE: %s succeeded; inference backend active on device %d with %d lanes",
+          reloaded ? "CCDB model reload" : "initialization", GetNativeGPUDevice(), lanes);
 #else
   throw std::runtime_error("SOFIE was requested but GPUCA_BUILD_SOFIE is disabled");
 #endif
