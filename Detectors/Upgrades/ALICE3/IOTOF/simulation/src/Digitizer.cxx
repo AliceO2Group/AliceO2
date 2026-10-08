@@ -80,13 +80,13 @@ void Digitizer::init()
     LOG(info) << "No efficiency map loaded, using uniform efficiency: " << digitizerParams.efficiency * 100 << " %";
   }
 
-  loadMap(mResolutionMap, digitizerParams.resolutionMapPath, "hResolutionMap");
+  loadMap(mResolutionMap, digitizerParams.resolutionMapPath, "hSigmaPixel");
   prepareScaledResolutionMap();
   if (!mResolutionMap) {
     LOG(info) << "No resolution map loaded, using uniform time resolution: " << digitizerParams.timeResolution * 1e3 << " ps";
   }
 
-  loadMap(mTimeOfArrivalMap, digitizerParams.timeOfArrivalMapPath, "hTimeOfArrivalMap");
+  loadMap(mTimeOfArrivalMap, digitizerParams.timeOfArrivalMapPath, "toa_pixel");
   if (!mTimeOfArrivalMap) {
     LOG(info) << "No time of arrival map loaded";
   }
