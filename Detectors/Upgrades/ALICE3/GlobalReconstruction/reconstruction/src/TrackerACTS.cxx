@@ -60,19 +60,47 @@ void TrackerACTS<nLayers>::buildSpacePoints(int rof)
     layerSPs.clear();
   }
 
-  // Get clusters from the TimeFrame and convert to space points
+  auto& actsGeometryManager = o2::acts::TrackingGeometryManager::instance();
+  auto* trkGeometry = o2::trk::GeometryTGeo::Instance();
+
+  trkGeometry->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G));
+
+  const auto& surfaceIndex = actsGeometryManager.getIndex(*trkGeometry, 1.e-3, [trkGeometry](int sensorID) {
+    return std::string(trkGeometry->getMatrixPath(sensorID).Data());
+  });
+
+  int nMapped = 0;
+  int nMissing = 0;
+
   for (int layer = 0; layer < nLayers; ++layer) {
-    // For now we take unsorted clusters, as soon as the cluster trackin is in place we can piggy back on it and switch to the clusters
-    auto clusters = mTimeFrame->getUnsortedClusters()[layer];
-    // Resize the clusters to the first 100 clusters for testing
-    // clusters = clusters.subspan(0, std::min<size_t>(clusters.size(), 100));
-    LOG(debug) << "ACTSTracker: got " << clusters.size() << " clusters";
+    const auto clusters = mTimeFrame->getUnsortedClustersOnLayer(rof, layer);
+    const int firstCluster = mTimeFrame->getSortedStartIndex(rof, layer);
+
+    LOG(debug) << "ACTSTracker: got " << clusters.size() << " clusters on layer " << layer;
 
     for (size_t iCluster = 0; iCluster < clusters.size(); ++iCluster) {
       const auto& cluster = clusters[iCluster];
+      const int clusterIndex = firstCluster + static_cast<int>(iCluster);
+      const int externalIndex = mTimeFrame->getClusterExternalIndex(layer, clusterIndex);
+
+      if (externalIndex < 0 || static_cast<size_t>(externalIndex) >= mInputClusters.size()) {
+        LOG(error) << "Invalid external cluster index " << externalIndex
+                   << " for layer " << layer << " cluster " << clusterIndex;
+        ++nMissing;
+        continue;
+      }
+
+      const int sensorID = mInputClusters[externalIndex].getSensorID();
+      const auto* surface = surfaceIndex.getSurface(sensorID);
+
+      if (!surface) {
+        LOG(error) << "No ACTS surface for sensor " << sensorID
+                   << " on layer " << layer;
+        ++nMissing;
+        continue;
+      }
 
       SpacePoint sp;
-      // Check that these are in global coordinates
       sp.x = cluster.xCoordinate * Acts::UnitConstants::cm;
       sp.y = cluster.yCoordinate * Acts::UnitConstants::cm;
       sp.z = cluster.zCoordinate * Acts::UnitConstants::cm;
@@ -80,24 +108,28 @@ void TrackerACTS<nLayers>::buildSpacePoints(int rof)
       if (mHistSpacePoints) {
         mHistSpacePoints->Fill(sp.x / Acts::UnitConstants::cm, sp.y / Acts::UnitConstants::cm);
       }
-      sp.layer = layer;
-      sp.clusterId = static_cast<int>(iCluster);
-      sp.rof = rof;
 
-      // Position uncertainties (could be refined based on cluster properties)
-      sp.varianceR = 0.01f; // ~100 um resolution squared
+      sp.layer = layer;
+      sp.clusterId = clusterIndex;
+      sp.rof = rof;
+      sp.sensorId = sensorID;
+      sp.surface = surface;
+
+      sp.varianceR = 0.01f;
       sp.varianceZ = 0.01f;
 
       mSpacePoints.push_back(sp);
+      ++nMapped;
     }
   }
 
-  // Build per-layer pointers for seeding
   for (auto& sp : mSpacePoints) {
     if (sp.layer >= 0 && sp.layer < nLayers) {
       mSpacePointsPerLayer[sp.layer].push_back(&sp);
     }
   }
+
+  LOG(info) << "ACTS surface mapping: " << nMapped << " clusters mapped, " << nMissing << " clusters missing";
 }
 
 template <int nLayers>
@@ -378,39 +410,46 @@ void TrackerACTS<nLayers>::clustersToTracks()
 
   double totalTime = 0.;
   LOG(info) << "==== TRK ACTS Tracking ====";
-  // LOG(info) << "Processing " << mTimeFrame->getNrof() << " ROFs with B = " << mBz << " T";
 
-  // Process each ROF
-  // for (int iROF = 0; iROF < mTimeFrame->getNrof(); ++iROF) {
-  //   LOG(info) << "Processing ROF " << iROF;
-  //   // Build space points
-  //   mCurState = SpacePointBuilding;
-  //   totalTime += evaluateTask([this, iROF]() { buildSpacePoints(iROF); },
-  //                             StateNames[mCurState]);
-
-  //   // Run seeding
-  //   mCurState = Seeding;
-  //   totalTime += evaluateTask([this]() { createSeeds(); },
-  //                             StateNames[mCurState]);
-
-  //   // Find tracks
-  //   mCurState = TrackFinding;
-  //   totalTime += evaluateTask([this]() { findTracks(); },
-  //                             StateNames[mCurState]);
-  // }
-
+  // Initialize ACTS tracking geometry
   auto& actsGeometryManager = o2::acts::TrackingGeometryManager::instance();
 
   const auto& trackingGeometry = actsGeometryManager.get();
-  const auto& geometryContext = actsGeometryManager.getNominalContext();
+  if (!trackingGeometry) {
+    LOG(error) << "ACTS tracking geometry is not available";
+    return;
+  }
 
   auto* trkGeometry = o2::trk::GeometryTGeo::Instance();
-
   trkGeometry->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G));
 
   const auto& surfaceIndex = actsGeometryManager.getIndex(*trkGeometry, 1.e-3, [trkGeometry](int sensorID) {
     return std::string(trkGeometry->getMatrixPath(sensorID).Data());
   });
+
+  LOG(info) << "ACTS tracking geometry initialized with "
+            << surfaceIndex.size() << " mapped sensors on "
+            << surfaceIndex.getNSurfaces() << " surfaces";
+
+  // Process each ROF
+  for (int iROF = 0; iROF < mTimeFrame->getNrof(0); ++iROF) {
+    LOG(info) << "Processing ROF " << iROF;
+
+    // Build space points
+    mCurState = SpacePointBuilding;
+    totalTime += evaluateTask([this, iROF]() { buildSpacePoints(iROF); },
+                              StateNames[mCurState]);
+
+    // Run seeding
+    mCurState = Seeding;
+    totalTime += evaluateTask([this]() { createSeeds(); },
+                              StateNames[mCurState]);
+
+    // Find tracks
+    // mCurState = TrackFinding;
+    // totalTime += evaluateTask([this]() { findTracks(); },
+    //                           StateNames[mCurState]);
+  }
 
   // MC labeling
   if (mTimeFrame->hasMCinformation()) {
