@@ -353,9 +353,15 @@ double Digitizer::smearTime(double time, const float x, const float y) const
     LOG(debug) << "Time resolution map check: x=" << x * o2::iotof::Digitizer::cm2um << ", y=" << y * o2::iotof::Digitizer::cm2um << ", bin=" << bin << ", resolution=" << minimumResolution;
     LOG(debug) << "Time resolution scaling: " << resolutionScaling;
   }
+  float timeOfArrivalOffset = 0.;
+  if (mTimeOfArrivalMap) {
+    int bin = mTimeOfArrivalMap->FindBin(x * o2::iotof::Digitizer::cm2um, y * o2::iotof::Digitizer::cm2um);
+    timeOfArrivalOffset = mTimeOfArrivalMap->GetBinContent(bin);
+    LOG(debug) << "Time of arrival map check: x=" << x * o2::iotof::Digitizer::cm2um << ", y=" << y * o2::iotof::Digitizer::cm2um << ", bin=" << bin << ", time offset=" << timeOfArrivalOffset;
+  }
 
   if (digitizerParams.timeResolution > 0) {
-    return time + gRandom->Gaus(0, digitizerParams.timeResolution * resolutionScaling);
+    return time + gRandom->Gaus(timeOfArrivalOffset, digitizerParams.timeResolution * resolutionScaling);
   }
   return time;
 }
