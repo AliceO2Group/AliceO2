@@ -12,6 +12,10 @@
 /// \file GPUTPCNNClusterizerHost.cxx
 /// \author Christian Sonnabend
 
+#ifdef GPUCA_HAS_SOFIE
+#include "Rtypes.h"
+#endif
+
 #include <CommonUtils/StringUtils.h>
 
 #include "GPUTPCNNClusterizerHost.h"
