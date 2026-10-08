@@ -67,11 +67,11 @@ struct Gen3GeometryConfig {
   // Sensor / end-of-stave TGeo volume-name globs.
   std::vector<std::string> sensitiveMatches;
   std::vector<std::string> endOfStaveMatches;
-  double endOfStaveRTol = 0.;  // mm, radial match window
+  double endOfStaveRTol = 0.; // mm, radial match window
 
   // Planar-sensor axis strings (parsed into TGeoAxes at runtime).
-  std::string axesThinZ;  // e.g. "XYZ" (thin in Z)
-  std::string axesThinY;  // e.g. "ZXY" (thin in Y)
+  std::string axesThinZ; // e.g. "XYZ" (thin in Z)
+  std::string axesThinY; // e.g. "ZXY" (thin in Y)
 
   // Blueprint region boundaries (mm).
   double rInnerCoreMax = 0.;

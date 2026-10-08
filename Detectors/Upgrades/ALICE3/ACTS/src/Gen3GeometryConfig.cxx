@@ -36,17 +36,19 @@ namespace
 using nlohmann::json;
 
 /// Return j[key] or throw a clear error naming the missing key.
-const json& require(const json& j, const char* key) {
+const json& require(const json& j, const char* key)
+{
   const auto it = j.find(key);
   if (it == j.end()) {
     throw std::runtime_error(
-        std::string("Gen3 config: missing required key '") + key + "'");
+      std::string("Gen3 config: missing required key '") + key + "'");
   }
   return *it;
 }
 
 template <typename T>
-T get(const json& j, const char* key) {
+T get(const json& j, const char* key)
+{
   try {
     return require(j, key).get<T>();
   } catch (const json::exception& e) {
@@ -55,24 +57,28 @@ T get(const json& j, const char* key) {
   }
 }
 
-PassiveCylinderCfg parsePassiveCylinder(const json& j) {
+PassiveCylinderCfg parsePassiveCylinder(const json& j)
+{
   return {get<std::string>(j, "name"), get<double>(j, "r"),
           get<double>(j, "halfZ"), get<double>(j, "zCentre")};
 }
 
-ForwardCylinderCfg parseForwardCylinder(const json& j) {
+ForwardCylinderCfg parseForwardCylinder(const json& j)
+{
   return {get<std::string>(j, "name"), get<double>(j, "r"),
           get<double>(j, "zMin"), get<double>(j, "zMax")};
 }
 
-PassiveDiscCfg parsePassiveDisc(const json& j) {
+PassiveDiscCfg parsePassiveDisc(const json& j)
+{
   return {get<std::string>(j, "name"), get<double>(j, "z"),
           get<double>(j, "rMin"), get<double>(j, "rMax")};
 }
 
 } // namespace
 
-Gen3GeometryConfig loadGen3GeometryConfig(const std::string& jsonPath) {
+Gen3GeometryConfig loadGen3GeometryConfig(const std::string& jsonPath)
+{
   std::ifstream in(jsonPath);
   if (!in.is_open()) {
     throw std::runtime_error("Gen3 config: cannot open JSON file '" + jsonPath +

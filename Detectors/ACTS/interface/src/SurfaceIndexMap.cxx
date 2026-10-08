@@ -206,8 +206,8 @@ SensorPlacement sensorPlacementOf(const o2::detectors::DetMatrixCache& cache, in
   double rot[9] = {0.};
   double tra[3] = {0.};
   cache.getMatrixL2G(sensorID).GetComponents(rot[0], rot[1], rot[2], tra[0],
-                                            rot[3], rot[4], rot[5], tra[1],
-                                            rot[6], rot[7], rot[8], tra[2]);
+                                             rot[3], rot[4], rot[5], tra[1],
+                                             rot[6], rot[7], rot[8], tra[2]);
   SensorPlacement out;
   out.position = Acts::Vector3{tra[0] * Acts::UnitConstants::cm, tra[1] * Acts::UnitConstants::cm,
                                tra[2] * Acts::UnitConstants::cm};
