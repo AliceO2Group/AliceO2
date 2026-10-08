@@ -81,6 +81,7 @@ void Digitizer::init()
   }
 
   loadMap(mResolutionMap, digitizerParams.resolutionMapPath, "hResolutionMap");
+  prepareScaledResolutionMap();
   if (!mResolutionMap) {
     LOG(info) << "No resolution map loaded, using uniform time resolution: " << digitizerParams.timeResolution * 1e3 << " ps";
   }
@@ -429,6 +430,33 @@ void Digitizer::loadMap(TH2D*& map, const std::string& path, const char* mapName
   if (file) {
     file->Close();
     delete file;
+  }
+}
+
+void Digitizer::prepareScaledResolutionMap()
+{
+  if (!mResolutionMap) {
+    LOG(warn) << "No resolution map available to prepare scaled resolution map.";
+    return;
+  }
+
+  const auto& digitizerParams = o2::iotof::DPLDigitizerParam::Instance();
+  const float nominalTimeResolution = digitizerParams.timeResolution;
+  const float minimumResolution = mResolutionMap->GetMinimum();
+  if (minimumResolution <= 0) {
+    LOG(warn) << "Minimum resolution in the map is non-positive, cannot prepare scaled resolution map.";
+    return;
+  }
+
+  mResolutionScalingMap = dynamic_cast<TH2D*>(mResolutionMap->Clone("hScaledResolutionMap"));
+  mResolutionScalingMap->SetDirectory(nullptr); // Detach from file to avoid deletion when file is closed
+
+  for (int binX = 1; binX <= mResolutionScalingMap->GetNbinsX(); ++binX) {
+    for (int binY = 1; binY <= mResolutionScalingMap->GetNbinsY(); ++binY) {
+      float originalValue = mResolutionScalingMap->GetBinContent(binX, binY);
+      float scalingValue = originalValue / minimumResolution;
+      mResolutionScalingMap->SetBinContent(binX, binY, scalingValue * nominalTimeResolution);
+    }
   }
 }
 

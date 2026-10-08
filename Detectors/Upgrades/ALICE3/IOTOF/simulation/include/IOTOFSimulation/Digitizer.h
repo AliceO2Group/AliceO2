@@ -95,6 +95,8 @@ class Digitizer : public TObject
   /// \param mapName Name of the histogram inside the ROOT file (ignored for CCDB)
   void loadMap(TH2D*& map, const std::string& path, const char* mapName);
 
+  void prepareScaledResolutionMap();
+
   /// Check if the hit passes efficiency cut
   /// \param x Detector local coordinate x in cm with respect to the center of the sensitive volume.
   /// \param z Detector local coordinate z in cm with respect to the center of the sensitive volume.
@@ -120,6 +122,7 @@ class Digitizer : public TObject
   const o2::iotof::GeometryTGeo* mGeometry = nullptr; ///< IOTOF geometry
   TH2D* mEfficiencyMap = nullptr;                     ///< Efficiency map for the detector
   TH2D* mResolutionMap = nullptr;                     ///< Resolution map for the detector
+  TH2D* mSaledResolutionMap = nullptr;                ///< Scaled resolution map for the detector
   TH2D* mTimeOfArrivalMap = nullptr;                  ///< Time of arrival map for the detector
 
   std::vector<o2::iotof::Chip> mChips;                                               //! Chips in the detector, indexed by chip ID
