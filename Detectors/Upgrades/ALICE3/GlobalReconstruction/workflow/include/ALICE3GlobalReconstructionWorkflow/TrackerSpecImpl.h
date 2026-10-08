@@ -22,6 +22,9 @@
 #include "Field/MagneticField.h"
 #include "Framework/ControlService.h"
 #include "ITStracking/Tracker.h"
+#ifdef O2_WITH_ACTS
+#include "ALICE3GlobalReconstruction/TrackerACTS.h"
+#endif
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCEventHeader.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -114,8 +117,22 @@ void TrackerDPL::runTracking(framework::ProcessingContext& pc, TimeFrameT& timeF
     nRofs = timeFrame.loadROFrameData(layerROFs, layerClusters, layerPatterns, mIsMC ? &layerLabels : nullptr, yPlaneMLOT);
     timeFrame.addTruthSeedingVertices();
   }
-
   const auto trackingLoopStart = std::chrono::steady_clock::now();
+#ifdef O2_WITH_ACTS
+  if (mUseACTS) {
+    LOG(info) << "Running ACTS tracking";
+    o2::trk::TrackerACTS<11> actsTracker;
+    actsTracker.adoptTimeFrame(timeFrame);
+    actsTracker.adoptSensorIDs(timeFrame.getClusterSensorIDs());
+
+    const auto& config = mHitRecoConfig.empty() ? mClusterRecoConfig : mHitRecoConfig;
+    // The input magnetic field is in kG; ACTS TrackerACTS expects Tesla.
+    actsTracker.setBz(config["geometry"]["bz"].get<float>() * 0.1f);
+    actsTracker.clustersToTracks();
+    actsTracker.printSummary();
+  } else
+#endif
+  {
   for (size_t iter{0}; iter < mTrackingParams.size(); ++iter) {
     LOGP(info, "{}", mTrackingParams[iter].asString());
     trackerTraits.initialiseTimeFrame(iter);
