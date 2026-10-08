@@ -1058,8 +1058,8 @@ void GPUChainTracking::InitSofieClusterizer(bool deferCCDB)
   if (previous && (!settings.nnLoadFromCCDB || previous->hasSofieBuffers(buffers))) {
     return;
   }
-  const bool hip = mRec->GetDeviceType() == GPUReconstruction::GetDeviceType("HIP");
-  if ((!hip && mRec->GetDeviceType() != GPUReconstruction::GetDeviceType("CUDA")) || !(GetRecoStepsGPU() & RecoStep::TPCClusterFinding)) {
+  const bool hip = mRec->GetDeviceType() == GPUReconstruction::DeviceType::HIP;
+  if ((!hip && mRec->GetDeviceType() != GPUReconstruction::DeviceType::CUDA) || !(GetRecoStepsGPU() & RecoStep::TPCClusterFinding)) {
     throw std::runtime_error("SOFIE requires TPC cluster finding on CUDA or HIP");
   }
   const int lanes = GetProcessingSettings().nTPCClustererLanes;
