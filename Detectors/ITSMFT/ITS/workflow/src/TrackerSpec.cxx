@@ -45,6 +45,9 @@ void TrackerDPL::init(InitContext& ic)
   mTimer.Reset();
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   mChainITS.reset(mRecChain->AddChain<o2::gpu::GPUChainITS>());
+  if (mRecChain->Init()) {
+    throw std::runtime_error("GPU reconstruction initialization failed");
+  }
   mITSTrackingInterface.setTraitsFromProvider(mChainITS->GetITSVertexerTraits(),
                                               mChainITS->GetITSTrackerTraits(),
                                               mChainITS->GetITSTimeframe());

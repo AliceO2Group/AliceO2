@@ -26,6 +26,11 @@
 #include "ITStracking/LineProjection.h"
 #include "DetectorsBase/Propagator.h"
 
+namespace o2::itsmft::tracking
+{
+class ExternalAllocator;
+}
+
 namespace o2::its
 {
 using o2::itsmft::tracking::bounded_vector;
@@ -41,7 +46,7 @@ template <int>
 class IndexTableUtils;
 class Cluster;
 class TrackITSExt;
-class ExternalAllocator;
+using ExternalAllocator = o2::itsmft::tracking::ExternalAllocator;
 
 template <int NLayers>
 struct TrackingKernels {
