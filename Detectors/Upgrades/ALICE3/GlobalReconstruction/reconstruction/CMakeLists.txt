@@ -10,7 +10,10 @@
 # or submit itself to any jurisdiction.
 
 if(Acts_FOUND)
-  set(actsTarget Acts::Core)
+  set(actsTarget
+        Acts::Core
+        O2::ACTSInterface
+        O2::ALICE3ACTS)
 endif()
 
 o2_add_library(ALICE3GlobalReconstruction
