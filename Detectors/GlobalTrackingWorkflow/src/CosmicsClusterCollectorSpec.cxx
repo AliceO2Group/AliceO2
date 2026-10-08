@@ -64,7 +64,7 @@
 #include "Framework/DeviceSpec.h"
 #include "GlobalTrackingWorkflow/CosmicsClusterCollectorSpec.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
-#include "DataFormatsGlobalTracking/CosmicTrack.h"
+#include "DataFormatsGlobalTracking/TrackCosmicsExtended.h"
 #include "ReconstructionDataFormats/TrackCosmics.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTPC/ClusterNative.h"
@@ -186,19 +186,19 @@ class CosmicsClusterCollectorSpec : public Task
     int index;   ///< index of the cluster in the TF
   };
   void addITS(const RecoContainer& data, GTrackID gid, uint8_t leg, std::vector<o2::dataformats::CosmicITSCluster>& out, int icosm, std::vector<ITSPattRequest>& requests, std::unordered_set<int>& matched) const;
-  void fillITSPatterns(const RecoContainer& data, std::vector<ITSPattRequest>& requests, std::vector<o2::dataformats::CosmicTrack>& cosmics) const;
+  void fillITSPatterns(const RecoContainer& data, std::vector<ITSPattRequest>& requests, std::vector<o2::dataformats::TrackCosmicsExtended>& cosmics) const;
   void addTOF(const RecoContainer& data, GTrackID gid, uint8_t leg, std::vector<o2::dataformats::CosmicTOFCluster>& out, std::unordered_set<int>& matched) const;
   void addTRD(const RecoContainer& data, GTrackID gid, uint8_t leg, std::vector<o2::dataformats::CosmicTRDTracklet>& out, std::unordered_set<int>& matched) const;
   std::pair<float, float> timeWindowMUS(const CosmicTime& cosmicTime) const;
   bool predictOutward(const o2::tpc::TrackTPC& leg, const CosmicTime& cosmicTime, int sector, float x, float& y, float& z) const;
   void roadTOF(const RecoContainer& data, const o2::tpc::TrackTPC* const* legs, const CosmicTime& cosmicTime, int icosm, std::vector<o2::dataformats::CosmicTOFCluster>& out, const std::unordered_set<int>& matched, float& timeTOFMUS, float& scoreTOFPair, float& scoreTOFReversed) const;
-  void polish(const o2::tpc::TrackTPC* const* legs, float timeMUS, o2::gpu::GPUO2InterfaceRefit& refitter, o2::dataformats::CosmicTrack& out) const;
+  void polish(const o2::tpc::TrackTPC* const* legs, float timeMUS, o2::gpu::GPUO2InterfaceRefit& refitter, o2::dataformats::TrackCosmicsExtended& out) const;
   void roadTRD(const RecoContainer& data, const o2::tpc::TrackTPC* const* legs, const CosmicTime& cosmicTime, int icosm, std::vector<o2::dataformats::CosmicTRDTracklet>& out, const std::unordered_set<int>& matched) const;
   void roadITS(const RecoContainer& data, const o2::dataformats::TrackCosmics& cosm, const CosmicTime& cosmicTime, int legsSide, int icosm, std::vector<o2::dataformats::CosmicITSCluster>& out, std::vector<ITSPattRequest>& requests,
                const std::unordered_set<int>& matched) const;
   void cacheITSChipCentres();
-  void writeDebug(const o2::dataformats::CosmicTrack& cosm, int icosm) const;
-  void flagDuplicates(std::vector<o2::dataformats::CosmicTrack>& cosmics) const;
+  void writeDebug(const o2::dataformats::TrackCosmicsExtended& cosm, int icosm) const;
+  void flagDuplicates(std::vector<o2::dataformats::TrackCosmicsExtended>& cosmics) const;
   void writeDebugTOF(const o2::tof::Cluster& c, int icosm, int leg, uint8_t flags) const;
 
   std::shared_ptr<DataRequest> mDataRequest;
@@ -303,7 +303,7 @@ void CosmicsClusterCollectorSpec::run(ProcessingContext& pc)
   tfInfo.vDrift = mCorrMap->getVDrift();
   tfInfo.t0 = mCorrMap->getT0();
 
-  std::vector<o2::dataformats::CosmicTrack> cosmicsOut;
+  std::vector<o2::dataformats::TrackCosmicsExtended> cosmicsOut;
   const auto cosmics = recoData.getCosmicTracks();
   const size_t nCosmics = std::min(cosmics.size(), mMaxCosmicsPerTF);
   if (nCosmics < cosmics.size()) {
@@ -1062,7 +1062,7 @@ void CosmicsClusterCollectorSpec::roadTOF(const RecoContainer& data, const o2::t
   }
 }
 
-void CosmicsClusterCollectorSpec::polish(const o2::tpc::TrackTPC* const* legs, float timeMUS, o2::gpu::GPUO2InterfaceRefit& refitter, o2::dataformats::CosmicTrack& out) const
+void CosmicsClusterCollectorSpec::polish(const o2::tpc::TrackTPC* const* legs, float timeMUS, o2::gpu::GPUO2InterfaceRefit& refitter, o2::dataformats::TrackCosmicsExtended& out) const
 {
   // refit of a cosmic with TPC-only legs at its TOF time, as MatchCosmics::refitWinners: the bottom leg inward, then to the closest approach
   // to the beam line; the top leg inward, then to the same point; the two halves combined. Muon mass, energy loss along the muon's flight
@@ -1324,7 +1324,7 @@ void CosmicsClusterCollectorSpec::roadITS(const RecoContainer& data, const o2::d
   }
 }
 
-void CosmicsClusterCollectorSpec::fillITSPatterns(const RecoContainer& data, std::vector<ITSPattRequest>& requests, std::vector<o2::dataformats::CosmicTrack>& cosmics) const
+void CosmicsClusterCollectorSpec::fillITSPatterns(const RecoContainer& data, std::vector<ITSPattRequest>& requests, std::vector<o2::dataformats::TrackCosmicsExtended>& cosmics) const
 {
   // the TF's pattern stream holds, in cluster order, the patterns of the clusters with an invalid or a group pattern ID
   if (!mITSDict) {
@@ -1376,7 +1376,7 @@ void CosmicsClusterCollectorSpec::addTRD(const RecoContainer& data, GTrackID gid
   }
 }
 
-void CosmicsClusterCollectorSpec::flagDuplicates(std::vector<o2::dataformats::CosmicTrack>& cosmics) const
+void CosmicsClusterCollectorSpec::flagDuplicates(std::vector<o2::dataformats::TrackCosmicsExtended>& cosmics) const
 {
   // the same muon can be matched twice, e.g. when a leg is split into two TPC tracks: the roads then collect largely the same clusters
   // (PbPb 567939: 10 of 47 cosmic pairs in a TF share 56-99 % of the clusters of the smaller one, all others none). The best one (TOF time,
@@ -1421,7 +1421,7 @@ void CosmicsClusterCollectorSpec::flagDuplicates(std::vector<o2::dataformats::Co
   }
 }
 
-void CosmicsClusterCollectorSpec::writeDebug(const o2::dataformats::CosmicTrack& cosm, int icosm) const
+void CosmicsClusterCollectorSpec::writeDebug(const o2::dataformats::TrackCosmicsExtended& cosm, int icosm) const
 {
   constexpr int NSectorsA = TPCGeo::getNumberOfSectorsA();
   // the time the other-side corridor used (and the common frame zCos): the TOF time if the TOF road found one, else the TPC time

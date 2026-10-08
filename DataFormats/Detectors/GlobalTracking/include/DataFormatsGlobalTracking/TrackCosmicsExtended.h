@@ -9,11 +9,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file CosmicTrack.h
+/// \file TrackCosmicsExtended.h
 /// \brief Matched cosmic track with the raw clusters of its legs and of the road around them, for offline refits
 
-#ifndef ALICEO2_COSMIC_TRACK_H
-#define ALICEO2_COSMIC_TRACK_H
+#ifndef ALICEO2_TRACK_COSMICS_EXTENDED_H
+#define ALICEO2_TRACK_COSMICS_EXTENDED_H
 
 #include <vector>
 #include <cstdint>
@@ -32,8 +32,8 @@ struct CosmicTPCCluster {
     Attached = 0x1, ///< attached to the TPC track of this leg
     Corridor = 0x2, ///< found in the road around the leg
     Used = 0x4,     ///< attached to some TPC track (for corridor clusters: another track, e.g. a split piece of the leg)
-    AbsTime = 0x8   ///< found on the other TPC side with the absolute time of the cosmic instead of the time0 of the leg: CosmicTrack::timeTOFMUS
-                    ///< if >= 0, else the time of CosmicTrack::cosmic
+    AbsTime = 0x8   ///< found on the other TPC side with the absolute time of the cosmic instead of the time0 of the leg: TrackCosmicsExtended::timeTOFMUS
+                    ///< if >= 0, else the time of TrackCosmicsExtended::cosmic
   };
   o2::tpc::ClusterNative cl{}; ///< raw cluster: time, pad, widths, charges, flags
   uint8_t sector = 0;
@@ -60,7 +60,7 @@ struct CosmicITSCluster {
   uint16_t row = 0;
   uint16_t col = 0;
   uint16_t pattID = 0;
-  int32_t pattEntry = -1; ///< start of the pattern bytes in CosmicTrack::itsPatterns (pattern not in the dictionary or group pattern), -1: none
+  int32_t pattEntry = -1; ///< start of the pattern bytes in TrackCosmicsExtended::itsPatterns (pattern not in the dictionary or group pattern), -1: none
   int32_t rofBC = 0;      ///< start of the cluster's ROF in BCs since the start of the TF
   uint8_t leg = 0;        ///< 0 bottom, 1 top
   uint8_t flags = 0;      ///< CosmicHitFlags
@@ -88,7 +88,7 @@ struct CosmicTRDTracklet {
 };
 
 /// matched cosmic with everything needed for an offline refit
-struct CosmicTrack {
+struct TrackCosmicsExtended {
   o2::dataformats::TrackCosmics cosmic{};      ///< matcher output (time in mus; the leg references are only valid within the TF)
   o2::tpc::TrackTPC tpcBottom{};               ///< TPC part of the bottom leg (default if none); z refers to its time0; its cluster
                                                ///< references are only valid within the TF: the clusters are in clTPCBottom
@@ -112,7 +112,7 @@ struct CosmicTrack {
   o2::MCCompLabel label{};                     ///< MC label of the cosmic (MC only)
 
   bool hasTOFTime() const { return scoreTOFPair >= 0.f; } ///< a HitTOFFlight pair gave the cosmic its time timeTOFMUS
-  ClassDefNV(CosmicTrack, 1);
+  ClassDefNV(TrackCosmicsExtended, 1);
 };
 
 /// per-TF quantities of the TPC transformation used in the reconstruction

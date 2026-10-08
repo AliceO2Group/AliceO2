@@ -30,8 +30,8 @@
 #pragma link C++ class std::vector < o2::dataformats::CosmicTOFCluster> + ;
 #pragma link C++ class o2::dataformats::CosmicTRDTracklet + ;
 #pragma link C++ class std::vector < o2::dataformats::CosmicTRDTracklet> + ;
-#pragma link C++ class o2::dataformats::CosmicTrack + ;
-#pragma link C++ class std::vector < o2::dataformats::CosmicTrack> + ;
+#pragma link C++ class o2::dataformats::TrackCosmicsExtended + ;
+#pragma link C++ class std::vector < o2::dataformats::TrackCosmicsExtended> + ;
 #pragma link C++ class o2::dataformats::CosmicsTFInfo + ;
 
 #endif
