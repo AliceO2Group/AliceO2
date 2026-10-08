@@ -71,7 +71,8 @@ class MatchCosmics
     RejProp,
     RejChi2,
     RejOther,
-    RejSameHalf
+    RejSameHalf,
+    RejNoTOF ///< a leg kept by minSeedDCAxyTOF only, and no TOF flight pair
   };
 
   using InfoAccessor = o2d::AbstractRefAccessor<int, GTrackID::NSources>; // there is no unique <Info> structure, so the default return type is dummy (int)
@@ -108,6 +109,7 @@ class MatchCosmics
     float tRef = 0.f;       ///< time [mus] the z of the parameters refers to (TPC-only: the TrackTPC time0; others: bracket centre)
     int8_t tpcSide = 0;     ///< TPC-only seed with clusters on one side: +1 A, -1 C (z = z(t) - side*vD*(t-tRef)); 0: z absolute
     std::array<float, 3> xyzRef{}; ///< global position of the reference point before the propagation to the DCA (same-half veto)
+    bool nearBeam = false;         ///< kept by the looser minSeedDCAxyTOF cuts only: usable in TOF-confirmed pairs only
   };
   void setTPCCorrMaps(const o2::gpu::TPCFastTransformPOD* maph);
   void setTPCVDrift(const o2::tpc::VDriftCorrFact& v);
@@ -191,6 +193,8 @@ class MatchCosmics
   std::vector<bool> mSeedTOFDone;                               ///< the TOF candidates of the seed are filled
   size_t mNTOFConfirmed = 0;                                    ///< accepted pairs with a TOF flight pair in this TF
   size_t mNTOFFallbacks = 0;                                    ///< TOF-confirmed winners refitted at their time without TOF in this TF
+  size_t mNSeedsNearBeam = 0;                                   ///< TPC-only seeds kept for TOF-confirmed pairs only (minSeedDCAxyTOF) in this TF
+  size_t mNNearBeamConfirmed = 0;                               ///< accepted pairs with such a seed, confirmed by a TOF flight pair, in this TF
 
   std::vector<o2d::TrackCosmics> mCosmicTracks;
   std::vector<o2::MCCompLabel> mCosmicTracksLbl;

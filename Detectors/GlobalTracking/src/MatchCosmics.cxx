@@ -65,6 +65,7 @@ void MatchCosmics::process(const o2::globaltracking::RecoContainer& data)
   mCosmicTracksLbl.clear();
 
   createSeeds(data);
+  mNSeedsNearBeam = 0;
   int ntr = mSeeds.size();
   const auto prop = o2::base::Propagator::Instance();
   // propagate to DCA to origin. A VertexBase (origin, zero covariance) selects the TrackParCov overload of propagateToDCABxByBz:
@@ -84,9 +85,17 @@ void MatchCosmics::process(const o2::globaltracking::RecoContainer& data)
         continue;
       }
       if (std::abs(trc.getY()) < mMatchParams->minSeedDCAxy || trc.getY() * trc.getY() < mMatchParams->minSeedDCAxyNSigma * mMatchParams->minSeedDCAxyNSigma * trc.getSigmaY2()) {
-        // passes close to the beam line, absolutely or within its errors: indistinguishable from collision tracks
-        trc.matchID = Reject;
-        continue;
+        // passes close to the beam line, absolutely or within its errors: indistinguishable from collision tracks, unless a TOF flight pair
+        // confirms the cosmic (TPC-only legs above the looser minSeedDCAxyTOF cuts, used in TOF-confirmed pairs only)
+        const bool nearBeam = mMatchParams->tofFlightSelection && mMatchParams->minSeedDCAxyTOF >= 0.f && trc.origID.getSource() == GTrackID::TPC &&
+                              std::abs(trc.getY()) >= mMatchParams->minSeedDCAxyTOF &&
+                              trc.getY() * trc.getY() >= mMatchParams->minSeedDCAxyNSigmaTOF * mMatchParams->minSeedDCAxyNSigmaTOF * trc.getSigmaY2();
+        if (!nearBeam) {
+          trc.matchID = Reject;
+          continue;
+        }
+        trc.nearBeam = true;
+        mNSeedsNearBeam++;
       }
       if (mMatchParams->dcaCutChi2[trc.origID.getSource()] > 0.f && mUsePVInfo && trc.vtIDMin >= 0 && (std::abs(trc.getY()) < mMatchParams->fiducialRIP && std::abs(trc.getZ()) < mMatchParams->fiducialZIP)) {
         // do the propagation only if we are in the fiducial IP range.
@@ -124,6 +133,7 @@ void MatchCosmics::process(const o2::globaltracking::RecoContainer& data)
   mNRefitsCommonTime = 0;
   mNTOFConfirmed = 0;
   mNTOFFallbacks = 0;
+  mNNearBeamConfirmed = 0;
   if (mMatchParams->tofFlightSelection) {
     prepareTOFClusters(data);
   }
@@ -150,6 +160,9 @@ void MatchCosmics::process(const o2::globaltracking::RecoContainer& data)
   }
   if (mMatchParams->tofFlightSelection) {
     LOGP(info, "{} accepted pairs confirmed by a TOF flight pair", mNTOFConfirmed);
+  }
+  if (mNSeedsNearBeam) {
+    LOGP(info, "{} seeds near the beam line used in TOF-confirmed pairs only, {} such pairs confirmed", mNSeedsNearBeam, mNNearBeamConfirmed);
   }
 
   selectWinners();
@@ -359,7 +372,15 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
       return false;
     }
     // create final track
-    mCosmicTracks.emplace_back(mSeeds[poolEntryID[btm]].origID, mSeeds[poolEntryID[top]].origID, trCosmBtm, trCosmTop, chi2, chi2Match, nclTot, t0, dt);
+    auto& cosmic = mCosmicTracks.emplace_back(mSeeds[poolEntryID[btm]].origID, mSeeds[poolEntryID[top]].origID, trCosmBtm, trCosmTop, chi2, chi2Match, nclTot, t0, dt);
+    uint8_t flags = 0;
+    if (mSeeds[poolEntryID[btm]].nearBeam) {
+      flags |= o2d::TrackCosmics::NearBeamBottom;
+    }
+    if (mSeeds[poolEntryID[top]].nearBeam) {
+      flags |= o2d::TrackCosmics::NearBeamTop;
+    }
+    cosmic.setFlags(flags);
     if (mUseMC) {
       o2::MCCompLabel lbl[2] = {data.getTrackMCLabel(mSeeds[poolEntryID[btm]].origID), data.getTrackMCLabel(mSeeds[poolEntryID[top]].origID)};
       auto& tlb = mCosmicTracksLbl.emplace_back((nclBtm > nclTot - nclBtm ? lbl[0] : lbl[1]));
@@ -645,6 +666,13 @@ MatchCosmics::RejFlag MatchCosmics::checkPair(int i, int j)
         tCommonErr = mMatchParams->tofTimeError;
         mNTOFConfirmed++;
       }
+    }
+    if (seed0.nearBeam || seed1.nearBeam) { // a leg near the beam line (minSeedDCAxyTOF): TOF-confirmed pairs only
+      if (tofScore < 0.f) {
+        rej = RejNoTOF;
+        break;
+      }
+      mNNearBeamConfirmed++;
     }
     registerMatch(i, j, chi2, tCommon, tCommonErr, tofScore, tCommonNoTOF, tCommonErrNoTOF);
     registerMatch(j, i, chi2, tCommon, tCommonErr, tofScore, tCommonNoTOF, tCommonErrNoTOF); // the reverse reference can be also done in a separate loop

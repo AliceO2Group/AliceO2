@@ -39,6 +39,8 @@ struct MatchCosmicsParams : public o2::conf::ConfigurableParamHelper<MatchCosmic
   int minSeedNClTPC = 0;       // use only TPC-only seeds with at least this number of clusters (0: no cut)
   float minSeedDCAxy = 0.f;    // use only tracks with |DCA_xy| to the beam line >= this [cm] (0: no cut; rejects collision tracks in physics data)
   float minSeedDCAxyNSigma = 0.f;         // use only tracks with |DCA_xy| >= this * sigma(DCA_xy) (0: no cut; poorly measured collision tracks)
+  float minSeedDCAxyTOF = -1.f;           // with tofFlightSelection: TPC-only legs failing the two cuts above but with |DCA_xy| >= this [cm] are used in TOF-confirmed pairs only (< 0: off; e.g. cosmics crossing the ITS inner barrel)
+  float minSeedDCAxyNSigmaTOF = 3.f;      // the same for these legs in units of sigma(DCA_xy)
   bool constrainTPCOnlyZ = false;         // TPC-only legs: test z at a common time (same side, or a leg with known time), else require the time implied by z continuity in both brackets
   bool vetoSameHalf = false;              // reject pairs whose two legs lie on the same side of the closest approach (two pieces of one leg)
   bool refitSameSideAtCommonTime = false; // TPC-only legs on the same side: compare them refitted at the centre of their brackets' overlap instead of at their own time0s
