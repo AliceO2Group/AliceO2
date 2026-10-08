@@ -213,7 +213,7 @@ class CalculatedEdx
   /// \return returns the number of rows where refit/propagation failed (row.propagationFailed) since the last resetDebugCounters(); with setRefit(), this only counts rows where the propagation fallback was also unable to recover the row
   long getNPropagationFailed() const { return mNPropagationFailed; }
 
-  /// \return returns the number of rows where setRefit()'s RefitTrackAsGPU() could not reach the row and the row's track state instead came from the propagation fallback since the last resetDebugCounters(); always 0 outside setRefit() mode
+  /// \return returns the number of rows of tracks where setRefit()'s RefitTrackAsGPU() failed and the row's track state instead came from propagating the original track since the last resetDebugCounters(); always 0 outside setRefit() mode
   long getNRefitFallback() const { return mNRefitFallback; }
 
   /// \return returns the number of rows gathered by gatherRowClusterData() (processed for refit/propagation) since the last resetDebugCounters()
@@ -400,7 +400,7 @@ class CalculatedEdx
     int stackNumber;
     StackID stackID;
     bool propagationFailed;               ///< true if refit/propagation to this row failed, or the resulting track param is NaN, and no fallback recovered it either
-    bool refitFellBack;                   ///< true if setRefit() mode's RefitTrackAsGPU() could not reach this row
+    bool refitFellBack;                   ///< true if setRefit() mode's refit of this track failed and the row's track state came from propagating the original track
     int missingClusters;                  ///< number of skipped rows since the previous entry in rowData (i.e. rowIndex - previous rowIndex - 1); same for every settings entry since rowOrder does not depend on the settings
     bool sameSectorAsPrevRow;             ///< true if this row's sector equals the previous entry in rowData's sector
     bool missingClusterGapDeadOrEdge;     ///< true if any of the missingClusters skipped row(s) would land on a dead channel or off the padrow edge
@@ -433,11 +433,13 @@ class CalculatedEdx
   /// \param sectorIndexOld sectorIndex of the previous entry appended to rowData (255 if this is the first row)
   /// \param occupancyROC per-region occupancy accumulator, updated in place
   /// \param rowData output per-row data; the new row is appended, and rowData.back() (if non-empty) is read as the previous row for the missing-cluster-gap check
-  /// \param refitAbandoned setRefit() mode only: false as long as RefitTrackAsGPU() keeps succeeding; the first
-  ///        time it fails for this track, set to true and stays true for the rest of the track. On that first
-  ///        failure, the propagation fallback resumes from the track's state just before the failed attempt
-  ///        (i.e. its state after the last successfully refit row), not from the track's pristine pre-loop state.
-  void gatherRowClusterDataForRow(o2::tpc::TrackTPC& track, const std::vector<o2::tpc::ClusterNative>& fragmentClusters, const std::vector<bool>& fragmentIsShared, unsigned char sectorIndex, unsigned char rowIndex, bool mergeable, unsigned char rowIndexOld, unsigned char sectorIndexOld, std::array<std::vector<unsigned int>, 4>& occupancyROC, std::vector<RowClusterData>& rowData, bool& refitAbandoned);
+  /// \param refitFailed setRefit() mode only: true if the single per-track refit in refitTrack() failed, in which case the rows are propagated from the track's original state
+  void gatherRowClusterDataForRow(o2::tpc::TrackTPC& track, const std::vector<o2::tpc::ClusterNative>& fragmentClusters, const std::vector<bool>& fragmentIsShared, unsigned char sectorIndex, unsigned char rowIndex, bool mergeable, unsigned char rowIndexOld, unsigned char sectorIndexOld, std::array<std::vector<unsigned int>, 4>& occupancyROC, std::vector<RowClusterData>& rowData, bool refitFailed);
+
+  /// setRefit() mode only: refit the whole track once, outward, so that it ends at the outermost cluster; the track is then propagated row by row in gatherRowClusterDataForRow()
+  /// \param track input track, mutated in place by the refit; left unchanged if the refit fails
+  /// \return true if the refit failed
+  bool refitTrack(o2::tpc::TrackTPC& track);
 
   /// geometrically propagate track (rotating into the row's sector frame first) to xPosition
   /// \return true if any of the three attempts succeeded (track left at xPosition); false if all failed (track left unchanged, at its state on entry)
@@ -479,7 +481,7 @@ class CalculatedEdx
   std::unordered_map<std::string, std::unique_ptr<o2::utils::TreeStreamRedirector>> mStreamers; ///< debug streamers, keyed by output file name so each debugRootFile gets its own tree
   long mDebugTrackIndex{-1};                                                                    ///< running index of the track being processed, written to the debug trees so per-cluster rows can be grouped back into tracks
   long mNPropagationFailed{0};                                                                  ///< number of rows where refit/propagation failed (and the fallback below, if applicable, also failed) since the last resetDebugCounters()
-  long mNRefitFallback{0};                                                                      ///< number of rows where setRefit()'s RefitTrackAsGPU() failed but the propagation fallback recovered the row, since the last resetDebugCounters()
+  long mNRefitFallback{0};                                                                      ///< number of rows of tracks where setRefit()'s RefitTrackAsGPU() failed but propagating the original track recovered the row, since the last resetDebugCounters()
   long mNRowsProcessed{0};                                                                      ///< number of rows gathered by gatherRowClusterData() since the last resetDebugCounters()
   std::vector<long> mNSubThresholdFilledPerSettings;                                            ///< number of row gaps filled as subthreshold clusters, per dEdxSettings list index, since the last resetDebugCounters()
 

@@ -142,7 +142,7 @@ class GPUTPCGMTrackParam
   GPUd() bool CheckCov() const;
 
   GPUd() bool Fit(GPUTPCGMMerger* merger, int32_t iTrk, GPUTPCGMMergedTrackHit* clusters, int32_t& N, int32_t& NTolerated, float& Alpha, int32_t attempt, float maxSinPhi, GPUTPCGMMergedTrack& track);
-  GPUd() bool MoveToReference(GPUTPCGMPropagator& prop, const GPUParam& param, float& alpha); ///< returns false if the track could not be propagated to param.rec.tpc.trackReferenceX (position/momentum then rolled back to their pre-call values, but the trailing sector-normalization step may still rotate the track and update alpha); true if it reached it or the reference is disabled (trackReferenceX > 500)
+  GPUd() void MoveToReference(GPUTPCGMPropagator& prop, const GPUParam& param, float& alpha);
   GPUd() void MirrorTo(GPUTPCGMPropagator& prop, float toY, float toZ, bool inFlyDirection, const GPUParam& param, uint8_t row, uint8_t clusterState, bool mirrorParameters, int8_t sector);
   GPUd() int32_t MergeDoubleRowClusters(int32_t& ihit, int32_t wayDirection, GPUTPCGMMergedTrackHit* clusters, const GPUTPCGMMerger* merger, GPUTPCGMPropagator& prop, float& xx, float& yy, float& zz, int32_t maxN, float clAlpha, uint8_t& clusterState, bool rejectChi2);
 

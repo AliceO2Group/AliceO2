@@ -326,7 +326,7 @@ void calculatedEdx(const std::string dir = ".",
     // per-event summary: refit/propagation failures and how many row gaps were filled as subthreshold clusters per settingsList entry
     const long nPropagationFailed = calcdEdx.getNPropagationFailed();
     const long nRowsProcessed = calcdEdx.getNRowsProcessed();
-    const auto& nSubThresholdFilledPerSettings = calcdEdx.getNSubThresholdFilledPerSettings();
+    const auto nSubThresholdFilledPerSettings = calcdEdx.getNSubThresholdFilledPerSettings(); // copy: resetDebugCounters() below clears the member
     calcdEdx.resetDebugCounters();
     std::string subThresholdBreakdown;
     for (size_t i = 0; i < nSubThresholdFilledPerSettings.size(); i++) {
