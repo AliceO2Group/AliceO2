@@ -25,6 +25,10 @@
 #include <ITStracking/TimeFrame.h>
 #include <TH2F.h>
 
+namespace Acts
+{
+class Surface;
+}
 namespace o2::trk
 {
 
@@ -63,7 +67,7 @@ struct SpacePoint {
   int clusterId{-1};
   int rof{-1};
   int sensorId{-1};
-  // const Acts::Surface* surface{nullptr};
+  const Acts::Surface* surface{nullptr};
 
   // Derived quantities
   float r() const { return std::hypot(x, y); }
