@@ -19,6 +19,7 @@
 #include "IOTOFSimulation/Digitizer.h"
 #include "IOTOFSimulation/DPLDigitizerParam.h"
 #include "DetectorsRaw/HBFUtils.h"
+#include "CCDB/BasicCCDBManager.h"
 
 #include <TCollection.h>
 #include <TFile.h>
@@ -26,6 +27,7 @@
 #include <TRandom.h>
 
 #include <set>
+#include <string_view>
 #include <vector>
 #include <iostream>
 #include <numeric>
@@ -66,15 +68,28 @@ void Digitizer::init()
     }
   }
 
-  if (!digitizerParams.efficiencyFilePath.empty()) {
-    loadEfficiencyMap(digitizerParams.efficiencyFilePath);
-  }
+  const auto& digitizerParams = o2::iotof::DPLDigitizerParam::Instance();
 
   LOG(info) << "Initializing IOTOF digitizer";
   LOG(info) << "  Time resolution: " << digitizerParams.timeResolution * 1e3 << " ps";
   LOG(info) << "  Charge threshold: " << digitizerParams.chargeThreshold << " electrons";
-  LOG(info) << "  Detection efficiency: " << digitizerParams.efficiency * 100 << " %";
   LOG(info) << "  Continuous mode: " << (mContinuous ? "ON" : "OFF");
+
+  loadMap(mEfficiencyMap, digitizerParams.efficiencyMapPath, "hEfficiencyMap");
+  if (!mEfficiencyMap) {
+    LOG(info) << "No efficiency map loaded, using uniform efficiency: " << digitizerParams.efficiency * 100 << " %";
+  }
+
+  loadMap(mResolutionMap, digitizerParams.resolutionMapPath, "hResolutionMap");
+  if (!mResolutionMap) {
+    LOG(info) << "No resolution map loaded, using uniform time resolution: " << digitizerParams.timeResolution * 1e3 << " ps";
+  }
+
+  loadMap(mTimeOfArrivalMap, digitizerParams.timeOfArrivalMapPath, "hTimeOfArrivalMap");
+  if (!mTimeOfArrivalMap) {
+    LOG(info) << "No time of arrival map loaded";
+  }
+
   sSegmentation = o2::iotof::Segmentation::Instance();
 }
 
@@ -173,11 +188,10 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
         LOG(debug) << "Hit rejected by efficiency cut at pixel (row,col) = (" << rowIS << ", " << colIS << ")";
         continue;
       }
+      double smearedTime = smearTime(hitTimeWrtBC, avgHitLocalX[irow][icol], avgHitLocalZ[irow][icol]);
 
       const int nElectronsSampled = gRandom->Poisson(electronsPerStep * nEleResp);
       // Noise can be added here if needed
-
-      double smearedTime = smearTime(hitTimeWrtBC);
 
       registerDigits(chip, roFrameAbs, smearedTime, nROF,
                      static_cast<uint16_t>(rowIS), static_cast<uint16_t>(colIS), nElectronsSampled, label);
@@ -326,12 +340,22 @@ void Digitizer::stepping(const o2::itsmft::Hit& hit, float**& respMatrix, float*
 }
 
 //_______________________________________________________________________
-double Digitizer::smearTime(double time) const
+double Digitizer::smearTime(double time, const float x, const float y) const
 {
   // Apply Gaussian smearing to simulate detector time resolution
   const auto& digitizerParams = o2::iotof::DPLDigitizerParam::Instance();
+  
+  float resolutionScaling = 1.;
+  if (mResolutionMap) {
+    const float minimumResolution = mResolutionMap->GetMinimum();
+    int bin = mResolutionMap->FindBin(x * o2::iotof::Digitizer::cm2um, y * o2::iotof::Digitizer::cm2um);
+    resolutionScaling = minimumResolution > 0. ? mResolutionMap->GetBinContent(bin) / minimumResolution : 1.;
+    LOG(debug) << "Time resolution map check: x=" << x * o2::iotof::Digitizer::cm2um << ", y=" << y * o2::iotof::Digitizer::cm2um << ", bin=" << bin << ", resolution=" << minimumResolution;
+    LOG(debug) << "Time resolution scaling: " << resolutionScaling;
+  }
+
   if (digitizerParams.timeResolution > 0) {
-    return time + gRandom->Gaus(0, digitizerParams.timeResolution);
+    return time + gRandom->Gaus(0, digitizerParams.timeResolution * resolutionScaling);
   }
   return time;
 }
@@ -347,31 +371,59 @@ int Digitizer::energyToCharge(float energyLoss) const
 }
 
 //_______________________________________________________________________
-void Digitizer::loadEfficiencyMap(const std::string& filePath)
+
+void Digitizer::loadMap(TH2D*& map, const std::string& path, const char* mapName)
 {
-  // Load the efficiency map from a file
-  TFile* file = TFile::Open(filePath.c_str());
-  if (!file || !file->IsOpen()) {
-    LOG(error) << "Failed to open efficiency map file: " << filePath;
+  // Load a map either from CCDB (path prefixed with "ccdb://") or from a ROOT file
+  // (anything TFile::Open understands: local path, alien://, root://, http://, ...)
+  static constexpr std::string_view ccdbPrefix = "ccdb://";
+
+  if (path.empty()) {
     return;
   }
 
-  auto* rawMap = dynamic_cast<TH2D*>(file->Get("hEfficiencyMap"));
-  if (!rawMap) {
-    LOG(error) << "Failed to retrieve efficiency map from file: " << filePath;
-    LOG(error) << "Available keys in the file:";
-    TIter next(file->GetListOfKeys());
-    TKey* key;
-    while ((key = dynamic_cast<TKey*>(next()))) {
-      LOG(error) << "  " << key->GetName() << " (" << key->GetClassName() << ")";
+  TH2D* rawMap = nullptr;
+  TFile* file = nullptr;
+
+  if (path.rfind(ccdbPrefix, 0) == 0) {
+    const std::string ccdbPath = path.substr(ccdbPrefix.size());
+    LOG(info) << "Loading " << mapName << " from CCDB: " << ccdbPath;
+    rawMap = o2::ccdb::BasicCCDBManager::instance().get<TH2D>(ccdbPath); // owned by the CCDB manager
+    if (!rawMap) {
+      LOG(error) << "Failed to retrieve " << mapName << " from CCDB path: " << ccdbPath;
+      return;
     }
-    file->Close();
-    return;
+  } else {
+    LOG(info) << "Loading " << mapName << " from file: " << path;
+    file = TFile::Open(path.c_str());
+    if (!file || !file->IsOpen()) {
+      LOG(error) << "Failed to open file: " << path;
+      delete file;
+      return;
+    }
+    rawMap = dynamic_cast<TH2D*>(file->Get(mapName));
+    if (!rawMap) {
+      LOG(error) << "Failed to retrieve " << mapName << " from file: " << path;
+      LOG(error) << "Available keys in the file:";
+      TIter next(file->GetListOfKeys());
+      TKey* key;
+      while ((key = dynamic_cast<TKey*>(next()))) {
+        LOG(error) << "  " << key->GetName() << " (" << key->GetClassName() << ")";
+      }
+      file->Close();
+      delete file;
+      return;
+    }
   }
-  mEfficiencyMap = dynamic_cast<TH2D*>(rawMap->Clone("mEfficiencyMap"));
-  mEfficiencyMap->SetDirectory(nullptr); // Detach from file to avoid deletion when file is closed
 
-  file->Close();
+  map = dynamic_cast<TH2D*>(rawMap->Clone());
+  map->SetDirectory(nullptr); // Detach from file to avoid deletion when file is closed
+  LOG(info) << "Loaded " << mapName << " (" << map->GetNbinsX() << " x " << map->GetNbinsY() << " bins)";
+
+  if (file) {
+    file->Close();
+    delete file;
+  }
 }
 
 //_______________________________________________________________________
@@ -469,7 +521,7 @@ void Digitizer::registerDigits(Chip& chip, uint32_t roFrame, double time, int nR
   int tdc = int((time - nbc * o2::constants::lhc::LHCBunchSpacingNS) / digitizerParams.tdcBin);
   nbc += mEventTime.toLong();
 
-  double absoluteTime = tdc * digitizerParams.tdcBin + nbc * o2::constants::lhc::LHCBunchSpacingNS;
+  double absoluteTime = tdc * digitizerParams.tdcBin * 1.e-9 + nbc * o2::constants::lhc::LHCBunchSpacingNS;
 
   auto key = o2::iotof::Digit::getOrderingKey(nbc, tdc, row, col);
   o2::iotof::LabeledDigit* existingDigit = chip.findDigit(key);
