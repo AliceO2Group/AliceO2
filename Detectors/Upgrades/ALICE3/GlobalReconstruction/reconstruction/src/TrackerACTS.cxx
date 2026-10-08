@@ -34,6 +34,21 @@
 #include <Acts/Utilities/RangeXD.hpp>
 #include <Acts/Definitions/TrackParametrization.hpp>
 #include <Acts/Seeding/EstimateTrackParamsFromSeed.hpp>
+#include <Acts/EventData/BoundTrackParameters.hpp>
+#include <Acts/EventData/ParticleHypothesis.hpp>
+#include <Acts/EventData/SourceLink.hpp>
+#include <Acts/EventData/TrackContainer.hpp>
+#include <Acts/EventData/VectorMultiTrajectory.hpp>
+#include <Acts/EventData/VectorTrackContainer.hpp>
+#include <Acts/MagneticField/ConstantBField.hpp>
+#include <Acts/MagneticField/MagneticFieldContext.hpp>
+#include <Acts/Propagator/DirectNavigator.hpp>
+#include <Acts/Propagator/EigenStepper.hpp>
+#include <Acts/Propagator/Propagator.hpp>
+#include <Acts/TrackFitting/GainMatrixSmoother.hpp>
+#include <Acts/TrackFitting/GainMatrixUpdater.hpp>
+#include <Acts/TrackFitting/KalmanFitter.hpp>
+#include <Acts/Utilities/CalibrationContext.hpp>
 
 namespace o2::trk
 {
@@ -135,11 +150,11 @@ void TrackerACTS<nLayers>::buildSpacePoints(int rof)
 template <int nLayers>
 void TrackerACTS<nLayers>::createSeeds()
 {
+  mSeeds.clear();
   if (mSpacePoints.empty()) {
     LOGF(info, "No space points available for seeding");
     return;
   }
-  mSeeds.clear();
 
   // Backend adaptor that exposes mSpacePoints to Acts::SpacePointContainer
   struct SpacePointBackend {
@@ -327,31 +342,271 @@ bool TrackerACTS<nLayers>::estimateTrackParams(const SeedACTS& seed, o2::its::Tr
   LOG(info) << "Estimated track parameters";
   return true;
 }
-
 template <int nLayers>
 void TrackerACTS<nLayers>::findTracks()
 {
-  return; // For now we only create seeds, track finding and fitting will be implemented in the next iterations
-  int nTracks = 0;
+  if (mSeeds.empty()) {
+    return;
+  }
+
+  auto& actsGeometryManager = o2::acts::TrackingGeometryManager::instance();
+  const auto& geometryContext = actsGeometryManager.getNominalContext();
+
+  Acts::MagneticFieldContext magneticFieldContext;
+  Acts::CalibrationContext calibrationContext;
+
+  // Initial implementation with a constant magnetic field
+  auto magneticField = std::make_shared<Acts::ConstantBField>(
+    Acts::Vector3{0., 0., mBz * Acts::UnitConstants::T});
+
+  using Propagator = Acts::Propagator<Acts::EigenStepper<>, Acts::DirectNavigator>;
+  using Trajectory = Acts::VectorMultiTrajectory;
+  using TrackContainer = Acts::TrackContainer<Acts::VectorTrackContainer, Trajectory>;
+
+  Propagator propagator{
+    Acts::EigenStepper<>{magneticField},
+    Acts::DirectNavigator{}};
+
+  Acts::KalmanFitter<Propagator, Trajectory> fitter{std::move(propagator)};
+
+  // Each measurement is defined in its ACTS surface frame
+  struct HitMeasurement {
+    const Acts::Surface* surface{nullptr};
+    Acts::Vector2 local = Acts::Vector2::Zero();
+    Acts::SquareMatrix<2> covariance = Acts::SquareMatrix<2>::Zero();
+  };
+
+  struct HitSourceLink {
+    const HitMeasurement* hit{nullptr};
+  };
+
+  struct SurfaceAccessor {
+    const Acts::Surface* getSurface(const Acts::SourceLink& sourceLink) const
+    {
+      return sourceLink.get<HitSourceLink>().hit->surface;
+    }
+  };
+
+  struct MeasurementCalibrator {
+    void calibrate(const Acts::GeometryContext&,
+                   const Acts::CalibrationContext&,
+                   const Acts::SourceLink& sourceLink,
+                   Trajectory::TrackStateProxy trackState) const
+    {
+      const auto& hit = *sourceLink.get<HitSourceLink>().hit;
+
+      trackState.setUncalibratedSourceLink(Acts::SourceLink{sourceLink});
+      trackState.allocateCalibrated(2);
+      trackState.calibrated<2>() = hit.local;
+      trackState.calibratedCovariance<2>() = hit.covariance;
+
+      trackState.setProjectorSubspaceIndices(
+        std::array<std::uint8_t, 2>{
+          static_cast<std::uint8_t>(Acts::eBoundLoc0),
+          static_cast<std::uint8_t>(Acts::eBoundLoc1)});
+    }
+  };
+
+  SurfaceAccessor surfaceAccessor;
+  MeasurementCalibrator calibrator;
+  Acts::GainMatrixUpdater updater;
+  Acts::GainMatrixSmoother smoother;
+
+  Acts::KalmanFitterExtensions<Trajectory> extensions;
+
+  extensions.surfaceAccessor.connect<&SurfaceAccessor::getSurface>(&surfaceAccessor);
+  extensions.calibrator.connect<&MeasurementCalibrator::calibrate>(&calibrator);
+  extensions.updater.connect<&Acts::GainMatrixUpdater::operator()<Trajectory>>(&updater);
+  extensions.smoother.connect<&Acts::GainMatrixSmoother::operator()<Trajectory>>(&smoother);
+
+  Acts::PropagatorPlainOptions propagatorOptions{
+    geometryContext, magneticFieldContext};
+
+  Acts::KalmanFitterOptions<Trajectory> fitterOptions{
+    geometryContext,
+    magneticFieldContext,
+    calibrationContext,
+    extensions,
+    propagatorOptions,
+    nullptr,
+    false, // Multiple scattering: disable for the first test
+    false  // Energy loss: disable for the first test
+  };
+
+  TrackContainer tracks{
+    std::make_shared<Acts::VectorTrackContainer>(),
+    std::make_shared<Trajectory>()};
+
+  int nFitted = 0;
+  int nFailed = 0;
+  int nInvalid = 0;
 
   for (const auto& seed : mSeeds) {
-    o2::its::TrackITSExt track;
+    const std::array<const SpacePoint*, 3> spacePoints{
+      seed.bottom, seed.middle, seed.top};
 
-    LOG(info) << "Estimating track parameters for seed with quality (pT) = " << seed.quality;
-    if (!estimateTrackParams(seed, track)) {
+    if (!spacePoints[0] || !spacePoints[1] || !spacePoints[2]) {
+      ++nInvalid;
       continue;
     }
 
-    // Add track to TimeFrame
-    const int rof = seed.middle->rof;
-    if (mTimeFrame && rof >= 0 && rof < mTimeFrame->getNrof(0)) {
-      LOG(info) << "Adding track to ROF " << rof;
-      auto& tracks = mTimeFrame->getTracks();
-      // tracks.emplace_back(track);
-      ++nTracks;
+    if (!spacePoints[0]->surface || !spacePoints[1]->surface ||
+        !spacePoints[2]->surface) {
+      ++nInvalid;
+      continue;
     }
+
+    // The direct fitter expects at most one measurement per surface
+    if (spacePoints[0]->surface == spacePoints[1]->surface ||
+        spacePoints[0]->surface == spacePoints[2]->surface ||
+        spacePoints[1]->surface == spacePoints[2]->surface) {
+      ++nInvalid;
+      continue;
+    }
+
+    Acts::Vector3 pos0{
+      spacePoints[0]->x, spacePoints[0]->y, spacePoints[0]->z};
+    Acts::Vector3 pos1{
+      spacePoints[1]->x, spacePoints[1]->y, spacePoints[1]->z};
+    Acts::Vector3 pos2{
+      spacePoints[2]->x, spacePoints[2]->y, spacePoints[2]->z};
+
+    // Estimate initial free parameters from the triplet
+    Acts::FreeVector freeParams;
+
+    try {
+      freeParams = Acts::estimateTrackParamsFromSeed(
+        pos0, 0., pos1, pos2,
+        Acts::Vector3{0., 0., mBz * Acts::UnitConstants::T});
+    } catch (const std::exception& e) {
+      LOG(debug) << "ACTS seed parameter estimation failed: " << e.what();
+      ++nInvalid;
+      continue;
+    }
+
+    const double qOverP = freeParams[Acts::eFreeQOverP];
+
+    if (!std::isfinite(qOverP) || std::abs(qOverP) < 1.e-12) {
+      ++nInvalid;
+      continue;
+    }
+
+    Acts::Vector3 direction{
+      freeParams[Acts::eFreeDir0],
+      freeParams[Acts::eFreeDir1],
+      freeParams[Acts::eFreeDir2]};
+
+    if (!direction.allFinite() || direction.norm() < 1.e-12) {
+      ++nInvalid;
+      continue;
+    }
+
+    direction.normalize();
+
+    // Convert the global hit positions into local ACTS measurements
+    std::array<HitMeasurement, 3> measurements;
+    std::vector<Acts::SourceLink> sourceLinks;
+    std::vector<const Acts::Surface*> surfaces;
+
+    sourceLinks.reserve(3);
+    surfaces.reserve(3);
+
+    bool validMeasurements = true;
+
+    for (int i = 0; i < 3; ++i) {
+      const auto* sp = spacePoints[i];
+      const auto* surface = sp->surface;
+
+      Acts::Vector3 position{sp->x, sp->y, sp->z};
+
+      // Allow small differences between chip positions and ideal surfaces
+      auto localResult = surface->globalToLocal(
+        geometryContext, position, direction,
+        1. * Acts::UnitConstants::mm);
+
+      if (!localResult.ok()) {
+        validMeasurements = false;
+        break;
+      }
+
+      auto& measurement = measurements[i];
+      measurement.surface = surface;
+      measurement.local = localResult.value();
+
+      // Temporary isotropic 100 um resolution
+      const double sigma = 100. * Acts::UnitConstants::um;
+
+      measurement.covariance.setZero();
+      measurement.covariance(0, 0) = sigma * sigma;
+      measurement.covariance(1, 1) = sigma * sigma;
+
+      sourceLinks.emplace_back(HitSourceLink{&measurement});
+      surfaces.push_back(surface);
+    }
+
+    if (!validMeasurements) {
+      ++nInvalid;
+      continue;
+    }
+
+    // Start from the first seed space point
+    Acts::Vector4 position4;
+    position4 << pos0.x(), pos0.y(), pos0.z(), 0.;
+
+    // Initial covariance, deliberately loose
+    Acts::BoundMatrix covariance = Acts::BoundMatrix::Zero();
+
+    covariance(Acts::eBoundLoc0, Acts::eBoundLoc0) =
+      std::pow(1. * Acts::UnitConstants::mm, 2);
+    covariance(Acts::eBoundLoc1, Acts::eBoundLoc1) =
+      std::pow(1. * Acts::UnitConstants::mm, 2);
+    covariance(Acts::eBoundPhi, Acts::eBoundPhi) = 0.1 * 0.1;
+    covariance(Acts::eBoundTheta, Acts::eBoundTheta) = 0.1 * 0.1;
+    covariance(Acts::eBoundQOverP, Acts::eBoundQOverP) =
+      std::pow(0.5 * qOverP, 2);
+    covariance(Acts::eBoundTime, Acts::eBoundTime) =
+      std::pow(1. * Acts::UnitConstants::ns, 2);
+
+    auto initialParameters = Acts::BoundTrackParameters::createCurvilinear(
+      position4,
+      direction,
+      qOverP,
+      covariance,
+      Acts::ParticleHypothesis::pion());
+
+    auto result = fitter.fit(
+      sourceLinks.begin(),
+      sourceLinks.end(),
+      initialParameters,
+      fitterOptions,
+      surfaces,
+      tracks);
+
+    if (!result.ok()) {
+      LOG(debug) << "ACTS Kalman fit failed: " << result.error().message();
+      ++nFailed;
+      continue;
+    }
+
+    const auto track = result.value();
+
+    if (track.nMeasurements() < 3) {
+      ++nFailed;
+      continue;
+    }
+
+    ++nFitted;
+
+    LOG(debug) << "ACTS fitted seed: "
+               << "nMeasurements=" << track.nMeasurements()
+               << " chi2=" << track.chi2()
+               << " nDoF=" << track.nDoF();
   }
-  LOG(info) << "Created " << nTracks << " tracks from " << mSeeds.size() << " seeds";
+
+  LOG(info) << "ACTS fitting: " << nFitted << " fitted, "
+            << nFailed << " failed, "
+            << nInvalid << " invalid from "
+            << mSeeds.size() << " seeds";
 }
 
 template <int nLayers>
@@ -446,9 +701,9 @@ void TrackerACTS<nLayers>::clustersToTracks()
                               StateNames[mCurState]);
 
     // Find tracks
-    // mCurState = TrackFinding;
-    // totalTime += evaluateTask([this]() { findTracks(); },
-    //                           StateNames[mCurState]);
+    mCurState = TrackFinding;
+    totalTime += evaluateTask([this]() { findTracks(); },
+                              StateNames[mCurState]);
   }
 
   // MC labeling
