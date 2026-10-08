@@ -19,11 +19,11 @@
 #ifndef ALICE3_GLOBALRECONSTRUCTION_INCLUDE_TRACKERACTS_H_
 #define ALICE3_GLOBALRECONSTRUCTION_INCLUDE_TRACKERACTS_H_
 
-#include "Acts/Definitions/Units.hpp"
-#include "Framework/Logger.h"
-
-#include "ITStracking/TimeFrame.h"
-#include "TH2F.h"
+#include <Acts/Definitions/Units.hpp>
+#include <Framework/Logger.h>
+#include <DataFormatsITSMFT/CompCluster.h>
+#include <ITStracking/TimeFrame.h>
+#include <TH2F.h>
 
 namespace o2::trk
 {
@@ -62,6 +62,8 @@ struct SpacePoint {
   int layer{-1};
   int clusterId{-1};
   int rof{-1};
+  int sensorId{-1};
+  // const Acts::Surface* surface{nullptr};
 
   // Derived quantities
   float r() const { return std::hypot(x, y); }
@@ -98,6 +100,11 @@ class TrackerACTS
 
   /// Adopt a TimeFrame for processing
   void adoptTimeFrame(o2::its::TimeFrame<nLayers>& tf);
+
+  void adoptClusters(gsl::span<const o2::itsmft::CompClusterExt> clusters)
+  {
+    mInputClusters = clusters;
+  }
 
   /// Main tracking entry point: convert clusters to tracks
   void clustersToTracks();
@@ -155,6 +162,7 @@ class TrackerACTS
   float mBz{0.5f}; ///< Magnetic field in Tesla
   unsigned int mTimeFrameCounter{0};
   double mTotalTime{0.};
+  gsl::span<const o2::itsmft::CompClusterExt> mInputClusters;
 
   // Tracking states for logging
   enum State {

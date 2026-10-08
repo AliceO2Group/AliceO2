@@ -18,6 +18,10 @@
 
 #include "ALICE3GlobalReconstruction/TrackerACTS.h"
 
+#include <TRKBase/GeometryTGeo.h>
+#include <MathUtils/Utils.h>
+#include <Acts/Surfaces/Surface.hpp>
+#include "ACTSInterface/TrackingGeometryManager.h"
 #include <Acts/EventData/Seed.hpp>
 #include <Acts/EventData/SpacePointContainer.hpp>
 #include <Acts/Seeding/BinnedGroup.hpp>
@@ -273,7 +277,7 @@ bool TrackerACTS<nLayers>::estimateTrackParams(const SeedACTS& seed, o2::its::Tr
   const float x = p[Acts::eFreePos0];
   const float y = p[Acts::eFreePos1];
   const float z = p[Acts::eFreePos2];
-  const float px = p[Acts::eFreeDir0] * pMag;
+  const float px = p[Acts::eFreeDir0] * 1;
   const float py = p[Acts::eFreeDir1] * pMag;
   const float pz = p[Acts::eFreeDir2] * pMag;
   const int charge = (p[Acts::eFreeQOverP] >= 0) ? 1 : -1;
@@ -394,6 +398,19 @@ void TrackerACTS<nLayers>::clustersToTracks()
   //   totalTime += evaluateTask([this]() { findTracks(); },
   //                             StateNames[mCurState]);
   // }
+
+  auto& actsGeometryManager = o2::acts::TrackingGeometryManager::instance();
+
+  const auto& trackingGeometry = actsGeometryManager.get();
+  const auto& geometryContext = actsGeometryManager.getNominalContext();
+
+  auto* trkGeometry = o2::trk::GeometryTGeo::Instance();
+
+  trkGeometry->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G));
+
+  const auto& surfaceIndex = actsGeometryManager.getIndex(*trkGeometry, 1.e-3, [trkGeometry](int sensorID) {
+    return std::string(trkGeometry->getMatrixPath(sensorID).Data());
+  });
 
   // MC labeling
   if (mTimeFrame->hasMCinformation()) {
