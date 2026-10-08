@@ -79,6 +79,17 @@ if [[ $CALIB_ASYNC_EXTRACTTIMESERIES == 1 ]] ; then
   CONFIG_TPCTIMESERIES+=" --mult-max ${TPCTIMESERIES_MULT_MAX}"
   add_W o2-tpc-time-series-workflow "$DISABLE_ROOT_INPUT ${CONFIG_TPCTIMESERIES}"
 fi
+if [[ $CALIB_ASYNC_EXTRACTCOSMICS == 1 ]] ; then
+  # cosmic muons in collision data: TPC-only legs matched with the preset's selection, raw clusters of each cosmic -> o2_cosmics_full.root
+  : ${COSMICS_PRESET:=physics-v1}
+  COSMICS_ROAD_DETECTORS=
+  for det in ITS TOF TRD; do
+    has_detector_reco $det && COSMICS_ROAD_DETECTORS+="${COSMICS_ROAD_DETECTORS:+,}$det"
+  done
+  COSMICS_CONFIG=
+  has_detector_reco TOF || COSMICS_CONFIG="cosmicsMatch.tofFlightSelection=false" # the TOF flight selection of the preset needs TOF clusters
+  add_W o2-cosmics-match-workflow "$DISABLE_ROOT_INPUT $DISABLE_MC --track-sources TPC --cosmics-preset ${COSMICS_PRESET} --enable-cluster-output --road-detectors ${COSMICS_ROAD_DETECTORS:-none}" "$COSMICS_CONFIG"
+fi
 
 # output-proxy for aggregator
 if workflow_has_parameter CALIB_PROXIES; then
