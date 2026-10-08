@@ -140,7 +140,7 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
 
   /** generators **/
 
-  o2::O2DatabasePDG::addALICEParticles(TDatabasePDG::Instance());
+  o2::O2DatabasePDG::Instance(); //--> ALICE particles are added once in this call
   auto genconfig = conf.getGenerator();
 #if defined(GENERATORS_WITH_PYTHIA8) && defined(GENERATORS_WITH_HEPMC3)
   std::string hyperloopExtHybridConfigFile; // set when IS_HYPERLOOP is defined
