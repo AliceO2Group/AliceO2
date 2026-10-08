@@ -21,7 +21,8 @@
 
 #include <Acts/Definitions/Units.hpp>
 #include <Framework/Logger.h>
-#include <DataFormatsITSMFT/CompCluster.h>
+#include <array>
+#include <vector>
 #include <ITStracking/TimeFrame.h>
 #include <TH2F.h>
 
@@ -104,10 +105,9 @@ class TrackerACTS
 
   /// Adopt a TimeFrame for processing
   void adoptTimeFrame(o2::its::TimeFrame<nLayers>& tf);
-
-  void adoptClusters(gsl::span<const o2::itsmft::CompClusterExt> clusters)
+  void adoptSensorIDs(const std::array<std::vector<int>, nLayers>& sensorIDs)
   {
-    mInputClusters = clusters;
+    mSensorIDs = &sensorIDs;
   }
 
   /// Main tracking entry point: convert clusters to tracks
@@ -136,9 +136,6 @@ class TrackerACTS
   /// Create seeds (triplets) from space points using ACTS SeedFinder
   void createSeeds();
 
-  /// Estimate track parameters from a seed using ACTS
-  bool estimateTrackParams(const SeedACTS& seed, o2::its::TrackITSExt& track) const;
-
   /// Run track finding from seeds
   void findTracks();
 
@@ -166,7 +163,7 @@ class TrackerACTS
   float mBz{0.5f}; ///< Magnetic field in Tesla
   unsigned int mTimeFrameCounter{0};
   double mTotalTime{0.};
-  gsl::span<const o2::itsmft::CompClusterExt> mInputClusters;
+  const std::array<std::vector<int>, nLayers>* mSensorIDs = nullptr;
 
   // Tracking states for logging
   enum State {

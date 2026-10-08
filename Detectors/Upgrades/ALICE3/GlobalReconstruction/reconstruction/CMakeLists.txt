@@ -41,5 +41,6 @@ o2_add_library(ALICE3GlobalReconstruction
                        TBB::tbb)
 
 if(Acts_FOUND)
+  target_sources(${targetName} PRIVATE src/TrackerACTS.cxx)
   target_compile_definitions(${targetName} PUBLIC O2_WITH_ACTS)
 endif()
