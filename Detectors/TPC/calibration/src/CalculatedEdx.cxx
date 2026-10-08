@@ -261,7 +261,7 @@ void CalculatedEdx::gatherRowClusterData(o2::tpc::TrackTPC& track, std::vector<R
 {
   rowData.clear();
 
-  bool refitAbandoned = false;
+  const bool refitFailed = refitTrack(track);
 
   // handle same (sector, row) clusters
   std::vector<std::pair<unsigned char, unsigned char>> rowOrder;
@@ -298,7 +298,7 @@ void CalculatedEdx::gatherRowClusterData(o2::tpc::TrackTPC& track, std::vector<R
     }
 
     const bool mergeable = mergeableRows.count(rowKey) > 0;
-    gatherRowClusterDataForRow(track, fragmentClusters, fragmentIsShared, sectorIndex, rowIndex, mergeable, rowIndexOld, sectorIndexOld, occupancyROC, rowData, refitAbandoned);
+    gatherRowClusterDataForRow(track, fragmentClusters, fragmentIsShared, sectorIndex, rowIndex, mergeable, rowIndexOld, sectorIndexOld, occupancyROC, rowData, refitFailed);
     rowIndexOld = rowIndex;
     sectorIndexOld = sectorIndex;
   }
@@ -318,6 +318,21 @@ void CalculatedEdx::gatherRowClusterData(o2::tpc::TrackTPC& track, std::vector<R
       *averageOccROC[roc] = static_cast<double>(sumOcc) / nValidOcc;
     }
   }
+}
+
+bool CalculatedEdx::refitTrack(o2::tpc::TrackTPC& track)
+{
+  if (!mRefit) {
+    return false;
+  }
+  // RefitTrackAsGPU() refits the whole track from its clusters (not just up to the current row) and may write into the track even if it fails, so keep the original state to fall back from
+  const o2::track::TrackParCov trackBeforeRefit = track;
+  // outward refit: the track ends at the outermost cluster, i.e. at the start of the cluster reference list that is traversed row by row
+  const bool failed = (mRefit->RefitTrackAsGPU(track, true, true) < 0) || std::isnan(track.getParam(1));
+  if (failed) {
+    static_cast<o2::track::TrackParCov&>(track) = trackBeforeRefit;
+  }
+  return failed;
 }
 
 bool CalculatedEdx::propagateTrackToX(o2::track::TrackParCov& track, float xPosition, unsigned char sectorIndex) const
@@ -347,7 +362,7 @@ bool CalculatedEdx::propagateTrackToX(o2::track::TrackParCov& track, float xPosi
   return check;
 }
 
-void CalculatedEdx::gatherRowClusterDataForRow(o2::tpc::TrackTPC& track, const std::vector<o2::tpc::ClusterNative>& fragmentClusters, const std::vector<bool>& fragmentIsShared, unsigned char sectorIndex, unsigned char rowIndex, bool mergeable, unsigned char rowIndexOld, unsigned char sectorIndexOld, std::array<std::vector<unsigned int>, 4>& occupancyROC, std::vector<RowClusterData>& rowData, bool& refitAbandoned)
+void CalculatedEdx::gatherRowClusterDataForRow(o2::tpc::TrackTPC& track, const std::vector<o2::tpc::ClusterNative>& fragmentClusters, const std::vector<bool>& fragmentIsShared, unsigned char sectorIndex, unsigned char rowIndex, bool mergeable, unsigned char rowIndexOld, unsigned char sectorIndexOld, std::array<std::vector<unsigned int>, 4>& occupancyROC, std::vector<RowClusterData>& rowData, bool refitFailed)
 {
   RowClusterData row;
   row.sectorIndex = sectorIndex;
@@ -418,32 +433,9 @@ void CalculatedEdx::gatherRowClusterDataForRow(o2::tpc::TrackTPC& track, const s
   // get the x position of the track
   const float xPosition = Mapper::instance().getPadCentre(PadPos(rowIndex, 0)).X();
   bool check = true;
-  bool refitFellBack = false;
-  if (mRefit) {
-    if (!refitAbandoned) {
-      // snapshot the track's state as it stood before this row's refit attempt (i.e. after the previous row's
-      // successful refit) -- RefitTrackAsGPU() writes back into `track` even on failure, so on failure this is
-      // the most recent known-good state to fall back from, not the track's pristine pre-loop state
-      const o2::track::TrackParCov trackBeforeRefit = track;
-      // refit this track
-      mRefit->setTrackReferenceX(xPosition);
-      // RefitTrackAsGPU() returns < 0 when it fails; reachedReference is false when the fit succeeded but the final move-to-reference step could not reach xPosition, so both trigger the fallback.
-      bool reachedReference = true;
-      check = (mRefit->RefitTrackAsGPU(track, false, true, &reachedReference) < 0) ? false : reachedReference;
-      if (!check || std::isnan(track.getParam(1))) {
-        refitAbandoned = true;
-        static_cast<o2::track::TrackParCov&>(track) = trackBeforeRefit;
-        check = propagateTrackToX(track, xPosition, sectorIndex);
-        refitFellBack = check;
-      }
-    } else {
-      // already abandoned refit for this track (the previous row's RefitTrackAsGPU() failed)
-      // keep propagating incrementally from `track`'s current state
-      check = propagateTrackToX(track, xPosition, sectorIndex);
-      refitFellBack = check;
-    }
-  } else if (mPropagateTrack) {
-    // propagate this track to the plane X=xk (cm) in the field "b" (kG)
+  if (mRefit || mPropagateTrack) {
+    // mRefit: the track was refit once in gatherRowClusterData() and is only propagated from row to row here, if that refit failed, the propagation starts from the track's original state
+    // mPropagateTrack: propagate this track to the plane X=xk (cm) in the field "b" (kG)
     check = propagateTrackToX(track, xPosition, sectorIndex);
   } else if (mPropagateParams) {
     // propagate the params of the track instead of full propagation; same rollback rationale as mPropagateTrack above
@@ -458,7 +450,7 @@ void CalculatedEdx::gatherRowClusterDataForRow(o2::tpc::TrackTPC& track, const s
   }
 
   row.propagationFailed = (!check || std::isnan(track.getParam(1)));
-  row.refitFellBack = refitFellBack && !row.propagationFailed;
+  row.refitFellBack = mRefit && refitFailed && !row.propagationFailed;
   ++mNRowsProcessed;
   if (row.propagationFailed) {
     ++mNPropagationFailed;
@@ -509,7 +501,7 @@ void CalculatedEdx::gatherRowClusterData(o2::tpc::TrackTPC& track, const std::ve
 {
   rowData.clear();
 
-  bool refitAbandoned = false;
+  const bool refitFailed = refitTrack(track);
 
   // handle same (sector, row) clusters
   std::vector<std::pair<unsigned char, unsigned char>> rowOrder;
@@ -544,7 +536,7 @@ void CalculatedEdx::gatherRowClusterData(o2::tpc::TrackTPC& track, const std::ve
     }
 
     const bool mergeable = mergeableRows.count(rowKey) > 0;
-    gatherRowClusterDataForRow(track, fragmentClusters, fragmentIsShared, sectorIndex, rowIndex, mergeable, rowIndexOld, sectorIndexOld, occupancyROC, rowData, refitAbandoned);
+    gatherRowClusterDataForRow(track, fragmentClusters, fragmentIsShared, sectorIndex, rowIndex, mergeable, rowIndexOld, sectorIndexOld, occupancyROC, rowData, refitFailed);
     rowData.back().inputClusterIndices = clusterIndices; // positions in the externally supplied clusters vector grouped into this row
     rowIndexOld = rowIndex;
     sectorIndexOld = sectorIndex;
