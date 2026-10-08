@@ -42,6 +42,10 @@ class MCKinematicsReader
   /// destructor
   ~MCKinematicsReader();
 
+  /// the reader owns cached track vectors, so it must not be copied
+  MCKinematicsReader(const MCKinematicsReader&) = delete;
+  MCKinematicsReader& operator=(const MCKinematicsReader&) = delete;
+
   /// constructor taking a name and mode (either kDigiContext or kMCKine)
   /// In case of "context", the name is the filename of the digitization context.
   /// In case of MCKine mode, the name is the "prefix" referencing a single simulation production.
