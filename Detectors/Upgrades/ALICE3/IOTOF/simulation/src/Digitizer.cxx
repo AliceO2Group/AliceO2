@@ -346,13 +346,11 @@ double Digitizer::smearTime(double time, const float x, const float y) const
   // Apply Gaussian smearing to simulate detector time resolution
   const auto& digitizerParams = o2::iotof::DPLDigitizerParam::Instance();
   
-  float resolutionScaling = 1.;
-  if (mResolutionMap) {
-    const float minimumResolution = mResolutionMap->GetMinimum();
-    int bin = mResolutionMap->FindBin(x * o2::iotof::Digitizer::cm2um, y * o2::iotof::Digitizer::cm2um);
-    resolutionScaling = minimumResolution > 0. ? mResolutionMap->GetBinContent(bin) / minimumResolution : 1.;
-    LOG(debug) << "Time resolution map check: x=" << x * o2::iotof::Digitizer::cm2um << ", y=" << y * o2::iotof::Digitizer::cm2um << ", bin=" << bin << ", resolution=" << minimumResolution;
-    LOG(debug) << "Time resolution scaling: " << resolutionScaling;
+  float resolution = digitizerParams.timeResolution;
+  if (mScaledResolutionMap) {
+    int bin = mScaledResolutionMap->FindBin(x * o2::iotof::Digitizer::cm2um, y * o2::iotof::Digitizer::cm2um);
+    resolution = mScaledResolutionMap->GetBinContent(bin);
+    LOG(debug) << "Time resolution map check: x=" << x * o2::iotof::Digitizer::cm2um << ", y=" << y * o2::iotof::Digitizer::cm2um << ", bin=" << bin << ", resolution=" << resolution;
   }
   float timeOfArrivalOffset = 0.;
   if (mTimeOfArrivalMap) {
@@ -362,7 +360,7 @@ double Digitizer::smearTime(double time, const float x, const float y) const
   }
 
   if (digitizerParams.timeResolution > 0) {
-    return time + gRandom->Gaus(timeOfArrivalOffset, digitizerParams.timeResolution * resolutionScaling);
+    return time + gRandom->Gaus(timeOfArrivalOffset, resolution);
   }
   return time;
 }
@@ -448,14 +446,14 @@ void Digitizer::prepareScaledResolutionMap()
     return;
   }
 
-  mResolutionScalingMap = dynamic_cast<TH2D*>(mResolutionMap->Clone("hScaledResolutionMap"));
-  mResolutionScalingMap->SetDirectory(nullptr); // Detach from file to avoid deletion when file is closed
+  mScaledResolutionMap = dynamic_cast<TH2D*>(mResolutionMap->Clone("hScaledResolutionMap"));
+  mScaledResolutionMap->SetDirectory(nullptr); // Detach from file to avoid deletion when file is closed
 
-  for (int binX = 1; binX <= mResolutionScalingMap->GetNbinsX(); ++binX) {
-    for (int binY = 1; binY <= mResolutionScalingMap->GetNbinsY(); ++binY) {
-      float originalValue = mResolutionScalingMap->GetBinContent(binX, binY);
+  for (int binX = 1; binX <= mScaledResolutionMap->GetNbinsX(); ++binX) {
+    for (int binY = 1; binY <= mScaledResolutionMap->GetNbinsY(); ++binY) {
+      float originalValue = mScaledResolutionMap->GetBinContent(binX, binY);
       float scalingValue = originalValue / minimumResolution;
-      mResolutionScalingMap->SetBinContent(binX, binY, scalingValue * nominalTimeResolution);
+      mScaledResolutionMap->SetBinContent(binX, binY, scalingValue * nominalTimeResolution);
     }
   }
 }
@@ -555,7 +553,7 @@ void Digitizer::registerDigits(Chip& chip, uint32_t roFrame, double time, int nR
   int tdc = int((time - nbc * o2::constants::lhc::LHCBunchSpacingNS) / digitizerParams.tdcBin);
   nbc += mEventTime.toLong();
 
-  double absoluteTime = tdc * digitizerParams.tdcBin * 1.e-9 + nbc * o2::constants::lhc::LHCBunchSpacingNS;
+  double absoluteTime = tdc * digitizerParams.tdcBin + nbc * o2::constants::lhc::LHCBunchSpacingNS;
 
   auto key = o2::iotof::Digit::getOrderingKey(nbc, tdc, row, col);
   o2::iotof::LabeledDigit* existingDigit = chip.findDigit(key);

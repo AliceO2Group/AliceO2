@@ -122,7 +122,7 @@ class Digitizer : public TObject
   const o2::iotof::GeometryTGeo* mGeometry = nullptr; ///< IOTOF geometry
   TH2D* mEfficiencyMap = nullptr;                     ///< Efficiency map for the detector
   TH2D* mResolutionMap = nullptr;                     ///< Resolution map for the detector
-  TH2D* mSaledResolutionMap = nullptr;                ///< Scaled resolution map for the detector
+  TH2D* mScaledResolutionMap = nullptr;               ///< Scaled resolution map for the detector
   TH2D* mTimeOfArrivalMap = nullptr;                  ///< Time of arrival map for the detector
 
   std::vector<o2::iotof::Chip> mChips;                                               //! Chips in the detector, indexed by chip ID
