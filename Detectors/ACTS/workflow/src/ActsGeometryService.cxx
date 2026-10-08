@@ -65,8 +65,7 @@ ServiceSpec actsGeometryServiceSpec()
     .configure = CommonServices::noConfiguration(),
     .exit = [](ServiceRegistryRef, void* service) {
       TrackingGeometryManager::instance().clear();
-      delete reinterpret_cast<ActsGeometryService*>(service);
-    },
+      delete reinterpret_cast<ActsGeometryService*>(service); },
     .kind = ServiceKind::DeviceGlobal};
 }
 
