@@ -19,6 +19,7 @@
 #include "IOTOFSimulation/Digitizer.h"
 #include "IOTOFSimulation/DPLDigitizerParam.h"
 #include "DetectorsRaw/HBFUtils.h"
+#include "CCDB/BasicCCDBManager.h"
 
 #include <TCollection.h>
 #include <TFile.h>
@@ -26,6 +27,7 @@
 #include <TRandom.h>
 
 #include <set>
+#include <string_view>
 #include <vector>
 #include <iostream>
 #include <numeric>
@@ -66,15 +68,27 @@ void Digitizer::init()
     }
   }
 
-  if (!digitizerParams.efficiencyFilePath.empty()) {
-    loadEfficiencyMap(digitizerParams.efficiencyFilePath);
-  }
-
   LOG(info) << "Initializing IOTOF digitizer";
   LOG(info) << "  Time resolution: " << digitizerParams.timeResolution * 1e3 << " ps";
   LOG(info) << "  Charge threshold: " << digitizerParams.chargeThreshold << " electrons";
-  LOG(info) << "  Detection efficiency: " << digitizerParams.efficiency * 100 << " %";
   LOG(info) << "  Continuous mode: " << (mContinuous ? "ON" : "OFF");
+
+  loadMap(mEfficiencyMap, digitizerParams.efficiencyMapPath, "hEfficiencyMap");
+  if (!mEfficiencyMap) {
+    LOG(info) << "No efficiency map loaded, using uniform efficiency: " << digitizerParams.efficiency * 100 << " %";
+  }
+
+  loadMap(mResolutionMap, digitizerParams.resolutionMapPath, "hSigmaPixel");
+  prepareScaledResolutionMap();
+  if (!mResolutionMap) {
+    LOG(info) << "No resolution map loaded, using uniform time resolution: " << digitizerParams.timeResolution * 1e3 << " ps";
+  }
+
+  loadMap(mTimeOfArrivalMap, digitizerParams.timeOfArrivalMapPath, "toa_pixel");
+  if (!mTimeOfArrivalMap) {
+    LOG(info) << "No time of arrival map loaded";
+  }
+
   sSegmentation = o2::iotof::Segmentation::Instance();
 }
 
@@ -173,11 +187,10 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
         LOG(debug) << "Hit rejected by efficiency cut at pixel (row,col) = (" << rowIS << ", " << colIS << ")";
         continue;
       }
+      double smearedTime = smearTime(hitTimeWrtBC, avgHitLocalX[irow][icol] - xPixelCenter, avgHitLocalZ[irow][icol] - zPixelCenter);
 
       const int nElectronsSampled = gRandom->Poisson(electronsPerStep * nEleResp);
       // Noise can be added here if needed
-
-      double smearedTime = smearTime(hitTimeWrtBC);
 
       registerDigits(chip, roFrameAbs, smearedTime, nROF,
                      static_cast<uint16_t>(rowIS), static_cast<uint16_t>(colIS), nElectronsSampled, label);
@@ -326,12 +339,26 @@ void Digitizer::stepping(const o2::itsmft::Hit& hit, float**& respMatrix, float*
 }
 
 //_______________________________________________________________________
-double Digitizer::smearTime(double time) const
+double Digitizer::smearTime(double time, const float x, const float y) const
 {
   // Apply Gaussian smearing to simulate detector time resolution
   const auto& digitizerParams = o2::iotof::DPLDigitizerParam::Instance();
+
+  float resolution = digitizerParams.timeResolution;
+  if (mScaledResolutionMap) {
+    int bin = mScaledResolutionMap->FindBin(x * o2::iotof::Digitizer::cm2um, y * o2::iotof::Digitizer::cm2um);
+    resolution = mScaledResolutionMap->GetBinContent(bin);
+    LOG(debug) << "Time resolution map check: x=" << x * o2::iotof::Digitizer::cm2um << ", y=" << y * o2::iotof::Digitizer::cm2um << ", bin=" << bin << ", resolution=" << resolution;
+  }
+  float timeOfArrivalOffset = 0.;
+  if (mTimeOfArrivalMap) {
+    int bin = mTimeOfArrivalMap->FindBin(x * o2::iotof::Digitizer::cm2um, y * o2::iotof::Digitizer::cm2um);
+    timeOfArrivalOffset = mTimeOfArrivalMap->GetBinContent(bin) * o2::iotof::Digitizer::ps2ns; // convert to ns
+    LOG(debug) << "Time of arrival map check: x=" << x * o2::iotof::Digitizer::cm2um << ", y=" << y * o2::iotof::Digitizer::cm2um << ", bin=" << bin << ", time offset=" << timeOfArrivalOffset;
+  }
+
   if (digitizerParams.timeResolution > 0) {
-    return time + gRandom->Gaus(0, digitizerParams.timeResolution);
+    return time + gRandom->Gaus(timeOfArrivalOffset, resolution);
   }
   return time;
 }
@@ -347,31 +374,86 @@ int Digitizer::energyToCharge(float energyLoss) const
 }
 
 //_______________________________________________________________________
-void Digitizer::loadEfficiencyMap(const std::string& filePath)
+
+void Digitizer::loadMap(TH2D*& map, const std::string& path, const char* mapName)
 {
-  // Load the efficiency map from a file
-  TFile* file = TFile::Open(filePath.c_str());
-  if (!file || !file->IsOpen()) {
-    LOG(error) << "Failed to open efficiency map file: " << filePath;
+  // Load a map either from CCDB (path prefixed with "ccdb://") or from a ROOT file
+  // (anything TFile::Open understands: local path, alien://, root://, http://, ...)
+  static constexpr std::string_view ccdbPrefix = "ccdb://";
+
+  if (path.empty()) {
     return;
   }
 
-  auto* rawMap = dynamic_cast<TH2D*>(file->Get("hEfficiencyMap"));
-  if (!rawMap) {
-    LOG(error) << "Failed to retrieve efficiency map from file: " << filePath;
-    LOG(error) << "Available keys in the file:";
-    TIter next(file->GetListOfKeys());
-    TKey* key;
-    while ((key = dynamic_cast<TKey*>(next()))) {
-      LOG(error) << "  " << key->GetName() << " (" << key->GetClassName() << ")";
+  TH2D* rawMap = nullptr;
+  TFile* file = nullptr;
+
+  if (path.rfind(ccdbPrefix, 0) == 0) {
+    const std::string ccdbPath = path.substr(ccdbPrefix.size());
+    LOG(info) << "Loading " << mapName << " from CCDB: " << ccdbPath;
+    rawMap = o2::ccdb::BasicCCDBManager::instance().get<TH2D>(ccdbPath); // owned by the CCDB manager
+    if (!rawMap) {
+      LOG(error) << "Failed to retrieve " << mapName << " from CCDB path: " << ccdbPath;
+      return;
     }
+  } else {
+    LOG(info) << "Loading " << mapName << " from file: " << path;
+    file = TFile::Open(path.c_str());
+    if (!file || !file->IsOpen()) {
+      LOG(error) << "Failed to open file: " << path;
+      delete file;
+      return;
+    }
+    rawMap = dynamic_cast<TH2D*>(file->Get(mapName));
+    if (!rawMap) {
+      LOG(error) << "Failed to retrieve " << mapName << " from file: " << path;
+      LOG(error) << "Available keys in the file:";
+      TIter next(file->GetListOfKeys());
+      TKey* key;
+      while ((key = dynamic_cast<TKey*>(next()))) {
+        LOG(error) << "  " << key->GetName() << " (" << key->GetClassName() << ")";
+      }
+      file->Close();
+      delete file;
+      return;
+    }
+  }
+
+  map = dynamic_cast<TH2D*>(rawMap->Clone());
+  map->SetDirectory(nullptr); // Detach from file to avoid deletion when file is closed
+  LOG(info) << "Loaded " << mapName << " (" << map->GetNbinsX() << " x " << map->GetNbinsY() << " bins)";
+
+  if (file) {
     file->Close();
+    delete file;
+  }
+}
+
+void Digitizer::prepareScaledResolutionMap()
+{
+  if (!mResolutionMap) {
+    LOG(warn) << "No resolution map available to prepare scaled resolution map.";
     return;
   }
-  mEfficiencyMap = dynamic_cast<TH2D*>(rawMap->Clone("mEfficiencyMap"));
-  mEfficiencyMap->SetDirectory(nullptr); // Detach from file to avoid deletion when file is closed
 
-  file->Close();
+  const auto& digitizerParams = o2::iotof::DPLDigitizerParam::Instance();
+  const float nominalTimeResolution = digitizerParams.timeResolution;
+  const float minimumResolution = mResolutionMap->GetMinimum();
+  if (minimumResolution <= 0) {
+    LOG(warn) << "Minimum resolution in the map is non-positive, cannot prepare scaled resolution map.";
+    return;
+  }
+
+  mScaledResolutionMap = dynamic_cast<TH2D*>(mResolutionMap->Clone("hScaledResolutionMap"));
+  mScaledResolutionMap->SetDirectory(nullptr); // Detach from file to avoid deletion when file is closed
+
+  for (int binX = 1; binX <= mScaledResolutionMap->GetNbinsX(); ++binX) {
+    for (int binY = 1; binY <= mScaledResolutionMap->GetNbinsY(); ++binY) {
+      float originalValue = mScaledResolutionMap->GetBinContent(binX, binY);
+      float scalingValue = originalValue / minimumResolution;
+      mScaledResolutionMap->SetBinContent(binX, binY, scalingValue * nominalTimeResolution);
+    }
+  }
 }
 
 //_______________________________________________________________________
@@ -473,8 +555,6 @@ void Digitizer::registerDigits(Chip& chip, uint32_t roFrame, double time, int nR
 
   auto key = o2::iotof::Digit::getOrderingKey(nbc, tdc, row, col);
   o2::iotof::LabeledDigit* existingDigit = chip.findDigit(key);
-
-  chip.addDigit(row, col, nElectrons, absoluteTime, nbc, tdc, label);
 
   if (!existingDigit) {
     // No existing digit, create a new one

@@ -86,13 +86,16 @@ class Digitizer : public TObject
   void stepping(const o2::itsmft::Hit& hit, float**& respMatrix, float**& avgHitLocalX, float**& avgHitLocalZ, int& rowStart, int& colStart, int& rowSpan, int& colSpan);
 
   /// Apply time smearing to simulate detector resolution
-  double smearTime(double time) const;
+  double smearTime(double time, const float x, const float z) const;
 
   /// Convert energy loss to charge
   int energyToCharge(float energyLoss) const;
 
-  /// Load the efficiency map from a file
-  void loadEfficiencyMap(const std::string& filePath);
+  /// Load a map from CCDB (path prefixed with "ccdb://") or from a ROOT file (any other path)
+  /// \param mapName Name of the histogram inside the ROOT file (ignored for CCDB)
+  void loadMap(TH2D*& map, const std::string& path, const char* mapName);
+
+  void prepareScaledResolutionMap();
 
   /// Check if the hit passes efficiency cut
   /// \param x Detector local coordinate x in cm with respect to the center of the sensitive volume.
@@ -113,11 +116,15 @@ class Digitizer : public TObject
     return mExtraLabelBuffer[index].get();
   }
 
+  static constexpr float ps2ns = 1e-3f; ///< picoseconds to nanoseconds conversion
   static constexpr float sec2ns = 1e9f; ///< seconds to nanoseconds conversion
   static constexpr float cm2um = 1e4f;  ///< centimeters to micrometers conversion
 
   const o2::iotof::GeometryTGeo* mGeometry = nullptr; ///< IOTOF geometry
   TH2D* mEfficiencyMap = nullptr;                     ///< Efficiency map for the detector
+  TH2D* mResolutionMap = nullptr;                     ///< Resolution map for the detector
+  TH2D* mScaledResolutionMap = nullptr;               ///< Scaled resolution map for the detector
+  TH2D* mTimeOfArrivalMap = nullptr;                  ///< Time of arrival map for the detector
 
   std::vector<o2::iotof::Chip> mChips;                                               //! Chips in the detector, indexed by chip ID
   std::deque<std::unique_ptr<std::vector<o2::iotof::McLabelRef>>> mExtraLabelBuffer; //! buffer for multiple mc labels to the same pixel
