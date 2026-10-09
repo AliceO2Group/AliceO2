@@ -152,6 +152,14 @@ if(doBuildSimulation)
                 PUBLIC_LINK_LIBRARIES O2::Generators)
   endif()
 
+  if(pythia_FOUND AND HepMC3_FOUND)
+    o2_add_test(GeneratorHybridEventPool NAME test_Generator_test_GeneratorHybridEventPool
+                SOURCES test/test_GeneratorHybridEventPool.cxx
+                COMPONENT_NAME Generator
+                LABELS generator
+                PUBLIC_LINK_LIBRARIES O2::Generators)
+  endif()
+
   # o2_add_test(GeneratorPythia8Param NAME test_Generator_test_GeneratorPythia8Param
   #             SOURCES test/test_GeneratorPythia8Param.cxx
   #             COMPONENT_NAME Generator

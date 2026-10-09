@@ -113,6 +113,28 @@ o2-sim -n 100 -g extkinO2 --extKinFile "kine1.root,kine2.root,kine3.root"
 o2-sim -n 100 -g extkinO2 --configKeyValues "GeneratorFromO2Kine.fileName=kine1.root,kine2.root"
 ```
 
+## Running out of events, and use inside `GeneratorHybrid`
+
+* Every event of the pool is served exactly once per pass. Before the chaining was introduced,
+  `evtpool` sampled the events *with replacement* and could never run out. Now, asking for more
+  events than the pool holds is a **fatal** error unless `roundRobin=true` is set: provide enough
+  input, or enable `roundRobin` to start over once everything has been used.
+* Inside a `GeneratorHybrid` a pool only serves its share of the events of the job. The hybrid
+  computes this share from the fractions (exact in sequential and cocktail mode, the mean with
+  `randomize`, unknown in `parallel` mode) and passes it to the pool, which uses it for the
+  "input too small" warning at initialisation and in the fatal message.
+* With fixed fractions (sequential or cocktail mode) the hybrid never asks a sub-generator for
+  more events than its share, so a pool holding exactly its share is not read beyond its end,
+  wherever in the job it is used up. In random and `parallel` mode no event is scheduled after the
+  last event of the job, and a scheduled event which cannot be generated is only an error if the
+  job actually uses it.
+* An input which cannot be used at all (a pool path without any `evtpool.root`, or a list of
+  kinematics files none of which can be read) stops the job at initialisation, with or without
+  `GeneratorHybrid`. Single unreadable files of a list are skipped when they are reached.
+* A sub-generator of a hybrid which fails to initialise stops the job at initialisation; one which
+  fails while generating an event that the job needs stops the job, also when the hybrid runs
+  several worker threads.
+
 # Provenance of the events
 
 Every generated event stores the file it was read from and the entry inside that file in

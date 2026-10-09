@@ -10,6 +10,7 @@
 #
 set -x
 set -e
+set -o pipefail
 
 [ ! "${O2_ROOT}" ] && echo "Error: This needs O2 loaded" && exit 1
 

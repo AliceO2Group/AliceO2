@@ -18,6 +18,7 @@
 #include <CommonUtils/FileSystemUtils.h>
 #include <filesystem>
 #include "TGrid.h"
+#include "TROOT.h"
 
 namespace o2
 {
@@ -84,11 +85,13 @@ GeneratorHybrid::GeneratorHybrid(const std::string& inputgens)
         return;
       }
     }
-    // Check if all elements of mFractions are 0
-    if (std::all_of(mFractions.begin(), mFractions.end(), [](int i) { return i == 0; })) {
-      LOG(fatal) << "All fractions provided are 0, no simulation will be performed";
-      return;
-    }
+  }
+  // Check if all elements of mFractions are 0 (currently not in parallel mode, which does not use the fractions)
+  // To-do: use the fractions also in parallel mode for sub-generators of different kinds
+  if (mGenerationMode != GenMode::kParallel &&
+      std::all_of(mFractions.begin(), mFractions.end(), [](int i) { return i == 0; })) {
+    LOG(fatal) << "All fractions provided are 0, no simulation will be performed";
+    return;
   }
   for (auto gen : mInputGens) {
     // Search if the generator name is inside generatorNames (which is a vector of strings)
@@ -187,8 +190,82 @@ GeneratorHybrid::~GeneratorHybrid()
   mStopFlag = true;
 }
 
+std::vector<unsigned int> GeneratorHybrid::expectedNEventsPerGenerator(unsigned int nevents) const
+{
+  std::vector<unsigned int> expected(gens.size(), 0);
+  // in parallel mode any sub-generator can serve any event: the share is not known
+  if (nevents == 0 || mGenerationMode == GenMode::kParallel) {
+    return expected;
+  }
+  // a fraction is given per generator, or per group in cocktail mode
+  const size_t nslots = mCocktailMode ? mGroups.size() : gens.size();
+  if (mFractions.size() != nslots) {
+    return expected;
+  }
+  unsigned int sum = 0;
+  for (auto f : mFractions) {
+    sum += std::max(f, 0);
+  }
+  if (sum == 0) {
+    return expected;
+  }
+  std::vector<unsigned int> perSlot(nslots, 0);
+  if (mRandomize) {
+    // the slot is drawn for each event with probability fraction/sum: use the mean, rounded up
+    for (size_t k = 0; k < nslots; ++k) {
+      const unsigned long long f = std::max(mFractions[k], 0);
+      perSlot[k] = (unsigned int)((f * nevents + sum - 1) / sum);
+    }
+  } else {
+    // the slots are used in turn, mFractions[k] consecutive events each (see generateEvent)
+    const unsigned int cycles = nevents / sum;
+    unsigned int rest = nevents % sum;
+    for (size_t k = 0; k < nslots; ++k) {
+      const unsigned int f = std::max(mFractions[k], 0);
+      const unsigned int inLastCycle = std::min(f, rest);
+      perSlot[k] = cycles * f + inLastCycle;
+      rest -= inLastCycle;
+    }
+  }
+  for (size_t k = 0; k < nslots; ++k) {
+    if (mCocktailMode) {
+      // every member of a group contributes to each event of the group
+      for (auto subIndex : mGroups[k]) {
+        expected[subIndex] = perSlot[k];
+      }
+    } else {
+      expected[k] = perSlot[k];
+    }
+  }
+  return expected;
+}
+
+void GeneratorHybrid::requestEvent(int genIndex)
+{
+  if (!mRequestBudget.empty()) {
+    if (mRequestBudget[genIndex] == 0) {
+      // the sub-generator was already asked for its whole share of the job
+      return;
+    }
+    mRequestBudget[genIndex]--;
+  }
+  mInputTaskQueue.push(genIndex);
+  mTasksStarted++;
+}
+
+void GeneratorHybrid::rethrowSubGeneratorFailure(int genIndex)
+{
+  if (mGenFailures[genIndex]) {
+    LOG(error) << "Sub-generator " << genIndex << " (" << mGens[genIndex] << ") failed to generate the requested event";
+    mStopFlag = true;
+    std::rethrow_exception(mGenFailures[genIndex]);
+  }
+}
+
 Bool_t GeneratorHybrid::Init()
 {
+  // number of events each sub-generator will serve, derived from the fractions
+  const auto expectedNEvents = expectedNEventsPerGenerator(getExpectedNEvents());
   // init all sub-gens
   int count = 0;
   for (auto& gen : mGens) {
@@ -209,7 +286,12 @@ Bool_t GeneratorHybrid::Init()
       LOG(info) << "Setting \'Pythia8\' base configuration: " << config << std::endl;
       dynamic_cast<o2::eventgen::GeneratorPythia8*>(gens[count].get())->setConfig(config);
     }
-    gens[count]->Init(); // TODO: move this to multi-threaded
+    // inside the hybrid a sub-generator only serves its share of the job's events
+    gens[count]->setExpectedNEvents(expectedNEvents[count]);
+    if (!gens[count]->Init()) { // TODO: move this to multi-threaded
+      LOG(fatal) << "Initialization of sub-generator " << count << " (" << gen << ") failed";
+      return kFALSE;
+    }
     addSubGenerator(count, gen);
     if (mTriggerModes[count] != o2::eventgen::Generator::kTriggerOFF) {
       gens[count]->setTriggerMode(mTriggerModes[count]);
@@ -285,8 +367,15 @@ Bool_t GeneratorHybrid::Init()
   } else {
     LOG(info) << "Generators will be used in sequence, following provided fractions";
   }
+  // With fixed fractions the share of each sub-generator is exact: a sub-generator is never asked for more
+  // events than that. Otherwise, an event pool holding exactly its share and used up before the end of the job
+  // would be asked for an additional event.
+  if (!mRandomize && mGenerationMode != GenMode::kParallel && getExpectedNEvents() > 0) {
+    mRequestBudget = expectedNEvents;
+  }
 
   mGenIsInitialized.resize(gens.size(), false);
+  mGenFailures.resize(gens.size());
   if (mGenerationMode == GenMode::kParallel) {
     // in parallel mode we just use one queue --> collaboration
     mResultQueue.resize(1);
@@ -294,6 +383,9 @@ Bool_t GeneratorHybrid::Init()
     // in sequential mode we have one queue per generator
     mResultQueue.resize(gens.size());
   }
+  // The sub-generators run in worker threads and may use ROOT concurrently such as in two event pools reading.
+  // This is done in o2-sim but not in o2-sim-dpl-eventgen. Done here as Hybrid creates the worker threads
+  ROOT::EnableThreadSafety();
   // Create a task arena with a specified number of threads
   mTaskArena.initialize(GeneratorHybridParam::Instance().num_workers);
 
@@ -312,12 +404,18 @@ Bool_t GeneratorHybrid::Init()
       //   mGenIsInitialized[task] = true;
       // }
     }
-    bool isTriggered = false;
-    while (!isTriggered) {
-      generator->clearParticles();
-      generator->generateEvent();
-      generator->importParticles();
-      isTriggered = generator->triggerEvent();
+    // A failure  must not escape the worker: the other workers would keep polling and the job would hang.
+    // It is handed over to the main thread with the result, and raised there if the event is consumed.
+    try {
+      bool isTriggered = false;
+      while (!isTriggered) {
+        generator->clearParticles();
+        generator->generateEvent();
+        generator->importParticles();
+        isTriggered = generator->triggerEvent();
+      }
+    } catch (...) {
+      mGenFailures[task] = std::current_exception();
     }
     LOG(debug) << "eventgen finished for task " << task;
     if (!mStopFlag) {
@@ -353,8 +451,7 @@ Bool_t GeneratorHybrid::Init()
 
   // let's also push initial generation tasks for each event generator
   for (size_t genindex = 0; genindex < gens.size(); ++genindex) {
-    mInputTaskQueue.push(genindex);
-    mTasksStarted++;
+    requestEvent(genindex);
   }
   mIsInitialized = true;
   return Generator::Init();
@@ -422,6 +519,13 @@ bool GeneratorHybrid::importParticles()
       }
     }
   }
+  if (mCocktailMode && mIndex != -1) {
+    for (auto subIndex : subGenIndex) {
+      rethrowSubGeneratorFailure(subIndex);
+    }
+  } else {
+    rethrowSubGeneratorFailure(genIndex);
+  }
 
   auto unit_transformer = [](auto& p, auto pos_unit, auto time_unit, auto en_unit, auto mom_unit) {
     p.SetMomentum(p.Px() * mom_unit, p.Py() * mom_unit, p.Pz() * mom_unit, p.Energy() * en_unit);
@@ -442,6 +546,10 @@ bool GeneratorHybrid::importParticles()
       }
     }
   };
+
+  // The event consumed here is the last one the job asks for. It is important not to schedule a lookahead
+  // event for the sub-generators, which could never be consumed (or not exist as in the case of limited pools).
+  const bool lastEvent = getTotalNEvents() > 0 && (mEventCounter + 1) >= static_cast<int>(getTotalNEvents());
 
   // Clear particles and event header
   mParticles.clear();
@@ -477,8 +585,9 @@ bool GeneratorHybrid::importParticles()
         gens[subIndex]->updateHeader(&mMCEventHeader);
         mHeaderGeneratorIndex = subIndex; // store index of generator updating the header
       }
-      mInputTaskQueue.push(subIndex);
-      mTasksStarted++;
+      if (!lastEvent) {
+        requestEvent(subIndex);
+      }
     }
   } else {
     LOG(info) << "Importing particles for task " << genIndex;
@@ -499,8 +608,9 @@ bool GeneratorHybrid::importParticles()
     // fetch the event Header information from the underlying generator
     gens[genIndex]->updateHeader(&mMCEventHeader);
     mHeaderGeneratorIndex = genIndex; // store index of generator updating the header
-    mInputTaskQueue.push(genIndex);
-    mTasksStarted++;
+    if (!lastEvent) {
+      requestEvent(genIndex);
+    }
   }
 
   mseqCounter++;
@@ -719,8 +829,8 @@ Bool_t GeneratorHybrid::parseJSON(const std::string& path)
   if (doc.HasMember("fractions")) {
     const auto& fractions = doc["fractions"];
     for (const auto& frac : fractions.GetArray()) {
-      if (!frac.IsInt()) {
-        LOG(fatal) << "Fractions must be integers. Wrong type found in JSON";
+      if (!frac.IsInt() || frac.GetInt() < 0) {
+        LOG(fatal) << "Fractions must be non-negative integers. Wrong value found in JSON";
         return false;
       }
       mFractions.push_back(frac.GetInt());

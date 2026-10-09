@@ -217,6 +217,8 @@ void GeneratorFromO2Kine::closeCurrentFile()
   mEventOrder.clear();
   mEventsAvailable = 0;
   mEventCounter = 0;
+  // the header read from the previous file must not leak into events of the next one
+  mOrigMCEventHeader.reset();
   if (mCurrentFile) {
     mCurrentFile->Close();
     delete mCurrentFile;
@@ -242,44 +244,46 @@ bool GeneratorFromO2Kine::openFile(int index)
 {
   // opens one file of the list, connects the branches to it and fixes the
   // order in which its events are going to be served;
-  // any previously open file is closed first, so that we never keep more than
-  // one input file open at a time
-  closeCurrentFile();
+  // the file which is currently open is only closed once the new one has been found usable
+  // In the standard case never more than one input file is open at a time
   if (index < 0 || index >= (int)mFileNames.size()) {
     return false;
   }
   auto const& name = mFileNames[index];
 
-  mCurrentFile = TFile::Open(name.c_str());
-  if (mCurrentFile == nullptr || mCurrentFile->IsZombie()) {
+  std::unique_ptr<TFile> file(TFile::Open(name.c_str()));
+  if (file == nullptr || file->IsZombie()) {
     LOG(error) << "EventFile " << name << " could not be opened";
-    closeCurrentFile();
     return false;
   }
   // the kinematics will be stored inside a branch MCTrack
   // different events are stored inside different entries
-  auto tree = (TTree*)mCurrentFile->Get("o2sim");
+  auto tree = (TTree*)file->Get("o2sim");
   if (!tree) {
     LOG(error) << "EventFile " << name << " does not contain an 'o2sim' tree";
-    closeCurrentFile();
     return false;
   }
-  mEventBranch = tree->GetBranch("MCTrack");
-  if (!mEventBranch) {
+  auto eventBranch = tree->GetBranch("MCTrack");
+  if (!eventBranch) {
     LOG(error) << "No MCTrack branch found in " << name;
-    closeCurrentFile();
     return false;
   }
-  mEventsAvailable = mEventBranch->GetEntries();
-  if (mEventsAvailable <= 0) {
+  auto eventsAvailable = eventBranch->GetEntries();
+  if (eventsAvailable <= 0) {
     LOG(warn) << "EventFile " << name << " does not contain any event";
-    closeCurrentFile();
     return false;
   }
-  mMCHeaderBranch = tree->GetBranch("MCEventHeader.");
-  if (!mMCHeaderBranch) {
+  auto mcHeaderBranch = tree->GetBranch("MCEventHeader.");
+  if (!mcHeaderBranch) {
     LOG(warn) << "No MCEventHeader branch found in kinematics input file";
   }
+
+  // the new file is good: release the previous one and take over
+  closeCurrentFile();
+  mCurrentFile = file.release();
+  mEventBranch = eventBranch;
+  mEventsAvailable = eventsAvailable;
+  mMCHeaderBranch = mcHeaderBranch;
   establishEventOrder();
   mCurrentFileIndex = index;
   mEventCounter = 0;
@@ -303,7 +307,7 @@ bool GeneratorFromO2Kine::openNextFile(bool wrapAround)
       if (!wrapAround) {
         return false;
       }
-      if (trial == 0) {
+      if (next == numFiles) {
         LOG(info) << "Reached the end of the input file list; reusing events from the beginning";
       }
       next = next % numFiles;
@@ -380,11 +384,14 @@ bool GeneratorFromO2Kine::Init()
   }
   mCurrentFileIndex = -1;
   if (!openNextFile(false)) {
-    LOG(error) << "Problem reading events from the given kinematics input";
+    LOG(fatal) << "Problem reading events from the given kinematics input: none of the " << mFileNames.size()
+               << " input file(s) can be used";
     return false;
   }
   if (mStartEvent > 0) {
-    if (mStartEvent < mEventsAvailable) {
+    if (mRandomize) {
+      LOG(warn) << "Start event " << mStartEvent << " ignored: the events are served in random order (randomize)";
+    } else if (mStartEvent < mEventsAvailable) {
       mEventCounter = mStartEvent;
     } else {
       LOG(error) << "start event bigger than available events";
@@ -392,7 +399,7 @@ bool GeneratorFromO2Kine::Init()
   }
   // Simple estimate of events without checking all the files.
   // To be discussed if we want instead to do this, or provide an additional file with the pools
-  auto requested = getTotalNEvents();
+  auto requested = getExpectedNEvents();
   if (requested > 0 && !mRoundRobin && mEventsAvailable > 0) {
     auto estimate = (size_t)mEventsAvailable * mFileNames.size();
     if (estimate < requested) {
@@ -422,7 +429,7 @@ bool GeneratorFromO2Kine::importParticles()
   // Next file in the list opened when the events of the current one are used up
   if (mEventCounter >= mEventsAvailable) {
     if (!openNextFile(mRoundRobin)) {
-      auto requested = getTotalNEvents();
+      auto requested = getExpectedNEvents();
       LOG(fatal) << "GeneratorFromO2Kine: ran out of events after " << mEventsServed
                  << " event(s) from " << mFilesUsed << " input file(s)"
                  << (requested > 0 ? " (" + std::to_string(requested) + " were requested)" : "")
@@ -584,7 +591,7 @@ bool GeneratorFromEventPool::Init()
   mPoolFilesAvailable = setupFileUniverse(expPath.Data());
 
   if (mPoolFilesAvailable.size() == 0) {
-    LOG(error) << "No file found that can be used with EventPool generator";
+    LOG(fatal) << "No file found that can be used with EventPool generator (eventPoolPath: " << mConfig.eventPoolPath << ")";
     return false;
   }
   LOG(info) << "Found " << mPoolFilesAvailable.size() << " available event pool files";
@@ -602,14 +609,18 @@ bool GeneratorFromEventPool::Init()
     .rngseed = mConfig.rngseed,
     .randomphi = mConfig.randomphi};
   mO2KineGenerator.reset(new GeneratorFromO2Kine(kine_config, mFilesChosen));
+  // the internal generator serves the events of this one
+  mO2KineGenerator->setExpectedNEvents(getExpectedNEvents());
   return mO2KineGenerator->Init();
 }
 
 std::vector<std::string> GeneratorFromEventPool::selectFiles(std::vector<std::string> const& universe)
 {
   // shuffles the whole pool universe so that different jobs go through it in a
-  // different order
+  // different order. Sorting first as a directory listing (or alien find) gives no fixed order,
+  // and the same rngseed must give the same order everywhere
   auto result = universe;
+  std::sort(result.begin(), result.end());
   std::shuffle(result.begin(), result.end(), mRandomEngine);
   return result;
 }

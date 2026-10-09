@@ -20,7 +20,7 @@ NEVENTS_PER_FILE=3  # events per pool file
 NEVENTS=9           # events to be read back from the whole pool
 
 POOLDIR=${PWD}/eventpool
-COMMON="-j 4 --noGeant --vertexMode kNoVertex"
+COMMON="-j 4 --noGeant -m PIPE --vertexMode kNoVertex"
 
 # ---------------------------------------------------------------------------
 # Stage 1: produce the event pool
