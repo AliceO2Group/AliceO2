@@ -122,6 +122,25 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int32_t /*nBlocks*/, int32_t nTh
     const float z = z0 + hitData.y * stepZ;
     float nnDydx = 0.f, nnDzdx = 0.f;
     const bool useNNDir = tracker.Param().rec.tpc.useNNClusterDirection && tracker.HitNNDirection(row, ih, nnDydx, nnDzdx) && CAMath::Abs(nnDydx) < 10.f && CAMath::Abs(nnDzdx) < 10.f;
+    const bool useRandDir = tracker.Param().rec.tpc.useRandomClusterDirection && !useNNDir;
+
+    // Reproducible GPU-compatible uniform random directions for this sector/hit.
+    // Change randomSeed to repeat the experiment with a different realization.
+    constexpr uint32_t randomSeed = 0x12345678u;
+    float randomDirections[4];
+    if(useRandDir) {
+      for (uint32_t draw = 0; draw < 4; draw++) {
+        uint32_t randomBits = randomSeed ^ (tracker.ISector() * 0x9e3779b9u) ^
+                              (static_cast<uint32_t>(lHitNumberOffset + ih) * 0x85ebca6bu) ^
+                              ((draw + 1u) * 0xc2b2ae35u);
+        randomBits ^= randomBits >> 16;
+        randomBits *= 0x7feb352du;
+        randomBits ^= randomBits >> 15;
+        randomBits *= 0x846ca68bu;
+        randomBits ^= randomBits >> 16;
+        randomDirections[draw] = -5.f + 10.f * static_cast<float>(randomBits >> 8) / 16777215.f;
+      }
+    }
 
     uint32_t nNeighUp = 0;
     float minZ, maxZ, minY, maxY;
@@ -129,8 +148,20 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int32_t /*nBlocks*/, int32_t nTh
     int32_t nY;
 
     { // area in the upper row
-      const float yy = useNNDir ? y + nnDydx * s.mUpDx : y * s.mUpTx;
-      const float zz = useNNDir ? z + nnDzdx * s.mUpDx : z * kAreaSlopeZUp;
+      float yy = y;
+      float zz = z;
+      if (useRandDir) {
+        const float randFloatDyDx = randomDirections[0];
+        const float randFloatDzDx = randomDirections[1];
+        yy += randFloatDyDx * s.mUpDx;
+        zz += randFloatDzDx * s.mUpDx;
+      } else if (useNNDir) {
+        yy += nnDydx * s.mUpDx;
+        zz += nnDzdx * s.mUpDx;
+      } else {
+        yy *= s.mUpTx;
+        zz *= kAreaSlopeZUp;
+      }
       minZ = zz - kAreaSizeZUp;
       maxZ = zz + kAreaSizeZUp;
       minY = yy - kAreaSizeY;
@@ -198,8 +229,20 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int32_t /*nBlocks*/, int32_t nTh
     }
 
     { // area in the lower row
-      const float yy = useNNDir ? y + nnDydx * s.mDnDx : y * s.mDnTx;
-      const float zz = useNNDir ? z + nnDzdx * s.mDnDx : z * kAreaSlopeZDn;
+      float yy = y;
+      float zz = z;
+      if (useRandDir) {
+        const float randFloatDyDx = randomDirections[2];
+        const float randFloatDzDx = randomDirections[3];
+        yy += randFloatDyDx * s.mDnDx;
+        zz += randFloatDzDx * s.mDnDx;
+      } else if (useNNDir) {
+        yy += nnDydx * s.mDnDx;
+        zz += nnDzdx * s.mDnDx;
+      } else {
+        yy *= s.mDnTx;
+        zz *= kAreaSlopeZDn;
+      }
       minZ = zz - kAreaSizeZDn;
       maxZ = zz + kAreaSizeZDn;
       minY = yy - kAreaSizeY;
