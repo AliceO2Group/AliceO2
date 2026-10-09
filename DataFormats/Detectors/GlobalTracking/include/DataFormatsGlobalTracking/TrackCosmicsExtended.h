@@ -95,7 +95,7 @@ struct TrackCosmicsExtended {
   o2::tpc::TrackTPC tpcTop{};                  ///< TPC part of the top leg
   std::vector<CosmicTPCCluster> clTPCBottom;   ///< attached + corridor TPC clusters of the bottom leg
   std::vector<CosmicTPCCluster> clTPCTop;      ///< same for the top leg
-  std::vector<CosmicITSCluster> clITS;         ///< ITS clusters of the legs' matched tracks and on the road
+  std::vector<CosmicITSCluster> clITS;         ///< ITS clusters of the legs' matched tracks and on the road (per half and layer the closest, in the inner barrel up to 5, best first)
   std::vector<uint8_t> itsPatterns;            ///< pattern bytes (row span, column span, bitmap) of the ITS clusters that need them
   std::vector<CosmicTOFCluster> clTOF;         ///< TOF clusters of the legs' matched tracks and on the road
   std::vector<CosmicTRDTracklet> trdTracklets; ///< TRD tracklets of the legs' matched tracks and on the road

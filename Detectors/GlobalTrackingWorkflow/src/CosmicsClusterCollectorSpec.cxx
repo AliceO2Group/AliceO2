@@ -33,8 +33,10 @@
 /// Roads in the other detectors (--road-detectors): TRD tracklets close to the outward extrapolation of the legs and ITS clusters close
 /// to the trajectory near the beam line, within the time window of the cosmic (the TOF time if there is one, else the matcher's time,
 /// which is precise for TPC-only legs on opposite sides; otherwise the time window of the legs, with a correspondingly loose z cut).
-/// They are flagged as found on the road; hits of the legs' matched global tracks are flagged as matched. Cosmics sharing >= 30 % of
-/// their TPC clusters with a better one (a leg split into two TPC tracks) are flagged as duplicates, nothing is removed.
+/// They are flagged as found on the road; hits of the legs' matched global tracks are flagged as matched. In the ITS the road keeps per
+/// half of the cosmic and layer the cluster closest to the trajectory, in the inner barrel (dense with collision clusters near the beam
+/// line) the 5 closest, best first. Cosmics sharing >= 30 % of their TPC clusters with a better one (a leg split into two TPC tracks) are
+/// flagged as duplicates, nothing is removed.
 ///
 /// Polish: a cosmic with a TOF time and TPC-only legs is refitted at that time (as in the matcher: muon mass, energy loss along the
 /// flight); one-side legs then have their real z, hence the right material, which the matcher's TPC time cannot always give.
@@ -1262,14 +1264,17 @@ void CosmicsClusterCollectorSpec::roadITS(const RecoContainer& data, const o2::d
   // the refitted cosmic has the z of its TPC time; with legs on one TPC side and a road time from the TOF its z moves by side * vD * dt
   const float zShift = legsSide * (cosmicTime.tb - cosm.getTimeMUS().getTimeStamp() / mTPCTBinMUS) * mCorrMap->getVDrift();
   const float rofLengthMUS = o2::itsmft::DPLAlpideParam<DetID::ITS>::Instance().roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingMUS;
-  // per half of the cosmic and layer the ITS cluster closest to the trajectory (the road near the beam line also contains collision clusters)
+  // per half of the cosmic and layer the ITS clusters closest to the trajectory, best first: one in the outer barrel, several in the inner
+  // barrel, where the road near the beam line is dense with collision clusters and the TPC prediction (~mm) does not single out the hit
   constexpr int NLayers = 7;
+  constexpr int NLayersIB = 3;
+  constexpr int MaxHitsIB = 5;
   struct Candidate {
     int index = -1;
     int rofBC = 0;
     float score = 1.f;
   };
-  Candidate best[2][NLayers];
+  Candidate best[2][NLayers][MaxHitsIB];
   const auto clusters = data.getITSClusters();
   auto geom = o2::its::GeometryTGeo::Instance();
   for (const auto& rof : data.getITSClustersROFRecords()) {
@@ -1297,28 +1302,38 @@ void CosmicsClusterCollectorSpec::roadITS(const RecoContainer& data, const o2::d
       const float score = std::max(dist2 / (mRoadITS * mRoadITS), normZ * normZ);
       const int half = global.Y() < pcaY ? 0 : 1; // bottom / top half of the cosmic
       const int layer = geom->getLayer(c.getSensorID());
-      if (layer >= 0 && layer < NLayers && score < best[half][layer].score) {
-        best[half][layer] = {idx, rofBC, score};
+      if (layer < 0 || layer >= NLayers) {
+        continue;
       }
+      auto* candidates = best[half][layer];
+      int slot = (layer < NLayersIB ? MaxHitsIB : 1) - 1;
+      if (!(score < candidates[slot].score)) { // also rejects a NaN score
+        continue;
+      }
+      for (; slot > 0 && score < candidates[slot - 1].score; slot--) {
+        candidates[slot] = candidates[slot - 1];
+      }
+      candidates[slot] = {idx, rofBC, score};
     }
   }
   for (int half = 0; half < 2; half++) {
     for (int layer = 0; layer < NLayers; layer++) {
-      const auto& cand = best[half][layer];
-      if (cand.index < 0) {
-        continue;
-      }
-      const auto& c = clusters[cand.index];
-      auto& cl = out.emplace_back();
-      cl.chipID = c.getSensorID();
-      cl.row = c.getRow();
-      cl.col = c.getCol();
-      cl.pattID = c.getPatternID();
-      cl.rofBC = cand.rofBC;
-      cl.leg = half;
-      cl.flags = o2::dataformats::HitRoad;
-      if (c.getPatternID() == o2::itsmft::CompCluster::InvalidPatternID || (mITSDict && mITSDict->isGroup(c.getPatternID()))) {
-        requests.push_back({icosm, int(out.size()) - 1, cand.index});
+      for (const auto& candidate : best[half][layer]) {
+        if (candidate.index < 0) {
+          break;
+        }
+        const auto& c = clusters[candidate.index];
+        auto& cl = out.emplace_back();
+        cl.chipID = c.getSensorID();
+        cl.row = c.getRow();
+        cl.col = c.getCol();
+        cl.pattID = c.getPatternID();
+        cl.rofBC = candidate.rofBC;
+        cl.leg = half;
+        cl.flags = o2::dataformats::HitRoad;
+        if (c.getPatternID() == o2::itsmft::CompCluster::InvalidPatternID || (mITSDict && mITSDict->isGroup(c.getPatternID()))) {
+          requests.push_back({icosm, int(out.size()) - 1, candidate.index});
+        }
       }
     }
   }
