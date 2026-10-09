@@ -1110,19 +1110,10 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
         // Keep these per MC label: the reverse label map retains only one clone.
         struct LowestRowInfo {
           int32_t row = GPUTPCGeometry::NROWS;
-          int32_t nTracks = 0;
         };
         std::vector<std::vector<LowestRowInfo>> lowestRowInfo(GetNMCCollissions());
         for (uint32_t iCol = 0; iCol < GetNMCCollissions(); iCol++) {
           lowestRowInfo[iCol].resize(GetNMCTracks(iCol));
-        }
-        for (uint32_t i = 0; i < nReconstructedTracks; i++) {
-          const auto& label = mTrackMCLabels[i];
-          // Count all reconstructed segments, including fake-flagged label matches,
-          // without applying the selection cuts to the other segments.
-          if (mTracking->mIOPtrs.mergedTracks[i].OK() && label.isValid() && !label.isNoise()) {
-            GetMCTrackObj(lowestRowInfo, label).nTracks++;
-          }
         }
         std::fill(lowestPadRow.begin(), lowestPadRow.end(), 255);
         for (uint32_t iSector = 0; iSector < GPUTPCGeometry::NSECTORS; iSector++) {
@@ -1163,7 +1154,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
                 const int32_t difference = (int32_t)lowestCl->row - info.row;
                 mLowestRowDifferenceVsPad->Fill(pad, difference);
                 if (CAMath::Abs(difference) > 5 && pad > 5.f && pad < GPUTPCGeometry::NPads(lowestCl->row) - 5.f) {
-                  mLowestRowTrackMultiplicity->Fill(info.nTracks);
+                  mLowestRowTrackMultiplicity->Fill(GetMCTrackObj(mRecTracks, label));
                 }
               }
             }
