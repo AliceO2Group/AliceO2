@@ -20,8 +20,10 @@
 #include <iterator>
 #include <limits>
 #include <mutex>
+#include <numeric>
 #include <ranges>
 #include <cmath>
+#include <tuple>
 #include <type_traits>
 #include <vector>
 
@@ -54,6 +56,7 @@ namespace o2::its
 
 using o2::itsmft::tracking::deepVectorClear;
 using o2::itsmft::tracking::GroupedSlabSink;
+using o2::itsmft::tracking::SlabSinkStats;
 using o2::itsmft::tracking::SlabSite;
 using o2::itsmft::tracking::UnorderedSlabSink;
 
@@ -82,7 +85,7 @@ void TrackerTraits<NLayers>::computeLayerTracklets(const int iteration, int iVer
       std::fill(lut.begin(), lut.end(), 0);
     });
 
-    auto forTracklets = [&](int linkId, int pivotROF, auto&& emit) {
+    auto forTracklets = [&](int linkId, int pivotROF, auto&& emit, auto&& onProducer) {
       const auto& link = topology.getLink(linkId);
       if (!mTimeFrame->getROFMaskView().isROFEnabled(link.fromLayer, pivotROF)) {
         return;
@@ -117,6 +120,7 @@ void TrackerTraits<NLayers>::computeLayerTracklets(const int iteration, int iVer
         if (mTimeFrame->isClusterUsed(link.fromLayer, currentCluster.clusterId)) {
           continue;
         }
+        onProducer(currentSortedIndex);
         const float inverseR0 = 1.f / currentCluster.radius;
 
         for (int iV = startVtx; iV < endVtx; ++iV) {
@@ -193,7 +197,7 @@ void TrackerTraits<NLayers>::computeLayerTracklets(const int iteration, int iVer
         const int endROF = mTimeFrame->getROFOverlapTableView().getLayer(fromLayer).mNROFsTF;
         auto& tracklets = mTimeFrame->getTracklets()[linkId];
         for (int pivotROF{0}; pivotROF < endROF; ++pivotROF) {
-          forTracklets(linkId, pivotROF, [&tracklets](auto&&... args) { tracklets.emplace_back(std::forward<decltype(args)>(args)...); });
+          forTracklets(linkId, pivotROF, [&tracklets](auto&&... args) { tracklets.emplace_back(std::forward<decltype(args)>(args)...); }, [](int) {});
         }
       }
     } else {
@@ -207,19 +211,42 @@ void TrackerTraits<NLayers>::computeLayerTracklets(const int iteration, int iVer
         const auto scale = static_cast<double>(mTimeFrame->getClusters()[fromLayer].size());
         const size_t capacity = mTimeFrame->getCapacityEstimator().capacity(key, scale);
 
-        UnorderedSlabSink<Tracklet> sink{{.capacity = capacity, .nThreads = maxConcurrency, .nConcurrentSinks = nConcurrentSinks}, mMemoryPool.get()};
-        tbb::parallel_for(startROF, endROF, [&](const int pivotROF) {
-          auto& handle = sink.local();
-          forTracklets(linkId, pivotROF, [&handle](auto&&... args) { handle.emplace(std::forward<decltype(args)>(args)...); });
-        });
-        const auto st = sink.stats();
-        sink.finalizeUnordered(tracklets);
+        SlabSinkStats st;
+        if (seedingPass) { // Seeding passes emit the tracklets already grouped by their pivot cluster, finalizeGrouped() builds the lookup table and with UseDiamond there is one vertex and no duplicates
+          auto& lut{mTimeFrame->getTrackletsLookupTable()[linkId]};
+          const size_t nProducers = mTimeFrame->getClusters()[fromLayer].size();
+          GroupedSlabSink<Tracklet> sink{{.capacity = capacity, .nThreads = maxConcurrency, .nConcurrentSinks = nConcurrentSinks}, mMemoryPool.get()};
+          tbb::parallel_for(startROF, endROF, [&](const int pivotROF) {
+            auto& handle = sink.local();
+            forTracklets(
+              linkId, pivotROF,
+              [&handle](auto&&... args) { handle.emplace(std::forward<decltype(args)>(args)...); },
+              [&handle](int producer) { handle.beginProducer(producer); });
+          });
+          st = sink.stats();
+          sink.finalizeGrouped(nProducers, lut, tracklets);
+        } else {
+          UnorderedSlabSink<Tracklet> sink{{.capacity = capacity, .nThreads = maxConcurrency, .nConcurrentSinks = nConcurrentSinks}, mMemoryPool.get()};
+          tbb::parallel_for(startROF, endROF, [&](const int pivotROF) {
+            auto& handle = sink.local();
+            forTracklets(
+              linkId, pivotROF,
+              [&handle](auto&&... args) { handle.emplace(std::forward<decltype(args)>(args)...); },
+              [](int) {});
+          });
+          st = sink.stats();
+          sink.finalizeUnordered(tracklets);
+        }
         mTimeFrame->getCapacityEstimator().update(key, scale, st.requested, st.capacity, st.emitted, st.spilled,
                                                   st.overflowed, st.memoryLimited);
       });
     }
 
+    const bool trackletsAlreadyGrouped = seedingPass && mTaskArena->max_concurrency() > 1;
     tbb::parallel_for(0, static_cast<int>(topology.nLinks), [&](const int linkId) {
+      if (trackletsAlreadyGrouped) {
+        return;
+      }
       /// Sort tracklets & remove duplicates
       auto& trkl{mTimeFrame->getTracklets()[linkId]};
       if (mTaskArena->max_concurrency() > 1) {
@@ -305,6 +332,7 @@ void TrackerTraits<NLayers>::computeVertexCandidates(const int iteration)
   const float lineMinPt = mTrkParams[iteration].VtxLineMinPt;
   const float beamX = mTimeFrame->getBeamX();
   const float beamY = mTimeFrame->getBeamY();
+  const float lineCurvatureScale = mTrkParams[iteration].VtxLineCurvatureScale;
   auto makeKey = [](float attribute, int cellIdx) -> size_t {
     const uint32_t attributeInt = std::bit_cast<uint32_t>(attribute);
     return (static_cast<size_t>(attributeInt) << 32) | static_cast<uint32_t>(cellIdx);
@@ -327,8 +355,7 @@ void TrackerTraits<NLayers>::computeVertexCandidates(const int iteration)
       kCl1[k] = c1;
       kCl2[k] = cell.getThirdClusterIndex();
       std::array<float, 3> origin, direction;
-      cell.getXYZGlo(origin);
-      if (!cell.getPxPyPzGlo(direction)) {
+      if (!getCellLineAtBeam(cell, beamX, beamY, getBz(), lineCurvatureScale, origin, direction)) {
         return;
       }
       kGeomOk[k] = 1;
@@ -399,6 +426,7 @@ void computeDensities(const bounded_vector<float>& Z,
                       const bounded_vector<TimeEstBC>& T,
                       const float zWindow,
                       const float fineZWindow,
+                      std::pmr::memory_resource* pool,
                       bounded_vector<LineWindow>& win,
                       bounded_vector<int>& density,
                       bounded_vector<LineWindow>& winFine,
@@ -423,11 +451,38 @@ void computeDensities(const bounded_vector<float>& Z,
     }
     win[k] = LineWindow{lo, hi};
     winFine[k] = LineWindow{loF, hiF};
+  }
+
+  bounded_vector<int> byTime(m, pool);
+  std::iota(byTime.begin(), byTime.end(), 0);
+  std::sort(byTime.begin(), byTime.end(), [&](const int a, const int b) {
+    return std::tuple{T[a].lower(), T[a].upper(), a} < std::tuple{T[b].lower(), T[b].upper(), b};
+  });
+  // Bucket b holds zByTime[bucketStart[b], bucketStart[b + 1]); the last entry is m.
+  bounded_vector<float> zByTime(m, pool);
+  bounded_vector<int> bucketStart(pool);
+  for (int i = 0; i < m; ++i) {
+    zByTime[i] = Z[byTime[i]];
+    const auto& t = T[byTime[i]];
+    if (i == 0 || t.lower() != T[byTime[i - 1]].lower() || t.upper() != T[byTime[i - 1]].upper()) {
+      bucketStart.push_back(i);
+    }
+  }
+  bucketStart.push_back(m);
+
+  // How many values of the sorted range [first, last) lie in [lo, hi]
+  const auto countBetween = [](auto first, auto last, auto lo, auto hi) { return static_cast<int>(std::upper_bound(first, last, hi) - std::lower_bound(first, last, lo)); };
+
+  for (int k = 0; k < m; ++k) {
+    const float zk = Z[k];
     int count{0}, countFine{0};
-    for (int j = lo; j < hi; ++j) {
-      const bool compatible = T[k].isCompatible(T[j]);
-      count += compatible;
-      countFine += compatible && (j >= loF) && (j < hiF);
+    for (size_t b = 0; b + 1 < bucketStart.size(); ++b) {
+      if (!T[k].isCompatible(T[byTime[bucketStart[b]]])) {
+        continue;
+      }
+      const auto first = zByTime.cbegin() + bucketStart[b], last = zByTime.cbegin() + bucketStart[b + 1];
+      count += countBetween(first, last, zk - zWindow, zk + zWindow);
+      countFine += countBetween(first, last, zk - fineZWindow, zk + fineZWindow);
     }
     density[k] = count;
     densityFine[k] = countFine;
@@ -569,7 +624,7 @@ void TrackerTraits<NLayers>::computeVertices(const int iteration)
     bounded_vector<LineWindow> win(m, mMemoryPool.get());
     bounded_vector<int> densityFine(m, mMemoryPool.get());
     bounded_vector<LineWindow> winFine(m, mMemoryPool.get());
-    computeDensities(Z, T, zWindow, fineZWindow, win, density, winFine, densityFine);
+    computeDensities(Z, T, zWindow, fineZWindow, mMemoryPool.get(), win, density, winFine, densityFine);
 
     // peaks: leftmost density maxima
     bounded_vector<uint8_t> isMax(m, mMemoryPool.get());
@@ -711,11 +766,11 @@ void TrackerTraits<NLayers>::computeVertices(const int iteration)
         }
       }
     }
-    const float sigThreshold = goodSig > 0.f ? goodSig * std::sqrt(static_cast<float>(std::max(rofLoad, 1.))) : 0.f;
+    const float debrisThreshold = goodSig > 0.f ? getDebrisThreshold(goodSig, rofLoad, suppressLowMultDebris) : 0.f;
     for (const int p : accepted) {
       if (!rofVertices[rofId].empty()) {
         if (goodSig > 0.f) {
-          if (nGoodCand[p] <= sigThreshold) {
+          if (nGoodCand[p] < debrisThreshold) {
             continue;
           }
         } else if (static_cast<int>(cand[p].getSize()) < suppressLowMultDebris) {
@@ -757,6 +812,9 @@ void TrackerTraits<NLayers>::computeVertices(const int iteration)
         processROF(rofId);
       });
     });
+  }
+  if (!tp.PassFlags[IterationStep::MarkVerticesAsUPC]) { // UPC ROFs are near-empty by construction
+    pruneOverpopulatedRofs(rofVertices, rofLabels, tp.VtxOverpopulatedRofNSigma, suppressLowMultDebris);
   }
   for (int rofId{0}; rofId < nRofs; ++rofId) {
     for (auto& vertex : rofVertices[rofId]) {

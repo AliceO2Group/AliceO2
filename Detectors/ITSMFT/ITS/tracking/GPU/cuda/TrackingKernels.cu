@@ -874,6 +874,8 @@ GPUg() void dedupCellsKernel(
   const int ownedClustersCut,
   const float beamX,
   const float beamY,
+  const float bz,
+  const float curvatureScale,
   const float maxZ,
   const float minPt,
   int* cellAccepted)
@@ -881,7 +883,7 @@ GPUg() void dedupCellsKernel(
   for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < nCells; i += blockDim.x * gridDim.x) {
     const CellSeed& cell = cells[i];
     std::array<float, 3> origin, direction;
-    if (!cell.getPxPyPzGlo(direction)) {
+    if (!getCellLineAtBeam(cell, beamX, beamY, bz, curvatureScale, origin, direction)) {
       cellAccepted[i] = 0;
       continue;
     }
@@ -889,7 +891,6 @@ GPUg() void dedupCellsKernel(
     const bool owned1 = static_cast<uint32_t>(clusterOwners[1][cell.getSecondClusterIndex()]) == static_cast<uint32_t>(i);
     const bool owned2 = static_cast<uint32_t>(clusterOwners[2][cell.getThirdClusterIndex()]) == static_cast<uint32_t>(i);
     const bool keepCell = (static_cast<int>(owned0) + static_cast<int>(owned1) + static_cast<int>(owned2)) >= 3 - ownedClustersCut;
-    cell.getXYZGlo(origin);
     const float dx = origin[0] - beamX;
     const float dy = origin[1] - beamY;
     const float den = direction[0] * direction[0] + direction[1] * direction[1];
@@ -910,6 +911,8 @@ GPUg() void linearizeCellsKernel(
   int* lineRof,
   const float beamX,
   const float beamY,
+  const float bz,
+  const float curvatureScale,
   float* lineZs,
   o2::its::TimeEstBC* lineTimes,
   int* lineClusters, // 3 per line (L0,L1,L2 cluster ids), for the host-side MC label derivation
@@ -923,8 +926,7 @@ GPUg() void linearizeCellsKernel(
     }
     const CellSeed& cell = cells[i];
     std::array<float, 3> origin, direction;
-    cell.getXYZGlo(origin);
-    cell.getPxPyPzGlo(direction);
+    getCellLineAtBeam(cell, beamX, beamY, bz, curvatureScale, origin, direction); // accepted by dedupCellsKernel: succeeds
     lines[slot] = o2::its::Line{origin.data(), direction.data(), cell.getTimeStamp()};
     lineRof[slot] = deviceUpperBound(rofFramesClustersL1, 0, nRofsL1 + 1, cell.getSecondClusterIndex()) - 1;
     float zAtBeam;
@@ -1577,6 +1579,8 @@ void TrackingKernels<NLayers>::linearizeCellsToLinesHandler(const int nCells,
                                                             int* lineSlots, // nCells + 1 scratch: accept flags, scanned in place into slots
                                                             const float beamX,
                                                             const float beamY,
+                                                            const float bz,
+                                                            const float curvatureScale,
                                                             const float maxZ,
                                                             const float minPt,
                                                             float* linesZs,
@@ -1593,6 +1597,8 @@ void TrackingKernels<NLayers>::linearizeCellsToLinesHandler(const int nCells,
     ownedClustersCut,
     beamX,
     beamY,
+    bz,
+    curvatureScale,
     maxZ,
     minPt,
     lineSlots);
@@ -1608,6 +1614,8 @@ void TrackingKernels<NLayers>::linearizeCellsToLinesHandler(const int nCells,
     lineRof,
     beamX,
     beamY,
+    bz,
+    curvatureScale,
     linesZs,
     lineTimes,
     lineClusters,
