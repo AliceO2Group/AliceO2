@@ -116,6 +116,7 @@ class Digitizer : public TObject
     return mExtraLabelBuffer[index].get();
   }
 
+  static constexpr float ps2ns = 1e-3f; ///< picoseconds to nanoseconds conversion
   static constexpr float sec2ns = 1e9f; ///< seconds to nanoseconds conversion
   static constexpr float cm2um = 1e4f;  ///< centimeters to micrometers conversion
 
