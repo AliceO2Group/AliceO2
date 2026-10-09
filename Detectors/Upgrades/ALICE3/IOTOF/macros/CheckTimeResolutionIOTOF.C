@@ -216,7 +216,7 @@ void drawTimeSpectra(TCanvas* canv, std::array<std::array<TH1F*, kNEtaRegions>, 
 
 void CheckTimeResolutionIOTOF(std::string digifile = "tf3digits.root", std::string hitfile = "o2sim_HitsTF3.root", std::string kinefile = "o2sim_Kine.root",
                               std::string inputGeom = "o2sim_geometry.root", std::string collContextFile = "collisioncontext.root",
-                              int pdgSel = 211, float ptMin = 1.f, float ptMax = 10.f, float etaCut = 0.5f,
+                              int pdgSel = 211, float ptMin = 1.f, float ptMax = 10.f, float etaCut = 0.5f, float dtMaxPs = 1e4f,
                               std::string cfgStr = "IOTOFBase.segmentedInnerTOF=true;IOTOFBase.segmentedOuterTOF=true;IOTOFBase.enableForwardTOF=false;IOTOFBase.enableBackwardTOF=false;")
 {
   gStyle->SetPalette(55);
@@ -261,7 +261,7 @@ void CheckTimeResolutionIOTOF(std::string digifile = "tf3digits.root", std::stri
 
   std::array<TH1F*, kNLayers> hTTrue, hTDig, hDt;
   std::array<TH2F*, kNLayers> hTDigVsTTrue, hDtVsTTrue, hDtVsXLoc, hDtVsZLoc, hDtVsZGlo;
-  std::array<TProfile2D*, kNLayers> pDtChip, pDtInPixel;
+  std::array<TProfile2D*, kNLayers> pDtInPixel;
   std::array<std::array<TH1F*, kNEtaRegions>, kNLayers> hTdcSpectrumDig, hTdcSpectrumTrue;
   for (int il = 0; il < kNLayers; ++il) {
     const char* ln = kLayerName[il];
@@ -278,8 +278,6 @@ void CheckTimeResolutionIOTOF(std::string digifile = "tf3digits.root", std::stri
                              100, -halfSizeCol, halfSizeCol, 200, -dtRangePs, dtRangePs);
     hDtVsZGlo[il] = new TH2F(Form("h_dt_vs_zGlo_%s", ln), Form("%s: time residual vs global z;z_{global} of the pixel (cm);t_{digit} - t_{true} (ps);Digits", ln),
                              200, -400, 400, 200, -dtRangePs, dtRangePs);
-    pDtChip[il] = new TProfile2D(Form("p_dt_vs_chip_%s", ln), Form("%s: mean time residual vs position in the chip;x_{local} of the pixel (cm);z_{local} of the pixel (cm);#LTt_{digit} - t_{true}#GT (ps)", ln),
-                                 50, -halfSizeRow, halfSizeRow, 50, -halfSizeCol, halfSizeCol, "s");
     pDtInPixel[il] = new TProfile2D(Form("p_dt_vs_inpixel_%s", ln), Form("%s: mean time residual vs position in the pixel;x_{hit} - x_{pixel} (#mum);z_{hit} - z_{pixel} (#mum);#LTt_{digit} - t_{true}#GT (ps)", ln),
                                     40, -halfPitchRowUm, halfPitchRowUm, 40, -halfPitchColUm, halfPitchColUm, "s");
     for (int ie = 0; ie < kNEtaRegions; ++ie) {
@@ -361,7 +359,7 @@ void CheckTimeResolutionIOTOF(std::string digifile = "tf3digits.root", std::stri
   o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel> labels;
   plabelsArr->copyandflatten(labels);
 
-  int nNoHit = 0, nNoCollision = 0;
+  int nNoHit = 0, nNoCollision = 0, nOutliers = 0;
   std::array<double, kNLayers> sumRadius{0., 0.};
   std::array<long, kNLayers> nRadius{0, 0};
 
@@ -450,6 +448,12 @@ void CheckTimeResolutionIOTOF(std::string digifile = "tf3digits.root", std::stri
                         eta, pt, float(pdg), float(tTrueNS), float(tDigNS), dtPs};
       nt->Fill(ntVars);
 
+      // Reject digits with an unphysical residual (e.g. a corrupted digit time): kept in the ntuple, excluded from the histograms
+      if (std::abs(dtPs) > dtMaxPs) {
+        nOutliers++;
+        continue;
+      }
+
       hTTrue[subDetID]->Fill(tTrueNS);
       hTDig[subDetID]->Fill(tDigNS);
       hTDigVsTTrue[subDetID]->Fill(tTrueNS, tDigNS);
@@ -458,7 +462,6 @@ void CheckTimeResolutionIOTOF(std::string digifile = "tf3digits.root", std::stri
       hDtVsXLoc[subDetID]->Fill(xD, dtPs);
       hDtVsZLoc[subDetID]->Fill(zD, dtPs);
       hDtVsZGlo[subDetID]->Fill(gloD.Z(), dtPs);
-      pDtChip[subDetID]->Fill(xD, zD, dtPs);
       pDtInPixel[subDetID]->Fill(dxPixUm, dzPixUm, dtPs);
       sumRadius[subDetID] += radius;
       nRadius[subDetID]++;
@@ -476,8 +479,9 @@ void CheckTimeResolutionIOTOF(std::string digifile = "tf3digits.root", std::stri
 
   } // end loop on ROFRecords
 
-  if (nNoHit || nNoCollision) {
-    Warning("CheckTimeResolutionIOTOF", "Skipped digits: %d without matching hit, %d without matching collision", nNoHit, nNoCollision);
+  if (nNoHit || nNoCollision || nOutliers) {
+    Warning("CheckTimeResolutionIOTOF", "Skipped digits: %d without matching hit, %d without matching collision, %d with |dt| > %g ps",
+            nNoHit, nNoCollision, nOutliers, dtMaxPs);
   }
 
   // Arrival time of a beta = 1 particle at eta = 0, in TDC units
@@ -529,19 +533,6 @@ void CheckTimeResolutionIOTOF(std::string digifile = "tf3digits.root", std::stri
     printPage(canv, pdfDt, hDtVsZGlo[il], "colz");
   }
   closePdf(pdfDt);
-
-  // Time residual as a function of the position in the chip
-  const char* pdfChip = "tf3digits_dt_vs_chip_position.pdf";
-  openPdf(pdfChip);
-  for (int il = 0; il < kNLayers; ++il) {
-    printPage(canv, pdfChip, hDtVsXLoc[il], "colz");
-    printPage(canv, pdfChip, hDtVsZLoc[il], "colz");
-    printPage(canv, pdfChip, pDtChip[il], "colz");
-    auto hSpread = profileToSpread(pDtChip[il], Form("h_sigmadt_vs_chip_%s", kLayerName[il]),
-                                   Form("%s: RMS of the time residual vs position in the chip;x_{local} of the pixel (cm);z_{local} of the pixel (cm);RMS(t_{digit} - t_{true}) (ps)", kLayerName[il]));
-    printPage(canv, pdfChip, hSpread, "colz");
-  }
-  closePdf(pdfChip);
 
   // Time residual as a function of the position inside the pixel
   const char* pdfInPixel = "tf3digits_dt_inpixel.pdf";
