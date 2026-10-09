@@ -27,8 +27,14 @@
 
 class AliExternalTrackParam;
 
+namespace o2::tpc
+{
+struct ClusterNative;
+};
+
 namespace o2::gpu
 {
+class GPUTPCTracker;
 class GPUTPCGMMerger;
 class GPUTPCGMBorderTrack;
 struct GPUParam;
@@ -36,6 +42,13 @@ class GPUTPCGMPhysicalTrackModel;
 class GPUTPCGMPolynomialField;
 class GPUTPCGMMergedTrack;
 class GPUTPCGMPropagator;
+class GPUdEdx;
+struct GPUTPCGMMergedTrackHit;
+
+namespace gputpcgmmergertypes
+{
+struct InterpolationErrorHit;
+} // namespace gputpcgmmergertypes
 
 /**
  * @class GPUTPCGMTrackParam
@@ -141,22 +154,28 @@ class GPUTPCGMTrackParam
   GPUd() bool CheckNumericalQuality(float overrideCovYY = -1.f) const;
   GPUd() bool CheckCov() const;
 
-  GPUd() bool Fit(GPUTPCGMMerger* merger, int32_t iTrk, GPUTPCGMMergedTrackHit* clusters, int32_t& N, int32_t& NTolerated, float& Alpha, int32_t attempt, float maxSinPhi, GPUTPCGMMergedTrack& track);
+  GPUd() bool Fit(GPUTPCGMMerger& merger, int32_t iTrk, int32_t& N, int32_t& NTolerated, float& Alpha, GPUTPCGMMergedTrack& track, bool rebuilt, bool retryAttempt);
+  GPUd() void DodEdx(GPUdEdx& dEdx, GPUdEdx& dEdxAlt, GPUTPCGMMerger& merger, bool finalFit, int ihit, int ihitMergeFirst, int wayDirection, const GPUTPCGMMergedTrackHit* clusters, uint8_t clusterState, float zz, uint8_t dEdxSubThresholdRow);
+  GPUd() int32_t FitHit(GPUTPCGMMerger& merger, const int32_t iTrk, const GPUTPCGMMergedTrack& track, const float xx, const float yy, const float zz, const uint8_t clusterState, const float clAlpha, const int32_t iWay, const bool inFlyDirection, float& deltaZ, float& lastUpdateX, GPUTPCGMMergedTrackHit* clusters, GPUTPCGMPropagator& prop, gputpcgmmergertypes::InterpolationErrorHit& inter, GPUdEdx& dEdx, GPUdEdx& dEdxAlt, float& sumInvSqrtCharge, int32_t& nAvgCharge, const int32_t ihit, const int32_t ihitMergeFirst, const bool allowChangeClusters, const bool refit, const bool finalFit, int32_t& nMissed, int32_t& nMissed2, float uncorrectedY, bool retryAttempt);
+  GPUd() void FitAddRow(const int32_t iRow, const uint8_t sector, const int32_t iTrk, const GPUTPCGMMergedTrack& track, GPUTPCGMPropagator& prop, const bool inFlyDirection, GPUTPCGMMerger& merger, uint8_t* dEdxSubThresholdRow, const bool dodEdx, const bool doAttach, const uint8_t doInterpolate, gputpcgmmergertypes::InterpolationErrorHit& inter, const float deltaZ, const float sumInvSqrtCharge, const int32_t nAvgCharge);
+  GPUd() void HandleCrossCE(const GPUParam& param, const uint8_t sector, const uint8_t& lastSector);
+  GPUd() static void RefitTrack(GPUTPCGMMergedTrack& track, int32_t iTrk, GPUTPCGMMerger& merger, bool rebuilt, bool retryAttempt);
   GPUd() void MoveToReference(GPUTPCGMPropagator& prop, const GPUParam& param, float& alpha);
   GPUd() void MirrorTo(GPUTPCGMPropagator& prop, float toY, float toZ, bool inFlyDirection, const GPUParam& param, uint8_t row, uint8_t clusterState, bool mirrorParameters, int8_t sector);
-  GPUd() int32_t MergeDoubleRowClusters(int32_t& ihit, int32_t wayDirection, GPUTPCGMMergedTrackHit* clusters, const GPUTPCGMMerger* merger, GPUTPCGMPropagator& prop, float& xx, float& yy, float& zz, int32_t maxN, float clAlpha, uint8_t& clusterState, bool rejectChi2);
+  GPUd() int32_t MergeDoubleRowClusters(int32_t& ihit, int32_t wayDirection, GPUTPCGMMergedTrackHit* clusters, const GPUTPCGMMerger& merger, GPUTPCGMPropagator& prop, float& xx, float& yy, float& zz, int32_t maxN, float clAlpha, uint8_t& clusterState, const bool markReject);
+  GPUd() float FindBestInterpolatedHit(GPUTPCGMMerger& merger, gputpcgmmergertypes::InterpolationErrorHit& inter, const uint8_t sector, const uint8_t row, const float deltaZ, const float sumInvSqrtCharge, const int nAvgCharge, const GPUTPCGMPropagator& prop, const int32_t iTrk, bool interOnly);
+  GPUd() void InterpolateMissingRows(GPUTPCGMMerger& merger, gputpcgmmergertypes::InterpolationErrors& interpolation, GPUTPCGMMergedTrackHit* clusters, int32_t ihit, int32_t interpolationIndex, int32_t lastRow, const float deltaZ, const float sumInvSqrtCharge, const int32_t nAvgCharge, const GPUTPCGMPropagator& prop, const int32_t iTrk);
 
-  GPUd() bool AttachClustersPropagate(const GPUTPCGMMerger* GPUrestrict() Merger, int32_t sector, int32_t lastRow, int32_t toRow, int32_t iTrack, bool goodLeg, GPUTPCGMPropagator& prop, bool inFlyDirection, float maxSinPhi = constants::MAX_SIN_PHI, bool checkdEdx = false);
-  GPUd() float AttachClusters(const GPUTPCGMMerger* GPUrestrict() Merger, int32_t sector, int32_t iRow, int32_t iTrack, bool goodLeg, GPUTPCGMPropagator& prop); // Returns uncorrectedY for later use
-  GPUd() float AttachClusters(const GPUTPCGMMerger* GPUrestrict() Merger, int32_t sector, int32_t iRow, int32_t iTrack, bool goodLeg, float Y, float Z);
-  GPUd() void AttachClustersLooper(const GPUTPCGMMerger* GPUrestrict() Merger, int32_t sector, int32_t iRow, int32_t iTrack, bool outwards, GPUTPCGMPropagator& prop);
-  GPUd() void AttachClustersLooperFollow(const GPUTPCGMMerger* GPUrestrict() Merger, GPUTPCGMPropagator& prop, int32_t sector, int32_t iTrack, bool outwards);
-  GPUd() void StoreLoopPropagation(const GPUTPCGMMerger* GPUrestrict() Merger, int32_t sector, int32_t iRow, int32_t iTrack, bool outwards, float alpha);
+  GPUd() float AttachClusters(const GPUTPCGMMerger& GPUrestrict() merger, int32_t sector, int32_t iRow, int32_t iTrack, bool goodLeg, GPUTPCGMPropagator& prop); // Returns uncorrectedY for later use
+  GPUd() float AttachClusters(const GPUTPCGMMerger& GPUrestrict() merger, int32_t sector, int32_t iRow, int32_t iTrack, bool goodLeg, float Y, float Z);
+  GPUd() void AttachClustersLooper(const GPUTPCGMMerger& GPUrestrict() merger, int32_t sector, int32_t iRow, const int32_t iTrack, const bool up, const GPUTPCGMPropagator& prop);
+  GPUd() void AttachClustersLooperFollow(const GPUTPCGMMerger& GPUrestrict() merger, GPUTPCGMPropagator& prop, int32_t sector, const int32_t iTrack, const bool up);
+  GPUd() void StoreLoopPropagation(const GPUTPCGMMerger& GPUrestrict() merger, int32_t sector, int32_t iRow, int32_t iTrack, bool outwards, float alpha);
   GPUd() void StoreOuter(gputpcgmmergertypes::GPUTPCOuterParam* outerParam, float alpha);
-  GPUd() static void PropagateLooper(const GPUTPCGMMerger* GPUrestrict() Merger, int32_t loopIdx);
+  GPUd() static void PropagateLooper(const GPUTPCGMMerger& merger, int32_t loopIdx);
 
-  GPUd() void AddCovDiagErrors(const float* GPUrestrict() errors2);
-  GPUd() void AddCovDiagErrorsWithCorrelations(const float* GPUrestrict() errors2);
+  GPUd() void AddCovDiagErrors(const float* errors2);
+  GPUd() void AddCovDiagErrorsWithCorrelations(const float* errors2);
 
   GPUdi() void MarkClusters(GPUTPCGMMergedTrackHit* GPUrestrict() clusters, int32_t ihitFirst, int32_t ihitLast, int32_t wayDirection, uint8_t state)
   {
@@ -182,8 +201,8 @@ class GPUTPCGMTrackParam
   }
 
   GPUd() void Rotate(float alpha);
-  GPUd() float ShiftZ(const GPUTPCGMMerger* merger, uint32_t sector, float cltmax, float cltmin, float clx);
-  GPUd() float ShiftZ(const GPUTPCGMMergedTrackHit* clusters, const GPUTPCGMMerger* merger, int32_t N);
+  GPUd() float ShiftZ(const GPUTPCGMMerger& merger, uint32_t sector, float cltmax, float cltmin, float clx);
+  GPUd() float ShiftZ(const GPUTPCGMMergedTrackHit* clusters, const GPUTPCGMMerger& merger, int32_t N);
 
   GPUd() static float Reciprocal(float x) { return 1.f / x; }
   GPUdi() static void Assign(float& x, bool mask, float v)
@@ -200,8 +219,6 @@ class GPUTPCGMTrackParam
     }
   }
 
-  GPUd() static void RefitTrack(GPUTPCGMMergedTrack& track, int32_t iTrk, GPUTPCGMMerger* merger, int32_t attempt);
-
   GPUdi() void ConstrainSinPhi(float limit = constants::MAX_SIN_PHI)
   {
     if (mP[2] > limit) {
@@ -212,8 +229,6 @@ class GPUTPCGMTrackParam
   }
 
  private:
-  GPUd() int32_t initResetT0();
-
   float mX;        // x position
   float mTOffset;  // Z offset with early transform, T offset otherwise
   float mP[5];     // 'active' track parameters: Y, Z, SinPhi, DzDs, q/Pt
@@ -230,15 +245,6 @@ struct GPUTPCGMLoopData {
   uint8_t row;
   uint8_t outwards;
 };
-
-GPUdi() int32_t GPUTPCGMTrackParam::initResetT0()
-{
-  const float absQPt = CAMath::Abs(mP[4]);
-  if (absQPt < (150.f / 40.f)) {
-    return 150.f / 40.f;
-  }
-  return CAMath::Max(10.f, 150.f / mP[4]);
-}
 
 GPUdi() void GPUTPCGMTrackParam::ResetCovariance()
 {

@@ -57,11 +57,6 @@ class GPUTPCGMPropagator
     updateErrorClusterRejectedInUpdate = 4,
     updateErrorClusterRejectedEdge = 5
   };
-  enum RejectChi2Mode {
-    rejectDirect = 1,
-    rejectInterFill = 2,
-    rejectInterReject = 3
-  };
 
   GPUdDefault() GPUTPCGMPropagator() = default;
 
@@ -104,21 +99,28 @@ class GPUTPCGMPropagator
 
   GPUd() int32_t PropagateToXAlphaBz(float posX, float posAlpha, bool inFlyDirection);
 
-  GPUd() int32_t Update(float posY, float posZ, int32_t iRow, const GPUParam& param, int16_t clusterState, int8_t rejectChi2, bool refit, int8_t sector, float time, float avgInvCharge, float invCharge);
-  GPUd() int32_t Update(float posY, float posZ, int32_t iRow, const GPUParam& param, int16_t clusterState, int8_t rejectChi2, bool refit, float err2Y, float err2Z);
+  GPUd() int32_t Update(float posY, float posZ, int32_t iRow, const GPUParam& param, int16_t clusterState, bool rejectChi2, bool refit, int8_t sector, float time, float avgInvCharge, float invCharge);
+  GPUd() int32_t Update(float posY, float posZ, int32_t iRow, const GPUParam& param, int16_t clusterState, bool rejectChi2, bool refit, float err2Y, float err2Z);
   GPUd() int32_t Update(float posY, float posZ, int16_t clusterState, bool rejectChi2, float err2Y, float err2Z, const GPUParam* param = nullptr);
-  GPUd() int32_t InterpolateReject(const GPUParam& param, float posY, float posZ, int16_t clusterState, int8_t rejectChi2, gputpcgmmergertypes::InterpolationErrorHit* inter, float err2Y, float err2Z, float deltaZ);
+  GPUd() void InterpolateFill(gputpcgmmergertypes::InterpolationErrorHit* inter);
+  GPUd() int32_t InterpolateReject(const GPUParam& param, float posY, float posZ, int16_t clusterState, gputpcgmmergertypes::InterpolationErrorHit* inter, float err2Y, float err2Z, float deltaZ);
   GPUd() float PredictChi2(float posY, float posZ, int32_t iRow, const GPUParam& param, int16_t clusterState, uint8_t sector, float time, float avgCharge, float charge) const;
   GPUd() float PredictChi2(float posY, float posZ, float err2Y, float err2Z) const;
   GPUd() static int32_t RejectCluster(float chiY, float chiZ, uint8_t clusterState)
   {
-    if (chiY > 9.f || chiZ > 9.f) { // TODO: Check how a track can have chi2/ncl > 18
+    if (chiY > 9.f || chiZ > 9.f) {
       return 2;
     }
-    if ((chiY > 6.25f || chiZ > 6.25f) && (clusterState & (GPUTPCGMMergedTrackHit::flagSplit | GPUTPCGMMergedTrackHit::flagShared))) {
+    if (chiZ > 6.25f && (clusterState & (GPUTPCGMMergedTrackHit::flagSplit | GPUTPCGMMergedTrackHit::flagShared | GPUTPCGMMergedTrackHit::flagEdge | GPUTPCGMMergedTrackHit::flagSingle))) {
       return 2;
     }
-    if ((chiY > 1.f || chiZ > 6.25f) && (clusterState & (GPUTPCGMMergedTrackHit::flagEdge | GPUTPCGMMergedTrackHit::flagSingle))) {
+    if (chiY > 6.25f && (clusterState & (GPUTPCGMMergedTrackHit::flagSplit | GPUTPCGMMergedTrackHit::flagShared))) {
+      return 2;
+    }
+    if (chiY > 1.f && (clusterState & GPUTPCGMMergedTrackHit::flagEdge)) {
+      return 2;
+    }
+    if (chiY > 2.f && (clusterState & GPUTPCGMMergedTrackHit::flagSingle)) {
       return 2;
     }
     return 0;

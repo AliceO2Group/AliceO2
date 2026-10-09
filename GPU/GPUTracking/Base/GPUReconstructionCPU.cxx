@@ -216,10 +216,10 @@ int32_t GPUReconstructionCPU::ExitDevice()
 int32_t GPUReconstructionCPU::RunChains()
 {
   mMemoryScalers->temporaryFactor = 1.;
-  if (GetProcessingSettings().memoryScalingFuzz) {
+  if (GetProcessingSettings().debug.memoryScalingFuzz) {
     static std::mt19937 rng;
     static std::uniform_int_distribution<uint64_t> dist(0, 1000000);
-    uint64_t fuzzFactor = GetProcessingSettings().memoryScalingFuzz == 1 ? dist(rng) : GetProcessingSettings().memoryScalingFuzz;
+    uint64_t fuzzFactor = GetProcessingSettings().debug.memoryScalingFuzz == 1 ? dist(rng) : GetProcessingSettings().debug.memoryScalingFuzz;
     GPUInfo("Fuzzing memory scaling factor with %lu", fuzzFactor);
     mMemoryScalers->fuzzScalingFactor(fuzzFactor);
   }

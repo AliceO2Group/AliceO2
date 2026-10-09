@@ -498,7 +498,7 @@ int32_t SetupReconstruction()
     if (recSet.tpc.rejectionStrategy >= GPUSettings::RejectionStrategyB) {
       procSet.tpcInputWithClusterRejection = 1;
     }
-    recSet.tpc.disableRefitAttachment = 0xFF;
+    recSet.tpc.disableMarkAdjacent = 0xFF;
     recSet.maxTrackQPtB5 = CAMath::Min(recSet.maxTrackQPtB5, recSet.tpc.rejectQPtB5);
     GPUChainTracking::ApplySyncSettings(procSet, recSet, steps.steps, false, configStandalone.rundEdx);
     recAsync->SetSettings(&grp, &recSet, &procSet, &steps);
@@ -955,7 +955,7 @@ int32_t main(int argc, char** argv)
       nEventsProcessed++;
 
       if (configStandalone.timeFrameTime) {
-        double nClusters = chainTracking->GetProcessors()->tpcMerger.NMaxClusters();
+        double nClusters = chainTracking->GetProcessors()->tpcMerger.NClusters();
         if (nClusters > 0) {
           const int32_t nOrbits = 32;
           const double colRate = 50000;

@@ -162,6 +162,17 @@ static inline auto GPUTPCTrkLbl(const AliHLTTPCClusterMCLabel* x, Args... args)
   }
 }
 
+template <class T>
+static inline bool GPUTPCTrkLblSearch(const T& clusterLabels, const MCCompLabel& trkLabel)
+{
+  for (const auto& clLabel : clusterLabels) {
+    if (trkLabel.compare(clLabel) >= 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
 } // namespace gpu
 } // namespace o2
 
