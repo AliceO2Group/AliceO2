@@ -353,7 +353,7 @@ double Digitizer::smearTime(double time, const float x, const float y) const
   float timeOfArrivalOffset = 0.;
   if (mTimeOfArrivalMap) {
     int bin = mTimeOfArrivalMap->FindBin(x * o2::iotof::Digitizer::cm2um, y * o2::iotof::Digitizer::cm2um);
-    timeOfArrivalOffset = mTimeOfArrivalMap->GetBinContent(bin);
+    timeOfArrivalOffset = mTimeOfArrivalMap->GetBinContent(bin) / o2::iotof::Digitizer::ns2ps; // convert to ns
     LOG(debug) << "Time of arrival map check: x=" << x * o2::iotof::Digitizer::cm2um << ", y=" << y * o2::iotof::Digitizer::cm2um << ", bin=" << bin << ", time offset=" << timeOfArrivalOffset;
   }
 
