@@ -91,6 +91,9 @@ void TrackerDPL::init(InitContext& ic)
 {
 #ifdef O2_WITH_ACTS
   mUseACTS = ic.options().get<bool>("useACTS");
+  if (mUseACTS) {
+    LOG(info) << "Using ACTS for tracking";
+  }
 #endif
 }
 
@@ -104,6 +107,7 @@ std::vector<o2::its::TrackingParameters> TrackerDPL::createTrackingParamsFromCon
   std::vector<o2::its::TrackingParameters> trackingParams;
   auto loadTrackingParamsFromJson = [](std::vector<o2::its::TrackingParameters>& trackingParams, const nlohmann::json& paramConfigJson) {
     for (const auto& paramConfig : paramConfigJson) {
+      LOG(debug) << "Loading ALICE3 TRK tracking parameters from config: " << paramConfig.dump();
       o2::its::TrackingParameters params;
       auto applyPassFlag = [&](const char* name, o2::its::IterationStep step) {
         if (paramConfig.contains(name)) {
@@ -117,71 +121,91 @@ std::vector<o2::its::TrackingParameters> TrackerDPL::createTrackingParamsFromCon
 
       if (paramConfig.contains("NLayers")) {
         params.NLayers = paramConfig["NLayers"].get<int>();
+        LOG(debug) << "Setting NLayers to " << params.NLayers;
       }
       if (paramConfig.contains("ZBins")) {
         params.ZBins = paramConfig["ZBins"].get<int>();
+        LOG(debug) << "Setting ZBins to " << params.ZBins;
       }
       if (paramConfig.contains("PhiBins")) {
         params.PhiBins = paramConfig["PhiBins"].get<int>();
+        LOG(debug) << "Setting PhiBins to " << params.PhiBins;
       }
       if (paramConfig.contains("SharedMaxClusters")) {
         params.SharedMaxClusters = paramConfig["SharedMaxClusters"].get<int>();
+        LOG(debug) << "Setting SharedMaxClusters to " << params.SharedMaxClusters;
       }
       if (paramConfig.contains("MinTrackLength")) {
         params.MinTrackLength = paramConfig["MinTrackLength"].get<int>();
+        LOG(debug) << "Setting MinTrackLength to " << params.MinTrackLength;
       }
       if (paramConfig.contains("ReseedIfShorter")) {
         params.ReseedIfShorter = paramConfig["ReseedIfShorter"].get<int>();
+        LOG(debug) << "Setting ReseedIfShorter to " << params.ReseedIfShorter;
       }
       if (paramConfig.contains("StartLayerMask")) {
         params.StartLayerMask = paramConfig["StartLayerMask"].get<uint16_t>();
+        LOG(debug) << "Setting StartLayerMask to " << params.StartLayerMask;
       }
-
       if (paramConfig.contains("NSigmaCut")) {
         params.NSigmaCut = paramConfig["NSigmaCut"].get<float>();
+        LOG(debug) << "Setting NSigmaCut to " << params.NSigmaCut;
       }
       if (paramConfig.contains("PVres")) {
         params.PVres = paramConfig["PVres"].get<float>();
+        LOG(debug) << "Setting PVres to " << params.PVres;
       }
       if (paramConfig.contains("TrackletMinPt")) {
         params.TrackletMinPt = paramConfig["TrackletMinPt"].get<float>();
+        LOG(debug) << "Setting TrackletMinPt to " << params.TrackletMinPt;
       }
       if (paramConfig.contains("CellDeltaTanLambdaSigma")) {
         params.CellDeltaTanLambdaSigma = paramConfig["CellDeltaTanLambdaSigma"].get<float>();
+        LOG(debug) << "Setting CellDeltaTanLambdaSigma to " << params.CellDeltaTanLambdaSigma;
       }
       if (paramConfig.contains("MaxChi2ClusterAttachment")) {
         params.MaxChi2ClusterAttachment = paramConfig["MaxChi2ClusterAttachment"].get<float>();
+        LOG(debug) << "Setting MaxChi2ClusterAttachment to " << params.MaxChi2ClusterAttachment;
       }
       if (paramConfig.contains("MaxChi2NDF")) {
         params.MaxChi2NDF = paramConfig["MaxChi2NDF"].get<float>();
+        LOG(debug) << "Setting MaxChi2NDF to " << params.MaxChi2NDF;
       }
-
       if (paramConfig.contains("UseDiamond")) {
         params.UseDiamond = paramConfig["UseDiamond"].get<bool>();
+        LOG(debug) << "Setting UseDiamond to " << params.UseDiamond;
       }
       if (paramConfig.contains("AllowSharingFirstCluster")) {
         params.AllowSharingFirstCluster = paramConfig["AllowSharingFirstCluster"].get<bool>();
+        LOG(debug) << "Setting AllowSharingFirstCluster to " << params.AllowSharingFirstCluster;
       }
       if (paramConfig.contains("RepeatRefitOut")) {
         params.RepeatRefitOut = paramConfig["RepeatRefitOut"].get<bool>();
+        LOG(debug) << "Setting RepeatRefitOut to " << params.RepeatRefitOut;
       }
       if (paramConfig.contains("ShiftRefToCluster")) {
         params.ShiftRefToCluster = paramConfig["ShiftRefToCluster"].get<bool>();
+        LOG(debug) << "Setting ShiftRefToCluster to " << params.ShiftRefToCluster;
       }
       if (paramConfig.contains("PerPrimaryVertexProcessing")) {
         params.PerPrimaryVertexProcessing = paramConfig["PerPrimaryVertexProcessing"].get<bool>();
+        LOG(debug) << "Setting PerPrimaryVertexProcessing to " << params.PerPrimaryVertexProcessing;
       }
       if (paramConfig.contains("SaveTimeBenchmarks")) {
         params.SaveTimeBenchmarks = paramConfig["SaveTimeBenchmarks"].get<bool>();
+        LOG(debug) << "Setting SaveTimeBenchmarks to " << params.SaveTimeBenchmarks;
       }
       if (paramConfig.contains("DoUPCIteration")) {
         params.DoUPCIteration = paramConfig["DoUPCIteration"].get<bool>();
+        LOG(debug) << "Setting DoUPCIteration to " << params.DoUPCIteration;
       }
       if (paramConfig.contains("FataliseUponFailure")) {
         params.FataliseUponFailure = paramConfig["FataliseUponFailure"].get<bool>();
+        LOG(debug) << "Setting FataliseUponFailure to " << params.FataliseUponFailure;
       }
       if (paramConfig.contains("CreateArtefactLabels")) {
         params.CreateArtefactLabels = paramConfig["CreateArtefactLabels"].get<bool>();
+        LOG(debug) << "Setting CreateArtefactLabels to " << params.CreateArtefactLabels;
       }
       if (paramConfig.contains("TrackFollower")) {
         const auto mode = paramConfig["TrackFollower"].get<std::string>();
@@ -195,15 +219,19 @@ std::vector<o2::its::TrackingParameters> TrackerDPL::createTrackingParamsFromCon
         } else if (mode != "off") {
           LOGP(fatal, "Invalid ALICE3 TRK tracking parameter TrackFollower: {}", mode);
         }
+        LOG(debug) << "Setting TrackFollower to " << mode;
       }
       if (paramConfig.contains("TrackFollowerNSigmaCutZ")) {
         params.TrackFollowerNSigmaCutZ = paramConfig["TrackFollowerNSigmaCutZ"].get<float>();
+        LOG(debug) << "Setting TrackFollowerNSigmaCutZ to " << params.TrackFollowerNSigmaCutZ;
       }
       if (paramConfig.contains("TrackFollowerNSigmaCutPhi")) {
         params.TrackFollowerNSigmaCutPhi = paramConfig["TrackFollowerNSigmaCutPhi"].get<float>();
+        LOG(debug) << "Setting TrackFollowerNSigmaCutPhi to " << params.TrackFollowerNSigmaCutPhi;
       }
       if (paramConfig.contains("TrackFollowerMaxHypotheses")) {
         params.TrackFollowerMaxHypotheses = std::max(1, paramConfig["TrackFollowerMaxHypotheses"].get<int>());
+        LOG(debug) << "Setting TrackFollowerMaxHypotheses to " << params.TrackFollowerMaxHypotheses;
       }
       applyPassFlag("FirstPass", o2::its::IterationStep::FirstPass);
       applyPassFlag("RebuildClusterLUT", o2::its::IterationStep::RebuildClusterLUT);
@@ -216,49 +244,77 @@ std::vector<o2::its::TrackingParameters> TrackerDPL::createTrackingParamsFromCon
       applyPassFlag("TrackFollowerBot", o2::its::IterationStep::TrackFollowerBot);
       if (paramConfig.contains("PrintMemory")) {
         params.PrintMemory = paramConfig["PrintMemory"].get<bool>();
+        LOG(debug) << "Setting PrintMemory to " << params.PrintMemory;
       }
       if (paramConfig.contains("DropTFUponFailure")) {
         params.DropTFUponFailure = paramConfig["DropTFUponFailure"].get<bool>();
+        LOG(debug) << "Setting DropTFUponFailure to " << params.DropTFUponFailure;
       }
-
       if (paramConfig.contains("LayerZ")) {
         params.LayerZ = paramConfig["LayerZ"].get<std::vector<float>>();
+        for (size_t i = 0; i < params.LayerZ.size(); ++i) {
+          LOG(debug) << "Setting LayerZ " << i << " to " << params.LayerZ[i];
+        }
       }
       if (paramConfig.contains("LayerRadii")) {
         params.LayerRadii = paramConfig["LayerRadii"].get<std::vector<float>>();
+        for (size_t i = 0; i < params.LayerRadii.size(); ++i) {
+          LOG(debug) << "Setting LayerRadii " << i << " to " << params.LayerRadii[i];
+        }
       }
       if (paramConfig.contains("LayerxX0")) {
         params.LayerxX0 = paramConfig["LayerxX0"].get<std::vector<float>>();
+        for (size_t i = 0; i < params.LayerxX0.size(); ++i) {
+          LOG(debug) << "Setting LayerxX0 " << i << " to " << params.LayerxX0[i];
+        }
       }
       if (paramConfig.contains("LayerResolution")) {
         params.LayerResolution = paramConfig["LayerResolution"].get<std::vector<float>>();
+        for (size_t i = 0; i < params.LayerResolution.size(); ++i) {
+          LOG(debug) << "Setting LayerResolution " << i << " to " << params.LayerResolution[i];
+        }
       }
       if (paramConfig.contains("SystErrorY2")) {
         params.SystErrorY2 = paramConfig["SystErrorY2"].get<std::vector<float>>();
+        for (size_t i = 0; i < params.SystErrorY2.size(); ++i) {
+          LOG(debug) << "Setting SystErrorY2 " << i << " to " << params.SystErrorY2[i];
+        }
       }
       if (paramConfig.contains("SystErrorZ2")) {
         params.SystErrorZ2 = paramConfig["SystErrorZ2"].get<std::vector<float>>();
+        for (size_t i = 0; i < params.SystErrorZ2.size(); ++i) {
+          LOG(debug) << "Setting SystErrorZ2 " << i << " to " << params.SystErrorZ2[i];
+        }
       }
       if (paramConfig.contains("MinPt")) {
         params.MinPt = paramConfig["MinPt"].get<std::vector<float>>();
+        for (size_t i = 0; i < params.MinPt.size(); ++i) {
+          LOG(debug) << "Setting MinPt " << i << " to " << params.MinPt[i];
+        }
       }
       if (paramConfig.contains("AddTimeError")) {
         params.AddTimeError = paramConfig["AddTimeError"].get<std::vector<UInt_t>>();
+        for (size_t i = 0; i < params.AddTimeError.size(); ++i) {
+          LOG(debug) << "Setting AddTimeError " << i << " to " << params.AddTimeError[i];
+        }
       }
 
       if (paramConfig.contains("Diamond") && paramConfig["Diamond"].is_array() && paramConfig["Diamond"].size() == 3) {
         params.Diamond[0] = paramConfig["Diamond"][0].get<float>();
         params.Diamond[1] = paramConfig["Diamond"][1].get<float>();
         params.Diamond[2] = paramConfig["Diamond"][2].get<float>();
+        LOG(debug) << "Setting Diamond to " << params.Diamond[0] << ", " << params.Diamond[1] << ", " << params.Diamond[2];
       }
 
       if (paramConfig.contains("MaxMemory")) {
         params.MaxMemory = paramConfig["MaxMemory"].get<size_t>();
+        LOG(debug) << "Setting MaxMemory to " << params.MaxMemory;
       }
 
       if (paramConfig.contains("CorrType")) {
         int corrTypeInt = paramConfig["CorrType"].get<int>();
         params.CorrType = static_cast<o2::base::PropagatorImpl<float>::MatCorrType>(corrTypeInt);
+        LOG(debug) << "Setting CorrType to " << corrTypeInt;
       }
 
       const auto nLayers = static_cast<size_t>(params.NLayers);
@@ -307,6 +363,12 @@ void TrackerDPL::run(ProcessingContext& pc)
   mTimer.Start(false);
 
   const bool useGPU = mDeviceType != o2::gpu::gpudatatypes::DeviceType::CPU;
+#ifdef O2_WITH_ACTS
+  if (useGPU && mUseACTS) {
+    LOG(fatal) << "ACTS tracking is only supported with the CPU backend";
+    return;
+  }
+#endif
 
   if (useGPU) {
     runGPUTracking(pc);
@@ -418,7 +480,11 @@ DataProcessorSpec getTrackerSpec(bool useMC, const std::string& hitRecoConfig, c
                                             clusterRecoConfig,
                                             dType,
                                             trackingThreads)},
-    Options{}};
+    Options{
+#ifdef O2_WITH_ACTS
+      {"useACTS", o2::framework::VariantType::Bool, false, {"Use ACTS for tracking"}}
+#endif
+    }};
 }
 
 } // namespace trk
