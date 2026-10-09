@@ -58,6 +58,8 @@ struct CheckResidConfig : o2::conf::ConfigurableParamHelper<CheckResidConfig> {
   //
   // string with existing histomanagers files to draw (comma or semicolon separated) and optional legends
   std::string ext_hm_list{};
+  std::string ext_marker_list{};
+  std::string ext_color_list{};
   std::string ext_leg_list{};
 
   O2ParamDef(CheckResidConfig, "checkresid");
