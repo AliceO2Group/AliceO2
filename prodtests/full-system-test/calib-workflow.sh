@@ -88,7 +88,13 @@ if [[ $CALIB_ASYNC_EXTRACTCOSMICS == 1 ]] ; then
   done
   COSMICS_CONFIG=
   has_detector_reco TOF || COSMICS_CONFIG="cosmicsMatch.tofFlightSelection=false" # the TOF flight selection of the preset needs TOF clusters
-  add_W o2-cosmics-match-workflow "$DISABLE_ROOT_INPUT $DISABLE_MC --track-sources TPC --cosmics-preset ${COSMICS_PRESET} --enable-cluster-output --road-detectors ${COSMICS_ROAD_DETECTORS:-none}" "$COSMICS_CONFIG"
+  # the TPC part of a primary-vertex contributor comes from a collision: veto it as a leg, with the vertexing sources (those without TPC are ignored)
+  COSMICS_OPT=
+  : ${COSMICS_PV_SOURCES:=${VERTEXING_SOURCES:-}}
+  if [[ ${COSMICS_PV_VETO:-1} == 1 ]] && [[ $BEAMTYPE != "cosmic" ]] && has_detector_matching PRIMVTX && [[ -n ${VERTEXING_SOURCES:-} ]] && [[ -n $COSMICS_PV_SOURCES ]]; then
+    COSMICS_OPT+=" --pv-contributor-sources $COSMICS_PV_SOURCES"
+  fi
+  add_W o2-cosmics-match-workflow "$DISABLE_ROOT_INPUT $DISABLE_MC --track-sources TPC --cosmics-preset ${COSMICS_PRESET} --enable-cluster-output --road-detectors ${COSMICS_ROAD_DETECTORS:-none}$COSMICS_OPT" "$COSMICS_CONFIG"
 fi
 
 # output-proxy for aggregator

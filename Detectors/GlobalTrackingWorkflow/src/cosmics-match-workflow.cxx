@@ -54,7 +54,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
     {"use-pv-info", o2::framework::VariantType::Bool, false, {"request primary vertex for relevant cuts in the collision/cosmics interleaved data"}},
-    {"pv-contributor-sources", VariantType::String, "", {"global track sources (with TPC) loaded only to reject the TPC track of a primary-vertex contributor as a leg (cosmicsMatch.discardPVContributors, implies --use-pv-info), e.g. ITS-TPC,ITS-TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD-TOF"}},
+    {"pv-contributor-sources", VariantType::String, "", {"global track sources loaded only to reject the TPC track of a primary-vertex contributor as a leg (cosmicsMatch.discardPVContributors, implies --use-pv-info); sources without TPC are ignored, so the vertexing sources can be passed as they are"}},
     {"enable-cluster-output", o2::framework::VariantType::Bool, false, {"collect the raw clusters of the cosmics (legs + road around them) and write them with the cosmics"}},
     {"road-detectors", VariantType::String, "ITS,TOF,TRD", {"with --enable-cluster-output: detectors whose hits along the cosmic are collected besides the TPC road"}},
     {"cosmics-preset", VariantType::String, "", {"named set of cosmicsMatch settings applied before --configKeyValues (which can override single keys): physics-v1 = cosmics in collision data"}},
