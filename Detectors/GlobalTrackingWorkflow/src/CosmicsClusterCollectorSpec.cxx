@@ -65,6 +65,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DeviceSpec.h"
 #include "GlobalTrackingWorkflow/CosmicsClusterCollectorSpec.h"
+#include "GlobalTrackingWorkflow/CosmicsMatchingSpec.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DataFormatsGlobalTracking/TrackCosmicsExtended.h"
 #include "ReconstructionDataFormats/TrackCosmics.h"
@@ -1610,6 +1611,7 @@ DataProcessorSpec getCosmicsClusterCollectorSpec(GTrackID::mask_t src, bool useM
   auto dataRequest = std::make_shared<DataRequest>();
   dataRequest->setITSPerLayer(itsStag);
   dataRequest->requestTracks(src, false);
+  dataRequest->requestTracks(getLegITSSources(src), false); // the ITS clusters of legs with an ITS part are read through their ITS track
   dataRequest->requestClusters(src, false);
   if (roadDets[DetID::ITS]) {
     dataRequest->requestITSClusters(false);

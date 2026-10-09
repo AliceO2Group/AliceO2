@@ -24,6 +24,9 @@ namespace globaltracking
 {
 
 /// create a processor spec
+/// ITS tracks needed by legs with an ITS part (their refit and ITS clusters) if ITS tracks are no legs themselves
+o2::dataformats::GlobalTrackID::mask_t getLegITSSources(o2::dataformats::GlobalTrackID::mask_t src);
+
 /// srcPVContributors plus the parent matches needed to resolve their single-detector parts (RecoContainer::getSingleDetectorRefs)
 o2::dataformats::GlobalTrackID::mask_t addPVContributorParents(o2::dataformats::GlobalTrackID::mask_t srcPVContributors);
 

@@ -118,7 +118,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     src = src | GID::getSourcesMask("CTP");
   }
 
-  GID::mask_t srcCl = src;
+  // legs with an ITS part need the ITS tracks and clusters for their refit, also if standalone ITS tracks are no legs (not added to src)
+  const GID::mask_t srcITS = o2::globaltracking::getLegITSSources(src);
+  GID::mask_t srcCl = src | srcITS;
   const bool useTOFClusters = o2::globaltracking::MatchCosmicsParams::Instance().tofFlightSelection;
   if (useTOFClusters) {
     srcCl |= GID::getSourceMask(GID::TOF);
@@ -151,7 +153,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::globaltracking::getCosmicsClusterCollectorSpec(src, useMC, doStag, roadDets));
   }
 
-  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCl, src | srcPVLoaded, src | srcPVLoaded, useMC, dummy); // clusters MC is not needed
+  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCl, src | srcPVLoaded | srcITS, src | srcPVLoaded | srcITS, useMC, dummy); // clusters MC is not needed
   if (usePV) {
     o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC); // P-vertex is always needed
   }

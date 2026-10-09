@@ -187,6 +187,11 @@ void CosmicsMatchingSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
+GTrackID::mask_t getLegITSSources(GTrackID::mask_t src)
+{
+  return GTrackID::includesDet(o2::detectors::DetID::ITS, src) ? GTrackID::getSourceMask(GTrackID::ITS) & ~src : GTrackID::mask_t{};
+}
+
 GTrackID::mask_t addPVContributorParents(GTrackID::mask_t srcPVContributors)
 {
   auto src = srcPVContributors;
@@ -213,6 +218,7 @@ DataProcessorSpec getCosmicsMatchingSpec(GTrackID::mask_t src, bool usePV, bool 
   dataRequest->setITSPerLayer(itsStag);
 
   dataRequest->requestTracks(src, useMC);
+  dataRequest->requestTracks(getLegITSSources(src), false); // the refit of legs with an ITS part reads their ITS track
   dataRequest->requestClusters(src, false); // no MC labels for clusters needed for refit only
   if (useTOFClusters) {
     dataRequest->requestTOFClusters(false); // TOF flight pairs of the candidate pairs (MatchCosmicsParams::tofFlightSelection)
