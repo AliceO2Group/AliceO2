@@ -133,17 +133,18 @@ void TrackerDPL::runTracking(framework::ProcessingContext& pc, TimeFrameT& timeF
   } else
 #endif
   {
-  for (size_t iter{0}; iter < mTrackingParams.size(); ++iter) {
-    LOGP(info, "{}", mTrackingParams[iter].asString());
-    trackerTraits.initialiseTimeFrame(iter);
-    trackerTraits.computeLayerTracklets(iter, -1);
-    LOGP(info, "Number of tracklets in iteration {}: {}", iter, timeFrame.getNumberOfTracklets());
-    trackerTraits.computeLayerCells(iter);
-    LOGP(info, "Number of cells in iteration {}: {}", iter, timeFrame.getNumberOfCells());
-    trackerTraits.findCellsNeighbours(iter);
-    LOGP(info, "Number of cell neighbours in iteration {}: {}", iter, timeFrame.getNumberOfNeighbours());
-    trackerTraits.findRoads(iter);
-    LOGP(info, "Number of roads in iteration {}: {}", iter, timeFrame.getNumberOfTracks());
+    for (size_t iter{0}; iter < mTrackingParams.size(); ++iter) {
+      LOGP(info, "{}", mTrackingParams[iter].asString());
+      trackerTraits.initialiseTimeFrame(iter);
+      trackerTraits.computeLayerTracklets(iter, -1);
+      LOGP(info, "Number of tracklets in iteration {}: {}", iter, timeFrame.getNumberOfTracklets());
+      trackerTraits.computeLayerCells(iter);
+      LOGP(info, "Number of cells in iteration {}: {}", iter, timeFrame.getNumberOfCells());
+      trackerTraits.findCellsNeighbours(iter);
+      LOGP(info, "Number of cell neighbours in iteration {}: {}", iter, timeFrame.getNumberOfNeighbours());
+      trackerTraits.findRoads(iter);
+      LOGP(info, "Number of roads in iteration {}: {}", iter, timeFrame.getNumberOfTracks());
+    }
   }
   const auto trackingLoopElapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - trackingLoopStart).count();
   LOGP(info, "Tracking iterations block took {} ms", trackingLoopElapsedMs);
