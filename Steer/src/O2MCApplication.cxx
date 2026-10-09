@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <limits>
 #include <cstdlib>
 
 #include <Steer/O2MCApplication.h>
@@ -200,6 +201,26 @@ void O2MCApplicationBase::PreTrack()
 
   // dispatch now to function in FairRoot
   FairMCApplication::PreTrack();
+
+  auto* stack = static_cast<o2::data::Stack*>(GetStack());
+  if (stack->hasTrackTransportModel() && fMC->TrackLength() == 0.) {
+    // Geant4 owns its secondary queue: clearing a stack bit alone cannot stop
+    // those tracks. Classify the engine's birth state, then explicitly stop it.
+    // Never classify a resumed track after it has already travelled or hit.
+    TLorentzVector position, momentum;
+    fMC->TrackPosition(position);
+    fMC->TrackMomentum(momentum);
+    TParticle particle(fMC->TrackPid(), 0, -1, -1, -1, -1,
+                       momentum.Px(), momentum.Py(), momentum.Pz(), momentum.E(),
+                       position.X(), position.Y(), position.Z(), fMC->TrackTime());
+    const double missing = std::numeric_limits<double>::quiet_NaN();
+    if (!stack->transportTrack(particle,
+                               fMCEventHeader ? fMCEventHeader->GetX() : missing,
+                               fMCEventHeader ? fMCEventHeader->GetY() : missing,
+                               fMCEventHeader ? fMCEventHeader->GetZ() : missing)) {
+      fMC->StopTrack();
+    }
+  }
 }
 
 void O2MCApplicationBase::ConstructGeometry()

@@ -25,22 +25,146 @@
 #include "SimulationDataFormat/BaseHits.h"
 #include "SimulationDataFormat/StackParam.h"
 #include "CommonUtils/ConfigurationMacroHelper.h"
+#include "CCDB/BasicCCDBManager.h"
+#include "ML/OrtInterface.h"
+#include "DetectorsBase/TrackTransportUtils.h"
 
 #include "TLorentzVector.h" // for TLorentzVector
 #include "TParticle.h"      // for TParticle
 #include "TRefArray.h"      // for TRefArray
 #include "TVirtualMC.h"     // for VMC
 #include "TMCProcess.h"     // for VMC Particle Production Process
+#include "TParticlePDG.h"
+#include "TGeoManager.h"
+#include "TGeoNavigator.h"
+#include "TGeoCache.h"
+#include "TGeoMedium.h"
+#include "TGeoVolume.h"
 
 #include <algorithm>
 #include <cassert>
 #include <cstddef> // for NULL
 #include <cmath>
+#include <map>
+#include <memory>
+#include <limits>
+#include <mutex>
+#include <thread>
+#include <stdexcept>
+#include <unordered_map>
 
 using std::cout;
 using std::endl;
 using std::pair;
 using namespace o2::data;
+
+namespace
+{
+// Versioned raw birth-feature superset; selection and preprocessing live in ONNX.
+constexpr size_t OnnxFeatureCount = o2::data::detail::TrackTransportFeatureCount;
+
+class OnnxTrackTransport
+{
+ public:
+  explicit OnnxTrackTransport(const o2::sim::StackParam& param)
+    : mThreshold(param.transportPrimaryOnnxThreshold),
+      mOutputIndex(param.transportPrimaryOnnxOutputIndex),
+      mApplySigmoid(param.transportPrimaryOnnxApplySigmoid),
+      mInvert(param.transportPrimaryInvert)
+  {
+    if (!std::isfinite(mThreshold) || mThreshold < 0. || mThreshold > std::nextafter(1., std::numeric_limits<double>::infinity())) {
+      throw std::runtime_error("ONNX pruning requires an explicit probability threshold (or nextafter(1,+inf) to keep all)");
+    }
+    if (mApplySigmoid || mOutputIndex != 0) {
+      throw std::runtime_error("simnet.birth.v1 outputs one probability: set OnnxApplySigmoid=false and OnnxOutputIndex=0");
+    }
+    if (param.transportPrimaryOnnxCCDBPath.empty()) {
+      throw std::runtime_error("Stack.transportPrimaryOnnxCCDBPath must be configured");
+    }
+
+    auto& ccdbManager = o2::ccdb::BasicCCDBManager::instance();
+    auto& ccdb = ccdbManager.getCCDBAccessor();
+    std::map<std::string, std::string> headers;
+    const auto createdNotAfter = ccdbManager.getCreatedNotAfter();
+    const auto createdNotBefore = ccdbManager.getCreatedNotBefore();
+    ccdb.loadFileToMemory(mModelBytes, param.transportPrimaryOnnxCCDBPath, {},
+                          ccdbManager.getTimestamp(), &headers, {},
+                          createdNotAfter ? std::to_string(createdNotAfter) : "",
+                          createdNotBefore ? std::to_string(createdNotBefore) : "");
+    if (mModelBytes.empty()) {
+      throw std::runtime_error("failed to retrieve ONNX model from CCDB path " + param.transportPrimaryOnnxCCDBPath);
+    }
+
+    std::unordered_map<std::string, std::string> options{{"model-path", param.transportPrimaryOnnxCCDBPath},
+                                                         {"device-type", "CPU"},
+                                                         {"intra-op-num-threads", "1"},
+                                                         {"inter-op-num-threads", "1"},
+                                                         {"enable-optimizations", "99"},
+                                                         {"logging-level", "2"},
+                                                         {"onnx-environment-name", "primary-transport-pruning"}};
+    mModel.init(options);
+    mModel.initSessionFromBuffer(mModelBytes.data(), mModelBytes.size());
+
+    const auto inputShapes = mModel.getNumInputNodes();
+    if (inputShapes.size() != 1 || inputShapes[0].size() != 2 ||
+        (inputShapes[0][0] != 1 && inputShapes[0][0] != -1) ||
+        inputShapes[0][1] != OnnxFeatureCount ||
+        mModel.getInputNames() != std::vector<std::string>{"birth_features_v1"}) {
+      throw std::runtime_error("track transport ONNX model must have one birth_features_v1 float input with 34 features");
+    }
+    const auto outputShapes = mModel.getNumOutputNodes();
+    if (!o2::data::detail::validTrackTransportOutput(outputShapes, mOutputIndex) ||
+        outputShapes[0].size() != 2 || outputShapes[0][1] != 1 ||
+        mModel.getOutputNames() != std::vector<std::string>{"probability_hit_free_subtree"}) {
+      throw std::runtime_error("track transport ONNX model must output probability_hit_free_subtree as [batch,1]");
+    }
+  }
+
+  bool transport(const TParticle& particle, double motherPdg, double eventX, double eventY, double eventZ)
+  {
+    // OrtModel mutates its shape buffers during inference. Stack clones share
+    // this classifier, so protect the session and those buffers together.
+    std::lock_guard<std::mutex> lock(mMutex);
+    float medium = std::numeric_limits<float>::quiet_NaN();
+    if (gGeoManager && gGeoManager->IsClosed() && std::isfinite(particle.Vx()) &&
+        std::isfinite(particle.Vy()) && std::isfinite(particle.Vz())) {
+      // Private per-thread navigators preserve the engine's geometry state.
+      // Missing medium stays NaN: only graphs that select it must keep the track.
+      auto& navigator = mNavigators[std::this_thread::get_id()];
+      if (!navigator) {
+        navigator = std::make_unique<TGeoNavigator>(gGeoManager);
+        navigator->BuildCache();
+        navigator->GetCache()->BuildInfoBranch();
+      }
+      navigator->CdTop();
+      auto* node = navigator->FindNode(particle.Vx(), particle.Vy(), particle.Vz());
+      if (node && node->GetVolume() && node->GetVolume()->GetMedium()) {
+        medium = o2::data::detail::trackTransportMediumCode(node->GetVolume()->GetMedium()->GetName());
+      }
+    }
+    auto features = o2::data::detail::makeTrackTransportFeatures(particle, motherPdg, medium, eventX, eventY, eventZ);
+    if (!o2::data::detail::validTrackTransportFeatures(features)) {
+      return true;
+    }
+    std::vector<std::vector<float>> inputs{std::move(features)};
+    auto output = mModel.inference<float, float>(inputs);
+    if (static_cast<size_t>(mOutputIndex) >= output.size()) {
+      throw std::runtime_error("Stack.transportPrimaryOnnxOutputIndex is outside the model output");
+    }
+    return o2::data::detail::transportFromOnnxScore(output[mOutputIndex], mThreshold, mApplySigmoid, mInvert);
+  }
+
+ private:
+  std::vector<char> mModelBytes; // Must outlive the session (members are destroyed in reverse order).
+  o2::ml::OrtModel mModel;
+  std::mutex mMutex;
+  std::map<std::thread::id, std::unique_ptr<TGeoNavigator>> mNavigators;
+  double mThreshold;
+  int mOutputIndex;
+  bool mApplySigmoid;
+  bool mInvert;
+};
+} // namespace
 
 // small helper function to append to vector at arbitrary position
 template <typename T, typename I>
@@ -100,16 +224,31 @@ Stack::Stack(Int_t size)
     transportPrimary = o2::conf::GetFromMacro<o2::data::Stack::TransportFcn>(param.transportPrimaryFileName,
                                                                              param.transportPrimaryFuncName,
                                                                              "o2::data::Stack::TransportFcn", "stack_transport_primary");
-    if (!mTransportPrimary) {
+    if (!transportPrimary) {
       LOG(fatal) << "Failed to retrieve external \'transportPrimary\' function: problem with configuration ";
     }
     LOG(info) << "Successfully retrieve external \'transportPrimary\' frunction: " << param.transportPrimaryFileName;
+  } else if (param.transportPrimary.compare("onnx") == 0) {
+    try {
+      auto classifier = std::make_shared<OnnxTrackTransport>(param);
+      mTransportTrack = [classifier](const TParticle& p, double motherPdg, double eventX, double eventY, double eventZ) {
+        return classifier->transport(p, motherPdg, eventX, eventY, eventZ);
+      };
+      // ONNX runs at PreTrack, where geometry and the birth state are available,
+      // also in parallel simulation. Secondaries require an explicit opt-in.
+      transportPrimary = [](const TParticle&, const std::vector<TParticle>&) { return true; };
+      LOG(info) << "Successfully configured ONNX track transport pruning from CCDB path "
+                << param.transportPrimaryOnnxCCDBPath
+                << "; secondary pruning=" << param.transportPrimaryOnnxSecondaries;
+    } catch (const std::exception& error) {
+      LOG(fatal) << "Failed to configure ONNX track transport pruning: " << error.what();
+    }
   } else {
     LOG(fatal) << "unsupported \'trasportPrimary\' mode: " << param.transportPrimary;
   }
 
-  if (param.transportPrimaryInvert) {
-    mTransportPrimary = [transportPrimary](const TParticle& p, const std::vector<TParticle>& particles) { return !transportPrimary; };
+  if (param.transportPrimaryInvert && param.transportPrimary != "onnx") {
+    mTransportPrimary = [transportPrimary](const TParticle& p, const std::vector<TParticle>& particles) { return !transportPrimary(p, particles); };
   } else {
     mTransportPrimary = transportPrimary;
   }
@@ -133,7 +272,9 @@ Stack::Stack(const Stack& rhs)
     mMinHits(rhs.mMinHits),
     mEnergyCut(rhs.mEnergyCut),
     mTrackRefs(new std::vector<o2::TrackReference>),
-    mIsG4Like(rhs.mIsG4Like)
+    mIsG4Like(rhs.mIsG4Like),
+    mTransportPrimary(rhs.mTransportPrimary),
+    mTransportTrack(rhs.mTransportTrack)
 {
   LOG(debug) << "copy constructor called";
   mTracks = new std::vector<MCTrack>();
@@ -169,6 +310,8 @@ Stack& Stack::operator=(const Stack& rhs)
   mMinHits = rhs.mMinHits;
   mEnergyCut = rhs.mEnergyCut;
   mIsG4Like = rhs.mIsG4Like;
+  mTransportPrimary = rhs.mTransportPrimary;
+  mTransportTrack = rhs.mTransportTrack;
 
   return *this;
 }
@@ -267,6 +410,67 @@ void Stack::handleTransportPrimary(TParticle& p)
     p.SetBit(ParticleStatus::kToBeDone, 0);
     p.SetBit(ParticleStatus::kInhibited, 1);
   }
+}
+
+bool Stack::transportTrack(const TParticle& particle, double eventX, double eventY, double eventZ)
+{
+  if (!mTransportTrack) {
+    return true;
+  }
+  const int id = mIndexOfCurrentTrack;
+  const bool isRoot = id >= 0 && id < static_cast<int>(mPrimaryParticles.size());
+  if (!isRoot && !o2::sim::StackParam::Instance().transportPrimaryOnnxSecondaries) {
+    return true;
+  }
+  // Read ancestry from the indexed MCTrack, never mCurrentParticle0: Geant4
+  // owns its secondary queue and that cache can describe a different sibling.
+  auto trackByID = [this](int trackID) -> const MCTrack* {
+    if (trackID < 0) {
+      return nullptr;
+    }
+    if (trackID < static_cast<int>(mPrimaryParticles.size())) {
+      return trackID < static_cast<int>(mTracks->size()) ? &(*mTracks)[trackID] : nullptr;
+    }
+    if (trackID < static_cast<int>(mTrackIDtoParticlesEntry.size())) {
+      const int entry = mTrackIDtoParticlesEntry[trackID];
+      if (entry >= 0 && entry < static_cast<int>(mParticles.size())) {
+        return &mParticles[entry];
+      }
+    }
+    return nullptr;
+  };
+  const auto* current = trackByID(id);
+  if (!current) {
+    return true;
+  }
+  double motherPdg = 0.;
+  if (const int motherID = current->getMotherTrackId(); motherID >= 0) {
+    const auto* mother = trackByID(motherID);
+    motherPdg = mother ? mother->GetPdgCode() : std::numeric_limits<double>::quiet_NaN();
+  }
+  if (mTransportTrack(particle, motherPdg, eventX, eventY, eventZ)) {
+    return true;
+  }
+  // Keep bookkeeping and ancestry, but mark the birth track as inhibited.
+  // Do not alter the primary completion count: its PreTrack/FinishPrimary
+  // lifecycle has already started and will still be completed by the engine.
+  auto inhibit = [](TParticle& p) {
+    p.SetBit(ParticleStatus::kToBeDone, 0);
+    p.SetBit(ParticleStatus::kInhibited, 1);
+  };
+  inhibit(mCurrentParticle);
+  if (id >= 0 && id < static_cast<int>(mPrimaryParticles.size())) {
+    inhibit(mPrimaryParticles[id]);
+    (*mTracks)[id].setToBeDone(false);
+    (*mTracks)[id].setInhibited(true);
+  } else if (id >= 0 && id < static_cast<int>(mTrackIDtoParticlesEntry.size())) {
+    const int entry = mTrackIDtoParticlesEntry[id];
+    if (entry >= 0 && entry < static_cast<int>(mParticles.size())) {
+      mParticles[entry].setToBeDone(false);
+      mParticles[entry].setInhibited(true);
+    }
+  }
+  return false;
 }
 
 void Stack::PushTrack(int toBeDone, TParticle& p)
