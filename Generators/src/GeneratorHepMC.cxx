@@ -706,7 +706,7 @@ Bool_t GeneratorHepMC::generateEventOrdered()
   // The entry to be read is fixed by the event order established at file opening
   if (mEventCounter >= (int)mEventOrder.size()) {
     if (not mRoundRobin) {
-      auto requested = getTotalNEvents();
+      auto requested = getExpectedNEvents();
       LOG(fatal) << "GeneratorHepMC: ran out of events after " << mEventsServed
                  << " event(s) from " << mCurrentFileName
                  << (requested > 0 ? " (" + std::to_string(requested) + " were requested)" : "")
@@ -863,7 +863,7 @@ Bool_t GeneratorHepMC::Init()
       return false;
     }
     establishEventOrder();
-    auto requested = getTotalNEvents();
+    auto requested = getExpectedNEvents();
     if (requested > 0 and not mRoundRobin and mEventOrder.size() < requested) {
       LOG(warn) << "This job will request " << requested << " events, but the input holds "
                 << "only " << mEventOrder.size() << " usable event(s). The job will stop "
