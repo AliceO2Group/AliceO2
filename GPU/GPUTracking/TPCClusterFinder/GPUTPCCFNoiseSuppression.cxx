@@ -60,7 +60,7 @@ GPUdii() void GPUTPCCFNoiseSuppression::noiseSuppressionImpl(int32_t nBlocks, in
     smem.buf,
     &minimas,
     &bigger,
-    &peaksAround);
+    &peaksAround GPUCA_THREAD_INFO_PROVIDE);
 
   peaksAround &= bigger;
 
@@ -173,7 +173,7 @@ GPUd() void GPUTPCCFNoiseSuppression::findMinimaAndPeaks(
   PackedCharge* buf,
   uint64_t* minimas,
   uint64_t* bigger,
-  uint64_t* peaks)
+  uint64_t* peaks GPUCA_THREAD_INFO_DECL)
 {
   uint16_t ll = get_local_id(0);
 

@@ -32,13 +32,13 @@ class GPUCommonAlgorithm
   template <class T>
   GPUd() static void sort(T* begin, T* end);
   template <class T>
-  GPUd() static void sortInBlock(T* begin, T* end);
+  GPUd() static void sortInBlock(T* begin, T* end GPUCA_THREAD_INFO_DECL);
   template <class T>
   GPUd() static void sortDeviceDynamic(T* begin, T* end);
   template <class T, class S>
   GPUd() static void sort(T* begin, T* end, const S& comp);
   template <class T, class S>
-  GPUd() static void sortInBlock(T* begin, T* end, const S& comp);
+  GPUd() static void sortInBlock(T* begin, T* end, const S& comp GPUCA_THREAD_INFO_DECL);
   template <class T, class S>
   GPUd() static void sortDeviceDynamic(T* begin, T* end, const S& comp);
 #if __cplusplus >= 202002L // sortOnDevice takes an auto parameter
@@ -268,17 +268,17 @@ GPUdi() void GPUCommonAlgorithm::sort(T* begin, T* end, const S& comp)
 }
 
 template <class T>
-GPUdi() void GPUCommonAlgorithm::sortInBlock(T* begin, T* end)
+GPUdi() void GPUCommonAlgorithm::sortInBlock(T* begin, T* end GPUCA_THREAD_INFO_DECL)
 {
 #ifndef GPUCA_GPUCODE
   GPUCommonAlgorithm::sort(begin, end);
 #else
-  GPUCommonAlgorithm::sortInBlock(begin, end, [](auto&& x, auto&& y) { return x < y; });
+  GPUCommonAlgorithm::sortInBlock(begin, end, [](auto&& x, auto&& y) { return x < y; } GPUCA_THREAD_INFO_PROVIDE);
 #endif
 }
 
 template <class T, class S>
-GPUdi() void GPUCommonAlgorithm::sortInBlock(T* begin, T* end, const S& comp)
+GPUdi() void GPUCommonAlgorithm::sortInBlock(T* begin, T* end, const S& comp GPUCA_THREAD_INFO_DECL)
 {
 #ifndef GPUCA_GPUCODE
   GPUCommonAlgorithm::sort(begin, end, comp);

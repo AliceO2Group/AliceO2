@@ -49,7 +49,7 @@ GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int32_t nBlocks, int32_t 
     smem.buf,
     smem.innerAboveThreshold,
     &pc,
-    labelAcc);
+    labelAcc GPUCA_THREAD_INFO_PROVIDE);
 
   if (idx >= clusternum) {
     return;
@@ -151,7 +151,7 @@ GPUdii() void GPUTPCCFClusterizer::buildCluster(
   PackedCharge* buf,
   uint8_t* innerAboveThreshold,
   ClusterAccumulator* myCluster,
-  MCLabelAccumulator* labelAcc)
+  MCLabelAccumulator* labelAcc GPUCA_THREAD_INFO_DECL)
 {
   uint16_t ll = get_local_id(0);
 
