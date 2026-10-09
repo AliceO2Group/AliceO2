@@ -286,5 +286,16 @@
   #define get_group_id(dim) iBlock
 #endif
 
+// A device function that uses the helpers above but has none of the indices in
+// scope needs them passed in on Metal, where they are ordinary parameters.
+// Both expand to nothing everywhere else, and go last in the parameter list.
+#ifdef __METAL__
+  #define GPUCA_THREAD_INFO_DECL , int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread
+  #define GPUCA_THREAD_INFO_PROVIDE , nBlocks, nThreads, iBlock, iThread
+#else
+  #define GPUCA_THREAD_INFO_DECL
+  #define GPUCA_THREAD_INFO_PROVIDE
+#endif
+
 // clang-format on
 #endif

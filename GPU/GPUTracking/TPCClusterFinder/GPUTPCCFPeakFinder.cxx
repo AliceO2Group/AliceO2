@@ -38,7 +38,7 @@ GPUdii() bool GPUTPCCFPeakFinder::isPeak(
   const CfArray2D<PackedCharge>& chargeMap,
   const GPUSettingsRec& calib,
   CfChargePos* posBcast,
-  PackedCharge* buf)
+  PackedCharge* buf GPUCA_THREAD_INFO_DECL)
 {
   uint16_t ll = get_local_id(0);
 
@@ -111,7 +111,7 @@ GPUd() void GPUTPCCFPeakFinder::findPeaksImpl(int32_t nBlocks, int32_t nThreads,
   bool hasLostBaseline = pos.valid() ? padHasLostBaseline[pos.gpad] : true;
   charge = hasLostBaseline ? 0.f : charge;
 
-  uint8_t peak = isPeak(smem, charge, pos, SCRATCH_PAD_SEARCH_N, chargeMap, calib, smem.posBcast, smem.buf);
+  uint8_t peak = isPeak(smem, charge, pos, SCRATCH_PAD_SEARCH_N, chargeMap, calib, smem.posBcast, smem.buf GPUCA_THREAD_INFO_PROVIDE);
 
   // Exit early if dummy. See comment above.
   bool iamDummy = (idx >= digitnum);
