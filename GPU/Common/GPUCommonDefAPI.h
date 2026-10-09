@@ -277,6 +277,16 @@
   #define get_group_id(dim) (blockIdx.x)
 #elif defined(__OPENCL__)
   // Using OpenCL defaults
+#elif defined(__METAL__)
+  // MSL has no work-item builtins. They arrive as attributes on the entry point,
+  // named there after the nBlocks / nThreads / iBlock / iThread that Thread()
+  // already takes, so these resolve both there and in every function below it.
+  #define get_global_id(dim) (iBlock * nThreads + iThread)
+  #define get_global_size(dim) (nBlocks * nThreads)
+  #define get_num_groups(dim) (nBlocks)
+  #define get_local_id(dim) (iThread)
+  #define get_local_size(dim) (nThreads)
+  #define get_group_id(dim) (iBlock)
 #else
   #define get_global_id(dim) iBlock
   #define get_global_size(dim) nBlocks

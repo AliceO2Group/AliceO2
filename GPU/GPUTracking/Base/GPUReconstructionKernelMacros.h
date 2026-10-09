@@ -63,8 +63,17 @@
 #define GPUCA_ATTRRES(...) GPUCA_M_EXPAND(GPUCA_M_CAT(GPUCA_ATTRRES_, GPUCA_M_FIRST(__VA_ARGS__)))(__VA_ARGS__)
 
 // GPU Kernel entry point
+// MSL requires every kernel parameter to carry an attribute, and supplies the
+// grid dimensions the same way, so the backend gets to shape both ends of the
+// parameter list.
+#ifndef GPUCA_KRNL_SECTOR_ARG
+#define GPUCA_KRNL_SECTOR_ARG int32_t _iSector_internal
+#endif
+#ifndef GPUCA_KRNL_GRID_ARGS
+#define GPUCA_KRNL_GRID_ARGS
+#endif
 #define GPUCA_KRNLGPU_DEF(x_class, x_attributes, x_arguments, ...) \
-  GPUg() void GPUCA_ATTRRES(GPUCA_M_STRIP(x_attributes)) GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class))(GPUCA_CONSMEM_PTR int32_t _iSector_internal GPUCA_M_STRIP(x_arguments))
+  GPUg() void GPUCA_ATTRRES(GPUCA_M_STRIP(x_attributes)) GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class))(GPUCA_CONSMEM_PTR GPUCA_KRNL_SECTOR_ARG GPUCA_M_STRIP(x_arguments) GPUCA_KRNL_GRID_ARGS)
 
 #ifdef GPUCA_KRNL_DEFONLY
 #define GPUCA_KRNLGPU(...) GPUCA_KRNLGPU_DEF(__VA_ARGS__);
