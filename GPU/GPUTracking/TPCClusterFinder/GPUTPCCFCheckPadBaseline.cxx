@@ -773,7 +773,7 @@ GPUd() void GPUTPCCFHIPTailConnector::Thread<0>(int32_t nBlocks, int32_t nThread
     } else {
       return t1.qMax < t2.qMax;
     }
-  });
+  } GPUCA_THREAD_INFO_PROVIDE);
   if (iThread > 0) {
     return;
   }

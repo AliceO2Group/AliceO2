@@ -344,7 +344,7 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::pub
         smem.buf,
         smem.innerAboveThreshold,
         &dummy_pc,
-        labelAcc);
+        labelAcc GPUCA_THREAD_INFO_PROVIDE);
     }
     return;
   }
@@ -364,7 +364,7 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::pub
       smem.buf,
       smem.innerAboveThreshold,
       &dummy_pc,
-      labelAcc);
+      labelAcc GPUCA_THREAD_INFO_PROVIDE);
   }
   if ((clusterer.mPmemory->fragment).isOverlap(peak.time())) {
     if (clusterer.mPclusterPosInRow) {
@@ -538,7 +538,7 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::pub
         smem.buf,
         smem.innerAboveThreshold,
         &dummy_pc,
-        labelAcc);
+        labelAcc GPUCA_THREAD_INFO_PROVIDE);
     }
     return;
   }
@@ -558,7 +558,7 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::pub
       smem.buf,
       smem.innerAboveThreshold,
       &dummy_pc,
-      labelAcc);
+      labelAcc GPUCA_THREAD_INFO_PROVIDE);
   }
   if ((clusterer.mPmemory->fragment).isOverlap(peak.time())) {
     if (clusterer.mPclusterPosInRow) {

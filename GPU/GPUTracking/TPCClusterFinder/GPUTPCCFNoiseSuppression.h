@@ -69,7 +69,7 @@ class GPUTPCCFNoiseSuppression : public GPUKernelTemplate
 
   static GPUdi() bool keepPeak(uint64_t, uint64_t);
 
-  static GPUd() void findMinimaAndPeaks(const CfArray2D<PackedCharge>&, const CfArray2D<uint8_t>&, const GPUSettingsRec&, float, const CfChargePos&, CfChargePos*, PackedCharge*, uint64_t*, uint64_t*, uint64_t*);
+  static GPUd() void findMinimaAndPeaks(const CfArray2D<PackedCharge>&, const CfArray2D<uint8_t>&, const GPUSettingsRec&, float, const CfChargePos&, CfChargePos*, PackedCharge*, uint64_t*, uint64_t*, uint64_t* GPUCA_THREAD_INFO_DECL);
 };
 
 } // namespace o2::gpu
