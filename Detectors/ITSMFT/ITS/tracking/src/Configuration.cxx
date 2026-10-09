@@ -308,6 +308,7 @@ std::vector<TrackingParameters> TrackingMode::getTrackingParameters(TrackingMode
     seedingPass.VertPerRofThreshold = vc.vertPerRofThreshold;
     seedingPass.VtxPhiCut = vc.phiCut;
     seedingPass.VtxLineMinPt = vc.lineMinPt;
+    seedingPass.VtxLineCurvatureScale = vc.lineCurvatureScale;
     seedingPass.VtxMaxZPositionAllowed = vc.maxZPositionAllowed;
     seedingPass.VtxClusterCut = vc.clusterCut;
     seedingPass.VtxPairCut = vc.pairCut;
@@ -322,6 +323,7 @@ std::vector<TrackingParameters> TrackingMode::getTrackingParameters(TrackingMode
     seedingPass.VtxGoodContributorsSignificance = vc.goodContributorsSignificance;
     seedingPass.VtxClusterContributorsCut = vc.clusterContributorsCut;
     seedingPass.VtxSuppressLowMultDebris = vc.suppressLowMultDebris;
+    seedingPass.VtxOverpopulatedRofNSigma = vc.overpopulatedRofNSigma;
     std::vector<TrackingParameters> seedingPasses;
     seedingPasses.push_back(seedingPass);
 
