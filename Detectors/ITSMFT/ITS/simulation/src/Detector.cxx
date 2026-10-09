@@ -24,6 +24,8 @@
 
 #include "DetectorsBase/Stack.h"
 #include "SimulationDataFormat/TrackReference.h"
+#include "SimulationDataFormat/MonopoleParticles.h"
+#include "SimConfig/G4Params.h"
 #include "fairlogger/Logger.h" // for LOG, LOG_IF
 
 // FairRoot includes
@@ -318,7 +320,15 @@ void Detector::InitializeO2Detector()
 Bool_t Detector::ProcessHits(FairVolume* vol)
 {
   // This method is called from the MC stepping
-  if (!(fMC->TrackCharge())) {
+  // Electrically neutral magnetic monopoles deposit energy in the
+  // silicon through G4mplIonisation (Ahlen stopping power), so they must not be
+  // rejected by the electric-charge gate. The PDG lookup only runs for neutral
+  // particles in runs with monopole physics enabled.
+  // To-do: handle dyons.
+  static const bool sMonopoleIonisation = o2::conf::G4Params::Instance().monopole;
+  const bool isNeutral = (fMC->TrackCharge() == 0);
+  const bool isMonopole = isNeutral && sMonopoleIonisation && o2::sim::isMonopole(fMC->TrackPid());
+  if (isNeutral && !isMonopole) {
     return kFALSE;
   }
 
@@ -386,6 +396,10 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
     mTrackData.mHitStarted = true;
   }
   if (stopHit) {
+    // A monopole that deposited nothing in the sensor leaves no hit
+    if (isMonopole && mTrackData.mEnergyLoss <= 0.) {
+      return kFALSE;
+    }
     TLorentzVector positionStop;
     fMC->TrackPosition(positionStop);
     // Retrieve the indices with the volume path
