@@ -25,6 +25,9 @@
 
 #include <fairlogger/Logger.h>
 
+#include <map>
+#include <string>
+
 #include "MFTBase/LadderSegmentation.h"
 #include "MFTBase/ChipSegmentation.h"
 #include "MFTBase/Flex.h"
@@ -53,33 +56,76 @@ Flex::Flex(LadderSegmentation* ladder) : mFlexOrigin(), mLadderSeg(ladder)
 }
 
 //_____________________________________________________________________________
+std::string Flex::composeFlexName(Int_t nbsensors) { return "flex_" + std::to_string(nbsensors); }
+
+//_____________________________________________________________________________
+std::string Flex::composeFlexLayerName(const char* layer, Int_t nbsensors, Int_t iflag)
+{
+  std::string name = std::string(layer) + "_" + std::to_string(nbsensors);
+  if (iflag >= 0) {
+    name += "_" + std::to_string(iflag);
+  }
+  return name;
+}
+
+//_____________________________________________________________________________
+TGeoVolumeAssembly* Flex::getFlexVolume(Int_t nbsensors)
+{
+  if (!gGeoManager) {
+    return nullptr;
+  }
+  return dynamic_cast<TGeoVolumeAssembly*>(gGeoManager->GetVolume(composeFlexName(nbsensors).c_str()));
+}
+
+//_____________________________________________________________________________
 TGeoVolumeAssembly* Flex::makeFlex(Int_t nbsensors, Double_t length)
 {
 
   // Informations from the technical report mft_flex_proto_5chip_v08_laz50p.docx on MFT twiki and private communications
 
-  // For the naming
-  Geometry* mftGeom = Geometry::instance();
-  Int_t idHalfMFT = mftGeom->getHalfID(mLadderSeg->GetUniqueID());
-  Int_t idHalfDisk = mftGeom->getDiskID(mLadderSeg->GetUniqueID());
-  Int_t idLadder = mftGeom->getLadderID(mLadderSeg->GetUniqueID());
+  // Ladders carrying the same number of sensors get the same flex: Ladder.cxx derives the
+  // flex length from that count alone, and nothing built below depends on which ladder asked
+  // for it. MFT has four such classes, so build one flex per class and place it on every
+  // ladder of that class instead of building 280 identical copies.
+  static TGeoManager* cacheOwner = nullptr;
+  static std::map<Int_t, TGeoVolumeAssembly*> flexPerClass;
+  static std::map<Int_t, Double_t> lengthPerClass;
+  if (cacheOwner != gGeoManager) {
+    // a new geometry leaves every cached pointer dangling
+    cacheOwner = gGeoManager;
+    flexPerClass.clear();
+    lengthPerClass.clear();
+  }
+  auto cached = flexPerClass.find(nbsensors);
+  if (cached != flexPerClass.end()) {
+    if (length != lengthPerClass[nbsensors]) {
+      LOG(fatal) << "Flex::makeFlex: the flex for " << nbsensors << " sensors was built with length "
+                 << lengthPerClass[nbsensors] << " but this call asks for " << length
+                 << " - the per-class flex cache assumes the length follows the sensor count";
+    }
+    return cached->second;
+  }
 
-  // First a global pointer for the flex
-  TGeoMedium* kMedAir = gGeoManager->GetMedium("MFT_Air$");
-  auto* flex = new TGeoVolumeAssembly(Form("flex_%d_%d_%d", idHalfMFT, idHalfDisk, idLadder));
+  Geometry* mftGeom = Geometry::instance();
+  LOG(debug) << "Flex::makeFlex: building the flex for " << nbsensors << " sensors, first asked for by ladder "
+             << mftGeom->getHalfID(mLadderSeg->GetUniqueID()) << "/"
+             << mftGeom->getDiskID(mLadderSeg->GetUniqueID()) << "/"
+             << mftGeom->getLadderID(mLadderSeg->GetUniqueID());
+
+  auto* flex = new TGeoVolumeAssembly(composeFlexName(nbsensors).c_str());
 
   // Defining one single layer for the strips and the AVDD and DVDD
   TGeoVolume* lines = makeLines(nbsensors, length - Geometry::sClearance, Geometry::sFlexHeight - Geometry::sClearance,
                                 Geometry::sAluThickness);
 
   // AGND and DGND layers
-  TGeoVolume* agnd_dgnd = makeAGNDandDGND(length - Geometry::sClearance, Geometry::sFlexHeight - Geometry::sClearance,
-                                          Geometry::sAluThickness);
+  TGeoVolume* agnd_dgnd = makeAGNDandDGND(nbsensors, length - Geometry::sClearance,
+                                          Geometry::sFlexHeight - Geometry::sClearance, Geometry::sAluThickness);
 
   // The others layers
-  TGeoVolume* kaptonlayer = makeKapton(length, Geometry::sFlexHeight, Geometry::sKaptonThickness);
-  TGeoVolume* varnishlayerIn = makeVarnish(length, Geometry::sFlexHeight, Geometry::sVarnishThickness, 0);
-  TGeoVolume* varnishlayerOut = makeVarnish(length, Geometry::sFlexHeight, Geometry::sVarnishThickness, 1);
+  TGeoVolume* kaptonlayer = makeKapton(nbsensors, length, Geometry::sFlexHeight, Geometry::sKaptonThickness);
+  TGeoVolume* varnishlayerIn = makeVarnish(nbsensors, length, Geometry::sFlexHeight, Geometry::sVarnishThickness, 0);
+  TGeoVolume* varnishlayerOut = makeVarnish(nbsensors, length, Geometry::sFlexHeight, Geometry::sVarnishThickness, 1);
 
   // Final flex building
   Double_t zvarnishIn = Geometry::sKaptonThickness / 2 + Geometry::sAluThickness + Geometry::sVarnishThickness / 2 -
@@ -101,6 +147,9 @@ TGeoVolumeAssembly* Flex::makeFlex(Int_t nbsensors, Double_t length)
   flex->AddNode(varnishlayerOut, 1, new TGeoTranslation(0., 0., zvarnishOut)); // outside
 
   makeElectricComponents(flex, nbsensors, length, zvarnishOut);
+
+  flexPerClass[nbsensors] = flex;
+  lengthPerClass[nbsensors] = length;
 
   return flex;
 }
@@ -178,27 +227,52 @@ void Flex::makeElectricComponents(TGeoVolumeAssembly* flex, Int_t nbsensors, Dou
   */
 
   //-------------------------- New Connector ----------------------
-  TGeoMedium* kMedAlu = gGeoManager->GetMedium("MFT_Alu$");
-  TGeoMedium* kMedPeek = gGeoManager->GetMedium("MFT_PEEK$");
+  Double_t interspace = 0.1;    // interspace inside the 2 ranges of connector pads
+  Double_t step = 0.04;         // interspace between each pad inside the connector
+  Double_t boxthickness = 0.05; // wall thickness of the PEEK box around the pads
 
-  auto* connect = new TGeoBBox("connect", Geometry::sConnectorLength / 2, Geometry::sConnectorWidth / 2,
-                               Geometry::sConnectorHeight / 2);
-  auto* remov =
-    new TGeoBBox("remov", Geometry::sConnectorLength / 2, Geometry::sConnectorWidth / 2 + Geometry::sEpsilon,
-                 Geometry::sConnectorHeight / 2 + Geometry::sEpsilon);
+  // The connector pad and the PEEK box around it are the same solids on every flex - their
+  // dimensions come from Geometry constants only - so build them on the first call and place
+  // the same two volumes on every flex afterwards.
+  static TGeoManager* connectorCacheOwner = nullptr;
+  static TGeoVolume* connectord = nullptr;
+  static TGeoVolume* boxconnectord = nullptr;
+  if (connectorCacheOwner != gGeoManager) {
+    // a new geometry leaves every cached pointer dangling
+    connectorCacheOwner = gGeoManager;
+    connectord = nullptr;
+    boxconnectord = nullptr;
+  }
 
-  auto* t1 = new TGeoTranslation("t1", Geometry::sConnectorThickness, 0., -0.01);
-  auto* connecto = new TGeoSubtraction(connect, remov, nullptr, t1);
-  auto* connector = new TGeoCompositeShape("connector", connecto);
-  auto* connectord = new TGeoVolume("connectord", connector, kMedAlu);
-  connectord->SetVisibility(kTRUE);
-  connectord->SetLineColor(kRed);
-  connectord->SetLineWidth(1);
-  connectord->SetFillColor(connectord->GetLineColor());
-  connectord->SetFillStyle(4000); // 0% transparent
+  if (!connectord) {
+    TGeoMedium* kMedAlu = gGeoManager->GetMedium("MFT_Alu$");
+    TGeoMedium* kMedPeek = gGeoManager->GetMedium("MFT_PEEK$");
 
-  Double_t interspace = 0.1; // interspace inside the 2 ranges of connector pads
-  Double_t step = 0.04;      // interspace between each pad inside the connector
+    auto* connect = new TGeoBBox("connect", Geometry::sConnectorLength / 2, Geometry::sConnectorWidth / 2,
+                                 Geometry::sConnectorHeight / 2);
+    auto* remov =
+      new TGeoBBox("remov", Geometry::sConnectorLength / 2, Geometry::sConnectorWidth / 2 + Geometry::sEpsilon,
+                   Geometry::sConnectorHeight / 2 + Geometry::sEpsilon);
+
+    auto* t1 = new TGeoTranslation("t1", Geometry::sConnectorThickness, 0., -0.01);
+    auto* connecto = new TGeoSubtraction(connect, remov, nullptr, t1);
+    auto* connector = new TGeoCompositeShape("connector", connecto);
+    connectord = new TGeoVolume("connectord", connector, kMedAlu);
+    connectord->SetVisibility(kTRUE);
+    connectord->SetLineColor(kRed);
+    connectord->SetLineWidth(1);
+    connectord->SetFillColor(connectord->GetLineColor());
+    connectord->SetFillStyle(4000); // 0% transparent
+
+    auto* boxconnect = new TGeoBBox("boxconnect", (2 * Geometry::sConnectorThickness + interspace + boxthickness) / 2,
+                                    Geometry::sFlexHeight / 2 - 0.04, Geometry::sConnectorHeight / 2);
+    auto* boxremov = new TGeoBBox("boxremov", (2 * Geometry::sConnectorThickness + interspace) / 2,
+                                  (Geometry::sFlexHeight - 0.1 - step) / 2, Geometry::sConnectorHeight / 2 + 0.001);
+    auto* boxconnecto = new TGeoSubtraction(boxconnect, boxremov, nullptr, nullptr);
+    auto* boxconnector = new TGeoCompositeShape("boxconnector", boxconnecto);
+    boxconnectord = new TGeoVolume("boxconnectord", boxconnector, kMedPeek);
+  }
+
   for (Int_t id = 0; id < 37; id++) {
     flex->AddNode(
       connectord, id + total,
@@ -212,14 +286,6 @@ void Flex::makeElectricComponents(TGeoVolumeAssembly* flex, Int_t nbsensors, Dou
     flex->AddNode(connectord, id + total + 37, transformationpi);
   }
 
-  Double_t boxthickness = 0.05;
-  auto* boxconnect = new TGeoBBox("boxconnect", (2 * Geometry::sConnectorThickness + interspace + boxthickness) / 2,
-                                  Geometry::sFlexHeight / 2 - 0.04, Geometry::sConnectorHeight / 2);
-  auto* boxremov = new TGeoBBox("boxremov", (2 * Geometry::sConnectorThickness + interspace) / 2,
-                                (Geometry::sFlexHeight - 0.1 - step) / 2, Geometry::sConnectorHeight / 2 + 0.001);
-  auto* boxconnecto = new TGeoSubtraction(boxconnect, boxremov, nullptr, nullptr);
-  auto* boxconnector = new TGeoCompositeShape("boxconnector", boxconnecto);
-  auto* boxconnectord = new TGeoVolume("boxconnectord", boxconnector, kMedPeek);
   flex->AddNode(boxconnectord, 1,
                 new TGeoTranslation(length / 2 - Geometry::sConnectorOffset, -step / 2,
                                     zvarnish - Geometry::sVarnishThickness / 2 - Geometry::sConnectorHeight / 2 -
@@ -230,16 +296,18 @@ void Flex::makeElectricComponents(TGeoVolumeAssembly* flex, Int_t nbsensors, Dou
 TGeoVolumeAssembly* Flex::makeElectricComponent(Double_t dx, Double_t dy, Double_t dz, Int_t id)
 {
 
-  Geometry* mftGeom = Geometry::instance();
-  Int_t idHalfMFT = mftGeom->getHalfID(mLadderSeg->GetUniqueID());
-  Int_t idHalfDisk = mftGeom->getDiskID(mLadderSeg->GetUniqueID());
-  Int_t idLadder = mftGeom->getLadderID(mLadderSeg->GetUniqueID());
   //------------------------------------------------------
   // X7R0402 (and its capacitor/welding0/welding1 children) is geometrically identical at
   // every call site (dx,dy,dz are always Geometry::sCapacitorDy/Dx/Dz) — build the whole
   // assembly once, place it many times.
+  static TGeoManager* cacheOwner = nullptr;
   static TGeoVolumeAssembly* X7R0402 = nullptr;
   static Double_t sCachedDx = 0., sCachedDy = 0., sCachedDz = 0.;
+  if (cacheOwner != gGeoManager) {
+    // a new geometry leaves the cached pointer dangling
+    cacheOwner = gGeoManager;
+    X7R0402 = nullptr;
+  }
   if (X7R0402) {
     if (dx != sCachedDx || dy != sCachedDy || dz != sCachedDz) {
       LOG(fatal) << "Flex::makeElectricComponent: cached X7R0402 assembly was built with "
@@ -400,15 +468,10 @@ TGeoVolume* Flex::makeLines(Int_t nbsensors, Double_t length, Double_t widthflex
     kTotalLinesNb++;
   }
 
-  Geometry* mftGeom = Geometry::instance();
-  Int_t idHalfMFT = mftGeom->getHalfID(mLadderSeg->GetUniqueID());
-  Int_t idHalfDisk = mftGeom->getDiskID(mLadderSeg->GetUniqueID());
-  Int_t idLadder = mftGeom->getLadderID(mLadderSeg->GetUniqueID());
-
   TGeoMedium* kMedAlu = gGeoManager->GetMedium("MFT_Alu$");
 
-  auto* lineslayer =
-    new TGeoVolume(Form("lineslayer_%d_%d_%d", idHalfMFT, idHalfDisk, idLadder), layern[kTotalLinesNb - 1], kMedAlu);
+  auto* lineslayer = new TGeoVolume(composeFlexLayerName("lineslayer", nbsensors).c_str(),
+                                    layern[kTotalLinesNb - 1], kMedAlu);
   lineslayer->SetVisibility(true);
   lineslayer->SetLineColor(kBlue);
 
@@ -416,7 +479,7 @@ TGeoVolume* Flex::makeLines(Int_t nbsensors, Double_t length, Double_t widthflex
 }
 
 //_____________________________________________________________________________
-TGeoVolume* Flex::makeAGNDandDGND(Double_t length, Double_t widthflex, Double_t thickness)
+TGeoVolume* Flex::makeAGNDandDGND(Int_t nbsensors, Double_t length, Double_t widthflex, Double_t thickness)
 {
 
   // AGND and DGND layers
@@ -464,13 +527,8 @@ TGeoVolume* Flex::makeAGNDandDGND(Double_t length, Double_t widthflex, Double_t 
 
   //--------------
 
-  Geometry* mftGeom = Geometry::instance();
-  Int_t idHalfMFT = mftGeom->getHalfID(mLadderSeg->GetUniqueID());
-  Int_t idHalfDisk = mftGeom->getDiskID(mLadderSeg->GetUniqueID());
-  Int_t idLadder = mftGeom->getLadderID(mLadderSeg->GetUniqueID());
-
   TGeoMedium* kMedAlu = gGeoManager->GetMedium("MFT_Alu$");
-  auto* alulayer = new TGeoVolume(Form("alulayer_%d_%d_%d", idHalfMFT, idHalfDisk, idLadder), layern[2], kMedAlu);
+  auto* alulayer = new TGeoVolume(composeFlexLayerName("alulayer", nbsensors).c_str(), layern[2], kMedAlu);
   alulayer->SetVisibility(true);
   alulayer->SetLineColor(kBlue);
 
@@ -478,7 +536,7 @@ TGeoVolume* Flex::makeAGNDandDGND(Double_t length, Double_t widthflex, Double_t 
 }
 
 //_____________________________________________________________________________
-TGeoVolume* Flex::makeKapton(Double_t length, Double_t widthflex, Double_t thickness)
+TGeoVolume* Flex::makeKapton(Int_t nbsensors, Double_t length, Double_t widthflex, Double_t thickness)
 {
 
   auto* layer = new TGeoBBox("layer", length / 2, widthflex / 2, thickness / 2);
@@ -494,14 +552,9 @@ TGeoVolume* Flex::makeKapton(Double_t length, Double_t widthflex, Double_t thick
   auto* layerholesub2 = new TGeoSubtraction(layerhole1, hole2, nullptr, t2);
   auto* layerhole2 = new TGeoCompositeShape("layerhole2", layerholesub2);
 
-  Geometry* mftGeom = Geometry::instance();
-  Int_t idHalfMFT = mftGeom->getHalfID(mLadderSeg->GetUniqueID());
-  Int_t idHalfDisk = mftGeom->getDiskID(mLadderSeg->GetUniqueID());
-  Int_t idLadder = mftGeom->getLadderID(mLadderSeg->GetUniqueID());
-
   TGeoMedium* kMedKapton = gGeoManager->GetMedium("MFT_Kapton$");
   auto* kaptonlayer =
-    new TGeoVolume(Form("kaptonlayer_%d_%d_%d", idHalfMFT, idHalfDisk, idLadder), layerhole2, kMedKapton);
+    new TGeoVolume(composeFlexLayerName("kaptonlayer", nbsensors).c_str(), layerhole2, kMedKapton);
   kaptonlayer->SetVisibility(true);
   kaptonlayer->SetLineColor(kYellow);
 
@@ -509,7 +562,7 @@ TGeoVolume* Flex::makeKapton(Double_t length, Double_t widthflex, Double_t thick
 }
 
 //_____________________________________________________________________________
-TGeoVolume* Flex::makeVarnish(Double_t length, Double_t widthflex, Double_t thickness, Int_t iflag)
+TGeoVolume* Flex::makeVarnish(Int_t nbsensors, Double_t length, Double_t widthflex, Double_t thickness, Int_t iflag)
 {
 
   auto* layer = new TGeoBBox("layer", length / 2, widthflex / 2, thickness / 2);
@@ -525,16 +578,11 @@ TGeoVolume* Flex::makeVarnish(Double_t length, Double_t widthflex, Double_t thic
   auto* layerholesub2 = new TGeoSubtraction(layerhole1, hole2, nullptr, t2);
   auto* layerhole2 = new TGeoCompositeShape("layerhole2", layerholesub2);
 
-  Geometry* mftGeom = Geometry::instance();
-  Int_t idHalfMFT = mftGeom->getHalfID(mLadderSeg->GetUniqueID());
-  Int_t idHalfDisk = mftGeom->getDiskID(mLadderSeg->GetUniqueID());
-  Int_t idLadder = mftGeom->getLadderID(mLadderSeg->GetUniqueID());
-
   TGeoMedium* kMedVarnish = gGeoManager->GetMedium("MFT_Epoxy$"); // we assume that varnish = epoxy ...
   TGeoMaterial* kMatVarnish = kMedVarnish->GetMaterial();
   // kMatVarnish->Dump();
   auto* varnishlayer =
-    new TGeoVolume(Form("varnishlayer_%d_%d_%d_%d", idHalfMFT, idHalfDisk, idLadder, iflag), layerhole2, kMedVarnish);
+    new TGeoVolume(composeFlexLayerName("varnishlayer", nbsensors, iflag).c_str(), layerhole2, kMedVarnish);
   varnishlayer->SetVisibility(true);
   varnishlayer->SetLineColor(kGreen - 1);
 

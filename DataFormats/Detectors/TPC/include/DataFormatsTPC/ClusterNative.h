@@ -59,13 +59,13 @@ struct ClusterNative {
                       flagEdge = 0x4,      // At edge of TPC sector
                       flagSingle = 0x8 };  // Single pad or single time-bin cluster
 
-  static constexpr int scaleTimePacked = 64;      //< ~50 is needed for 0.1mm precision, but leads to float rounding artifacts around 20ms
-  static constexpr int scalePadPacked = 64;       //< ~60 is needed for 0.1mm precision, but power of two avoids rounding
-  static constexpr int scaleSigmaTimePacked = 32; // 1/32nd of pad/timebin precision for cluster size
-  static constexpr int scaleSigmaPadPacked = 32;
-  static constexpr int scaleSaturatedQtot = 8;
-  static constexpr int maxRegularQtot = 25 * 1024;
-  static constexpr int maxSaturatedQtot = (USHRT_MAX - maxRegularQtot) * scaleSaturatedQtot;
+  static GPUglobalconstexpr() int scaleTimePacked = 64;      //< ~50 is needed for 0.1mm precision, but leads to float rounding artifacts around 20ms
+  static GPUglobalconstexpr() int scalePadPacked = 64;       //< ~60 is needed for 0.1mm precision, but power of two avoids rounding
+  static GPUglobalconstexpr() int scaleSigmaTimePacked = 32; // 1/32nd of pad/timebin precision for cluster size
+  static GPUglobalconstexpr() int scaleSigmaPadPacked = 32;
+  static GPUglobalconstexpr() int scaleSaturatedQtot = 8;
+  static GPUglobalconstexpr() int maxRegularQtot = 25 * 1024;
+  static GPUglobalconstexpr() int maxSaturatedQtot = (USHRT_MAX - maxRegularQtot) * scaleSaturatedQtot;
 
   uint32_t timeFlagsPacked; //< Contains the time in the lower 24 bits in a packed format, contains the flags in the
                             // upper 8 bits

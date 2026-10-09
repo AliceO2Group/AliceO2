@@ -175,6 +175,7 @@ void SVStudySpec::updateTimeDependentParams(ProcessingContext& pc)
     const auto& svparam = o2::vertexing::SVertexerParams::Instance();
     // Note: reading of the ITS AlpideParam needed for ITS timing is done by the RecoContainer
     mFitterV0.setBz(mBz);
+    mFitterV0.setOldMode(svparam.oldDCAFitterMode);
     mFitterV0.setUseAbsDCA(svparam.useAbsDCA);
     mFitterV0.setPropagateToPCA(false);
     mFitterV0.setMaxR(svparam.maxRIni);

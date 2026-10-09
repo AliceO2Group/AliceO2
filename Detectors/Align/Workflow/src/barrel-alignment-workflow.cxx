@@ -95,6 +95,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   bool loadTPCTracks = configcontext.options().get<bool>("enable-tpc-tracks");
   bool enableCosmic = configcontext.options().get<bool>("enable-cosmic");
   bool useMC = configcontext.options().get<bool>("enable-mc");
+  bool doStag = o2::itsmft::DPLAlpideParamInitializer::isITSStaggeringEnabled(configcontext);
 
   DetID::mask_t dets = allowedDets & DetID::getMask(configcontext.options().get<std::string>("detectors"));
   DetID::mask_t skipDetClusters; // optionally skip automatically loaded clusters
@@ -151,10 +152,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
 
   if (!configcontext.options().get<bool>("disable-root-input")) {
-    specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt.lumiType == o2::tpc::LumiScaleType::TPCScaler, sclOpt.enableMShapeCorrection, sclOpt));
+    specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt));
   }
 
-  specs.emplace_back(o2::align::getBarrelAlignmentSpec(srcMP, src, dets, skipDetClusters, enableCosmic, postprocess, useMC));
+  specs.emplace_back(o2::align::getBarrelAlignmentSpec(srcMP, src, dets, skipDetClusters, enableCosmic, postprocess, useMC, doStag));
   // RS FIXME: check which clusters are really needed
   if (!postprocess) {
     GID::mask_t dummy;

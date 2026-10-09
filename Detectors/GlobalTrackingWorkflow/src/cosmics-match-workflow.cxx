@@ -88,6 +88,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::writeINI("o2match-cosmics-workflow_configuration.ini");
   auto sclOpt = o2::tpc::CorrectionMapsOptions::parseGlobalOptions(configcontext.options());
   auto useMC = !configcontext.options().get<bool>("disable-mc");
+  auto doStag = o2::itsmft::DPLAlpideParamInitializer::isITSStaggeringEnabled(configcontext);
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
 
   GID::mask_t src = alowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
@@ -107,10 +108,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   GID::mask_t srcCl = src;
   GID::mask_t dummy;
   if (!configcontext.options().get<bool>("disable-root-input")) {
-    specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt.lumiType == o2::tpc::LumiScaleType::TPCScaler, sclOpt.enableMShapeCorrection, sclOpt));
+    specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt));
   }
   bool usePV = configcontext.options().get<bool>("use-pv-info");
-  specs.emplace_back(o2::globaltracking::getCosmicsMatchingSpec(src, usePV, useMC));
+  specs.emplace_back(o2::globaltracking::getCosmicsMatchingSpec(src, usePV, useMC, doStag));
 
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, src, src, src, useMC, dummy); // clusters MC is not needed
   if (usePV) {

@@ -30,6 +30,7 @@ namespace vertexing
 struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParams> {
 
   // parameters
+  bool oldDCAFitterMode = true;    ///< pre(old) or post(new) PR15610+15784 behaviour of DCAFitter
   bool createFullV0s = false;      ///< fill V0s prongs/kinematics
   bool createFullCascades = false; ///< fill cascades prongs/kinematics
   bool createFull3Bodies = false;  ///< fill 3-body decays prongs/kinematics

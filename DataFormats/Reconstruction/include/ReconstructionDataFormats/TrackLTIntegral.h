@@ -28,7 +28,7 @@ namespace track
 class TrackLTIntegral
 {
  public:
-  static constexpr float NeglectTime = -1.; // if 1st mT slot contains this, don't fill time
+  static GPUglobalconstexpr() float NeglectTime = -1.; // if 1st mT slot contains this, don't fill time
 
   GPUdDefault() TrackLTIntegral() = default;
   GPUdDefault() TrackLTIntegral(const TrackLTIntegral& stc) = default;

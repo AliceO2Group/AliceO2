@@ -17,6 +17,8 @@
 #ifndef ALICEO2_GPUCOMMON_TPCFASTTRANSFORMATION_TPCFASTTRANSFORM_H
 #define ALICEO2_GPUCOMMON_TPCFASTTRANSFORMATION_TPCFASTTRANSFORM_H
 
+#include "GPUCommonDef.h"
+
 #include "FlatObject.h"
 #include "TPCFastTransformGeo.h"
 #include "TPCFastSpaceChargeCorrection.h"
@@ -94,8 +96,8 @@ struct TPCSlowSpaceChargeCorrection {
 class TPCFastTransform : public FlatObject
 {
  public:
-  static constexpr float DEFLUMI = -1e6f; // default value to check if member was set
-  static constexpr float DEFIDC = -1e6f;  // default value to check if member was set
+  static GPUglobalconstexpr() float DEFLUMI = -1e6f; // default value to check if member was set
+  static GPUglobalconstexpr() float DEFIDC = -1e6f;  // default value to check if member was set
 
   /// _____________  Constructors / destructors __________________________
 

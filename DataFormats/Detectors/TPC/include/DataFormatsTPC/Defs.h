@@ -19,6 +19,8 @@
 #ifndef AliceO2_TPC_Defs_H
 #define AliceO2_TPC_Defs_H
 
+#include "GPUCommonDef.h"
+
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <cmath>
 #endif
@@ -37,12 +39,12 @@ enum Side { A = 0,
             UNDEFINED = 2 };
 //   enum class Side {A=0, C=1};
 //  Problem with root cint. does not seem to support enum class ...
-constexpr unsigned char SECTORSPERSIDE = 18;
-constexpr unsigned char SIDES = 2;
+GPUglobalconstexpr() unsigned char SECTORSPERSIDE = 18;
+GPUglobalconstexpr() unsigned char SIDES = 2;
 
-constexpr double PI = 3.14159265358979323846;
-constexpr double TWOPI = 2. * PI;
-constexpr double SECPHIWIDTH = TWOPI / 18.;
+GPUglobalconstexpr() double PI = 3.14159265358979323846;
+GPUglobalconstexpr() double TWOPI = 2. * PI;
+GPUglobalconstexpr() double SECPHIWIDTH = TWOPI / 18.;
 
 /// TPC ROC types
 enum RocType { IROC = 0,
@@ -54,10 +56,10 @@ enum GEMstack { IROCgem = 0,
                 OROC1gem = 1,
                 OROC2gem = 2,
                 OROC3gem = 3 };
-constexpr unsigned short GEMSTACKSPERSECTOR = 4;
-constexpr unsigned short GEMSPERSTACK = 4;
-constexpr unsigned short GEMSTACKSPERSIDE = GEMSTACKSPERSECTOR * SECTORSPERSIDE;
-constexpr unsigned short GEMSTACKS = GEMSTACKSPERSECTOR * SECTORSPERSIDE * SIDES;
+GPUglobalconstexpr() unsigned short GEMSTACKSPERSECTOR = 4;
+GPUglobalconstexpr() unsigned short GEMSPERSTACK = 4;
+GPUglobalconstexpr() unsigned short GEMSTACKSPERSIDE = GEMSTACKSPERSECTOR * SECTORSPERSIDE;
+GPUglobalconstexpr() unsigned short GEMSTACKS = GEMSTACKSPERSECTOR * SECTORSPERSIDE * SIDES;
 
 /// Definition of the different pad subsets
 enum class PadSubset : char {
@@ -71,7 +73,7 @@ enum ChargeType {
   Max = 0,
   Tot = 1
 };
-constexpr unsigned short CHARGETYPES = 2;
+GPUglobalconstexpr() unsigned short CHARGETYPES = 2;
 
 /// GEM stack identification
 struct StackID {

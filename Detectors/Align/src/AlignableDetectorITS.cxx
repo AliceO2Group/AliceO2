@@ -219,7 +219,7 @@ int AlignableDetectorITS::processPoints(GIndex gid, int npntCut, bool inv)
 
       if (clus.getCount()) { // there is an overlap, find best matching cluster
         nOverlaps--;
-        int bestClusID = -1, clusIDtoCheck = mOverlapClusRef[clusIDs[icl]];
+        int bestClusID = -1, clusIDtoCheck = mOverlapClusRef[mITSClustersArray.flatIndex(clusIDs[icl])];
         float bestChi2 = algConf.ITSOverlapMaxChi2;
         auto trPropOvl = trcProp;
         for (int iov = 0; iov < clus.getCount(); iov++) {
@@ -256,18 +256,11 @@ bool AlignableDetectorITS::prepareDetectorData()
   // prepare TF data for processing: convert clusters
   const auto& algConf = AlignConfig::Instance();
   auto recoData = mController->getRecoContainer();
-  const auto clusITS = recoData->getITSClusters();
-  const auto clusITSROF = recoData->getITSClustersROFRecords();
-  const auto patterns = recoData->getITSClustersPatterns();
-  auto pattIt = patterns.begin();
-  mITSClustersArray.clear();
-  mITSClustersArray.reserve(clusITS.size());
+  int nLr = recoData->getITSPerLayer() ? o2::globaltracking::MaxITSLayers : 1;
+  mITSClustersArray.init(nLr);
   if (algConf.ITSOverlapMargin > 0) {
     mOverlapClusRef.clear();
-    mOverlapClusRef.resize(clusITS.size(), -1);
-
     mOverlapCandidateID.clear();
-    mOverlapCandidateID.reserve(clusITS.size());
   }
   static std::vector<int> edgeClusters;
   int ROFCount = 0;
@@ -278,103 +271,118 @@ bool AlignableDetectorITS::prepareDetectorData()
   };
   std::array<ROFChipEntry, o2::itsmft::ChipMappingITS::getNChips()> chipROFStart{}; // fill only for clusters with overlaps
 
-  for (const auto& rof : clusITSROF) {
-    int maxic = rof.getFirstEntry() + rof.getNEntries();
-    edgeClusters.clear();
-    for (int ic = rof.getFirstEntry(); ic < maxic; ic++) {
-      const auto& c = clusITS[ic];
-      int16_t sensID = c.getSensorID();
-      auto* sensor = getSensor(sensID);
-      double sigmaY2, sigmaZ2, sigmaYZ = 0, locXYZC[3], traXYZ[3];
-      auto pattItCopy = pattIt;
-      auto locXYZ = o2::its::ioutils::extractClusterDataA(c, pattIt, mITSDict, sigmaY2, sigmaZ2); // local ideal coordinates
-      const auto& matAlg = sensor->getMatrixClAlg();                                              // local alignment matrix !!! RS FIXME
-      matAlg.LocalToMaster(locXYZ.data(), locXYZC);                                               // aligned point in the local frame
-      const auto& mat = sensor->getMatrixT2L();                                                   // RS FIXME check if correct
-      mat.MasterToLocal(locXYZC, traXYZ);
-      auto& cl3d = mITSClustersArray.emplace_back(sensID, traXYZ[0], traXYZ[1], traXYZ[2], sigmaY2, sigmaZ2, sigmaYZ); // local --> tracking
+  for (int lr = 0; lr < nLr; lr++) { // with a single (monolithic) input all clusters are in the layer slot 0
+    mITSClustersArray.beginLayer(lr);
+    const auto clusITS = recoData->getITSClusters(lr);
+    const auto clusITSROF = recoData->getITSClustersROFRecords(lr);
+    const auto patterns = recoData->getITSClustersPatterns(lr);
+    auto pattIt = patterns.begin();
+    const int clOffs = mITSClustersArray.getFirstIndex(lr); // flat index of the 1st cluster of this layer slot
+    mITSClustersArray.getClusters().reserve(clOffs + clusITS.size());
+    if (algConf.ITSOverlapMargin > 0) {
+      mOverlapClusRef.resize(clOffs + clusITS.size(), -1);
+      mOverlapCandidateID.reserve(clOffs + clusITS.size());
+    }
 
-      if (algConf.ITSOverlapMargin > 0) {
-        // fill chips overlaps info for clusters whose center is within of the algConf.ITSOverlapMargin distance from the chip min or max row edge
-        // but the pixel closest to this edge has distance of at least algConf.ITSOverlapEdgeRows from the edge
-        int row = 0, col = 0;
-        o2::itsmft::SegmentationAlpide::localToDetectorUnchecked(locXYZ[0], locXYZ[2], row, col);
-        int drow = row < o2::itsmft::SegmentationAlpide::NRows / 2 ? row : o2::itsmft::SegmentationAlpide::NRows - row - 1; // distance to the edge
-        if (drow * o2::itsmft::SegmentationAlpide::PitchRow < algConf.ITSOverlapMargin) {                                   // rough check is passed, check if the edge cluster is indeed good
-          cl3d.setBit(row < o2::itsmft::SegmentationAlpide::NRows / 2 ? EdgeFlags::LowRow : EdgeFlags::HighRow);            // flag that this is an edge cluster and indicate the low/high row side
-          // check if it is not too close to the edge (to be biased)
-          if (algConf.ITSOverlapEdgeRows > 0) { // is there a restriction?
-            auto pattID = c.getPatternID();
-            drow = c.getRow();
-            if (pattID != itsmft::CompCluster::InvalidPatternID) {
-              if (!mITSDict->isGroup(pattID)) {
-                const auto& patt = mITSDict->getPattern(pattID); // reference pixel is min row/col corner
+    for (const auto& rof : clusITSROF) {
+      int maxic = rof.getFirstEntry() + rof.getNEntries();
+      edgeClusters.clear();
+      for (int ic = rof.getFirstEntry(); ic < maxic; ic++) {
+        const auto& c = clusITS[ic];
+        int16_t sensID = c.getSensorID();
+        auto* sensor = getSensor(sensID);
+        double sigmaY2, sigmaZ2, sigmaYZ = 0, locXYZC[3], traXYZ[3];
+        auto pattItCopy = pattIt;
+        auto locXYZ = o2::its::ioutils::extractClusterDataA(c, pattIt, mITSDict, sigmaY2, sigmaZ2); // local ideal coordinates
+        const auto& matAlg = sensor->getMatrixClAlg();                                              // local alignment matrix !!! RS FIXME
+        matAlg.LocalToMaster(locXYZ.data(), locXYZC);                                               // aligned point in the local frame
+        const auto& mat = sensor->getMatrixT2L();                                                   // RS FIXME check if correct
+        mat.MasterToLocal(locXYZC, traXYZ);
+        auto& cl3d = mITSClustersArray.getClusters().emplace_back(sensID, traXYZ[0], traXYZ[1], traXYZ[2], sigmaY2, sigmaZ2, sigmaYZ); // local --> tracking
+
+        if (algConf.ITSOverlapMargin > 0) {
+          // fill chips overlaps info for clusters whose center is within of the algConf.ITSOverlapMargin distance from the chip min or max row edge
+          // but the pixel closest to this edge has distance of at least algConf.ITSOverlapEdgeRows from the edge
+          int row = 0, col = 0;
+          o2::itsmft::SegmentationAlpide::localToDetectorUnchecked(locXYZ[0], locXYZ[2], row, col);
+          int drow = row < o2::itsmft::SegmentationAlpide::NRows / 2 ? row : o2::itsmft::SegmentationAlpide::NRows - row - 1; // distance to the edge
+          if (drow * o2::itsmft::SegmentationAlpide::PitchRow < algConf.ITSOverlapMargin) {                                   // rough check is passed, check if the edge cluster is indeed good
+            cl3d.setBit(row < o2::itsmft::SegmentationAlpide::NRows / 2 ? EdgeFlags::LowRow : EdgeFlags::HighRow);            // flag that this is an edge cluster and indicate the low/high row side
+            // check if it is not too close to the edge (to be biased)
+            if (algConf.ITSOverlapEdgeRows > 0) { // is there a restriction?
+              auto pattID = c.getPatternID();
+              drow = c.getRow();
+              if (pattID != itsmft::CompCluster::InvalidPatternID) {
+                if (!mITSDict->isGroup(pattID)) {
+                  const auto& patt = mITSDict->getPattern(pattID); // reference pixel is min row/col corner
+                  if (row > o2::itsmft::SegmentationAlpide::NRows / 2) {
+                    drow = o2::itsmft::SegmentationAlpide::NRows - 1 - (drow + patt.getRowSpan() - 1);
+                  }
+                } else { // group: reference pixel is the one containing the COG
+                  o2::itsmft::ClusterPattern patt(pattItCopy);
+                  drow = row < o2::itsmft::SegmentationAlpide::NRows / 2 ? drow - patt.getRowSpan() / 2 : o2::itsmft::SegmentationAlpide::NRows - 1 - (drow + patt.getRowSpan() / 2 - 1);
+                }
+              } else {
+                o2::itsmft::ClusterPattern patt(pattItCopy); // reference pixel is min row/col corner
                 if (row > o2::itsmft::SegmentationAlpide::NRows / 2) {
                   drow = o2::itsmft::SegmentationAlpide::NRows - 1 - (drow + patt.getRowSpan() - 1);
                 }
-              } else { // group: reference pixel is the one containing the COG
-                o2::itsmft::ClusterPattern patt(pattItCopy);
-                drow = row < o2::itsmft::SegmentationAlpide::NRows / 2 ? drow - patt.getRowSpan() / 2 : o2::itsmft::SegmentationAlpide::NRows - 1 - (drow + patt.getRowSpan() / 2 - 1);
               }
-            } else {
-              o2::itsmft::ClusterPattern patt(pattItCopy); // reference pixel is min row/col corner
-              if (row > o2::itsmft::SegmentationAlpide::NRows / 2) {
-                drow = o2::itsmft::SegmentationAlpide::NRows - 1 - (drow + patt.getRowSpan() - 1);
+              if (drow < algConf.ITSOverlapEdgeRows) { // too close to the edge, flag this
+                cl3d.setBit(EdgeFlags::Biased);
               }
             }
-            if (drow < algConf.ITSOverlapEdgeRows) { // too close to the edge, flag this
-              cl3d.setBit(EdgeFlags::Biased);
+            if (!cl3d.isBitSet(EdgeFlags::Biased)) {
+              if (chipROFStart[sensID].rofCount != ROFCount) { // remember 1st entry
+                chipROFStart[sensID].rofCount = ROFCount;
+                chipROFStart[sensID].chipFirstEntry = edgeClusters.size(); // remember 1st entry of edge cluster for this chip
+              }
+              edgeClusters.push_back(clOffs + ic);
             }
-          }
-          if (!cl3d.isBitSet(EdgeFlags::Biased)) {
-            if (chipROFStart[sensID].rofCount != ROFCount) { // remember 1st entry
-              chipROFStart[sensID].rofCount = ROFCount;
-              chipROFStart[sensID].chipFirstEntry = edgeClusters.size(); // remember 1st entry of edge cluster for this chip
-            }
-            edgeClusters.push_back(ic);
           }
         }
+      } // clusters of ROF
+      // relate edge clusters of ROF to each other
+      int prevSensID = -1;
+      for (auto ic : edgeClusters) { // ic is the flat cluster index here
+        auto& cl = mITSClustersArray.getClusters()[ic];
+        int sensID = cl.getSensorID();
+        auto ovl = mOverlaps[sensID];
+        int ovlCount = 0;
+        for (int ir = 0; ir < OVL::NSides; ir++) {
+          if (ovl.rowSide[ir] == OVL::NONE) { // no overlap from this row side
+            continue;
+          }
+          int chipOvl = ovl.rowSide[ir]; // look for overlaps with this chip
+          // are there clusters with overlaps on chipOvl?
+          if (chipROFStart[chipOvl].rofCount == ROFCount) {
+            auto oClusID = edgeClusters[chipROFStart[chipOvl].chipFirstEntry];
+            while (oClusID < int(mITSClustersArray.size())) {
+              auto oClus = mITSClustersArray.getClusters()[oClusID];
+              if (oClus.getSensorID() != sensID) {
+                break; // no more clusters on the overlapping chip
+              }
+              if (oClus.isBitSet(ovl.rowSideOverlap[ir]) &&                       // make sure that the edge cluster is on the right side of the row
+                  !oClus.isBitSet(EdgeFlags::Biased) &&                           // not too close to the edge
+                  std::abs(oClus.getZ() - cl.getZ()) < algConf.ITSOverlapMaxDZ) { // apply fiducial cut on Z distance of 2 clusters
+                // register overlaping cluster
+                if (!ovlCount) { // 1st overlap
+                  mOverlapClusRef[ic] = mOverlapCandidateID.size();
+                }
+                mOverlapCandidateID.push_back(o2::itsmft::composeClusID(lr, oClusID - clOffs)); // store the composed ID
+                ovlCount++;
+              }
+              oClusID++;
+            }
+          }
+        }
+        cl.setCount(std::min(127, ovlCount));
       }
-    } // clusters of ROF
-    // relate edge clusters of ROF to each other
-    int prevSensID = -1;
-    for (auto ic : edgeClusters) {
-      auto& cl = mITSClustersArray[ic];
-      int sensID = cl.getSensorID();
-      auto ovl = mOverlaps[sensID];
-      int ovlCount = 0;
-      for (int ir = 0; ir < OVL::NSides; ir++) {
-        if (ovl.rowSide[ir] == OVL::NONE) { // no overlap from this row side
-          continue;
-        }
-        int chipOvl = ovl.rowSide[ir]; // look for overlaps with this chip
-        // are there clusters with overlaps on chipOvl?
-        if (chipROFStart[chipOvl].rofCount == ROFCount) {
-          auto oClusID = edgeClusters[chipROFStart[chipOvl].chipFirstEntry];
-          while (oClusID < int(mITSClustersArray.size())) {
-            auto oClus = mITSClustersArray[oClusID];
-            if (oClus.getSensorID() != sensID) {
-              break; // no more clusters on the overlapping chip
-            }
-            if (oClus.isBitSet(ovl.rowSideOverlap[ir]) &&                       // make sure that the edge cluster is on the right side of the row
-                !oClus.isBitSet(EdgeFlags::Biased) &&                           // not too close to the edge
-                std::abs(oClus.getZ() - cl.getZ()) < algConf.ITSOverlapMaxDZ) { // apply fiducial cut on Z distance of 2 clusters
-              // register overlaping cluster
-              if (!ovlCount) { // 1st overlap
-                mOverlapClusRef[ic] = mOverlapCandidateID.size();
-              }
-              mOverlapCandidateID.push_back(oClusID);
-              ovlCount++;
-            }
-            oClusID++;
-          }
-        }
-      }
-      cl.setCount(std::min(127, ovlCount));
-    }
 
-    ROFCount++;
-  } // loop over ROFs
+      ROFCount++;
+    } // loop over ROFs
+  } // loop over the layer slots
+  mITSClustersArray.finalize();
   return true;
 }
 

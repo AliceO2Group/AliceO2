@@ -75,30 +75,6 @@ class VertexerTraits
   virtual bool usesMemoryPool() const noexcept { return true; }
   void setMemoryPool(std::shared_ptr<BoundedMemoryResource> pool) { mMemoryPool = pool; }
 
-  static VertexLabel computeMain(const bounded_vector<o2::MCCompLabel>& elements)
-  {
-    // we only care about the source&event of the tracks, not the trackId
-    auto composeVtxLabel = [](const o2::MCCompLabel& lbl) -> o2::MCCompLabel {
-      return {o2::MCCompLabel::maxTrackID(), lbl.getEventID(), lbl.getSourceID(), lbl.isFake()};
-    };
-    std::unordered_map<o2::MCCompLabel, size_t> frequency;
-    for (const auto& element : elements) {
-      ++frequency[composeVtxLabel(element)];
-    }
-    o2::MCCompLabel elem{};
-    size_t maxCount = 0;
-    for (const auto& [key, count] : frequency) {
-      if (count > maxCount) {
-        maxCount = count;
-        elem = key;
-      }
-    }
-    if (maxCount <= 1) { // need >50%
-      elem.setFakeFlag();
-    }
-    return std::make_pair(elem, static_cast<float>(maxCount) / static_cast<float>(elements.size()));
-  }
-
  protected:
   std::vector<VertexingParameters> mVrtParams;
   IndexTableUtilsN mIndexTableUtils;

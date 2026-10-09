@@ -15,6 +15,7 @@
 #include <regex>
 #include <TSystem.h>
 #include "DataFormatsParameters/GRPECSObject.h"
+#include "CommonUtils/NameConf.h"
 #include "DataFormatsCTP/Configuration.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "CCDB/CcdbApi.h"
@@ -276,7 +277,7 @@ int main(int argc, char** argv)
     add_option("end-time,e", bpo::value<long>()->default_value(0), "ECS run end time in ms, start-time+3days is used if 0");
     add_option("start-time-ctp", bpo::value<long>()->default_value(0), "run start CTP time in ms, same as ECS if not set or 0");
     add_option("end-time-ctp", bpo::value<long>()->default_value(0), "run end CTP time in ms, same as ECS if not set or 0");
-    add_option("ccdb-server", bpo::value<std::string>()->default_value("http://alice-ccdb.cern.ch"), "CCDB server for upload, local file if empty");
+    add_option("ccdb-server", bpo::value<std::string>()->default_value(o2::base::NameConf::getCCDBServer()), "CCDB server for upload, local file if empty");
     add_option("ccdb-server-input", bpo::value<std::string>()->default_value(""), "CCDB server for inputs (if needed, e.g. CTPConfig), dy default ccdb-server is used");
     add_option("meta-data,m", bpo::value<std::string>()->default_value("")->implicit_value(""), "metadata as key1=value1;key2=value2;..");
     add_option("refresh", bpo::value<std::string>()->default_value("")->implicit_value("async"), R"(refresh server cache after upload: "none" (or ""), "async" (non-blocking) and "sync" (blocking))");

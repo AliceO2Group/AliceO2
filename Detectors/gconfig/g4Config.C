@@ -61,7 +61,12 @@ R__LOAD_LIBRARY(libgeant4vmc)
 #include "TG4RunConfiguration.h"
 #include "SimConfig/G4Params.h"
 #include "SimConfig/FluenceWeightCalculator.h"
-#include "FastSim/G4FastSimulation.h"
+#include "SimConfig/G4ScoringMerger.h"
+#include "G4ScoringManager.hh"
+#include "G4VScoringMesh.hh"
+#include <unistd.h>
+#include "SimSetup/G4RunConfiguration.h"
+#include "SimSetup/VecGeomNavigation.h"
 #endif
 #include "commonConfig.C"
 
@@ -111,16 +116,19 @@ void Config()
     geomNavStr = "geomRoot";
   } else if (g4Params.navmode == o2::conf::EG4Nav::kG4) {
     geomNavStr = "geomVMC+RootToGeant4";
+  } else if (g4Params.navmode == o2::conf::EG4Nav::kVecGeom) {
+    // The geometry, its materials and the touchable stay the ones g4root builds from TGeo;
+    // only the navigator is swapped, once the engine below has built that hierarchy.
+    geomNavStr = "geomRoot";
   } else {
     LOG(fatal) << "Unsupported geometry navigation mode";
   }
 
-  // o2::fastsim::G4RunConfiguration differs from TG4RunConfiguration only in
-  // providing the fast-simulation hook; with G4.fastSimModels empty it behaves
-  // identically.
-  auto runConfiguration = new o2::fastsim::G4RunConfiguration(geomNavStr, physicsSetup,
-                                                              "stepLimiter+specialCuts",
-                                                              specialStacking, mtMode);
+  // o2::g4config::G4RunConfiguration adds the fast-simulation hook and the local
+  // magnetic fields; with neither configured it behaves like TG4RunConfiguration.
+  auto runConfiguration = new o2::g4config::G4RunConfiguration(geomNavStr, physicsSetup,
+                                                               "stepLimiter+specialCuts",
+                                                               specialStacking, mtMode);
   if (g4Params.g4scoring) {
     runConfiguration->SetUseOfG4Scoring();
     if (g4Params.g4fluenceweight) {
@@ -133,6 +141,10 @@ void Config()
   /// Create the G4 VMC
   TGeant4* geant4 = new TGeant4("TGeant4", "The Geant4 Monte Carlo", runConfiguration);
   std::cout << "Geant4 has been created." << std::endl;
+
+  if (g4Params.navmode == o2::conf::EG4Nav::kVecGeom) {
+    o2::simsetup::installVecGeomNavigator();
+  }
 
   // setup the stack
   stackSetup(geant4, FairRunSim::Instance());
@@ -159,16 +171,30 @@ void Config()
   std::cout << "g4Config.C finished" << std::endl;
 }
 
+// Write each Geant4 scoring mesh to a file named after this process, so that parallel workers do not overwrite each other
+void dumpScoringMeshesPerWorker()
+{
+  auto scoringManager = G4ScoringManager::GetScoringManagerIfExist();
+  if (!scoringManager) {
+    return;
+  }
+  for (size_t i = 0; i < scoringManager->GetNumberOfMesh(); ++i) {
+    const auto meshName = scoringManager->GetMesh(i)->GetWorldName();
+    scoringManager->DumpAllQuantitiesToFile(meshName, o2::conf::g4ScoringWorkerFileName(meshName, getpid()));
+  }
+}
+
 void Terminate()
 {
   static bool terminated = false;
   if (!terminated) {
+    terminated = true;
     std::cout << "Executing G4 terminate\n";
     TGeant4* geant4 = dynamic_cast<TGeant4*>(TVirtualMC::GetMC());
     if (geant4) {
+      dumpScoringMeshesPerWorker();
       // we need to call finish run for Geant4 ... Since we use ProcessEvent() interface;
       geant4->FinishRun();
     }
-    terminated = true;
   }
 }

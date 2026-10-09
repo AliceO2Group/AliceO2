@@ -19,31 +19,54 @@
 #ifndef ALICEO2_IOTOF_DIGIT_H
 #define ALICEO2_IOTOF_DIGIT_H
 
+#include "CommonConstants/LHCConstants.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "DataFormatsITSMFT/Digit.h"
 
 namespace o2::iotof
 {
+struct DigitKey {
+  ULong64_t high;
+  UInt_t low;
+
+  bool operator<(const DigitKey& other) const
+  {
+    if (high != other.high) {
+      return high < other.high;
+    }
+    return low < other.low;
+  }
+};
+
 class Digit : public o2::itsmft::Digit
 {
  public:
   ~Digit() = default;
-  Digit(UShort_t chipindex = 0, UShort_t row = 0, UShort_t col = 0, Int_t charge = 0, double time = 0.)
-    : o2::itsmft::Digit(chipindex, row, col, charge), mTime(time) {};
+  Digit(UShort_t chipindex = 0, UShort_t row = 0, UShort_t col = 0, Int_t charge = 0, double time = 0., ULong64_t bc = 0, Int_t tdc = 0)
+    : o2::itsmft::Digit(chipindex, row, col, charge), mTime(time), mBc(bc), mTdc(tdc) {};
 
   // Setters
   void setTime(double time) { mTime = time; }
 
   // Getters
   double getTime() const { return mTime; }
+  ULong64_t getBc() const { return mBc; }
+  Int_t getTdc() const { return mTdc; }
 
-  static UInt_t getOrderingKey(UShort_t chipindex, UShort_t row, UShort_t col)
+  static DigitKey getOrderingKey(ULong64_t bc, UInt_t tdc, uint16_t row, uint16_t col)
   {
-    return (static_cast<UInt_t>(chipindex) << 16) | (static_cast<UInt_t>(row) << 8) | static_cast<UInt_t>(col);
+    DigitKey key;
+    uint32_t orbit = bc / o2::constants::lhc::LHCMaxBunches;
+    uint16_t bunch = bc % o2::constants::lhc::LHCMaxBunches;
+    key.high = (static_cast<ULong64_t>(orbit) << 32) | (static_cast<UInt_t>(bunch) << 16) | (static_cast<UInt_t>(tdc) & 0xFFFF);
+    key.low = (static_cast<UInt_t>(row) << 16) | (static_cast<UInt_t>(col) & 0xFFFF);
+    return key;
   }
 
  private:
   double mTime = 0.; ///< Measured time (ns)
+  ULong64_t mBc = 0; ///< BC
+  Int_t mTdc = 0;    ///< tdc time
   ClassDefNV(Digit, 1);
 };
 
@@ -59,9 +82,9 @@ struct McLabelRef {
 class LabeledDigit : public Digit
 {
  public:
-  LabeledDigit(UShort_t chipindex = 0, UShort_t row = 0, UShort_t col = 0, Int_t charge = 0, double time = 0.,
+  LabeledDigit(UShort_t chipindex = 0, UShort_t row = 0, UShort_t col = 0, Int_t charge = 0, double time = 0., ULong64_t bc = 0, Int_t tdc = 0,
                o2::MCCompLabel label = 0)
-    : Digit(chipindex, row, col, charge, time), mLabel(label) {}
+    : Digit(chipindex, row, col, charge, time, bc, tdc), mLabel(label) {}
 
   void setLabel(McLabelRef label) { mLabel = label; }
   McLabelRef getLabel() const { return mLabel; }

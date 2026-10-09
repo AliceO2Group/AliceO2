@@ -225,8 +225,19 @@ void Magnet::ConstructGeometry()
   // Coils
   TGeoVolume* voCoilMother = new TGeoVolume("L3CM", shCoilMother, medAir);
   voBMother->AddNode(voCoilMother, 1, new TGeoTranslation(0., 0., 0.));
-  // Divide into the 168 turns
-  TGeoVolume* voCoilTurn = voCoilMother->Divide("L3CD", 3, 168, 0., 0.);
+  // The 168 turns, placed explicitly rather than as a TGeoPgon division.
+  // Geant4's G4ParameterisationPolyhedraZ rebuilds the shared master solid while
+  // navigating, so a divided polyhedra crashes a multithreaded native-Geant4 run.
+  const Int_t kNCoilTurns = 168;
+  const Float_t kDzCoilTurn = kLCoil / kNCoilTurns;
+  TGeoPgon* shCoilTurn = new TGeoPgon(kStartAngle, kFullAngle, kNSides, 2);
+  shCoilTurn->DefineSection(0, -kDzCoilTurn, kRCoilInner - 2. * kRCoolingOuter, kRCoilOuter + 2. * kRCoolingOuter);
+  shCoilTurn->DefineSection(1, kDzCoilTurn, kRCoilInner - 2. * kRCoolingOuter, kRCoilOuter + 2. * kRCoolingOuter);
+  TGeoVolume* voCoilTurn = new TGeoVolume("L3CD", shCoilTurn, medAir);
+  for (Int_t iTurn = 0; iTurn < kNCoilTurns; ++iTurn) {
+    voCoilMother->AddNode(voCoilTurn, iTurn + 1,
+                          new TGeoTranslation(0., 0., -kLCoil + (2 * iTurn + 1) * kDzCoilTurn));
+  }
   TGeoPgon* shCoils = new TGeoPgon(kStartAngle, kFullAngle, kNSides, 2);
   shCoils->DefineSection(0, -3., kRCoilInner, kRCoilOuter);
   shCoils->DefineSection(1, 3., kRCoilInner, kRCoilOuter);

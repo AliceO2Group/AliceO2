@@ -15,7 +15,6 @@
 #include "FT3Simulation/FT3Module.h"
 #include "FT3Base/FT3BaseParam.h"
 #include <TGeoManager.h>
-#include <TGeoMaterial.h>
 #include <TGeoMedium.h>
 #include <TGeoBBox.h>
 #include <TGeoXtru.h>
@@ -24,69 +23,14 @@
 #include <Framework/Logger.h>
 #include <cmath>
 #include <iostream>
+#include <limits>
+#include <map>
 #include <vector>
 #include <set>
 #include <algorithm>
 #include <utility>
 
-TGeoMaterial* FT3Module::siliconMat = nullptr;
-TGeoMedium* FT3Module::siliconMed = nullptr;
-
-TGeoMaterial* FT3Module::copperMat = nullptr;
-TGeoMedium* FT3Module::copperMed = nullptr;
-
-TGeoMaterial* FT3Module::kaptonMat = nullptr;
-TGeoMedium* FT3Module::kaptonMed = nullptr;
-
-TGeoMaterial* FT3Module::epoxyMat = nullptr;
-TGeoMedium* FT3Module::epoxyMed = nullptr;
-
-TGeoMaterial* FT3Module::AluminumMat = nullptr;
-TGeoMedium* FT3Module::AluminumMed = nullptr;
-
-TGeoMaterial* FT3Module::carbonFiberMat = nullptr;
-TGeoMedium* FT3Module::carbonFiberMed = nullptr;
-
-void FT3Module::initialize_materials()
-{
-  LOG(debug) << "FT3Module: initialize_materials";
-  if (siliconMat) {
-    return;
-  }
-
-  TGeoManager* geoManager = gGeoManager;
-
-  auto* itsH = new TGeoElement("FT3_H", "Hydrogen", 1, 1.00794);
-  auto* itsC = new TGeoElement("FT3_C", "Carbon", 6, 12.0107);
-  auto* itsO = new TGeoElement("FT3_O", "Oxygen", 8, 15.994);
-
-  siliconMat = new TGeoMaterial("FT3_Silicon", 28.0855, 14, 2.33);
-  siliconMed = new TGeoMedium("FT3_Silicon", 1, siliconMat);
-
-  copperMat = new TGeoMaterial("FT3_Copper", 63.546, 29, 8.96);
-  copperMed = new TGeoMedium("FT3_Copper", 2, copperMat);
-
-  kaptonMat = new TGeoMaterial("FT3_Kapton", 13.84, 6.88, 1.346);
-  kaptonMed = new TGeoMedium("FT3_Kapton", 3, kaptonMat);
-
-  // TODO: Check with Rene the exact type of carbon fiber
-  carbonFiberMat = new TGeoMaterial("FT3_Carbon", 12.0107, 6, 1.8);
-  carbonFiberMed = new TGeoMedium("FT3_Carbon", 6, carbonFiberMat);
-
-  // Epoxy: C18 H19 O3
-  auto* itsEpoxy = new TGeoMixture("FT3_Epoxy", 3);
-  itsEpoxy->AddElement(itsC, 18);
-  itsEpoxy->AddElement(itsH, 19);
-  itsEpoxy->AddElement(itsO, 3);
-  itsEpoxy->SetDensity(2.186);
-
-  epoxyMed = new TGeoMedium("FT3_Epoxy", 4, itsEpoxy);
-  epoxyMat = epoxyMed->GetMaterial();
-
-  AluminumMat = new TGeoMaterial("Aluminum", 26.98, 13, 2.7);
-  AluminumMed = new TGeoMedium("Aluminum", 5, AluminumMat);
-  LOG(debug) << "FT3Module: done initialize_materials";
-}
+using o2::ft3::getMedium;
 
 double calculate_y_circle(double x, double radius)
 {
@@ -132,25 +76,22 @@ std::pair<double, double> calculate_y_range(
 }
 
 /*
- * This function is a helper function to determine the positions of sensors on the stave
+ * Greedy fill: determine the positions of sensors on the stave
  * by adding sensors until there is no more space available.
  *
  * Arguments:
  * y_positions: a pair of vectors, where each vector contains pairs of
  *              y position and stack height for the positive and negative y positions respectively.
  *              This argument will be appended with the new sensor positions and stack heights.
- * Rout: the outer radius of the layer
- * Rin: the inner radius of the layer
- * x_left: the x position of the left edge of the sensor to be placed
  * kSensorStack: the number of sensors to be stacked on top of each other
  * y_ranges: the y positions to start and end placing sensors,
  *           for positive and negative y respectively
  * absAllowedYRange: the absolute y range allowed for placing sensors,
  *                   used to cut placement if they go past allowed tolerances
  */
-void FT3Module::fill_stave(PosNegPositionTypes& y_positions, double Rin, double Rout,
-                           double x_left, unsigned kSensorStack, PositionRangeType y_ranges,
-                           std::pair<double, double>& absAllowedYRange)
+void FT3Module::fill_stave_greedy(PosNegPositionTypes& y_positions, unsigned kSensorStack,
+                                  PositionRangeType y_ranges,
+                                  std::pair<double, double>& absAllowedYRange)
 {
   // start with upper half of the stave, then mirror to the bottom half
   // add the height of kSensorStack sensors + the gaps in between them
@@ -197,6 +138,33 @@ void FT3Module::fill_stave(PosNegPositionTypes& y_positions, double Rin, double 
     y_positions.second.emplace_back(y_bottom, kSensorStack);
     y_bottom -= sensorAbsStackYShift;
   }
+}
+
+/*
+ * Exact fill: read the module positions of one stave straight out of the
+ * tabulated layout. The counterpart to fill_stave_greedy, without any of its
+ * checks -- the table is validated before it reaches the geometry, so there is
+ * nothing here to cut, clip or derive.
+ *
+ * fills: the stave's fills, each an uninterrupted stretch of modules. A stave
+ *        split by the beam pipe has one fill below the hole and one above it;
+ *        nothing is mirrored, since the layout is symmetric about the y-axis
+ *        but not about the x-axis.
+ *
+ * Returns one list holding every module of the stave, at negative y as well,
+ * each stored by its BOTTOM edge.
+ */
+PositionTypes FT3Module::fill_stave_exact(const std::vector<Constants::StaveFill>& fills)
+{
+  PositionTypes y_positions;
+  for (const auto& fill : fills) {
+    double y_bottom = fill.yStart;
+    for (unsigned kSensorStack : fill.stackHeights) {
+      y_positions.emplace_back(y_bottom, kSensorStack);
+      y_bottom += Constants::getStackHeight(kSensorStack) + Constants::stackGap;
+    }
+  }
+  return y_positions;
 }
 
 /*
@@ -324,9 +292,10 @@ void FT3Module::addStaveVolume(
   TGeoVolume* staveVolume = new TGeoVolume(
     (volumeName).c_str(),
     staveShape,
-    carbonFiberMed);
-  staveVolume->SetLineColor(Constants::carbonFiberColor);
-  staveVolume->SetFillColorAlpha(Constants::carbonFiberColor, 0.4);
+    getMedium(Materials::MaterialID::CarbonFiber));
+  const int carbonFiberColor = Materials::materials.at(Materials::MaterialID::CarbonFiber).colour;
+  staveVolume->SetLineColor(carbonFiberColor);
+  staveVolume->SetFillColorAlpha(carbonFiberColor, 0.4);
 
   TGeoRotation* rot = new TGeoRotation();
   rot->RotateX(-90); // lift from xy plane into xz plane
@@ -367,23 +336,35 @@ void FT3Module::addStaveVolume(
  */
 
 void FT3Module::addDetectorVolume(
-  TGeoVolume* motherVolume, std::string volumeName, int color,
+  TGeoVolume* motherVolume, std::string volumeName, int color, TGeoMedium* med,
   unsigned volume_count, double x_mid, double y_mid, double z_mid,
-  double x_half_length, double y_half_length, double z_half_length)
+  double x_half_length, double y_half_length, double z_half_length, double rotX)
 {
   TGeoManager* geoManager = gGeoManager;
-  TGeoVolume* volume = geoManager->MakeBox(volumeName.c_str(), siliconMed, x_half_length,
+  TGeoVolume* volume = geoManager->MakeBox(volumeName.c_str(), med, x_half_length,
                                            y_half_length, z_half_length);
   volume->SetLineColor(color);
   volume->SetFillColorAlpha(color, 0.4);
-  motherVolume->AddNode(
-    volume,
-    volume_count,
-    new TGeoTranslation( // midpoint of box to add
-      x_mid,
-      y_mid,
-      z_mid) // TGeoTranslation
-  );         // addNode
+  if (rotX == 0.) {
+    motherVolume->AddNode(
+      volume,
+      volume_count,
+      new TGeoTranslation( // midpoint of box to add
+        x_mid,
+        y_mid,
+        z_mid) // TGeoTranslation
+    );         // addNode
+  } else {
+    motherVolume->AddNode(
+      volume,
+      volume_count,
+      new TGeoCombiTrans("",
+                         x_mid,
+                         y_mid,
+                         z_mid,
+                         new TGeoRotation("", 0., rotX, 0.)) // TGeoCombiTrans
+    );                                                       // addNode
+  }
 }
 
 /*
@@ -397,7 +378,8 @@ void FT3Module::add2x1GlueVolume(
 {
   std::string glue_name = "FT3glue_" + element_glued_to + "_" + std::to_string(direction) + "_" + std::to_string(layerNumber) + "_" + std::to_string(stave_idx) + "_" + std::to_string(volume_count);
   addDetectorVolume(
-    motherVolume, glue_name, Constants::glueColor, volume_count,
+    motherVolume, glue_name, Materials::materials.at(Materials::MaterialID::Epoxy).colour,
+    getMedium(Materials::MaterialID::Epoxy), volume_count,
     x_mid, y_mid, z_mid,
     Constants::sensor2x1_width / 2, Constants::sensor2x1_height / 2, Constants::epoxyThickness / 2);
 }
@@ -412,7 +394,8 @@ void FT3Module::add2x1CopperVolume(
 {
   std::string copper_name = "FT3Copper_" + std::to_string(direction) + "_" + std::to_string(layerNumber) + "_" + std::to_string(stave_idx) + "_" + std::to_string(volume_count);
   addDetectorVolume(
-    motherVolume, copper_name, Constants::CuColor, volume_count,
+    motherVolume, copper_name, Materials::materials.at(Materials::MaterialID::Copper).colour,
+    getMedium(Materials::MaterialID::Copper), volume_count,
     x_mid, y_mid, z_mid,
     Constants::sensor2x1_width / 2, Constants::sensor2x1_height / 2, Constants::copperThickness / 2);
 }
@@ -427,16 +410,17 @@ void FT3Module::add2x1KaptonVolume(
 {
   std::string kapton_name = "FT3Kapton_" + std::to_string(direction) + "_" + std::to_string(layerNumber) + "_" + std::to_string(stave_idx) + "_" + std::to_string(volume_count);
   addDetectorVolume(
-    motherVolume, kapton_name, Constants::kaptonColor, volume_count,
+    motherVolume, kapton_name, Materials::materials.at(Materials::MaterialID::Kapton).colour,
+    getMedium(Materials::MaterialID::Kapton), volume_count,
     x_mid, y_mid, z_mid,
     Constants::sensor2x1_width / 2, Constants::sensor2x1_height / 2, Constants::kaptonThickness / 2);
 }
 
 /*
- * This function adds a single sensor (currently 2.5x3.2mm) to the given mother volume
+ * This function adds a single sensor (currently 2.5x3.2cm) to the given mother volume
  * at the given (x,y,z) position of the module.
  *
- * Because the sensor has an inactive region of 0.2mm on one side, we also add a
+ * Because the sensor has an inactive region of 2mm on one side, we also add a
  * separate volume for the inactive region, which will be either on the left or
  * or right dependent on the if the sensor is on the left or right in a 2x1 layout.
  * See FT3Module.h for more details on the layout.
@@ -457,20 +441,14 @@ void FT3Module::addSingleSensorVolume(
 {
   TGeoVolume* sensor;
   TGeoManager* geoManager = gGeoManager;
+  TGeoMedium* siliconMed = getMedium(Materials::MaterialID::Silicon);
   // ACTIVE AREA
+  // Sensor thickness is along the Y axis; this convention is used in digitisation by barrels and disks
   std::string sensor_name = "FT3Sensor_Active_" + std::to_string(direction) + "_" + std::to_string(layerNumber) + "_" + std::to_string(stave_idx) + "_" + std::to_string(volume_count);
-  sensor = geoManager->MakeBox(sensor_name.c_str(), siliconMed, Constants::active_width / 2,
-                               Constants::single_sensor_height / 2, Constants::siliconThickness / 2);
-  sensor->SetLineColor(Constants::SiColor);
-  sensor->SetFillColorAlpha(Constants::SiColor, 0.4);
-  motherVolume->AddNode(
-    sensor,
-    volume_count,
-    new TGeoTranslation( // midpoint of box to add
-      active_x_mid,
-      y_mid,
-      z_mid) // TGeoTranslation
-  );         // addNode
+  addDetectorVolume(
+    motherVolume, sensor_name, Materials::materials.at(Materials::MaterialID::Silicon).colour, siliconMed,
+    volume_count, active_x_mid, y_mid, z_mid,
+    Constants::active_width / 2, Constants::siliconThickness / 2, Constants::single_sensor_height / 2, 90.);
 
   // INACTIVE STRIP ON LEFT OR RIGHT
   double inactive_x_mid = isLeft ? (active_x_mid - Constants::active_width / 2 - Constants::inactive_width / 2)
@@ -478,17 +456,330 @@ void FT3Module::addSingleSensorVolume(
   std::string sensor_inactive_name = "FT3Sensor_Inactive_" + std::to_string(direction) + "_" + std::to_string(layerNumber) + "_" + std::to_string(stave_idx) + "_" + std::to_string(volume_count);
   sensor = geoManager->MakeBox(sensor_inactive_name.c_str(), siliconMed, Constants::inactive_width / 2,
                                Constants::single_sensor_height / 2, Constants::siliconThickness / 2);
-  sensor->SetLineColor(Constants::SiInactiveColor);
-  sensor->SetFillColorAlpha(Constants::SiInactiveColor, 0.4);
-  motherVolume->AddNode(
-    sensor,
-    volume_count,
-    new TGeoTranslation( // midpoint of box to add
-      inactive_x_mid,
-      y_mid,
-      z_mid) // TGeoTranslation
-  );         // addNode
-  (volume_count)++;
+  addDetectorVolume(
+    motherVolume, sensor_inactive_name, Materials::SiInactiveColor, siliconMed,
+    volume_count, inactive_x_mid, y_mid, z_mid,
+    Constants::inactive_width / 2, Constants::single_sensor_height / 2, Constants::siliconThickness / 2);
+}
+
+/*
+ * Look up a stave's y midpoint and whether it is built as two pieces mirrored
+ * about the x-axis. Returns false for a stave absent from the map, which sits
+ * on y=0 in one piece and leaves both outputs untouched.
+ */
+bool staveMidpointAndMirror(const Constants::StaveConfig& staveConfig, int staveID,
+                            double& y_midpoint, bool& mirrorStaveAroundX)
+{
+  auto y_midpoint_it = staveConfig.staveID_to_y_midpoint.find(staveID);
+  if (y_midpoint_it == staveConfig.staveID_to_y_midpoint.end()) {
+    return false;
+  }
+  y_midpoint = y_midpoint_it->second.first; // avoid double map lookup
+  mirrorStaveAroundX = y_midpoint_it->second.second;
+  return true;
+}
+
+/*
+ * FR4 + Cu end-of-stave card at the outer-radius tip of a disk stave.
+ * Mirrors the TRK barrel card: an FR4 board with evenly spaced copper planes.
+ * Local card axes in the (layer) mother frame: x = stave width, y = stave axis
+ * (radial at the tip), z = beam. The card sits downstream of the stave (away
+ * from the IP), just past the disk envelope, in front of the connection disk.
+ */
+void FT3Module::addEndOfStaveCard(
+  TGeoVolume* motherVolume, const std::string& name, int direction,
+  unsigned volume_count, double x_mid, double y_tip, double z_sensor,
+  bool isML, double cuThickness)
+{
+  const Constants::EosCardParams& c = Constants::getEosCardParams(isML);
+  if (cuThickness * c.nCopperLayers >= c.thickness) {
+    LOG(fatal) << "FT3 disk EoS card: Cu " << cuThickness << " cm x " << c.nCopperLayers
+               << " planes does not fit in the " << c.thickness << " cm card";
+  }
+
+  // FR4 board (x = width, y = thickness, z = length)
+  TGeoVolume* cardVol = gGeoManager->MakeBox(name.c_str(), getMedium(Materials::MaterialID::FR4),
+                                             c.width / 2, c.thickness / 2, c.length / 2);
+  cardVol->SetLineColor(kGreen + 3);
+
+  // copper planes spread over the thickness (y), outermost two flush with the faces
+  TGeoVolume* planeVol = gGeoManager->MakeBox((name + "_Cu").c_str(), getMedium(Materials::MaterialID::Copper),
+                                              c.width / 2, cuThickness / 2, c.length / 2);
+  planeVol->SetLineColor(kOrange + 7);
+  const double span = c.thickness - cuThickness;
+  for (int i = 0; i < c.nCopperLayers; ++i) {
+    const double y = (c.nCopperLayers > 1) ? -span / 2 + i * span / (c.nCopperLayers - 1) : 0.;
+    cardVol->AddNode(planeVol, i, new TGeoTranslation(0, y, 0));
+  }
+
+  // z: IP-facing edge starts just after the sensors (z_sensor), body extends
+  //    downstream (away from the IP), toward the connection disk.
+  // y: sit just radially OUTSIDE the stave outer tip so the long card runs past
+  //    the carbon stave along z without overlapping it.
+  const double s = (direction == 1) ? 1.0 : -1.0; // downstream sign
+  const double zCard = z_sensor + s * (c.zGap + c.length / 2);
+  const double yClear = 0.05; // radial clearance to the stave tip
+  const double yCard = y_tip + (y_tip >= 0 ? 1.0 : -1.0) * (c.thickness / 2 + yClear);
+  motherVolume->AddNode(cardVol, volume_count, new TGeoTranslation(x_mid, yCard, zCard));
+}
+
+/*
+ * Create the carbon shell of one stave, staggered in z, plus the mirrored one
+ * when the stave is built as two pieces.
+ */
+void FT3Module::add_stave_volumes(
+  TGeoVolume* motherVolume, int layerNumber, int direction,
+  const Constants::StaveConfig& staveConfig, unsigned i_stave,
+  const std::array<std::array<double, 3>, 4>& staveTriangles,
+  double z_offset_to_carbon_face, std::pair<double, double>& absAllowedYRange,
+  double y_midpoint, bool mirrorStaveAroundX, unsigned* staveVolumeCount)
+{
+  // Get whether the stave is shifted backward or not before creating
+  double z_stave_shift_abs = staveConfig.staveOnFront[i_stave] ? 0 : Constants::z_offsetStave(staveConfig.x_midpoint_spacing);
+  double z_stave_shift_forward = // move staves more inward to fit in layer volume
+    -z_offset_to_carbon_face + z_stave_shift_abs;
+  std::string stave_volume_name =
+    "FT3_Stave_" + std::to_string(direction) + "_" + std::to_string(layerNumber) +
+    "_" + std::to_string(i_stave);
+
+  addStaveVolume(
+    motherVolume, stave_volume_name, direction, staveVolumeCount,
+    staveConfig.y_lengths[i_stave], staveTriangles, absAllowedYRange,
+    staveConfig.x_midpoints[i_stave], y_midpoint, z_stave_shift_forward);
+  // Now create the mirrored stave
+  if (mirrorStaveAroundX) {
+    addStaveVolume(
+      motherVolume, stave_volume_name + "_mirrored", direction, staveVolumeCount,
+      staveConfig.y_lengths[i_stave], staveTriangles, absAllowedYRange,
+      staveConfig.x_midpoints[i_stave], -y_midpoint, z_stave_shift_forward);
+  }
+
+  // End-of-stave card at the outer-radius tip of each stave PIECE, placed
+  // downstream of the stave in front of the connection disk. A whole stave gets
+  // one card (the +y "top" tip). A split stave is built as two pieces (main +
+  // mirror), each reaching the outer radius at opposite ends, so each piece gets
+  // its own card at its outer tip (+y for the main, -y for the mirror).
+  // Shared by the exact and greedy paths; the disk layer envelope is extended
+  // downstream in FT3Layer::createLayer to contain the cards.
+  auto& ft3Params = o2::ft3::FT3BaseParam::Instance();
+  if (ft3Params.addDiskEosCards) {
+    const bool isML = staveConfig.isML;
+    const double cuT = isML ? ft3Params.ft3EosCardCuThicknessML : ft3Params.ft3EosCardCuThicknessOT;
+    // Actual outer-radius tip of the stave: greedy clamps the stave to
+    // absAllowedYRange.second, exact leaves it unbounded (DBL_MAX), so take the
+    // smaller of the geometric end and the radial clamp.
+    const double yTip = std::min(y_midpoint + staveConfig.y_lengths[i_stave] / 2,
+                                 absAllowedYRange.second);
+    // Per-stave sensor silicon z in the layer frame, reconstructed from the
+    // carbon-face offset exactly as the sensor-placement loop does, so the card
+    // starts right after the sensors.
+    const double z_offset_to_silicon = z_offset_to_carbon_face +
+                                       Constants::epoxyThickness + Constants::kaptonThickness +
+                                       Constants::copperThickness + Constants::epoxyThickness +
+                                       Constants::siliconThickness / 2;
+    const double zOffMult = (direction == 1) ? -1.0 : 1.0;
+    double zStaveShiftSensors = 0.0;
+    if (!staveConfig.staveOnFront[i_stave]) {
+      zStaveShiftSensors = (direction == 1) ? Constants::z_offsetStave(staveConfig.x_midpoint_spacing)
+                                            : -Constants::z_offsetStave(staveConfig.x_midpoint_spacing);
+    }
+    const double zSensor = z_offset_to_silicon * zOffMult + zStaveShiftSensors;
+    const std::string cardBase = "FT3_EOSdiskCard_" + std::to_string(direction) + "_" +
+                                 std::to_string(layerNumber) + "_" + std::to_string(i_stave);
+    addEndOfStaveCard(motherVolume, cardBase + "_pos", direction, (*staveVolumeCount)++,
+                      staveConfig.x_midpoints[i_stave], +yTip, zSensor, isML, cuT);
+    // split stave: the mirror piece reaches the outer radius at -y, give it a card too
+    if (mirrorStaveAroundX) {
+      addEndOfStaveCard(motherVolume, cardBase + "_neg", direction, (*staveVolumeCount)++,
+                        staveConfig.x_midpoints[i_stave], -yTip, zSensor, isML, cuT);
+    }
+  }
+}
+
+/*
+ * Exact layout: build every stave of the layer from the tabulated layout in
+ * exactStaveFills, the counterpart to build_staves_greedy.
+ *
+ * Deliberately stupid: the stave is built to the length y_lengths gives it and
+ * the modules sit exactly where the table says. No tolerance is applied, the
+ * stave is not cut on the layer radii, no stave is skipped and nothing is
+ * mirrored, so none of Rin, Rout or the staveTol parameters are needed here.
+ * Whatever produced the table is responsible for it fitting the layer.
+ */
+void FT3Module::build_staves_exact(
+  TGeoVolume* motherVolume, int layerNumber, int direction,
+  const Constants::StaveConfig& staveConfig,
+  const std::array<std::array<double, 3>, 4>& staveTriangles,
+  double z_offset_to_carbon_face,
+  std::vector<PosNegPositionTypes>& y_positionsPosNeg,
+  unsigned& staveVolumeCount)
+{
+  // number of modules per stack height, only used for logging. Keyed by height
+  // rather than indexed by kSensorsPerStack, since the table is free to use
+  // heights that are not in that list.
+  std::map<unsigned, unsigned> nSensorStackTotal;
+  for (unsigned i_stave = 0; i_stave < staveConfig.x_midpoints.size(); i_stave++) {
+    const int staveID = Constants::staveIdxToID(i_stave, staveConfig.x_midpoints.size());
+
+    // a stave in the map is built as two pieces, one either side of the beam pipe
+    double y_midpoint = 0.;
+    bool mirrorStaveAroundX = false;
+    staveMidpointAndMirror(staveConfig, staveID, y_midpoint, mirrorStaveAroundX);
+
+    // no radial limit, so addStaveVolume cuts nothing off the stave
+    std::pair<double, double> absAllowedYRange = {0., std::numeric_limits<double>::max()};
+
+    add_stave_volumes(motherVolume, layerNumber, direction, staveConfig, i_stave,
+                      staveTriangles, z_offset_to_carbon_face, absAllowedYRange,
+                      y_midpoint, mirrorStaveAroundX, &staveVolumeCount);
+
+    /*
+     * Every module goes in the positive-y list, whatever the sign of its y, and
+     * the negative-y list stays empty. The placement loop reads that list with
+     * y_sign = +1 and only ever adds to the stored bottom edge, so it does not
+     * care that some of those edges are negative.
+     */
+    y_positionsPosNeg.emplace_back(fill_stave_exact(staveConfig.exactStaveFills[i_stave]),
+                                   PositionTypes{});
+
+    std::map<unsigned, unsigned> nSensorStackCount;
+    for (const auto& [y_bottom, kSensorStack] : y_positionsPosNeg.back().first) {
+      nSensorStackCount[kSensorStack]++;
+      nSensorStackTotal[kSensorStack]++;
+    }
+    std::string moduleDebugStr = "Module size counts for layer " + std::to_string(layerNumber) + " in direction " + std::to_string(direction) + ":\n";
+    for (const auto& [kSensorStack, nModules] : nSensorStackCount) {
+      moduleDebugStr += "\t" + std::to_string(nModules) + " modules with " + std::to_string(kSensorStack) + " sensors stacked\n";
+    }
+    LOG(debug) << moduleDebugStr;
+  }
+  std::string totalModuleInfoStr =
+    "Total module size counts for layer " + std::to_string(layerNumber) +
+    " in direction " + std::to_string(direction) + ":\n";
+  for (const auto& [kSensorStack, nModules] : nSensorStackTotal) {
+    totalModuleInfoStr += "\t" + std::to_string(nModules) + " modules with " + std::to_string(kSensorStack) + " sensors stacked\n";
+  }
+  LOG(info) << totalModuleInfoStr;
+}
+
+/*
+ * Greedy layout: work out the module positions from the layer radii and the
+ * stave length, filling each stave from the middle outwards with the stack
+ * sizes in kSensorsPerStack. Since it chooses the positions itself, this is
+ * the path that applies the radial tolerances.
+ *
+ * Extracted verbatim from create_layout_staveGeo; the body is unchanged.
+ */
+void FT3Module::build_staves_greedy(
+  TGeoVolume* motherVolume, int layerNumber, int direction, double Rin, double Rout,
+  const Constants::StaveConfig& staveConfig,
+  const std::array<std::array<double, 3>, 4>& staveTriangles,
+  double z_offset_to_carbon_face,
+  std::vector<PosNegPositionTypes>& y_positionsPosNeg, unsigned& staveVolumeCount)
+{
+  auto& ft3Params = o2::ft3::FT3BaseParam::Instance();
+  // declare vector with number of 2xn sensor stacks (modules) -- only used for logging
+  // each entry is a vector, where each entry is the number of modules of that stack height
+  std::vector<std::vector<unsigned>> nSensorStackCountPerStave(
+    staveConfig.x_midpoints.size(),
+    std::vector<unsigned>(Constants::kSensorsPerStack.size(), 0));
+  std::vector<unsigned> nSensorStackTotal(Constants::kSensorsPerStack.size(), 0);
+  for (unsigned i_stave = 0; i_stave < staveConfig.x_midpoints.size(); i_stave++) {
+    y_positionsPosNeg.emplace_back(PosNegPositionTypes{PositionTypes{}, PositionTypes{}});
+    const int staveID = Constants::staveIdxToID(i_stave, staveConfig.x_midpoints.size());
+
+    double y_midpoint = 0.;
+    bool mirrorStaveAroundX = false;
+    // default positive and negative starting points has a gap around x-axis for symmetry
+    double stave_half_length = staveConfig.y_lengths[i_stave] / 2;
+    /*
+     * Have a gap around y=0, so sensors are not placed there.
+     * This means the stave is perfectly mirrored around the x-axis.
+     */
+    PositionRangeType y_ranges = {{Constants::stackGap / 2, stave_half_length},
+                                  {-Constants::stackGap / 2, -stave_half_length}};
+    if (staveMidpointAndMirror(staveConfig, staveID, y_midpoint, mirrorStaveAroundX)) {
+      // there is a defined midpoint for this stave, use this for starting points
+      y_ranges.first = {y_midpoint - stave_half_length, y_midpoint + stave_half_length};
+      y_ranges.second = {-y_midpoint + stave_half_length, -y_midpoint - stave_half_length};
+    }
+
+    // Define tolerances for cutting staves and placing sensors
+    double tolerance_inner, tolerance_outer;
+    if (staveConfig.isML) {
+      tolerance_inner = ft3Params.staveTolMLInner;
+      tolerance_outer = ft3Params.staveTolMLOuter;
+    } else {
+      tolerance_inner = ft3Params.staveTolOTInner;
+      tolerance_outer = ft3Params.staveTolOTOuter;
+    }
+    // cut staves on nominal inner radius if specified
+    if (tolerance_inner > staveConfig.maxToleranceInner) {
+      tolerance_inner = staveConfig.maxToleranceInner;
+    }
+    if (tolerance_outer > staveConfig.maxToleranceOuter) {
+      tolerance_outer = staveConfig.maxToleranceOuter;
+    }
+
+    /*
+     * There are two cases in which we want to mirror the stave around the x-axis,
+     * which correspond to the stave not going fully from + to - Rout in y.
+     *
+     * (1) The inner tolerance is 0 (or negative)
+     *    a) AND either x_left or x_right lies within the inner radius
+     * (2) The inner tolerance is large enough to allow stave placement as wished
+     *    a) AND the given stave midpoint is above the inner radius
+     */
+    double x_left_stave = staveConfig.x_midpoints[i_stave] - Constants::staveWidth / 2;
+    double x_right_stave = x_left_stave + Constants::staveWidth;
+    std::pair<double, double> absAllowedYRange =
+      calculate_y_range(x_left_stave, x_right_stave, Rin, Rout);
+
+    /*
+     * Shift allowed range by tolerance. Note that both values in the range must
+     * be non-negative, and if the inner is not, then set it to 0. This just means
+     * that there is no lower limit. The upper limit must however be larger than 0,
+     * if it is not, then skip this stave and give a warning.
+     */
+    absAllowedYRange.first -= tolerance_inner;
+    absAllowedYRange.second += tolerance_outer;
+
+    if (absAllowedYRange.first < 0) {
+      absAllowedYRange.first = 0;
+    }
+    if (absAllowedYRange.second <= 0) {
+      LOG(warning) << "For stave " << i_stave << " in layer " << layerNumber
+                   << " with direction " << direction << ": no space to place sensors after applying tolerances, skipping stave.";
+      continue;
+    }
+
+    // Create the stave volumes and fill the y positions where to put sensors on the stave
+    add_stave_volumes(motherVolume, layerNumber, direction, staveConfig, i_stave,
+                      staveTriangles, z_offset_to_carbon_face, absAllowedYRange,
+                      y_midpoint, mirrorStaveAroundX, &staveVolumeCount);
+
+    // now add the sensor positions on the stave
+    for (unsigned i_kSens = 0; i_kSens < Constants::kSensorsPerStack.size(); i_kSens++) {
+      unsigned nModulesCurr = y_positionsPosNeg.back().first.size() + y_positionsPosNeg.back().second.size();
+      fill_stave_greedy(y_positionsPosNeg.back(), Constants::kSensorsPerStack[i_kSens],
+                        y_ranges, absAllowedYRange);
+      unsigned nModulesAdded = y_positionsPosNeg.back().first.size() + y_positionsPosNeg.back().second.size() - nModulesCurr;
+      nSensorStackCountPerStave[i_stave][i_kSens] = nModulesAdded;
+      nSensorStackTotal[i_kSens] += nModulesAdded;
+    }
+    std::string moduleDebugStr = "Module size counts for layer " + std::to_string(layerNumber) + " in direction " + std::to_string(direction) + ":\n";
+    for (unsigned i_kSens = 0; i_kSens < Constants::kSensorsPerStack.size(); i_kSens++) {
+      moduleDebugStr += "\t" + std::to_string(nSensorStackCountPerStave[i_stave][i_kSens]) + " modules with " + std::to_string(Constants::kSensorsPerStack[i_kSens]) + " sensors stacked\n";
+    }
+    LOG(debug) << moduleDebugStr;
+  }
+  std::string totalModuleInfoStr =
+    "Total module size counts for layer " + std::to_string(layerNumber) +
+    " in direction " + std::to_string(direction) + ":\n";
+  for (unsigned i_kSens = 0; i_kSens < Constants::kSensorsPerStack.size(); i_kSens++) {
+    totalModuleInfoStr += "\t" + std::to_string(nSensorStackTotal[i_kSens]) + " modules with " + std::to_string(Constants::kSensorsPerStack[i_kSens]) + " sensors stacked\n";
+  }
+  LOG(info) << totalModuleInfoStr;
 }
 
 void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction,
@@ -499,7 +790,6 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
   LOG(debug) << "FT3Module: create_layout_staveGeo - Direction "
              << direction << ", Layer " << layerNumber;
 
-  FT3Module::initialize_materials();
   auto& ft3Params = o2::ft3::FT3BaseParam::Instance();
 
   // First let's define some constants used throughout
@@ -546,147 +836,24 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
   std::vector<PosNegPositionTypes> y_positionsPosNeg;
   // stave triangle cross sections are the same for every stave (direction based)
   std::array<std::array<double, 3>, 4> staveTriangles = buildStaveTriangle(direction);
-  // declare vector with number of 2xn sensor stacks (modules) -- only used for logging
-  // each entry is a vector, where each entry is the number of modules of that stack height
-  std::vector<std::vector<unsigned>> nSensorStackCountPerStave(
-    staveConfig.x_midpoints.size(),
-    std::vector<unsigned>(Constants::kSensorsPerStack.size(), 0));
-  std::vector<unsigned> nSensorStackTotal(Constants::kSensorsPerStack.size(), 0);
   unsigned staveVolumeCount = 0;
-  for (unsigned i_stave = 0; i_stave < staveConfig.x_midpoints.size(); i_stave++) {
-    y_positionsPosNeg.emplace_back(PosNegPositionTypes{PositionTypes{}, PositionTypes{}});
-    const int staveID = Constants::staveIdxToID(i_stave, staveConfig.x_midpoints.size());
-
-    double y_midpoint = 0.;
-    bool mirrorStaveAroundX = false;
-    // default positive and negative starting points has a gap around x-axis for symmetry
-    double stave_half_length = staveConfig.y_lengths[i_stave] / 2;
-    PositionRangeType y_ranges;
-    if (ft3Params.placeSensorStackInMiddleOfStave) {
-      /*
-       * We want a sensor stack to cross over the x-axis for coverage at y=0
-       * N.B. not necessarily exactly mirrored, only if stack gap is the same
-       * as the gap between sensors in a stack. Since we start filling with the
-       * first value in the kSensorsPerStack vector, we offset the first position
-       * by half of that.
-       *
-       * NOTE: TODO: in case the stave is too short to fit one full stack over the middle,
-       * then we will not be able to place anything since the bottom right/left point of
-       * the module will already be outside of acceptable bounds -- killing further placement.
-       */
-      double stackHeight = Constants::getStackHeight(Constants::kSensorsPerStack[0]);
-      y_ranges = {{-stackHeight / 2, stave_half_length},
-                  {-stackHeight / 2 - Constants::stackGap, -stave_half_length}};
-    } else {
-      /*
-       * Otherwise have a gap around y=0, so sensors are not placed there.
-       * This means the stave is perfectly mirrored around the x-axis.
-       */
-      y_ranges = {{Constants::stackGap / 2, stave_half_length},
-                  {-Constants::stackGap / 2, -stave_half_length}};
-    }
-    auto y_midpoint_it = staveConfig.staveID_to_y_midpoint.find(staveID);
-    if (y_midpoint_it != staveConfig.staveID_to_y_midpoint.end()) {
-      // there is a defined midpoint for this stave, use this for starting points
-      y_midpoint = y_midpoint_it->second.first; // avoid double map lookup
-      mirrorStaveAroundX = y_midpoint_it->second.second;
-      y_ranges.first = {y_midpoint - stave_half_length, y_midpoint + stave_half_length};
-      y_ranges.second = {-y_midpoint + stave_half_length, -y_midpoint - stave_half_length};
-    }
-
-    // Define tolerances for cutting staves and placing sensors
-    double tolerance_inner, tolerance_outer;
-    if (staveConfig.isML) {
-      tolerance_inner = ft3Params.staveTolMLInner;
-      tolerance_outer = ft3Params.staveTolMLOuter;
-    } else {
-      tolerance_inner = ft3Params.staveTolOTInner;
-      tolerance_outer = ft3Params.staveTolOTOuter;
-    }
-    // cut staves on nominal inner radius if specified
-    if (tolerance_inner > staveConfig.maxToleranceInner) {
-      tolerance_inner = staveConfig.maxToleranceInner;
-    }
-    if (tolerance_outer > staveConfig.maxToleranceOuter) {
-      tolerance_outer = staveConfig.maxToleranceOuter;
-    }
-
-    /*
-     * There are two cases in which we want to mirror the stave around the x-axis,
-     * which correspond to the stave not going fully from + to - Rout in y.
-     *
-     * (1) The inner tolerance is 0 (or negative)
-     *    a) AND either x_left or x_right lies within the inner radius
-     * (2) The inner tolerance is large enough to allow stave placement as wished
-     *    a) AND the given stave midpoint is above the inner radius
-     */
-    double x_left = staveConfig.x_midpoints[i_stave] - Constants::sensor2x1_width / 2;
-    double x_right = x_left + Constants::sensor2x1_width;
-    std::pair<double, double> absAllowedYRange =
-      calculate_y_range(x_left, x_right, Rin, Rout);
-
-    /*
-     * Shift allowed range by tolerance. Note that both values in the range must
-     * be non-negative, and if the inner is not, then set it to 0. This just means
-     * that there is no lower limit. The upper limit must however be larger than 0,
-     * if it is not, then skip this stave and give a warning.
-     */
-    absAllowedYRange.first -= tolerance_inner;
-    absAllowedYRange.second += tolerance_outer;
-
-    if (absAllowedYRange.first < 0) {
-      absAllowedYRange.first = 0;
-    }
-    if (absAllowedYRange.second <= 0) {
-      LOG(warning) << "For stave " << i_stave << " in layer " << layerNumber
-                   << " with direction " << direction << ": no space to place sensors after applying tolerances, skipping stave.";
-      continue;
-    }
-
-    // Get whether the stave is shifted backward or not before creating
-    double z_stave_shift_abs = staveConfig.staveOnFront[i_stave] ? 0 : Constants::z_offsetStave(staveConfig.x_midpoint_spacing);
-    double z_stave_shift_forward = // move staves more inward to fit in layer volume
-      -z_offset_to_carbon_face + z_stave_shift_abs;
-    std::string stave_volume_name =
-      "FT3_Stave_" + std::to_string(direction) + "_" + std::to_string(layerNumber) +
-      "_" + std::to_string(i_stave);
-
-    // Create the stave volumes and fill the y positions where to put sensors on the stave
-    addStaveVolume(
-      motherVolume, stave_volume_name, direction, &staveVolumeCount,
-      staveConfig.y_lengths[i_stave], staveTriangles, absAllowedYRange,
-      staveConfig.x_midpoints[i_stave], y_midpoint, z_stave_shift_forward);
-    // Now create the mirrored stave
-    if (mirrorStaveAroundX) {
-      addStaveVolume(
-        motherVolume, stave_volume_name + "_mirrored", direction, &staveVolumeCount,
-        staveConfig.y_lengths[i_stave], staveTriangles, absAllowedYRange,
-        staveConfig.x_midpoints[i_stave], -y_midpoint, z_stave_shift_forward);
-    }
-
-    // now add the sensor positions on the stave
-    for (unsigned i_kSens = 0; i_kSens < Constants::kSensorsPerStack.size(); i_kSens++) {
-      unsigned nModulesCurr = y_positionsPosNeg.back().first.size() + y_positionsPosNeg.back().second.size();
-      fill_stave(y_positionsPosNeg.back(), Rin, Rout, x_left,
-                 Constants::kSensorsPerStack[i_kSens], y_ranges,
-                 absAllowedYRange);
-      unsigned nModulesAdded = y_positionsPosNeg.back().first.size() + y_positionsPosNeg.back().second.size() - nModulesCurr;
-      nSensorStackCountPerStave[i_stave][i_kSens] = nModulesAdded;
-      nSensorStackTotal[i_kSens] += nModulesAdded;
-    }
-    std::string moduleDebugStr = "Module size counts for layer " + std::to_string(layerNumber) + " in direction " + std::to_string(direction) + ":\n";
-    for (unsigned i_kSens = 0; i_kSens < Constants::kSensorsPerStack.size(); i_kSens++) {
-      moduleDebugStr += "\t" + std::to_string(nSensorStackCountPerStave[i_stave][i_kSens]) + " modules with " + std::to_string(Constants::kSensorsPerStack[i_kSens]) + " sensors stacked\n";
-    }
-    LOG(debug) << moduleDebugStr;
+  /*
+   * Either read the module positions out of the tabulated layout, or work them
+   * out here from the layer radii and the stave length. Both create the stave
+   * volumes and leave the module positions in y_positionsPosNeg, so the sensor
+   * placement below does not care which of the two ran.
+   *
+   * A disc without a tabulated layout falls back to the greedy fill even when
+   * the parameter is set, so that the discs which do have one can use it.
+   */
+  if (ft3Params.useExactStavePlacement && !staveConfig.exactStaveFills.empty()) {
+    build_staves_exact(motherVolume, layerNumber, direction, staveConfig, staveTriangles,
+                       z_offset_to_carbon_face, y_positionsPosNeg, staveVolumeCount);
+  } else {
+    build_staves_greedy(motherVolume, layerNumber, direction, Rin, Rout, staveConfig,
+                        staveTriangles, z_offset_to_carbon_face, y_positionsPosNeg,
+                        staveVolumeCount);
   }
-  std::string totalModuleInfoStr =
-    "Total module size counts for layer " + std::to_string(layerNumber) +
-    " in direction " + std::to_string(direction) + ":\n";
-  for (unsigned i_kSens = 0; i_kSens < Constants::kSensorsPerStack.size(); i_kSens++) {
-    totalModuleInfoStr += "\t" + std::to_string(nSensorStackTotal[i_kSens]) + " modules with " + std::to_string(Constants::kSensorsPerStack[i_kSens]) + " sensors stacked\n";
-  }
-  LOG(info) << totalModuleInfoStr;
 
   // Create volumes for the sensors and the support materials on top of the stave
   for (unsigned i_stave = 0; i_stave < staveConfig.x_midpoints.size(); i_stave++) {
@@ -720,6 +887,8 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
     unsigned sensor_count = 0; // reset for each stave
     for (int y_sign = -1; y_sign < 2; y_sign += 2) {
       // place sensors at positive and negative y
+      // recall for exact placement the first entry is filled, second is empty
+      // (this has no effect on the placement as it loops over all positions)
       const auto& positions = (y_sign == 1) ? y_positionsPosNeg[i_stave].first
                                             : y_positionsPosNeg[i_stave].second;
       // define starting midpoint: y = y_start +- distance to middle of sensor
@@ -728,15 +897,17 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
         for (unsigned i_sens = 0; i_sens < positions[i_y_pos].second; i_sens++) {
           TGeoVolume* sensor;
           // ------------ (1) Silicon sensor ------------
-          // left single sensor of the 2x1
+          // left single sensor of the 2x1: place right edge half of sensor gap from center
           double z_mid = z_offset_to_silicon * z_offset_multiplier + z_stave_shift;
           addSingleSensorVolume(
             motherVolume, layerNumber, direction, i_stave, sensor_count,
-            x_mid - Constants::active_width / 2, y_mid, z_mid, true);
-          // right single sensor of the 2x1
+            x_mid - Constants::sensor2x1_gap / 2 - Constants::active_width / 2,
+            y_mid, z_mid, true);
+          // right single sensor of the 2x1: place left edge half of sensor gap from center
           addSingleSensorVolume(
             motherVolume, layerNumber, direction, i_stave, sensor_count + 1,
-            x_mid + Constants::active_width / 2, y_mid, z_mid, false);
+            x_mid + Constants::sensor2x1_gap / 2 + Constants::active_width / 2,
+            y_mid, z_mid, false);
           // ------------ (2) Epoxy glue layer between silicon and copper (FPC) ------------
           z_mid = z_offset_to_glue_Si * z_offset_multiplier + z_stave_shift;
           add2x1GlueVolume(
@@ -772,7 +943,11 @@ void FT3Module::create_layout(double mZ, int layerNumber, int direction, double 
   LOG(debug) << "FT3Module: create_layout - Layer " << layerNumber << ", Direction " << direction << ", Face " << face;
   TGeoManager* geoManager = gGeoManager;
 
-  FT3Module::initialize_materials();
+  TGeoMedium* siliconMed = getMedium(Materials::MaterialID::Silicon);
+  TGeoMedium* copperMed = getMedium(Materials::MaterialID::Copper);
+  TGeoMedium* kaptonMed = getMedium(Materials::MaterialID::Kapton);
+  TGeoMedium* epoxyMed = getMedium(Materials::MaterialID::Epoxy);
+  TGeoMedium* AluminumMed = getMedium(Materials::MaterialID::Aluminum);
 
   // double sensor_width = 2.5;
   // double sensor_height = 9.6;

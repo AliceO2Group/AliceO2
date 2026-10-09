@@ -16,6 +16,8 @@
 #ifndef O2_GLOBAL_TRACK_ID
 #define O2_GLOBAL_TRACK_ID
 
+#include "GPUCommonDef.h"
+
 #include "GPUCommonBitSet.h"
 #include "CommonDataFormat/AbstractRef.h"
 #include "DetectorsCommonDataFormats/DetID.h"
@@ -78,8 +80,8 @@ class GlobalTrackID : public AbstractRef<25, 5, 2>
   static constexpr std::string_view NONE{"none"}; ///< keywork for no sources
   static constexpr std::string_view ALL{"all"};   ///< keywork for all sources
 #endif
-  static constexpr mask_t MASK_ALL = (1u << NSources) - 1;
-  static constexpr mask_t MASK_NONE = 0;
+  static GPUglobalconstexpr() mask_t MASK_ALL = (1u << NSources) - 1;
+  static GPUglobalconstexpr() mask_t MASK_NONE = 0;
 
   // methods for detector level manipulations
   GPUdi() static constexpr DetID::mask_t getSourceDetectorsMask(int i);

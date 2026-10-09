@@ -99,6 +99,14 @@ class Generator : public FairGenerator
   const std::vector<TParticle>& getParticles() const { return mParticles; }; //!
   static unsigned int getTotalNEvents() { return gTotalNEvents; };
 
+  // Check if simulation is running in Hyperloop mode
+  static bool isHyperloop();
+
+  // Number of parallel sub-generator clones a Hyperloop-aware generator expands into
+  // (currently used by the external-generator-to-hybrid expansion in GeneratorFactory).
+  // 8 matches the standard core counts of Grid/Hyperloop nodes
+  static constexpr int NHyperloopParallelGenerators = 8;
+
   /** other **/
   void clearParticles() { mParticles.clear(); };
 

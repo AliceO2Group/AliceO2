@@ -29,7 +29,7 @@ namespace o2::gpu
 class GPUTPCCFDeconvolution : public GPUKernelTemplate
 {
  public:
-  static constexpr size_t SCRATCH_PAD_WORK_GROUP_SIZE = GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFDeconvolution);
+  static GPUglobalconstexpr() size_t SCRATCH_PAD_WORK_GROUP_SIZE = GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFDeconvolution);
   struct GPUSharedMemory : public GPUKernelTemplate::GPUSharedMemoryScan64<int16_t, SCRATCH_PAD_WORK_GROUP_SIZE> {
     CfChargePos posBcast1[SCRATCH_PAD_WORK_GROUP_SIZE];
     uint8_t aboveThresholdBcast[SCRATCH_PAD_WORK_GROUP_SIZE];

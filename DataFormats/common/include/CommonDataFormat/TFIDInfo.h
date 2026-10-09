@@ -39,7 +39,7 @@ struct TFIDInfo { // helper info to patch DataHeader
     runNumber = runNumber_;
     startTime = startTime_;
     creation = creation_;
-    discard = (firstTForbit < tfCounter) || firstTForbit == -1U || creation == -1;
+    discard = (firstTForbit < tfCounter) || firstTForbit == -1U || creation == -1UL;
   }
 
   ClassDefNV(TFIDInfo, 3);

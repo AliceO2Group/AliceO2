@@ -146,7 +146,11 @@ class DigitsReaderDeviceDPL
     // get the IR frames to select
     auto irFrames = pc.inputs().get<gsl::span<dataformats::IRFrame>>("driverInfo");
 
-    if (!irFrames.empty()) {
+    if (mTreeReader.GetEntries() == 0) {
+      // A timeframe holds no collision at all whenever the interaction rate is low enough, and the
+      // digit tree then has no entry. Nothing to select. Send empty containers.
+      LOG(info) << "digit tree has no entry, sending empty output";
+    } else if (!irFrames.empty()) {
       utils::IRFrameSelector irfSel{};
       irfSel.setSelectedIRFrames(irFrames, 0, 0, 0, true);
       const auto irMin = irfSel.getIRFrames().front().getMin();

@@ -21,6 +21,8 @@
 
 #include <Eigen/Dense>
 
+#include "ITS3Align/AlignmentLabel.h"
+
 struct DerivativeContext {
   int sensorID{-1};
   int layerID{-1};
@@ -62,7 +64,7 @@ class DOFSet
   }
 
  protected:
-  DOFSet(int n) : mFree(n, true) {}
+  DOFSet(int n) : mFree(n, true) { GlobalLabel::checkDOFCount(n); }
   std::vector<bool> mFree;
 };
 
@@ -126,51 +128,77 @@ class LegendreDOFSet final : public DOFSet
   int mOrder;
 };
 
-// In-extensional deformation DOFs for cylindrical half-shells
-// Fourier modes n=2..N: 4 params each (a_n, b_n, c_n, d_n)
-// Plus 2 non-periodic modes (alpha, beta) for the half-cylinder open edges
-// Total: 4*(N-1) + 2
+// Deformation DOFs for an open cylindrical half-shell.
+//
+// Inextensional part. Vanishing linear membrane strains admit the general solution (u in the local (r, phi, z)
+// directions) u_z = f(phi) u_phi = -(z/r) f'(phi) + g(phi) u_r = (z/r) f''(phi) - g'(phi) with two arbitrary
+// one-dimensional functions f, g. Because the shell is open in phi these are expanded in Legendre polynomials of the
+// normalised azimuth u in [-1, 1]: f(phi) = sum_k f_k P_k(u), g(phi) = sum_k g_k P_k(u).
+//
+// Extensional part (optional). The inextensional u_r is at most linear in z, so radial deformations with curvature
+// along z lie outside it. They are added as strictly radial modes u_r += sum_{k,l} h_{k,l} P_k(u) P_l(v), l >= 1, with
+// v the normalised axial coordinate. l = 0 is excluded because a z-independent radial field is already spanned by the g
+// family.
+//
+// Flat index layout: [f_0, g_0, f_1, g_1, ..., f_K, g_K, h_{0,1} ... h_{0,Lz}, h_{1,1} ... h_{Kphi,Lz}]
+//
+// NOTE on degeneracies: f_0 is a rigid translation along the cylinder axis and g_0 a rigid rotation about it, i.e. they
+// duplicate rigid-body DOFs of the same volume.
 class InextensionalDOFSet final : public DOFSet
 {
  public:
-  explicit InextensionalDOFSet(int maxOrder) : DOFSet((4 * (maxOrder - 1)) + 2), mMaxOrder(maxOrder)
+  explicit InextensionalDOFSet(int maxOrder, int extOrderPhi = -1, int extOrderZ = 0)
+    : DOFSet(nDOFsFor(maxOrder, extOrderPhi, extOrderZ)),
+      mMaxOrder(maxOrder),
+      mExtOrderPhi(extOrderZ > 0 ? extOrderPhi : -1),
+      mExtOrderZ(extOrderPhi >= 0 ? extOrderZ : 0)
   {
-    if (maxOrder < 2) {
-      // the rest is eq. to rigid body
-      throw std::invalid_argument("InextensionalDOFSet requires maxOrder >= 2");
+    if (maxOrder < 1) {
+      // only k = 0 is left, which is equivalent to a rigid body motion
+      throw std::invalid_argument("InextensionalDOFSet requires maxOrder >= 1");
     }
+    // f_0 / g_0 are rigid: fixed unless explicitly freed
+    setFree(fIdx(0), false);
+    setFree(gIdx(0), false);
   }
+
+  static int nDOFsFor(int maxOrder, int extOrderPhi, int extOrderZ)
+  {
+    int n = 2 * (maxOrder + 1);
+    if (extOrderPhi >= 0 && extOrderZ > 0) {
+      n += (extOrderPhi + 1) * extOrderZ;
+    }
+    return n;
+  }
+
   Type type() const override { return Type::Inextensional; }
   int maxOrder() const { return mMaxOrder; }
+  int extOrderPhi() const { return mExtOrderPhi; }
+  int extOrderZ() const { return mExtOrderZ; }
+  bool hasExtensional() const { return mExtOrderPhi >= 0 && mExtOrderZ > 0; }
 
-  // number of periodic DOFs (before alpha, beta)
-  int nPeriodic() const { return 4 * (mMaxOrder - 1); }
+  // number of inextensional DOFs (before the radial h modes)
+  int nInextensional() const { return 2 * (mMaxOrder + 1); }
 
-  // flat index layout: [a_2, b_2, c_2, d_2, a_3, b_3, c_3, d_3, ..., alpha, beta]
-  // index of first DOF for mode n
-  static int modeOffset(int n) { return 4 * (n - 2); }
-
-  // indices of the non-periodic modes
-  int alphaIdx() const { return nPeriodic(); }
-  int betaIdx() const { return nPeriodic() + 1; }
+  // flat indices
+  static int fIdx(int k) { return 2 * k; }
+  static int gIdx(int k) { return (2 * k) + 1; }
+  int hIdx(int k, int l) const { return nInextensional() + (k * mExtOrderZ) + (l - 1); }
 
   std::string dofName(int idx) const override
   {
-    if (idx == alphaIdx()) {
-      return "alpha";
+    if (idx < nInextensional()) {
+      return std::format("{}_{}", (idx % 2 == 0) ? "f" : "g", idx / 2);
     }
-    if (idx == betaIdx()) {
-      return "beta";
-    }
-    int n = (idx / 4) + 2;
-    int sub = idx % 4;
-    static constexpr const char* subNames[] = {"a", "b", "c", "d"};
-    return std::format("{}_{}", subNames[sub], n);
+    const int e = idx - nInextensional();
+    return std::format("h_{}_{}", e / mExtOrderZ, (e % mExtOrderZ) + 1);
   }
   void fillDerivatives(const DerivativeContext& ctx, Eigen::Ref<Eigen::MatrixXd> out) const override;
 
  private:
   int mMaxOrder;
+  int mExtOrderPhi;
+  int mExtOrderZ;
 };
 
 #endif

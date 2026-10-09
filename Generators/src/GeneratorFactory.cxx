@@ -14,7 +14,7 @@
 #include <SimulationDataFormat/O2DatabasePDG.h>
 #include <Generators/GeneratorFactory.h>
 #include "FairGenerator.h"
-#include "FairBoxGenerator.h"
+#include <Generators/BoxGenerator.h>
 #include <fairlogger/Logger.h>
 #include <SimConfig/SimConfig.h>
 #include <Generators/GeneratorFromFile.h>
@@ -34,6 +34,11 @@
 #if defined(GENERATORS_WITH_PYTHIA8) && defined(GENERATORS_WITH_HEPMC3)
 #include <Generators/GeneratorHybrid.h>
 #include <Generators/GeneratorHybridParam.h>
+#include <rapidjson/document.h>
+#include <rapidjson/writer.h>
+#include <rapidjson/ostreamwrapper.h>
+#include <fstream>
+#include <unistd.h>
 #endif
 #include <Generators/PrimaryGenerator.h>
 #include <Generators/BoxGunParam.h>
@@ -49,6 +54,55 @@ namespace o2
 namespace eventgen
 {
 
+#if defined(GENERATORS_WITH_PYTHIA8) && defined(GENERATORS_WITH_HEPMC3)
+// Builds a parallel GeneratorHybrid JSON configuration out of
+// 8 (Generator::NHyperloopParallelGenerators) identical "external" sub-generator entries,
+// using the configured GeneratorExternalParam. This makes the simulation parallelisation automatic
+// on Hyperloop.
+// To-do: Define the behaviour with ini configuration which are already definining a hybrid gen
+//
+// Note on GeneratorHybrid.num_workers: expanding to 8 sub-generators does not by itself raise
+// the number of TBB workers that actually run them in parallel. This is controlled by
+// the parameter GeneratorHybrid.num_workers. On Hyperloop this will be part
+// of the standard train configuration
+std::string buildHyperloopExternalHybridConfig(GeneratorExternalParam const& extparams)
+{
+  rapidjson::Document doc;
+  doc.SetObject();
+  auto& alloc = doc.GetAllocator();
+  doc.AddMember("mode", "parallel", alloc);
+
+  rapidjson::Value generators(rapidjson::kArrayType);
+  rapidjson::Value fractions(rapidjson::kArrayType);
+  for (int i = 0; i < Generator::NHyperloopParallelGenerators; ++i) {
+    rapidjson::Value config(rapidjson::kObjectType);
+    config.AddMember("fileName", rapidjson::Value(extparams.fileName.c_str(), alloc), alloc);
+    config.AddMember("funcName", rapidjson::Value(extparams.funcName.c_str(), alloc), alloc);
+    config.AddMember("iniFile", "", alloc);
+
+    rapidjson::Value generator(rapidjson::kObjectType);
+    generator.AddMember("name", "external", alloc);
+    generator.AddMember("config", config, alloc);
+    generators.PushBack(generator, alloc);
+    fractions.PushBack(1, alloc);
+  }
+  doc.AddMember("generators", generators, alloc);
+  doc.AddMember("fractions", fractions, alloc);
+
+  // The generated config file is deliberatelly left on disk for possible inspection after the process ran.
+  std::string path = "hyperloop_exttohybrid_" + std::to_string(getpid()) + ".json";
+  std::ofstream ofs(path);
+  if (!ofs.is_open()) {
+    LOG(fatal) << "Failed to open " << path << " for writing the Hyperloop hybrid generator configuration";
+    exit(1);
+  }
+  rapidjson::OStreamWrapper osw(ofs);
+  rapidjson::Writer<rapidjson::OStreamWrapper> writer(osw);
+  doc.Accept(writer);
+  return path;
+}
+#endif
+
 // reusable helper class
 // main purpose is to init a FairPrimGen given some (Sim)Config
 void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, FairPrimaryGenerator* primGen)
@@ -60,13 +114,8 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
 
   auto primGenO2 = dynamic_cast<PrimaryGenerator*>(primGen);
 
-  auto makeBoxGen = [](int pdgid, int mult, double etamin, double etamax, double pmin, double pmax, double phimin, double phimax, bool debug = false) {
-    auto gen = new FairBoxGenerator(pdgid, mult);
-    gen->SetEtaRange(etamin, etamax);
-    gen->SetPRange(pmin, pmax);
-    gen->SetPhiRange(phimin, phimax);
-    gen->SetDebug(debug);
-    return gen;
+  auto makeBoxGen = [](int pdgid, int mult, double etamin, double etamax, double pmin, double pmax, double phimin, double phimax) {
+    return new o2::eventgen::BoxGenerator(pdgid, mult, etamin, etamax, pmin, pmax, phimin, phimax);
   };
 
 #ifdef GENERATORS_WITH_PYTHIA8
@@ -94,9 +143,20 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
   o2::O2DatabasePDG::addALICEParticles(TDatabasePDG::Instance());
   auto genconfig = conf.getGenerator();
 #if defined(GENERATORS_WITH_PYTHIA8) && defined(GENERATORS_WITH_HEPMC3)
-  if (GeneratorHybridParam::Instance().switchExtToHybrid && (genconfig.compare("external") == 0 || genconfig.compare("extgen") == 0)) {
-    LOG(info) << "Switching external generator to hybrid mode";
-    genconfig = "hybrid";
+  std::string hyperloopExtHybridConfigFile; // set when IS_HYPERLOOP is defined
+  if (genconfig.compare("external") == 0 || genconfig.compare("extgen") == 0) {
+    if (GeneratorHybridParam::Instance().switchExtToHybrid) {
+      LOG(info) << "Switching external generator to hybrid mode";
+      genconfig = "hybrid";
+    } else if (Generator::isHyperloop()) {
+      // Running under Hyperloop: transparently expand the single external generator
+      // configuration into a parallel hybrid of Generator::NHyperloopParallelGenerators
+      // clones, to increase on-the-fly MC-generation throughput.
+      LOG(info) << "IS_HYPERLOOP detected: expanding external generator into "
+                << Generator::NHyperloopParallelGenerators << " parallel hybrid sub-generators";
+      hyperloopExtHybridConfigFile = buildHyperloopExternalHybridConfig(GeneratorExternalParam::Instance());
+      genconfig = "hybrid";
+    }
   }
 #endif
   LOG(info) << "** Generator to use: '" << genconfig << "'";
@@ -105,7 +165,7 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     auto& boxparam = BoxGunParam::Instance();
     LOG(info) << "Init generic box generator with following parameters";
     LOG(info) << boxparam;
-    auto boxGen = makeBoxGen(boxparam.pdg, boxparam.number, boxparam.eta[0], boxparam.eta[1], boxparam.prange[0], boxparam.prange[1], boxparam.phirange[0], boxparam.phirange[1], boxparam.debug);
+    auto boxGen = makeBoxGen(boxparam.pdg, boxparam.number, boxparam.eta[0], boxparam.eta[1], boxparam.prange[0], boxparam.prange[1], boxparam.phirange[0], boxparam.phirange[1]);
     primGen->AddGenerator(boxGen);
   } else if (genconfig.compare("fwmugen") == 0) {
     // a simple "box" generator for forward muons
@@ -267,19 +327,14 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     LOG(info) << "Init tof test generator -> 1 muon per sector and per module";
     for (int i = 0; i < 18; i++) {
       for (int j = 0; j < 5; j++) {
-        auto boxGen = new FairBoxGenerator(13, 1); /*protons*/
-        boxGen->SetEtaRange(-0.8 + 0.32 * j + 0.15, -0.8 + 0.32 * j + 0.17);
-        boxGen->SetPRange(9, 10);
-        boxGen->SetPhiRange(10 + 20. * i - 1, 10 + 20. * i + 1);
-        boxGen->SetDebug(kTRUE);
+        auto boxGen = makeBoxGen(13 /*muons*/, 1, -0.8 + 0.32 * j + 0.15, -0.8 + 0.32 * j + 0.17, 9, 10, 10 + 20. * i - 1, 10 + 20. * i + 1);
         primGen->AddGenerator(boxGen);
       }
     }
 #if defined(GENERATORS_WITH_PYTHIA8) && defined(GENERATORS_WITH_HEPMC3)
   } else if (genconfig.compare("hybrid") == 0) { // hybrid using multiple generators
     LOG(info) << "Init hybrid generator";
-    auto& hybridparam = GeneratorHybridParam::Instance();
-    std::string config = hybridparam.configFile;
+    std::string config = !hyperloopExtHybridConfigFile.empty() ? hyperloopExtHybridConfigFile : GeneratorHybridParam::Instance().configFile;
     // check if config string points to an existing and not empty file
     if (config.empty()) {
       LOG(fatal) << "No configuration file provided for hybrid generator";

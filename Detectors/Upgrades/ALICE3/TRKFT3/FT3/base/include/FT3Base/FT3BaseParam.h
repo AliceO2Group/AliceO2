@@ -46,11 +46,22 @@ struct FT3BaseParam : public o2::conf::ConfigurableParamHelper<FT3BaseParam> {
   double staveTolOTInner = 0.;
   double staveTolOTOuter = 0.;
 
-  // What to place over x=0 line in case of full outer-outer stave: Gap or Module
-  bool placeSensorStackInMiddleOfStave = false;
+  /*
+   * Place the sensor stacks from the tabulated layout in FT3ModuleConstants.h
+   * (StaveConfig::exactStaveFills) instead of filling every stave greedily
+   * with the stack sizes in kSensorsPerStack. The tabulated layout is taken as
+   * given: none of the radial tolerances above are applied to it.
+   */
+  bool useExactStavePlacement = true;
 
   // Draw reference circles at inner and outer radius of stave layer, for visualisation
   bool drawReferenceCircles = false;
+
+  // Copper per plane [cm] in the disk end-of-stave cards; drives the card x/X0.
+  // Defaults match o2::ft3::ModuleConstants::eosCard{OT,ML}.copperThickness.
+  float ft3EosCardCuThicknessOT = 0.0122f; // Large (OT) disks
+  float ft3EosCardCuThicknessML = 0.0122f; // Small (ML) disks
+  bool addDiskEosCards = true;             // add EoS cards to the stave-geometry disks
 
   O2ParamDef(FT3BaseParam, "FT3Base");
 };

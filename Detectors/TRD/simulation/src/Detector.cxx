@@ -25,6 +25,7 @@
 #include <TGeoManager.h>
 #include <TVirtualMC.h>
 
+#include <cstdio>
 #include <vector>
 #include <stdexcept>
 #include <string>
@@ -83,11 +84,17 @@ void Detector::buildVolumeIdTables()
     record(mRegionByVolId, vmc->VolId(name.c_str()), name[1] == 'J' ? kDrift : kAmplification, name.c_str());
   }
 
-  // The readout-chamber assemblies and the supermodule mother volumes
+  // The readout-chamber assemblies and the supermodule mother volumes. An engine that
+  // collapses assemblies gives the chamber assemblies no volume id at all.
   char volName[16];
-  for (int idet = 0; idet < NLAYER * NSTACK; ++idet) {
-    snprintf(volName, sizeof(volName), "UT%02d", idet);
-    record(mChamberByVolId, vmc->VolId(volName), idet, volName);
+  mChamberFromName = vmc->VolId("UT00") <= 0;
+  if (mChamberFromName) {
+    LOG(info) << "TRD: chamber assemblies have no volume id, resolving the chamber by name";
+  } else {
+    for (int idet = 0; idet < NLAYER * NSTACK; ++idet) {
+      snprintf(volName, sizeof(volName), "UT%02d", idet);
+      record(mChamberByVolId, vmc->VolId(volName), idet, volName);
+    }
   }
   for (int sector = 0; sector < NSECTOR; ++sector) {
     snprintf(volName, sizeof(volName), "BTRD%d", sector);
@@ -137,11 +144,15 @@ bool Detector::ProcessHits(FairVolume* v)
   // level is added, removed, or flattened away by the transport engine's own conversion.
   if (mSectorOffset < 0) {
     for (int off = 0; off < 16; ++off) {
+      int chamber = -1;
+      if (mChamberOffset < 0 && mChamberFromName && std::sscanf(fMC->CurrentVolOffName(off), "UT%d", &chamber) == 1) {
+        mChamberOffset = off;
+      }
       const int oid = fMC->CurrentVolOffID(off, copy);
       if (oid <= 0 || oid >= (int)mChamberByVolId.size()) {
         continue;
       }
-      if (mChamberOffset < 0 && mChamberByVolId[oid] >= 0) {
+      if (mChamberOffset < 0 && !mChamberFromName && mChamberByVolId[oid] >= 0) {
         mChamberOffset = off;
       }
       if (mSectorByVolId[oid] >= 0) {
@@ -155,9 +166,16 @@ bool Detector::ProcessHits(FairVolume* v)
     LOG(info) << "TRD: chamber at mother offset " << mChamberOffset << ", supermodule at " << mSectorOffset;
   }
 
-  const int chamberVol = fMC->CurrentVolOffID(mChamberOffset, copy);
+  int idChamber = -1;
+  if (mChamberFromName) {
+    if (std::sscanf(fMC->CurrentVolOffName(mChamberOffset), "UT%d", &idChamber) != 1) {
+      idChamber = -1;
+    }
+  } else {
+    const int chamberVol = fMC->CurrentVolOffID(mChamberOffset, copy);
+    idChamber = (chamberVol > 0 && chamberVol < (int)mChamberByVolId.size()) ? mChamberByVolId[chamberVol] : -1;
+  }
   const int sectorVol = fMC->CurrentVolOffID(mSectorOffset, copy);
-  const int idChamber = (chamberVol > 0 && chamberVol < (int)mChamberByVolId.size()) ? mChamberByVolId[chamberVol] : -1;
   const int sector = (sectorVol > 0 && sectorVol < (int)mSectorByVolId.size()) ? mSectorByVolId[sectorVol] : -1;
   if (idChamber < 0 || sector < 0) {
     LOG(fatal) << "Cannot resolve TRD chamber/supermodule from volume " << fMC->CurrentVolName();

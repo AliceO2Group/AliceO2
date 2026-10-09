@@ -131,6 +131,16 @@ void AggregatedRunInfo::adjust_from_MC(o2::ccdb::CCDBManagerInstance& ccdb,
   } else {
     LOG(warn) << "No OrbitsPerTF information found for MC production " << lpm_prod_tag << " and run number " << run_number;
   }
+
+  // adjust SOR for some MC productions, where the ITS "ramp-up shift" of SOR was not a multiple of NOrbitsPerTF.
+  // (some MC productions are affected, before the problem was fixed on Oct 2, 2026)
+  if (lpm_prod_tag == "LHC26h3") {
+    // apply the SOR adjustment for this specific MC production
+    const int nOrbitsCorrection = 2; // a shift (number of orbits) for correction
+    orbitSOR += nOrbitsCorrection;
+    sor += nOrbitsCorrection * o2::constants::lhc::LHCOrbitMUS * 1000;
+    LOG(warn) << "AggregatedRunInfo.adjust_from_MC(): Applying SOR adjustment by " << nOrbitsCorrection << " orbits for MC production " << lpm_prod_tag << " and run number " << run_number;
+  }
 }
 
 AggregatedRunInfo AggregatedRunInfo::buildAggregatedRunInfo(o2::ccdb::CCDBManagerInstance& ccdb, int run_number, std::string const& lpm_prod_tag, std::string const& username)

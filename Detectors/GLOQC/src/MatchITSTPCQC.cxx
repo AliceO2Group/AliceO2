@@ -10,6 +10,8 @@
 // or submit itself to any jurisdiction.
 
 #include <algorithm>
+#include <map>
+#include <unordered_map>
 
 #include "GLOQC/MatchITSTPCQC.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
@@ -563,6 +565,27 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
     }
   }
 
+  // physical-primary flag of all labelled tracks, per (source, event); the kinematics are read and released one event at a time
+  std::map<std::pair<int, int>, std::unordered_map<int, bool>> physPrimary;
+  auto isPhysPrimary = [&physPrimary](const o2::MCCompLabel& lbl) { return physPrimary.at({lbl.getSourceID(), lbl.getEventID()}).at(lbl.getTrackID()); };
+  if (mUseMC) {
+    for (auto const& labels : {mRecoCont.getTPCITSTracksMCLabels(), mRecoCont.getTPCTracksMCLabels(), mRecoCont.getITSTracksMCLabels()}) {
+      for (auto const& lbl : labels) {
+        if (lbl.isValid()) {
+          physPrimary[{lbl.getSourceID(), lbl.getEventID()}][lbl.getTrackID()] = false;
+        }
+      }
+    }
+    for (auto& [sourceAndEvent, flags] : physPrimary) {
+      const auto [source, event] = sourceAndEvent;
+      const std::vector<o2::MCTrack>& pcontainer = mcReader.getTracks(source, event);
+      for (auto& [trackID, flag] : flags) {
+        flag = static_cast<size_t>(trackID) < pcontainer.size() && MCTrackNavigator::isPhysicalPrimary(pcontainer[trackID], pcontainer);
+      }
+      mcReader.releaseTracksForSourceAndEvent(source, event);
+    }
+  }
+
   // numerator + eta, chi2...
   if (mUseMC) {
     for (int i = 0; i < matchType::SIZE; ++i) {
@@ -580,11 +603,7 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
           continue;
         }
         if (mMapLabels[matchType::TPC].find(lbl) == mMapLabels[matchType::TPC].end()) {
-          int source = lbl.getSourceID();
-          int event = lbl.getEventID();
-          const std::vector<o2::MCTrack>& pcontainer = mcReader.getTracks(source, event);
-          const o2::MCTrack& p = pcontainer[lbl.getTrackID()];
-          if (MCTrackNavigator::isPhysicalPrimary(p, pcontainer)) {
+          if (isPhysPrimary(lbl)) {
             mMapLabels[matchType::TPC].insert({lbl, {.mIdx = itrk, .mIsPhysicalPrimary = true}});
           } else {
             mMapLabels[matchType::TPC].insert({lbl, {.mIdx = itrk, .mIsPhysicalPrimary = false}});
@@ -603,11 +622,7 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
           continue;
         }
         if (mMapLabels[matchType::ITS].find(lbl) == mMapLabels[matchType::ITS].end()) {
-          int source = lbl.getSourceID();
-          int event = lbl.getEventID();
-          const std::vector<o2::MCTrack>& pcontainer = mcReader.getTracks(source, event);
-          const o2::MCTrack& p = pcontainer[lbl.getTrackID()];
-          if (MCTrackNavigator::isPhysicalPrimary(p, pcontainer)) {
+          if (isPhysPrimary(lbl)) {
             mMapLabels[matchType::ITS].insert({lbl, {.mIdx = itrk, .mIsPhysicalPrimary = true}});
           } else {
             mMapLabels[matchType::ITS].insert({lbl, {.mIdx = itrk, .mIsPhysicalPrimary = false}});
@@ -828,11 +843,7 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
           continue;
         }
         if (mMapRefLabels[matchType::TPC].find(lbl) == mMapRefLabels[matchType::TPC].end()) {
-          int source = lbl.getSourceID();
-          int event = lbl.getEventID();
-          const std::vector<o2::MCTrack>& pcontainer = mcReader.getTracks(source, event);
-          const o2::MCTrack& p = pcontainer[lbl.getTrackID()];
-          if (MCTrackNavigator::isPhysicalPrimary(p, pcontainer)) {
+          if (isPhysPrimary(lbl)) {
             mMapRefLabels[matchType::TPC].insert({lbl, {itrk, true}});
           } else {
             mMapRefLabels[matchType::TPC].insert({lbl, {itrk, false}});
@@ -860,11 +871,7 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
           continue;
         }
         if (mMapRefLabels[matchType::ITS].find(lbl) == mMapRefLabels[matchType::ITS].end()) {
-          int source = lbl.getSourceID();
-          int event = lbl.getEventID();
-          const std::vector<o2::MCTrack>& pcontainer = mcReader.getTracks(source, event);
-          const o2::MCTrack& p = pcontainer[lbl.getTrackID()];
-          if (MCTrackNavigator::isPhysicalPrimary(p, pcontainer)) {
+          if (isPhysPrimary(lbl)) {
             mMapRefLabels[matchType::ITS].insert({lbl, {itrk, true}});
           } else {
             mMapRefLabels[matchType::ITS].insert({lbl, {itrk, false}});

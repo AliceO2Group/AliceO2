@@ -117,7 +117,7 @@ class TestDetector : public o2::base::Detector
   std::string getHitBranchNames(int) const override { return {}; }
   void attachHits(fair::mq::Channel&, fair::mq::Parts&) override {}
   void fillHitBranch(TTree&, fair::mq::Parts&, int&) override {}
-  void collectHits(int, fair::mq::Parts&, int&) override {}
+  void collectHits(int, fair::mq::Parts&, int&, bool) override {}
   void mergeHitEntriesAndFlush(int, TTree&, std::vector<int> const&, std::vector<int> const&,
                                std::vector<int> const&) override {}
   void mergeHitEntries(TTree&, TTree&, std::vector<int> const&, std::vector<int> const&,

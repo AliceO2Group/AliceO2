@@ -57,7 +57,7 @@ FairModule* FrameStructure::CloneModule() const
   return new FrameStructure(*this);
 }
 
-void FrameStructure::makeHeatScreen(const char* name, float dyP, int rot1, int rot2)
+void FrameStructure::makeHeatScreen(const char* name, double dyP, int rot1, int rot2)
 {
   // Heat screen panel
   //
@@ -65,7 +65,7 @@ void FrameStructure::makeHeatScreen(const char* name, float dyP, int rot1, int r
   const int kAir = mAirMedID;
   const int kAlu = mAluMedID;
 
-  float dx, dy;
+  double dx, dy;
   char mname[16];
   char cname[16];
   char t1name[16];
@@ -75,11 +75,11 @@ void FrameStructure::makeHeatScreen(const char* name, float dyP, int rot1, int r
   char t5name[16];
 
   //
-  float dxP = 2. * (287. * TMath::Sin(10. * TMath::Pi() / 180.) - 2.);
-  float dzP = 1.05;
+  double dxP = 2. * (287. * TMath::Sin(10. * TMath::Pi() / 180.) - 2.);
+  double dzP = 1.05;
   //
   // Mother volume
-  float thshM[3];
+  Double_t thshM[3];
   thshM[0] = dxP / 2.;
   thshM[1] = dyP / 2.;
   thshM[2] = dzP / 2.;
@@ -93,7 +93,7 @@ void FrameStructure::makeHeatScreen(const char* name, float dyP, int rot1, int r
   vmc->Gspos(cname, 1, mname, 0., 0., -0.5, 0);
   //
   // Tubes
-  float thshT[3];
+  Double_t thshT[3];
   thshT[0] = 0.4;
   thshT[1] = 0.5;
   thshT[2] = (dyP / 2. - 8.);
@@ -120,8 +120,8 @@ void FrameStructure::makeHeatScreen(const char* name, float dyP, int rot1, int r
     sig *= -1;
     dx += 8.00;
     dy = 4. * sig;
-    float dy1 = -(thshM[1] - 15.5) * sig;
-    float dy2 = -(thshM[1] - 7.5) * sig;
+    double dy1 = -(thshM[1] - 15.5) * sig;
+    double dy2 = -(thshM[1] - 7.5) * sig;
 
     vmc->Gspos(t2name, ipo++, mname, dx, dy, 0.025, rot1);
     dx += 6.9;
@@ -135,7 +135,7 @@ void FrameStructure::makeHeatScreen(const char* name, float dyP, int rot1, int r
   vmc->Gspos(t3name, 6, mname, dx - 3.45, -(thshM[1] - 7.5), 0.025, rot2);
 }
 
-void FrameStructure::createWebFrame(const char* name, float dHz, float theta0, float phi0)
+void FrameStructure::createWebFrame(const char* name, double dHz, double theta0, double phi0)
 {
   //
   // Create a web frame element
@@ -143,12 +143,12 @@ void FrameStructure::createWebFrame(const char* name, float dHz, float theta0, f
   auto vmc = TVirtualMC::GetMC();
 
   phi0 = 0.;
-  const float krad2deg = 180. / TMath::Pi();
-  const float kdeg2rad = 1. / krad2deg;
+  const double krad2deg = 180. / TMath::Pi();
+  const double kdeg2rad = 1. / krad2deg;
   const int kAir = mAirMedID;
   const int kSteel = mSteelMedID;
 
-  float ptrap[11];
+  Double_t ptrap[11];
   char nameA[16];
   snprintf(nameA, 16, "%sA", name);
 
@@ -157,8 +157,8 @@ void FrameStructure::createWebFrame(const char* name, float dHz, float theta0, f
 
   theta0 *= kdeg2rad;
   phi0 *= kdeg2rad;
-  float theta = TMath::Pi() / 2.;
-  float phi = TMath::ACos(TMath::Cos(theta0) * TMath::Cos(phi0));
+  double theta = TMath::Pi() / 2.;
+  double phi = TMath::ACos(TMath::Cos(theta0) * TMath::Cos(phi0));
 
   if (phi0 < 0) {
     phi = -phi;
@@ -194,7 +194,7 @@ void FrameStructure::createWebFrame(const char* name, float dHz, float theta0, f
   gGeoManager->GetVolume(nameI)->SetVisContainers();
 }
 
-TGeoCompositeShape* FrameStructure::createTOFRail(float y)
+TGeoCompositeShape* FrameStructure::createTOFRail(double y)
 {
   char nameSostA1[16];
   snprintf(nameSostA1, 16, "SostA1");
@@ -366,8 +366,8 @@ void FrameStructure::ConstructGeometry()
   // ALIP2A__0007
   // ALIP2A__0008
   //
-  float pbox[3], ptrap[11], ptrd1[4], ppgon[10];
-  float dx, dy, dz;
+  Double_t pbox[3], ptrap[11], ptrd1[4], ppgon[10];
+  double dx, dy, dz;
   int i, j;
   int jmod = 0;
   //
@@ -382,50 +382,50 @@ void FrameStructure::ConstructGeometry()
   const int kAlu = mAluMedID;
   const int kG10 = mG10MedID;
   // Angles
-  const float kEps = 0.01;
-  const float krad2deg = 180. / TMath::Pi();
-  const float kdeg2rad = 1. / krad2deg;
-  const float sin10 = TMath::Sin(10. * kdeg2rad);
-  const float tan10 = TMath::Tan(10. * kdeg2rad);
-  const float cos10 = TMath::Cos(10. * kdeg2rad);
+  const double kEps = 0.01;
+  const double krad2deg = 180. / TMath::Pi();
+  const double kdeg2rad = 1. / krad2deg;
+  const double sin10 = TMath::Sin(10. * kdeg2rad);
+  const double tan10 = TMath::Tan(10. * kdeg2rad);
+  const double cos10 = TMath::Cos(10. * kdeg2rad);
   // Dimensions
   // vertical distance of frame wrt to origin (center of inner rings)
-  const float hR = 286.00;
+  const double hR = 286.00;
   // Height of inner frame from lower edge to outer ring (sectors for detectors)
-  const float iFrH = 119.00;
+  const double iFrH = 119.00;
   //
   // radial length of web frame elements
-  const float dHz = 113. / cos10 - 0.3; // 114.74 (114.5 on drawing)
+  const double dHz = 113. / cos10 - 0.3; // 114.74 (114.5 on drawing)
   // Positions of ring bars (ALIP2A_0008)
   // outer
-  const float dymodU[3] = {71.5, 228.5, 339.5};
+  const double dymodU[3] = {71.5, 228.5, 339.5};
   // inner
-  const float dymodL[3] = {50.0, 175.0, 297.5};
+  const double dymodL[3] = {50.0, 175.0, 297.5};
   //
   // orientation of web frame elements
-  const float dymodO[5] = {10., -40., 20., -27.1, 18.4};
+  const double dymodO[5] = {10., -40., 20., -27.1, 18.4};
   // Position of web frame elements
-  float dymodW[5] = {70., 73.6, 224.5, 231.4, 340.2};
+  double dymodW[5] = {70., 73.6, 224.5, 231.4, 340.2};
   for (int ii = 0; ii < 5; ii++) {
     dymodW[ii] = dymodW[ii] - 3. * TMath::Tan(dymodO[ii] * kdeg2rad);
   }
   // Inner ring bars (Pos 6)
-  const float ringH = 6.00;  // Hight
-  const float ringW = 10.00; // Width  of the ring bars in z
-  const float ringT = 1.00;  // Thickness of bars
+  const double ringH = 6.00;  // Hight
+  const double ringW = 10.00; // Width  of the ring bars in z
+  const double ringT = 1.00;  // Thickness of bars
   // inner longitudinal bars 4 x 6
-  const float longH = 6.00; // Height
-  const float longW = 4.00; // Width
+  const double longH = 6.00; // Height
+  const double longW = 4.00; // Width
   // outer longitudianl bars 8 x 8
-  // const float longOD =   8.0;
+  // const double longOD =   8.0;
   // some extra space for mother volume
-  const float dext = sin10 * longW / 2. + 0.01;
+  const double dext = sin10 * longW / 2. + 0.01;
   // sector hight with extra space
-  const float iFrH0 = iFrH + dext;
+  const double iFrH0 = iFrH + dext;
   // length of inner longitudinal bars
   // inner
-  const float longLI = 615.;
-  const float zE = 376.5;
+  const double longLI = 615.;
+  const double zE = 376.5;
   //
   // Frame mother volume
   //
@@ -461,15 +461,15 @@ void FrameStructure::ConstructGeometry()
   //  The outer Frame
   //
 
-  float dol = 4.;
-  float doh = 4.;
-  float ds = 0.63;
+  double dol = 4.;
+  double doh = 4.;
+  double ds = 0.63;
   //
   // Rings
   //
   dz = 2. * 410.2 * sin10 - 2. * dol * cos10 - 2. * doh * tan10;
-  float l1 = dz / 2.;
-  float l2 = dz / 2. + 2. * doh * tan10;
+  double l1 = dz / 2.;
+  double l2 = dz / 2. + 2. * doh * tan10;
 
   TGeoVolumeAssembly* asBI42 = new TGeoVolumeAssembly("BI42");
   // Horizontal
@@ -534,7 +534,7 @@ void FrameStructure::ConstructGeometry()
   //
   // Diagonal bars (1)
   //
-  float h, d, dq, x, theta;
+  double h, d, dq, x, theta;
 
   h = (dymodU[1] - dymodU[0] - 2. * dol) * .999;
   d = 2. * dol;
@@ -608,9 +608,9 @@ void FrameStructure::ConstructGeometry()
   vmc->Gspos("B050", 1, "B049", 0.0, 0.0, 0., 0, "ONLY");
   vmc->Gspos("B049", 1, "BM49", 0.0, 0.0, 0., 0, "ONLY");
 
-  float dd1 = d * TMath::Tan(theta * kdeg2rad);
-  float dd2 = d / TMath::Tan(2. * theta * kdeg2rad);
-  float theta2 = TMath::ATan(TMath::Abs(dd2 - dd1) / d / 2.);
+  double dd1 = d * TMath::Tan(theta * kdeg2rad);
+  double dd2 = d / TMath::Tan(2. * theta * kdeg2rad);
+  double theta2 = TMath::ATan(TMath::Abs(dd2 - dd1) / d / 2.);
 
   ptrap[0] = dol;
   ptrap[1] = theta2 * krad2deg;
@@ -624,11 +624,11 @@ void FrameStructure::ConstructGeometry()
   ptrap[9] = ptrap[8];
 
   vmc->Gsvolu("B051", "TRAP", kSteel, ptrap, 11);
-  float ddx0 = ptrap[8];
+  double ddx0 = ptrap[8];
 
-  float dd1s = dd1 * (1. - 2. * ds / d);
-  float dd2s = dd2 * (1. - 2. * ds / d);
-  float theta2s = TMath::ATan(TMath::Abs(dd2s - dd1s) / (d - 2. * ds) / 2.);
+  double dd1s = dd1 * (1. - 2. * ds / d);
+  double dd2s = dd2 * (1. - 2. * ds / d);
+  double theta2s = TMath::ATan(TMath::Abs(dd2s - dd1s) / (d - 2. * ds) / 2.);
 
   ptrap[0] = dol - ds;
   ptrap[1] = theta2s * krad2deg;
@@ -644,7 +644,7 @@ void FrameStructure::ConstructGeometry()
   vmc->Gsvolu("B052", "TRAP", kAir, ptrap, 11);
   vmc->Gspos("B052", 1, "B051", 0.0, 0.0, 0., 0, "ONLY");
 
-  float ddx, ddz, drx, drz, rtheta;
+  double ddx, ddz, drx, drz, rtheta;
 
   AliMatrix(idrotm[2001], -theta + 180, 0.0, 90.0, 90.0, 90. - theta, 0.0);
   rtheta = (90. - theta) * kdeg2rad;
@@ -709,15 +709,15 @@ void FrameStructure::ConstructGeometry()
   //
   // Positioning of diagonal bars
 
-  float rd = 405.5 + 0.51;
+  double rd = 405.5 + 0.51;
   dz = (dymodU[1] + dymodU[0]) / 2.;
-  float dz2 = (dymodU[1] + dymodU[2]) / 2.;
+  double dz2 = (dymodU[1] + dymodU[2]) / 2.;
 
   //
   //  phi = 60
   //
 
-  float phi = 60;
+  double phi = 60;
   dx = rd * TMath::Sin(phi * kdeg2rad);
   dy = rd * TMath::Cos(phi * kdeg2rad);
 
@@ -776,13 +776,13 @@ void FrameStructure::ConstructGeometry()
   ptrd1[1] = (hR - longH / 2. + iFrH0) * tan10;
   ptrd1[2] = zE;
   ptrd1[3] = iFrH0 / 2.;
-  float dd = longW / 2. * cos10 + 0.1;
+  double dd = longW / 2. * cos10 + 0.1;
   TGeoTrd1* shTRD1 = new TGeoTrd1("shTRD1", ptrd1[0], ptrd1[1], ptrd1[2], ptrd1[3]);
   TGeoBBox* shBox = new TGeoBBox("shBox", 50., zE + 10., 1.);
   TGeoRotation* rot1 = new TGeoRotation("urot1", 100., 0., 90., 90., 10., 0.);
   TGeoRotation* rot2 = new TGeoRotation("urot2", 80., 0., 90., 90., -10., 0.);
-  float trotDz = iFrH0 / 2. + 1.;
-  float trotDx = 402. * tan10;
+  double trotDz = iFrH0 / 2. + 1.;
+  double trotDx = 402. * tan10;
   TGeoCombiTrans* trot1 = new TGeoCombiTrans(-trotDx, 0., trotDz, rot2);
   TGeoCombiTrans* trot2 = new TGeoCombiTrans(+trotDx, 0., trotDz, rot1);
   TGeoUnion* uni = new TGeoUnion(shBox, shBox, trot1, trot2);
@@ -790,12 +790,12 @@ void FrameStructure::ConstructGeometry()
   TGeoSubtraction* sub = new TGeoSubtraction(shTRD1, shU, nullptr, nullptr);
   TGeoCompositeShape* shCS = new TGeoCompositeShape("shCS", sub);
   // center of segments
-  float r = (hR - longH / 2. + iFrH0 / 2.) - dext;
+  double r = (hR - longH / 2. + iFrH0 / 2.) - dext;
   // center of outer frame
   // vertical
-  float rout1 = 406.0;
+  double rout1 = 406.0;
   // radial
-  float rout2 = 412.3 - 2. * sin10 + 0.25;
+  double rout2 = 412.3 - 2. * sin10 + 0.25;
   //
   TString module[18];
   for (i = 0; i < 18; i++) {
@@ -811,8 +811,8 @@ void FrameStructure::ConstructGeometry()
     TGeoVolume* voTRD1 = new TGeoVolume(name, shCS, kMedAir);
     module[i] = name;
     // Place volume i
-    float phi1 = i * 20.;
-    float phi2 = 270. + phi1;
+    double phi1 = i * 20.;
+    double phi2 = 270. + phi1;
     if (phi2 >= 360.) {
       phi2 -= 360.;
     }
@@ -875,8 +875,8 @@ void FrameStructure::ConstructGeometry()
   // Mother volume
   TGeoVolumeAssembly* asBI72 = new TGeoVolumeAssembly("BI72");
   // Horizontal
-  float rIB1 = hR + ringH / 2.;
-  float rIB2 = hR - ringH / 2.;
+  double rIB1 = hR + ringH / 2.;
+  double rIB2 = hR - ringH / 2.;
   ptrd1[0] = (rIB1 - ringT / 2.) * tan10 - dd;
   ptrd1[1] = (rIB1)*tan10 - dd;
   ptrd1[2] = ringH / 2.;
@@ -913,8 +913,8 @@ void FrameStructure::ConstructGeometry()
 
   dz = -iFrH0 / 2. + ringH / 2. + dext;
 
-  float dz0 = -iFrH0 / 2. + longH + 113. / 2. + dext - 0.1;
-  float dx0 = (hR + iFrH / 2.) * tan10 - longW / 4. * cos10 - 0.065;
+  double dz0 = -iFrH0 / 2. + longH + 113. / 2. + dext - 0.1;
+  double dx0 = (hR + iFrH / 2.) * tan10 - longW / 4. * cos10 - 0.065;
   for (jmod = 0; jmod < 18; jmod++) {
     //
     // ring bars
@@ -1038,12 +1038,12 @@ void FrameStructure::ConstructGeometry()
   lbox[1] = longLI / 2.;
   vmc->Gsvolu("BTRDR_14", "BOX", kG10, lbox, 3);
   dz = -iFrH0 / 2. + longH / 2. + dext;
-  float zpos = 80.;
+  double zpos = 80.;
   int isec_1[11] = {0, 1, 2, 3, 4, 5, 13, 14, 15, 16, 17};
 
   for (int index = 0; index < 11; index++) {
     jmod = isec_1[index];
-    float dz1 = dz + 3. + (zpos - 4.);
+    double dz1 = dz + 3. + (zpos - 4.);
     dx0 = (hR + dz0 + zpos - 4.) * tan10 - (longW / 2. + 0.2) / cos10 - 0.05;
     if (jmod != 5) {
       vmc->Gspos("BTRDR_10", 2 * jmod + 1, module[jmod], dx0, 0.0, dz1, idrotm[2096], "ONLY");
@@ -1139,17 +1139,17 @@ void FrameStructure::ConstructGeometry()
   // Fixation Blocks with tie anchors
   //
   // inner
-  float thetFB1 = 10. / 180. * TMath::Pi();
-  float thetFB2 = 40. / 180. * TMath::Pi();
+  double thetFB1 = 10. / 180. * TMath::Pi();
+  double thetFB2 = 40. / 180. * TMath::Pi();
   // half height of the block
   double dzFB = 6.;
   // half width of the block
-  float dyFB = 3.9 / 2.;
+  double dyFB = 3.9 / 2.;
   // lenth upper face
-  float dxFB = 46.;
+  double dxFB = 46.;
   // lower face
-  float dx1FB = dxFB / 2. - 2. * dzFB * TMath::Tan(thetFB1);
-  float dx2FB = dxFB / 2. - 2. * dzFB * TMath::Tan(thetFB2);
+  double dx1FB = dxFB / 2. - 2. * dzFB * TMath::Tan(thetFB1);
+  double dx2FB = dxFB / 2. - 2. * dzFB * TMath::Tan(thetFB2);
 
   TGeoArb8* shFB1 = new TGeoArb8(dzFB);
   shFB1->SetVertex(0, -dyFB / 2., -dxFB / 2.);
@@ -1241,9 +1241,9 @@ void FrameStructure::ConstructGeometry()
   asFB4->AddNode(volTAR142, 3, new TGeoTranslation(0., dxFB - 2. + 0.5, -dzFB - 3.));
   asFB4->AddNode(volTAR142, 4, new TGeoTranslation(0., -dxFB + 2. + 0.5, -dzFB - 3.));
 
-  float zTA1 = 21.1;
-  float yFB1 = 87.6;
-  float yFB2 = 231.4;
+  double zTA1 = 21.1;
+  double yFB1 = 87.6;
+  double yFB2 = 231.4;
   dx = ((hR - longH / 2. + iFrH0 / 2.) - dext + zTA1) * tan10 - 3.9 / 4.;
 
   for (int index = 0; index < 11; index++) {
@@ -1403,8 +1403,8 @@ void FrameStructure::ConstructGeometry()
     if (i >= 4 && i <= 8) {
       continue;
     }
-    float phi1 = i * 20.;
-    float phi2 = 270. + phi1;
+    double phi1 = i * 20.;
+    double phi2 = 270. + phi1;
     rot1 = new TGeoRotation(Form("TOFS_R1_%d", i), 90.0, phi1, 90., phi2, 0., 0.);
     dx = TMath::Sin((phi1 + 8.95) * kdeg2rad) * (rout2 + 12.);
     dy = -TMath::Cos((phi1 + 8.95) * kdeg2rad) * (rout2 + 12.);
@@ -1426,11 +1426,11 @@ void FrameStructure::ConstructGeometry()
   // Thermal shield
   //
 
-  float dyM = 99.0;
+  double dyM = 99.0;
   makeHeatScreen("M", dyM, idrotm[2090], idrotm[2091]);
-  float dyAM = 119.5;
+  double dyAM = 119.5;
   makeHeatScreen("AM", dyAM, idrotm[2090], idrotm[2091]);
-  float dyA = 122.5 - 5.5;
+  double dyA = 122.5 - 5.5;
   makeHeatScreen("A", dyA, idrotm[2090], idrotm[2091]);
 
   //
@@ -1461,7 +1461,7 @@ void FrameStructure::ConstructGeometry()
   //
   // shift wrt v2
   //
-  const float zsh = -0.326;
+  const double zsh = -0.326;
   //
   ptrd1[0] = 47.4405; // CBL 28/6/2006
   ptrd1[1] = 61.1765; // CBL
@@ -1574,7 +1574,7 @@ void FrameStructure::ConstructGeometry()
   //
   //    Rails for space-frame
   //
-  float rbox[3];
+  Double_t rbox[3];
 
   rbox[0] = 25.00;
   rbox[1] = 27.50;
@@ -1607,25 +1607,25 @@ void FrameStructure::ConstructGeometry()
   // The Backframe
   //
   // Inner radius
-  float kBFMRin = 270.0;
+  double kBFMRin = 270.0;
   // Outer Radius
-  float kBFMRou = 417.5;
+  double kBFMRou = 417.5;
   // Width
-  float kBFMdz = 118.0;
+  double kBFMdz = 118.0;
   //
   //
   // Rings
-  float kBFRdr = 7.5;
-  float kBFRdz = 8.0;
+  double kBFRdr = 7.5;
+  double kBFRdz = 8.0;
   //
   //
   // Bars and Spokes
   //
-  float kBFBd = 8.0;
-  float kBFBdd = 0.6;
+  double kBFBd = 8.0;
+  double kBFBdd = 0.6;
 
   // The Mother volume
-  float tpar[3];
+  Double_t tpar[3];
   tpar[0] = kBFMRin;
   tpar[1] = kBFMRou;
   tpar[2] = kBFMdz / 2.;
@@ -1644,7 +1644,7 @@ void FrameStructure::ConstructGeometry()
   gGeoManager->GetVolume("BFTRD")->SetVisibility(false);
 
   for (i = 0; i < 18; i++) {
-    float phiBF = i * 20.0;
+    double phiBF = i * 20.0;
     dx = TMath::Sin(phiBF * kdeg2rad) * (342.0 - 12.62);
     dy = -TMath::Cos(phiBF * kdeg2rad) * (342.0 - 12.62);
     vmc->Gspos("BFTRD", i, "BFMO", dx, dy, 0.0, idrotm[2034 + i], "ONLY");
@@ -1692,7 +1692,7 @@ void FrameStructure::ConstructGeometry()
   //
   // Longitudinal Bars
   //
-  float bpar[3];
+  Double_t bpar[3];
 
   bpar[0] = kBFBd / 2;
   bpar[1] = bpar[0];
@@ -1706,13 +1706,13 @@ void FrameStructure::ConstructGeometry()
   vmc->Gspos("BFLL", 1, "BFLB", 0., 0., 0., 0, "ONLY");
 
   for (i = 0; i < 18; i++) {
-    float ro = kBFMRou - kBFBd / 2. - 0.02;
-    float ri = kBFMRin + kBFBd / 2.;
+    double ro = kBFMRou - kBFBd / 2. - 0.02;
+    double ri = kBFMRin + kBFBd / 2.;
 
-    float phi0 = float(i) * 20.;
+    double phi0 = double(i) * 20.;
 
-    float xb = ri * TMath::Cos(phi0 * kDegrad);
-    float yb = ri * TMath::Sin(phi0 * kDegrad);
+    double xb = ri * TMath::Cos(phi0 * kDegrad);
+    double yb = ri * TMath::Sin(phi0 * kDegrad);
     AliMatrix(idrotm[2090 + i], 90.0, phi0, 90.0, phi0 + 270., 0., 0.);
 
     vmc->Gspos("BFLB", i + 1, "BFMO", xb, yb, 0., idrotm[2090 + i], "ONLY");
@@ -1731,8 +1731,8 @@ void FrameStructure::ConstructGeometry()
   bpar[2] = bpar[1];
   //
   // Avoid overlap with circle
-  float rr = kBFMRou - kBFRdr;
-  float delta = rr - TMath::Sqrt(rr * rr - kBFBd * kBFBd / 4.) + 0.01;
+  double rr = kBFMRou - kBFRdr;
+  double delta = rr - TMath::Sqrt(rr * rr - kBFBd * kBFBd / 4.) + 0.01;
   bpar[0] -= delta / 2.;
 
   vmc->Gsvolu("BFRB", "BOX ", kSteel, bpar, 3);
@@ -1746,11 +1746,11 @@ void FrameStructure::ConstructGeometry()
   int iphi[10] = {0, 1, 3, 6, 8, 9, 10, 12, 15, 17};
 
   for (i = 0; i < 10; i++) {
-    float rb = (kBFMRin + kBFMRou) / 2.;
-    float phib = float(iphi[i]) * 20.;
+    double rb = (kBFMRin + kBFMRou) / 2.;
+    double phib = double(iphi[i]) * 20.;
 
-    float xb = rb * TMath::Cos(phib * kDegrad);
-    float yb = rb * TMath::Sin(phib * kDegrad);
+    double xb = rb * TMath::Cos(phib * kDegrad);
+    double yb = rb * TMath::Sin(phib * kDegrad);
 
     vmc->Gspos("BFRB", i + 1, "BFMO", xb, yb, dz, idrotm[2034 + iphi[i]], "ONLY");
     vmc->Gspos("BFRB", i + 11, "BFMO", xb, yb, -dz, idrotm[2034 + iphi[i]], "ONLY");
@@ -1765,13 +1765,13 @@ void FrameStructure::ConstructGeometry()
   //
   //
   // Inner radius
-  float kBBMRin = 278.0;
+  double kBBMRin = 278.0;
   // Outer Radius
-  float kBBMRou = 410.5;
+  double kBBMRou = 410.5;
   // Width
-  float kBBMdz = 223.0;
-  float kBBBdz = 6.0;
-  float kBBBdd = 0.6;
+  double kBBMdz = 223.0;
+  double kBBBdz = 6.0;
+  double kBBBdd = 0.6;
 
   // The Mother volume
 
@@ -1789,7 +1789,21 @@ void FrameStructure::ConstructGeometry()
   ppgon[9] = ppgon[6];
 
   vmc->Gsvolu("BBMO", "PGON", kAir, ppgon, 10);
-  vmc->Gsdvn("BBCE", "BBMO", 18, 2);
+
+  // The 18 sectors, placed one by one rather than made with a phi division.
+  // Geant4 has no faithful representation of a phi division of a polyhedra: it
+  // divides by the number of sides and ignores the requested width and offset,
+  // so the sector contents end up half a sector away from where TGeo puts them.
+  const int kNSectors = 18;
+  const float kSectorDphi = 360. / kNSectors;
+  TGeoPgon* shBBCE = new TGeoPgon(-kSectorDphi / 2., kSectorDphi, 1, 2);
+  shBBCE->DefineSection(0, -kBBMdz / 2., kBBMRin, kBBMRou);
+  shBBCE->DefineSection(1, kBBMdz / 2., kBBMRin, kBBMRou);
+  TGeoVolume* voBBCE = new TGeoVolume("BBCE", shBBCE, kMedAir);
+  TGeoVolume* voBBMO = gGeoManager->GetVolume("BBMO");
+  for (i = 0; i < kNSectors; i++) {
+    voBBMO->AddNode(voBBCE, i + 1, new TGeoRotation("", (i + 0.5) * kSectorDphi, 0., 0.));
+  }
 
   // CBL ////////////////////////////////////////////////////////
   //

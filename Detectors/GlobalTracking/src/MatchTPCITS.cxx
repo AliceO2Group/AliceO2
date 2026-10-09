@@ -172,12 +172,19 @@ void MatchTPCITS::clear()
   mInteractions.clear();
   mITSROFTimes.clear();
   mITSTrackROFContMapping.clear();
-  mITSClustersArray.clear();
-  mITSClusterSizes.clear();
+  for (int lr = 0; lr < NITSLayers; lr++) {
+    mITSClustersArray[lr].clear();
+    mITSClusterSizes[lr].clear();
+  }
   mTPCABSeeds.clear();
   mTPCABIndexCache.clear();
   mABWinnersIDs.clear();
-  mABClusterLinkIndex.clear();
+  for (auto& clStatus : mABClusterStatus) {
+    clStatus.clear();
+  }
+  for (auto& abClus : mABLayerClusters) {
+    abClus.clear();
+  }
   mNMatchesControl = 0;
 
   for (int sec = o2::constants::math::NSectors; sec--;) {
@@ -249,6 +256,13 @@ void MatchTPCITS::init()
   if (mParams->runAfterBurner) {            // only used in AfterBurner
     mRGHelper.init(mParams->lowestLayerAB); // prepare helper for TPC track / ITS clusters matching
   }
+  {
+    const auto* geomITS = o2::its::GeometryTGeo::Instance();
+    for (int lr = 0; lr < NITSLayers; lr++) {
+      mABChipsBounds[lr] = geomITS->getFirstChipIndex(lr);
+    }
+    mABChipsBounds[NITSLayers] = geomITS->getLastChipIndex(NITSLayers - 1) + 1;
+  }
 
   clear();
 
@@ -262,29 +276,52 @@ void MatchTPCITS::init()
 //______________________________________________
 void MatchTPCITS::updateTimeDependentParams()
 {
-  ///< update parameters depending on time (once per TF)
-  auto& elParam = o2::tpc::ParameterElectronics::Instance();
-  auto& detParam = o2::tpc::ParameterDetector::Instance();
-  mTPCTBinMUS = elParam.ZbinWidth;
-  mTPCTBinNS = mTPCTBinMUS * 1e3;
-  mTPCZMax = detParam.TPClength;
-  mTPCTBinMUSInv = 1. / mTPCTBinMUS;
-  assert(mITSROFrameLengthMUS > 0.0f);
+  ///< update parameters depending on time (once per TF or beginning of run)
+  mBz = o2::base::Propagator::Instance()->getNominalBz();
+  mFieldON = std::abs(mBz) > 0.01;
+
+  static bool initOnceDone = false;
+  if (!initOnceDone) {
+    initOnceDone = true;
+    if (mParams->runAfterBurner) {
+      // margin for matching interaction candidate times to per-layer ITS ROFs in the AfterBurner: must stay
+      // below half of the shortest AB layer ROF length to guarantee at most 2 compatible ROFs per layer
+      float margin = std::max(0.f, mParams->abROFMarginMUS), marginMax = mITSROFrameLengthMUS[mParams->lowestLayerAB];
+      for (int lr = mParams->lowestLayerAB + 1; lr < NITSLayers; lr++) {
+        if (mITSROFrameLengthMUS[lr] < marginMax) {
+          marginMax = mITSROFrameLengthMUS[lr];
+        }
+      }
+      marginMax *= 0.45f;
+      if (margin > marginMax) {
+        if (mABROFMarginMUS != marginMax) {
+          LOGP(warn, "abROFMarginMUS={} exceeds 45% of the shortest AfterBurner layer ROF length, clamping to {}", margin, marginMax);
+        }
+        margin = marginMax;
+      }
+      mABROFMarginMUS = margin;
+    }
+    auto& elParam = o2::tpc::ParameterElectronics::Instance();
+    auto& detParam = o2::tpc::ParameterDetector::Instance();
+    mTPCTBinMUS = elParam.ZbinWidth;
+    mTPCTBinNS = mTPCTBinMUS * 1e3;
+    mTPCZMax = detParam.TPClength;
+    mTPCTBinMUSInv = 1. / mTPCTBinMUS;
+    assert(mITSROFrameLengthMUS[mITSClockLayer] > 0.0f);
+
+    o2::math_utils::Point3D<float> p0(90., 1., 1), p1(90., 100., 100.);
+    auto matbd = o2::base::Propagator::Instance()->getMatBudget(mParams->matCorr, p0, p1);
+    mTPCmeanX0Inv = matbd.meanX2X0 / matbd.length;
+  }
   mTPCBin2Z = mTPCTBinMUS * mTPCVDrift;
   mZ2TPCBin = 1. / mTPCBin2Z;
   mTPCVDriftInv = 1. / mTPCVDrift;
   mNTPCBinsFullDrift = mTPCZMax * mZ2TPCBin;
   mTPCTimeEdgeTSafeMargin = z2TPCBin(mParams->safeMarginTPCTimeEdge);
   mTPCExtConstrainedNSigmaInv = 1.f / mParams->tpcExtConstrainedNSigma;
-  mBz = o2::base::Propagator::Instance()->getNominalBz();
-  mFieldON = std::abs(mBz) > 0.01;
 
   mMinTPCTrackPtInv = (mFieldON && mParams->minTPCTrackR > 0) ? 1. / std::abs(mParams->minTPCTrackR * mBz * o2::constants::math::B2C) : 999.;
   mMinITSTrackPtInv = (mFieldON && mParams->minITSTrackR > 0) ? 1. / std::abs(mParams->minITSTrackR * mBz * o2::constants::math::B2C) : 999.;
-
-  o2::math_utils::Point3D<float> p0(90., 1., 1), p1(90., 100., 100.);
-  auto matbd = o2::base::Propagator::Instance()->getMatBudget(mParams->matCorr, p0, p1);
-  mTPCmeanX0Inv = matbd.meanX2X0 / matbd.length;
 
   const auto& trackTune = TrackTuneParams::Instance();
   float scale = mLumiCTP;
@@ -645,57 +682,83 @@ bool MatchTPCITS::prepareITSData()
   const auto& inp = *mRecoCont;
 
   // ITS clusters
-  mITSClusterROFRec = inp.getITSClustersROFRecords();
-  const auto clusITS = inp.getITSClusters();
-  if (mITSClusterROFRec.empty() || clusITS.empty()) {
-    LOG(info) << "No ITS clusters";
+  int nClLr = inp.getITSPerLayer() ? NITSLayers : 1;
+  mNITSClusters = 0;
+  for (int lr = 0; lr < nClLr; lr++) {
+    mITSClusterROFRec[lr] = inp.getITSClustersROFRecords(lr);
+    const auto clusITS = inp.getITSClusters(lr);
+    mNITSClusters += clusITS.size();
+    const auto patterns = inp.getITSClustersPatterns(lr);
+    auto pattIt = patterns.begin();
+    mITSClustersArray[lr].reserve(clusITS.size());
+#ifdef ENABLE_UPGRADES
+    bool withITS3 = o2::GlobalParams::Instance().withITS3;
+    if (withITS3) {
+      o2::its3::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray[lr], mIT3Dict);
+    } else {
+      o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray[lr], mITSDict);
+    }
+#else
+    o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray[lr], mITSDict);
+#endif
+    // ITS clusters sizes
+    mITSClusterSizes[lr].reserve(clusITS.size());
+    auto pattIt2 = patterns.begin();
+    for (auto& clus : clusITS) {
+      auto pattID = clus.getPatternID();
+      unsigned int npix;
+#ifdef ENABLE_UPGRADES
+      auto ib = o2::its3::constants::detID::isDetITS3(clus.getChipID());
+      if ((pattID == o2::itsmft::CompCluster::InvalidPatternID) || ((withITS3) ? mIT3Dict->isGroup(pattID, ib) : mITSDict->isGroup(pattID))) { // braces guarantee evaluation order
+#else
+      if (pattID == o2::itsmft::CompCluster::InvalidPatternID || mITSDict->isGroup(pattID)) {
+#endif
+        o2::itsmft::ClusterPattern patt;
+        patt.acquirePattern(pattIt2);
+        npix = patt.getNPixels();
+      } else {
+#ifdef ENABLE_UPGRADES
+        if (withITS3) {
+          npix = mIT3Dict->getNpixels(pattID, ib);
+        } else {
+          npix = mITSDict->getNpixels(pattID);
+        }
+#else
+        npix = mITSDict->getNpixels(pattID);
+#endif
+      }
+      mITSClusterSizes[lr].push_back(std::clamp(npix, 0u, 255u));
+    }
+    if (mMCTruthON) {
+      mITSClsLabels[lr] = inp.getITSClustersMCLabels(lr);
+    }
+  }
+  if (!mNITSClusters) {
+    LOGP(warn, "No ITS clusters");
     return false;
   }
-  const auto patterns = inp.getITSClustersPatterns();
-  auto pattIt = patterns.begin();
-  mITSClustersArray.reserve(clusITS.size());
-#ifdef ENABLE_UPGRADES
-  bool withITS3 = o2::GlobalParams::Instance().withITS3;
-  if (withITS3) {
-    o2::its3::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray, mIT3Dict);
-  } else {
-    o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray, mITSDict);
-  }
-#else
-  o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray, mITSDict);
-#endif
-
-  // ITS clusters sizes
-  mITSClusterSizes.reserve(clusITS.size());
-  auto pattIt2 = patterns.begin();
-  for (auto& clus : clusITS) {
-    auto pattID = clus.getPatternID();
-    unsigned int npix;
-#ifdef ENABLE_UPGRADES
-    auto ib = o2::its3::constants::detID::isDetITS3(clus.getChipID());
-    if ((pattID == o2::itsmft::CompCluster::InvalidPatternID) || ((withITS3) ? mIT3Dict->isGroup(pattID, ib) : mITSDict->isGroup(pattID))) { // braces guarantee evaluation order
-#else
-    if (pattID == o2::itsmft::CompCluster::InvalidPatternID || mITSDict->isGroup(pattID)) {
-#endif
-      o2::itsmft::ClusterPattern patt;
-      patt.acquirePattern(pattIt2);
-      npix = patt.getNPixels();
-    } else {
-#ifdef ENABLE_UPGRADES
-      if (withITS3) {
-        npix = mIT3Dict->getNpixels(pattID, ib);
-      } else {
-        npix = mITSDict->getNpixels(pattID);
-      }
-#else
-      npix = mITSDict->getNpixels(pattID);
-#endif
+  // time brackets of the cluster ROFs: the clock-layer ones relate interaction candidates to ITS ROFs,
+  // the AfterBurner layers ones select the clusters compatible with the candidate time
+  for (int lr = 0; lr < NITSLayers; lr++) {
+    auto& abClus = mABLayerClusters[lr];
+    abClus.clear();
+    if (lr != mITSClockLayer && !(mParams->runAfterBurner && lr >= mParams->lowestLayerAB)) {
+      continue;
     }
-    mITSClusterSizes.push_back(std::clamp(npix, 0u, 255u));
+    const auto& rofs = mITSClusterROFRec[inp.getITSPerLayer() ? lr : 0];
+    abClus.rofTimes.reserve(rofs.size());
+    for (const auto& rofRec : rofs) {
+      abClus.rofTimes.push_back(getITSROFTimeBracket(rofRec.getBCData().differenceInBC(mStartIR), lr));
+    }
   }
 
-  if (mMCTruthON) {
-    mITSClsLabels = inp.mcITSClusters.get();
+  // the AfterBurner uses only layers from mParams->lowestLayerAB, with single ITS clusters input all of them are in the slot 0
+  if (inp.getITSPerLayer()) {
+    for (int lr = mParams->lowestLayerAB; lr < NITSLayers; lr++) {
+      mABClusterStatus[lr].resize(mITSClustersArray[lr].size(), MinusOne);
+    }
+  } else {
+    mABClusterStatus[0].resize(mITSClustersArray[0].size(), MinusOne);
   }
 
   // ITS tracks
@@ -708,10 +771,6 @@ bool MatchTPCITS::prepareITSData()
   int nROFs = mITSTrackROFRec.size();
   mITSWork.reserve(mITSTracksArray.size());
 
-  // total N ITS clusters in TF
-  const auto& lastClROF = mITSClusterROFRec.back();
-  int nITSClus = lastClROF.getFirstEntry() + lastClROF.getNEntries();
-  mABClusterLinkIndex.resize(nITSClus, MinusOne);
   for (int sec = o2::constants::math::NSectors; sec--;) {
     mITSTimeStart[sec].resize(nROFs, -1); // start of ITS work tracks in every sector
   }
@@ -719,6 +778,8 @@ bool MatchTPCITS::prepareITSData()
   long maxBCs = nHBF * long(o2::constants::lhc::LHCMaxBunches);
   o2::track::TrackLTIntegral trackLTInt;
   trackLTInt.setTimeNotNeeded();
+  mITSMaxROFOverhangMUS = 0.f;
+  const float trackTimeMarginBC = std::max(0.f, mParams->itsTimeStampMarginBC);
 
   for (int irof = 0; irof < nROFs; irof++) {
     const auto& rofRec = mITSTrackROFRec[irof];
@@ -730,17 +791,17 @@ bool MatchTPCITS::prepareITSData()
       }
       break;
     }
-    float tMin = nBC * o2::constants::lhc::LHCBunchSpacingMUS + mITSTimeBiasMUS;
-    float tMax = (nBC + mITSROFrameLengthInBC) * o2::constants::lhc::LHCBunchSpacingMUS + mITSTimeBiasMUS;
+    auto tBracket = getITSROFTimeBracket(nBC, mITSClockLayer);
+    float tMin = tBracket.getMin(), tMax = tBracket.getMax();
     if (!mITSTriggered) {
-      size_t irofCont = nBC / mITSROFrameLengthInBC;
+      size_t irofCont = nBC / mITSROFrameLengthInBC[mITSClockLayer];
       if (mITSTrackROFContMapping.size() <= irofCont) { // there might be gaps in the non-empty rofs, this will map continuous ROFs index to non empty ones
         mITSTrackROFContMapping.resize((1 + irofCont / 128) * 128, 0);
       }
       mITSTrackROFContMapping[irofCont] = irof;
     }
 
-    mITSROFTimes.emplace_back(tMin, tMax); // ITS ROF min/max time
+    mITSROFTimes.emplace_back(tMin, tMax); // nominal ITS ROF min/max time, to be extended to the envelope of the per-track time brackets
 
     for (int sec = o2::constants::math::NSectors; sec--;) {      // start of sector's tracks for this ROF
       mITSTimeStart[sec][irof] = mITSSectIndexCache[sec].size(); // The sorting does not affect this
@@ -758,9 +819,31 @@ bool MatchTPCITS::prepareITSData()
       if (std::abs(trcOrig.getQ2Pt()) > mMinITSTrackPtInv) {
         continue;
       }
+      // per-track time bracket from the tracker time stamp (bias-corrected BC since the TF start),
+      // widened by the itsTimeStampMarginBC safety margin; the nominal ROF bracket is used as a
+      // fallback when the time stamp is invalid (legacy input)
+      float tMinTrc = tMin, tMaxTrc = tMax;
+      const auto& tstamp = trcOrig.getTimeStamp();
+      if (tstamp.getTimeStampError() > 0.f) {
+        // the tracker guarantees the raw lower edge of the time stamp to be within the assigned clock-layer ROF
+        assert(tstamp.getTimeStamp() - tstamp.getTimeStampError() >= nBC + mITSTimeBiasInBC[mITSClockLayer] - 0.5f);
+        float errBC = tstamp.getTimeStampError() + trackTimeMarginBC;
+        tMinTrc = (tstamp.getTimeStamp() - errBC) * o2::constants::lhc::LHCBunchSpacingMUS;
+        tMaxTrc = (tstamp.getTimeStamp() + errBC) * o2::constants::lhc::LHCBunchSpacingMUS;
+        auto& rofEnv = mITSROFTimes.back(); // extend the ROF envelope used by the TPC-side and triggered-mode entry caches
+        if (tMinTrc < rofEnv.getMin()) {
+          rofEnv.setMin(tMinTrc);
+        }
+        if (tMaxTrc > rofEnv.getMax()) {
+          rofEnv.setMax(tMaxTrc);
+          if (tMaxTrc - tMax > mITSMaxROFOverhangMUS) {
+            mITSMaxROFOverhangMUS = tMaxTrc - tMax; // max excess of the track brackets over their ROF end
+          }
+        }
+      }
       int nWorkTracks = mITSWork.size();
       // working copy of outer track param
-      auto& trc = mITSWork.emplace_back(TrackLocITS{trcOrig.getParamOut(), {tMin, tMax}, it, irof, MinusOne});
+      auto& trc = mITSWork.emplace_back(TrackLocITS{trcOrig.getParamOut(), {tMinTrc, tMaxTrc}, it, irof, MinusOne});
       if (!trc.rotate(o2::math_utils::angle2Alpha(trc.getPhiPos()))) {
         mITSWork.pop_back(); // discard failed track
         continue;
@@ -810,8 +893,10 @@ bool MatchTPCITS::prepareITSData()
     }
   }
 
-  // sort tracks in each sector according to their min time, then tgl
-  // RSTODO: sorting in tgl will be dangerous once the tracks with different time uncertaincies will be added
+  // Sort tracks in each sector according to their bracket min time (tgl serves only as a deterministic tie-break).
+  // Since the raw lower edge of every track time stamp is guaranteed to be within its clock-layer ROF and the
+  // safety margin shifts all tracks alike, the sorting cannot mix tracks of different ROFs, hence the
+  // mITSTimeStart entries assigned at the filling stage above remain valid.
   for (int sec = o2::constants::math::NSectors; sec--;) {
     auto& indexCache = mITSSectIndexCache[sec];
     if (mParams->verbosity > 0) {
@@ -834,7 +919,7 @@ bool MatchTPCITS::prepareITSData()
   mMatchRecordsITS.reserve(mITSWork.size() * mParams->maxMatchCandidates);
   mTimer[SWPrepITS].Stop();
 
-  return nITSClus > 0;
+  return mNITSClusters > 0;
 }
 
 //_____________________________________________________
@@ -887,7 +972,9 @@ void MatchTPCITS::doMatching(int sec)
     // estimate ITS 1st ROframe bin this track may match to: TPC track are sorted according to their
     // timeMax, hence the timeMax - MaxmNTPCBinsFullDrift are non-decreasing
     auto tmn = trefTPC.tBracket.getMax() - maxTDriftSafe;
-    itsROBin = mITSTriggered ? time2ITSROFrameTrig(tmn, itsROBin) : time2ITSROFrameCont(tmn);
+    // in continuous mode the lookup time is decreased by the max excess of the ITS track brackets over their
+    // ROF end, since the mITSTimeStart binning is in ROF units while the brackets may extend beyond the ROF
+    itsROBin = mITSTriggered ? time2ITSROFrameTrig(tmn, itsROBin) : time2ITSROFrameCont(tmn - mITSMaxROFOverhangMUS);
 
     if (itsROBin >= int(timeStartITS.size())) { // time of TPC track exceeds the max time of ITS in the cache
       break;
@@ -942,27 +1029,6 @@ void MatchTPCITS::doMatching(int sec)
         fillTPCITSmatchTree(cacheITS[iits], cacheTPC[itpc], rejFlag, chi2, timeCorr);
       }
 #endif
-      /*
-      // RS: this might be dangerous for ITS tracks with different time coverages.
-      if (rejFlag == RejectOnTgl) {
-        // ITS tracks in each ROFrame are ordered in Tgl, hence if this check failed on Tgl check
-        // (i.e. tgl_its>tgl_tpc+tolerance), then all other ITS tracks in this ROFrame will also have tgl too large.
-        // Jump on the 1st ITS track of the next ROFrame
-        int rof = trefITS.roFrame;
-        bool stop = false;
-        do {
-          if (++rof >= int(timeStartITS.size())) {
-            stop = true;
-            break; // no more ITS ROFrames in cache
-          }
-          iits = timeStartITS[rof] - 1;                  // next track to be checked -1
-        } while (iits <= timeStartITS[trefITS.roFrame]); // skip empty bins
-        if (stop) {
-          break;
-        }
-        continue;
-      }
-      */
       if (rejFlag != Accept) {
         continue;
       }
@@ -1569,7 +1635,7 @@ void MatchTPCITS::fillCalibDebug(int ifit, int iTPC, const o2::dataformats::Trac
     (*mDBGOut) << "refit"
                << "multTPC=" << mltTPC
                << "multITSTr=" << mITSTrackROFRec[tITS.roFrame].getNEntries()
-               << "multITSCl=" << mITSClusterROFRec[tITS.roFrame].getNEntries()
+               << "multITSCl=" << mNITSClusters
                << "tf=" << mTFCount << "\n";
   }
 #endif
@@ -1599,8 +1665,9 @@ bool MatchTPCITS::refitTrackTPCITS(int slot, int iTPC, int& iITS, pmr::vector<o2
   }
   float deltaT = (trfit.getZ() - tTPC.getZ()) * mTPCVDriftInv;                                                                                   // time correction in \mus
   float timeErr = tTPC.constraint == TrackLocTPC::Constrained ? tTPC.timeErr : std::sqrt(tITS.getSigmaZ2() + tTPC.getSigmaZ2()) * mTPCVDriftInv; // estimate the error on time
-  if (timeErr > mITSTimeResMUS && tTPC.constraint != TrackLocTPC::Constrained) {
-    timeErr = mITSTimeResMUS; // chose smallest error
+  float itsTimeRes = tITS.tBracket.delta() / std::sqrt(12.f);                                                                                    // ITS time resolution from the track time-stamp bracket (uniform distribution)
+  if (timeErr > itsTimeRes && tTPC.constraint != TrackLocTPC::Constrained) {
+    timeErr = itsTimeRes; // chose smallest error
     deltaT = tTPC.constraint == TrackLocTPC::ASide ? tITS.tBracket.mean() - tTPC.time0 : tTPC.time0 - tITS.tBracket.mean();
   }
   timeErr += mParams->globalTimeExtraErrorMUS;
@@ -1638,7 +1705,7 @@ bool MatchTPCITS::refitTrackTPCITS(int slot, int iTPC, int& iITS, pmr::vector<o2
   }
 
   for (int icl = 0; icl < ncl; icl++) {
-    const auto& clus = mITSClustersArray[mITSTrackClusIdx[clEntry++]];
+    const auto& clus = getITSCluster(mITSTrackClusIdx[clEntry++]);
     float alpha = geom->getSensorRefAlpha(clus.getSensorID()), x = clus.getX();
     if (!trfit.rotate(alpha) ||
         // note: here we also calculate the L,T integral (in the inward direction, but this is irrelevant)
@@ -1763,7 +1830,7 @@ bool MatchTPCITS::refitABTrack(int iITSAB, const TPCABSeed& seed, pmr::vector<o2
   float chi2 = 0.f;
   // NOTE: the ITS cluster absolute indices are stored from inner to outer layers
   for (int icl = itsClRefs.getFirstEntry(); icl < itsClRefs.getEntriesBound(); icl++) {
-    const auto& clus = mITSClustersArray[ABTrackletClusterIDs[icl]];
+    const auto& clus = getITSCluster(ABTrackletClusterIDs[icl]);
     float alpha = geom->getSensorRefAlpha(clus.getSensorID()), x = clus.getX();
     if (!tracOut.rotate(alpha, refLin, propagator->getNominalBz()) ||
         // note: here we also calculate the L,T integral
@@ -1921,10 +1988,15 @@ int MatchTPCITS::prepareABSeeds()
 //______________________________________________
 int MatchTPCITS::prepareInteractionTimes()
 {
-  // guess interaction times from various sources and relate with ITS rofs
+  // Guess interaction times from various sources and relate them to the ITS cluster ROFs of the clock layer.
+  // For every candidate define also the per-layer cluster ROFs compatible with its time within the
+  // mABROFMarginMUS margin: they define the clusters the AfterBurner will check for this candidate.
   const float ft0Uncertainty = 0.5e-3;
-  int nITSROFs = mITSROFTimes.size();
-  if (mFITInfo.size()) {
+  const auto& clockROFTimes = mABLayerClusters[mITSClockLayer].rofTimes;
+  int nClockROFs = clockROFTimes.size();
+  int lowestAB = mParams->runAfterBurner ? mParams->lowestLayerAB : NITSLayers;
+  std::array<int, NITSLayers> ptrLr{}; // monotonic pointers on the per-layer ROFs (candidates are time-ordered)
+  if (mFITInfo.size() && nClockROFs) {
     int rof = 0;
     for (const auto& ft : mFITInfo) {
       if (!mFT0Params->isSelected(ft)) {
@@ -1934,22 +2006,33 @@ int MatchTPCITS::prepareInteractionTimes()
       if (fitTime < 0) { // should not happen
         continue;
       }
+      while (rof < nClockROFs && clockROFTimes[rof].getMax() + mABROFMarginMUS < fitTime) {
+        rof++;
+      }
+      if (rof >= nClockROFs) { // no candidates beyond the last cluster ROF of the clock layer
+        break;
+      }
       if (size_t(fitTime) >= mInteractionMUSLUT.size()) {
         mInteractionMUSLUT.resize(size_t(fitTime) + 1, -1);
       }
       if (mInteractionMUSLUT[fitTime] < 0) {
         mInteractionMUSLUT[fitTime] = mInteractions.size();
       }
-      for (; rof < nITSROFs; rof++) {
-        if (mITSROFTimes[rof] < fitTime) {
-          continue;
+      auto& intCand = mInteractions.emplace_back(ft.getInteractionRecord(), fitTime, ft0Uncertainty, rof, o2::detectors::DetID::FT0);
+      for (int lr = lowestAB; lr < NITSLayers; lr++) { // relate the candidate time to compatible ROFs of the AB layers
+        const auto& rofTimes = mABLayerClusters[lr].rofTimes;
+        int nROFsLr = (int)rofTimes.size();
+        int& ptr = ptrLr[lr];
+        while (ptr < nROFsLr && rofTimes[ptr].getMax() + mABROFMarginMUS < fitTime) {
+          ptr++;
         }
-        break;
+        if (ptr < nROFsLr && fitTime >= rofTimes[ptr].getMin() - mABROFMarginMUS) {
+          intCand.rofLr[lr] = ptr;
+          if (ptr + 1 < nROFsLr && fitTime >= rofTimes[ptr + 1].getMin() - mABROFMarginMUS) {
+            intCand.rofNextLr |= 0x1 << lr; // compatible also with the next ROF of the layer
+          }
+        }
       }
-      if (rof >= nITSROFs) {
-        break;
-      }
-      mInteractions.emplace_back(ft.getInteractionRecord(), fitTime, ft0Uncertainty, rof, o2::detectors::DetID::FT0);
     }
   }
   int ent = 0;
@@ -1961,6 +2044,164 @@ int MatchTPCITS::prepareInteractionTimes()
     }
   }
   return mInteractions.size();
+}
+
+//______________________________________________
+void MatchTPCITS::prepareABClusters()
+{
+  // Build per (layer, ROF) blocks of the clusters usable by the AfterBurner (i.e. not attached to ITS
+  // tracks), sorted in (chip, Z). Only the blocks referenced by interaction candidates with seeds are built.
+  const bool perLayer = mRecoCont->getITSPerLayer();
+  const int lowestAB = mParams->lowestLayerAB;
+  for (int lr = lowestAB; lr < NITSLayers; lr++) {
+    auto& abClus = mABLayerClusters[lr];
+    abClus.needROF.assign(abClus.rofTimes.size(), 0);
+    abClus.rofRefs.assign(abClus.rofTimes.size(), ClusRange(-1, 0));
+  }
+  for (const auto& intCand : mInteractions) { // mark the blocks to build
+    if (!intCand.seedsRef.getEntries()) {
+      continue;
+    }
+    for (int lr = lowestAB; lr < NITSLayers; lr++) {
+      int rof = intCand.rofLr[lr];
+      if (rof < 0) {
+        continue;
+      }
+      auto& need = mABLayerClusters[lr].needROF;
+      need[rof] = 1;
+      if ((intCand.rofNextLr >> lr) & 0x1) {
+        need[rof + 1] = 1;
+      }
+    }
+  }
+  struct ABBlock {
+    int lr = 0, rof = 0, nCl = 0, offs = 0;
+  };
+  std::vector<ABBlock> blocks;
+  for (int lr = lowestAB; lr < NITSLayers; lr++) {
+    const auto& need = mABLayerClusters[lr].needROF;
+    for (int rof = 0; rof < (int)need.size(); rof++) {
+      if (need[rof]) {
+        blocks.push_back({lr, rof});
+      }
+    }
+  }
+  if (blocks.empty()) {
+    return;
+  }
+  int nBlocks = blocks.size();
+  // count AB-usable clusters of every block
+#ifdef WITH_OPENMP
+#pragma omp parallel for schedule(dynamic) num_threads(mNThreads)
+#endif
+  for (int ib = 0; ib < nBlocks; ib++) {
+    auto& blk = blocks[ib];
+    int slot = perLayer ? blk.lr : 0;
+    const auto& rofRec = mITSClusterROFRec[slot][blk.rof];
+    const auto& status = mABClusterStatus[slot];
+    int last = rofRec.getFirstEntry() + rofRec.getNEntries(), nCl = 0;
+    if (perLayer) {
+      for (int icl = rofRec.getFirstEntry(); icl < last; icl++) {
+        if (status[icl] != MinusTen) {
+          nCl++;
+        }
+      }
+    } else { // select only the clusters of the block layer
+      const auto& clusArr = mITSClustersArray[0];
+      int chipMin = mABChipsBounds[blk.lr], chipMax = mABChipsBounds[blk.lr + 1];
+      for (int icl = rofRec.getFirstEntry(); icl < last; icl++) {
+        int chip = clusArr[icl].getSensorID();
+        if (chip >= chipMin && chip < chipMax && status[icl] != MinusTen) {
+          nCl++;
+        }
+      }
+    }
+    blk.nCl = nCl;
+  }
+  // assign per-layer storage offsets
+  std::array<int, NITSLayers> layerSizes{};
+  for (auto& blk : blocks) {
+    blk.offs = layerSizes[blk.lr];
+    layerSizes[blk.lr] += blk.nCl;
+  }
+  for (int lr = lowestAB; lr < NITSLayers; lr++) {
+    mABLayerClusters[lr].clus.resize(layerSizes[lr]);
+  }
+  // fill and sort the blocks
+#ifdef WITH_OPENMP
+#pragma omp parallel for schedule(dynamic) num_threads(mNThreads)
+#endif
+  for (int ib = 0; ib < nBlocks; ib++) {
+    const auto& blk = blocks[ib];
+    auto& abClus = mABLayerClusters[blk.lr];
+    int slot = perLayer ? blk.lr : 0;
+    const auto& rofRec = mITSClusterROFRec[slot][blk.rof];
+    const auto& status = mABClusterStatus[slot];
+    const auto& clusArr = mITSClustersArray[slot];
+    int last = rofRec.getFirstEntry() + rofRec.getNEntries();
+    int chipMin = mABChipsBounds[blk.lr], chipMax = mABChipsBounds[blk.lr + 1];
+    ABClusterInfo* dst = abClus.clus.data() + blk.offs;
+    int nCl = 0;
+    for (int icl = rofRec.getFirstEntry(); icl < last; icl++) {
+      const auto& cls = clusArr[icl];
+      int chip = cls.getSensorID();
+      if ((perLayer || (chip >= chipMin && chip < chipMax)) && status[icl] != MinusTen) {
+        assert(chip >= chipMin && chip < chipMax); // clusters of a per-layer slot must belong to its layer
+        dst[nCl++] = {cls.getY(), cls.getZ(), o2::itsmft::composeClusID(slot, icl), chip};
+      }
+    }
+    assert(nCl == blk.nCl);
+    std::sort(dst, dst + nCl, [](const ABClusterInfo& a, const ABClusterInfo& b) { return a.chip < b.chip || (a.chip == b.chip && a.z < b.z); });
+    abClus.rofRefs[blk.rof].set(blk.offs, nCl);
+  }
+}
+
+//______________________________________________
+void MatchTPCITS::updateABLayerView(ABLayerView& view, int lr, int rof, int nROFs) const
+{
+  // Point the thread-local view to the AB clusters block(s) of the layer covering the requested ROF(s),
+  // refreshing the chip->clusters references. Does nothing if the requested block(s) are already loaded.
+  if (view.rofKey == rof && view.nROFsKey == nROFs) {
+    return;
+  }
+  for (int chip : view.touchedChips) { // reset previously registered references
+    view.chipRefs[chip].setEntries(0);
+  }
+  view.touchedChips.clear();
+  view.rofKey = rof;
+  view.nROFsKey = nROFs;
+  view.data = nullptr;
+  view.nData = 0;
+  if (rof < 0) { // no ROF of this layer is compatible with the candidate time
+    return;
+  }
+  const auto& abClus = mABLayerClusters[lr];
+  const auto& ref0 = abClus.rofRefs[rof];
+  assert(ref0.getFirstEntry() >= 0); // the block must have been built in prepareABClusters
+  if (nROFs == 1) {
+    view.data = abClus.clus.data() + ref0.getFirstEntry();
+    view.nData = ref0.getEntries();
+  } else { // merge the 2 blocks, each sorted in (chip, Z)
+    const auto& ref1 = abClus.rofRefs[rof + 1];
+    assert(ref1.getFirstEntry() >= 0);
+    view.merged.resize(ref0.getEntries() + ref1.getEntries());
+    std::merge(abClus.clus.begin() + ref0.getFirstEntry(), abClus.clus.begin() + ref0.getEntriesBound(),
+               abClus.clus.begin() + ref1.getFirstEntry(), abClus.clus.begin() + ref1.getEntriesBound(),
+               view.merged.begin(), [](const ABClusterInfo& a, const ABClusterInfo& b) { return a.chip < b.chip || (a.chip == b.chip && a.z < b.z); });
+    view.data = view.merged.data();
+    view.nData = (int)view.merged.size();
+  }
+  int icl = 0;
+  while (icl < view.nData) { // register the cluster ranges of the chips
+    int chip = view.data[icl].chip, jcl = icl + 1;
+    while (jcl < view.nData && view.data[jcl].chip == chip) {
+      jcl++;
+    }
+    int chipLoc = chip - view.chipOffs;
+    view.chipRefs[chipLoc].set(icl, jcl - icl);
+    view.touchedChips.push_back(chipLoc);
+    icl = jcl;
+  }
 }
 
 //______________________________________________
@@ -1977,33 +2218,77 @@ bool MatchTPCITS::runAfterBurner(pmr::vector<o2::dataformats::TrackTPCITS>& matc
     return false;
   }
   mTimer[SWABMatch].Start(false);
+  prepareABClusters(); // build the blocks of AB-usable clusters for the (layer, ROF)s referenced by the candidates
 
-  std::vector<ITSChipClustersRefs> itsChipClRefsBuff(mNThreads);
-#ifdef ENABLE_UPGRADES
-  // with upgrades the datatype changed, hence we need to initialize
-  // each element individually
-  std::generate(itsChipClRefsBuff.begin(), itsChipClRefsBuff.end(), []() {
-    return ITSChipClustersRefs(o2::its::GeometryTGeo::Instance()->getNumberOfChips());
-  });
-#endif
+  // Group together consecutive candidates with seeds sharing the same per-layer ROFs: within a group the
+  // thread-local cluster views stay valid, so they are (re)loaded at most once per group and layer
+  int lowestAB = mParams->lowestLayerAB;
+  std::vector<int> seededIC;
+  std::vector<std::pair<int, int>> icGroups; // ranges (1st, last entry) in seededIC
+  seededIC.reserve(nIntCand);
+  for (int ic = 0; ic < nIntCand; ic++) {
+    const auto& intCand = mInteractions[ic];
+    if (!intCand.seedsRef.getEntries()) {
+      continue;
+    }
+    bool anyROF = false;
+    for (int lr = lowestAB; lr < NITSLayers; lr++) {
+      if (intCand.rofLr[lr] >= 0) {
+        anyROF = true;
+        break;
+      }
+    }
+    if (!anyROF) { // no AB layer has clusters at the candidate time: discard the seeds of this candidate
+      for (int is = intCand.seedsRef.getFirstEntry(); is < intCand.seedsRef.getEntriesBound(); is++) {
+        mTPCABSeeds[is].disable();
+      }
+      continue;
+    }
+    bool sameROFs = false;
+    if (!seededIC.empty()) {
+      const auto& prevCand = mInteractions[seededIC.back()];
+      sameROFs = prevCand.rofNextLr == intCand.rofNextLr;
+      for (int lr = lowestAB; sameROFs && lr < NITSLayers; lr++) {
+        sameROFs = prevCand.rofLr[lr] == intCand.rofLr[lr];
+      }
+    }
+    if (sameROFs) {
+      icGroups.back().second = (int)seededIC.size();
+    } else {
+      icGroups.emplace_back((int)seededIC.size(), (int)seededIC.size());
+    }
+    seededIC.push_back(ic);
+  }
+
+  std::vector<ABThreadClusterViews> itsClViewsBuff(mNThreads);
+  for (auto& views : itsClViewsBuff) { // book the chip->clusters references of the AB layers
+    for (int lr = lowestAB; lr < NITSLayers; lr++) {
+      auto& view = views.layers[lr];
+      view.chipOffs = mABChipsBounds[lr];
+      view.chipRefs.resize(mABChipsBounds[lr + 1] - mABChipsBounds[lr], ClusRange(0, 0));
+    }
+  }
 
 #ifdef WITH_OPENMP
 #pragma omp parallel for schedule(dynamic) num_threads(mNThreads)
 #endif
-  for (int ic = 0; ic < nIntCand; ic++) {
-    const auto& intCand = mInteractions[ic];
-    LOGP(debug, "cand T {} Entries: {} : {} : {} | ITS ROF: {}", intCand.tBracket.mean(), intCand.seedsRef.getEntries(), intCand.seedsRef.getFirstEntry(), intCand.seedsRef.getEntriesBound(), intCand.rofITS);
-    if (!intCand.seedsRef.getEntries()) {
-      continue;
-    }
+  for (int ig = 0; ig < (int)icGroups.size(); ig++) {
 #ifdef WITH_OPENMP
     uint8_t tid = (uint8_t)omp_get_thread_num();
 #else
     uint8_t tid = 0;
 #endif
-    fillClustersForAfterBurner(intCand.rofITS, 1, itsChipClRefsBuff[tid]);                           // RS FIXME account for possibility of filling 2 ROFs
-    for (int is = intCand.seedsRef.getFirstEntry(); is < intCand.seedsRef.getEntriesBound(); is++) { // loop over all seeds of this interaction candidate
-      processABSeed(is, itsChipClRefsBuff[tid], tid);
+    auto& views = itsClViewsBuff[tid];
+    const auto& groupCand = mInteractions[seededIC[icGroups[ig].first]]; // all candidates of the group share the same ROFs
+    for (int lr = lowestAB; lr < NITSLayers; lr++) {
+      updateABLayerView(views.layers[lr], lr, groupCand.rofLr[lr], (groupCand.rofNextLr >> lr) & 0x1 ? 2 : 1);
+    }
+    for (int j = icGroups[ig].first; j <= icGroups[ig].second; j++) {
+      const auto& intCand = mInteractions[seededIC[j]];
+      LOGP(debug, "cand T {} Entries: {} : {} : {} | ITS clock ROF: {}", intCand.tBracket.mean(), intCand.seedsRef.getEntries(), intCand.seedsRef.getFirstEntry(), intCand.seedsRef.getEntriesBound(), intCand.rofITS);
+      for (int is = intCand.seedsRef.getFirstEntry(); is < intCand.seedsRef.getEntriesBound(); is++) { // loop over all seeds of this interaction candidate
+        processABSeed(is, views, tid);
+      }
     }
   }
   mTimer[SWABMatch].Stop();
@@ -2039,13 +2324,13 @@ bool MatchTPCITS::runAfterBurner(pmr::vector<o2::dataformats::TrackTPCITS>& matc
       continue;
     }
     auto bestID = ABSeed.getBestLinkID();
-    if (ABSeed.checkLinkHasUsedClusters(bestID, mABClusterLinkIndex)) {
+    if (ABSeed.checkLinkHasUsedClusters(bestID, mABClusterStatus)) {
       ABSeed.setNeedAlternative(); // flag for later processing
       // RSTMP      LOG(info) << "Iter: " << iter << " seed has used clusters " << i << "[" << candAB[i].seedID << "/" << candAB[i].chi2 << "]"  << " last lr: " << int(ABSeed.lowestLayer) << " Ncont: " << int(link.nContLayers);;
       continue;
     }
     ABSeed.validate(bestID);
-    ABSeed.flagLinkUsedClusters(bestID, mABClusterLinkIndex);
+    ABSeed.flagLinkUsedClusters(bestID, mABClusterStatus);
     mABWinnersIDs.push_back(tTPC.matchID = candAB[i].seedID);
     mNABRefsClus += ABSeed.getNLayers();
     nwin++;
@@ -2079,8 +2364,8 @@ void MatchTPCITS::refitABWinners(pmr::vector<o2::dataformats::TrackTPCITS>& matc
   }
 
   std::map<o2::MCCompLabel, int> labelOccurence;
-  auto accountClusterLabel = [&labelOccurence, itsClLabs = mITSClsLabels](int clID) {
-    auto labels = itsClLabs->getLabels(clID);
+  auto accountClusterLabel = [&labelOccurence, this](int clID) {
+    auto labels = mITSClsLabels[o2::itsmft::clusID2Layer(clID)]->getLabels(o2::itsmft::clusID2Index(clID));
     for (auto lab : labels) { // check all labels of the cluster
       if (lab.isSet()) {
         labelOccurence[lab]++;
@@ -2099,7 +2384,7 @@ void MatchTPCITS::refitABWinners(pmr::vector<o2::dataformats::TrackTPCITS>& matc
         ABTrackletClusterIDs.push_back(winL.clID);
         ncl++;
         clref.pattern |= 0x1 << winL.layerID;
-        clref.setClusterSize(winL.layerID, mITSClusterSizes[winL.clID]);
+        clref.setClusterSize(winL.layerID, mITSClusterSizes[o2::itsmft::clusID2Layer(winL.clID)][o2::itsmft::clusID2Index(winL.clID)]);
         if (mMCTruthON) {
           accountClusterLabel(winL.clID);
         }
@@ -2139,13 +2424,13 @@ void MatchTPCITS::refitABWinners(pmr::vector<o2::dataformats::TrackTPCITS>& matc
 }
 
 //______________________________________________
-void MatchTPCITS::processABSeed(int sid, const ITSChipClustersRefs& itsChipClRefs, uint8_t tID)
+void MatchTPCITS::processABSeed(int sid, const ABThreadClusterViews& itsClViews, uint8_t tID)
 {
   // prepare matching hypothesis tree for given seed
   auto& ABSeed = mTPCABSeeds[sid];
   ABSeed.threadID = tID;
   ABSeed.linksEntry = mABLinksPool.threadPool[tID].size();
-  followABSeed(ABSeed.track, itsChipClRefs, MinusTen, NITSLayers - 1, ABSeed); // check matches on outermost layer
+  followABSeed(ABSeed.track, itsClViews.layers[NITSLayers - 1], MinusTen, NITSLayers - 1, ABSeed); // check matches on outermost layer
   for (int ilr = NITSLayers - 1; ilr > mParams->lowestLayerAB; ilr--) {
     int nextLinkID = ABSeed.firstInLr[ilr];
     if (nextLinkID < 0) {
@@ -2158,7 +2443,7 @@ void MatchTPCITS::processABSeed(int sid, const ITSChipClustersRefs& itsChipClRef
         continue;
       }
       int next2nextLinkID = seedLink.nextOnLr;                            // fetch now since the seedLink may change due to the relocation
-      followABSeed(seedLink, itsChipClRefs, nextLinkID, ilr - 1, ABSeed); // check matches on the next layer
+      followABSeed(seedLink, itsClViews.layers[ilr - 1], nextLinkID, ilr - 1, ABSeed); // check matches on the next layer
       nextLinkID = next2nextLinkID;
     }
   }
@@ -2185,9 +2470,11 @@ void MatchTPCITS::processABSeed(int sid, const ITSChipClustersRefs& itsChipClRef
 }
 
 //______________________________________________
-int MatchTPCITS::followABSeed(const o2::track::TrackParCov& seed, const ITSChipClustersRefs& itsChipClRefs, int seedID, int lrID, TPCABSeed& ABSeed)
+int MatchTPCITS::followABSeed(const o2::track::TrackParCov& seed, const ABLayerView& clView, int seedID, int lrID, TPCABSeed& ABSeed)
 {
-
+  if (!clView.nData) { // no AB-usable clusters on this layer at the interaction candidate time
+    return 0;
+  }
   auto propagator = o2::base::Propagator::Instance();
   float xTgt;
   const auto& lr = mRGHelper.layers[lrID];
@@ -2248,7 +2535,7 @@ int MatchTPCITS::followABSeed(const o2::track::TrackParCov& seed, const ITSChipC
       if (lad.chips[chipID].zRange.isOutside(zCross, mParams->nABSigmaZ * errZ)) {
         continue;
       }
-      const auto& clRange = itsChipClRefs.chipRefs[lad.chips[chipID].id];
+      const auto& clRange = clView.chipRefs[lad.chips[chipID].id - clView.chipOffs];
       if (!clRange.getEntries()) {
         LOG(debug) << "No clusters in chip range";
         continue;
@@ -2257,7 +2544,7 @@ int MatchTPCITS::followABSeed(const o2::track::TrackParCov& seed, const ITSChipC
       float errYcalp = errY * (csa * chipC.csAlp + sna * chipC.snAlp); // sigY_rotate(from alpha0 to alpha1) = sigY * cos(alpha1 - alpha0);
       float tolerZ = errZ * mParams->nABSigmaZ, tolerY = errYcalp * mParams->nABSigmaY;
       float yTrack = -xCross * chipC.snAlp + yCross * chipC.csAlp;                                           // track-chip crossing Y in chip frame
-      if (!preselectChipClusters(chipSelClusters, clRange, itsChipClRefs, yTrack, zCross, tolerY, tolerZ)) { // select candidate clusters for this chip
+      if (!preselectChipClusters(chipSelClusters, clRange, clView, yTrack, zCross, tolerY, tolerZ)) {        // select candidate clusters for this chip
         LOG(debug) << "No compatible clusters found";
         continue;
       }
@@ -2270,7 +2557,7 @@ int MatchTPCITS::followABSeed(const o2::track::TrackParCov& seed, const ITSChipC
       }
 
       for (auto clID : chipSelClusters) {
-        const auto& cls = mITSClustersArray[clID];
+        const auto& cls = getITSCluster(clID);
         auto chi2 = trcLC.getPredictedChi2(cls);
         if (chi2 > mParams->cutABTrack2ClChi2) {
           continue;
@@ -2470,79 +2757,44 @@ float MatchTPCITS::correctTPCTrack(o2::track::TrackParCov& trc, const TrackLocTP
 }
 
 //______________________________________________
-void MatchTPCITS::fillClustersForAfterBurner(int rofStart, int nROFs, ITSChipClustersRefs& itsChipClRefs)
+void MatchTPCITS::setAlpideParam(const AlpParamITS* p)
 {
-  // Prepare unused clusters of given ROFs range for matching in the afterburner
-  // Note: normally only 1 ROF needs to be filled (nROFs==1 ) unless we want
-  // to account for interaction on the boundary of 2 rofs, which then may contribute to both ROFs.
-  int first = mITSClusterROFRec[rofStart].getFirstEntry(), last = first;
-  for (int ir = nROFs; ir--;) {
-    last += mITSClusterROFRec[rofStart + ir].getNEntries();
+  ///< derive all ITS ROF timings from the Alpide parameters. The per-layer arrays are always
+  ///< filled for all NITSLayers, also when every layer shares the same ROF length and bias.
+  if (!p) {
+    LOG(fatal) << "ITS Alpide parameters pointer is null";
   }
-  itsChipClRefs.clear();
-  auto& idxSort = itsChipClRefs.clusterID;
-  for (int icl = first; icl < last; icl++) {
-    if (mABClusterLinkIndex[icl] != MinusTen) { // clusters with MinusOne are used in main matching
-      idxSort.push_back(icl);
+  mAlpParams = p;
+  constexpr float BCLenMUS = o2::constants::lhc::LHCBunchSpacingMUS;
+  unsigned int maxNROFsPerOrbit = 0;
+  mITSClockLayer = 0;
+  for (int lr = 0; lr < NITSLayers; lr++) {
+    if (mITSTriggered) { // in the triggered mode all layers are read out together
+      mITSROFrameLengthMUS[lr] = p->roFrameLengthTrig * 1e-3;
+      mITSROFrameLengthInBC[lr] = std::max(1, int(mITSROFrameLengthMUS[lr] / BCLenMUS));
+    } else {
+      mITSROFrameLengthInBC[lr] = p->getROFLengthInBC(lr);
+      mITSROFrameLengthMUS[lr] = mITSROFrameLengthInBC[lr] * BCLenMUS;
+    }
+    mITSROFrameLengthMUSInv[lr] = 1.f / mITSROFrameLengthMUS[lr];
+    mITSTimeResMUS[lr] = mITSROFrameLengthMUS[lr] / std::sqrt(12.f);
+    mITSTimeBiasInBC[lr] = p->getROFBiasInBC(lr);
+    mITSTimeBiasMUS[lr] = mITSTimeBiasInBC[lr] * BCLenMUS;
+    // the ITS tracks ROFRecords are defined by the layer with the largest number of ROFs per orbit,
+    // see o2::its::ITSTrackingInterface (o2::its::ROFOverlapView::getClock()). If all layers have the
+    // same timing, this is the layer 0.
+    unsigned int nROFsPerOrbit = o2::constants::lhc::LHCMaxBunches / mITSROFrameLengthInBC[lr];
+    if (nROFsPerOrbit > maxNROFsPerOrbit) {
+      maxNROFsPerOrbit = nROFsPerOrbit;
+      mITSClockLayer = lr;
     }
   }
-  // sort in chip, Z
-  const auto& clusArr = mITSClustersArray;
-  std::sort(idxSort.begin(), idxSort.end(), [&clusArr](int i, int j) {
-    const auto &clI = clusArr[i], &clJ = clusArr[j];
-    if (clI.getSensorID() < clJ.getSensorID()) {
-      return true;
-    }
-    if (clI.getSensorID() == clJ.getSensorID()) {
-      return clI.getZ() < clJ.getZ();
-    }
-    return false;
-  });
-
-  int ncl = idxSort.size();
-  int lastSens = -1, nClInSens = 0;
-  ClusRange* chipClRefs = nullptr;
-  for (int icl = 0; icl < ncl; icl++) {
-    const auto& clus = mITSClustersArray[idxSort[icl]];
-    int sens = clus.getSensorID();
-    if (sens != lastSens) {
-      if (chipClRefs) { // finalize chip reference
-        chipClRefs->setEntries(nClInSens);
-        nClInSens = 0;
-      }
-      chipClRefs = &itsChipClRefs.chipRefs[(lastSens = sens)];
-      chipClRefs->setFirstEntry(icl);
-    }
-    nClInSens++;
+  std::string rep;
+  for (int lr = 0; lr < NITSLayers; lr++) {
+    rep += fmt::format(" L{}:{}/{}", lr, mITSROFrameLengthInBC[lr], mITSTimeBiasInBC[lr]);
   }
-  if (chipClRefs) {
-    chipClRefs->setEntries(nClInSens); // finalize last chip reference
-  }
-}
-
-//______________________________________________
-void MatchTPCITS::setITSTimeBiasInBC(int n)
-{
-  mITSTimeBiasInBC = n;
-  mITSTimeBiasMUS = mITSTimeBiasInBC * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
-}
-
-//______________________________________________
-void MatchTPCITS::setITSROFrameLengthMUS(float fums)
-{
-  mITSROFrameLengthMUS = fums;
-  mITSTimeResMUS = mITSROFrameLengthMUS / std::sqrt(12.f);
-  mITSROFrameLengthMUSInv = 1. / mITSROFrameLengthMUS;
-  mITSROFrameLengthInBC = std::max(1, int(mITSROFrameLengthMUS / (o2::constants::lhc::LHCBunchSpacingNS * 1e-3)));
-}
-
-//______________________________________________
-void MatchTPCITS::setITSROFrameLengthInBC(int nbc)
-{
-  mITSROFrameLengthInBC = nbc;
-  mITSROFrameLengthMUS = nbc * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
-  mITSTimeResMUS = mITSROFrameLengthMUS / std::sqrt(12.f);
-  mITSROFrameLengthMUSInv = 1. / mITSROFrameLengthMUS;
+  LOGP(info, "ITS {} readout, per-layer ROFLength/Bias in BC:{} | clock layer {}",
+       mITSTriggered ? "triggered" : "continuous", rep, mITSClockLayer);
 }
 
 //___________________________________________________________________
@@ -2655,35 +2907,37 @@ void MatchTPCITS::flagUsedITSClusters(const o2::its::TrackITS& track)
   // flag clusters used by this track
   int clEntry = track.getFirstClusterEntry();
   for (int icl = track.getNumberOfClusters(); icl--;) {
-    mABClusterLinkIndex[mITSTrackClusIdx[clEntry++]] = MinusTen;
+    const int clID = mITSTrackClusIdx[clEntry++]; // composed ID: (layer << o2::itsmft::ClusLayerShift) + index_in_layer
+    auto& clStatus = mABClusterStatus[o2::itsmft::clusID2Layer(clID)];
+    if (!clStatus.empty()) { // layers not used by the AfterBurner are not booked
+      clStatus[o2::itsmft::clusID2Index(clID)] = MinusTen;
+    }
   }
 }
 
 //__________________________________________________________
-int MatchTPCITS::preselectChipClusters(std::vector<int>& clVecOut, const ClusRange& clRange, const ITSChipClustersRefs& itsChipClRefs,
+int MatchTPCITS::preselectChipClusters(std::vector<int>& clVecOut, const ClusRange& clRange, const ABLayerView& clView,
                                        float trackY, float trackZ, float tolerY, float tolerZ) const
 {
   clVecOut.clear();
   int icID = clRange.getFirstEntry();
   for (int icl = clRange.getEntries(); icl--;) { // note: clusters within a chip are sorted in Z
-    int clID = itsChipClRefs.clusterID[icID++];  // so, we go in clusterID increasing direction
-    const auto& cls = mITSClustersArray[clID];
-    float dz = cls.getZ() - trackZ;
-    LOG(debug) << "cl" << icl << '/' << clID << " "
-               << " dZ: " << dz << " [" << tolerZ << "| dY: " << trackY - cls.getY() << " [" << tolerY << "]";
+    const auto& cls = clView.data[icID++];
+    float dz = cls.z - trackZ;
+    LOG(debug) << "cl" << icl << '/' << cls.id << " "
+               << " dZ: " << dz << " [" << tolerZ << "| dY: " << trackY - cls.y << " [" << tolerY << "]";
     if (dz > tolerZ) {
-      float clsZ = cls.getZ();
-      LOG(debug) << "Skip the rest since " << trackZ << " < " << clsZ << "\n";
+      LOG(debug) << "Skip the rest since " << trackZ << " < " << cls.z << "\n";
       break;
     } else if (dz < -tolerZ) {
-      LOG(debug) << "Skip cluster dz=" << dz << " Ztr=" << trackZ << " zCl=" << cls.getZ();
+      LOG(debug) << "Skip cluster dz=" << dz << " Ztr=" << trackZ << " zCl=" << cls.z;
       continue;
     }
-    if (fabs(trackY - cls.getY()) > tolerY) {
-      LOG(debug) << "Skip cluster dy= " << trackY - cls.getY() << " Ytr=" << trackY << " yCl=" << cls.getY();
+    if (fabs(trackY - cls.y) > tolerY) {
+      LOG(debug) << "Skip cluster dy= " << trackY - cls.y << " Ytr=" << trackY << " yCl=" << cls.y;
       continue;
     }
-    clVecOut.push_back(clID);
+    clVecOut.push_back(cls.id);
   }
   return clVecOut.size();
 }
@@ -2735,11 +2989,23 @@ void MatchTPCITS::reportSizes(pmr::vector<o2::dataformats::TrackTPCITS>& matched
     LOGP(info, "Size SHM, calib                 : size {:9} cap {:9}", siz, cap);
   }
   {
-    siz = mITSClustersArray.size() * sizeof(ITSCluster);
-    cap = mITSClustersArray.capacity() * sizeof(ITSCluster);
+    siz = cap = 0;
+    for (const auto& clusV : mITSClustersArray) {
+      siz += clusV.size() * sizeof(ITSCluster);
+      cap += clusV.capacity() * sizeof(ITSCluster);
+    }
     sizTot += siz;
     capTot += cap;
     LOGP(info, "Size RSS, mITSClustersArray     : size {:9} cap {:9}", siz, cap);
+    //
+    siz = cap = 0;
+    for (const auto& abClus : mABLayerClusters) {
+      siz += abClus.sizeInternal();
+      cap += abClus.capInternal();
+    }
+    sizTot += siz;
+    capTot += cap;
+    LOGP(info, "Size RSS, mABLayerClusters      : size {:9} cap {:9}", siz, cap);
     //
     siz = mMatchRecordsTPC.size() * sizeof(MatchRecord);
     cap = mMatchRecordsTPC.capacity() * sizeof(MatchRecord);
@@ -2803,11 +3069,14 @@ void MatchTPCITS::reportSizes(pmr::vector<o2::dataformats::TrackTPCITS>& matched
     capTot += cap;
     LOGP(info, "Size RSS, mABWinnersIDs         : size {:9} cap {:9}", siz, cap);
     //
-    siz = mABClusterLinkIndex.size() * sizeof(int);
-    cap = mABClusterLinkIndex.capacity() * sizeof(int);
+    siz = cap = 0;
+    for (const auto& clStatus : mABClusterStatus) {
+      siz += clStatus.size() * sizeof(int);
+      cap += clStatus.capacity() * sizeof(int);
+    }
     sizTot += siz;
     capTot += cap;
-    LOGP(info, "Size RSS, mABClusterLinkIndex   : size {:9} cap {:9}", siz, cap);
+    LOGP(info, "Size RSS, mABClusterStatus   : size {:9} cap {:9}", siz, cap);
     //
     for (int is = 0; is < o2::constants::math::NSectors; is++) {
       siz += mTPCSectIndexCache[is].size() * sizeof(int);
@@ -2951,7 +3220,7 @@ void MatchTPCITS::fillTPCITSmatchTree(int itsID, int tpcID, int rejFlag, float c
              << "rejFlag=" << rejFlag
              << "multTPC=" << mltTPC
              << "multITSTr=" << mITSTrackROFRec[trackITS.roFrame].getNEntries()
-             << "multITSCl=" << mITSClusterROFRec[trackITS.roFrame].getNEntries()
+             << "multITSCl=" << mITSClusterROFRec[mRecoCont->getITSPerLayer() ? mITSClockLayer : 0][trackITS.roFrame].getNEntries()
              << "\n";
 
   mTimer[SWDBG].Stop();
@@ -2986,7 +3255,7 @@ void MatchTPCITS::dumpWinnerMatches()
     (*mDBGOut) << "matchWin"
                << "multTPC=" << mltTPC
                << "multITSTr=" << mITSTrackROFRec[tITS.roFrame].getNEntries()
-               << "multITSCl=" << mITSClusterROFRec[tITS.roFrame].getNEntries()
+               << "multITSCl=" << mITSClusterROFRec[mRecoCont->getITSPerLayer() ? mITSClockLayer : 0][tITS.roFrame].getNEntries()
                << "\n";
   }
   mTimer[SWDBG].Stop();

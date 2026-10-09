@@ -27,6 +27,7 @@ namespace o2::itsmft::tracking
 
 enum SlabSite : uint8_t {
   Tracklets = 0,
+  CellCandidates,
   Cells,
   Neighbours,
   RoadCandidates,
@@ -36,7 +37,7 @@ enum SlabSite : uint8_t {
   Tracks,
   NSlabSite,
 };
-constexpr const char* const SlabSiteNames[SlabSite::NSlabSite]{"Tracklets", "Cells", "Neighbours", "RoadCandidates", "Roads", "TrackSeeds", "TracksExtended", "Tracks"};
+constexpr const char* const SlabSiteNames[SlabSite::NSlabSite]{"Tracklets", "CellCandidates", "Cells", "Neighbours", "RoadCandidates", "Roads", "TrackSeeds", "TracksExtended", "Tracks"};
 
 class CapacityEstimator
 {
@@ -80,6 +81,12 @@ class CapacityEstimator
            (static_cast<KeyType>(iteration & 0xFF) << 48) |
            (static_cast<KeyType>(variant & 0xFFFF) << 32) |
            static_cast<KeyType>(static_cast<uint32_t>(slot));
+  }
+
+  template <typename Identifier>
+  static constexpr KeyType makeKey(SlabSite site, int iteration, int variant, Identifier identifier) noexcept
+  {
+    return makeKey(site, iteration, variant, static_cast<int>(identifier.value()));
   }
 
   static constexpr Decoded decodeKey(KeyType key) noexcept

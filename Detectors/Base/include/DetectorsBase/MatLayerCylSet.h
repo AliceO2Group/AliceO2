@@ -145,12 +145,12 @@ class MatLayerCylSet : public o2::gpu::FlatObject
   static constexpr size_t getBufferAlignmentBytes() { return 8; }
 #endif // !GPUCA_GPUCODE
 
-  static constexpr float LayerRMax = 500;    // maximum value of R lookup (corresponds to last layer of MatLUT)
-  static constexpr float VoxelRDelta = 0.05; // voxel spacing for layer lookup; seems a natural choice - corresponding ~ to smallest spacing
-  static constexpr float InvVoxelRDelta = 1.f / VoxelRDelta;
-  static constexpr int NumVoxels = int(LayerRMax / VoxelRDelta);
-  static constexpr uint16_t VoxelAmbiguousBit = 0x8000u;
-  static constexpr uint16_t VoxelSegmentMask = 0x7fffu;
+  static GPUglobalconstexpr() float LayerRMax = 500;    // maximum value of R lookup (corresponds to last layer of MatLUT)
+  static GPUglobalconstexpr() float VoxelRDelta = 0.05; // voxel spacing for layer lookup; seems a natural choice - corresponding ~ to smallest spacing
+  static GPUglobalconstexpr() float InvVoxelRDelta = 1.f / VoxelRDelta;
+  static GPUglobalconstexpr() int NumVoxels = int(LayerRMax / VoxelRDelta);
+  static GPUglobalconstexpr() uint16_t VoxelAmbiguousBit = 0x8000u;
+  static GPUglobalconstexpr() uint16_t VoxelSegmentMask = 0x7fffu;
 
   uint16_t mLayerVoxelLU[NumVoxels];     //! first interval based on known radius, plus the ambiguity flag (static dimension for easy copy to GPU)
   bool mInitializedLayerVoxelLU = false; //! if the voxels have been initialized

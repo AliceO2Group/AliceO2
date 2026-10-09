@@ -249,7 +249,7 @@ void GPUChainTracking::TPCClusterizerCheckExtraADCZeros(GPUTPCClusterFinder& clu
   if (nNonZeroADCs > 0) {
     GPUInfo("Non Zero ADCs: %zu", nNonZeroADCs);
   } else {
-    GPUInfo("Cleared all extra ADC values!", nNonZeroADCs);
+    GPUInfo("Cleared all extra ADC values!");
   }
 }
 

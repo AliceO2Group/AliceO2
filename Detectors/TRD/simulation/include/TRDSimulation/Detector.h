@@ -104,6 +104,9 @@ class Detector : public o2::base::DetImpl<Detector>
   // than hard-coded.
   int mChamberOffset = -1; //!
   int mSectorOffset = -1;  //!
+  // The chamber assemblies have no volume id when the engine collapses assemblies (native
+  // Geant4 via VGM); the chamber is then read from the assembly name the VMC still reports.
+  bool mChamberFromName = false; //!
 
   template <typename Det>
   friend class o2::base::DetImpl;

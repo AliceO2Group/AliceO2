@@ -16,7 +16,7 @@
 
 namespace o2::focal
 {
-class IndexExceptionEvent : public std::exception
+class IndexExceptionEvent final : public std::exception
 {
  public:
   enum class IndexType_t {

@@ -17,6 +17,7 @@
 #include <TStopwatch.h>
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DataFormatsITSMFT/TrkClusRef.h"
+#include "DataFormatsITSMFT/ClustersPerLayer.h"
 #include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
@@ -70,6 +71,7 @@ using PVertex = o2::dataformats::PrimaryVertex;
 using V2TRef = o2::dataformats::VtxTrackRef;
 using VTIndex = o2::dataformats::VtxTrackIndex;
 using GTrackID = o2::dataformats::GlobalTrackID;
+using ITSClusters = o2::itsmft::ClustersPerLayer<o2::BaseCluster<float>>;
 using timeEst = o2::dataformats::TimeStampWithError<float, float>;
 
 class CheckResidSpec final : public Task
@@ -101,7 +103,7 @@ class CheckResidSpec final : public Task
   bool mMeanVertexUpdated = false;
   float mITSROFrameLengthMUS = 0.f;
   o2::dataformats::MeanVertexObject mMeanVtx{};
-  std::vector<o2::BaseCluster<float>> mITSClustersArray;    ///< ITS clusters created in run() method from compact clusters
+  ITSClusters mITSClustersArray;                            ///< ITS clusters from compact clusters, by composed ID
   const o2::itsmft::TopologyDictionary* mITSDict = nullptr; ///< cluster patterns dictionary
   o2::vertexing::PVertexer mVertexer;
   std::shared_ptr<DataRequest> mDataRequest;
@@ -240,14 +242,17 @@ void CheckResidSpec::process()
   const auto itsTracks = mRecoData->getITSTracks();
   //  const auto itsLbls = mRecoData->getITSTracksMCLabels();
   const auto itsClRefs = mRecoData->getITSTracksClusterRefs();
-  const auto clusITS = mRecoData->getITSClusters();
-  const auto patterns = mRecoData->getITSClustersPatterns();
   const auto& params = o2::checkresid::CheckResidConfig::Instance();
-  auto pattIt = patterns.begin();
-  mITSClustersArray.clear();
-  mITSClustersArray.reserve(clusITS.size());
-
-  o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray, mITSDict);
+  int nLr = mDataRequest->getITSPerLayer() ? o2::globaltracking::MaxITSLayers : 1;
+  mITSClustersArray.init(nLr);
+  for (int lr = 0; lr < nLr; lr++) { // with a single (monolithic) input all clusters are in the layer slot 0
+    mITSClustersArray.beginLayer(lr);
+    const auto clusITS = mRecoData->getITSClusters(lr);
+    auto pattIt = mRecoData->getITSClustersPatterns(lr).begin();
+    mITSClustersArray.getClusters().reserve(mITSClustersArray.size() + clusITS.size());
+    o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray.getClusters(), mITSDict);
+  }
+  mITSClustersArray.finalize();
 
   auto pvvec = mRecoData->getPrimaryVertices();
   auto trackIndex = mRecoData->getPrimaryVertexMatchedTracks(); // Global ID's for associated tracks
@@ -990,10 +995,11 @@ void CheckResidSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   }
 }
 
-DataProcessorSpec getCheckResidSpec(GTrackID::mask_t srcTracks, GTrackID::mask_t srcClusters, bool drawOnly, bool postProcOnly)
+DataProcessorSpec getCheckResidSpec(GTrackID::mask_t srcTracks, GTrackID::mask_t srcClusters, bool drawOnly, bool postProcOnly, bool itsStag)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
+  dataRequest->setITSPerLayer(itsStag);
   if (!drawOnly && !postProcOnly) {
     bool useMC = false;
     dataRequest->requestTracks(srcTracks, useMC);

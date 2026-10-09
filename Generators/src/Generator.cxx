@@ -28,6 +28,7 @@
 #include "TGrid.h"
 #include "CCDB/BasicCCDBManager.h"
 #include <filesystem>
+#include <cstdlib>
 #ifdef GENERATORS_WITH_TPCLOOPERS
 #include "Generators/TPCLoopers.h"
 #include "Generators/TPCLoopersParam.h"
@@ -40,6 +41,12 @@ namespace eventgen
 
 std::atomic<int> Generator::InstanceCounter{0};
 unsigned int Generator::gTotalNEvents = 0;
+
+bool Generator::isHyperloop()
+{
+  static const bool isHY = std::getenv("IS_HYPERLOOP") && std::atoi(std::getenv("IS_HYPERLOOP"));
+  return isHY;
+}
 /*****************************************************************/
 /*****************************************************************/
 
@@ -248,12 +255,19 @@ Bool_t
       LOG(error) << "Failed to generate loopers event";
       return kFALSE;
     }
-    if (mTPCLoopersGen->getNLoopers() == 0) {
+    const auto nCandidates = mTPCLoopersGen->getNLoopers();
+    if (nCandidates == 0) {
       LOG(warning) << "No loopers generated for this event";
       return kTRUE;
     }
     const auto& looperParticles = mTPCLoopersGen->importParticles();
+    const auto skippedLoopers = mTPCLoopersGen->getNSkipped();
     if (looperParticles.empty()) {
+      if (skippedLoopers == nCandidates) {
+        // all candidate loopers were dropped by the geometrical protection
+        LOG(debug) << "All " << skippedLoopers << " candidate loopers were outside the TPC active volume; none added for this event";
+        return kTRUE;
+      }
       LOG(error) << "Failed to import loopers particles";
       return kFALSE;
     }
@@ -261,7 +275,6 @@ Bool_t
     mParticles.insert(mParticles.end(), looperParticles.begin(), looperParticles.end());
 
     LOG(debug) << "Added " << looperParticles.size() << " looper particles";
-    const auto skippedLoopers = mTPCLoopersGen->getNSkipped();
     if (skippedLoopers > 0) {
       LOG(debug) << "Geometrical protection skipped " << skippedLoopers << " loopers outside the TPC active volume";
     }

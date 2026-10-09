@@ -27,6 +27,7 @@
 #include "DataFormatsTPC/TrackTPC.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "DataFormatsITSMFT/ClustersPerLayer.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "ReconstructionDataFormats/PrimaryVertex.h"
 #include "ReconstructionDataFormats/PID.h"
@@ -106,7 +107,7 @@ class PIDStudy : public Task
   // Helper functions
   void saveOutput();
   void updateTimeDependentParams(ProcessingContext& pc);
-  void getClusterSizes(std::vector<int>&, const gsl::span<const o2::itsmft::CompClusterExt>, gsl::span<const unsigned char>::iterator&, const o2::itsmft::TopologyDictionary*);
+  void getClusterSizes(std::vector<int>&, int offs, const gsl::span<const o2::itsmft::CompClusterExt>, gsl::span<const unsigned char>::iterator&, const o2::itsmft::TopologyDictionary*);
   std::array<int, 7> getTrackClusterSizes(const TrackITS& track);
   float computeNSigma(PID pid, TrackTPC& tpcTrack, float resolution);
 
@@ -118,8 +119,8 @@ class PIDStudy : public Task
   // Data
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   std::shared_ptr<DataRequest> mDataRequest;
-  std::vector<int> mClusterSizes;
-  gsl::span<const o2::itsmft::CompClusterExt> mClusters;
+  o2::itsmft::ClustersPerLayer<int> mClusterSizes;                                                     // addressed by the composed (layer,index) ID
+  std::array<gsl::span<const o2::itsmft::CompClusterExt>, o2::globaltracking::MaxITSLayers> mClusters; // per layer slot
   gsl::span<const int> mInputITSidxs;
   const o2::itsmft::TopologyDictionary* mDict = nullptr;
 
@@ -155,7 +156,7 @@ void PIDStudy::run(ProcessingContext& pc)
   process(recoData);
 }
 
-void PIDStudy::getClusterSizes(std::vector<int>& clusSizeVec, const gsl::span<const o2::itsmft::CompClusterExt> ITSclus, gsl::span<const unsigned char>::iterator& pattIt, const o2::itsmft::TopologyDictionary* mdict)
+void PIDStudy::getClusterSizes(std::vector<int>& clusSizeVec, int offs, const gsl::span<const o2::itsmft::CompClusterExt> ITSclus, gsl::span<const unsigned char>::iterator& pattIt, const o2::itsmft::TopologyDictionary* mdict)
 {
   for (unsigned int iClus{0}; iClus < ITSclus.size(); ++iClus) {
     auto& clus = ITSclus[iClus];
@@ -170,18 +171,25 @@ void PIDStudy::getClusterSizes(std::vector<int>& clusSizeVec, const gsl::span<co
       npix = mdict->getNpixels(pattID);
       patt = mdict->getPattern(pattID);
     }
-    clusSizeVec[iClus] = npix;
+    clusSizeVec[offs + iClus] = npix;
   }
 }
 
 void PIDStudy::loadData(o2::globaltracking::RecoContainer& recoData)
 {
   mInputITSidxs = recoData.getITSTracksClusterRefs();
-  mClusters = recoData.getITSClusters();
-  auto clusPatt = recoData.getITSClustersPatterns();
-  mClusterSizes.resize(mClusters.size());
-  auto pattIt = clusPatt.begin();
-  getClusterSizes(mClusterSizes, mClusters, pattIt, mDict);
+  int nLr = recoData.getITSPerLayer() ? o2::globaltracking::MaxITSLayers : 1;
+  mClusterSizes.init(nLr);
+  for (int lr = 0; lr < nLr; lr++) { // with a single (monolithic) input all clusters are in the layer slot 0
+    mClusterSizes.beginLayer(lr);
+    mClusters[lr] = recoData.getITSClusters(lr);
+    auto pattIt = recoData.getITSClustersPatterns(lr).begin();
+    auto& sizes = mClusterSizes.getClusters();
+    int offs = (int)sizes.size();
+    sizes.resize(offs + mClusters[lr].size());
+    getClusterSizes(sizes, offs, mClusters[lr], pattIt, mDict);
+  }
+  mClusterSizes.finalize();
 }
 
 void PIDStudy::process(o2::globaltracking::RecoContainer& recoData)
@@ -272,8 +280,9 @@ std::array<int, 7> PIDStudy::getTrackClusterSizes(const TrackITS& track)
   auto firstClus = track.getFirstClusterEntry();
   auto ncl = track.getNumberOfClusters();
   for (int icl = 0; icl < ncl; icl++) {
-    auto& clus = mClusters[mInputITSidxs[firstClus + icl]];
-    auto& clSize = mClusterSizes[mInputITSidxs[firstClus + icl]];
+    int clID = mInputITSidxs[firstClus + icl];
+    auto& clus = mClusters[o2::itsmft::clusID2Layer(clID)][o2::itsmft::clusID2Index(clID)];
+    auto& clSize = mClusterSizes[clID];
     auto layer = geom->getLayer(clus.getSensorID());
     clusSizes[layer] = clSize;
   }
@@ -324,10 +333,11 @@ float PIDStudy::computeNSigma(PID pid, TrackTPC& tpcTrack, float resolution)
   return nSigma;
 }
 
-DataProcessorSpec getPIDStudy(mask_t srcTracksMask, mask_t srcClustersMask, bool useMC, std::shared_ptr<o2::steer::MCKinematicsReader> kineReader)
+DataProcessorSpec getPIDStudy(mask_t srcTracksMask, mask_t srcClustersMask, bool useMC, std::shared_ptr<o2::steer::MCKinematicsReader> kineReader, bool itsStag)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
+  dataRequest->setITSPerLayer(itsStag);
   dataRequest->requestTracks(srcTracksMask, useMC);
   dataRequest->requestClusters(srcClustersMask, useMC);
 

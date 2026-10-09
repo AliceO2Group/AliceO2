@@ -88,6 +88,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto enable3body = !configcontext.options().get<bool>("disable-3body-finder");
   auto enableStrTr = !configcontext.options().get<bool>("disable-strangeness-tracker");
   auto useGeom = configcontext.options().get<bool>("use-full-geometry");
+  auto doStag = o2::itsmft::DPLAlpideParamInitializer::isITSStaggeringEnabled(configcontext);
   auto sclOpt = o2::tpc::CorrectionMapsOptions::parseGlobalOptions(configcontext.options());
   GID::mask_t src = allowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("vertexing-sources"));
   GID::mask_t dummy, srcClus = GID::includesDet(DetID::TOF, src) ? GID::getSourceMask(GID::TOF) : dummy; // eventually, TPC clusters will be needed for refit
@@ -102,9 +103,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
   WorkflowSpec specs;
   if (!configcontext.options().get<bool>("disable-root-input")) {
-    specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt.lumiType == o2::tpc::LumiScaleType::TPCScaler, sclOpt.enableMShapeCorrection, sclOpt));
+    specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt));
   }
-  specs.emplace_back(o2::vertexing::getSecondaryVertexingSpec(src, enableCasc, enable3body, enableStrTr, enableCCDBParams, useMC, useGeom));
+  specs.emplace_back(o2::vertexing::getSecondaryVertexingSpec(src, enableCasc, enable3body, enableStrTr, enableCCDBParams, useMC, useGeom, doStag));
 
   // only TOF clusters are needed if TOF is involved, no clusters MC needed
   WorkflowSpec inputspecs;

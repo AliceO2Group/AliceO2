@@ -47,7 +47,7 @@ std::shared_ptr<const GPUWorkflowHelper::tmpDataContainer> GPUWorkflowHelper::fi
       ioPtr.nItsClusterROF = ITSClusterROFRec.size();
       ioPtr.itsClusterROF = ITSClusterROFRec.data();
       if (useMC) {
-        const auto& ITSClsLabels = recoCont.mcITSClusters.get();
+        const auto* ITSClsLabels = recoCont.getITSClustersMCLabels();
         ioPtr.itsClusterMC = ITSClsLabels;
       }
     }

@@ -45,6 +45,7 @@ struct TRKBaseParam : public o2::conf::ConfigurableParamHelper<TRKBaseParam> {
   float serviceTubeX0 = 0.02f;                                          // X0 Al2O3
   float otBarrelWallThickness = 0.2f;                                   // cm, carbon fibre separation walls of the OT quarter barrels, 0 disables them
   float otEosCardCuThickness = constants::OT::eosCard::copperThickness; // cm, copper per plane in the OT end-of-stave card; drives the card x/X0
+  float mlEosCardCuThickness = constants::ML::eosCard::copperThickness; // cm, copper per plane in the ML end-of-stave card; drives the card x/X0
   bool irisOpen = false;
   bool includeLowServices = false;
 

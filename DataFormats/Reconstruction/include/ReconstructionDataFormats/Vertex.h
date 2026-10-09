@@ -42,7 +42,7 @@ class VertexBase
                         kCovXZ,
                         kCovYZ,
                         kCovZZ };
-  static constexpr int kNCov = 6;
+  static GPUglobalconstexpr() int kNCov = 6;
   GPUhdDefault() VertexBase() = default;
   GPUhdDefault() ~VertexBase() = default;
   GPUhd() VertexBase(const float* pos, const float* cov)

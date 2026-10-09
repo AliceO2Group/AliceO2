@@ -23,12 +23,14 @@
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "TPCCalibration/VDriftHelper.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
+#include "Steer/MCKinematicsReader.h"
 
 using namespace o2::framework;
 
 namespace o2::globaltracking
 {
 struct DataRequest;
+struct RecoContainer;
 } // namespace o2::globaltracking
 
 namespace o2
@@ -40,7 +42,7 @@ class TPCInterpolationDPL : public Task
  public:
   TPCInterpolationDPL(std::shared_ptr<o2::globaltracking::DataRequest> dr, o2::dataformats::GlobalTrackID::mask_t src, o2::dataformats::GlobalTrackID::mask_t srcMap, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC,
                       bool processITSTPConly, bool sendTrackData, bool debugOutput, bool extDetResid) : mDataRequest(dr), mSources(src), mSourcesMap(srcMap), mGGCCDBRequest(gr), mUseMC(useMC), mProcessITSTPConly(processITSTPConly), mSendTrackData(sendTrackData), mDebugOutput(debugOutput), mExtDetResid(extDetResid) {}
-  ~TPCInterpolationDPL() override = default;
+  ~TPCInterpolationDPL() override;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
   void endOfStream(EndOfStreamContext& ec) final;
@@ -48,6 +50,7 @@ class TPCInterpolationDPL : public Task
 
  private:
   void updateTimeDependentParams(ProcessingContext& pc);
+  void fillMCTruth(const o2::globaltracking::RecoContainer& recoData);
   o2::tpc::TrackInterpolation mInterpolation;                    ///< track interpolation engine
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest; ///< steers the input
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
@@ -56,6 +59,8 @@ class TPCInterpolationDPL : public Task
   o2::dataformats::GlobalTrackID::mask_t mSources{};        ///< which input sources are configured
   o2::dataformats::GlobalTrackID::mask_t mSourcesMap{};     ///< possible subset of mSources specifically for map creation
   bool mUseMC{false}; ///< MC flag
+  std::unique_ptr<o2::steer::MCKinematicsReader> mMCReader; ///< MC kinematics and track references (MC only)
+  std::vector<TrackDataMC> mTrackDataMC;                    ///< MC truth aligned with the TrackData output (MC only)
   bool mProcessITSTPConly{false}; ///< should also tracks without outer point (ITS-TPC only) be processed?
   bool mProcessSeeds{false};      ///< process not only most complete track, but also its shorter parts
   bool mDebugOutput{false};       ///< add more information to the output (track points of ITS, TRD and TOF)
@@ -68,7 +73,7 @@ class TPCInterpolationDPL : public Task
 
 /// create a processor spec
 framework::DataProcessorSpec getTPCInterpolationSpec(o2::dataformats::GlobalTrackID::mask_t srcCls, o2::dataformats::GlobalTrackID::mask_t srcVtx, o2::dataformats::GlobalTrackID::mask_t srcTrk,
-                                                     o2::dataformats::GlobalTrackID::mask_t srcTrkMap, bool useMC, bool processITSTPConly, bool sendTrackData, bool debugOutput, bool extDetResid);
+                                                     o2::dataformats::GlobalTrackID::mask_t srcTrkMap, bool useMC, bool processITSTPConly, bool sendTrackData, bool debugOutput, bool extDetResid, bool itsStag);
 
 } // namespace tpc
 } // namespace o2

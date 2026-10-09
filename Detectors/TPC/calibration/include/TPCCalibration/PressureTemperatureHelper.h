@@ -28,6 +28,11 @@ class InputSpec;
 class OutputSpec;
 } // namespace o2::framework
 
+namespace o2::ccdb
+{
+class BasicCCDBManager;
+} // namespace o2::ccdb
+
 namespace o2::tpc
 {
 
@@ -41,6 +46,11 @@ class PressureTemperatureHelper
 
   /// trigger checking for CCDB objects
   void extractCCDBInputs(o2::framework::ProcessingContext& pc) const;
+
+  /// fetch pressure/temperature directly via a BasicCCDBManager (e.g. from O2Physics analysis tasks, outside of a
+  /// DPL device) and refit them. The (comparably expensive) refit is skipped if the CCDB objects did not change
+  /// since the last call.
+  void extractCCDBInputs(o2::ccdb::BasicCCDBManager& ccdb, long timestampMS);
 
   // add required inputs
   static void requestCCDBInputs(std::vector<o2::framework::InputSpec>& inputs);
@@ -98,7 +108,10 @@ class PressureTemperatureHelper
   std::pair<std::vector<float>, std::vector<ULong64_t>> mTemperatureC; ///< temperature values C-side
   int mFitIntervalMS{5 * 60 * 1000};                                   ///< fit interval for the temperature
 
-  ClassDefNV(PressureTemperatureHelper, 1);
+  const void* mLastPressureObj{};    //! last pressure object accounted for via BasicCCDBManager, for dedup only, not streamed
+  const void* mLastTemperatureObj{}; //! last temperature object accounted for via BasicCCDBManager, for dedup only, not streamed
+
+  ClassDefNV(PressureTemperatureHelper, 2);
 };
 } // namespace o2::tpc
 #endif

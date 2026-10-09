@@ -16,7 +16,7 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::ecal::Geometry + ;
-#pragma link C++ class o2::ecal::GeometryTGeo +
+#pragma link C++ class o2::ecal::GeometryTGeo + ;
 #pragma link C++ class o2::ecal::ECalBaseParam + ;
 #pragma link C++ class o2::ecal::Hit + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::ecal::ECalBaseParam> + ;

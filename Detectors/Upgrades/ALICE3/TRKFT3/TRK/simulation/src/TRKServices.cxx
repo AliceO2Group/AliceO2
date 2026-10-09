@@ -629,8 +629,8 @@ void TRKServices::createMLServicesPeacock(TGeoVolume* motherVolume)
   motherVolume->AddNode(middleBarrelCarbonSupportVolume, 1, nullptr);
 
   // Get geometry information from TRK which is already present
-  float rMinMiddleServices = 38.5f;                       // cm, start radius of the ML services = maximum radius allowed for sensors (35 cm), plus some margin for disk paving with modules
-  const float zMiddleServicesBarrel = 64.5f;              // cm, z position of the first barrel ML service disk
+  float rMinMiddleServices = 38.0f;                       // cm, start radius of the ML services = maximum radius allowed for sensors (35 cm), plus some margin for disk paving with modules
+  const float zMiddleServicesBarrel = 74.0f;              // cm, z position of the first barrel ML service disk
   const float zMiddleServicesBarrelFwdConnection = 143.f; // cm, z position of barrel to forward connection services
   const float zLengthCylinderMiddleServicesBarrel = zMiddleServicesBarrelFwdConnection - zMiddleServicesBarrel;
 
@@ -995,7 +995,7 @@ void TRKServices::createOTServicesPeacock(TGeoVolume* motherVolume)
   float zLengthOuterBarrelTubeServices = 215.f;                   // cm, IA, May 11, 2026: temporary length (?)
 
   // geometry of service "tubes" for OT disks
-  float rMinOuterDiskServices = 70.5f;    // cm
+  float rMinOuterDiskServices = 71.f;     // cm
   float zStartOuterDiskServices = 149.f;  // cm
   float zLengthOuterDiskServices = 201.f; // cm
 

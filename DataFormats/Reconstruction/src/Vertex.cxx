@@ -20,6 +20,7 @@ namespace o2
 namespace dataformats
 {
 
+#ifndef GPUCA_NO_FMT
 std::string VertexBase::asString() const
 {
   return fmt::format("Vtx {{{:+.4e},{:+.4e},{:+.4e}}} Cov.:{{{{{:.3e}..}},{{{:.3e},{:.3e}..}},{{{:.3e},{:.3e},{:.3e}}}}}",
@@ -37,6 +38,7 @@ void VertexBase::print() const
 {
   std::cout << *this << std::endl;
 }
+#endif
 
 bool VertexBase::operator==(const VertexBase& other) const
 {

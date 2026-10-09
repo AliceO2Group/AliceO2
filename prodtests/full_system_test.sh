@@ -17,7 +17,8 @@ if [ "0$O2_ROOT" == "0" ] || [ "0$AEGIS_ROOT" == "0" ]; then
   exit 1
 fi
 
-if [[ $DPL_CONDITION_BACKEND != "http://o2-ccdb.internal" && $DPL_CONDITION_BACKEND != "http://localhost:8084" && $DPL_CONDITION_BACKEND != "http://127.0.0.1:8084" ]]; then
+# A local CCDB backend does not need to check for tokens
+if [[ $DPL_CONDITION_BACKEND != http://o2-ccdb.internal* && $DPL_CONDITION_BACKEND != http://localhost:* && $DPL_CONDITION_BACKEND != http://127.0.0.1:* ]]; then
   alien-token-info >& /dev/null
   RETVAL=$?
   if [[ $RETVAL != 0 ]]; then

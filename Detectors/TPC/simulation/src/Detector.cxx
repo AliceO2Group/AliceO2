@@ -156,7 +156,6 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 
   const float time = fMC->TrackTime() * 1.0e9;
   const int trackID = fMC->GetStack()->GetCurrentTrackNumber();
-  const int detID = vol->getMCid();
   o2::data::Stack* stack = (o2::data::Stack*)fMC->GetStack();
   if (fMC->IsTrackEntering() || fMC->IsTrackExiting()) {
     stack->addTrackReference(o2::TrackReference(position.X(), position.Y(), position.Z(), momentum.X(), momentum.Y(),
@@ -201,41 +200,52 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   Int_t numberOfElectrons = 0;
   // I.H. - the type expected in addHit is short
 
-  // ---| Stepsize in cm |---
-  const double stepSize = fMC->TrackStep();
+  // use Geant4 energy deposit directly for ionisation (Kr-83m calibration simulations)
+  if (detParam.UseGeant4Edep) {
+    // We have multiple collisions and add fluctuations: smear nel using
+    // gamma distr with mean = meanIon and variance = meanIon*FanoFactorG4.
+    // These parameters were tuned for GEANT4.
+    const double meanIon = fMC->Edep() / (gasParam.Wion * gasParam.ScaleFactorG4);
+    if (meanIon > 0.) {
+      numberOfElectrons = static_cast<int>(gasParam.FanoFactorG4 * Gamma(meanIon / gasParam.FanoFactorG4));
+    }
+  } else {
+    // ---| Stepsize in cm |---
+    const double stepSize = fMC->TrackStep();
 
-  double betaGamma = momentum.P() / fMC->TrackMass();
-  betaGamma = TMath::Max(betaGamma, 7.e-3); // protection against too small bg
+    double betaGamma = momentum.P() / fMC->TrackMass();
+    betaGamma = TMath::Max(betaGamma, 7.e-3); // protection against too small bg
 
-  // ---| number of primary ionisations per cm |---
-  const double primaryElectronsPerCM =
-    gasParam.Nprim * BetheBlochAleph(static_cast<float>(betaGamma), gasParam.BetheBlochParam[0],
-                                     gasParam.BetheBlochParam[1], gasParam.BetheBlochParam[2],
-                                     gasParam.BetheBlochParam[3], gasParam.BetheBlochParam[4]);
+    // ---| number of primary ionisations per cm |---
+    const double primaryElectronsPerCM =
+      gasParam.Nprim * BetheBlochAleph(static_cast<float>(betaGamma), gasParam.BetheBlochParam[0],
+                                       gasParam.BetheBlochParam[1], gasParam.BetheBlochParam[2],
+                                       gasParam.BetheBlochParam[3], gasParam.BetheBlochParam[4]);
 
-  // ---| mean number of collisions and random for this event |---
-  const double meanNcoll = stepSize * trackCharge * trackCharge * primaryElectronsPerCM;
-  const int nColl = static_cast<int>(fMC->GetRandom()->Poisson(meanNcoll));
+    // ---| mean number of collisions and random for this event |---
+    const double meanNcoll = stepSize * trackCharge * trackCharge * primaryElectronsPerCM;
+    const int nColl = static_cast<int>(fMC->GetRandom()->Poisson(meanNcoll));
 
-  // Variables needed to generate random powerlaw distributed energy loss
-  const double alpha_p1 = 1. - gasParam.Exp; // NA49/G3 value
-  const double oneOverAlpha_p1 = 1. / alpha_p1;
-  const double eMin = gasParam.Ipot;
-  const double eMax = gasParam.Eend;
-  const double kMin = TMath::Power(eMin, alpha_p1);
-  const double kMax = TMath::Power(eMax, alpha_p1);
-  const double wIon = gasParam.Wion;
+    // Variables needed to generate random powerlaw distributed energy loss
+    const double alpha_p1 = 1. - gasParam.Exp; // NA49/G3 value
+    const double oneOverAlpha_p1 = 1. / alpha_p1;
+    const double eMin = gasParam.Ipot;
+    const double eMax = gasParam.Eend;
+    const double kMin = TMath::Power(eMin, alpha_p1);
+    const double kMax = TMath::Power(eMax, alpha_p1);
+    const double wIon = gasParam.Wion;
 
-  for (Int_t n = 0; n < nColl; n++) {
-    // Use GEANT3 / NA49 expression:
-    // P(eDep) ~ k * edep^-gasParam.getExp()
-    // eMin(~I) < eDep < eMax(300 electrons)
-    // k fixed so that Int_Emin^EMax P(Edep) = 1.
-    const double rndm = fMC->GetRandom()->Rndm();
-    const double eDep = TMath::Power((kMax - kMin) * rndm + kMin, oneOverAlpha_p1);
-    int nel_step = static_cast<int>(((eDep - eMin) / wIon) + 1);
-    nel_step = TMath::Min(nel_step, gasParam.MaxElePerStep); // 300 electrons corresponds to 10 keV
-    numberOfElectrons += nel_step;
+    for (Int_t n = 0; n < nColl; n++) {
+      // Use GEANT3 / NA49 expression:
+      // P(eDep) ~ k * edep^-gasParam.getExp()
+      // eMin(~I) < eDep < eMax(300 electrons)
+      // k fixed so that Int_Emin^EMax P(Edep) = 1.
+      const double rndm = fMC->GetRandom()->Rndm();
+      const double eDep = TMath::Power((kMax - kMin) * rndm + kMin, oneOverAlpha_p1);
+      int nel_step = static_cast<int>(((eDep - eMin) / wIon) + 1);
+      nel_step = TMath::Min(nel_step, gasParam.MaxElePerStep); // 300 electrons corresponds to 10 keV
+      numberOfElectrons += nel_step;
+    }
   }
 
   // LOG(info) << "tpc::AddHit" << FairLogger::endl << "Eloss: "
@@ -247,37 +257,38 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   }
 
   // ADD HIT
-  static thread_local int oldTrackId = trackID;
-  static thread_local int oldDetId = detID;
-  static thread_local int groupCounter = 0;
-  static thread_local int oldSectorId = sectorID;
+  // the first hit of an event starts the grouping afresh
+  if (!mCurrentGroup) {
+    mOldTrackId = trackID;
+    mOldSectorId = sectorID;
+    mGroupCounter = 0;
+  }
 
   //  a new group is starting -> put it into the container
-  static thread_local HitGroup* currentgroup = nullptr;
-  if (groupCounter == 0) {
+  if (mGroupCounter == 0) {
     mHitsPerSectorCollection[sectorID]->emplace_back(trackID);
-    currentgroup = &(mHitsPerSectorCollection[sectorID]->back());
+    mCurrentGroup = &(mHitsPerSectorCollection[sectorID]->back());
   }
-  if (trackID == oldTrackId && oldSectorId == sectorID) {
-    groupCounter++;
+  if (trackID == mOldTrackId && mOldSectorId == sectorID) {
+    mGroupCounter++;
     mHitCounter++;
     mElectronCounter += numberOfElectrons;
-    currentgroup->addHit(position.X(), position.Y(), position.Z(), time, numberOfElectrons);
+    mCurrentGroup->addHit(position.X(), position.Y(), position.Z(), time, numberOfElectrons);
 
-    // add last buffered hit, which was not yet added to the currentgroup
+    // add last buffered hit, which was not yet added to the current group
     if (mHitLast.GetEnergyLoss() >= 0) {
-      currentgroup->addHit(mHitLast.GetX(), mHitLast.GetY(), mHitLast.GetZ(), mHitLast.GetTime(), mHitLast.GetEnergyLoss());
-      mHitLast.mELoss = -1;
-      groupCounter++;
+      mCurrentGroup->addHit(mHitLast.GetX(), mHitLast.GetY(), mHitLast.GetZ(), mHitLast.GetTime(), mHitLast.GetEnergyLoss());
+      mGroupCounter++;
       mHitCounter++;
       mElectronCounter += mHitLast.GetEnergyLoss();
+      mHitLast.mELoss = -1;
     }
   }
   // finish group
   else {
-    oldTrackId = trackID;
-    oldSectorId = sectorID;
-    groupCounter = 0;
+    mOldTrackId = trackID;
+    mOldSectorId = sectorID;
+    mGroupCounter = 0;
 
     // buffer this hit, otherwise it wouldnt be stored in the HitGroup
     mHitLast = ElementalHit(position.X(), position.Y(), position.Z(), time, numberOfElectrons);
@@ -299,6 +310,9 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 
 void Detector::EndOfEvent()
 {
+  // the hit grouping must not carry over into the next event
+  mCurrentGroup = nullptr;
+  mHitLast.mELoss = -1;
   if (!o2::utils::ShmManager::Instance().isOperational()) {
     for (int i = 0; i < Sector::MAXSECTOR; ++i) {
       mHitsPerSectorCollection[i]->clear();
@@ -3246,6 +3260,24 @@ std::string Detector::getHitBranchNames(int probe) const
     return std::string(name.Data());
   }
   return std::string();
+}
+
+void Detector::SetSpecialPhysicsCuts()
+{
+  // lower energy threshold to track low-energy electrons for Kr-83m calibration
+  auto const& detParam = ParameterDetector::Instance();
+  LOG(info) << "TPC SetSpecialPhysicsCuts: UseGeant4Edep=" << detParam.UseGeant4Edep;
+  if (detParam.UseGeant4Edep) {
+    auto& matmgr = o2::base::MaterialManager::Instance();
+    const float specialCut = detParam.SpecialCutsGeV;
+    for (int med : {(int)kDriftGas1, (int)kDriftGas2, (int)kCO2}) {
+      matmgr.SpecialCut(GetName(), med, o2::base::ECut::kCUTELE, specialCut);
+      matmgr.SpecialCut(GetName(), med, o2::base::ECut::kCUTGAM, specialCut);
+      matmgr.SpecialCut(GetName(), med, o2::base::ECut::kDCUTE, specialCut);
+      matmgr.SpecialCut(GetName(), med, o2::base::ECut::kBCUTE, specialCut);
+    }
+  }
+  o2::base::Detector::SetSpecialPhysicsCuts();
 }
 
 ClassImp(o2::tpc::Detector);

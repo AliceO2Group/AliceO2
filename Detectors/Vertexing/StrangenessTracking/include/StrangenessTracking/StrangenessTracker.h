@@ -19,6 +19,7 @@
 #include <gsl/gsl>
 
 #include "DataFormatsITSMFT/TopologyDictionary.h"
+#include "DataFormatsITSMFT/ClustersPerLayer.h"
 #include "StrangenessTracking/IndexTableUtils.h"
 #include "StrangenessTracking/StrangenessTrackingConfigParam.h"
 #include "ReconstructionDataFormats/PID.h"
@@ -66,6 +67,7 @@ class StrangenessTracker
   using PID = o2::track::PID;
   using TrackITS = o2::its::TrackITS;
   using ITSCluster = o2::BaseCluster<float>;
+  using ITSClusters = o2::itsmft::ClustersPerLayer<ITSCluster>;
   using V0 = o2::dataformats::V0;
   using V0Index = o2::dataformats::V0Index;
   using Cascade = o2::dataformats::Cascade;
@@ -247,12 +249,12 @@ class StrangenessTracker
     auto firstClus = itsTrack.getFirstClusterEntry();
     auto ncl = itsTrack.getNumberOfClusters();
     for (int icl = 0; icl < ncl; icl++) {
-      outVec.push_back(mInputClusterSizes[mInputITSidxs[firstClus + icl]]);
+      outVec.push_back(mInputClusterSizes[mInputITSclusters.flatIndex(mInputITSidxs[firstClus + icl])]);
     }
     return outVec;
   };
 
-  void getClusterSizesITS(std::vector<int>& clusSizeVec, const gsl::span<const o2::itsmft::CompClusterExt> ITSclus, gsl::span<const unsigned char>::iterator& pattIt, const o2::itsmft::TopologyDictionary* mdict)
+  void getClusterSizesITS(std::vector<int>& clusSizeVec, int offs, const gsl::span<const o2::itsmft::CompClusterExt> ITSclus, gsl::span<const unsigned char>::iterator& pattIt, const o2::itsmft::TopologyDictionary* mdict)
   {
     for (unsigned int iClus{0}; iClus < ITSclus.size(); ++iClus) {
       auto& clus = ITSclus[iClus];
@@ -268,13 +270,13 @@ class StrangenessTracker
         npix = mdict->getNpixels(pattID);
         patt = mdict->getPattern(pattID);
       }
-      clusSizeVec[iClus] = npix;
+      clusSizeVec[offs + iClus] = npix;
     }
     // LOG(info) << " Patt Npixel: " << pattVec[0].getNPixels();
   }
 
 #ifdef ENABLE_UPGRADES
-  void getClusterSizesIT3(std::vector<int>& clusSizeVec, const gsl::span<const o2::itsmft::CompClusterExt> ITSclus, gsl::span<const unsigned char>::iterator& pattIt, const o2::its3::TopologyDictionary* mdict)
+  void getClusterSizesIT3(std::vector<int>& clusSizeVec, int offs, const gsl::span<const o2::itsmft::CompClusterExt> ITSclus, gsl::span<const unsigned char>::iterator& pattIt, const o2::its3::TopologyDictionary* mdict)
   {
     for (unsigned int iClus{0}; iClus < ITSclus.size(); ++iClus) {
       auto& clus = ITSclus[iClus];
@@ -291,7 +293,7 @@ class StrangenessTracker
         npix = mdict->getNpixels(pattID, ib);
         patt = mdict->getPattern(pattID, ib);
       }
-      clusSizeVec[iClus] = npix;
+      clusSizeVec[offs + iClus] = npix;
     }
   }
 #endif
@@ -326,7 +328,7 @@ class StrangenessTracker
   std::vector<VBracket> mITSvtxBrackets;               // time brackets for ITS tracks
   std::vector<int> mTracksIdxTable;                    // index table for ITS tracks
   std::vector<int> mInputClusterSizes;                 // input cluster sizes
-  std::vector<ITSCluster> mInputITSclusters;           // input ITS clusters
+  ITSClusters mInputITSclusters;                       // input ITS clusters, by composed (layer,index) ID
   gsl::span<const int> mInputITSidxs;                  // input ITS track-cluster indexes
   gsl::span<const V0> mInputV0tracks;                  // input V0 of decay daughters
   gsl::span<const V0Index> mInputV0Indices;            // input V0 indices of decay daughters

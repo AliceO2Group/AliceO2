@@ -20,6 +20,8 @@
 #include "Framework/InputRecord.h"
 #include "Framework/CCDBParamSpec.h"
 #include "Framework/DataAllocator.h"
+#include "Framework/ConcreteDataMatcher.h"
+#include "CCDB/BasicCCDBManager.h"
 
 using namespace o2::tpc;
 using namespace o2::framework;
@@ -28,6 +30,26 @@ void PressureTemperatureHelper::extractCCDBInputs(ProcessingContext& pc) const
 {
   pc.inputs().get<dcs::Pressure*>("pressure");
   pc.inputs().get<dcs::Temperature*>("temperature");
+}
+
+void PressureTemperatureHelper::extractCCDBInputs(o2::ccdb::BasicCCDBManager& ccdb, long timestampMS)
+{
+  // getForTimeStamp() is cheap to call every time; compare the returned pointer, not ccdb's own TTL-based cache
+  // validity, since ccdb only swaps in a new pointer once the content actually changes.
+  const auto pressurePath = CDBTypeMap.at(CDBType::CalPressure);
+  if (auto* pressure = ccdb.getForTimeStamp<dcs::Pressure>(pressurePath, timestampMS)) {
+    if (pressure != mLastPressureObj) {
+      accountCCDBInputs(ConcreteDataMatcher(o2::header::gDataOriginTPC, "PRESSURECCDB", 0), const_cast<dcs::Pressure*>(pressure));
+      mLastPressureObj = pressure;
+    }
+  }
+  const auto temperaturePath = CDBTypeMap.at(CDBType::CalTemperature);
+  if (auto* temperature = ccdb.getForTimeStamp<dcs::Temperature>(temperaturePath, timestampMS)) {
+    if (temperature != mLastTemperatureObj) {
+      accountCCDBInputs(ConcreteDataMatcher(o2::header::gDataOriginTPC, "TEMPERATURECCDB", 0), const_cast<dcs::Temperature*>(temperature));
+      mLastTemperatureObj = temperature;
+    }
+  }
 }
 
 bool PressureTemperatureHelper::accountCCDBInputs(const ConcreteDataMatcher& matcher, void* obj)

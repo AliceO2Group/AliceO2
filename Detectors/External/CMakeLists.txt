@@ -14,7 +14,8 @@ o2_add_library(ExternalDetectors
                PUBLIC_LINK_LIBRARIES O2::DetectorsBase
                                      O2::SimulationDataFormat
                                      O2::CommonUtils
-                                     RapidJSON::RapidJSON)
+                                     RapidJSON::RapidJSON
+               PRIVATE_LINK_LIBRARIES O2::CADSupport)
 
 o2_target_root_dictionary(ExternalDetectors
                           HEADERS include/ExternalDetectors/Hit.h

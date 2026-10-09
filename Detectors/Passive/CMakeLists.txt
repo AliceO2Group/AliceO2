@@ -25,7 +25,8 @@ o2_add_library(DetectorsPassive
                        src/PassiveBase.cxx
                        src/ExternalModule.cxx
                PUBLIC_LINK_LIBRARIES O2::Field O2::DetectorsBase O2::SimConfig
-                                     RapidJSON::RapidJSON)
+                                     RapidJSON::RapidJSON
+               PRIVATE_LINK_LIBRARIES O2::CADSupport)
 
 o2_target_root_dictionary(DetectorsPassive
                           HEADERS include/DetectorsPassive/Absorber.h

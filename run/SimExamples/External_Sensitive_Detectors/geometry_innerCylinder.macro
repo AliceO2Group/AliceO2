@@ -2,7 +2,7 @@
 //
 // This is a hand-written stand-in for the macros that O2_CADtoTGeo.py produces from CAD
 // files. It exports the same builder-hook symbol (get_builder_hook_unchecked) that
-// o2::base::buildCADVolumeFromMacro expects, so it is injected exactly like a CAD module
+// o2::cad::buildCADVolumeFromMacro expects, so it is injected exactly like a CAD module
 // through the external-geometry JSON. Media are placeholders here; remapCADMedia()
 // re-registers them under O2's MaterialManager at construction time.
 #include <TGeoManager.h>

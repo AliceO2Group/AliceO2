@@ -44,8 +44,6 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"track-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of track sources to use"}},
     {"cluster-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of cluster sources to use"}},
     {"disable-root-input", VariantType::Bool, false, {"disable root-files input reader"}},
-    {"enable-M-shape-correction", VariantType::Bool, false, {"Enable M-shape distortion correction"}},
-    {"disable-IDC-scalers", VariantType::Bool, false, {"Disable TPC scalers for space-charge distortion fluctuation correction"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::tpc::CorrectionMapsOptions::addGlobalOptions(options);
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
@@ -76,9 +74,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     srcCls = srcCls | GID::getSourcesMask("CTP");
   }
 
-  const auto enableMShape = configcontext.options().get<bool>("enable-M-shape-correction");
-  const auto enableIDCs = !configcontext.options().get<bool>("disable-IDC-scalers");
-  specs.emplace_back(o2::tpc::getTPCScalerSpec(enableIDCs, enableMShape, sclOpt));
+  specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt));
 
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCls, srcTrc, srcTrc, useMC);
   o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC); // P-vertex is always needed
