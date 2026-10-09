@@ -68,8 +68,6 @@ void Digitizer::init()
     }
   }
 
-  const auto& digitizerParams = o2::iotof::DPLDigitizerParam::Instance();
-
   LOG(info) << "Initializing IOTOF digitizer";
   LOG(info) << "  Time resolution: " << digitizerParams.timeResolution * 1e3 << " ps";
   LOG(info) << "  Charge threshold: " << digitizerParams.chargeThreshold << " electrons";
@@ -189,7 +187,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
         LOG(debug) << "Hit rejected by efficiency cut at pixel (row,col) = (" << rowIS << ", " << colIS << ")";
         continue;
       }
-      double smearedTime = smearTime(hitTimeWrtBC, avgHitLocalX[irow][icol], avgHitLocalZ[irow][icol]);
+      double smearedTime = smearTime(hitTimeWrtBC, avgHitLocalX[irow][icol] - xPixelCenter, avgHitLocalZ[irow][icol] - zPixelCenter);
 
       const int nElectronsSampled = gRandom->Poisson(electronsPerStep * nEleResp);
       // Noise can be added here if needed

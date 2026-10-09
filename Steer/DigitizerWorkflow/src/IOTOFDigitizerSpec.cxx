@@ -60,6 +60,8 @@ class IOTOFDPLDigitizerTask : o2::base::BaseDPLDigitizer
 
     mDigitizer.setGeometry(geom);
     mDigitizer.init();
+
+    mROMode = mDigitizer.isContinuous() ? o2::parameters::GRPObject::CONTINUOUS : o2::parameters::GRPObject::PRESENT;
   }
 
   void run(framework::ProcessingContext& pc)
@@ -148,6 +150,9 @@ class IOTOFDPLDigitizerTask : o2::base::BaseDPLDigitizer
       static std::vector<o2::itsmft::MC2ROFRecord> dummyMC2ROF;
       pc.outputs().snapshot(Output{mOrigin, "DIGITSMC2ROF", 0}, dummyMC2ROF);
     }
+
+    LOG(info) << mID.getName() << ": Sending ROMode= " << mROMode << " to GRPUpdater";
+    pc.outputs().snapshot(Output{mOrigin, "ROMode", 0}, mROMode);
 
     timer.Stop();
     LOG(info) << "Digitization took " << timer.CpuTime() << "s";
