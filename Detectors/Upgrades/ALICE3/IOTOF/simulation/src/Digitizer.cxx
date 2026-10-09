@@ -556,8 +556,6 @@ void Digitizer::registerDigits(Chip& chip, uint32_t roFrame, double time, int nR
   auto key = o2::iotof::Digit::getOrderingKey(nbc, tdc, row, col);
   o2::iotof::LabeledDigit* existingDigit = chip.findDigit(key);
 
-  chip.addDigit(row, col, nElectrons, absoluteTime, nbc, tdc, label);
-
   if (!existingDigit) {
     // No existing digit, create a new one
     chip.addDigit(row, col, nElectrons, absoluteTime, nbc, tdc, label);
