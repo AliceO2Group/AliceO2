@@ -24,7 +24,11 @@ namespace globaltracking
 {
 
 /// create a processor spec
-framework::DataProcessorSpec getCosmicsMatchingSpec(o2::dataformats::GlobalTrackID::mask_t src, bool usePV, bool useMC, bool itsStag, bool useTOFClusters = false);
+/// srcPVContributors plus the parent matches needed to resolve their single-detector parts (RecoContainer::getSingleDetectorRefs)
+o2::dataformats::GlobalTrackID::mask_t addPVContributorParents(o2::dataformats::GlobalTrackID::mask_t srcPVContributors);
+
+framework::DataProcessorSpec getCosmicsMatchingSpec(o2::dataformats::GlobalTrackID::mask_t src, bool usePV, bool useMC, bool itsStag, bool useTOFClusters = false,
+                                                    o2::dataformats::GlobalTrackID::mask_t srcPVContributors = {});
 
 } // namespace globaltracking
 } // namespace o2

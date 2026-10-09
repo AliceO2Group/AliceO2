@@ -118,6 +118,8 @@ class MatchCosmics
   void process(const o2::globaltracking::RecoContainer& data);
   void setUseMC(bool mc) { mUseMC = mc; }
   void setUsePVInfo(bool v) { mUsePVInfo = v; }
+  void setSeedSources(GTrackID::mask_t src) { mSeedSources = src; }     ///< track sources used as legs (other loaded ones resolve PV contributors)
+  void setPVVetoSources(GTrackID::mask_t src) { mPVVetoSources = src; } ///< sources whose PV contributors veto the legs they contain
   void init();
   void end();
 
@@ -180,6 +182,8 @@ class MatchCosmics
   bool mFieldON = true;
   bool mUsePVInfo = false;
   bool mUseMC = true;
+  GTrackID::mask_t mSeedSources{GTrackID::MASK_ALL};    ///< track sources used as legs
+  GTrackID::mask_t mPVVetoSources{GTrackID::MASK_NONE}; ///< sources whose PV contributors veto the legs they contain
   float mITSROFrameLengthMUS = 0.;
   float mQ2PtCutoff = 1e9;
   float mQ2PtCutoffOppositeSides = 1e9;
@@ -195,6 +199,7 @@ class MatchCosmics
   size_t mNTOFFallbacks = 0;                                    ///< TOF-confirmed winners refitted at their time without TOF in this TF
   size_t mNSeedsNearBeam = 0;                                   ///< TPC-only seeds kept for TOF-confirmed pairs only (minSeedDCAxyTOF) in this TF
   size_t mNNearBeamConfirmed = 0;                               ///< accepted pairs with such a seed, confirmed by a TOF flight pair, in this TF
+  size_t mNSeedsPVContributors = 0;                             ///< seeds rejected as part of a primary-vertex contributor in this TF
 
   std::vector<o2d::TrackCosmics> mCosmicTracks;
   std::vector<o2::MCCompLabel> mCosmicTracksLbl;

@@ -161,6 +161,9 @@ void MatchCosmics::process(const o2::globaltracking::RecoContainer& data)
   if (mMatchParams->tofFlightSelection) {
     LOGP(info, "{} accepted pairs confirmed by a TOF flight pair", mNTOFConfirmed);
   }
+  if (mNSeedsPVContributors) {
+    LOGP(info, "{} seeds rejected as (part of) a primary-vertex contributor", mNSeedsPVContributors);
+  }
   if (mNSeedsNearBeam) {
     LOGP(info, "{} seeds near the beam line used in TOF-confirmed pairs only, {} such pairs confirmed", mNSeedsNearBeam, mNNearBeamConfirmed);
   }
@@ -940,8 +943,9 @@ void MatchCosmics::createSeeds(const o2::globaltracking::RecoContainer& data)
     }
   };
 
-  data.createTracksVariadic(creator);
+  data.createTracksVariadic(creator, mSeedSources); // other loaded sources only resolve the primary-vertex contributors below
 
+  mNSeedsPVContributors = 0;
   if (mUsePVInfo) {                                         // if needed, veto with the primary vertex info
     auto trackIndex = data.getPrimaryVertexMatchedTracks(); // Global ID's for associated tracks
     auto vtxRefs = data.getPrimaryVertexMatchedTrackRefs(); // references from vertex to these track IDs
@@ -954,11 +958,28 @@ void MatchCosmics::createSeeds(const o2::globaltracking::RecoContainer& data)
         auto tvid = trackIndex[it];
         auto entry = trackEntry.find(tvid);
         if (entry == trackEntry.end()) {
+          // a contributor of a veto source (not itself a leg): the legs it contains (e.g. its TPC track) come from a collision
+          if (mMatchParams->discardPVContributors && tvid.isPVContributor() && mPVVetoSources[tvid.getSource()] && data.isTrackSourceLoaded(tvid.getSource())) {
+            const auto refs = data.getSingleDetectorRefs(tvid);
+            for (int src = 0; src < GTrackID::NSources; src++) {
+              if (!mSeedSources[src] || !refs[src].isIndexSet()) {
+                continue;
+              }
+              auto partEntry = trackEntry.find(refs[src]);
+              if (partEntry != trackEntry.end() && mSeeds[partEntry->second].matchID != Reject) {
+                mSeeds[partEntry->second].matchID = Reject;
+                mNSeedsPVContributors++;
+              }
+            }
+          }
           continue;
         }
         auto& seed = mSeeds[entry->second];
-        if (seed.matchID == Reject || (mMatchParams->discardPVContributors && tvid.isPVContributor())) {
+        if (seed.matchID != Reject && mMatchParams->discardPVContributors && tvid.isPVContributor()) { // the leg itself is a contributor
           seed.matchID = Reject;
+          mNSeedsPVContributors++;
+        }
+        if (seed.matchID == Reject) {
           continue;
         }
         if (seed.vtIDMin < 0) {

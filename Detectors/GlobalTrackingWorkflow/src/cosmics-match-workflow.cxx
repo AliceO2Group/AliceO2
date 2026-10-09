@@ -54,6 +54,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
     {"use-pv-info", o2::framework::VariantType::Bool, false, {"request primary vertex for relevant cuts in the collision/cosmics interleaved data"}},
+    {"pv-contributor-sources", VariantType::String, "", {"global track sources (with TPC) loaded only to reject the TPC track of a primary-vertex contributor as a leg (cosmicsMatch.discardPVContributors, implies --use-pv-info), e.g. ITS-TPC,ITS-TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD-TOF"}},
     {"enable-cluster-output", o2::framework::VariantType::Bool, false, {"collect the raw clusters of the cosmics (legs + road around them) and write them with the cosmics"}},
     {"road-detectors", VariantType::String, "ITS,TOF,TRD", {"with --enable-cluster-output: detectors whose hits along the cosmic are collected besides the TPC road"}},
     {"cosmics-preset", VariantType::String, "", {"named set of cosmicsMatch settings applied before --configKeyValues (which can override single keys): physics-v1 = cosmics in collision data"}},
@@ -127,7 +128,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt));
   }
   bool usePV = configcontext.options().get<bool>("use-pv-info");
-  specs.emplace_back(o2::globaltracking::getCosmicsMatchingSpec(src, usePV, useMC, doStag, useTOFClusters));
+  GID::mask_t srcPV = GID::getSourcesMask("ITS-TPC,TPC-TRD,TPC-TOF,ITS-TPC-TRD,TPC-TRD-TOF,ITS-TPC-TOF,ITS-TPC-TRD-TOF") &
+                      GID::getSourcesMask(configcontext.options().get<std::string>("pv-contributor-sources"));
+  if (srcPV.any() && !o2::globaltracking::MatchCosmicsParams::Instance().discardPVContributors) {
+    LOG(warning) << "--pv-contributor-sources ignored: cosmicsMatch.discardPVContributors is off";
+    srcPV.reset();
+  }
+  usePV |= srcPV.any();
+  specs.emplace_back(o2::globaltracking::getCosmicsMatchingSpec(src, usePV, useMC, doStag, useTOFClusters, srcPV));
+  const auto srcPVLoaded = o2::globaltracking::addPVContributorParents(srcPV); // with the parents needed to resolve the contributors
   bool clusterOutput = configcontext.options().get<bool>("enable-cluster-output");
   if (clusterOutput) {
     if (!src[GID::TPC]) {
@@ -142,7 +151,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::globaltracking::getCosmicsClusterCollectorSpec(src, useMC, doStag, roadDets));
   }
 
-  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCl, src, src, useMC, dummy); // clusters MC is not needed
+  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCl, src | srcPVLoaded, src | srcPVLoaded, useMC, dummy); // clusters MC is not needed
   if (usePV) {
     o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC); // P-vertex is always needed
   }
