@@ -437,9 +437,9 @@ void CheckTimeResolutionIOTOF(std::string digifile = "tf3digits.root", std::stri
       }
 
       // Times (ns)
-      const double tTrueNS = hit.GetTime() * sec2ns;       /// true time relative to the collision
-      const double tDigNS = digit.getTime() - tCollNS;     /// digit time relative to the collision
-      const float dtPs = (tDigNS - tTrueNS) * ns2ps;       /// time residual
+      const double tTrueNS = hit.GetTime() * sec2ns;   /// true time relative to the collision
+      const double tDigNS = digit.getTime() - tCollNS; /// digit time relative to the collision
+      const float dtPs = (tDigNS - tTrueNS) * ns2ps;   /// time residual
 
       const float dxPixUm = (xH - xD) * cm2um;
       const float dzPixUm = (zH - zD) * cm2um;

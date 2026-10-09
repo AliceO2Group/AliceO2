@@ -343,7 +343,7 @@ double Digitizer::smearTime(double time, const float x, const float y) const
 {
   // Apply Gaussian smearing to simulate detector time resolution
   const auto& digitizerParams = o2::iotof::DPLDigitizerParam::Instance();
-  
+
   float resolution = digitizerParams.timeResolution;
   if (mScaledResolutionMap) {
     int bin = mScaledResolutionMap->FindBin(x * o2::iotof::Digitizer::cm2um, y * o2::iotof::Digitizer::cm2um);
