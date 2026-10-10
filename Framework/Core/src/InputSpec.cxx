@@ -83,7 +83,8 @@ InputSpec::InputSpec(std::string binding_,
                      enum Lifetime lifetime_,
                      std::vector<ConfigParamSpec> const& metadata_)
   : binding{binding_},
-    matcher{matcher_},
+    // matcher_ is an lvalue here, so without the move this deep copies the tree.
+    matcher{std::move(matcher_)},
     lifetime{lifetime_},
     metadata{metadata_}
 {

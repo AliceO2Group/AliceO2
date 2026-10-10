@@ -671,6 +671,28 @@ TEST_CASE("DataQuery")
   REQUIRE(result5[0].metadata[2].defaultValue.get<std::string>() == "value3");
 }
 
+TEST_CASE("DataQueryNoBinding")
+{
+  // Without a binding the first token is the origin, and the binding defaults to it.
+  auto result0 = DataDescriptorQueryBuilder::parse("TST/A1");
+  REQUIRE(result0.size() == 1);
+  REQUIRE(result0[0].binding == "TST");
+  auto concrete0 = DataSpecUtils::asConcreteDataTypeMatcher(result0[0]);
+  REQUIRE(concrete0.origin.as<std::string>() == "TST");
+  REQUIRE(concrete0.description.as<std::string>() == "A1");
+
+  // A bare origin, and a bindingless query next to a bound one.
+  auto result1 = DataDescriptorQueryBuilder::parse("TST");
+  REQUIRE(result1.size() == 1);
+  REQUIRE(result1[0].binding == "TST");
+
+  auto result2 = DataDescriptorQueryBuilder::parse("TST;x:FOO/BAR");
+  REQUIRE(result2.size() == 2);
+  REQUIRE(result2[0].binding == "TST");
+  REQUIRE(result2[1].binding == "x");
+  REQUIRE(DataSpecUtils::asConcreteDataTypeMatcher(result2[1]).origin.as<std::string>() == "FOO");
+}
+
 TEST_CASE("DataQueryLifetime")
 {
   auto result0 = DataDescriptorQueryBuilder::parse("x:TST/A1?lifetime=timeframe");
