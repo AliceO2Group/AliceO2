@@ -63,7 +63,7 @@ class GPUTPCClusterFinder : public GPUProcessor
       uint32_t maxTimeBin = 0;
       uint32_t nPagesSubsector = 0;
     } counters;
-    CfFragment fragment;
+    CfFragment frag;
   };
 
   struct ZSOffset {
@@ -105,9 +105,9 @@ class GPUTPCClusterFinder : public GPUProcessor
   CfChargePos* mPpeakPositions = nullptr;
   CfChargePos* mPfilteredPeakPositions = nullptr;
   uint8_t* mPisPeak = nullptr;
-  uint32_t* mPclusterPosInRow = nullptr; // store the index where the corresponding cluster is stored in a bucket.
-                                         // Required when MC are enabled to write the mc data to the correct position.
-                                         // Set to >= mNMaxClusterPerRow if cluster was discarded.
+  uint32_t* mPclusterPosInRow = nullptr;    // store the index where the corresponding cluster is stored in a bucket.
+                                            // Required when MC are enabled to write the mc data to the correct position.
+                                            // Set to >= mNMaxClusterPerRow if cluster was discarded.
   uint32_t* mPhipClusterPosInRow = nullptr; // Identical to mPclusterPosInRow. Need a seperate array for HIP cluster because tail index is used to identify clusters across GPU and CPU
   uint16_t* mPchargeMap = nullptr;
   uint8_t* mPpeakMap = nullptr;
