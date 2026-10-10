@@ -97,7 +97,7 @@ BOOST_AUTO_TEST_CASE(Descriptor_test)
   // check with runtime string
   std::string runtimeString = "RUNTIMES";
   TestDescriptorT runtimeDescriptor;
-  runtimeDescriptor.runtimeInit(runtimeString.c_str());
+  runtimeDescriptor.runtimeInit(runtimeString);
   BOOST_CHECK(runtimeDescriptor == TestDescriptorT("RUNTIMES"));
 
   BOOST_CHECK(testDescriptor.as<std::string>().length() == 8);
@@ -130,7 +130,7 @@ BOOST_AUTO_TEST_CASE(DataDescription_test)
 
   std::string runtimeString = "DATA_DESCRIPTION";
   DataDescription runtimeDesc;
-  runtimeDesc.runtimeInit(runtimeString.c_str());
+  runtimeDesc.runtimeInit(runtimeString);
   BOOST_CHECK(runtimeDesc == DataDescription("DATA_DESCRIPTION"));
 
   BOOST_CHECK(desc.as<std::string>().length() == 6);
