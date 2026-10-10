@@ -54,6 +54,7 @@ class GPUTPCNNClusterizer : public GPUProcessor
   int32_t mNnClusterizerBoundaryFillValue = -1;
   int32_t mNnClusterizerModelClassNumOutputNodes = -1;
   int32_t mNnClusterizerModelReg1NumOutputNodes = -1;
+  int32_t mNnClusterizerUseMomentumVector = 0;
   int32_t mNnClusterizerModelReg2NumOutputNodes = -1;
   int32_t mNnInferenceInputDType = 0;  // 0: float16, 1: float32
   int32_t mNnInferenceOutputDType = 0; // 0: float16, 1: float32
