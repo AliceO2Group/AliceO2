@@ -387,7 +387,11 @@ TEST_CASE("LabeledArrayTest")
       REQUIRE(las.get(i, xl[j].c_str()) == las.get(i, j));
       REQUIRE(las.get(yl[i].c_str(), j) == las.get(i, j));
     }
+    REQUIRE(laf.getRow(yl[i].c_str()) == laf.getRow(i));
+    REQUIRE(las.getRow(yl[i].c_str()) == las.getRow(i));
   }
+  REQUIRE(laf.getRow("r4") == nullptr);
+  REQUIRE(las.getRow("r4") == nullptr);
 }
 
 TEST_CASE("VariantTreeConversionsTest")

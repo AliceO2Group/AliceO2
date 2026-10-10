@@ -16,6 +16,12 @@
 #include <TFile.h>
 #include <TMap.h>
 #include <TObjString.h>
+#include <fmt/format.h>
+
+#include <algorithm>
+#include <charconv>
+#include <ranges>
+#include <stdexcept>
 
 O2_DECLARE_DYNAMIC_LOG(config_parameter_discovery);
 
@@ -77,7 +83,90 @@ std::vector<ConfigParamSpec> ConfigParamDiscovery::discover(ConfigParamRegistry&
     }
     registry.loadExtra(extras);
   }
+  applyOriginMetadata(registry);
   return result;
+}
+
+LabeledArray<int> ConfigParamDiscovery::parseOriginLevelMapping(std::string_view mapping)
+{
+  std::vector<std::string> origins;
+  std::vector<int> levels;
+  for (auto pairRange : mapping | std::views::split(',')) {
+    std::string_view pair{pairRange.begin(), pairRange.end()};
+    auto colonPos = pair.find(':');
+    if (colonPos == std::string_view::npos) {
+      throw std::runtime_error(fmt::format("Badly formatted aod-origin-level-mapping entry: \"{}\"", pair));
+    }
+    std::string origin{pair.substr(0, colonPos)};
+    if (origin.empty() || origin.size() > 4) {
+      throw std::runtime_error(fmt::format("Origin in aod-origin-level-mapping entry must have 1 to 4 characters: \"{}\"", pair));
+    }
+    if (std::ranges::find(origins, origin) != origins.end()) {
+      throw std::runtime_error(fmt::format("Duplicate origin in aod-origin-level-mapping: \"{}\"", origin));
+    }
+    auto levelStr = pair.substr(colonPos + 1);
+    int level{};
+    auto [ptr, ec] = std::from_chars(levelStr.data(), levelStr.data() + levelStr.size(), level);
+    if (levelStr.empty() || ec != std::errc{} || ptr != levelStr.data() + levelStr.size() || level < 0) {
+      throw std::runtime_error(fmt::format("Unable to parse level in aod-origin-level-mapping entry: \"{}\"", pair));
+    }
+    origins.push_back(std::move(origin));
+    levels.push_back(level);
+  }
+  if (origins.empty()) {
+    throw std::runtime_error("Empty aod-origin-level-mapping");
+  }
+  return LabeledArray<int>{levels.data(), static_cast<uint32_t>(levels.size()), 1, origins, {"level"}};
+}
+
+void ConfigParamDiscovery::applyOriginMetadata(ConfigParamRegistry& registry)
+{
+  if (!registry.hasOption("aod-metadata-origins")) {
+    return;
+  }
+  std::string origin = "AOD";
+  if (registry.hasOption("aod-origin-replace")) {
+    auto replace = registry.get<std::string>("aod-origin-replace");
+    if (!replace.empty()) {
+      origin = replace;
+    }
+  }
+  auto metadata = registry.get<LabeledArray<std::string>>("aod-metadata-origins");
+  auto* row = metadata.getRow(origin.c_str());
+  if (row == nullptr) {
+    return;
+  }
+  O2_SIGNPOST_ID_GENERATE(sid, config_parameter_discovery);
+  auto const& keys = metadata.getLabelsCols();
+  auto disable = metadata.colmap.find("disable");
+  if (disable != metadata.colmap.end() && row[disable->second] == "1") {
+    O2_SIGNPOST_EVENT_EMIT(config_parameter_discovery, sid, "origin metadata", "No metadata for origin %{public}s", origin.c_str());
+    for (auto const& key : keys) {
+      registry.erase(("aod-metadata-" + key).c_str());
+    }
+    registry.erase("aod-metadata-tables");
+    registry.override("aod-metadata-disable", std::string{"1"});
+    return;
+  }
+  O2_SIGNPOST_EVENT_EMIT(config_parameter_discovery, sid, "origin metadata", "Using metadata for origin %{public}s", origin.c_str());
+  for (auto j = 0U; j < metadata.cols(); ++j) {
+    if (keys[j] == "disable") {
+      continue;
+    }
+    auto key = "aod-metadata-" + keys[j];
+    if (row[j].empty()) {
+      registry.erase(key.c_str());
+    } else {
+      registry.override(key.c_str(), row[j]);
+    }
+  }
+  registry.erase("aod-metadata-disable");
+  auto tablesKey = "aod-metadata-origin-" + origin + "-tables";
+  if (registry.hasOption(tablesKey.c_str())) {
+    registry.override("aod-metadata-tables", registry.get<std::vector<std::string>>(tablesKey.c_str()));
+  } else {
+    registry.erase("aod-metadata-tables");
+  }
 }
 
 } // namespace o2::framework
