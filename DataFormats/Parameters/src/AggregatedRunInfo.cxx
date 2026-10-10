@@ -133,10 +133,26 @@ void AggregatedRunInfo::adjust_from_MC(o2::ccdb::CCDBManagerInstance& ccdb,
   }
 
   // adjust SOR for some MC productions, where the ITS "ramp-up shift" of SOR was not a multiple of NOrbitsPerTF.
-  // (some MC productions are affected, before the problem was fixed on Oct 2, 2026)
-  if (lpm_prod_tag == "LHC26h3") {
+  // (several MC productions are affected, before the problem was fixed on Oct 2, 2026)
+  static constexpr std::string_view validTags[] = {
+    "LHC26i10_Plus10",
+    "LHC26i10_Minus10",
+    "LHC26h3_nodelta",
+    "LHC26a5a_gp_v12",
+    "LHC26h3",
+    "LHC26e8",
+    "LHC26f3",
+    "EP26d1",
+    "LHC26c12",
+    "LHC26b10",
+    "LHC26a7"};
+
+  if (std::ranges::find(validTags, lpm_prod_tag) != std::end(validTags)) {
     // apply the SOR adjustment for this specific MC production
-    const int nOrbitsCorrection = 2; // a shift (number of orbits) for correction
+    int nOrbitsCorrection = 4; // a shift (number of orbits for correction) if orbitsPerTF=32 or 8
+    if (orbitsPerTF == 6) {
+      nOrbitsCorrection = 2; // correction if orbitsPerTF=6, e.g. Pb-Pb MC LHC26h3
+    }
     orbitSOR += nOrbitsCorrection;
     sor += nOrbitsCorrection * o2::constants::lhc::LHCOrbitMUS * 1000;
     LOG(warn) << "AggregatedRunInfo.adjust_from_MC(): Applying SOR adjustment by " << nOrbitsCorrection << " orbits for MC production " << lpm_prod_tag << " and run number " << run_number;
