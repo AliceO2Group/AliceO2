@@ -17,6 +17,8 @@
 #define ALICEO2_MATCH_COSMICS
 
 #include <Rtypes.h>
+#include <array>
+#include <cstdint>
 #include <MathUtils/Primitive2D.h>
 #include "ReconstructionDataFormats/TrackCosmics.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
@@ -39,7 +41,8 @@ class VDriftCorrFact;
 namespace gpu
 {
 class TPCFastTransformPOD;
-}
+class GPUO2InterfaceRefit;
+} // namespace gpu
 namespace globaltracking
 {
 
@@ -67,7 +70,9 @@ class MatchCosmics
     RejTime,
     RejProp,
     RejChi2,
-    RejOther
+    RejOther,
+    RejSameHalf,
+    RejNoTOF ///< a leg kept by minSeedDCAxyTOF only, and no TOF flight pair
   };
 
   using InfoAccessor = o2d::AbstractRefAccessor<int, GTrackID::NSources>; // there is no unique <Info> structure, so the default return type is dummy (int)
@@ -78,6 +83,21 @@ class MatchCosmics
     int id1 = MinusOne;  ///< id of 2nd parnter
     float chi2 = -1.f;   ///< matching chi2
     int next = MinusOne; ///< index of eventual next record
+    float tCommon = 0.f; ///< common time [mus] fixed by z continuity of TPC-only legs on opposite TPC sides
+    float tCommonErr = -1.f;      ///< its 1 sigma error [mus]; < 0: not fixed, the refit uses the centre of the time-bracket overlap and the cosmic's time error is the overlap's half-width
+    float tofScore = -1.f;        ///< score of the top / bottom TOF hit pair matching the muon's flight (tofFlightSelection; < 0: none); a pair with one wins against pairs without
+    float tCommonNoTOF = 0.f;     ///< tCommon before a TOF flight pair replaced it: the refit falls back to it if the refit at the TOF time fails
+    float tCommonErrNoTOF = -1.f; ///< tCommonErr before a TOF flight pair replaced it
+  };
+
+  struct TOFCandidate { ///< TOF cluster along the outward continuation of a TPC-only seed
+    int index = -1;     ///< index of the TOF cluster
+    double timeNS = 0.; ///< its time since the start of the TF [ns]
+    float dy = 0.f;     ///< cluster - predicted y in the frame of the cluster's sector [cm]
+    float dz = 0.f;     ///< cluster - predicted z, the leg's z taken at its own reference time tRef [cm]
+    float gx = 0.f;     ///< global position of the cluster [cm]
+    float gy = 0.f;
+    float gz = 0.f;
   };
 
   struct TrackSeed : public o2::track::TrackParCov {
@@ -86,6 +106,10 @@ class MatchCosmics
     int matchID = MinusOne; ///< entry (none if MinusOne) of its match in the vector of matches
     short vtIDMin = -1;     ///< id of the 1st compatible vertex
     short vtIDMax = -1;     ///< id of the last compatible vertex
+    float tRef = 0.f;       ///< time [mus] the z of the parameters refers to (TPC-only: the TrackTPC time0; others: bracket centre)
+    int8_t tpcSide = 0;     ///< TPC-only seed with clusters on one side: +1 A, -1 C (z = z(t) - side*vD*(t-tRef)); 0: z absolute
+    std::array<float, 3> xyzRef{}; ///< global position of the reference point before the propagation to the DCA (same-half veto)
+    bool nearBeam = false;         ///< kept by the looser minSeedDCAxyTOF cuts only: usable in TOF-confirmed pairs only
   };
   void setTPCCorrMaps(const o2::gpu::TPCFastTransformPOD* maph);
   void setTPCVDrift(const o2::tpc::VDriftCorrFact& v);
@@ -94,6 +118,8 @@ class MatchCosmics
   void process(const o2::globaltracking::RecoContainer& data);
   void setUseMC(bool mc) { mUseMC = mc; }
   void setUsePVInfo(bool v) { mUsePVInfo = v; }
+  void setSeedSources(GTrackID::mask_t src) { mSeedSources = src; }     ///< track sources used as legs (other loaded ones resolve PV contributors)
+  void setPVVetoSources(GTrackID::mask_t src) { mPVVetoSources = src; } ///< sources whose PV contributors veto the legs they contain
   void init();
   void end();
 
@@ -129,7 +155,11 @@ class MatchCosmics
  private:
   void updateTimeDependentParams();
   RejFlag checkPair(int i, int j);
-  void registerMatch(int i, int j, float chi2);
+  bool refitSeedAtTime(const TrackSeed& seed, float timeMUS, TrackSeed& out);
+  void registerMatch(int i, int j, float chi2, float tCommon = 0.f, float tCommonErr = -1.f, float tofScore = -1.f, float tCommonNoTOF = 0.f, float tCommonErrNoTOF = -1.f);
+  void prepareTOFClusters(const o2::globaltracking::RecoContainer& data);
+  const std::vector<TOFCandidate>& getTOFCandidates(int iseed);
+  float findTOFFlightPair(int i, int j, float tMinMUS, float tMaxMUS, float& tofTimeMUS);
   void suppressMatch(int partner0, int partner1);
   void createSeeds(const o2::globaltracking::RecoContainer& data);
   bool validateMatch(int partner0);
@@ -152,9 +182,24 @@ class MatchCosmics
   bool mFieldON = true;
   bool mUsePVInfo = false;
   bool mUseMC = true;
+  GTrackID::mask_t mSeedSources{GTrackID::MASK_ALL};    ///< track sources used as legs
+  GTrackID::mask_t mPVVetoSources{GTrackID::MASK_NONE}; ///< sources whose PV contributors veto the legs they contain
   float mITSROFrameLengthMUS = 0.;
   float mQ2PtCutoff = 1e9;
+  float mQ2PtCutoffOppositeSides = 1e9;
   const MatchCosmicsParams* mMatchParams = nullptr;
+  const o2::globaltracking::RecoContainer* mRecoData = nullptr; ///< inputs of the TF being processed
+  o2::gpu::GPUO2InterfaceRefit* mTPCRefitter = nullptr;         ///< TPC refitter of the TF being processed (owned by process())
+  size_t mNRefitsCommonTime = 0;                                ///< seeds refitted at the common time of a same-side pair in this TF
+  std::vector<int> mTOFClusterOrder;                            ///< TOF clusters of the TF sorted in time (tofFlightSelection)
+  std::vector<float> mTOFClusterTimeMUS;                        ///< their times since the start of the TF [mus], same order
+  std::vector<std::vector<TOFCandidate>> mSeedTOFCandidates;    ///< TOF candidates per seed, filled on first use
+  std::vector<bool> mSeedTOFDone;                               ///< the TOF candidates of the seed are filled
+  size_t mNTOFConfirmed = 0;                                    ///< accepted pairs with a TOF flight pair in this TF
+  size_t mNTOFFallbacks = 0;                                    ///< TOF-confirmed winners refitted at their time without TOF in this TF
+  size_t mNSeedsNearBeam = 0;                                   ///< TPC-only seeds kept for TOF-confirmed pairs only (minSeedDCAxyTOF) in this TF
+  size_t mNNearBeamConfirmed = 0;                               ///< accepted pairs with such a seed, confirmed by a TOF flight pair, in this TF
+  size_t mNSeedsPVContributors = 0;                             ///< seeds rejected as part of a primary-vertex contributor in this TF
 
   std::vector<o2d::TrackCosmics> mCosmicTracks;
   std::vector<o2::MCCompLabel> mCosmicTracksLbl;

@@ -18,6 +18,7 @@
 #include "CommonUtils/ConfigurableParamHelper.h"
 #include "DetectorsBase/Propagator.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
+#include <string>
 
 namespace o2
 {
@@ -29,10 +30,24 @@ struct MatchCosmicsParams : public o2::conf::ConfigurableParamHelper<MatchCosmic
   float systSigma2[o2::track::kNParams] = {0.01f, 0.01f, 1e-4f, 1e-4f, 0.f}; // extra error to be added at legs comparison
   float crudeNSigma2Cut[o2::track::kNParams] = {49.f, 49.f, 49.f, 49.f, 49.f};
   float crudeChi2Cut = 999.f;
+  float maxChi2Match = -1.f;      // reject cosmics whose top/bottom refitted legs disagree by more than this chi2 (< 0: no cut)
+  float minPtOppositeSides = 0.f; // TPC-only legs on opposite TPC sides: reject cosmics with the pT of either leg or of the refitted cosmic below this (scaled with field; 0: no cut)
   float timeToleranceMUS = 0.f;
   float maxStep = 10.f;
   float maxSnp = 0.99f;
   float minSeedPt = 0.10f;     // use only tracks above this pT (scaled with field)
+  int minSeedNClTPC = 0;       // use only TPC-only seeds with at least this number of clusters (0: no cut)
+  float minSeedDCAxy = 0.f;    // use only tracks with |DCA_xy| to the beam line >= this [cm] (0: no cut; rejects collision tracks in physics data)
+  float minSeedDCAxyNSigma = 0.f;         // use only tracks with |DCA_xy| >= this * sigma(DCA_xy) (0: no cut; poorly measured collision tracks)
+  float minSeedDCAxyTOF = -1.f;           // with tofFlightSelection: TPC-only legs failing the two cuts above but with |DCA_xy| >= this [cm] are used in TOF-confirmed pairs only (< 0: off; e.g. cosmics crossing the ITS inner barrel)
+  float minSeedDCAxyNSigmaTOF = 3.f;      // the same for these legs in units of sigma(DCA_xy)
+  bool constrainTPCOnlyZ = false;         // TPC-only legs: test z at a common time (same side, or a leg with known time), else require the time implied by z continuity in both brackets
+  bool vetoSameHalf = false;              // reject pairs whose two legs lie on the same side of the closest approach (two pieces of one leg)
+  bool refitSameSideAtCommonTime = false; // TPC-only legs on the same side: compare them refitted at the centre of their brackets' overlap instead of at their own time0s
+  bool tofFlightSelection = false;        // needs TOF clusters: accepted pairs of TPC-only legs pointing to a top / bottom TOF hit pair with the muon's flight time win the selection, refit at that time (if that fails, at their time without TOF)
+  float tofRoad = 5.f;                    // half-width [cm] in y and z of the road at the TOF around the outward continuation of a TPC-only leg
+  float tofFlightTolerance = 2.f;         // max. deviation [ns] of the top / bottom TOF time difference from the flight time along the helix
+  float tofTimeError = 0.1f;              // error [mus] of the TOF time of a confirmed cosmic, for its refit and time window (covers TPC vs TOF offsets)
   float nSigmaTError = 4.f;    // number of sigmas on track time error for matching (except for TPC which provides an interval)
   float tpcExtraZError2 = 1.f; // extra error^2 on the TPC-only track Z coordinate
   float fiducialRIP = 1.0f;    // consider track having |Y@x=0|< this as passing DCA cut (if requested)
@@ -43,6 +58,12 @@ struct MatchCosmicsParams : public o2::conf::ConfigurableParamHelper<MatchCosmic
 
   O2ParamDef(MatchCosmicsParams, "cosmicsMatch");
 };
+
+/// key=value string (configKeyValues syntax) of a named set of MatchCosmicsParams settings; the cosmics-match workflow applies it before
+/// --configKeyValues, so single keys can still be overridden. Unknown names are fatal.
+/// "physics-v1": cosmics in collision data (seed cuts against collision tracks, realistic systematic errors for the pair chi2, tgl window,
+/// pT cut on pairs of TPC-only legs on opposite TPC sides)
+std::string getMatchCosmicsPreset(const std::string& name);
 
 } // namespace globaltracking
 } // end namespace o2
