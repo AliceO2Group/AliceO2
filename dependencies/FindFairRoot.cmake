@@ -60,6 +60,9 @@ if(NOT TARGET FairRoot::GeoBase)
   set_target_properties(FairRoot::GeoBase
                         PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${FairRoot_INC}
                                    INTERFACE_LINK_LIBRARIES ${FairRoot_GeoBase})
+  if(TARGET ROOT::TGeometry)
+    target_link_libraries(FairRoot::GeoBase INTERFACE ROOT::TGeometry)
+  endif()
 endif()
 
 if(NOT TARGET FairRoot::Base)

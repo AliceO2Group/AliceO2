@@ -15,10 +15,16 @@
 #ifndef O2_GPUTPCNNCLUSTERIZERHOST_H
 #define O2_GPUTPCNNCLUSTERIZERHOST_H
 
+#include <array>
+#include <string_view>
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <memory>
+#include <stdexcept>
+#ifdef GPUCA_HAS_ONNX
 #include "ML/OrtInterface.h"
+#endif
 
 class OrtMemoryInfo;
 class OrtAllocator;
@@ -52,6 +58,29 @@ class GPUTPCNNClusterizerHost
   void createBoundary(GPUTPCNNClusterizer&);
   void createIndexLookup(GPUTPCNNClusterizer&);
 
+  void initSofie(const GPUSettingsProcessingNNclusterizer&, void* stream, int32_t device, bool hip, const GPUTPCNNClusterizerHost* source = nullptr, const std::array<std::string_view, 3>& buffers = {}, const GPUTPCNNClusterizerHost* previous = nullptr);
+  bool hasSofieBuffers(const std::array<std::string_view, 3>& buffers) const;
+  void useSofie(const GPUTPCNNClusterizerHost&);
+  void bindSofieWorkspace(void* workspace, size_t bytes);
+  void inferenceSofie(int model, const void* input, size_t batch, void* output);
+  int32_t modelOutputs(int model) const;
+  template <class Input, class Output>
+  void inference(int model, Input* input, size_t batch, Output* output)
+  {
+    if (mSofie) {
+      inferenceSofie(model, input, batch, output);
+      return;
+    }
+#ifdef GPUCA_HAS_ONNX
+    (model == 0 ? mModelClass : model == 1 ? mModelReg1
+                                           : mModelReg2)
+      .inference(input, batch, output);
+#else
+    throw std::runtime_error("ONNXRuntime was not enabled in this build");
+#endif
+  }
+
+#ifdef GPUCA_HAS_ONNX
   // ONNX
   void directOrtAllocator(Ort::Env*, Ort::MemoryInfo*, GPUReconstruction*, bool = false);
   MockedOrtAllocator* getMockedAllocator();
@@ -59,9 +88,14 @@ class GPUTPCNNClusterizerHost
 
   std::unordered_map<std::string, std::string> mOrtOptions;
   o2::ml::OrtModel mModelClass, mModelReg1, mModelReg2;  // For splitting clusters
+  std::shared_ptr<MockedOrtAllocator> mMockedAlloc = nullptr;
+#endif
   std::vector<bool> mModelsUsed = {false, false, false}; // 0: class, 1: reg_1, 2: reg_2
   int32_t mDeviceId = -1;
-  std::shared_ptr<MockedOrtAllocator> mMockedAlloc = nullptr;
+
+ private:
+  struct SofieState;
+  std::shared_ptr<SofieState> mSofie;
 }; // class GPUTPCNNClusterizerHost
 
 } // namespace o2::gpu

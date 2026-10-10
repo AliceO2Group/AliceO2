@@ -34,7 +34,7 @@
 #include "GPUKernelDebugOutput.h"
 #endif
 
-#ifdef GPUCA_HAS_ONNX
+#if defined(GPUCA_HAS_ONNX) || defined(GPUCA_HAS_SOFIE)
 #include "GPUTPCNNClusterizer.h"
 #endif
 
@@ -56,7 +56,7 @@ struct GPUConstantMem {
 #ifdef GPUCA_KERNEL_DEBUGGER_OUTPUT
   GPUKernelDebugOutput debugOutput;
 #endif
-#ifdef GPUCA_HAS_ONNX
+#if defined(GPUCA_HAS_ONNX) || defined(GPUCA_HAS_SOFIE)
   GPUTPCNNClusterizer tpcNNClusterer[GPUTPCGeometry::NSECTORS];
 #endif
   template <int32_t I>

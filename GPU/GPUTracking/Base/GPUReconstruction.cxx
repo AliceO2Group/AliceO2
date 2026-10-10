@@ -97,7 +97,7 @@ GPUReconstruction::GPUReconstruction(const GPUSettingsDeviceBackend& cfg) : mHos
   for (uint32_t i = 0; i < NSECTORS; i++) {
     processors()->tpcTrackers[i].SetSector(i); // TODO: Move to a better place
     processors()->tpcClusterer[i].mISector = i;
-#ifdef GPUCA_HAS_ONNX
+#if defined(GPUCA_HAS_ONNX) || defined(GPUCA_HAS_SOFIE)
     processors()->tpcNNClusterer[i].mISector = i;
 #endif
   }

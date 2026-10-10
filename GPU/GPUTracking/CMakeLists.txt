@@ -10,6 +10,18 @@
 # or submit itself to any jurisdiction.
 
 set(MODULE GPUTracking)
+option(GPUCA_BUILD_SOFIE "Enable experimental SOFIE GPU inference" OFF)
+option(GPUCA_BUILD_ORT "Enable ONNXRuntime inference in GPUTracking" ON)
+if(NOT GPUCA_BUILD_ORT)
+  set(onnxruntime_FOUND OFF)
+endif()
+if(GPUCA_BUILD_SOFIE)
+  find_package(ROOT CONFIG REQUIRED COMPONENTS ROOTTMVASofie ROOTTMVASofieParser)
+  find_path(GPUCA_SOFIE_GPU_INCLUDE TMVA/RGPUModel.hxx HINTS ${ROOT_INCLUDE_DIRS} NO_DEFAULT_PATH)
+  if(NOT GPUCA_SOFIE_GPU_INCLUDE)
+    message(FATAL_ERROR "SOFIE GPU requires the ROOT development package with RGPUModel support")
+  endif()
+endif()
 
 # set(CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE_UPPER} "${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE_UPPER}} -O0") # to uncomment if needed, tired of typing this...
 # set(GPUCA_BUILD_DEBUG 1)
@@ -196,7 +208,7 @@ set(SRCS_NO_CINT ${SRCS_NO_CINT}
     Refit/GPUTrackingRefitKernel.cxx
     Merger/GPUTPCGMO2Output.cxx)
 
-if(onnxruntime_FOUND)
+if(onnxruntime_FOUND OR GPUCA_BUILD_SOFIE)
   list(APPEND SRCS_NO_CINT TPCClusterFinder/GPUTPCNNClusterizerKernels.cxx TPCClusterFinder/GPUTPCNNClusterizer.cxx TPCClusterFinder/GPUTPCNNClusterizerHost.cxx)
 endif()
 
@@ -327,6 +339,7 @@ set(HDRS_CINT_DATATYPES ${HDRS_CINT_DATATYPES} ${HDRS_TMP})
 unset(HDRS_TMP)
 
 set(INCDIRS
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Common/ML/include
     ${ON_THE_FLY_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/Definitions
@@ -382,7 +395,6 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                                        O2::TPCFastTransformation
                                        O2::DetectorsRaw
                                        O2::Steer
-                                       O2::ML
                  PUBLIC_INCLUDE_DIRECTORIES ${INCDIRS}
                  SOURCES ${SRCS} ${SRCS_NO_CINT} ${SRCS_NO_H})
 
@@ -454,12 +466,19 @@ if(GPUCA_QA)
 endif()
 
 target_link_libraries(${targetName} PRIVATE TBB::tbb)
+if(GPUCA_BUILD_SOFIE)
+  target_compile_definitions(${targetName} PRIVATE GPUCA_HAS_SOFIE=1)
+  target_link_libraries(${targetName} PRIVATE ROOT::ROOTTMVASofie ROOT::ROOTTMVASofieParser)
+endif()
 
 target_compile_options(${targetName} PRIVATE -Wno-instantiation-after-specialization)
 
 if (onnxruntime_FOUND)
   target_compile_definitions(${targetName} PRIVATE GPUCA_HAS_ONNX=1)
   target_link_libraries(${targetName} PRIVATE onnxruntime::onnxruntime)
+  if(TARGET O2::ML)
+    target_link_libraries(${targetName} PRIVATE O2::ML)
+  endif()
 endif()
 
 # Add CMake recipes for GPU Tracking librararies

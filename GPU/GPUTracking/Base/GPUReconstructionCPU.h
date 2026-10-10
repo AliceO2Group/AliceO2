@@ -83,6 +83,9 @@ class GPUReconstructionCPU : public GPUReconstructionProcessing::KernelInterface
   size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int32_t stream = -1, deviceEvent* ev = nullptr) override;
   virtual size_t TransferMemoryInternal(GPUMemoryResource* res, int32_t stream, deviceEvent* ev, deviceEvent* evList, int32_t nEvents, bool toGPU, const void* src, void* dst);
 
+  virtual int32_t GetNativeGPUDevice() const { throw std::runtime_error("Native GPU device is unavailable for this backend"); }
+  virtual void* GetNativeGPUStream(int32_t) const { throw std::runtime_error("Native GPU streams are unavailable for this backend"); }
+
   // ONNX runtime
   virtual void SetONNXGPUStream(Ort::SessionOptions&, int32_t, int32_t*) {}
 

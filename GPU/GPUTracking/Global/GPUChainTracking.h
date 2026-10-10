@@ -56,6 +56,7 @@ namespace o2::gpu
 {
 // class GPUTRDTrackerGPU;
 class GPUTPCGPUTracker;
+class GPUTPCNNClusterizerHost;
 class GPUDisplayInterface;
 class GPUQA;
 class GPUTPCClusterStatistics;
@@ -298,6 +299,10 @@ class GPUChainTracking : public GPUChain
   int32_t RunChainFinalize();
   void OutputSanityCheck();
   int32_t RunTPCTrackingSectors_internal();
+  void InitSofieClusterizer(bool deferCCDB = false);
+#ifdef GPUCA_HAS_SOFIE
+  std::vector<std::unique_ptr<GPUTPCNNClusterizerHost>> mSofieApplications;
+#endif
   int32_t RunTPCClusterizer_prepare(bool restorePointers, const GPUTPCExtraADC& extraADCs);
 #ifndef GPUCA_RUN2
   std::pair<uint32_t, uint32_t> RunTPCClusterizer_transferZS(int32_t iSector, const CfFragment& fragment, int32_t lane, const GPUTPCExtraADC& extraADCs);

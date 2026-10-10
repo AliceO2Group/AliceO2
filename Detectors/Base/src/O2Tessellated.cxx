@@ -16,6 +16,7 @@
 // Will be deleted once we get this from ROOT.
 
 #include <iostream>
+#include <fstream>
 #include <sstream>
 
 #include "TGeoManager.h"
