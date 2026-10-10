@@ -19,9 +19,14 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "ITStracking/Configuration.h"
 
+#include "Framework/Logger.h"
+
+#include <algorithm>
+#include <cmath>
 #include <limits>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 namespace o2::its
 {
@@ -58,6 +63,65 @@ inline Vertex makeDiamondVertex(const TrackingParameters& trkParam)
   Vertex diamond(trkParam.Diamond, trkParam.DiamondCov, 1, 1.f);
   diamond.setTimeStamp({0u, std::numeric_limits<TimeStampErrorType>::max()});
   return diamond;
+}
+
+/// Good lines a further vertex needs to not count as debris in a ROF that already has one: goodSig * sqrt(ROF load), clamped to
+/// [constants::VtxMinGoodThreshold, suppressLowMultDebris] unless the debris cut is off (UPC pass).
+inline float getDebrisThreshold(const float goodSig, const double rofLoad, const int suppressLowMultDebris)
+{
+  const float threshold = goodSig * std::sqrt(static_cast<float>(std::max(rofLoad, 1.)));
+  if (suppressLowMultDebris < constants::VtxMinGoodThreshold) {
+    return threshold;
+  }
+  return std::clamp(threshold, constants::VtxMinGoodThreshold, static_cast<float>(suppressLowMultDebris));
+}
+
+/// Caps ROFs whose vertex count is an outlier of the TF
+template <typename VtxVec, typename LabVec>
+int pruneOverpopulatedRofs(std::vector<VtxVec>& rofVertices, std::vector<LabVec>& rofLabels, const float nSigma, const int minContributors, const float trimFraction)
+{
+  const int nRofs = static_cast<int>(rofVertices.size());
+  if (nSigma <= 0.f || nRofs == 0) {
+    return 0;
+  }
+  std::vector<int> counts(nRofs);
+  for (int r = 0; r < nRofs; ++r) {
+    counts[r] = static_cast<int>(rofVertices[r].size());
+  }
+  std::vector<int> sorted(counts);
+  std::sort(sorted.begin(), sorted.end());
+  const int nUsed = std::max(1, nRofs - std::max(1, static_cast<int>(trimFraction * nRofs)));
+  double sum = 0.;
+  for (int i = 0; i < nUsed; ++i) {
+    sum += sorted[i];
+  }
+  const double mean = sum / nUsed;
+  const double threshold = mean + nSigma * std::sqrt(mean + 1.);
+  int removed = 0;
+  for (int r = 0; r < nRofs; ++r) {
+    if (counts[r] <= threshold) {
+      continue;
+    }
+    auto& vtx = rofVertices[r];
+    const bool withLabels = static_cast<int>(rofLabels.size()) == nRofs && rofLabels[r].size() == vtx.size();
+    size_t out = 1; // the largest vertex always stays
+    for (size_t i = 1; i < vtx.size(); ++i) {
+      if (vtx[i].getNContributors() >= minContributors) {
+        vtx[out] = vtx[i];
+        if (withLabels) {
+          rofLabels[r][out] = rofLabels[r][i];
+        }
+        ++out;
+      }
+    }
+    LOGP(info, "Seeding vertexer: overpopulated ROF {} pruned {} -> {} vertices (threshold {:.1f}, mean {:.2f} per ROF)", r, vtx.size(), out, threshold, mean);
+    removed += static_cast<int>(vtx.size() - out);
+    vtx.erase(vtx.begin() + out, vtx.end());
+    if (withLabels) {
+      rofLabels[r].erase(rofLabels[r].begin() + out, rofLabels[r].end());
+    }
+  }
+  return removed;
 }
 
 } // namespace o2::its

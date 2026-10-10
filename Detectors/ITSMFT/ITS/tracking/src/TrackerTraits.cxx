@@ -305,6 +305,7 @@ void TrackerTraits<NLayers>::computeVertexCandidates(const int iteration)
   const float lineMinPt = mTrkParams[iteration].VtxLineMinPt;
   const float beamX = mTimeFrame->getBeamX();
   const float beamY = mTimeFrame->getBeamY();
+  const float lineCurvatureScale = mTrkParams[iteration].VtxLineCurvatureScale;
   auto makeKey = [](float attribute, int cellIdx) -> size_t {
     const uint32_t attributeInt = std::bit_cast<uint32_t>(attribute);
     return (static_cast<size_t>(attributeInt) << 32) | static_cast<uint32_t>(cellIdx);
@@ -327,8 +328,7 @@ void TrackerTraits<NLayers>::computeVertexCandidates(const int iteration)
       kCl1[k] = c1;
       kCl2[k] = cell.getThirdClusterIndex();
       std::array<float, 3> origin, direction;
-      cell.getXYZGlo(origin);
-      if (!cell.getPxPyPzGlo(direction)) {
+      if (!getCellLineAtBeam(cell, beamX, beamY, getBz(), lineCurvatureScale, origin, direction)) {
         return;
       }
       kGeomOk[k] = 1;
@@ -711,11 +711,11 @@ void TrackerTraits<NLayers>::computeVertices(const int iteration)
         }
       }
     }
-    const float sigThreshold = goodSig > 0.f ? goodSig * std::sqrt(static_cast<float>(std::max(rofLoad, 1.))) : 0.f;
+    const float debrisThreshold = goodSig > 0.f ? getDebrisThreshold(goodSig, rofLoad, suppressLowMultDebris) : 0.f;
     for (const int p : accepted) {
       if (!rofVertices[rofId].empty()) {
         if (goodSig > 0.f) {
-          if (nGoodCand[p] <= sigThreshold) {
+          if (nGoodCand[p] < debrisThreshold) {
             continue;
           }
         } else if (static_cast<int>(cand[p].getSize()) < suppressLowMultDebris) {
@@ -757,6 +757,9 @@ void TrackerTraits<NLayers>::computeVertices(const int iteration)
         processROF(rofId);
       });
     });
+  }
+  if (!tp.PassFlags[IterationStep::MarkVerticesAsUPC]) { // UPC ROFs are near-empty by construction
+    pruneOverpopulatedRofs(rofVertices, rofLabels, tp.VtxOverpopulatedRofNSigma, suppressLowMultDebris, constants::VtxOverpopulatedRofTrimFraction);
   }
   for (int rofId{0}; rofId < nRofs; ++rofId) {
     for (auto& vertex : rofVertices[rofId]) {

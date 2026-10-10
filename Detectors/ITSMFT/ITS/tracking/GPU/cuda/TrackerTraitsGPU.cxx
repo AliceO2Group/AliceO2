@@ -266,6 +266,8 @@ void TrackerTraitsGPU<NLayers>::computeVertexCandidates(const int iteration)
                                                          mTimeFrameGPU->getDeviceLineSlots(),
                                                          mTimeFrameGPU->getBeamX(),
                                                          mTimeFrameGPU->getBeamY(),
+                                                         this->getBz(),
+                                                         this->mTrkParams[iteration].VtxLineCurvatureScale,
                                                          this->mTrkParams[iteration].VtxMaxZPositionAllowed,
                                                          this->mTrkParams[iteration].VtxLineMinPt,
                                                          mTimeFrameGPU->getDeviceLineZs(),
@@ -451,13 +453,13 @@ void TrackerTraitsGPU<NLayers>::computeVertices(const int iteration)
         }
       }
     }
-    const float sigThreshold = goodSig > 0.f ? goodSig * std::sqrt(static_cast<float>(std::max(rofLoad, 1.))) : 0.f;
+    const float debrisThreshold = goodSig > 0.f ? getDebrisThreshold(goodSig, rofLoad, suppressLowMultDebris) : 0.f;
 
     for (const int p : accepted) {
       const auto& c = cands[p];
       if (!rofVertices[rofId].empty()) {
         if (goodSig > 0.f) {
-          if (c.nGood <= sigThreshold) {
+          if (c.nGood < debrisThreshold) {
             continue;
           }
         } else if (c.size < suppressLowMultDebris) {
@@ -502,6 +504,9 @@ void TrackerTraitsGPU<NLayers>::computeVertices(const int iteration)
         rofLabels[rofId].push_back(computeMainVertexLabel(labels));
       }
     }
+  }
+  if (!this->mTrkParams[iteration].PassFlags[IterationStep::MarkVerticesAsUPC]) { // UPC ROFs are near-empty by construction
+    pruneOverpopulatedRofs(rofVertices, rofLabels, this->mTrkParams[iteration].VtxOverpopulatedRofNSigma, suppressLowMultDebris, constants::VtxOverpopulatedRofTrimFraction);
   }
 
   for (int rofId = 0; rofId < nRofs; ++rofId) {
