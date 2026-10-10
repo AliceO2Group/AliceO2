@@ -525,6 +525,10 @@ int32_t GPUQA::InitQACreateHistograms()
       createHist(mClusters[i], name, name, AXIS_BINS[4], binsPt.get());
     }
 
+    const int32_t maxPads = GPUTPCGeometry::NPads(GPUTPCGeometry::NROWS - 1);
+    createHist(mLowestRowDifferenceVsPad, "lowest_row_difference_vs_pad", "Lowest cluster row difference;Pad of lowest reconstructed cluster;Lowest reconstructed row - lowest MC row", maxPads, -0.5, maxPads - 0.5, 2 * GPUTPCGeometry::NROWS - 1, -GPUTPCGeometry::NROWS + 0.5, GPUTPCGeometry::NROWS - 0.5);
+    createHist(mLowestRowTrackMultiplicity, "lowest_row_track_multiplicity", "Track multiplicity for missing inner clusters;Reconstructed tracks with the same MC label;Selected reconstructed tracks", 100, -0.5, 99.5);
+
     createHist(mPadRow[0], "padrow0", "padrow0", GPUTPCGeometry::NROWS - PADROW_CHECK_MINCLS, 0, GPUTPCGeometry::NROWS - 1 - PADROW_CHECK_MINCLS, GPUTPCGeometry::NROWS - PADROW_CHECK_MINCLS, 0, GPUTPCGeometry::NROWS - 1 - PADROW_CHECK_MINCLS);
     createHist(mPadRow[1], "padrow1", "padrow1", 100.f, -0.2f, 0.2f, GPUTPCGeometry::NROWS - PADROW_CHECK_MINCLS, 0, GPUTPCGeometry::NROWS - 1 - PADROW_CHECK_MINCLS);
     createHist(mPadRow[2], "padrow2", "padrow2", 100.f, -0.2f, 0.2f, GPUTPCGeometry::NROWS - PADROW_CHECK_MINCLS, 0, GPUTPCGeometry::NROWS - 1 - PADROW_CHECK_MINCLS);
@@ -1103,12 +1107,26 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
         }
       }
       if (mTracking->mIOPtrs.nMergedTracks && clNative) {
+        // Keep these per MC label: the reverse label map retains only one clone.
+        struct LowestRowInfo {
+          int32_t row = GPUTPCGeometry::NROWS;
+        };
+        std::vector<std::vector<LowestRowInfo>> lowestRowInfo(GetNMCCollissions());
+        for (uint32_t iCol = 0; iCol < GetNMCCollissions(); iCol++) {
+          lowestRowInfo[iCol].resize(GetNMCTracks(iCol));
+        }
         std::fill(lowestPadRow.begin(), lowestPadRow.end(), 255);
         for (uint32_t iSector = 0; iSector < GPUTPCGeometry::NSECTORS; iSector++) {
           for (uint32_t iRow = 0; iRow < GPUTPCGeometry::NROWS; iRow++) {
             for (uint32_t iCl = 0; iCl < clNative->nClusters[iSector][iRow]; iCl++) {
               int32_t i = clNative->clusterOffset[iSector][iRow] + iCl;
               for (int32_t j = 0; j < GetMCLabelNID(i); j++) {
+                const mcLabelI_t label = GetMCLabel(i, j);
+                if (!label.isValid() || label.isNoise()) {
+                  continue;
+                }
+                auto& info = GetMCTrackObj(lowestRowInfo, label);
+                info.row = std::min(info.row, (int32_t)iRow);
                 uint32_t trackId = GetMCTrackObj(mTrackMCLabelsReverse, GetMCLabel(i, j));
                 if (trackId < lowestPadRow.size() && lowestPadRow[trackId] > iRow) {
                   lowestPadRow[trackId] = iRow;
@@ -1119,6 +1137,28 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
         }
         for (uint32_t i = 0; i < mTracking->mIOPtrs.nMergedTracks; i++) {
           const auto& trk = mTracking->mIOPtrs.mergedTracks[i];
+          const auto& label = mTrackMCLabels[i];
+          if (trk.OK() && trk.NClustersFitted() > 50 && CAMath::Abs(trk.GetParam().GetQPt()) < 1.f && label.isValid() && !label.isNoise() &&
+              (mMCTrackMin == -1 || label.getTrackID() >= mMCTrackMin) && (mMCTrackMax == -1 || label.getTrackID() < mMCTrackMax)) {
+            const auto& info = GetMCTrackObj(lowestRowInfo, label);
+            if (info.row < 10) {
+              const GPUTPCGMMergedTrackHit* lowestCl = nullptr;
+              for (uint32_t j = 0; j < trk.NClusters(); j++) {
+                const auto& cl = mTracking->mIOPtrs.mergedTrackHits[trk.FirstClusterRef() + j];
+                if (!(cl.state & GPUTPCGMMergedTrackHit::flagReject) && (!lowestCl || cl.row < lowestCl->row)) {
+                  lowestCl = &cl;
+                }
+              }
+              if (lowestCl) {
+                const float pad = clNative->clustersLinear[lowestCl->num].getPad();
+                const int32_t difference = (int32_t)lowestCl->row - info.row;
+                mLowestRowDifferenceVsPad->Fill(pad, difference);
+                if (CAMath::Abs(difference) > 5 && pad > 5.f && pad < GPUTPCGeometry::NPads(lowestCl->row) - 5.f) {
+                  mLowestRowTrackMultiplicity->Fill(GetMCTrackObj(mRecTracks, label));
+                }
+              }
+            }
+          }
           if (trk.OK() && lowestPadRow[i] != 255 && trk.NClustersFitted() >= PADROW_CHECK_MINCLS && CAMath::Abs(trk.GetParam().GetQPt()) < 1.0) {
             const auto& lowestCl = mTracking->mIOPtrs.mergedTrackHits[trk.FirstClusterRef()].row < mTracking->mIOPtrs.mergedTrackHits[trk.FirstClusterRef() + trk.NClusters() - 1].row ? mTracking->mIOPtrs.mergedTrackHits[trk.FirstClusterRef()] : mTracking->mIOPtrs.mergedTrackHits[trk.FirstClusterRef() + trk.NClusters() - 1];
             const int32_t lowestRow = lowestCl.row;
@@ -2908,6 +2948,17 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
       mCPadRow[i]->Print(Form("%s/padRow%s.pdf", mConfig.plotsDir.c_str(), PADROW_NAMES[i]));
       if (mConfig.writeFileExt != "") {
         mCPadRow[i]->Print(Form("%s/padRow%s.%s", mConfig.plotsDir.c_str(), PADROW_NAMES[i], mConfig.writeFileExt.c_str()));
+      }
+    }
+  }
+
+  if (mQATasks & taskClusterAttach) {
+    for (TH1* h : {static_cast<TH1*>(mLowestRowDifferenceVsPad), static_cast<TH1*>(mLowestRowTrackMultiplicity)}) {
+      if (tout && !mConfig.inputHistogramsOnly) {
+        h->Write();
+      }
+      if (qcout) {
+        qcout->Add(h);
       }
     }
   }
