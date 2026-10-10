@@ -18,6 +18,10 @@
 
 #include "ALICE3GlobalReconstruction/TrackerACTS.h"
 
+#include <TRKBase/GeometryTGeo.h>
+#include <MathUtils/Utils.h>
+#include <Acts/Surfaces/Surface.hpp>
+#include "ACTSInterface/TrackingGeometryManager.h"
 #include <Acts/EventData/Seed.hpp>
 #include <Acts/EventData/SpacePointContainer.hpp>
 #include <Acts/Seeding/BinnedGroup.hpp>
@@ -28,6 +32,23 @@
 #include <Acts/Seeding/detail/CylindricalSpacePointGrid.hpp>
 #include <Acts/Utilities/GridBinFinder.hpp>
 #include <Acts/Utilities/RangeXD.hpp>
+#include <Acts/Definitions/TrackParametrization.hpp>
+#include <Acts/Seeding/EstimateTrackParamsFromSeed.hpp>
+#include <Acts/EventData/BoundTrackParameters.hpp>
+#include <Acts/EventData/ParticleHypothesis.hpp>
+#include <Acts/EventData/SourceLink.hpp>
+#include <Acts/EventData/TrackContainer.hpp>
+#include <Acts/EventData/VectorMultiTrajectory.hpp>
+#include <Acts/EventData/VectorTrackContainer.hpp>
+#include <Acts/MagneticField/ConstantBField.hpp>
+#include <Acts/MagneticField/MagneticFieldContext.hpp>
+#include <Acts/Propagator/DirectNavigator.hpp>
+#include <Acts/Propagator/EigenStepper.hpp>
+#include <Acts/Propagator/Propagator.hpp>
+#include <Acts/TrackFitting/GainMatrixSmoother.hpp>
+#include <Acts/TrackFitting/GainMatrixUpdater.hpp>
+#include <Acts/TrackFitting/KalmanFitter.hpp>
+#include <Acts/Utilities/CalibrationContext.hpp>
 
 namespace o2::trk
 {
@@ -54,19 +75,47 @@ void TrackerACTS<nLayers>::buildSpacePoints(int rof)
     layerSPs.clear();
   }
 
-  // Get clusters from the TimeFrame and convert to space points
+  auto& actsGeometryManager = o2::acts::TrackingGeometryManager::instance();
+  auto* trkGeometry = o2::trk::GeometryTGeo::Instance();
+
+  trkGeometry->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G));
+
+  const auto& surfaceIndex = actsGeometryManager.getIndex(*trkGeometry, 1.e-3, [trkGeometry](int sensorID) {
+    return std::string(trkGeometry->getMatrixPath(sensorID).Data());
+  });
+
+  int nMapped = 0;
+  int nMissing = 0;
+
   for (int layer = 0; layer < nLayers; ++layer) {
-    // For now we take unsorted clusters, as soon as the cluster trackin is in place we can piggy back on it and switch to the clusters
-    auto clusters = mTimeFrame->getUnsortedClusters()[layer];
-    // Resize the clusters to the first 100 clusters for testing
-    // clusters = clusters.subspan(0, std::min<size_t>(clusters.size(), 100));
-    LOG(debug) << "ACTSTracker: got " << clusters.size() << " clusters";
+    const auto clusters = mTimeFrame->getUnsortedClustersOnLayer(rof, layer);
+    const int firstCluster = mTimeFrame->getSortedStartIndex(rof, layer);
+
+    LOG(debug) << "ACTSTracker: got " << clusters.size() << " clusters on layer " << layer;
 
     for (size_t iCluster = 0; iCluster < clusters.size(); ++iCluster) {
       const auto& cluster = clusters[iCluster];
+      const int clusterIndex = firstCluster + static_cast<int>(iCluster);
+      const int externalIndex = mTimeFrame->getClusterExternalIndex(layer, clusterIndex);
+
+      if (externalIndex < 0 || static_cast<size_t>(externalIndex) >= mInputClusters.size()) {
+        LOG(error) << "Invalid external cluster index " << externalIndex
+                   << " for layer " << layer << " cluster " << clusterIndex;
+        ++nMissing;
+        continue;
+      }
+
+      const int sensorID = mInputClusters[externalIndex].getSensorID();
+      const auto* surface = surfaceIndex.getSurface(sensorID);
+
+      if (!surface) {
+        LOG(error) << "No ACTS surface for sensor " << sensorID
+                   << " on layer " << layer;
+        ++nMissing;
+        continue;
+      }
 
       SpacePoint sp;
-      // Check that these are in global coordinates
       sp.x = cluster.xCoordinate * Acts::UnitConstants::cm;
       sp.y = cluster.yCoordinate * Acts::UnitConstants::cm;
       sp.z = cluster.zCoordinate * Acts::UnitConstants::cm;
@@ -74,34 +123,38 @@ void TrackerACTS<nLayers>::buildSpacePoints(int rof)
       if (mHistSpacePoints) {
         mHistSpacePoints->Fill(sp.x / Acts::UnitConstants::cm, sp.y / Acts::UnitConstants::cm);
       }
-      sp.layer = layer;
-      sp.clusterId = static_cast<int>(iCluster);
-      sp.rof = rof;
 
-      // Position uncertainties (could be refined based on cluster properties)
-      sp.varianceR = 0.01f; // ~100 um resolution squared
+      sp.layer = layer;
+      sp.clusterId = clusterIndex;
+      sp.rof = rof;
+      sp.sensorId = sensorID;
+      sp.surface = surface;
+
+      sp.varianceR = 0.01f;
       sp.varianceZ = 0.01f;
 
       mSpacePoints.push_back(sp);
+      ++nMapped;
     }
   }
 
-  // Build per-layer pointers for seeding
   for (auto& sp : mSpacePoints) {
     if (sp.layer >= 0 && sp.layer < nLayers) {
       mSpacePointsPerLayer[sp.layer].push_back(&sp);
     }
   }
+
+  LOG(info) << "ACTS surface mapping: " << nMapped << " clusters mapped, " << nMissing << " clusters missing";
 }
 
 template <int nLayers>
 void TrackerACTS<nLayers>::createSeeds()
 {
+  mSeeds.clear();
   if (mSpacePoints.empty()) {
     LOGF(info, "No space points available for seeding");
     return;
   }
-  mSeeds.clear();
 
   // Backend adaptor that exposes mSpacePoints to Acts::SpacePointContainer
   struct SpacePointBackend {
@@ -238,17 +291,368 @@ void TrackerACTS<nLayers>::createSeeds()
 template <int nLayers>
 bool TrackerACTS<nLayers>::estimateTrackParams(const SeedACTS& seed, o2::its::TrackITSExt& track) const
 {
+  const SpacePoint* sp0 = seed.bottom;
+  const SpacePoint* sp1 = seed.middle;
+  const SpacePoint* sp2 = seed.top;
+
+  // Use ACTS parameter estimation
+  Acts::Vector3 pos0{sp0->x, sp0->y, sp0->z};
+  Acts::Vector3 pos1{sp1->x, sp1->y, sp1->z};
+  Acts::Vector3 pos2{sp2->x, sp2->y, sp2->z};
+
+  // Magnetic field vector (along z-axis)
+  Acts::Vector3 bField{0., 0., mBz * Acts::UnitConstants::T};
+
+  // Use the ACTS function with time parameter (t0 = 0)
+  LOG(info) << "Calling ACTS estimateTrackParamsFromSeed with mag field " << mBz << " T";
+  LOG(info) << "Seed space points: (" << pos0.transpose() << "), (" << pos1.transpose() << "), (" << pos2.transpose() << ")";
+
+  Acts::FreeVector params;
+  try {
+    params = Acts::estimateTrackParamsFromSeed(pos0, 0.0, pos1, pos2, bField);
+  } catch (const std::exception& e) {
+    LOG(fatal) << "ACTS parameter estimation failed: " << e.what();
+    return false;
+  }
+  LOG(info) << "ACTS parameter estimation successful: x=" << params[Acts::eFreePos0] << " y=" << params[Acts::eFreePos1]
+            << " z=" << params[Acts::eFreePos2] << " q/p=" << params[Acts::eFreeQOverP];
+
+  // Extract parameters from ACTS format
+  const auto& p = params;
+  // ACTS FreeVector: x, y, z, t, dir_x, dir_y, dir_z, q/|p|
+  // Direction components are normalized (unit vector)
+  const float x = p[Acts::eFreePos0];
+  const float y = p[Acts::eFreePos1];
+  const float z = p[Acts::eFreePos2];
+  const float px = p[Acts::eFreeDir0] * 1;
+  const float py = p[Acts::eFreeDir1] * pMag;
+  const float pz = p[Acts::eFreeDir2] * pMag;
+  const int charge = (p[Acts::eFreeQOverP] >= 0) ? 1 : -1;
+
+  // Set cluster indices from seed
+  const int charge = std::sgn(p[Acts::eFreeQOverP]);
+  track.set({x, y, z}, {px, py, pz}, charge, false, PID::Pion);
+  track.setPxPyPz(px, py, pz);
+  track.setPosition(x, y, z);
+
+  // q/pT = q/|p| * |p|/pT = qOverP * |p| / pT = qOverP / (pT / |p|) = qOverP / sin(theta)
+  // Or simply: charge / pT where charge = sign(qOverP)
+  track.setAbsCharge(charge);
+
+  LOG(info) << "Estimated track parameters";
   return true;
 }
-
 template <int nLayers>
 void TrackerACTS<nLayers>::findTracks()
 {
+  if (mSeeds.empty()) {
+    return;
+  }
+
+  auto& actsGeometryManager = o2::acts::TrackingGeometryManager::instance();
+  const auto& geometryContext = actsGeometryManager.getNominalContext();
+
+  Acts::MagneticFieldContext magneticFieldContext;
+  Acts::CalibrationContext calibrationContext;
+
+  // Initial implementation with a constant magnetic field
+  auto magneticField = std::make_shared<Acts::ConstantBField>(
+    Acts::Vector3{0., 0., mBz * Acts::UnitConstants::T});
+
+  using Propagator = Acts::Propagator<Acts::EigenStepper<>, Acts::DirectNavigator>;
+  using Trajectory = Acts::VectorMultiTrajectory;
+  using TrackContainer = Acts::TrackContainer<Acts::VectorTrackContainer, Trajectory>;
+
+  Propagator propagator{
+    Acts::EigenStepper<>{magneticField},
+    Acts::DirectNavigator{}};
+
+  Acts::KalmanFitter<Propagator, Trajectory> fitter{std::move(propagator)};
+
+  // Each measurement is defined in its ACTS surface frame
+  struct HitMeasurement {
+    const Acts::Surface* surface{nullptr};
+    Acts::Vector2 local = Acts::Vector2::Zero();
+    Acts::SquareMatrix<2> covariance = Acts::SquareMatrix<2>::Zero();
+  };
+
+  struct HitSourceLink {
+    const HitMeasurement* hit{nullptr};
+  };
+
+  struct SurfaceAccessor {
+    const Acts::Surface* getSurface(const Acts::SourceLink& sourceLink) const
+    {
+      return sourceLink.get<HitSourceLink>().hit->surface;
+    }
+  };
+
+  struct MeasurementCalibrator {
+    void calibrate(const Acts::GeometryContext&,
+                   const Acts::CalibrationContext&,
+                   const Acts::SourceLink& sourceLink,
+                   Trajectory::TrackStateProxy trackState) const
+    {
+      const auto& hit = *sourceLink.get<HitSourceLink>().hit;
+
+      trackState.setUncalibratedSourceLink(Acts::SourceLink{sourceLink});
+      trackState.allocateCalibrated(2);
+      trackState.calibrated<2>() = hit.local;
+      trackState.calibratedCovariance<2>() = hit.covariance;
+
+      trackState.setProjectorSubspaceIndices(
+        std::array<std::uint8_t, 2>{
+          static_cast<std::uint8_t>(Acts::eBoundLoc0),
+          static_cast<std::uint8_t>(Acts::eBoundLoc1)});
+    }
+  };
+
+  SurfaceAccessor surfaceAccessor;
+  MeasurementCalibrator calibrator;
+  Acts::GainMatrixUpdater updater;
+  Acts::GainMatrixSmoother smoother;
+
+  Acts::KalmanFitterExtensions<Trajectory> extensions;
+
+  extensions.surfaceAccessor.connect<&SurfaceAccessor::getSurface>(&surfaceAccessor);
+  extensions.calibrator.connect<&MeasurementCalibrator::calibrate>(&calibrator);
+  extensions.updater.connect<&Acts::GainMatrixUpdater::operator()<Trajectory>>(&updater);
+  extensions.smoother.connect<&Acts::GainMatrixSmoother::operator()<Trajectory>>(&smoother);
+
+  Acts::PropagatorPlainOptions propagatorOptions{
+    geometryContext, magneticFieldContext};
+
+  Acts::KalmanFitterOptions<Trajectory> fitterOptions{
+    geometryContext,
+    magneticFieldContext,
+    calibrationContext,
+    extensions,
+    propagatorOptions,
+    nullptr,
+    false, // Multiple scattering: disable for the first test
+    false  // Energy loss: disable for the first test
+  };
+
+  TrackContainer tracks{
+    std::make_shared<Acts::VectorTrackContainer>(),
+    std::make_shared<Trajectory>()};
+
+  int nFitted = 0;
+  int nFailed = 0;
+  int nInvalid = 0;
+
+  for (const auto& seed : mSeeds) {
+    const std::array<const SpacePoint*, 3> spacePoints{
+      seed.bottom, seed.middle, seed.top};
+
+    if (!spacePoints[0] || !spacePoints[1] || !spacePoints[2]) {
+      ++nInvalid;
+      continue;
+    }
+
+    if (!spacePoints[0]->surface || !spacePoints[1]->surface ||
+        !spacePoints[2]->surface) {
+      ++nInvalid;
+      continue;
+    }
+
+    // The direct fitter expects at most one measurement per surface
+    if (spacePoints[0]->surface == spacePoints[1]->surface ||
+        spacePoints[0]->surface == spacePoints[2]->surface ||
+        spacePoints[1]->surface == spacePoints[2]->surface) {
+      ++nInvalid;
+      continue;
+    }
+
+    Acts::Vector3 pos0{
+      spacePoints[0]->x, spacePoints[0]->y, spacePoints[0]->z};
+    Acts::Vector3 pos1{
+      spacePoints[1]->x, spacePoints[1]->y, spacePoints[1]->z};
+    Acts::Vector3 pos2{
+      spacePoints[2]->x, spacePoints[2]->y, spacePoints[2]->z};
+
+    // Estimate initial free parameters from the triplet
+    Acts::FreeVector freeParams;
+
+    try {
+      freeParams = Acts::estimateTrackParamsFromSeed(
+        pos0, 0., pos1, pos2,
+        Acts::Vector3{0., 0., mBz * Acts::UnitConstants::T});
+    } catch (const std::exception& e) {
+      LOG(debug) << "ACTS seed parameter estimation failed: " << e.what();
+      ++nInvalid;
+      continue;
+    }
+
+    const double qOverP = freeParams[Acts::eFreeQOverP];
+
+    if (!std::isfinite(qOverP) || std::abs(qOverP) < 1.e-12) {
+      ++nInvalid;
+      continue;
+    }
+
+    Acts::Vector3 direction{
+      freeParams[Acts::eFreeDir0],
+      freeParams[Acts::eFreeDir1],
+      freeParams[Acts::eFreeDir2]};
+
+    if (!direction.allFinite() || direction.norm() < 1.e-12) {
+      ++nInvalid;
+      continue;
+    }
+
+    direction.normalize();
+
+    // Convert the global hit positions into local ACTS measurements
+    std::array<HitMeasurement, 3> measurements;
+    std::vector<Acts::SourceLink> sourceLinks;
+    std::vector<const Acts::Surface*> surfaces;
+
+    sourceLinks.reserve(3);
+    surfaces.reserve(3);
+
+    bool validMeasurements = true;
+
+    for (int i = 0; i < 3; ++i) {
+      const auto* sp = spacePoints[i];
+      const auto* surface = sp->surface;
+
+      Acts::Vector3 position{sp->x, sp->y, sp->z};
+
+      // Allow small differences between chip positions and ideal surfaces
+      auto localResult = surface->globalToLocal(
+        geometryContext, position, direction,
+        1. * Acts::UnitConstants::mm);
+
+      if (!localResult.ok()) {
+        validMeasurements = false;
+        break;
+      }
+
+      auto& measurement = measurements[i];
+      measurement.surface = surface;
+      measurement.local = localResult.value();
+
+      // Temporary isotropic 100 um resolution
+      const double sigma = 100. * Acts::UnitConstants::um;
+
+      measurement.covariance.setZero();
+      measurement.covariance(0, 0) = sigma * sigma;
+      measurement.covariance(1, 1) = sigma * sigma;
+
+      sourceLinks.emplace_back(HitSourceLink{&measurement});
+      surfaces.push_back(surface);
+    }
+
+    if (!validMeasurements) {
+      ++nInvalid;
+      continue;
+    }
+
+    // Start from the first seed space point
+    Acts::Vector4 position4;
+    position4 << pos0.x(), pos0.y(), pos0.z(), 0.;
+
+    // Initial covariance, deliberately loose
+    Acts::BoundMatrix covariance = Acts::BoundMatrix::Zero();
+
+    covariance(Acts::eBoundLoc0, Acts::eBoundLoc0) =
+      std::pow(1. * Acts::UnitConstants::mm, 2);
+    covariance(Acts::eBoundLoc1, Acts::eBoundLoc1) =
+      std::pow(1. * Acts::UnitConstants::mm, 2);
+    covariance(Acts::eBoundPhi, Acts::eBoundPhi) = 0.1 * 0.1;
+    covariance(Acts::eBoundTheta, Acts::eBoundTheta) = 0.1 * 0.1;
+    covariance(Acts::eBoundQOverP, Acts::eBoundQOverP) =
+      std::pow(0.5 * qOverP, 2);
+    covariance(Acts::eBoundTime, Acts::eBoundTime) =
+      std::pow(1. * Acts::UnitConstants::ns, 2);
+
+    auto initialParameters = Acts::BoundTrackParameters::createCurvilinear(
+      position4,
+      direction,
+      qOverP,
+      covariance,
+      Acts::ParticleHypothesis::pion());
+
+    auto result = fitter.fit(
+      sourceLinks.begin(),
+      sourceLinks.end(),
+      initialParameters,
+      fitterOptions,
+      surfaces,
+      tracks);
+
+    if (!result.ok()) {
+      LOG(debug) << "ACTS Kalman fit failed: " << result.error().message();
+      ++nFailed;
+      continue;
+    }
+
+    const auto track = result.value();
+
+    if (track.nMeasurements() < 3) {
+      ++nFailed;
+      continue;
+    }
+
+    ++nFitted;
+
+    LOG(debug) << "ACTS fitted seed: "
+               << "nMeasurements=" << track.nMeasurements()
+               << " chi2=" << track.chi2()
+               << " nDoF=" << track.nDoF();
+  }
+
+  LOG(info) << "ACTS fitting: " << nFitted << " fitted, "
+            << nFailed << " failed, "
+            << nInvalid << " invalid from "
+            << mSeeds.size() << " seeds";
 }
 
 template <int nLayers>
 void TrackerACTS<nLayers>::computeTracksMClabels()
 {
+  return; // For now we skip MC labeling, will be implemented in the next iterations once we have track candidates to label
+  if (!mTimeFrame || !mTimeFrame->hasMCinformation()) {
+    return;
+  }
+
+  // MC labeling using majority voting on cluster labels
+  for (int iROF = 0; iROF < mTimeFrame->getNrof(0); ++iROF) {
+    for (auto& track : mTimeFrame->getTracks()) {
+      std::vector<std::pair<MCCompLabel, size_t>> labelCounts;
+
+      for (int iCluster = 0; iCluster < o2::its::TrackITSExt::MaxClusters; ++iCluster) {
+        const int clusterIdx = track.getClusterIndex(iCluster);
+        if (clusterIdx == o2::its::constants::UnusedIndex) {
+          continue;
+        }
+
+        auto clusterLabels = mTimeFrame->getClusterLabels(iCluster, clusterIdx);
+        for (const auto& label : clusterLabels) {
+          auto it = std::find_if(labelCounts.begin(), labelCounts.end(),
+                                 [&label](const auto& p) { return p.first == label; });
+          if (it != labelCounts.end()) {
+            ++(it->second);
+          } else {
+            labelCounts.emplace_back(label, 1);
+          }
+        }
+      }
+
+      if (!labelCounts.empty()) {
+        // Find label with most occurrences
+        auto maxIt = std::max_element(labelCounts.begin(), labelCounts.end(),
+                                      [](const auto& a, const auto& b) { return a.second < b.second; });
+
+        MCCompLabel trackLabel = maxIt->first;
+        if (maxIt->second < static_cast<size_t>(track.getNumberOfClusters())) {
+          trackLabel.setFakeFlag();
+        }
+        mTimeFrame->getTracksLabel().emplace_back(trackLabel);
+      }
+    }
+  }
 }
 
 template <int nLayers>
@@ -261,11 +665,31 @@ void TrackerACTS<nLayers>::clustersToTracks()
 
   double totalTime = 0.;
   LOG(info) << "==== TRK ACTS Tracking ====";
-  LOG(info) << "Processing " << mTimeFrame->getNrof() << " ROFs with B = " << mBz << " T";
+
+  // Initialize ACTS tracking geometry
+  auto& actsGeometryManager = o2::acts::TrackingGeometryManager::instance();
+
+  const auto& trackingGeometry = actsGeometryManager.get();
+  if (!trackingGeometry) {
+    LOG(error) << "ACTS tracking geometry is not available";
+    return;
+  }
+
+  auto* trkGeometry = o2::trk::GeometryTGeo::Instance();
+  trkGeometry->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G));
+
+  const auto& surfaceIndex = actsGeometryManager.getIndex(*trkGeometry, 1.e-3, [trkGeometry](int sensorID) {
+    return std::string(trkGeometry->getMatrixPath(sensorID).Data());
+  });
+
+  LOG(info) << "ACTS tracking geometry initialized with "
+            << surfaceIndex.size() << " mapped sensors on "
+            << surfaceIndex.getNSurfaces() << " surfaces";
 
   // Process each ROF
-  for (int iROF = 0; iROF < mTimeFrame->getNrof(); ++iROF) {
+  for (int iROF = 0; iROF < mTimeFrame->getNrof(0); ++iROF) {
     LOG(info) << "Processing ROF " << iROF;
+
     // Build space points
     mCurState = SpacePointBuilding;
     totalTime += evaluateTask([this, iROF]() { buildSpacePoints(iROF); },
