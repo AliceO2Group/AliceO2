@@ -236,7 +236,7 @@ GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineGPU(int32_t nBlocks, int32_t 
     return;
   }
 
-  const CfFragment& fragment = clusterer.mPmemory->fragment;
+  const CfFragment& frag = clusterer.mPmemory->frag;
   const bool hipFilterOn = clusterer.Param().rec.tpc.hipTailFilter;
   const Charge hipTailThreshold = clusterer.Param().rec.tpc.hipTailFilterThreshold;
   const Charge hipTailFilterAlpha = clusterer.Param().rec.tpc.hipTailFilterAlpha;
@@ -265,7 +265,7 @@ GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineGPU(int32_t nBlocks, int32_t 
   // saturated signal in overlap region can create tails in the next fragment
   // even when cleared in current fragment as they're decoded twice
   const TPCFragmentTime firstTB = 0;
-  const TPCFragmentTime lastTB = fragment.length;
+  const TPCFragmentTime lastTB = frag.length;
 
   for (uint16_t t = firstTB; t < lastTB; t += NumOfCachedTBs) {
 
@@ -418,7 +418,7 @@ GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineCPU(int32_t nBlocks, int32_t 
   const int32_t nPads = geo.NPads(row);
   const int32_t nVecPads = (nPads + PadsPerCacheline - 1) / PadsPerCacheline;
 
-  const CfFragment& fragment = clusterer.mPmemory->fragment;
+  const CfFragment& frag = clusterer.mPmemory->frag;
   const bool hipFilterOn = clusterer.Param().rec.tpc.hipTailFilter;
   const Charge hipTailThreshold = clusterer.Param().rec.tpc.hipTailFilterThreshold;
   const Charge hipTailFilterAlpha = clusterer.Param().rec.tpc.hipTailFilterAlpha;
@@ -449,7 +449,7 @@ GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineCPU(int32_t nBlocks, int32_t 
   std::vector<Short8> activeHIPTailSatEndV(nVecPads, -1);   // end of that plateau, extended while the plateau continues into later chunks
   std::vector<Charge8> tailFilterChargeV(nVecPads, Charge8{Vc::Zero});
 
-  for (int16_t t = 0; t < fragment.length; t += NumOfCachedTBs) {
+  for (int16_t t = 0; t < frag.length; t += NumOfCachedTBs) {
 
     bool hasAnyTrigger = false;
 
@@ -478,7 +478,7 @@ GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineCPU(int32_t nBlocks, int32_t 
       for (tpccf::TPCFragmentTime localtime = 0; localtime < NumOfCachedTBs; localtime++) {
 
         const uint16_t* packedChargeStart = reinterpret_cast<uint16_t*>(&chargeMap[basePos.delta({0, localtime})]);
-        const UShort8 packedCharges = t + localtime < fragment.length
+        const UShort8 packedCharges = t + localtime < frag.length
                                         ? UShort8{packedChargeStart, Vc::Aligned}
                                         : UShort8{Vc::Zero};
         const auto isCharge = packedCharges != 0;
@@ -661,7 +661,7 @@ GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineCPU(int32_t nBlocks, int32_t 
       tailFilterChargeV[iVecPad] = tailFilterCharge;
 
     } // for (int32_t iVecPad = 0; iVecPad < nVecPads; iVecPad++)
-  } // for (auto t = 0; t < fragment.length; t += TimebinsPerCacheline)
+  } // for (auto t = 0; t < frag.length; t += TimebinsPerCacheline)
 
   // Close old tails for all pads, open new tails in case of overlap
   for (int16_t iVecPad = 0; iVecPad < nVecPads; iVecPad++) {
@@ -672,7 +672,7 @@ GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineCPU(int32_t nBlocks, int32_t 
     const auto activeHIPTailSatEnd = activeHIPTailSatEndV[iVecPad];
 
     const auto shouldCloseTail = activeHIPTailStart > -1;
-    activeHIPTailEnd(shouldCloseTail && activeHIPTailEnd < 0) = fragment.length;
+    activeHIPTailEnd(shouldCloseTail && activeHIPTailEnd < 0) = frag.length;
 
     if (hipFilterOn && shouldCloseTail.isNotEmpty()) {
       for (int16_t p = 0; p < PadsPerCacheline; p++) {
@@ -728,8 +728,8 @@ GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineCPU(int32_t nBlocks, int32_t 
 
 GPUd() void GPUTPCCFCheckPadBaseline::updatePadBaseline(int32_t pad, const GPUTPCClusterFinder& clusterer, int32_t totalCharges, int32_t consecCharges, Charge maxCharge)
 {
-  const CfFragment& fragment = clusterer.mPmemory->fragment;
-  const int32_t totalChargesBaseline = clusterer.Param().rec.tpc.maxTimeBinAboveThresholdIn1000Bin * fragment.lengthWithoutOverlap() / 1000;
+  const CfFragment& frag = clusterer.mPmemory->frag;
+  const int32_t totalChargesBaseline = clusterer.Param().rec.tpc.maxTimeBinAboveThresholdIn1000Bin * frag.lengthWithoutOverlap() / 1000;
   const int32_t consecChargesBaseline = clusterer.Param().rec.tpc.maxConsecTimeBinAboveThreshold;
   const uint16_t saturationThreshold = clusterer.Param().rec.tpc.noisyPadSaturationThreshold;
   const bool isNoisy = (!saturationThreshold || maxCharge < saturationThreshold) && ((totalChargesBaseline > 0 && totalCharges >= totalChargesBaseline) || (consecChargesBaseline > 0 && consecCharges >= consecChargesBaseline));
@@ -821,7 +821,7 @@ GPUd() void GPUTPCCFHIPClusterizer::Thread<0>(int32_t nBlocks, int32_t nThreads,
   nTails = CAMath::Min(nTails, (uint32_t)MaxHIPTailsPerRow - 1);
 
   const auto* tails = GetHIPTails(clusterer, row);
-  const auto& fragment = clusterer.mPmemory->fragment;
+  const auto& frag = clusterer.mPmemory->frag;
 
   auto* clusterPosInRow = clusterer.mPhipClusterPosInRow
                             ? clusterer.mPhipClusterPosInRow + row * MaxHIPTailsPerRow
@@ -879,7 +879,7 @@ GPUd() void GPUTPCCFHIPClusterizer::Thread<0>(int32_t nBlocks, int32_t nThreads,
       // Use the middle of the saturated plateau, averaged over all tails of the cluster that were triggered by saturation on their own pad.
       // Computed only here: chains consisting only of tails inherited from neighboring pads have no saturated plateau,
       // but these never contain a saturated charge and are dropped by the qMax cut.
-      const float clusterTime = fragment.start + satTimeSum / nSatTails - clusterer.Param().rec.tpc.clustersShiftTimebinsClusterizer;
+      const float clusterTime = frag.start + satTimeSum / nSatTails - clusterer.Param().rec.tpc.clustersShiftTimebinsClusterizer;
       assert(!CAMath::IsNaN(clusterTime));
       cn.setTimeFlags(clusterTime, 0);
 
