@@ -61,7 +61,7 @@ using namespace o2::gpu;
 using namespace o2::tpc;
 using namespace o2::trd;
 
-GPUChainTracking::GPUChainTracking(GPUReconstruction* rec, uint32_t maxTPCHits, uint32_t maxTRDTracklets) : GPUChain(rec), mIOPtrs(processors()->ioPtrs), mInputsHost(new GPUTrackingInputProvider), mInputsShadow(new GPUTrackingInputProvider), mClusterNativeAccess(new ClusterNativeAccess), mTriggerBuffer(new GPUTriggerOutputs), mMaxTPCHits(maxTPCHits), mMaxTRDTracklets(maxTRDTracklets), mDebugFile(new std::ofstream)
+GPUChainTracking::GPUChainTracking(GPUReconstruction* rec, uint32_t maxTPCHits, uint32_t maxTRDTracklets) : GPUChain(rec), mIOPtrs(processors()->ioPtrs), mInputsHost(new GPUTrackingInputProvider), mInputsShadow(new GPUTrackingInputProvider), mClusterNativeAccess(new ClusterNativeAccess), mTriggerBuffer(new GPUTriggerOutputs), mMaxTPCHits(maxTPCHits), mMaxTRDTracklets(maxTRDTracklets), mDebugFile(new std::ostream(nullptr))
 {
   ClearIOPointers();
   mFlatObjectsShadow.mChainTracking = this;
@@ -386,7 +386,17 @@ int32_t GPUChainTracking::Init()
 
   if (GetProcessingSettings().debugLevel >= 6) {
     std::string filename = std::string(mRec->IsGPU() ? "GPU" : "CPU") + (mRec->slaveId() != -1 ? (std::string("_slave") + std::to_string(mRec->slaveId())) : std::string(mRec->slavesExist() ? "_master" : "")) + GetProcessingSettings().debugLogSuffix + ".out";
-    mDebugFile->open(filename.c_str());
+
+    bool hashOnly = GetProcessingSettings().debugDumpChecksum;
+
+    std::streambuf* backing = nullptr;
+    if (!hashOnly) {
+      mDebugFileBuffer.open(filename.c_str(), std::ios::out);
+      backing = &mDebugFileBuffer;
+    }
+
+    mDebugFileStream = HashStreamBuf(hashOnly, backing);
+    mDebugFile->rdbuf(&mDebugFileStream);
     if (GetProcessingSettings().debugFileHexFloat >= 1 || (GetProcessingSettings().debugFileHexFloat == -1 && GetProcessingSettings().deterministicGPUReconstruction)) {
       *mDebugFile << std::hexfloat;
     }
@@ -475,7 +485,12 @@ int32_t GPUChainTracking::Finalize()
     GetQA()->DrawQAHistograms();
   }
   if (GetProcessingSettings().debugLevel >= 6) {
-    mDebugFile->close();
+    mDebugFile->flush();
+    mDebugFileBuffer.close();
+
+    if (GetProcessingSettings().debugDumpChecksum) {
+      GPUInfo("Debug hash: %s", mDebugFileStream.hash().c_str());
+    }
   }
   if (mCompressionStatistics) {
     mCompressionStatistics->Finish();
