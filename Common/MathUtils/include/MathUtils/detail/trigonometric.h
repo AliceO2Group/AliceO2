@@ -110,7 +110,7 @@ inline void bringToPMPiGen(T& phi)
   phi = toPMPiGen<T>(phi);
 }
 
-#ifdef __OPENCL__ // TODO: get rid of that stupid workaround for OpenCL template address spaces
+#if defined(__OPENCL__) || defined(__METAL__) // TODO: get rid of that stupid workaround for OpenCL template address spaces
 template <typename T, typename S, typename U>
 GPUhdi() void sincos(T ang, S& s, U& c)
 {
