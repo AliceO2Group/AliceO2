@@ -16,7 +16,11 @@
 #define GPUTPCGEOMETRY_H
 
 #include "GPUCommonDef.h"
+#include "GPUCommonMath.h"
 #include "DataFormatsTPC/Constants.h"
+#ifndef GPUCA_GPUCODE_DEVICE
+#include <cmath>
+#endif
 
 namespace o2::gpu
 {
@@ -175,6 +179,8 @@ class GPUTPCGeometry
     const float v = (sector >= NSECTORS / 2) ? -z : z;
     return (250.f - v) * FACTOR_Z2T; // Used in compression, must remain constant at 250cm
   }
+
+  GPUd() static constexpr float kSectAngle() { return 2 * CAMath::Pi() / 18.f; }
 };
 
 } // namespace o2::gpu
