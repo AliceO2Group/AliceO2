@@ -208,7 +208,7 @@ GPUdii() void GPUTPCCFClusterizer::buildCluster(
       labelAcc);
   }
 
-#if defined(GPUCA_GPUCODE)
+#if defined(GPUCA_GPUCODE) && !defined(GPUCA_DEVICE_SINGLE_THREAD)
   CfUtils::condBlockLoad(
     chargeMap,
     wgSizeHalf,

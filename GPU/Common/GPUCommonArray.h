@@ -15,7 +15,7 @@
 #ifndef GPUCOMMONARRAY_H
 #define GPUCOMMONARRAY_H
 
-#if !defined(GPUCA_GPUCODE_DEVICE) || defined(__CUDACC__) || defined(__HIPCC__) // TODO: Get rid of GPUCommonArray once OpenCL supports <array>
+#if !defined(GPUCA_GPUCODE_DEVICE) || defined(__CUDACC__) || defined(__HIPCC__) || defined(__CPUDEVICE__) // TODO: Get rid of GPUCommonArray once OpenCL supports <array>
 #ifndef GPUCA_GPUCODE_COMPILEKERNELS
 #include <array>
 #endif

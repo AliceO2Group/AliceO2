@@ -23,7 +23,7 @@
 
 #define SCRATCH_PAD_SEARCH_N 8 // TODO: Change all this to constexpr where possible, like in GPUDefParametersConstants.h
 #define SCRATCH_PAD_COUNT_N 16
-#if defined(GPUCA_GPUCODE)
+#if defined(GPUCA_GPUCODE) && !defined(GPUCA_DEVICE_SINGLE_THREAD)
 #define SCRATCH_PAD_BUILD_N 8
 #define SCRATCH_PAD_NOISE_N 8
 #else

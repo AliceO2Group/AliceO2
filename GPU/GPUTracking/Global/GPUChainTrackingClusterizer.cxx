@@ -554,7 +554,7 @@ void GPUChainTracking::RunTPCClusterizer_compactPeaks(GPUTPCClusterFinder& clust
 {
   auto& in = stage ? clustererShadow.mPpeakPositions : clustererShadow.mPpositions;
   auto& out = stage ? clustererShadow.mPfilteredPeakPositions : clustererShadow.mPpeakPositions;
-  if (doGPU) {
+  if (doGPU && mRec->getGPUParameters(doGPU).par_CF_SCAN_WORKGROUP_SIZE > 1) { // In case we have only 1 device thread, run the CPU version
     const uint32_t iSector = clusterer.mISector;
     auto& count = stage ? clusterer.mPmemory->counters.nPeaks : clusterer.mPmemory->counters.nPositions;
 
@@ -589,11 +589,14 @@ void GPUChainTracking::RunTPCClusterizer_compactPeaks(GPUTPCClusterFinder& clust
 
     runKernel<GPUTPCCFStreamCompaction, GPUTPCCFStreamCompaction::compactDigits>({GetGrid(count, scanWorkgroupSize, lane), {iSector}}, 1, stage, in, out);
   } else {
-    auto& nOut = stage ? clusterer.mPmemory->counters.nClusters : clusterer.mPmemory->counters.nPeaks;
-    auto& nIn = stage ? clusterer.mPmemory->counters.nPeaks : clusterer.mPmemory->counters.nPositions;
+    if (doGPU) {
+      SynchronizeStream(lane); // doGPU with CF_SCAN_WORKGROUP_SIZE <= 1
+    }
+    auto& nOut = stage ? clustererShadow.mPmemory->counters.nClusters : clustererShadow.mPmemory->counters.nPeaks;
+    auto& nIn = stage ? clustererShadow.mPmemory->counters.nPeaks : clustererShadow.mPmemory->counters.nPositions;
     size_t count = 0;
     for (size_t i = 0; i < nIn; i++) {
-      if (clusterer.mPisPeak[i]) {
+      if (clustererShadow.mPisPeak[i]) {
         out[count++] = in[i];
       }
     }
