@@ -48,7 +48,8 @@ GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUShared
 #ifdef GPUCA_GPUCODE
   const uint32_t endpoint = clusterer.mPzsOffsets[iBlock].endpoint;
 #else
-  const uint32_t endpoint = iBlock;
+  const bool deviceLayout = clusterer.IsDeviceProcessor(); // Host-compiled kernel running with threading as on a device
+  const uint32_t endpoint = deviceLayout ? clusterer.mPzsOffsets[iBlock].endpoint : iBlock;
 #endif
   const GPUTrackingInOutZS::GPUTrackingInOutZSSector& zs = clusterer.GetConstantMem()->ioPtrs.tpcZS->sector[sector];
   if (zs.count[endpoint] == 0) {
@@ -74,9 +75,11 @@ GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUShared
   {
     {
 #else
-  for (uint32_t i = clusterer.mMinMaxCN[endpoint].zsPtrFirst; i < clusterer.mMinMaxCN[endpoint].zsPtrLast; i++) {
-    const uint32_t minJ = (i == clusterer.mMinMaxCN[endpoint].zsPtrFirst) ? clusterer.mMinMaxCN[endpoint].zsPageFirst : 0;
-    const uint32_t maxJ = (i + 1 == clusterer.mMinMaxCN[endpoint].zsPtrLast) ? clusterer.mMinMaxCN[endpoint].zsPageLast : zs.nZSPtr[endpoint][i];
+  const uint32_t iFirst = deviceLayout ? 0 : clusterer.mMinMaxCN[endpoint].zsPtrFirst;
+  const uint32_t iLast = deviceLayout ? 1 : clusterer.mMinMaxCN[endpoint].zsPtrLast;
+  for (uint32_t i = iFirst; i < iLast; i++) {
+    const uint32_t minJ = deviceLayout ? clusterer.mPzsOffsets[iBlock].num : ((i == iFirst) ? clusterer.mMinMaxCN[endpoint].zsPageFirst : 0);
+    const uint32_t maxJ = deviceLayout ? (minJ + 1) : ((i + 1 == iLast) ? clusterer.mMinMaxCN[endpoint].zsPageLast : zs.nZSPtr[endpoint][i]);
     for (uint32_t j = minJ; j < maxJ; j++) {
 #endif
       const uint32_t* pageSrc = (const uint32_t*)(((const uint8_t*)zs.zsPtr[endpoint][i]) + j * TPCZSHDR::TPC_ZS_PAGE_SIZE);
@@ -370,7 +373,8 @@ GPUd() void GPUTPCCFDecodeZSLinkBase::Decode(int32_t nBlocks, int32_t nThreads, 
 #ifdef GPUCA_GPUCODE
   const uint32_t endpoint = clusterer.mPzsOffsets[iBlock].endpoint;
 #else // CPU
-  const uint32_t endpoint = iBlock;
+  const bool deviceLayout = clusterer.IsDeviceProcessor(); // Host-compiled kernel running as device kernel (CPUDevice backend): GPU work distribution, one block per page
+  const uint32_t endpoint = deviceLayout ? clusterer.mPzsOffsets[iBlock].endpoint : iBlock;
 #endif
 
   const GPUTrackingInOutZS::GPUTrackingInOutZSSector& zs = clusterer.GetConstantMem()->ioPtrs.tpcZS->sector[sector];
@@ -386,9 +390,11 @@ GPUd() void GPUTPCCFDecodeZSLinkBase::Decode(int32_t nBlocks, int32_t nThreads, 
   {
     {
 #else // CPU
-  for (uint32_t i = clusterer.mMinMaxCN[endpoint].zsPtrFirst; i < clusterer.mMinMaxCN[endpoint].zsPtrLast; i++) {
-    const uint32_t minJ = (i == clusterer.mMinMaxCN[endpoint].zsPtrFirst) ? clusterer.mMinMaxCN[endpoint].zsPageFirst : 0;
-    const uint32_t maxJ = (i + 1 == clusterer.mMinMaxCN[endpoint].zsPtrLast) ? clusterer.mMinMaxCN[endpoint].zsPageLast : zs.nZSPtr[endpoint][i];
+  const uint32_t iFirst = deviceLayout ? 0 : clusterer.mMinMaxCN[endpoint].zsPtrFirst;
+  const uint32_t iLast = deviceLayout ? 1 : clusterer.mMinMaxCN[endpoint].zsPtrLast;
+  for (uint32_t i = iFirst; i < iLast; i++) {
+    const uint32_t minJ = deviceLayout ? clusterer.mPzsOffsets[iBlock].num : ((i == iFirst) ? clusterer.mMinMaxCN[endpoint].zsPageFirst : 0);
+    const uint32_t maxJ = deviceLayout ? (minJ + 1) : ((i + 1 == iLast) ? clusterer.mMinMaxCN[endpoint].zsPageLast : zs.nZSPtr[endpoint][i]);
     for (uint32_t j = minJ; j < maxJ; j++) {
 #endif
       const uint32_t* pageSrc = (const uint32_t*)(((const uint8_t*)zs.zsPtr[endpoint][i]) + j * TPCZSHDR::TPC_ZS_PAGE_SIZE);
