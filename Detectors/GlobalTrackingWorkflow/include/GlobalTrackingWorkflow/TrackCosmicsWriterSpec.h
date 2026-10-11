@@ -27,6 +27,9 @@ namespace globaltracking
 /// write cosmics tracks to a root file
 framework::DataProcessorSpec getTrackCosmicsWriterSpec(bool useMC);
 
+/// write cosmics with their raw clusters (cosmics-cluster-collector output) to a root file
+framework::DataProcessorSpec getCosmicsFullWriterSpec();
+
 } // namespace globaltracking
 } // namespace o2
 
