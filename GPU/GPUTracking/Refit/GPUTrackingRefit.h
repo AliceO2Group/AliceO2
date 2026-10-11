@@ -73,15 +73,16 @@ class GPUTrackingRefit
     const o2::tpc::TrackTPCClusRef& clusRef;
     float time0;
     float* chi2;
+    int32_t eLossSign = 0; // energy-loss sign of the TrackParCov propagations: 0 along the track parameters (loss forward), +1 gain, -1 loss
   };
   GPUd() int32_t RefitTrackAsGPU(o2::track::TrackParCov& trk, const o2::tpc::TrackTPCClusRef& clusRef, float time0, float* chi2 = nullptr, bool outward = false, bool resetCov = false)
   {
     TrackParCovWithArgs x{trk, clusRef, time0, chi2};
     return RefitTrack<TrackParCovWithArgs, GPUTPCGMTrackParam>(x, outward, resetCov);
   }
-  GPUd() int32_t RefitTrackAsTrackParCov(o2::track::TrackParCov& trk, const o2::tpc::TrackTPCClusRef& clusRef, float time0, float* chi2 = nullptr, bool outward = false, bool resetCov = false)
+  GPUd() int32_t RefitTrackAsTrackParCov(o2::track::TrackParCov& trk, const o2::tpc::TrackTPCClusRef& clusRef, float time0, float* chi2 = nullptr, bool outward = false, bool resetCov = false, int32_t eLossSign = 0)
   {
-    TrackParCovWithArgs x{trk, clusRef, time0, chi2};
+    TrackParCovWithArgs x{trk, clusRef, time0, chi2, eLossSign};
     return RefitTrack<TrackParCovWithArgs, o2::track::TrackParCov>(x, outward, resetCov);
   }
 

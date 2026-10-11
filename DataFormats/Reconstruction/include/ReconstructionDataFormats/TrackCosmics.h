@@ -30,6 +30,12 @@ class TrackCosmics : public o2::track::TrackParCov
   using timeEst = o2::dataformats::TimeStampWithError<float, float>;
 
  public:
+  enum Flags : uint8_t {
+    NearBeamBottom = 0x1, ///< bottom leg failed the standard seed DCA cuts (close to the beam line, absolutely or within its errors) and
+                          ///< passed only the looser minSeedDCAxyTOF ones (TOF-confirmed pairs only)
+    NearBeamTop = 0x2     ///< the same for the top leg
+  };
+
   TrackCosmics() = default;
   ~TrackCosmics() = default;
   TrackCosmics(const TrackCosmics& src) = default;
@@ -59,6 +65,10 @@ class TrackCosmics : public o2::track::TrackParCov
   int getNClusters() const { return mNClusters; }
   void setNClusters(int n) { mNClusters = n; }
 
+  uint8_t getFlags() const { return mFlags; }
+  void setFlags(uint8_t flags) { mFlags = flags; }
+  bool isNearBeam() const { return mFlags & (NearBeamBottom | NearBeamTop); }
+
   o2::track::TrackParCov& getParamOut() { return mParamOut; }
   const o2::track::TrackParCov& getParamOut() const { return mParamOut; }
 
@@ -72,8 +82,9 @@ class TrackCosmics : public o2::track::TrackParCov
   int mNClusters = 0;               ///< total number of fitted clusters
   timeEst mTimeMUS;                 ///< time estimate in ns
   o2::track::TrackParCov mParamOut; ///< refitted outer parameter
+  uint8_t mFlags = 0;               ///< Flags: NearBeamBottom, NearBeamTop
 
-  ClassDefNV(TrackCosmics, 1);
+  ClassDefNV(TrackCosmics, 2);
 };
 } // namespace dataformats
 } // namespace o2
