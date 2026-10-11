@@ -640,6 +640,7 @@ GPUd() void GPUTPCGMMerger::UnpackSectorGlobal(int32_t nBlocks, int32_t nThreads
     SetTrackClusterT(track, iSector, sectorTr);
     track.Set(this, sectorTr, alpha, iSector);
     track.SetGlobalSectorTrackCov();
+    track.SetX2(0.f);
     track.SetPrevNeighbour(-1);
     track.SetNextNeighbour(-1);
     track.SetNextSegmentNeighbour(-1);
