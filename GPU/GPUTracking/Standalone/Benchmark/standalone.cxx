@@ -99,6 +99,12 @@ int32_t ReadConfiguration(int argc, char** argv)
     }
     return 1;
   }
+  if (configStandalone.listRecoSteps) {
+    printf("RecoSteps (bitmask for --recoSteps / --recoStepsGPU):\n");
+    for (int32_t i = 0; i < gpudatatypes::N_RECO_STEPS; i++) {
+      printf("%10d (0x%04x): %s\n", 1 << i, 1 << i, gpudatatypes::RECO_STEP_NAMES[i]);
+    }
+  }
   if (configStandalone.printSettings > 1) {
     printf("Config Dump before ReadConfiguration\n");
     qConfigPrint();
@@ -216,7 +222,7 @@ int32_t ReadConfiguration(int argc, char** argv)
     configStandalone.proc.outputSharedClusterMap = true;
   }
   if (configStandalone.eventDisplay) {
-    configStandalone.noprompt = 1;
+    configStandalone.promptOnExit = 0;
   }
   if (configStandalone.proc.debugLevel >= 4) {
     if (configStandalone.proc.inKernelParallel) {
@@ -728,7 +734,7 @@ int32_t RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingU
 
     if (tmpRetVal == GPUReconstruction::retValValue::retDoExit) {
       configStandalone.continueOnError = 0; // Forced exit from event display loop
-      configStandalone.noprompt = 1;
+      configStandalone.promptOnExit = 0;
     }
     if (tmpRetVal == GPUReconstruction::retValValue::retNonFatalErrorCode && configStandalone.proc.ignoreNonFatalGPUErrors) {
       printf("GPU Standalone Benchmark: Non-FATAL GPU error occured, ignoring\n");
@@ -1014,7 +1020,7 @@ breakrun:
   }
   rec->Exit();
 
-  if (!configStandalone.noprompt) {
+  if (configStandalone.promptOnExit) {
     printf("Press a key to exit!\n");
     getchar();
   }
