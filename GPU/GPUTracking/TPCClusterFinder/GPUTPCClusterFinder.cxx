@@ -161,6 +161,9 @@ uint32_t GPUTPCClusterFinder::getNSteps(size_t items) const
   }
   uint32_t c = 1;
   const size_t scanWorkgroupSize = mRec->getGPUParameters(mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCClusterFinding).par_CF_SCAN_WORKGROUP_SIZE;
+  if (scanWorkgroupSize <= 1) {
+    return 1;
+  }
   size_t capacity = scanWorkgroupSize;
   while (items > capacity) {
     capacity *= scanWorkgroupSize;
