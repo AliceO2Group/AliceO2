@@ -230,7 +230,7 @@ GPUd() void GPUTPCCFCheckPadBaseline::Thread<0>(int32_t nBlocks, int32_t nThread
 // Blocks require `nextMultipleOf<64>(138 * 4) = 576` threads to process the largest TPC rows with 138 pads correctly.
 GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineGPU(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer)
 {
-#ifdef GPUCA_GPUCODE
+#if defined(GPUCA_GPUCODE) && !defined(GPUCA_DEVICE_SINGLE_THREAD) // Needs 576 threads per block, CPUDevice RTC uses the host-compiled kernel
   static_assert(GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFCheckPadBaseline) == 576);
   if (iBlock >= (int32_t)GPUTPCGeometry::NROWS) {
     return;

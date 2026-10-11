@@ -177,7 +177,7 @@ class CfUtils
     const CfChargePos* posBcast,
     GPUgeneric() T* buf)
   {
-#if defined(GPUCA_GPUCODE)
+#if defined(GPUCA_GPUCODE) && !defined(GPUCA_DEVICE_SINGLE_THREAD) // Cooperative load by the threads of the block
     GPUbarrier();
     uint16_t x = ll % N;
     uint16_t y = ll / N;
@@ -222,7 +222,7 @@ class CfUtils
     const uint8_t* aboveThreshold,
     GPUgeneric() T* buf)
   {
-#if defined(GPUCA_GPUCODE)
+#if defined(GPUCA_GPUCODE) && !defined(GPUCA_DEVICE_SINGLE_THREAD) // Cooperative load by the threads of the block
     GPUbarrier();
     uint16_t y = ll / N;
     uint16_t x = ll % N;

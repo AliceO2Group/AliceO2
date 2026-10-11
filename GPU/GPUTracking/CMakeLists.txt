@@ -434,6 +434,10 @@ install(DIRECTORY utils
 
 set(GPUCA_COMPILER_VERSIONS "CUDA ${CMAKE_CUDA_COMPILER_VERSION} HIP ${hip_VERSION} ${CMAKE_HIP_COMPILER_VERSION} ROCM ${CMAKE_HIP_COMPILER_ROCM_ROOT} LLVM ${LLVM_PACKAGE_VERSION}")
 
+if(ENABLE_CPUDEVICE)
+  set(CPUDEVICE_ENABLED ON)
+endif()
+
 # GPUReconstructionLibrary needs to know which GPU backends are enabled for proper error messages
 configure_file(Base/GPUReconstructionAvailableBackends.template.h ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionAvailableBackends.h)
 set_source_files_properties(Base/GPUReconstructionLibrary.cxx
@@ -497,6 +501,9 @@ elseif(CUDA_ENABLED OR OPENCL_ENABLED OR HIP_ENABLED)
   if(HIP_ENABLED)
     add_subdirectory(Base/hip)
   endif()
+endif()
+if(CPUDEVICE_ENABLED)
+  add_subdirectory(Base/cpudevice)
 endif()
 
 if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR ALIGPU_BUILD_TYPE STREQUAL "Standalone")

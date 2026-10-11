@@ -236,7 +236,7 @@ GPUdi() constexpr T GPUCommonMath::nextMultipleOf(T val)
 
 GPUdi() float2 GPUCommonMath::MakeFloat2(float x, float y)
 {
-#if !defined(GPUCA_GPUCODE) || defined(__OPENCL__) || defined(__OPENCL_HOST__) || defined(__METAL__) || defined(__METAL_HOST__)
+#if !defined(GPUCA_GPUCODE) || defined(__OPENCL__) || defined(__OPENCL_HOST__) || defined(__METAL__) || defined(__METAL_HOST__) || defined(__CPUDEVICE__)
   float2 ret = {x, y};
   return ret;
 #else

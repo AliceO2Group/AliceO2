@@ -263,7 +263,7 @@ GPUd() void GPUTPCCFNoiseSuppression::findMinimaAndPeaks(
       bigger);
   }
 
-#if defined(GPUCA_GPUCODE)
+#if defined(GPUCA_GPUCODE) && !defined(GPUCA_DEVICE_SINGLE_THREAD)
   CfUtils::blockLoad(
     chargeMap,
     wgSizeHalf,

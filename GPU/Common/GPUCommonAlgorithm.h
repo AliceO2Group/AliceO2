@@ -17,8 +17,10 @@
 
 #include "GPUCommonDef.h"
 
-#if !defined(GPUCA_GPUCODE) // Could also enable custom search on the CPU, but it is not always faster, so we stick to std::sort
+#if !defined(GPUCA_GPUCODE) || defined(__CPUDEVICE__) // Could also enable custom search on the CPU, but it is not always faster, so we stick to std::sort
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <algorithm>
+#endif
 #define GPUCA_ALGORITHM_STD
 #endif
 
@@ -286,7 +288,7 @@ GPUdi() void GPUCommonAlgorithm::sortInBlock(T* begin, T* end GPUCA_THREAD_INFO_
 template <class T, class S>
 GPUdi() void GPUCommonAlgorithm::sortInBlock(T* begin, T* end, const S& comp GPUCA_THREAD_INFO_DECL)
 {
-#ifndef GPUCA_GPUCODE
+#if !defined(GPUCA_GPUCODE) || defined(GPUCA_DEVICE_SINGLE_THREAD)
   GPUCommonAlgorithm::sort(begin, end, comp);
 #elif defined(GPUCA_DETERMINISTIC_MODE) // Cannot use GPUCA_DETERMINISTIC_CODE macro here, which is enforced in TPC compression
   if (get_local_id(0) == 0) {
