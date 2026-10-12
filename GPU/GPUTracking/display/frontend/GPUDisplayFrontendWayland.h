@@ -48,8 +48,6 @@ class GPUDisplayFrontendWayland : public GPUDisplayFrontend
  private:
   int32_t FrontendMain() override;
   int32_t GetKey(uint32_t key, uint32_t state);
-  void createBuffer(uint32_t width, uint32_t height);
-  void recreateBuffer(uint32_t width, uint32_t height);
 
   pthread_mutex_t mSemLockExit = PTHREAD_MUTEX_INITIALIZER;
 
@@ -61,7 +59,6 @@ class GPUDisplayFrontendWayland : public GPUDisplayFrontend
   wl_pointer* mPointer = nullptr;
   wl_keyboard* mKeyboard = nullptr;
   xdg_wm_base* mXdgBase = nullptr;
-  wl_shm* mShm = nullptr;
 
   wl_surface* mSurface = nullptr;
   xdg_surface* mXdgSurface = nullptr;
@@ -69,9 +66,6 @@ class GPUDisplayFrontendWayland : public GPUDisplayFrontend
 
   wl_output* mOutput = nullptr;
 
-  int32_t mFd = 0;
-  wl_shm_pool* mPool;
-  wl_buffer* mBuffer;
 
   xkb_context* mXKBcontext = nullptr;
   xkb_keymap* mXKBkeymap = nullptr;

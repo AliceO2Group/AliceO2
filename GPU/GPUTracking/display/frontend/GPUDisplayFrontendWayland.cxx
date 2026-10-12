@@ -143,37 +143,6 @@ int32_t GPUDisplayFrontendWayland::GetKey(uint32_t key, uint32_t state)
   return retVal;
 }
 
-void GPUDisplayFrontendWayland::createBuffer(uint32_t width, uint32_t height)
-{
-  const uint32_t stride = width * 4;
-  const uint32_t size = stride * height;
-  if (ftruncate(mFd, size) < 0) {
-    throw std::runtime_error("Error setting waysland shm file size");
-  }
-  void* shm_data = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, mFd, 0);
-  if (shm_data == MAP_FAILED) {
-    throw std::runtime_error("wayland mmap failed");
-  }
-  memset(shm_data, 0, size);
-  munmap(shm_data, size);
-
-  mPool = wl_shm_create_pool(mShm, mFd, size);
-  mBuffer = wl_shm_pool_create_buffer(mPool, 0, width, height, stride, WL_SHM_FORMAT_XRGB8888);
-  mDisplayWidth = width;
-  mDisplayHeight = height;
-  wl_surface_attach(mSurface, mBuffer, 0, 0);
-  wl_surface_commit(mSurface);
-}
-
-void GPUDisplayFrontendWayland::recreateBuffer(uint32_t width, uint32_t height)
-{
-  wl_surface_attach(mSurface, nullptr, 0, 0);
-  wl_surface_commit(mSurface);
-  wl_buffer_destroy(mBuffer);
-  wl_shm_pool_destroy(mPool);
-  createBuffer(width, height);
-}
-
 int32_t GPUDisplayFrontendWayland::FrontendMain()
 {
   if (backend()->backendType() != GPUDisplayBackend::TYPE_VULKAN) {
@@ -193,11 +162,6 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
   mRegistry = wl_display_get_registry(mWayland);
   if (mRegistry == nullptr) {
     throw std::runtime_error("Could not create wayland registry");
-  }
-
-  mFd = memfd_create("/tmp/ca-gpu-display-wayland-memfile", 0);
-  if (mFd < 0) {
-    throw std::runtime_error("Error creating wayland shm segment file descriptor");
   }
 
   auto pointer_enter = [](void* data, wl_pointer* wl_pointer, uint32_t serial, wl_surface* surface, wl_fixed_t surface_x, wl_fixed_t surface_y) {
@@ -309,8 +273,6 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
       // wl_output_add_listener(mOutput, &output_listener, this);
     } else if (strcmp(interface, wl_compositor_interface.name) == 0) {
       mCompositor = (wl_compositor*)wl_registry_bind(registry, name, &wl_compositor_interface, 1);
-    } else if (strcmp(interface, wl_shm_interface.name) == 0) {
-      mShm = (wl_shm*)wl_registry_bind(registry, name, &wl_shm_interface, 1);
     } else if (strcmp(interface, xdg_wm_base_interface.name) == 0) {
       mXdgBase = (xdg_wm_base*)wl_registry_bind(registry, name, &xdg_wm_base_interface, 1);
       xdg_wm_base_add_listener(mXdgBase, &xdg_wm_base_listener, this);
@@ -329,7 +291,7 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
   wl_registry_add_listener(mRegistry, &registry_listener, &registry_global_c);
   wl_display_roundtrip(mWayland);
 
-  if (mCompositor == nullptr || mShm == nullptr || mXdgBase == nullptr || mSeat == nullptr || mOutput == nullptr) {
+  if (mCompositor == nullptr || mXdgBase == nullptr || mSeat == nullptr || mOutput == nullptr) {
     throw std::runtime_error("Error getting wayland objects");
   }
 
@@ -356,10 +318,12 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
     GPUDisplayFrontendWayland* me = (GPUDisplayFrontendWayland*)data;
     xdg_surface_ack_configure(me->mXdgSurface, serial);
     if (me->mWidthRequested && me->mHeightRequested && (me->mWidthRequested != me->mDisplayWidth || me->mHeightRequested != me->mDisplayHeight)) {
-      me->recreateBuffer(me->mWidthRequested, me->mHeightRequested);
-      me->ResizeScene(me->mDisplayWidth, me->mDisplayHeight);
-    } else {
-      wl_surface_commit(((GPUDisplayFrontendWayland*)data)->mSurface);
+      if (me->mDisplayRunning) {
+        me->ResizeScene(me->mWidthRequested, me->mHeightRequested); // Swapchain is recreated by the backend, Vulkan WSI commits the new buffer
+      } else {
+        me->mDisplayWidth = me->mWidthRequested; // Initial size, used by InitDisplay via getSize()
+        me->mDisplayHeight = me->mHeightRequested;
+      }
     }
     me->mWidthRequested = me->mHeightRequested = 0;
   };
@@ -389,10 +353,8 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
     printf("Enabling decoration\n");
   }
 
-  wl_surface_commit(mSurface);
+  wl_surface_commit(mSurface); // Initial commit without buffer, the compositor answers with the first configure
   wl_display_roundtrip(mWayland);
-
-  createBuffer(INIT_WIDTH, INIT_HEIGHT);
 
   if (InitDisplay()) {
     return (1);
@@ -421,7 +383,6 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
     HandleSendKeys();
     DrawGLScene();
     waitForFPSLimit();
-    wl_surface_damage(mSurface, 0, 0, mDisplayWidth, mDisplayHeight);
   }
 
   ExitDisplay();
@@ -448,11 +409,8 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
   xdg_toplevel_destroy(mXdgToplevel);
   xdg_surface_destroy(mXdgSurface);
   wl_surface_destroy(mSurface);
-  wl_buffer_destroy(mBuffer);
-  wl_shm_pool_destroy(mPool);
   wl_registry_destroy(mRegistry);
   wl_display_disconnect(mWayland);
-  close(mFd);
 
   return (0);
 }
