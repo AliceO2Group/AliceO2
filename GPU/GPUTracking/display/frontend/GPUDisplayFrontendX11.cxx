@@ -21,7 +21,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <stdexcept>
-#include <chrono>
 
 #include <unistd.h>
 
@@ -311,7 +310,6 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
 
   XMapWindow(mDisplay, mWindow);
   XFlush(mDisplay);
-  int32_t x11_fd = ConnectionNumber(mDisplay);
 
   // Enable vsync
   if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL && vsync_supported) {
@@ -331,36 +329,7 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
   mDisplayRunning = true;
   pthread_mutex_unlock(&mSemLockExit);
 
-  std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
   while (1) {
-    int32_t num_ready_fds;
-    struct timeval tv;
-    fd_set in_fds;
-    int32_t waitCount = 0;
-    do {
-      FD_ZERO(&in_fds);
-      FD_SET(x11_fd, &in_fds);
-      tv.tv_usec = 10000;
-      tv.tv_sec = 0;
-      std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
-      bool allowMax = mMaxFPSRate && std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count() < 0.01;
-      t1 = t2;
-      num_ready_fds = allowMax || XPending(mDisplay) || select(x11_fd + 1, &in_fds, nullptr, nullptr, &tv);
-      if (num_ready_fds < 0) {
-        GPUError("Error (num_ready_fds)");
-      }
-      if (mDisplayControl == 2) {
-        break;
-      }
-      if (mSendKey) {
-        mNeedUpdate = 1;
-      }
-      if (waitCount++ != 100) {
-        mNeedUpdate = 1;
-      }
-    } while (!(num_ready_fds || mNeedUpdate));
-    mNeedUpdate = 0;
-
     do {
       if (mDisplayControl == 2) {
         break;
@@ -450,6 +419,7 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
     if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
       glXSwapBuffers(mDisplay, mWindow);
     }
+    waitForFPSLimit();
   }
 
 #ifndef GPUCA_DISPLAY_OPENGL_CORE
@@ -480,9 +450,6 @@ void GPUDisplayFrontendX11::DisplayExit()
     mDisplayControl = 2;
   }
   pthread_mutex_unlock(&mSemLockExit);
-  while (mDisplayRunning) {
-    usleep(10000);
-  }
 }
 
 void GPUDisplayFrontendX11::SwitchFullscreen(bool set)

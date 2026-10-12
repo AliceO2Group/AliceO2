@@ -18,6 +18,7 @@
 #include "GPUCommonDef.h"
 #include "GPUDisplayInterface.h"
 #include <memory>
+#include <chrono>
 
 namespace o2::gpu
 {
@@ -49,7 +50,8 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   static constexpr int32_t GL_MIN_VERSION_MINOR = 5;
 
   int32_t StartDisplay();                                                                                                    // Start the display. This function returns, and should spawn a thread that runs the display, and calls InitDisplay
-  void DisplayExit() override = 0;                                                                                           // Stop the display. Display thread should call ExitDisplay and the function returns after the thread has terminated
+  void DisplayExit() override = 0;                                                                                           // Stop the display. Display thread should call ExitDisplay and then wait that IsRunning() returns false
+  bool IsRunning() const override { return mDisplayRunning; }
   virtual void SwitchFullscreen(bool set) = 0;                                                                               // Toggle full-screen mode
   virtual void ToggleMaximized(bool set) = 0;                                                                                // Maximize window
   virtual void SetVSync(bool enable) = 0;                                                                                    // Enable / disable vsync
@@ -63,10 +65,8 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
 
   int32_t getDisplayControl() const override { return mDisplayControl; }
   int32_t getSendKey() const override { return mSendKey; }
-  int32_t getNeedUpdate() const override { return mNeedUpdate; }
   void setDisplayControl(int32_t v) override { mDisplayControl = v; }
   void setSendKey(int32_t v) override { mSendKey = v; }
-  void setNeedUpdate(int32_t v) override { mNeedUpdate = v; }
 
   frontendTypes frontendType() const { return mFrontendType; }
   const char* frontendName() const override { return mFrontendName; }
@@ -83,6 +83,7 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
  protected:
   virtual int32_t FrontendMain() = 0;
   static void* FrontendThreadWrapper(void*);
+  void waitForFPSLimit(); // Sleep until the next frame is due according to fpsRate (no sleep with maxFPSRate or fpsRate <= 0)
 
   static constexpr int32_t INIT_WIDTH = 1024, INIT_HEIGHT = 768;                        // Initial window size, before maximizing
   static constexpr const char* DISPLAY_WINDOW_NAME = "GPU CA Standalone Event Display"; // Title of event display set by backend
@@ -129,13 +130,14 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   int32_t mDisplayWidth = INIT_WIDTH;
   int32_t mCanDrawText = 0; // 1 = in compat mode, 2 = with shader
 
-  int32_t mMaxFPSRate = 0; // run at highest possible frame rate, do not sleep in between frames
+  std::chrono::steady_clock::time_point mNextFrameTime;
 
   GPUDisplay* mDisplay = nullptr;        // Ptr to display, not owning, set by display when it connects to backend
   GPUDisplayBackend* mBackend = nullptr; // Ptr to backend, not owning
 
   frontendTypes mFrontendType = TYPE_INVALID;
   const char* mFrontendName = nullptr;
+  volatile bool mDisplayRunning = false;
 
   std::unique_ptr<GPUDisplayGUIWrapper> mGUI;
 

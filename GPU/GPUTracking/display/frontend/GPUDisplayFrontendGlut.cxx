@@ -32,10 +32,11 @@ GPUDisplayFrontendGlut::GPUDisplayFrontendGlut()
   mFrontendName = "GLUT";
 }
 
-void GPUDisplayFrontendGlut::displayFunc()
+void GPUDisplayFrontendGlut::displayFunc() // TODO: Functions should be lambdas, to get rid of the static me variable!
 {
   me->DrawGLScene();
   glutSwapBuffers();
+  me->waitForFPSLimit();
 }
 
 void GPUDisplayFrontendGlut::glutLoopFunc()
@@ -261,12 +262,12 @@ int32_t GPUDisplayFrontendGlut::FrontendMain()
   ToggleMaximized(true);
 
   pthread_mutex_lock(&mSemLockExit);
-  mGlutRunning = true;
+  mDisplayRunning = true;
   pthread_mutex_unlock(&mSemLockExit);
   glutMainLoop();
   mDisplayControl = 2;
   pthread_mutex_lock(&mSemLockExit);
-  mGlutRunning = false;
+  mDisplayRunning = false;
   pthread_mutex_unlock(&mSemLockExit);
 
   ExitDisplay();
@@ -276,13 +277,10 @@ int32_t GPUDisplayFrontendGlut::FrontendMain()
 void GPUDisplayFrontendGlut::DisplayExit()
 {
   pthread_mutex_lock(&mSemLockExit);
-  if (mGlutRunning) {
+  if (mDisplayRunning) {
     glutLeaveMainLoop();
   }
   pthread_mutex_unlock(&mSemLockExit);
-  while (mGlutRunning) {
-    usleep(10000);
-  }
 }
 
 void GPUDisplayFrontendGlut::OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton)

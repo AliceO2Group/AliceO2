@@ -282,7 +282,7 @@ int32_t GPUDisplayFrontendGlfw::FrontendMain()
   }
 
   pthread_mutex_lock(&mSemLockExit);
-  mGlfwRunning = true;
+  mDisplayRunning = true;
   pthread_mutex_unlock(&mSemLockExit);
 
   if (mBackend->ExtInit()) {
@@ -304,6 +304,7 @@ int32_t GPUDisplayFrontendGlfw::FrontendMain()
     if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
       glfwSwapBuffers(mWindow);
     }
+    waitForFPSLimit();
     glfwPollEvents();
   }
 
@@ -312,7 +313,7 @@ int32_t GPUDisplayFrontendGlfw::FrontendMain()
   pthread_mutex_lock(&mSemLockExit);
   glfwDestroyWindow(mWindow);
   glfwTerminate();
-  mGlfwRunning = false;
+  mDisplayRunning = false;
   pthread_mutex_unlock(&mSemLockExit);
 
   return 0;
@@ -321,13 +322,10 @@ int32_t GPUDisplayFrontendGlfw::FrontendMain()
 void GPUDisplayFrontendGlfw::DisplayExit()
 {
   pthread_mutex_lock(&mSemLockExit);
-  if (mGlfwRunning) {
+  if (mDisplayRunning) {
     glfwSetWindowShouldClose(mWindow, true);
   }
   pthread_mutex_unlock(&mSemLockExit);
-  while (mGlfwRunning) {
-    usleep(10000);
-  }
 }
 
 void GPUDisplayFrontendGlfw::OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton)

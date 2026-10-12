@@ -45,7 +45,6 @@ class GPUDisplayFrontendX11 : public GPUDisplayFrontend
   void GetKey(XEvent& event, int32_t& keyOut, int32_t& keyPressOut);
 
   pthread_mutex_t mSemLockExit = PTHREAD_MUTEX_INITIALIZER;
-  volatile bool mDisplayRunning = false;
 
   GLuint mFontBase;
 

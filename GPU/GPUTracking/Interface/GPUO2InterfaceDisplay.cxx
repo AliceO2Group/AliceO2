@@ -74,6 +74,9 @@ int32_t GPUO2InterfaceDisplay::show(const GPUTrackingInOutPointers* ptrs)
 int32_t GPUO2InterfaceDisplay::endDisplay()
 {
   mFrontend->DisplayExit();
+  while (mFrontend->IsRunning()) {
+    usleep(10000);
+  }
   return 0;
 }
 

@@ -31,6 +31,7 @@
 
 #include <unistd.h>
 #include <fcntl.h>
+#include <poll.h>
 #include <sys/mman.h>
 #include <wayland-client.h>
 #include "xdg-shell-client-protocol.h"
@@ -397,11 +398,26 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
     return (1);
   }
 
-  while (wl_display_dispatch(mWayland) != -1 && mDisplayControl != 2) {
+  while (mDisplayControl != 2) {
+    while (wl_display_prepare_read(mWayland) != 0) {
+      wl_display_dispatch_pending(mWayland);
+    }
+    wl_display_flush(mWayland);
+    pollfd pfd = {wl_display_get_fd(mWayland), POLLIN, 0};
+    if (poll(&pfd, 1, 0) > 0) {
+      if (wl_display_read_events(mWayland) == -1) {
+        break;
+      }
+    } else {
+      wl_display_cancel_read(mWayland);
+    }
+    if (wl_display_dispatch_pending(mWayland) == -1 || mDisplayControl == 2) {
+      break;
+    }
     HandleSendKey();
     DrawGLScene();
+    waitForFPSLimit();
     wl_surface_damage(mSurface, 0, 0, mDisplayWidth, mDisplayHeight);
-    usleep(10000);
   }
 
   ExitDisplay();
@@ -448,9 +464,6 @@ void GPUDisplayFrontendWayland::DisplayExit()
     mDisplayControl = 2;
   }
   pthread_mutex_unlock(&mSemLockExit);
-  while (mDisplayRunning) {
-    usleep(10000);
-  }
 }
 
 void GPUDisplayFrontendWayland::SwitchFullscreen(bool set)
