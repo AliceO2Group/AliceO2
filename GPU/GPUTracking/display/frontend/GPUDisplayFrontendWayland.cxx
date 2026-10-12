@@ -510,8 +510,9 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
   xdg_toplevel_add_listener(mXdgToplevel, &mXdgToplevelListener, this);
 
   xdg_toplevel_set_title(mXdgToplevel, DISPLAY_WINDOW_NAME);
-  xdg_toplevel_set_app_id(mXdgToplevel, "o2-gpu-event-display"); // Used by the compositor for window grouping, window rules, and matching a .desktop file
-  applyInitialWindowState();                                     // Must be requested before the first commit
+  xdg_toplevel_set_min_size(mXdgToplevel, MIN_WIDTH, MIN_HEIGHT); // Logical size, avoids degenerate swapchains / projections
+  xdg_toplevel_set_app_id(mXdgToplevel, "o2-gpu-event-display");  // Used by the compositor for window grouping, window rules, and matching a .desktop file
+  applyInitialWindowState();                                      // Must be requested before the first commit
 
   if (mDecManager) { // Must be requested before the first commit. Without the protocol (e.g. GNOME), the window has no decorations
     mXdgDecoration = zxdg_decoration_manager_v1_get_toplevel_decoration(mDecManager, mXdgToplevel);

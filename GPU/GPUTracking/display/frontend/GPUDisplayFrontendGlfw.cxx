@@ -291,6 +291,7 @@ int32_t GPUDisplayFrontendGlfw::FrontendMain()
   glfwSetWindowSizeCallback(mWindow, resize_callback);
   glfwSetWindowMaximizeCallback(mWindow, maximize_callback);
   glfwSetWindowFocusCallback(mWindow, focus_callback);
+  glfwSetWindowSizeLimits(mWindow, MIN_WIDTH, MIN_HEIGHT, GLFW_DONT_CARE, GLFW_DONT_CARE);
   applyInitialWindowState();
   if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
     glfwSwapInterval(1);

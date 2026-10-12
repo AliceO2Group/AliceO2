@@ -267,6 +267,11 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
   mWindow = XCreateWindow(mXDisplay, win, 50, 50, INIT_WIDTH, INIT_HEIGHT, // Position / Width and height of window
                           0, visualInfo->depth, InputOutput, visualInfo->visual, CWBorderPixel | CWColormap | CWEventMask, &windowAttributes);
   XSetStandardProperties(mXDisplay, mWindow, DISPLAY_WINDOW_NAME, DISPLAY_WINDOW_NAME, None, nullptr, 0, nullptr);
+  XSizeHints sizeHints{};
+  sizeHints.flags = PMinSize;
+  sizeHints.min_width = MIN_WIDTH;
+  sizeHints.min_height = MIN_HEIGHT;
+  XSetWMNormalHints(mXDisplay, mWindow, &sizeHints);
   if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
     glXMakeCurrent(mXDisplay, mWindow, glxContext);
   }
