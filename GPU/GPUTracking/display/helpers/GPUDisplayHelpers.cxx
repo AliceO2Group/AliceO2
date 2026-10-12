@@ -99,6 +99,7 @@ void GPUDisplay::DoScreenshot(const char* filename, std::vector<char>& pixels, f
 
 void GPUDisplay::showInfo(const char* info)
 {
+  mBackend->updateFontScale(mFrontend->getDisplayScale());
   mBackend->prepareText();
   float colorValue = mCfgL.invertColors ? 0.f : 1.f;
   OpenGLPrint(info, 40.f, 20.f + std::max(20, mDrawTextFontSize + 4), colorValue, colorValue, colorValue, 1);
@@ -129,7 +130,7 @@ void GPUDisplay::OpenGLPrint(const char* s, float x, float y, float r, float g, 
       y = mBackend->mScreenHeight - y;
     }
     float color[4] = {r, g, b, a};
-    mBackend->OpenGLPrint(s, x, y, color, scale);
+    mBackend->OpenGLPrint(s, x, y, color, scale / mBackend->mFontRasterScale);
   } else if (mFrontend->mCanDrawText) {
     mFrontend->OpenGLPrint(s, x, y, r, g, b, a, fromBotton);
   }

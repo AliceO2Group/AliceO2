@@ -71,6 +71,7 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
 
   void addFontSymbol(int32_t symbol, int32_t sizex, int32_t sizey, int32_t offsetx, int32_t offsety, int32_t advance, void* data) override;
   void initializeTextDrawing() override;
+  void clearFontSymbols() override;
   void OpenGLPrint(const char* s, float x, float y, float* color, float scale) override;
 
   struct FontSymbolOpenGL : public FontSymbol {

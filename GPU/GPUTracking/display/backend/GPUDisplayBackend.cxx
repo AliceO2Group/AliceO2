@@ -66,9 +66,23 @@ int32_t GPUDisplayBackend::InitBackend()
   if (retVal) {
     return retVal;
   }
-  if (mDisplay->cfg().noFreetype) {
-    return retVal;
+  if (!mDisplay->cfg().noFreetype) {
+    loadFont();
   }
+  return retVal;
+}
+
+void GPUDisplayBackend::updateFontScale(float scale)
+{
+  if (mFreetypeInitialized && scale != mFontRasterScale) {
+    clearFontSymbols();
+    mFreetypeInitialized = false;
+    loadFont();
+  }
+}
+
+void GPUDisplayBackend::loadFont()
+{
   std::string fontName = mDisplay->cfg().font;
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_FONTCONFIG
   FcInit();
@@ -97,11 +111,11 @@ int32_t GPUDisplayBackend::InitBackend()
   FT_Face face;
   if (FT_Init_FreeType(&ft)) {
     GPUError("Error initializing freetype");
-    return 0;
+    return;
   }
   if (FT_New_Face(ft, fontName.c_str(), 0, &face)) {
     GPUError("Error loading freetypoe font");
-    return 0;
+    return;
   }
 
   int32_t fontSize = mDisplay->cfg().fontSize;
@@ -109,12 +123,13 @@ int32_t GPUDisplayBackend::InitBackend()
   if (smoothFont()) {
     fontSize *= 4; // Font size scaled by 4, can be downsampled
   }
-  FT_Set_Pixel_Sizes(face, 0, fontSize);
+  mFontRasterScale = mDisplay->frontend()->getDisplayScale();
+  FT_Set_Pixel_Sizes(face, 0, (uint32_t)(fontSize * mFontRasterScale + 0.5f)); // Rasterize at physical pixel size for HiDPI
 
   for (uint32_t i = 0; i < 128; i++) {
     if (FT_Load_Char(face, i, FT_LOAD_RENDER)) {
       GPUError("Error loading freetype symbol");
-      return 0;
+      return;
     }
     const auto& glyph = face->glyph;
     addFontSymbol(i, glyph->bitmap.width, glyph->bitmap.rows, glyph->bitmap_left, glyph->bitmap_top, glyph->advance.x, glyph->bitmap.buffer);
@@ -124,7 +139,6 @@ int32_t GPUDisplayBackend::InitBackend()
   FT_Done_FreeType(ft);
   mFreetypeInitialized = true;
 #endif // GPUCA_BUILD_EVENT_DISPLAY_FREETYPE
-  return retVal;
 }
 
 void GPUDisplayBackend::ExitBackend()
