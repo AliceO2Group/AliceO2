@@ -154,6 +154,17 @@ Variant::Variant(VariantType type) : mType{type}
   // by creating a default stored object upfront
   if (!visitStoredObject(mType, [this]<typename T>() { new (&mStore) T{}; })) {
     std::memset(&mStore, 0, sizeof(mStore));
+    switch (type) {
+      case VariantType::ArrayBool:
+      case VariantType::ArrayInt:
+      case VariantType::ArrayFloat:
+      case VariantType::ArrayDouble:
+      case VariantType::ArrayString:
+        mSize = 0; // empty plain array has size 0
+        break;
+      default:
+        break;
+    }
   }
 }
 

@@ -322,7 +322,7 @@ class Variant
 
   template <typename T>
     requires(!is_specialization_v<T, std::vector>)
-  Variant(T value) : mType{variant_trait_v<T>}, mSize{1}
+  Variant(T value) : mType{variant_trait_v<T>}
   {
     variant_helper<decltype(value)>::set(&mStore, value);
   }
@@ -403,7 +403,6 @@ class Variant
     *this = Variant(value, size);
   }
 
-  /// FIXME: set for vector of strings is not used anywhere, why?
   template <typename T>
   void set(std::vector<T>& values)
     requires(std::is_pod_v<T> || std::is_same_v<T, std::string>)
@@ -429,7 +428,7 @@ class Variant
                                        LabeledArray<int>, LabeledArray<float>, LabeledArray<double>, LabeledArray<std::string>>::type;
   storage_t mStore;
   VariantType mType = VariantType::Unknown;
-  size_t mSize = 0;
+  size_t mSize = 1;
 };
 
 inline Variant emptyDict() { return Variant(VariantType::Dict); }
