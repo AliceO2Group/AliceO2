@@ -23,6 +23,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <stdexcept>
+#include <cerrno>
 #include <chrono>
 #include <algorithm>
 
@@ -369,7 +370,10 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
   mRegistryListener = wl_registry_listener{.global = registry_global, .global_remove = registry_global_remove};
 
   wl_registry_add_listener(mRegistry, &mRegistryListener, this);
-  wl_display_roundtrip(mWayland);
+  if (wl_display_roundtrip(mWayland) == -1) {
+    reportError("initial roundtrip");
+    throw std::runtime_error("Wayland initialization failed");
+  }
 
   if (mCompositor == nullptr || mXdgBase == nullptr || mSeat == nullptr) {
     throw std::runtime_error("Error getting wayland objects");
@@ -502,7 +506,8 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
   xdg_toplevel_add_listener(mXdgToplevel, &mXdgToplevelListener, this);
 
   xdg_toplevel_set_title(mXdgToplevel, DISPLAY_WINDOW_NAME);
-  applyInitialWindowState(); // Must be requested before the first commit
+  xdg_toplevel_set_app_id(mXdgToplevel, "o2-gpu-event-display"); // Used by the compositor for window grouping, window rules, and matching a .desktop file
+  applyInitialWindowState();                                     // Must be requested before the first commit
 
   if (mDecManager) { // Must be requested before the first commit. Without the protocol (e.g. GNOME), the window has no decorations
     mXdgDecoration = zxdg_decoration_manager_v1_get_toplevel_decoration(mDecManager, mXdgToplevel);
@@ -512,7 +517,10 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
   }
 
   wl_surface_commit(mSurface); // Initial commit without buffer, the compositor answers with the first configure
-  wl_display_roundtrip(mWayland);
+  if (wl_display_roundtrip(mWayland) == -1) {
+    reportError("initial roundtrip");
+    throw std::runtime_error("Wayland initialization failed");
+  }
 
   if (InitDisplay()) {
     return (1);
@@ -523,19 +531,29 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
   pthread_mutex_unlock(&mSemLockExit);
 
   while (mDisplayControl != 2) {
-    while (wl_display_prepare_read(mWayland) != 0) {
-      wl_display_dispatch_pending(mWayland);
+    bool error = false;
+    while (!error && wl_display_prepare_read(mWayland) != 0) {
+      error = wl_display_dispatch_pending(mWayland) == -1;
+    }
+    if (error) {
+      reportError("dispatching events");
+      break;
     }
     wl_display_flush(mWayland);
     pollfd pfd = {wl_display_get_fd(mWayland), POLLIN, 0};
     if (poll(&pfd, 1, 0) > 0) {
       if (wl_display_read_events(mWayland) == -1) {
+        reportError("reading events");
         break;
       }
     } else {
       wl_display_cancel_read(mWayland);
     }
-    if (wl_display_dispatch_pending(mWayland) == -1 || mDisplayControl == 2) {
+    if (wl_display_dispatch_pending(mWayland) == -1) {
+      reportError("dispatching events");
+      break;
+    }
+    if (mDisplayControl == 2) {
       break;
     }
     HandleSendKeys();
@@ -668,6 +686,19 @@ void GPUDisplayFrontendWayland::updateSize()
       mDisplayWidth = width; // Initial size, used by InitDisplay via getSize()
       mDisplayHeight = height;
     }
+  }
+}
+
+void GPUDisplayFrontendWayland::reportError(const char* where)
+{
+  const int32_t err = wl_display_get_error(mWayland);
+  if (err == EPROTO) {
+    const wl_interface* iface = nullptr;
+    uint32_t id = 0;
+    const uint32_t code = wl_display_get_protocol_error(mWayland, &iface, &id);
+    GPUError("Wayland protocol error %u on %s@%u while %s", code, iface ? iface->name : "unknown interface", id, where);
+  } else {
+    GPUError("Wayland error while %s: %s", where, strerror(err));
   }
 }
 
