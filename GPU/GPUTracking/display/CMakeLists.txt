@@ -76,35 +76,33 @@ set(HDRS_INSTALL shaders/GPUDisplayShaders.h)
 if(GPUCA_EVENT_DISPLAY_VULKAN)
   set(SRCS ${SRCS} backend/GPUDisplayBackendVulkan.cxx)
   if(GPUCA_EVENT_DISPLAY_WAYLAND)
-    add_custom_command(
-      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-shell-client-protocol.h
-      COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/
-      COMMAND ${O2GPUWayland_SCANNER} client-header ${O2GPUWayland_PROTOCOLS_DIR}/stable/xdg-shell/xdg-shell.xml ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-shell-client-protocol.h
-      MAIN_DEPENDENCY ${O2GPUWayland_PROTOCOLS_DIR}/stable/xdg-shell/xdg-shell.xml
-      COMMENT "Preparing Wayland xdg-shell-client-protocol.h")
-    add_custom_command(
-      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-shell-protocol.c
-      COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/
-      COMMAND ${O2GPUWayland_SCANNER} private-code ${O2GPUWayland_PROTOCOLS_DIR}/stable/xdg-shell/xdg-shell.xml ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-shell-protocol.c
-      MAIN_DEPENDENCY ${O2GPUWayland_PROTOCOLS_DIR}/stable/xdg-shell/xdg-shell.xml
-      COMMENT "Preparing Wayland xdg-shell-protocol.c")
-    add_custom_command(
-      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-decoration-client-protocol.h
-      COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/
-      COMMAND ${O2GPUWayland_SCANNER} client-header ${O2GPUWayland_PROTOCOLS_DIR}/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-decoration-client-protocol.h
-      MAIN_DEPENDENCY ${O2GPUWayland_PROTOCOLS_DIR}/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml
-      COMMENT "Preparing Wayland xdg-decoration-client-protocol.h")
-    add_custom_command(
-      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-decoration-protocol.c
-      COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/
-      COMMAND ${O2GPUWayland_SCANNER} private-code ${O2GPUWayland_PROTOCOLS_DIR}/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-decoration-protocol.c
-      MAIN_DEPENDENCY ${O2GPUWayland_PROTOCOLS_DIR}/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml
-      COMMENT "Preparing Wayland xdg-decoration-protocol.c")
+    set(WAYLAND_PROTOCOL_HEADERS)
+    set(WAYLAND_PROTOCOL_SOURCES)
+    foreach(xml stable/xdg-shell/xdg-shell.xml unstable/xdg-decoration/xdg-decoration-unstable-v1.xml)
+      get_filename_component(name ${xml} NAME_WE)
+      string(REPLACE "-unstable-v1" "" name ${name})
+      set(header ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/${name}-client-protocol.h)
+      set(source ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/${name}-protocol.c)
+      add_custom_command(
+        OUTPUT ${header}
+        COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/
+        COMMAND ${O2GPUWayland_SCANNER} client-header ${O2GPUWayland_PROTOCOLS_DIR}/${xml} ${header}
+        MAIN_DEPENDENCY ${O2GPUWayland_PROTOCOLS_DIR}/${xml}
+        COMMENT "Preparing Wayland ${name}-client-protocol.h")
+      add_custom_command(
+        OUTPUT ${source}
+        COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/
+        COMMAND ${O2GPUWayland_SCANNER} private-code ${O2GPUWayland_PROTOCOLS_DIR}/${xml} ${source}
+        MAIN_DEPENDENCY ${O2GPUWayland_PROTOCOLS_DIR}/${xml}
+        COMMENT "Preparing Wayland ${name}-protocol.c")
+      list(APPEND WAYLAND_PROTOCOL_HEADERS ${header})
+      list(APPEND WAYLAND_PROTOCOL_SOURCES ${source})
+    endforeach()
 
-    set_property(SOURCE frontend/GPUDisplayFrontendWayland.cxx ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-shell-protocol.c APPEND PROPERTY OBJECT_DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-shell-client-protocol.h ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-decoration-client-protocol.h)
+    set_property(SOURCE frontend/GPUDisplayFrontendWayland.cxx ${WAYLAND_PROTOCOL_SOURCES} APPEND PROPERTY OBJECT_DEPENDS ${WAYLAND_PROTOCOL_HEADERS})
     set_property(SOURCE frontend/GPUDisplayFrontendWayland.cxx APPEND PROPERTY INCLUDE_DIRECTORIES ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/)
 
-    set(SRCS_NO_H ${SRCS_NO_H} frontend/GPUDisplayFrontendWayland.cxx ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-shell-protocol.c ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-decoration-protocol.c)
+    set(SRCS_NO_H ${SRCS_NO_H} frontend/GPUDisplayFrontendWayland.cxx ${WAYLAND_PROTOCOL_SOURCES})
   endif()
 endif()
 
