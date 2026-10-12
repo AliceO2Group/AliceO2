@@ -58,9 +58,9 @@ int32_t GPUDisplayFrontendWayland::GetKey(uint32_t key, uint32_t state)
   int32_t retVal = 0;
   if (mXKBkeymap) {
     xkb_keysym_t sym = xkb_state_key_get_one_sym(mXKBstate, key + 8);
-    if (sym == 65453) {
+    if (sym == XKB_KEY_KP_Subtract) {
       return ('-');
-    } else if (sym == 65451) {
+    } else if (sym == XKB_KEY_KP_Add) {
       return ('+');
     } else if (sym == XKB_KEY_Shift_L || sym == XKB_KEY_Shift_R) {
       return (KEY_SHIFT);
