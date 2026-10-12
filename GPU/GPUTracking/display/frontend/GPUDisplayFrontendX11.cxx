@@ -334,7 +334,7 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
       if (mDisplayControl == 2) {
         break;
       }
-      HandleSendKey();
+      HandleSendKeys();
       if (!XPending(mDisplay)) {
         event.type = Expose;
       } else {

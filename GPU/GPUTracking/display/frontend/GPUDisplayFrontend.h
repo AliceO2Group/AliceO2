@@ -19,6 +19,8 @@
 #include "GPUDisplayInterface.h"
 #include <memory>
 #include <chrono>
+#include <mutex>
+#include <vector>
 
 namespace o2::gpu
 {
@@ -64,9 +66,8 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   virtual uint32_t getReqVulkanExtensions(const char**& p) { return 0; };
 
   int32_t getDisplayControl() const override { return mDisplayControl; }
-  int32_t getSendKey() const override { return mSendKey; }
   void setDisplayControl(int32_t v) override { mDisplayControl = v; }
-  void setSendKey(int32_t v) override { mSendKey = v; }
+  void sendKey(int32_t v) override;
 
   frontendTypes frontendType() const { return mFrontendType; }
   const char* frontendName() const override { return mFrontendName; }
@@ -74,11 +75,6 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   int32_t startGUI();
   void stopGUI();
   bool isGUIRunning();
-
-  // volatile variables to exchange control informations between display and backend
-  volatile int32_t mDisplayControl = 0; // Control for next event (=1) or quit (=2)
-  volatile int32_t mSendKey = 0;        // Key sent by external entity (usually console), may be ignored by backend.
-  volatile int32_t mNeedUpdate = 0;     // flag that backend shall update the GL window, and call DrawGLScene
 
  protected:
   virtual int32_t FrontendMain() = 0;
@@ -118,6 +114,12 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   static constexpr int32_t KEY_END = 29;
   static constexpr int32_t KEY_SPACE = 32; // fixed at 32
 
+  // volatile variables to exchange control informations between display and backend
+  volatile int32_t mDisplayControl = 0; // Control for next event (=1) or quit (=2)
+  volatile int32_t mNeedUpdate = 0;     // flag that backend shall update the GL window, and call DrawGLScene
+  std::mutex mSendKeyMutex;
+  std::vector<int32_t> mSendKeys; // Keys sent by external entity (usually console), may be ignored by backend.
+
   // Keyboard / Mouse actions
   bool mMouseDn = false;          // Mouse button down
   bool mMouseDnR = false;         // Right mouse button down
@@ -143,7 +145,7 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
 
   void HandleKey(uint8_t key);                     // Callback for handling key presses
   int32_t DrawGLScene();                           // Callback to draw the GL scene
-  void HandleSendKey();                            // Optional callback to handle key press from external source (e.g. stdin by default)
+  void HandleSendKeys();                           // Optional callback to handle key press from external source (e.g. stdin by default)
   void ResizeScene(int32_t width, int32_t height); // Callback when GL window is resized
   int32_t InitDisplay(bool initFailure = false);   // Callback to initialize the GL Display (to be called in StartDisplay)
   void ExitDisplay();                              // Callback to clean up the GL Display

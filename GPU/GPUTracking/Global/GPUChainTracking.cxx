@@ -861,10 +861,7 @@ int32_t GPUChainTracking::RunChainFinalize()
         } else if (iKey == 'n') {
           break;
         } else if (iKey) {
-          while (GetProcessingSettings().eventDisplay->getSendKey() != 0) {
-            usleep(1000);
-          }
-          GetProcessingSettings().eventDisplay->setSendKey(iKey);
+          GetProcessingSettings().eventDisplay->sendKey(iKey);
         }
       }
     } while (GetProcessingSettings().eventDisplay->getDisplayControl() == 0);
