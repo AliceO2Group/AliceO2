@@ -234,20 +234,35 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
     GPUDisplayFrontendWayland* me = (GPUDisplayFrontendWayland*)data;
     int32_t symbol = me->GetKey(key, state);
     int32_t keyPress = (symbol >= 'a' && symbol <= 'z') ? symbol + 'A' - 'a' : symbol;
-    if (state == XKB_KEY_DOWN) {
+    if (state == WL_KEYBOARD_KEY_STATE_PRESSED) {
       me->mKeys[keyPress] = true;
       me->mKeysShift[keyPress] = me->mKeys[KEY_SHIFT];
       me->HandleKey(symbol);
+      if (symbol && me->mRepeatRate > 0 && me->mXKBkeymap && xkb_keymap_key_repeats(me->mXKBkeymap, key + 8)) { // Wayland compositors do not repeat keys, the client must do it
+        me->mRepeatKeyCode = key;
+        me->mRepeatSymbol = symbol;
+        me->mRepeatNext = std::chrono::steady_clock::now() + std::chrono::milliseconds(me->mRepeatDelay);
+      }
     } else {
       me->mKeys[keyPress] = false;
       me->mKeysShift[keyPress] = false;
+      if ((int64_t)key == me->mRepeatKeyCode) {
+        me->mRepeatKeyCode = -1;
+      }
     }
   };
   auto keyboard_modifiers = [](void* data, wl_keyboard* wl_keyboard, uint32_t serial, uint32_t mods_depressed, uint32_t mods_latched, uint32_t mods_locked, uint32_t group) {
     GPUDisplayFrontendWayland* me = (GPUDisplayFrontendWayland*)data;
     xkb_state_update_mask(me->mXKBstate, mods_depressed, mods_latched, mods_locked, 0, 0, group);
   };
-  auto keyboard_repat = [](void* data, wl_keyboard* wl_keyboard, int32_t rate, int32_t delay) {};
+  auto keyboard_repat = [](void* data, wl_keyboard* wl_keyboard, int32_t rate, int32_t delay) {
+    GPUDisplayFrontendWayland* me = (GPUDisplayFrontendWayland*)data;
+    me->mRepeatRate = rate;
+    me->mRepeatDelay = delay;
+    if (rate <= 0) {
+      me->mRepeatKeyCode = -1;
+    }
+  };
   mKeyboardListener = wl_keyboard_listener{.keymap = keyboard_keymap, .enter = keyboard_enter, .leave = keyboard_leave, .key = keyboard_key, .modifiers = keyboard_modifiers, .repeat_info = keyboard_repat};
 
   auto xdg_wm_base_ping = [](void* data, struct xdg_wm_base* xdg_wm_base, uint32_t serial) {
@@ -524,6 +539,7 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
       break;
     }
     HandleSendKeys();
+    handleKeyRepeat();
     if (!mSuspended) { // Window not visible, compositor would not release swapchain images
       DrawGLScene();
     }
@@ -652,6 +668,18 @@ void GPUDisplayFrontendWayland::updateSize()
       mDisplayWidth = width; // Initial size, used by InitDisplay via getSize()
       mDisplayHeight = height;
     }
+  }
+}
+
+void GPUDisplayFrontendWayland::handleKeyRepeat()
+{
+  if (mRepeatKeyCode < 0) {
+    return;
+  }
+  const auto now = std::chrono::steady_clock::now();
+  while (now >= mRepeatNext && mRepeatKeyCode >= 0) {
+    HandleKey(mRepeatSymbol);
+    mRepeatNext += std::chrono::microseconds(1000000 / mRepeatRate);
   }
 }
 
