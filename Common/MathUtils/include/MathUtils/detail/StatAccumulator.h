@@ -42,7 +42,7 @@ struct StatAccumulator {
     wsum += w;
     n++;
   }
-  double getMean() const { return wsum > 0. ? sum / wsum : 0.; }
+  double getMean() const { return wsum > 0. ? sum / wsum : double{}; }
 
 #ifndef GPUCA_GPUCODE_DEVICE
   template <typename T = float>
