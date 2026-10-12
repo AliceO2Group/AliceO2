@@ -49,9 +49,10 @@ class GPUDisplayFrontendWayland : public GPUDisplayFrontend
  private:
   int32_t FrontendMain() override;
   int32_t GetKey(uint32_t key, uint32_t state);
-  void updateScale(); // Buffer scale from wl_surface.preferred_buffer_scale, or max scale of the outputs the surface is on (older compositors)
-  void updateSize();  // Physical size = logical size * scale, resizes the scene if changed
-  void applyScroll(); // Apply scroll events of one wl_pointer.frame: high-resolution wheel (120 = 1 notch = 100 mMouseWheel units) if available, otherwise continuous axis (touchpad, ~15 units per notch)
+  void updateScale();     // Buffer scale from wl_surface.preferred_buffer_scale, or max scale of the outputs the surface is on (older compositors)
+  void updateSize();      // Physical size = logical size * scale, resizes the scene if changed
+  void handleKeyRepeat(); // Call HandleKey for the held key according to wl_keyboard.repeat_info
+  void applyScroll();     // Apply scroll events of one wl_pointer.frame: high-resolution wheel (120 = 1 notch = 100 mMouseWheel units) if available, otherwise continuous axis (touchpad, ~15 units per notch)
 
   struct OutputInfo {
     wl_output* output;
@@ -112,6 +113,12 @@ class GPUDisplayFrontendWayland : public GPUDisplayFrontend
   bool mSuspended = false;
   bool mCanFullscreen = true;
   bool mCanMaximize = true;
+
+  int32_t mRepeatRate = 0;     // Keys per second, 0 = no repeat
+  int32_t mRepeatDelay = 0;    // ms before the first repeat
+  int64_t mRepeatKeyCode = -1; // Evdev key code of the held key to repeat, -1 = none
+  int32_t mRepeatSymbol = 0;
+  std::chrono::steady_clock::time_point mRepeatNext;
 
   double mAxisValue = 0; // Accumulated scroll values of one wl_pointer.frame
   int32_t mAxisValue120 = 0;
