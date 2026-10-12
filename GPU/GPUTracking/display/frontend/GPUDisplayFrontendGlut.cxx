@@ -195,6 +195,8 @@ void GPUDisplayFrontendGlut::mouseFunc(int32_t button, int32_t state, int32_t x,
       me->mMouseDn = true;
     } else if (button == GLUT_RIGHT_BUTTON) {
       me->mMouseDnR = true;
+    } else if (button == GLUT_MIDDLE_BUTTON) {
+      me->mMouseDnM = true;
     }
     me->mMouseDnX = x;
     me->mMouseDnY = y;
@@ -203,6 +205,8 @@ void GPUDisplayFrontendGlut::mouseFunc(int32_t button, int32_t state, int32_t x,
       me->mMouseDn = false;
     } else if (button == GLUT_RIGHT_BUTTON) {
       me->mMouseDnR = false;
+    } else if (button == GLUT_MIDDLE_BUTTON) {
+      me->mMouseDnM = false;
     }
   }
 }

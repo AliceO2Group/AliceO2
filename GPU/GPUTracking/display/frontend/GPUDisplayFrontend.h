@@ -124,6 +124,7 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   // Keyboard / Mouse actions
   bool mMouseDn = false;          // Mouse button down
   bool mMouseDnR = false;         // Right mouse button down
+  bool mMouseDnM = false;         // Middle mouse button down (not used yet)
   float mMouseDnX, mMouseDnY;     // X/Y position where mouse button was pressed
   float mMouseMvX, mMouseMvY;     // Current mouse pointer position
   int32_t mMouseWheel = 0;        // Incremental value of mouse wheel, ca +/- 100 per wheel tick

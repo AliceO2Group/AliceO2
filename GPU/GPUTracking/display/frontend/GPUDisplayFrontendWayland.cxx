@@ -158,7 +158,7 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
   };
   auto pointer_leave = [](void* data, wl_pointer* wl_pointer, uint32_t serial, wl_surface* wl_surface) {
     GPUDisplayFrontendWayland* me = (GPUDisplayFrontendWayland*)data;
-    me->mMouseDn = me->mMouseDnR = false;
+    me->mMouseDn = me->mMouseDnR = me->mMouseDnM = false;
   };
   auto pointer_motion = [](void* data, wl_pointer* wl_pointer, uint32_t time, wl_fixed_t surface_x, wl_fixed_t surface_y) {
     GPUDisplayFrontendWayland* me = (GPUDisplayFrontendWayland*)data;
@@ -172,6 +172,8 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
         me->mMouseDnR = true;
       } else if (button == BTN_LEFT) {
         me->mMouseDn = true;
+      } else if (button == BTN_MIDDLE) {
+        me->mMouseDnM = true;
       }
       me->mMouseDnX = me->mMouseMvX;
       me->mMouseDnY = me->mMouseMvY;
@@ -180,6 +182,8 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
         me->mMouseDnR = false;
       } else if (button == BTN_LEFT) {
         me->mMouseDn = false;
+      } else if (button == BTN_MIDDLE) {
+        me->mMouseDnM = false;
       }
     }
   };
