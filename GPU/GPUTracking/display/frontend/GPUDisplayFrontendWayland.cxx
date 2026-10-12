@@ -283,7 +283,7 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
       mPointer = wl_seat_get_pointer(mSeat);
       wl_pointer_add_listener(mPointer, &pointer_listener, this);
     }
-    if (capabilities & WL_SEAT_CAPABILITY_POINTER) {
+    if (capabilities & WL_SEAT_CAPABILITY_KEYBOARD) {
       mKeyboard = wl_seat_get_keyboard(mSeat);
       wl_keyboard_add_listener(mKeyboard, &keyboard_listener, this);
     }
