@@ -54,7 +54,6 @@ class GPUDisplayFrontendGlfw : public GPUDisplayFrontend
 
   GLFWwindow* mWindow;
 
-  volatile bool mGlfwRunning = false;
   pthread_mutex_t mSemLockExit = PTHREAD_MUTEX_INITIALIZER;
   int32_t mWindowX = 0;
   int32_t mWindowY = 0;

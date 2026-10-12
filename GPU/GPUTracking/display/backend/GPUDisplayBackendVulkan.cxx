@@ -1404,7 +1404,7 @@ void GPUDisplayBackendVulkan::clearImage(VulkanImage& image)
 
 int32_t GPUDisplayBackendVulkan::InitBackendA()
 {
-  mEnableValidationLayers = mDisplay->param() && mDisplay->GetProcessingSettings().debugLevel >= 2;
+  mEnableValidationLayers = (mDisplay->param() && mDisplay->GetProcessingSettings().debugLevel >= 2) || (getenv("GPUCA_VULKAN_VALIDATION") && atoi(getenv("GPUCA_VULKAN_VALIDATION")));
   mFramesInFlight = 2;
 
   createDevice();

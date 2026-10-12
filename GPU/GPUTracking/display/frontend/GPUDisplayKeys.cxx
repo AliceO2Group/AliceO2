@@ -158,7 +158,7 @@ void GPUDisplay::HandleKey(uint8_t key)
     mCfgR.maximized ^= 1;
     SetInfo("Toggling Maximized window (%d)", (int32_t)mCfgR.maximized);
   } else if (key == 'R') {
-    mCfgR.maxFPSRate ^= 1;
+    mCfgR.maxFPSRate = !mCfgR.maxFPSRate;
     SetInfo("FPS rate %s", mCfgR.maxFPSRate ? "not limited" : "limited");
   } else if (key == 'H') {
     mPrintInfoText += 1;
@@ -512,9 +512,6 @@ void GPUDisplay::HandleKey(uint8_t key)
   }
   if (oldCfgR.maximized != mCfgR.maximized) {
     mFrontend->ToggleMaximized(mCfgR.maximized);
-  }
-  if (oldCfgR.maxFPSRate != mCfgR.maxFPSRate) {
-    mFrontend->mMaxFPSRate = mCfgR.maxFPSRate;
   }
   if (oldCfgR.useGLIndirectDraw != mCfgR.useGLIndirectDraw) {
     mUpdateEventData = true;

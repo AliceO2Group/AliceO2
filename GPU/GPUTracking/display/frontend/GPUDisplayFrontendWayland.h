@@ -52,7 +52,6 @@ class GPUDisplayFrontendWayland : public GPUDisplayFrontend
   void recreateBuffer(uint32_t width, uint32_t height);
 
   pthread_mutex_t mSemLockExit = PTHREAD_MUTEX_INITIALIZER;
-  volatile bool mDisplayRunning = false;
 
   wl_display* mWayland = nullptr;
   wl_registry* mRegistry = nullptr;

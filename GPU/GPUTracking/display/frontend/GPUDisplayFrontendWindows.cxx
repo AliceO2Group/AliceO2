@@ -359,6 +359,7 @@ int32_t GPUDisplayFrontendWindows::FrontendMain()
         } else {
           DrawGLScene();    // Draw The Scene
           SwapBuffers(hDC); // Swap Buffers (Double Buffering)
+          waitForFPSLimit();
         }
       }
     }

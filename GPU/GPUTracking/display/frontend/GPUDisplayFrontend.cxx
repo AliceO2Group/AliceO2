@@ -37,6 +37,7 @@
 
 #include "GPULogging.h"
 #include <cstring>
+#include <thread>
 
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_QT
 #include "GPUDisplayGUIWrapper.h"
@@ -63,6 +64,23 @@ void* GPUDisplayFrontend::FrontendThreadWrapper(void* ptr)
   return ((void*)(size_t)retVal);
 }
 
+void GPUDisplayFrontend::waitForFPSLimit()
+{
+  mNeedUpdate = 0;
+  const auto now = std::chrono::steady_clock::now();
+  const auto& cfg = mDisplay->cfgR();
+  if (cfg.maxFPSRate || cfg.fpsRate <= 0) {
+    mNextFrameTime = now;
+    return;
+  }
+  const auto period = std::chrono::duration_cast<std::chrono::steady_clock::duration>(std::chrono::duration<double>(1. / cfg.fpsRate));
+  mNextFrameTime += period;
+  if (mNextFrameTime < now - period) { // More than one frame behind (slow rendering, first frame), do not try to catch up
+    mNextFrameTime = now;
+  }
+  std::this_thread::sleep_until(mNextFrameTime);
+}
+
 void GPUDisplayFrontend::HandleSendKey()
 {
   if (mSendKey) {
@@ -73,6 +91,7 @@ void GPUDisplayFrontend::HandleSendKey()
 
 void GPUDisplayFrontend::HandleKey(uint8_t key) { mDisplay->HandleKey(key); }
 int32_t GPUDisplayFrontend::DrawGLScene() { return mDisplay->DrawGLScene(); }
+
 void GPUDisplayFrontend::ResizeScene(int32_t width, int32_t height)
 {
   mDisplayHeight = height;

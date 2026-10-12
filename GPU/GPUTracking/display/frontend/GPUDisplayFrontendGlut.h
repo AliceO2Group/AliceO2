@@ -48,7 +48,6 @@ class GPUDisplayFrontendGlut : public GPUDisplayFrontend
   static int32_t GetKey(int32_t key);
   static void GetKey(int32_t keyin, int32_t& keyOut, int32_t& keyPressOut, bool special);
 
-  volatile bool mGlutRunning = false;
   pthread_mutex_t mSemLockExit = PTHREAD_MUTEX_INITIALIZER;
 
   int32_t mWidth = INIT_WIDTH;
