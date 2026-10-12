@@ -16,6 +16,7 @@
 #ifndef O2_O2DATABASEPDG_H
 #define O2_O2DATABASEPDG_H
 
+#include <atomic>
 #include <cmath>
 #include <string>
 #include "TDatabasePDG.h"
@@ -39,7 +40,8 @@ class O2DatabasePDG
     static bool initialized = false; // initialize this --> adds particles to TDatabasePDG;
     auto db = TDatabasePDG::Instance();
     if (!initialized) {
-      addALICEParticles(db);
+      // uses the monopole mass of the simulation if a reader has already set it
+      addALICEParticles(db, getMonopoleMass());
       initialized = true;
     }
     return db;
@@ -68,6 +70,26 @@ class O2DatabasePDG
     return true;
   }
 
+  // Sets the mass (GeV) of the monopole species for consumers of simulated data, which do not
+  // have access to G4Params.monopoleMass. It is taken from the MCEventHeader of the
+  // simulation (key o2::sim::MonopoleMassHeaderKey) by MCKinematicsReader.
+  // It only affects Mass() (hence MCTrack::GetMass() / GetEnergy() / GetRapidity()) and
+  // Instance() if called before the first Instance(): particles already registered in a
+  // TDatabasePDG keep their mass, since ROOT offers no way to change it afterwards.
+  // Not used (and not needed) in the simulation itself, where TDatabasePDG is registered
+  // with G4Params.monopoleMass.
+  static void setMonopoleMass(double massGeV) { monopoleMassOverride().store(massGeV); }
+
+  // mass set by setMonopoleMass(), or the default if it was never set
+  static double getMonopoleMass()
+  {
+    const double mass = monopoleMassOverride().load();
+    return mass > 0. ? mass : o2::sim::MonopoleMassDefaultGeV;
+  }
+
+  // true if a monopole mass was set by setMonopoleMass()
+  static bool hasMonopoleMassOverride() { return monopoleMassOverride().load() > 0.; }
+
   // get particle's (if any) mass
   static Double_t MassImpl(TParticlePDG* particle, bool& success)
   {
@@ -82,6 +104,11 @@ class O2DatabasePDG
   // determine particle to get mass for based on PDG
   static Double_t Mass(int pdg, bool& success, TDatabasePDG* db = O2DatabasePDG::Instance())
   {
+    if (hasMonopoleMassOverride() && o2::sim::isMonopole(pdg)) {
+      // the table may have been filled with the default mass before the simulation mass was known
+      success = true;
+      return getMonopoleMass();
+    }
     if (pdg < IONBASELOW || pdg > IONBASEHIGH) {
       // not an ion, return immediately
       return MassImpl(db->GetParticle(pdg), success);
@@ -99,6 +126,13 @@ class O2DatabasePDG
   O2DatabasePDG() = delete;
 
  private:
+  // negative: not set (the TDatabasePDG content is used)
+  static std::atomic<double>& monopoleMassOverride()
+  {
+    static std::atomic<double> mass{-1.};
+    return mass;
+  }
+
   static constexpr int IONBASELOW{1000000000};
   static constexpr int IONBASEHIGH{1099999999};
 };
@@ -161,7 +195,7 @@ inline void O2DatabasePDG::addALICEParticles(TDatabasePDG* db, double monopoleMa
   db->AddParticle("A_0+    ", " ", 0.9960, kFALSE, 0.0, +3, "meson", 9000211);
   db->AddParticle("A_0-    ", " ", 0.9960, kFALSE, 0.0, -3, "meson", -9000211);
 
-  //db->AddParticle("F0P0    ", " ", 0.9960, kFALSE, 0.0, 0, "meson",  9010221);
+  // db->AddParticle("F0P0    ", " ", 0.9960, kFALSE, 0.0, 0, "meson",  9010221);
 
   db->AddParticle("KDL_2+  ", " ", 1.773, kFALSE, 0.0, +3, "meson", 10325);
   db->AddParticle("KDL_2-  ", " ", 1.773, kFALSE, 0.0, -3, "meson", -10325);
@@ -261,7 +295,7 @@ inline void O2DatabasePDG::addALICEParticles(TDatabasePDG* db, double monopoleMa
   db->AddParticle("FeedbackPhoton", "FeedbackPhoton", 0, kFALSE,
                   0, 0, "Special", kspe + 51);
 
-  //Hyper nuclei and exotica
+  // Hyper nuclei and exotica
   ionCode = 1010010030;
   if (!db->GetParticle(ionCode)) {
     db->AddParticle("HyperTriton", "HyperTriton", 2.991134, kFALSE,
@@ -274,25 +308,25 @@ inline void O2DatabasePDG::addALICEParticles(TDatabasePDG* db, double monopoleMa
                     2.5e-15, 3, "Ion", ionCode);
   }
 
-  //hyper hydrogen 4 ground state
+  // hyper hydrogen 4 ground state
   ionCode = 1010010040;
   if (!db->GetParticle(ionCode)) {
     db->AddParticle("Hyperhydrog4", "Hyperhydrog4", 3.922434, kFALSE,
                     2.5e-15, 3, "Ion", ionCode);
   }
-  //anti hyper hydrogen 4 ground state
+  // anti hyper hydrogen 4 ground state
   ionCode = -1010010040;
   if (!db->GetParticle(ionCode)) {
     db->AddParticle("AntiHyperhydrog4", "AntiHyperhydrog4", 3.922434, kFALSE,
                     2.5e-15, 3, "Ion", ionCode);
   }
-  //hyper helium 4 ground state
+  // hyper helium 4 ground state
   ionCode = 1010020040;
   if (!db->GetParticle(ionCode)) {
     db->AddParticle("Hyperhelium4", "Hyperhelium4", 3.921728, kFALSE,
                     2.5e-15, 6, "Ion", ionCode);
   }
-  //anti hyper helium 4 ground state
+  // anti hyper helium 4 ground state
   ionCode = -1010020040;
   if (!db->GetParticle(ionCode)) {
     db->AddParticle("AntiHyperhelium4", "AntiHyperhelium4", 3.921728, kFALSE,
@@ -642,9 +676,9 @@ inline void O2DatabasePDG::addALICEParticles(TDatabasePDG* db, double monopoleMa
                     0.040, -3, "Resonance", -ionCode);
   }
 
-  //Additional Hidden Strangeness Pentaquarks
+  // Additional Hidden Strangeness Pentaquarks
 
-  //Ps +/-
+  // Ps +/-
   ionCode = 9322132;
   if (!db->GetParticle(ionCode)) {
     db->AddParticle("Ps_Plus_1870", "Ps_Plus_1870", 1.870, kFALSE,
@@ -682,7 +716,7 @@ inline void O2DatabasePDG::addALICEParticles(TDatabasePDG* db, double monopoleMa
                     0.10, -3, "Resonance", -ionCode);
   }
 
-  //Ps0
+  // Ps0
   ionCode = 9322131;
   if (!db->GetParticle(ionCode)) {
     db->AddParticle("Ps_0_1870", "Ps_0_1870", 1.870, kFALSE,
@@ -786,14 +820,14 @@ inline void O2DatabasePDG::addALICEParticles(TDatabasePDG* db, double monopoleMa
 
   // d*(2380) - dibaryon resonance
 
-  ionCode = 900010020; //Arbitrary choice - as deuteron but with leading 9 instead of 10
+  ionCode = 900010020; // Arbitrary choice - as deuteron but with leading 9 instead of 10
   if (!db->GetParticle(ionCode)) {
     db->AddParticle("d*_2380", "d*_2380", 2.38, kFALSE,
                     0.070, 3, "Resonance", ionCode);
   }
   db->AddAntiParticle("d*_2380_bar", -ionCode);
 
-  //Sexaquark (uuddss): compact, neutral and stable hypothetical bound state (arxiv.org/abs/1708.08951)
+  // Sexaquark (uuddss): compact, neutral and stable hypothetical bound state (arxiv.org/abs/1708.08951)
   ionCode = 900000020;
   if (!db->GetParticle(ionCode)) {
     db->AddParticle("Sexaquark", "Sexaquark", 2.0, kTRUE, 0.0, 0, "Special", ionCode);
@@ -826,4 +860,4 @@ inline void O2DatabasePDG::addParticlesFromExternalFile(TDatabasePDG* db)
 
 } // namespace o2
 
-#endif //O2_O2DATABASEPDG_H
+#endif // O2_O2DATABASEPDG_H

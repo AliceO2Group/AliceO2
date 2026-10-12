@@ -41,6 +41,9 @@
 
 #include "PrimaryServerState.h"
 #include <SimConfig/SimConfig.h>
+#include <SimConfig/G4Params.h>
+#include <CommonUtils/ConfigurableParam.h>
+#include <SimulationDataFormat/MonopoleParticles.h>
 #include <TPCSimulation/Detector.h>
 #include <ITSSimulation/Detector.h>
 #include <MFTSimulation/Detector.h>
@@ -146,6 +149,23 @@ void O2HitMerger::InitTask()
   } else {
     // we didn't manage to get a configuration --> better to fail
     LOG(fatal) << "No configuration received. Aborting";
+  }
+  // The config key-values are not applied to the ConfigurableParams in this process. The merger needs the G4 ones
+  // to record the monopole mass in the event headers (G4.monopole, G4.monopoleMass), so apply those.
+  // Note: G4 parameters given via a config file (--configFile) are not applied here.
+  {
+    std::string g4Tokens;
+    std::stringstream tokens(o2::conf::SimConfig::Instance().getKeyValueString());
+    std::string token;
+    while (std::getline(tokens, token, ';')) {
+      const auto first = token.find_first_not_of(" \t");
+      if (first != std::string::npos && token.compare(first, 3, "G4.") == 0) {
+        g4Tokens += token.substr(first) + ";";
+      }
+    }
+    if (!g4Tokens.empty()) {
+      o2::conf::ConfigurableParam::updateFromString(g4Tokens);
+    }
   }
   mAsService = o2::conf::SimConfig::Instance().asService();
   mForwardKine = o2::conf::SimConfig::Instance().forwardKine();
@@ -692,6 +712,12 @@ bool O2HitMerger::mergeAndFlushData()
       } else {
         eventheader->getMCEventStats().add(info->mMCEventHeader.getMCEventStats());
       }
+    }
+
+    // record the mass used for the monopoles, such that readers of the kinematics
+    // (MCTrack::GetMass() and derived quantities) do not fall back to the default
+    if (eventheader && o2::conf::G4Params::Instance().monopole) {
+      eventheader->putInfo<double>(o2::sim::MonopoleMassHeaderKey, o2::conf::G4Params::Instance().monopoleMass);
     }
 
     // now see which events can be discarded in any case due to no hits
