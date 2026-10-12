@@ -322,7 +322,7 @@ class Variant
 
   template <typename T>
     requires(!is_specialization_v<T, std::vector>)
-  Variant(T value) : mType{variant_trait_v<T>}
+  Variant(T value) : mType{variant_trait_v<T>}, mSize{1}
   {
     variant_helper<decltype(value)>::set(&mStore, value);
   }
@@ -345,8 +345,7 @@ class Variant
     variant_helper<std::vector<std::string>>::set(&mStore, values);
   }
 
-  // A temporary vector cannot hand over its buffer to a Variant,
-  // so creating one only to copy it is an error
+  // Prevent constructing from a temporary vector to avoid double allocation
   template <typename T>
   Variant(std::vector<T>&&) = delete;
 
@@ -366,7 +365,7 @@ class Variant
   // Assignment from a temporary vector has to be allowed because it is used, but copies
   // to make sure Variant owns its content
   template <typename T>
-  Variant& operator=(std::vector<T>&& other) noexcept
+  Variant& operator=(std::vector<T>&& other) //not noexcept because it allocates
   {
     *this = Variant(other);
     return *this;
@@ -430,7 +429,7 @@ class Variant
                                        LabeledArray<int>, LabeledArray<float>, LabeledArray<double>, LabeledArray<std::string>>::type;
   storage_t mStore;
   VariantType mType = VariantType::Unknown;
-  size_t mSize = 1;
+  size_t mSize = 0;
 };
 
 inline Variant emptyDict() { return Variant(VariantType::Dict); }
