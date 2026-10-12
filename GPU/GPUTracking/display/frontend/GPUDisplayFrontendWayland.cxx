@@ -414,7 +414,7 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
     if (wl_display_dispatch_pending(mWayland) == -1 || mDisplayControl == 2) {
       break;
     }
-    HandleSendKey();
+    HandleSendKeys();
     DrawGLScene();
     waitForFPSLimit();
     wl_surface_damage(mSurface, 0, 0, mDisplayWidth, mDisplayHeight);

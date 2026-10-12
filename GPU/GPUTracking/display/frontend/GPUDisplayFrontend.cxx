@@ -81,12 +81,19 @@ void GPUDisplayFrontend::waitForFPSLimit()
   std::this_thread::sleep_until(mNextFrameTime);
 }
 
-void GPUDisplayFrontend::HandleSendKey()
+void GPUDisplayFrontend::HandleSendKeys()
 {
-  if (mSendKey) {
-    mDisplay->HandleSendKey(mSendKey);
-    mSendKey = 0;
+  std::lock_guard lock(mSendKeyMutex);
+  for (auto key : mSendKeys) {
+    mDisplay->HandleSendKey(key);
   }
+  mSendKeys.clear();
+}
+
+void GPUDisplayFrontend::sendKey(int32_t v)
+{
+  std::lock_guard lock(mSendKeyMutex);
+  mSendKeys.emplace_back(v);
 }
 
 void GPUDisplayFrontend::HandleKey(uint8_t key) { mDisplay->HandleKey(key); }

@@ -59,10 +59,9 @@ class GPUDisplayFrontendInterface
   virtual void DisplayExit() = 0;
   virtual bool EnableSendKey() = 0;
   virtual int32_t getDisplayControl() const = 0;
-  virtual int32_t getSendKey() const = 0;
   virtual void setDisplayControl(int32_t v) = 0;
   virtual bool IsRunning() const = 0;
-  virtual void setSendKey(int32_t v) = 0;
+  virtual void sendKey(int32_t v) = 0;
   virtual const char* frontendName() const = 0;
 
  protected:

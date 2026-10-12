@@ -296,7 +296,7 @@ int32_t GPUDisplayFrontendGlfw::FrontendMain()
   }
 
   while (!glfwWindowShouldClose(mWindow)) {
-    HandleSendKey();
+    HandleSendKeys();
     if (DrawGLScene()) {
       fprintf(stderr, "Error drawing GL scene\n");
       return (1);
