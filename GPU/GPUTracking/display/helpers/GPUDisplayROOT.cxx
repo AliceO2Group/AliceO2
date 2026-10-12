@@ -59,6 +59,7 @@ int32_t GPUDisplay::buildTrackFilter()
 
 int32_t GPUDisplay::buildTrackFilter()
 {
+  return 0;
 }
 
 #endif
