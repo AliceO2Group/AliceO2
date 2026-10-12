@@ -40,6 +40,8 @@ GPUDisplayFrontend* createGPUDisplayFrontendWayland();
 
 #include "GPULogging.h"
 #include <cstring>
+#include <algorithm>
+#include <iterator>
 #include <thread>
 
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_QT
@@ -199,6 +201,13 @@ void GPUDisplayFrontend::setWindowState(bool fullScreen, bool maximized)
 {
   mDisplay->mCfgR.fullScreen = fullScreen;
   mDisplay->mCfgR.maximized = maximized;
+}
+
+void GPUDisplayFrontend::focusLost()
+{
+  std::fill(std::begin(mKeys), std::end(mKeys), false);
+  std::fill(std::begin(mKeysShift), std::end(mKeysShift), false);
+  mMouseDn = mMouseDnR = false;
 }
 
 void GPUDisplayFrontend::applyInitialWindowState()

@@ -392,6 +392,11 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
           break;
         }
 
+        case FocusOut: {
+          focusLost();
+          break;
+        }
+
         case PropertyNotify: {
           if (event.xproperty.atom == XInternAtom(mXDisplay, "_NET_WM_STATE", False)) {
             updateWindowState();
