@@ -49,6 +49,7 @@ class GPUDisplayFrontendGlfw : public GPUDisplayFrontend
   static void scroll_callback(GLFWwindow* mWindow, double x, double y);
   static void cursorPos_callback(GLFWwindow* mWindow, double x, double y);
   static void resize_callback(GLFWwindow* mWindow, int32_t width, int32_t height);
+  static void maximize_callback(GLFWwindow* mWindow, int32_t maximized);
   static int32_t GetKey(int32_t key);
   static void GetKey(int32_t keyin, int32_t scancode, int32_t mods, int32_t& keyOut, int32_t& keyPressOut);
 

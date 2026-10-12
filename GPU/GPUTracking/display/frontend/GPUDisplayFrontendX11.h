@@ -48,8 +48,9 @@ class GPUDisplayFrontendX11 : public GPUDisplayFrontend
 
   GLuint mFontBase;
 
-  Display* mDisplay = nullptr;
+  Display* mXDisplay = nullptr;
   Window mWindow;
+  void updateWindowState();
 
   PFNGLXSWAPINTERVALEXTPROC mGlXSwapIntervalEXT = nullptr;
   bool vsync_supported = false;

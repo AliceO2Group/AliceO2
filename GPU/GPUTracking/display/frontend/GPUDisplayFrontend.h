@@ -62,6 +62,7 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   GPUDisplayBackend* backend();
   static GPUDisplayFrontend* getFrontend(const char* type);
   virtual void getSize(int32_t& width, int32_t& height) { width = height = 0; }
+  virtual float getDisplayScale() const { return 1.f; } // HiDPI scale factor: physical pixels per logical pixel, text positions and sizes are scaled by it
   virtual int32_t getVulkanSurface(void* instance, void* surface) { return 1; }
   virtual uint32_t getReqVulkanExtensions(const char**& p) { return 0; };
 
@@ -150,6 +151,8 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   int32_t InitDisplay(bool initFailure = false);   // Callback to initialize the GL Display (to be called in StartDisplay)
   void ExitDisplay();                              // Callback to clean up the GL Display
   int32_t& drawTextFontSize();
+  void setWindowState(bool fullScreen, bool maximized); // Sync the settings if the window manager changed the window state
+  void applyInitialWindowState();                       // Switch to fullscreen / maximize at startup according to the settings
 };
 } // namespace o2::gpu
 

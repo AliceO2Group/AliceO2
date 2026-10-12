@@ -229,6 +229,8 @@ void GPUDisplayFrontendGlfw::cursorPos_callback(GLFWwindow* window, double x, do
 
 void GPUDisplayFrontendGlfw::resize_callback(GLFWwindow* window, int32_t width, int32_t height) { me->ResizeScene(width, height); }
 
+void GPUDisplayFrontendGlfw::maximize_callback(GLFWwindow* window, int32_t maximized) { me->setWindowState(glfwGetWindowMonitor(window) != nullptr, maximized); }
+
 #ifndef GPUCA_STANDALONE
 void GPUDisplayFrontendGlfw::DisplayLoop()
 {
@@ -251,7 +253,6 @@ int32_t GPUDisplayFrontendGlfw::FrontendMain()
   }
   glfwSetErrorCallback(error_callback);
 
-  glfwWindowHint(GLFW_MAXIMIZED, 1);
   if (backend()->backendType() == GPUDisplayBackend::TYPE_VULKAN) {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
   }
@@ -277,6 +278,8 @@ int32_t GPUDisplayFrontendGlfw::FrontendMain()
   glfwSetScrollCallback(mWindow, scroll_callback);
   glfwSetCursorPosCallback(mWindow, cursorPos_callback);
   glfwSetWindowSizeCallback(mWindow, resize_callback);
+  glfwSetWindowMaximizeCallback(mWindow, maximize_callback);
+  applyInitialWindowState();
   if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
     glfwSwapInterval(1);
   }

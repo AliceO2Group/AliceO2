@@ -122,11 +122,14 @@ void GPUDisplay::showInfo(const char* info)
 void GPUDisplay::OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton)
 {
   if (mBackend->mFreetypeInitialized) {
+    const float scale = mFrontend->getDisplayScale();
+    x *= scale;
+    y *= scale;
     if (!fromBotton) {
       y = mBackend->mScreenHeight - y;
     }
     float color[4] = {r, g, b, a};
-    mBackend->OpenGLPrint(s, x, y, color, 1.0f);
+    mBackend->OpenGLPrint(s, x, y, color, scale);
   } else if (mFrontend->mCanDrawText) {
     mFrontend->OpenGLPrint(s, x, y, r, g, b, a, fromBotton);
   }

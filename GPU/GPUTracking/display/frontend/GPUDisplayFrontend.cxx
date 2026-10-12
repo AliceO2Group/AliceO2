@@ -31,7 +31,10 @@
 #include "GPUDisplayFrontendGlut.h"
 #endif
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_WAYLAND
-#include "GPUDisplayFrontendWayland.h"
+namespace o2::gpu
+{
+GPUDisplayFrontend* createGPUDisplayFrontendWayland();
+} // namespace o2::gpu
 #endif
 #include "GPUDisplayFrontendNone.h"
 
@@ -171,7 +174,7 @@ GPUDisplayFrontend* GPUDisplayFrontend::getFrontend(const char* type)
 #endif
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_WAYLAND
   if (strcmp(type, "wayland") == 0 || (strcmp(type, "auto") == 0 && getenv("XDG_SESSION_TYPE") && strcmp(getenv("XDG_SESSION_TYPE"), "wayland") == 0)) {
-    return new GPUDisplayFrontendWayland;
+    return createGPUDisplayFrontendWayland();
   } else
 #endif
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_GLUT
@@ -190,6 +193,21 @@ GPUDisplayFrontend* GPUDisplayFrontend::getFrontend(const char* type)
 GPUDisplayBackend* GPUDisplayFrontend::backend()
 {
   return mDisplay->backend();
+}
+
+void GPUDisplayFrontend::setWindowState(bool fullScreen, bool maximized)
+{
+  mDisplay->mCfgR.fullScreen = fullScreen;
+  mDisplay->mCfgR.maximized = maximized;
+}
+
+void GPUDisplayFrontend::applyInitialWindowState()
+{
+  if (mDisplay->cfgR().fullScreen) {
+    SwitchFullscreen(true);
+  } else if (mDisplay->cfgR().maximized) {
+    ToggleMaximized(true);
+  }
 }
 
 int32_t& GPUDisplayFrontend::drawTextFontSize()

@@ -41,6 +41,8 @@ class GPUTPCGMPropagator;
 
 class GPUDisplay : public GPUDisplayInterface
 {
+  friend class GPUDisplayFrontend;
+
  public:
   GPUDisplay(GPUDisplayFrontend* frontend, GPUChainTracking* chain, GPUQA* qa, const GPUParam* param = nullptr, const GPUCalibObjectsConst* calib = nullptr, const GPUSettingsDisplay* config = nullptr, const GPUSettingsProcessing* proc = nullptr);
   GPUDisplay(const GPUDisplay&) = delete;
