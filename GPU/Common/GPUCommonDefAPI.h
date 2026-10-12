@@ -166,7 +166,7 @@
   #define GPUnoexcept()
   #define GPUprivate() thread
   #define GPUgeneric()
-  #define GPUglobalref() device
+  #define GPUglobalref()
   #define GPUsharedref() threadgroup
   #define GPUprivateref() thread
   #define GPUconstexprref() GPUconstexpr()
