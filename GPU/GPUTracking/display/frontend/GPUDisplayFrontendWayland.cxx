@@ -398,6 +398,10 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
     return (1);
   }
 
+  pthread_mutex_lock(&mSemLockExit);
+  mDisplayRunning = true;
+  pthread_mutex_unlock(&mSemLockExit);
+
   while (mDisplayControl != 2) {
     while (wl_display_prepare_read(mWayland) != 0) {
       wl_display_dispatch_pending(mWayland);
@@ -428,10 +432,6 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
     mXKBkeymap = nullptr;
   }
   xkb_context_unref(mXKBcontext);
-
-  pthread_mutex_lock(&mSemLockExit);
-  mDisplayRunning = true;
-  pthread_mutex_unlock(&mSemLockExit);
 
   pthread_mutex_lock(&mSemLockExit);
   mDisplayRunning = false;
