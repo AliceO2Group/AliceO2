@@ -279,8 +279,8 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
     } else if (strcmp(interface, wl_seat_interface.name) == 0) {
       mSeat = (wl_seat*)wl_registry_bind(registry, name, &wl_seat_interface, 1);
       wl_seat_add_listener(mSeat, &seat_listener, &seat_capabilities_c);
-    } else if (strcmp(interface, zxdg_toplevel_decoration_v1_interface.name) == 0) {
-      mDecManager = (zxdg_decoration_manager_v1*)wl_registry_bind(registry, name, &zxdg_toplevel_decoration_v1_interface, 1);
+    } else if (strcmp(interface, zxdg_decoration_manager_v1_interface.name) == 0) {
+      mDecManager = (zxdg_decoration_manager_v1*)wl_registry_bind(registry, name, &zxdg_decoration_manager_v1_interface, 1);
     }
   };
 
@@ -321,7 +321,7 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
       if (me->mDisplayRunning) {
         me->ResizeScene(me->mWidthRequested, me->mHeightRequested); // Swapchain is recreated by the backend, Vulkan WSI commits the new buffer
       } else {
-        me->mDisplayWidth = me->mWidthRequested; // Initial size, used by InitDisplay via getSize()
+        me->mDisplayWidth = me->mWidthRequested;
         me->mDisplayHeight = me->mHeightRequested;
       }
     }
@@ -349,8 +349,11 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
 
   xdg_toplevel_set_title(mXdgToplevel, DISPLAY_WINDOW_NAME);
 
-  if (mDecManager) {
-    printf("Enabling decoration\n");
+  if (mDecManager) { // Must be requested before the first commit. Without the protocol (e.g. GNOME), the window has no decorations
+    mXdgDecoration = zxdg_decoration_manager_v1_get_toplevel_decoration(mDecManager, mXdgToplevel);
+    zxdg_toplevel_decoration_v1_set_mode(mXdgDecoration, ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
+  } else if (mDisplay->GetProcessingSettings().debugLevel >= 0) {
+    GPUInfo("Wayland compositor does not support server-side decorations");
   }
 
   wl_surface_commit(mSurface); // Initial commit without buffer, the compositor answers with the first configure
@@ -406,9 +409,17 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
     wl_keyboard_release(mKeyboard);
     mKeyboard = nullptr;
   }
+  if (mXdgDecoration) {
+    zxdg_toplevel_decoration_v1_destroy(mXdgDecoration);
+    mXdgDecoration = nullptr;
+  }
   xdg_toplevel_destroy(mXdgToplevel);
   xdg_surface_destroy(mXdgSurface);
   wl_surface_destroy(mSurface);
+  if (mDecManager) {
+    zxdg_decoration_manager_v1_destroy(mDecManager);
+    mDecManager = nullptr;
+  }
   wl_registry_destroy(mRegistry);
   wl_display_disconnect(mWayland);
 

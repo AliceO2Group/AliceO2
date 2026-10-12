@@ -66,13 +66,12 @@ class GPUDisplayFrontendWayland : public GPUDisplayFrontend
 
   wl_output* mOutput = nullptr;
 
-
   xkb_context* mXKBcontext = nullptr;
   xkb_keymap* mXKBkeymap = nullptr;
   xkb_state* mXKBstate = nullptr;
 
   zxdg_decoration_manager_v1* mDecManager = nullptr;
-  // zxdg_toplevel_decoration_v1* mXdgDecoration = nullptr;
+  zxdg_toplevel_decoration_v1* mXdgDecoration = nullptr;
 
   int32_t mWidthRequested = 0;
   int32_t mHeightRequested = 0;
