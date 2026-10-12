@@ -259,7 +259,7 @@ int32_t GPUDisplayFrontendGlut::FrontendMain()
   glutMotionFunc(mouseMoveFunc);
   glutPassiveMotionFunc(mouseMoveFunc);
   glutMouseWheelFunc(mMouseWheelFunc);
-  ToggleMaximized(true);
+  applyInitialWindowState();
 
   pthread_mutex_lock(&mSemLockExit);
   mDisplayRunning = true;

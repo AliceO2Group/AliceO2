@@ -499,7 +499,7 @@ AddOption(camLookOrigin, bool, false, "", 0, "Make the camera look at the origin
 AddOption(camYUp, bool, false, "", 0, "Orient the camera such that the y-axis is always upwards")
 AddOption(cameraMode, int32_t, 0, "", 0, "Camera mode")
 AddOption(fullScreen, bool, false, "", 0, "Full Screen")
-AddOption(maximized, bool, false, "", 0, "Full Screen")
+AddOption(maximized, bool, true, "", 0, "Maximized window")
 AddOption(openGLCore, bool, false, "", 0, "Use renderer path for OpenGL core profile")
 AddOption(drawQualityMSAA, int32_t, 0, "", 0, "MultiSample Anti Aliasing")
 AddOption(drawQualityDownsampleFSAA, int32_t, 0, "", 0, "Downsampling Anti Aliasing")
