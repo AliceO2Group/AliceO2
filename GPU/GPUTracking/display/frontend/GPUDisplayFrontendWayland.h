@@ -49,10 +49,11 @@ class GPUDisplayFrontendWayland : public GPUDisplayFrontend
  private:
   int32_t FrontendMain() override;
   int32_t GetKey(uint32_t key, uint32_t state);
-  void updateScale();     // Buffer scale from wl_surface.preferred_buffer_scale, or max scale of the outputs the surface is on (older compositors)
-  void updateSize();      // Physical size = logical size * scale, resizes the scene if changed
-  void handleKeyRepeat(); // Call HandleKey for the held key according to wl_keyboard.repeat_info
-  void applyScroll();     // Apply scroll events of one wl_pointer.frame: high-resolution wheel (120 = 1 notch = 100 mMouseWheel units) if available, otherwise continuous axis (touchpad, ~15 units per notch)
+  void updateScale();                  // Buffer scale from wl_surface.preferred_buffer_scale, or max scale of the outputs the surface is on (older compositors)
+  void updateSize();                   // Physical size = logical size * scale, resizes the scene if changed
+  void reportError(const char* where); // Print the Wayland display error (protocol error with interface and object, or errno) after a call returned -1
+  void handleKeyRepeat();              // Call HandleKey for the held key according to wl_keyboard.repeat_info
+  void applyScroll();                  // Apply scroll events of one wl_pointer.frame: high-resolution wheel (120 = 1 notch = 100 mMouseWheel units) if available, otherwise continuous axis (touchpad, ~15 units per notch)
 
   struct OutputInfo {
     wl_output* output;

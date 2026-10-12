@@ -40,6 +40,7 @@ GPUDisplayFrontend* createGPUDisplayFrontendWayland();
 
 #include "GPULogging.h"
 #include <cstring>
+#include <exception>
 #include <algorithm>
 #include <iterator>
 #include <thread>
@@ -62,8 +63,14 @@ GPUDisplayFrontend::~GPUDisplayFrontend() = default;
 void* GPUDisplayFrontend::FrontendThreadWrapper(void* ptr)
 {
   GPUDisplayFrontend* me = reinterpret_cast<GPUDisplayFrontend*>(ptr);
-  int32_t retVal = me->FrontendMain();
-  if (retVal == -1) {
+  int32_t retVal;
+  try {
+    retVal = me->FrontendMain();
+  } catch (const std::exception& e) {
+    GPUError("Error in display frontend: %s", e.what());
+    retVal = -1;
+  }
+  if (retVal && me->mDisplay->mInitResult == 0) { // Failed before InitDisplay was called, report failure to StartDisplay(), which otherwise waits forever
     me->InitDisplay(true);
   }
   return ((void*)(size_t)retVal);
