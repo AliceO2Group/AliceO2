@@ -83,6 +83,7 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   void waitForFPSLimit(); // Sleep until the next frame is due according to fpsRate (no sleep with maxFPSRate or fpsRate <= 0)
 
   static constexpr int32_t INIT_WIDTH = 1024, INIT_HEIGHT = 768;                        // Initial window size, before maximizing
+  static constexpr int32_t MIN_WIDTH = 200, MIN_HEIGHT = 150;                           // Minimum window size
   static constexpr const char* DISPLAY_WINDOW_NAME = "GPU CA Standalone Event Display"; // Title of event display set by backend
   // Constant key codes for special mKeys (to unify different treatment in X11 / Windows / GLUT / etc.)
   static constexpr int32_t KEY_UP = 1;
