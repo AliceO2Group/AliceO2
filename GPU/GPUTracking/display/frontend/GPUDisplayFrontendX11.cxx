@@ -349,6 +349,8 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
           } else {
             if (event.xbutton.button == 1) {
               mMouseDn = true;
+            } else if (event.xbutton.button == 2) {
+              mMouseDnM = true;
             } else {
               mMouseDnR = true;
             }
@@ -362,6 +364,8 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
           if (event.xbutton.button != 4 && event.xbutton.button != 5) {
             if (event.xbutton.button == 1) {
               mMouseDn = false;
+            } else if (event.xbutton.button == 2) {
+              mMouseDnM = false;
             } else {
               mMouseDnR = false;
             }

@@ -207,6 +207,8 @@ void GPUDisplayFrontendGlfw::mouseButton_callback(GLFWwindow* window, int32_t bu
       me->mMouseDn = true;
     } else if (button == 1) {
       me->mMouseDnR = true;
+    } else if (button == GLFW_MOUSE_BUTTON_MIDDLE) {
+      me->mMouseDnM = true;
     }
     me->mMouseDnX = me->mMouseMvX;
     me->mMouseDnY = me->mMouseMvY;
@@ -215,6 +217,8 @@ void GPUDisplayFrontendGlfw::mouseButton_callback(GLFWwindow* window, int32_t bu
       me->mMouseDn = false;
     } else if (button == 1) {
       me->mMouseDnR = false;
+    } else if (button == GLFW_MOUSE_BUTTON_MIDDLE) {
+      me->mMouseDnM = false;
     }
   }
 }
