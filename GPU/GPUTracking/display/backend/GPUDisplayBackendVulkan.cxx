@@ -1854,6 +1854,16 @@ void GPUDisplayBackendVulkan::initializeTextDrawing()
   updateFontTextureDescriptor();
 }
 
+void GPUDisplayBackendVulkan::clearFontSymbols()
+{
+  mDevice.waitIdle();
+  if (mFontImage.sizex && mFontImage.sizey) {
+    clearImage(mFontImage);
+    mFontImage.sizex = mFontImage.sizey = 0;
+  }
+  mFontSymbols.clear();
+}
+
 void GPUDisplayBackendVulkan::updateFontTextureDescriptor()
 {
   vk::DescriptorImageInfo imageInfo{};

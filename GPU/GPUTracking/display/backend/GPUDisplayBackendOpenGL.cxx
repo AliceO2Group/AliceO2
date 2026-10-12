@@ -709,6 +709,16 @@ void GPUDisplayBackendOpenGL::addFontSymbol(int32_t symbol, int32_t sizex, int32
   CHKERR(glPixelStorei(GL_UNPACK_ALIGNMENT, oldAlign));
 }
 
+void GPUDisplayBackendOpenGL::clearFontSymbols()
+{
+  CHKERR(glDeleteBuffers(1, &VBO_text));
+  CHKERR(glDeleteVertexArrays(1, &VAO_text));
+  for (auto& symbol : mFontSymbols) {
+    CHKERR(glDeleteTextures(1, &symbol.texId));
+  }
+  mFontSymbols.clear();
+}
+
 void GPUDisplayBackendOpenGL::initializeTextDrawing()
 {
   CHKERR(glGenVertexArrays(1, &VAO_text));
@@ -840,5 +850,6 @@ void GPUDisplayBackendOpenGL::pointSizeFactor(float factor) {}
 void GPUDisplayBackendOpenGL::lineWidthFactor(float factor) {}
 void GPUDisplayBackendOpenGL::addFontSymbol(int32_t symbol, int32_t sizex, int32_t sizey, int32_t offsetx, int32_t offsety, int32_t advance, void* data) {}
 void GPUDisplayBackendOpenGL::initializeTextDrawing() {}
+void GPUDisplayBackendOpenGL::clearFontSymbols() {}
 void GPUDisplayBackendOpenGL::OpenGLPrint(const char* s, float x, float y, float* color, float scale) {}
 #endif // GPUCA_BUILD_EVENT_DISPLAY_OPENGL
