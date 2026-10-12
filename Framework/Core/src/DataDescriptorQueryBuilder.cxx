@@ -161,7 +161,7 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
         lifetime = Lifetime::Sporadic;
       }
     }
-    return InputSpec{binding, std::move(*lastMatcher.release()), lifetime, attributes};
+    return InputSpec{binding, std::move(*lastMatcher), lifetime, attributes};
   };
 
   auto pushMatcher = [&nodes, &states](auto&& matcher) {
@@ -201,6 +201,12 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
       case IN_BEGIN_MATCHER: {
         nodes.clear();
         attributes.clear();
+        // Reset per-query state, so a ;-separated query cannot inherit it.
+        currentBinding.reset();
+        currentOrigin.reset();
+        currentDescription.reset();
+        currentSubSpec.reset();
+        currentTimeModulo.reset();
         pushState(IN_BEGIN_BINDING);
       } break;
       case IN_BEGIN_BINDING: {
@@ -210,7 +216,7 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
       case IN_END_BINDING: {
         // We are at the end of the string already.
         // This is really an origin...
-        if (strchr("\0/;", *next)) {
+        if (memchr("\0/;", *next, 3)) {
           pushState(IN_END_ORIGIN);
           continue;
         }
@@ -286,7 +292,8 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
           error("Remove trailing ;");
           continue;
         }
-        result.push_back(buildMatchingTree(*currentBinding, attributes));
+        // A query without a binding, e.g. "TST/A1", is named after its origin.
+        result.push_back(buildMatchingTree(currentBinding.value_or(currentOrigin.value_or("")), attributes));
         if (*cur == '\0') {
           pushState(IN_END_QUERY);
         } else if (*cur == ';') {

@@ -156,7 +156,8 @@ DataDescriptorMatcher::DataDescriptorMatcher(DataDescriptorMatcher const& other)
   } else if (auto pval2 = std::get_if<SubSpecificationTypeValueMatcher>(&other.mLeft)) {
     mLeft = *pval2;
   } else if (auto pval3 = std::get_if<std::unique_ptr<DataDescriptorMatcher>>(&other.mLeft)) {
-    mLeft = std::move(std::make_unique<DataDescriptorMatcher>(*pval3->get()));
+    // A moved-from node keeps the unique_ptr alternative, only null.
+    mLeft = *pval3 ? std::make_unique<DataDescriptorMatcher>(**pval3) : nullptr;
   } else if (auto pval4 = std::get_if<ConstantValueMatcher>(&other.mLeft)) {
     mLeft = *pval4;
   } else if (auto pval5 = std::get_if<StartTimeValueMatcher>(&other.mLeft)) {
@@ -173,7 +174,8 @@ DataDescriptorMatcher::DataDescriptorMatcher(DataDescriptorMatcher const& other)
   } else if (auto pval2 = std::get_if<SubSpecificationTypeValueMatcher>(&other.mRight)) {
     mRight = *pval2;
   } else if (auto pval3 = std::get_if<std::unique_ptr<DataDescriptorMatcher>>(&other.mRight)) {
-    mRight = std::move(std::make_unique<DataDescriptorMatcher>(*pval3->get()));
+    // A moved-from node keeps the unique_ptr alternative, only null.
+    mRight = *pval3 ? std::make_unique<DataDescriptorMatcher>(**pval3) : nullptr;
   } else if (auto pval4 = std::get_if<ConstantValueMatcher>(&other.mRight)) {
     mRight = *pval4;
   } else if (auto pval5 = std::get_if<StartTimeValueMatcher>(&other.mRight)) {
