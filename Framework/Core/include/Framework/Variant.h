@@ -365,7 +365,7 @@ class Variant
   // Assignment from a temporary vector has to be allowed because it is used, but copies
   // to make sure Variant owns its content
   template <typename T>
-  Variant& operator=(std::vector<T>&& other) //not noexcept because it allocates
+  Variant& operator=(std::vector<T>&& other) // not noexcept because it allocates
   {
     *this = Variant(other);
     return *this;
