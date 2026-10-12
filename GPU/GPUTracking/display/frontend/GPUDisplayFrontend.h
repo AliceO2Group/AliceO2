@@ -152,6 +152,7 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   void ExitDisplay();                              // Callback to clean up the GL Display
   int32_t& drawTextFontSize();
   void setWindowState(bool fullScreen, bool maximized); // Sync the settings if the window manager changed the window state
+  void focusLost();                                     // Release all keys and mouse buttons when the window loses focus, since the release events go to another window
   void applyInitialWindowState();                       // Switch to fullscreen / maximize at startup according to the settings
 };
 } // namespace o2::gpu

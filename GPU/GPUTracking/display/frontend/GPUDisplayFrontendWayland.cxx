@@ -156,6 +156,8 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
   auto pointer_enter = [](void* data, wl_pointer* wl_pointer, uint32_t serial, wl_surface* surface, wl_fixed_t surface_x, wl_fixed_t surface_y) {
   };
   auto pointer_leave = [](void* data, wl_pointer* wl_pointer, uint32_t serial, wl_surface* wl_surface) {
+    GPUDisplayFrontendWayland* me = (GPUDisplayFrontendWayland*)data;
+    me->mMouseDn = me->mMouseDnR = false;
   };
   auto pointer_motion = [](void* data, wl_pointer* wl_pointer, uint32_t time, wl_fixed_t surface_x, wl_fixed_t surface_y) {
     GPUDisplayFrontendWayland* me = (GPUDisplayFrontendWayland*)data;
@@ -192,7 +194,7 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
   };
   auto pointer_axis_source = [](void* data, wl_pointer* wl_pointer, uint32_t axis_source) {};
   auto pointer_axis_stop = [](void* data, wl_pointer* wl_pointer, uint32_t time, uint32_t axis) {};
-  auto pointer_axis_discrete = [](void* data, wl_pointer* wl_pointer, uint32_t axis, int32_t discrete) {}; // Only sent for seat versions 5 to 7, superseded by axis_value120
+  auto pointer_axis_discrete = [](void* data, wl_pointer* wl_pointer, uint32_t axis, int32_t discrete) {};
 #ifdef WL_POINTER_AXIS_VALUE120_SINCE_VERSION
   auto pointer_axis_value120 = [](void* data, wl_pointer* wl_pointer, uint32_t axis, int32_t value120) {
     GPUDisplayFrontendWayland* me = (GPUDisplayFrontendWayland*)data;
@@ -223,7 +225,11 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
     close(fd);
   };
   auto keyboard_enter = [](void* data, wl_keyboard* wl_keyboard, uint32_t serial, wl_surface* surface, wl_array* keys) {};
-  auto keyboard_leave = [](void* data, wl_keyboard* wl_keyboard, uint32_t serial, wl_surface* surface) {};
+  auto keyboard_leave = [](void* data, wl_keyboard* wl_keyboard, uint32_t serial, wl_surface* surface) {
+    GPUDisplayFrontendWayland* me = (GPUDisplayFrontendWayland*)data;
+    me->focusLost();
+    me->mRepeatKeyCode = -1;
+  };
   auto keyboard_key = [](void* data, wl_keyboard* wl_keyboard, uint32_t serial, uint32_t time, uint32_t key, uint32_t state) {
     GPUDisplayFrontendWayland* me = (GPUDisplayFrontendWayland*)data;
     int32_t symbol = me->GetKey(key, state);
