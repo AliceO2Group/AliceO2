@@ -410,7 +410,12 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
             transitionTo(TFReaderState::READ_FIRST_TABLE_FROM_NEXT_FILE);
             break;
           case TFReaderState::INVALID_TIMEFRAME:
-            return;
+            // Returning would leak this callback's timeslice offer, so read the next timeframe.
+            messageContext.clear();
+            ++ntf;
+            routeIndex = 0;
+            transitionTo(TFReaderState::READ_FIRST_TABLE);
+            break;
           case TFReaderState::TIMEFRAME_READ:
             break;
         }
