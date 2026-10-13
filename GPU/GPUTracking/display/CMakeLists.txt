@@ -78,7 +78,7 @@ if(GPUCA_EVENT_DISPLAY_VULKAN)
   if(GPUCA_EVENT_DISPLAY_WAYLAND)
     set(WAYLAND_PROTOCOL_HEADERS)
     set(WAYLAND_PROTOCOL_SOURCES)
-    foreach(xml stable/xdg-shell/xdg-shell.xml stable/viewporter/viewporter.xml unstable/xdg-decoration/xdg-decoration-unstable-v1.xml staging/fractional-scale/fractional-scale-v1.xml)
+    foreach(xml ${O2GPUWayland_PROTOCOLS}) # List and existence check in dependencies/FindO2GPUWayland.cmake
       get_filename_component(name ${xml} NAME_WE)
       string(REGEX REPLACE "(-unstable)?-v[0-9]+$" "" name ${name})
       set(header ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/${name}-client-protocol.h)

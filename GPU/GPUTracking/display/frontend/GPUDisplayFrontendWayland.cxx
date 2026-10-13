@@ -39,6 +39,7 @@
 #include "xdg-shell-client-protocol.h"
 #include "xdg-decoration-client-protocol.h"
 #include "viewporter-client-protocol.h"
+#include "cursor-shape-client-protocol.h"
 #include <xkbcommon/xkbcommon.h>
 #include <linux/input-event-codes.h>
 
@@ -157,6 +158,13 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
   }
 
   auto pointer_enter = [](void* data, wl_pointer* wl_pointer, uint32_t serial, wl_surface* surface, wl_fixed_t surface_x, wl_fixed_t surface_y) {
+    GPUDisplayFrontendWayland* me = (GPUDisplayFrontendWayland*)data;
+    if (!me->mCursorShapeDevice && me->mCursorShapeManager) {
+      me->mCursorShapeDevice = wp_cursor_shape_manager_v1_get_pointer(me->mCursorShapeManager, wl_pointer);
+    }
+    if (me->mCursorShapeDevice) {
+      wp_cursor_shape_device_v1_set_shape(me->mCursorShapeDevice, serial, WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_DEFAULT);
+    }
   };
   auto pointer_leave = [](void* data, wl_pointer* wl_pointer, uint32_t serial, wl_surface* wl_surface) {
     GPUDisplayFrontendWayland* me = (GPUDisplayFrontendWayland*)data;
@@ -355,6 +363,8 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
       wl_seat_add_listener(me->mSeat, &me->mSeatListener, me);
     } else if (strcmp(interface, zxdg_decoration_manager_v1_interface.name) == 0) {
       me->mDecManager = (zxdg_decoration_manager_v1*)wl_registry_bind(registry, name, &zxdg_decoration_manager_v1_interface, 1);
+    } else if (strcmp(interface, wp_cursor_shape_manager_v1_interface.name) == 0) {
+      me->mCursorShapeManager = (wp_cursor_shape_manager_v1*)wl_registry_bind(registry, name, &wp_cursor_shape_manager_v1_interface, 1);
     } else if (strcmp(interface, wp_viewporter_interface.name) == 0) {
       me->mViewporter = (wp_viewporter*)wl_registry_bind(registry, name, &wp_viewporter_interface, 1);
     } else if (strcmp(interface, wp_fractional_scale_manager_v1_interface.name) == 0) {
@@ -600,6 +610,14 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
   mDisplayRunning = false;
   pthread_mutex_unlock(&mSemLockExit);
 
+  if (mCursorShapeDevice) {
+    wp_cursor_shape_device_v1_destroy(mCursorShapeDevice);
+    mCursorShapeDevice = nullptr;
+  }
+  if (mCursorShapeManager) {
+    wp_cursor_shape_manager_v1_destroy(mCursorShapeManager);
+    mCursorShapeManager = nullptr;
+  }
   if (mPointer) {
     mSeatVersion >= WL_POINTER_RELEASE_SINCE_VERSION ? wl_pointer_release(mPointer) : wl_pointer_destroy(mPointer);
     mPointer = nullptr;

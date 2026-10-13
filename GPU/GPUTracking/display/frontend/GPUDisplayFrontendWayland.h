@@ -26,6 +26,8 @@
 struct zxdg_decoration_manager_v1;
 struct wp_viewporter;
 struct wp_viewport;
+struct wp_cursor_shape_manager_v1;
+struct wp_cursor_shape_device_v1;
 struct zxdg_toplevel_decoration_v1;
 struct xkb_context;
 struct xkb_keymap;
@@ -106,6 +108,8 @@ class GPUDisplayFrontendWayland : public GPUDisplayFrontend
 
   wp_viewporter* mViewporter = nullptr; // Fractional scaling (if both are available): buffer scale 1, buffer at physical size, viewport destination = logical size
   wp_fractional_scale_manager_v1* mFractionalScaleManager = nullptr;
+  wp_cursor_shape_manager_v1* mCursorShapeManager = nullptr; // Sets the default cursor on pointer enter, otherwise the cursor image is undefined
+  wp_cursor_shape_device_v1* mCursorShapeDevice = nullptr;
   wp_viewport* mViewport = nullptr;
   wp_fractional_scale_v1* mFractionalScale = nullptr;
 
