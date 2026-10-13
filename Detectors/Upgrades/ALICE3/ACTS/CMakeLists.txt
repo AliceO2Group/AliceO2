@@ -16,9 +16,7 @@ if(NOT Acts_FOUND)
 endif()
 
 o2_add_library(ALICE3ACTS
-               SOURCES src/Gen3BlueprintBuilder.cxx
-                       src/Gen3GeometryConfig.cxx
-                       src/TrkTGeoBlueprintBuilder.cxx
+               SOURCES src/TrkTGeoBlueprintBuilder.cxx
                PUBLIC_LINK_LIBRARIES O2::ACTSInterface
                                      nlohmann_json::nlohmann_json)
 
