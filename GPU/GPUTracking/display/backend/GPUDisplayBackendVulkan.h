@@ -83,7 +83,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   float getYFactor() const override { return -1.0f; }
   int32_t getMaxMSAA() const override { return mMaxMSAAsupported; }
 
-  double checkDevice(vk::PhysicalDevice device, const std::vector<const char*>& reqDeviceExtensions);
+  double checkDevice(vk::PhysicalDevice device, const std::vector<const char*>& reqDeviceExtensions, bool silent = false);
   vk::Extent2D chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities);
   void transitionImageLayout(vk::CommandBuffer commandBuffer, vk::Image image, vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout);
   VulkanBuffer createBuffer(size_t size, const void* srcData = nullptr, vk::BufferUsageFlags type = vk::BufferUsageFlagBits::eVertexBuffer, int32_t deviceMemory = 1);
@@ -208,7 +208,6 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   bool mZActive = false;
   bool mZSupported = false;
   bool mStencilSupported = false;
-  bool mCubicFilterSupported = false;
   bool mDownsampleFSAA = false;
   bool mMixingSupported = 0;
 

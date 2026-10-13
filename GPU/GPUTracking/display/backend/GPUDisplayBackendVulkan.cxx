@@ -273,7 +273,7 @@ static inline void clearVector(T& v, S func, bool downsize = true)
 
 // ---------------------------- VULKAN DEVICE MANAGEMENT ----------------------------
 
-double GPUDisplayBackendVulkan::checkDevice(vk::PhysicalDevice device, const std::vector<const char*>& reqDeviceExtensions)
+double GPUDisplayBackendVulkan::checkDevice(vk::PhysicalDevice device, const std::vector<const char*>& reqDeviceExtensions, bool silent)
 {
   double score = -1.;
   vk::PhysicalDeviceProperties deviceProperties = device.getProperties();
@@ -287,18 +287,20 @@ double GPUDisplayBackendVulkan::checkDevice(vk::PhysicalDevice device, const std
   bool found = false;
   for (uint32_t i = 0; i < queueFamilies.size(); i++) {
     if (!(queueFamilies[i].queueFlags & vk::QueueFlagBits::eGraphics)) {
-      return (-1);
+      continue;
     }
     vk::Bool32 presentSupport = device.getSurfaceSupportKHR(i, mSurface);
     if (!presentSupport) {
-      return (-1);
+      continue;
     }
     mGraphicsFamily = i;
     found = true;
     break;
   }
   if (!found) {
-    GPUInfo("%s ignored due to missing queue properties", &deviceProperties.deviceName[0]);
+    if (!silent) {
+      GPUInfo("%s ignored due to missing queue properties", &deviceProperties.deviceName[0]);
+    }
     return (-1);
   }
 
@@ -313,13 +315,17 @@ double GPUDisplayBackendVulkan::checkDevice(vk::PhysicalDevice device, const std
     }
   }
   if (extensionsFound < reqDeviceExtensions.size()) {
-    GPUInfo("%s ignored due to missing extensions", &deviceProperties.deviceName[0]);
+    if (!silent) {
+      GPUInfo("%s ignored due to missing extensions", &deviceProperties.deviceName[0]);
+    }
     return (-1);
   }
 
   updateSwapChainDetails(device);
   if (mSwapChainDetails.formats.empty() || mSwapChainDetails.presentModes.empty()) {
-    GPUInfo("%s ignored due to incompatible swap chain", &deviceProperties.deviceName[0]);
+    if (!silent) {
+      GPUInfo("%s ignored due to incompatible swap chain", &deviceProperties.deviceName[0]);
+    }
     return (-1);
   }
 
@@ -454,21 +460,22 @@ void GPUDisplayBackendVulkan::createDevice()
   if (!mPhysicalDevice) {
     throw std::runtime_error("All available Vulkan devices unsuited");
   }
+  if (checkDevice(mPhysicalDevice, reqDeviceExtensions, true) <= 0) {
+    throw std::runtime_error("Selected vulkan device is incompatible");
+  }
 
   updateSwapChainDetails(mPhysicalDevice);
   vk::PhysicalDeviceProperties deviceProperties = mPhysicalDevice.getProperties();
   vk::PhysicalDeviceFeatures deviceFeatures = mPhysicalDevice.getFeatures();
   vk::FormatProperties depth32FormatProperties = mPhysicalDevice.getFormatProperties(vk::Format::eD32Sfloat);
   vk::FormatProperties depth64FormatProperties = mPhysicalDevice.getFormatProperties(vk::Format::eD32SfloatS8Uint);
-  vk::FormatProperties formatProperties = mPhysicalDevice.getFormatProperties(mSurfaceFormat.format);
   GPUInfo("Using physical Vulkan device %s", &deviceProperties.deviceName[0]);
   mMaxMSAAsupported = getMaxUsableSampleCount(deviceProperties);
   mZSupported = (bool)(depth32FormatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment);
   mStencilSupported = (bool)(depth64FormatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment);
-  mCubicFilterSupported = (bool)(formatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eSampledImageFilterCubicEXT);
   bool mailboxSupported = std::find(mSwapChainDetails.presentModes.begin(), mSwapChainDetails.presentModes.end(), vk::PresentModeKHR::eMailbox) != mSwapChainDetails.presentModes.end();
   if (mDisplay->GetProcessingSettings().debugLevel >= 2) {
-    GPUInfo("Max MSAA: %d, 32 bit Z buffer %d, 32 bit Z buffer + stencil buffer %d, Cubic Filtering %d, Mailbox present mode %d\n", (int32_t)mMaxMSAAsupported, (int32_t)mZSupported, (int32_t)mStencilSupported, (int32_t)mCubicFilterSupported, (int32_t)mailboxSupported);
+    GPUInfo("Max MSAA: %d, 32 bit Z buffer %d, 32 bit Z buffer + stencil buffer %d, Mailbox present mode %d\n", (int32_t)mMaxMSAAsupported, (int32_t)mZSupported, (int32_t)mStencilSupported, (int32_t)mailboxSupported);
   }
 
   vk::DeviceQueueCreateInfo queueCreateInfo{};
@@ -1893,8 +1900,8 @@ void GPUDisplayBackendVulkan::OpenGLPrint(const char* s, float x, float y, float
     scale *= 0.25f; // Font size is 48 to have nice bitmap, scale to size 12
   }
 
-  for (const char* c = s; *c; c++) {
-    if ((int32_t)*c > (int32_t)mFontSymbols.size()) {
+  for (const unsigned char* c = (const unsigned char*)s; *c; c++) {
+    if ((int32_t)*c >= (int32_t)mFontSymbols.size()) {
       GPUError("Trying to draw unsupported symbol: %d > %d\n", (int32_t)*c, (int32_t)mFontSymbols.size());
       continue;
     }
