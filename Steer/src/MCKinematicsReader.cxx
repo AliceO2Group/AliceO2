@@ -13,8 +13,6 @@
 #include "Steer/MCKinematicsReader.h"
 #include "SimulationDataFormat/MCEventHeader.h"
 #include "SimulationDataFormat/TrackReference.h"
-#include "SimulationDataFormat/MonopoleParticles.h"
-#include "SimulationDataFormat/O2DatabasePDG.h"
 #include <TChain.h>
 #include <stdexcept>
 #include <string>
@@ -84,29 +82,6 @@ void MCKinematicsReader::initTracksForSource(int source) const
   }
 }
 
-namespace
-{
-// Makes the monopole mass used by the simulation, which is stored in the event header, the
-// one of O2DatabasePDG; otherwise MCTrack::GetMass() (and GetEnergy(), GetRapidity(), ...) would
-// give the default mass for monopoles of a run with another G4.monopoleMass.
-void applyMonopoleMass(o2::dataformats::MCEventHeader const& header)
-{
-  if (!header.hasInfo(o2::sim::MonopoleMassHeaderKey)) {
-    return;
-  }
-  bool valid = false;
-  const double mass = header.getInfo<double>(o2::sim::MonopoleMassHeaderKey, valid);
-  if (!valid || !(mass > 0.)) {
-    return;
-  }
-  if (o2::O2DatabasePDG::hasMonopoleMassOverride() && std::abs(o2::O2DatabasePDG::getMonopoleMass() - mass) > 1.e-6 * mass) {
-    LOG(warn) << "Kinematics with different monopole masses (" << o2::O2DatabasePDG::getMonopoleMass() << " and " << mass
-              << " GeV) are read in the same process; monopole masses will be wrong for one of them";
-  }
-  o2::O2DatabasePDG::setMonopoleMass(mass);
-}
-} // namespace
-
 void MCKinematicsReader::loadTracksForSourceAndEvent(int source, int event) const
 {
   auto chain = mInputChains[source];
@@ -120,17 +95,6 @@ void MCKinematicsReader::loadTracksForSourceAndEvent(int source, int event) cons
       mTracks[source][event] = new std::vector<o2::MCTrack>;
       *mTracks[source][event] = *loadtracks;
       delete loadtracks;
-      // the monopole mass has to be known before the tracks are used
-      if (auto hbr = chain->GetBranch("MCEventHeader.")) {
-        o2::dataformats::MCEventHeader* header = nullptr;
-        hbr->SetAddress(&header);
-        hbr->GetEntry(event);
-        if (header) {
-          applyMonopoleMass(*header);
-        }
-        delete header;
-        hbr->ResetAddress();
-      }
     }
   }
 }
@@ -156,7 +120,6 @@ void MCKinematicsReader::loadHeadersForSource(int source) const
       for (int event = 0; event < br->GetEntries(); ++event) {
         br->GetEntry(event);
         mHeaders[source][event] = *header;
-        applyMonopoleMass(mHeaders[source][event]);
       }
       delete header;
       header = nullptr;

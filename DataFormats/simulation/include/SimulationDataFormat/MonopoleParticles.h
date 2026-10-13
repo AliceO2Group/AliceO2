@@ -34,10 +34,6 @@ constexpr int MonopolePdgAsymm = 4120000;
 /// Default monopole mass in GeV.
 constexpr double MonopoleMassDefaultGeV = 100.;
 
-/// Key under which the monopole mass (GeV) used in a simulation is stored in the MCEventHeader,
-/// so that readers of the kinematics can use the mass the events were produced with.
-constexpr const char* MonopoleMassHeaderKey = "monopoleMass";
-
 /// true for the monopole and antimonopole of both species
 constexpr bool isMonopole(int pdg) noexcept
 {
