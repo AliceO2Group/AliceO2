@@ -50,6 +50,8 @@
 #include <Acts/Utilities/CalibrationContext.hpp>
 #include <Acts/Utilities/GridBinFinder.hpp>
 
+#include "ACTSInterface/TrackingGeometryManager.h"
+
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -60,7 +62,6 @@
 #include <utility>
 #include <vector>
 
-
 namespace o2::trk
 {
 
@@ -70,6 +71,8 @@ TrackerACTS<nLayers>::TrackerACTS()
   // Initialize space points storage per layer
   mSpacePointsPerLayer.resize(nLayers);
   mHistSpacePoints = new TH2F("hSpacePoints", "Space points; x (cm); y (cm)", 200, -100, 100, 200, -100, 100);
+
+  // Initialize ACTS Tracking geometry
 }
 
 template <int nLayers>
@@ -157,7 +160,6 @@ void TrackerACTS<nLayers>::buildSpacePoints(int rof)
 
   LOG(info) << "ACTS surface mapping: " << nMapped << " clusters mapped, " << nMissing << " clusters missing";
 }
-
 
 template <int nLayers>
 void TrackerACTS<nLayers>::createSeeds()
@@ -548,10 +550,7 @@ void TrackerACTS<nLayers>::computeTracksMClabels()
   if (!mTimeFrame || !mTimeFrame->hasMCinformation()) {
 
     return;
-
   }
-
-
 
   // MC labeling using majority voting on cluster labels
 
@@ -639,7 +638,6 @@ void TrackerACTS<nLayers>::clustersToTracks()
   ++mTimeFrameCounter;
   mTotalTime += totalTime;
 }
-
 
 template <int nLayers>
 void TrackerACTS<nLayers>::printSummary() const
