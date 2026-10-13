@@ -181,7 +181,9 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   std::vector<vk::Semaphore> mTextFinishedSemaphore;
   std::vector<vk::Semaphore> mMixFinishedSemaphore;
   std::vector<vk::Semaphore> mDownsampleFinishedSemaphore;
+  std::vector<vk::Semaphore> mPresentSemaphore;
   std::vector<vk::Fence> mInFlightFence;
+  std::vector<vk::Fence> mImageFence;
   std::vector<VulkanBuffer> mUniformBuffersMat[3];
   std::vector<VulkanBuffer> mUniformBuffersCol[3];
   std::vector<vk::DescriptorSet> mDescriptorSets[3];
