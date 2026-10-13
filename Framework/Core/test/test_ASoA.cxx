@@ -316,11 +316,20 @@ TEST_CASE("TestJoinedTables")
     REQUIRE(15 == test.x() + test.y() + test.z());
   }
 
-  try {
-    auto testF = join(TestZ{tableZ}, TestW{tableW});
-  } catch (RuntimeErrorRef ref) {
-    REQUIRE(std::string{error_from_ref(ref).what} == "Tables TEST and TEST have different sizes (8 vs 3) and cannot be joined!");
-  }
+  // a table of different size must be detected in any position of the join
+  auto joinError = [](auto&& makeJoin) -> std::string {
+    try {
+      makeJoin();
+    } catch (RuntimeErrorRef ref) {
+      return error_from_ref(ref).what;
+    }
+    return "";
+  };
+  REQUIRE(joinError([&] { join(TestZ{tableZ}, TestW{tableW}); }) == "Tables TEST and TEST have different sizes (8 vs 3) and cannot be joined!");
+  REQUIRE(joinError([&] { join(TestW{tableW}, TestY{tableY}, TestZ{tableZ}); }) == "Tables TEST and TEST have different sizes (3 vs 8) and cannot be joined!");
+  REQUIRE(joinError([&] { join(TestX{tableX}, TestW{tableW}, TestZ{tableZ}); }) == "Tables TEST and TEST have different sizes (8 vs 3) and cannot be joined!");
+  REQUIRE(joinError([&] { join(TestX{tableX}, TestY{tableY}, TestW{tableW}); }) == "Tables TEST and TEST have different sizes (8 vs 3) and cannot be joined!");
+  REQUIRE(joinError([&] { Join<TestX, TestY, TestW>{{tableX, tableY, tableW}}; }) == "Tables at positions 1 and 2 have different sizes (8 vs 3) and cannot be joined!");
 }
 
 TEST_CASE("TestConcatTables")

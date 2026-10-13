@@ -229,7 +229,7 @@ class TPCDistributeCMVSpec : public o2::framework::Task
   {
     const std::string name = fmt::format("CMVAGG{}", lane);
     header::DataDescription description;
-    description.runtimeInit(name.substr(0, 16).c_str());
+    description.runtimeInit(name);
     return description;
   }
 
@@ -238,7 +238,7 @@ class TPCDistributeCMVSpec : public o2::framework::Task
   {
     const std::string name = fmt::format("CMVORB{}", lane);
     header::DataDescription description;
-    description.runtimeInit(name.substr(0, 16).c_str());
+    description.runtimeInit(name);
     return description;
   }
 

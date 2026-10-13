@@ -23,7 +23,6 @@ using namespace o2::framework::expressions;
 
 namespace o2::aod
 {
-O2ORIGIN("EMB");
 namespace skimmedExampleTrack
 {
 DECLARE_SOA_COLUMN(Pt, pt, float);   //!

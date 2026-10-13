@@ -118,6 +118,8 @@ class TRKMLLayer : public TRKSegmentedLayer
   void createLayer(TGeoVolume* motherVolume) override;
 
  private:
+  TGeoVolume* createEndOfStaveCard(); // A-side (+z) end-of-stave card, in front of the conn disk
+
   float mStaggerOffset;
 
   static constexpr double sStaveWidth = constants::ML::width;

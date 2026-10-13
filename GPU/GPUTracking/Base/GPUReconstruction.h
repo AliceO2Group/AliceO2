@@ -427,7 +427,7 @@ class GPUReconstruction
     void* mGPULib;
     void* mGPUEntry;
   };
-  static std::shared_ptr<LibraryLoader> sLibCUDA, sLibHIP, sLibOCL, sLibMETAL;
+  static std::shared_ptr<LibraryLoader> sLibCUDA, sLibHIP, sLibOCL, sLibMETAL, sLibCPUDEVICE;
 
   // Debugging
   struct debugInternal;

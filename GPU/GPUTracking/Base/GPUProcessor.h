@@ -51,6 +51,7 @@ class GPUProcessor
   GPUd() GPUconstantref() const GPUConstantMem* GetConstantMem() const; // Body in GPUConstantMem.h to avoid circular headers
   GPUd() GPUconstantref() const GPUParam& Param() const;                // ...
   GPUd() void raiseError(uint32_t code, uint32_t param1 = 0, uint32_t param2 = 0, uint32_t param3 = 0) const;
+  GPUd() bool IsDeviceProcessor() const { return mGPUProcessorType == PROCESSOR_TYPE_DEVICE; }
   const GPUReconstruction& GetRec() const { return *mRec; }
 
 #ifndef __OPENCL__

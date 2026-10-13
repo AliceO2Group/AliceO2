@@ -16,6 +16,7 @@
 #endif
 
 #include <numeric>
+#include <iostream>
 
 #include "GPUCommonDef.h"
 #include "DCAFitter/DCAFitterN.h"

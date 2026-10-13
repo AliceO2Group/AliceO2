@@ -480,6 +480,50 @@ bool staveMidpointAndMirror(const Constants::StaveConfig& staveConfig, int stave
 }
 
 /*
+ * FR4 + Cu end-of-stave card at the outer-radius tip of a disk stave.
+ * Mirrors the TRK barrel card: an FR4 board with evenly spaced copper planes.
+ * Local card axes in the (layer) mother frame: x = stave width, y = stave axis
+ * (radial at the tip), z = beam. The card sits downstream of the stave (away
+ * from the IP), just past the disk envelope, in front of the connection disk.
+ */
+void FT3Module::addEndOfStaveCard(
+  TGeoVolume* motherVolume, const std::string& name, int direction,
+  unsigned volume_count, double x_mid, double y_tip, double z_sensor,
+  bool isML, double cuThickness)
+{
+  const Constants::EosCardParams& c = Constants::getEosCardParams(isML);
+  if (cuThickness * c.nCopperLayers >= c.thickness) {
+    LOG(fatal) << "FT3 disk EoS card: Cu " << cuThickness << " cm x " << c.nCopperLayers
+               << " planes does not fit in the " << c.thickness << " cm card";
+  }
+
+  // FR4 board (x = width, y = thickness, z = length)
+  TGeoVolume* cardVol = gGeoManager->MakeBox(name.c_str(), getMedium(Materials::MaterialID::FR4),
+                                             c.width / 2, c.thickness / 2, c.length / 2);
+  cardVol->SetLineColor(kGreen + 3);
+
+  // copper planes spread over the thickness (y), outermost two flush with the faces
+  TGeoVolume* planeVol = gGeoManager->MakeBox((name + "_Cu").c_str(), getMedium(Materials::MaterialID::Copper),
+                                              c.width / 2, cuThickness / 2, c.length / 2);
+  planeVol->SetLineColor(kOrange + 7);
+  const double span = c.thickness - cuThickness;
+  for (int i = 0; i < c.nCopperLayers; ++i) {
+    const double y = (c.nCopperLayers > 1) ? -span / 2 + i * span / (c.nCopperLayers - 1) : 0.;
+    cardVol->AddNode(planeVol, i, new TGeoTranslation(0, y, 0));
+  }
+
+  // z: IP-facing edge starts just after the sensors (z_sensor), body extends
+  //    downstream (away from the IP), toward the connection disk.
+  // y: sit just radially OUTSIDE the stave outer tip so the long card runs past
+  //    the carbon stave along z without overlapping it.
+  const double s = (direction == 1) ? 1.0 : -1.0; // downstream sign
+  const double zCard = z_sensor + s * (c.zGap + c.length / 2);
+  const double yClear = 0.05; // radial clearance to the stave tip
+  const double yCard = y_tip + (y_tip >= 0 ? 1.0 : -1.0) * (c.thickness / 2 + yClear);
+  motherVolume->AddNode(cardVol, volume_count, new TGeoTranslation(x_mid, yCard, zCard));
+}
+
+/*
  * Create the carbon shell of one stave, staggered in z, plus the mirrored one
  * when the stave is built as two pieces.
  */
@@ -508,6 +552,47 @@ void FT3Module::add_stave_volumes(
       motherVolume, stave_volume_name + "_mirrored", direction, staveVolumeCount,
       staveConfig.y_lengths[i_stave], staveTriangles, absAllowedYRange,
       staveConfig.x_midpoints[i_stave], -y_midpoint, z_stave_shift_forward);
+  }
+
+  // End-of-stave card at the outer-radius tip of each stave PIECE, placed
+  // downstream of the stave in front of the connection disk. A whole stave gets
+  // one card (the +y "top" tip). A split stave is built as two pieces (main +
+  // mirror), each reaching the outer radius at opposite ends, so each piece gets
+  // its own card at its outer tip (+y for the main, -y for the mirror).
+  // Shared by the exact and greedy paths; the disk layer envelope is extended
+  // downstream in FT3Layer::createLayer to contain the cards.
+  auto& ft3Params = o2::ft3::FT3BaseParam::Instance();
+  if (ft3Params.addDiskEosCards) {
+    const bool isML = staveConfig.isML;
+    const double cuT = isML ? ft3Params.ft3EosCardCuThicknessML : ft3Params.ft3EosCardCuThicknessOT;
+    // Actual outer-radius tip of the stave: greedy clamps the stave to
+    // absAllowedYRange.second, exact leaves it unbounded (DBL_MAX), so take the
+    // smaller of the geometric end and the radial clamp.
+    const double yTip = std::min(y_midpoint + staveConfig.y_lengths[i_stave] / 2,
+                                 absAllowedYRange.second);
+    // Per-stave sensor silicon z in the layer frame, reconstructed from the
+    // carbon-face offset exactly as the sensor-placement loop does, so the card
+    // starts right after the sensors.
+    const double z_offset_to_silicon = z_offset_to_carbon_face +
+                                       Constants::epoxyThickness + Constants::kaptonThickness +
+                                       Constants::copperThickness + Constants::epoxyThickness +
+                                       Constants::siliconThickness / 2;
+    const double zOffMult = (direction == 1) ? -1.0 : 1.0;
+    double zStaveShiftSensors = 0.0;
+    if (!staveConfig.staveOnFront[i_stave]) {
+      zStaveShiftSensors = (direction == 1) ? Constants::z_offsetStave(staveConfig.x_midpoint_spacing)
+                                            : -Constants::z_offsetStave(staveConfig.x_midpoint_spacing);
+    }
+    const double zSensor = z_offset_to_silicon * zOffMult + zStaveShiftSensors;
+    const std::string cardBase = "FT3_EOSdiskCard_" + std::to_string(direction) + "_" +
+                                 std::to_string(layerNumber) + "_" + std::to_string(i_stave);
+    addEndOfStaveCard(motherVolume, cardBase + "_pos", direction, (*staveVolumeCount)++,
+                      staveConfig.x_midpoints[i_stave], +yTip, zSensor, isML, cuT);
+    // split stave: the mirror piece reaches the outer radius at -y, give it a card too
+    if (mirrorStaveAroundX) {
+      addEndOfStaveCard(motherVolume, cardBase + "_neg", direction, (*staveVolumeCount)++,
+                        staveConfig.x_midpoints[i_stave], -yTip, zSensor, isML, cuT);
+    }
   }
 }
 

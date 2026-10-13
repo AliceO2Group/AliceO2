@@ -45,11 +45,11 @@ struct ResidualsContainer {
   ResidualsContainer& operator=(const ResidualsContainer& src) = delete;
   ~ResidualsContainer();
 
-  void init(const TrackResiduals* residualsEngine, std::string outputDir, bool wFile, bool wBinnedResid, bool wUnbinnedResid, bool wTrackData, int autosave, int compression, long orbitResetTime);
+  void init(const TrackResiduals* residualsEngine, std::string outputDir, bool wFile, bool wBinnedResid, bool wUnbinnedResid, bool wTrackData, bool wTrackDataMC, int autosave, int compression, long orbitResetTime);
   void fillStatisticsBranches();
   uint64_t getNEntries() const { return nResidualsTotal; }
 
-  void fill(const o2::dataformats::TFIDInfo& ti, const gsl::span<const UnbinnedResid> resid, const gsl::span<const DetInfoResid> detInfoRes, const gsl::span<const o2::tpc::TrackDataCompact> trkRefsIn, const gsl::span<const o2::tpc::TrackData>* trkDataIn, const o2::ctp::LumiInfo* lumiInput);
+  void fill(const o2::dataformats::TFIDInfo& ti, const gsl::span<const UnbinnedResid> resid, const gsl::span<const DetInfoResid> detInfoRes, const gsl::span<const o2::tpc::TrackDataCompact> trkRefsIn, const gsl::span<const o2::tpc::TrackData>* trkDataIn, const gsl::span<const o2::tpc::TrackDataMC>* trkDataMCIn, const o2::ctp::LumiInfo* lumiInput);
   void merge(ResidualsContainer* prev);
   void print();
   void writeToFile(bool closeFileAfterwards);
@@ -66,6 +66,7 @@ struct ResidualsContainer {
   std::vector<UnbinnedResid> unbinnedRes, *unbinnedResPtr{&unbinnedRes};     ///< unbinned residuals which are sent to the aggregator
   std::vector<DetInfoResid> detInfoUnbRes, *detInfoUnbResPtr{&detInfoUnbRes}; ///< detector info associated to unbinned residuals which are sent to the aggregator
   std::vector<TrackData> trkData, *trkDataPtr{&trkData};                     ///< track data and cluster ranges
+  std::vector<TrackDataMC> trkDataMC, *trkDataMCPtr{&trkDataMC};             ///< MC truth for the track data (MC only)
   std::vector<TrackDataCompact> trackInfo, *trackInfoPtr{&trackInfo};        ///< allows to obtain track type for each unbinned residual downstream
   o2::ctp::LumiInfo lumiTF;                                                  ///< for each processed TF we store the lumi information in the tree of unbinned residuals
   uint64_t timeMS;                                                           ///< for each processed TF we store its absolute time in ms in the tree of unbinned residuals
@@ -83,6 +84,7 @@ struct ResidualsContainer {
   bool writeBinnedResid{false};       ///< flag, whether binned residuals should be written out
   bool writeUnbinnedResiduals{false}; ///< flag, whether unbinned residuals should be written out
   bool writeTrackData{false};         ///< flag, whether full seeding track information should be written out
+  bool writeTrackDataMC{false};       ///< flag, whether the MC truth of the seeding tracks should be written out
   int autosaveInterval{0};            ///< if > 0, then the output written to file for every n-th TF
 
   // additional info
@@ -94,7 +96,7 @@ struct ResidualsContainer {
   float TPCVDriftRef{-1.};                          ///< TPC nominal drift speed in cm/microseconds
   float TPCDriftTimeOffsetRef{0.};                  ///< TPC nominal (e.g. at the start of run) drift time bias in cm/mus
 
-  ClassDefNV(ResidualsContainer, 5);
+  ClassDefNV(ResidualsContainer, 6);
 };
 
 class ResidualAggregator final : public o2::calibration::TimeSlotCalibration<ResidualsContainer>
@@ -122,6 +124,7 @@ class ResidualAggregator final : public o2::calibration::TimeSlotCalibration<Res
   void setWriteBinnedResiduals(bool f) { mWriteBinnedResiduals = f; }
   void setWriteUnbinnedResiduals(bool f) { mWriteUnbinnedResiduals = f; }
   void setWriteTrackData(bool f) { mWriteTrackData = f; }
+  void setWriteTrackDataMC(bool f) { mWriteTrackDataMC = f; }
   void setAutosaveInterval(int n) { mAutosaveInterval = n; }
   void setCompression(int c) { mCompressionSetting = c; }
 
@@ -141,6 +144,7 @@ class ResidualAggregator final : public o2::calibration::TimeSlotCalibration<Res
   bool mWriteBinnedResiduals{false};  ///< flag, whether to write binned residuals to output file
   bool mWriteUnbinnedResiduals{false}; ///< flag, whether to write unbinned residuals to output file
   bool mWriteTrackData{false};         ///< flag, whether to write track data to output file
+  bool mWriteTrackDataMC{false};       ///< flag, whether to write the MC truth of the track data to output file
   int mAutosaveInterval{0};            ///< if >0 then the output is written to a file for every n-th TF
   int mCompressionSetting{101};        ///< single integer defining the ROOT compression algorithm and level (see TFile doc for details)
   size_t mMinEntries;             ///< the minimum number of residuals required for the map creation (per voxel)

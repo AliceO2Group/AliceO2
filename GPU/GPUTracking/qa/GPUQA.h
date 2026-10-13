@@ -318,6 +318,9 @@ class GPUQA
   TPad* mPClRej[3];
   TPad* mPClRejP;
 
+  TH2F* mLowestRowDifferenceVsPad;
+  TH1F* mLowestRowTrackMultiplicity;
+
   TH2F* mPadRow[4];
   TCanvas* mCPadRow[4];
   TPad* mPPadRow[4];

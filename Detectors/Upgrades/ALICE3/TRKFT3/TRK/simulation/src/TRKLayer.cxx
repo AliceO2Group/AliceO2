@@ -247,10 +247,9 @@ TRKMLLayer::TRKMLLayer(int layerNumber, std::string layerName, float rInn, float
 
 TGeoVolume* TRKMLLayer::createStave()
 {
-  TGeoMedium* medAir = gGeoManager->GetMedium("TRK_AIR$");
+  // Assembly (not a solid box) so the end-of-stave card can extend past the module envelope.
   std::string staveName = GeometryTGeo::getTRKStavePattern() + std::to_string(mLayerNumber);
-  TGeoShape* stave = new TGeoBBox(sStaveWidth / 2, mChipThickness / 2, mLength / 2);
-  TGeoVolume* staveVol = new TGeoVolume(staveName.c_str(), stave, medAir);
+  TGeoVolume* staveVol = new TGeoVolumeAssembly(staveName.c_str());
   staveVol->SetLineColor(kYellow);
 
   for (int iModule = 0; iModule < mNumberOfModules; iModule++) {
@@ -262,7 +261,46 @@ TGeoVolume* TRKMLLayer::createStave()
     staveVol->AddNode(moduleVol, iModule, trans);
   }
 
+  // End-of-stave card on the A-side (+z) only, just past the stave end and in front of the
+  // TRK_MIDBARCONN_DISK. Local frame: x = phi (width), y = radial (thickness), z = length.
+  TGeoCombiTrans* tCard = new TGeoCombiTrans();
+  tCard->SetTranslation(0, 0, mLength / 2 + constants::ML::eosCard::zGap + constants::ML::eosCard::length / 2);
+  staveVol->AddNode(createEndOfStaveCard(), 0, tCard);
+
   return staveVol;
+}
+
+TGeoVolume* TRKMLLayer::createEndOfStaveCard()
+{
+  // FR4 board carrying evenly spaced copper planes; same construction as the OT card, with its
+  // own constants::ML::eosCard dimensions and a configurable copper thickness (TRKBase.mlEosCardCuThickness),
+  // which displaces FR4 inside the fixed envelope and sets the card x/X0.
+  TGeoMedium* medFR4 = gGeoManager->GetMedium("TRK_FR4$");
+  TGeoMedium* medCu = gGeoManager->GetMedium("TRK_COPPER$");
+  const std::string name = GeometryTGeo::getTRKStavePattern() + std::to_string(mLayerNumber) + "_EOSCard";
+
+  TGeoShape* board = new TGeoBBox(constants::ML::eosCard::width / 2, constants::ML::eosCard::thickness / 2, constants::ML::eosCard::length / 2);
+  TGeoVolume* cardVol = new TGeoVolume(name.c_str(), board, medFR4);
+  cardVol->SetLineColor(kGreen + 3);
+
+  const double cuThickness = TRKBaseParam::Instance().mlEosCardCuThickness;
+  const int nPlanes = constants::ML::eosCard::nCopperLayers;
+  if (cuThickness * nPlanes >= constants::ML::eosCard::thickness) {
+    LOGP(fatal, "TRKBase.mlEosCardCuThickness = {} cm x {} planes does not fit in the {} cm ML end-of-stave card",
+         cuThickness, nPlanes, constants::ML::eosCard::thickness);
+  }
+  TGeoShape* plane = new TGeoBBox(constants::ML::eosCard::width / 2, cuThickness / 2, constants::ML::eosCard::length / 2);
+  TGeoVolume* planeVol = new TGeoVolume((name + "_Cu").c_str(), plane, medCu);
+  planeVol->SetLineColor(kOrange + 7);
+
+  // Evenly spaced, the outermost two flush with the board surfaces.
+  const double span = constants::ML::eosCard::thickness - cuThickness;
+  for (int iPlane = 0; iPlane < nPlanes; iPlane++) {
+    const double y = (nPlanes > 1) ? -span / 2 + iPlane * span / (nPlanes - 1) : 0.;
+    cardVol->AddNode(planeVol, iPlane, new TGeoTranslation(0, y, 0));
+  }
+
+  return cardVol;
 }
 
 void TRKMLLayer::createLayer(TGeoVolume* motherVolume)
@@ -272,7 +310,9 @@ void TRKMLLayer::createLayer(TGeoVolume* motherVolume)
 
   TGeoMedium* medAir = gGeoManager->GetMedium("TRK_AIR$");
   // TGeoTube* layer = new TGeoTube(mInnerRadius - 0.333 * sLogicalVolumeThickness, mInnerRadius + 0.667 * sLogicalVolumeThickness, mLength / 2);
-  TGeoTube* layer = new TGeoTube(rMin, rMax, mLength / 2);
+  // Extend the z half-length so the A-side end-of-stave card (past mLength/2) stays inside the layer.
+  const double halfLengthZ = mLength / 2 + constants::ML::eosCard::zGap + constants::ML::eosCard::length;
+  TGeoTube* layer = new TGeoTube(rMin, rMax, halfLengthZ);
   TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
   layerVol->SetLineColor(kYellow);
 

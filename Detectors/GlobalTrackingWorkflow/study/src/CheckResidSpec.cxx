@@ -12,12 +12,21 @@
 #include "GlobalTrackingStudy/CheckResidSpec.h"
 #include "GlobalTrackingStudy/CheckResidTypes.h"
 #include "GlobalTrackingStudy/CheckResidConfig.h"
+#include <algorithm>
+#include <array>
+#include <charconv>
+#include <cctype>
+#include <limits>
+#include <optional>
+#include <string_view>
+#include <utility>
 #include <vector>
 #include "ReconstructionDataFormats/Track.h"
 #include <TStopwatch.h>
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DataFormatsITSMFT/TrkClusRef.h"
 #include "DataFormatsITSMFT/ClustersPerLayer.h"
+#include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
@@ -98,6 +107,7 @@ class CheckResidSpec final : public Task
   void postProcessHistos();
   void drawHistos();
 
+  o2::itsmft::ChipMappingITS mChipMap;
   o2::globaltracking::RecoContainer* mRecoData = nullptr;
   int mNThreads = 1;
   bool mMeanVertexUpdated = false;
@@ -144,7 +154,7 @@ void CheckResidSpec::init(InitContext& ic)
     bookHistos();
   }
   if (!params.ext_hm_list.empty()) {
-    auto vecNames = o2::utils::Str::tokenize(params.ext_hm_list, ',');
+    auto vecNames = o2::utils::Str::tokenize(params.ext_hm_list, ",;");
     auto vecLegends = o2::utils::Str::tokenize(params.ext_leg_list, ',');
     bool useLeg = true;
     if (vecNames.size() != vecLegends.size()) {
@@ -624,6 +634,7 @@ bool CheckResidSpec::refitITStrack(o2::track::TrackParCov& track, GTrackID gid)
 void CheckResidSpec::fillHistos(const o2::checkresid::Track& trc)
 {
   const auto& params = CheckResidConfig::Instance();
+  auto geom = o2::its::GeometryTGeo::Instance();
   int np = trc.points.size();
   auto pt = trc.track.getPt();
   if (pt < params.minPt || pt > params.maxPt) {
@@ -653,6 +664,21 @@ void CheckResidSpec::fillHistos(const o2::checkresid::Track& trc)
       mHMan->getHisto2F(il * 10 + 1 * 100 + 5 + 1000)->Fill(pnt.z, pull);
       mHMan->getHisto2F(il * 10 + 1 * 100 + 5 + 2000)->Fill(pt, pull);
       mHMan->getHisto2F(il * 10 + 1 * 100 + 5 + 3000)->Fill(trc.track.getTgl(), pull);
+    }
+    if (pnt.lr >= 0 && pnt.sens >= 0 && geom->getLayer(pnt.sens) == pnt.lr) {
+      const int halfBarrel = geom->getHalfBarrel(pnt.sens);
+      const int chip = geom->getFirstChipIndex(pnt.lr) + geom->getChipIdInLayer(pnt.sens);
+      const int chipHistoID = (2 * il + halfBarrel) * 100 + 15000;
+      if (halfBarrel >= 0 && halfBarrel < 2) {
+        mHMan->getHisto2F(chipHistoID)->Fill(chip, pnt.dy);
+        mHMan->getHisto2F(chipHistoID + 10)->Fill(chip, pnt.dz);
+        if (pnt.sig2y > 0) {
+          mHMan->getHisto2F(chipHistoID + 5)->Fill(chip, pnt.dy / std::sqrt(pnt.sig2y));
+        }
+        if (pnt.sig2z > 0) {
+          mHMan->getHisto2F(chipHistoID + 15)->Fill(chip, pnt.dz / std::sqrt(pnt.sig2z));
+        }
+      }
     }
   }
   //--------------
@@ -718,6 +744,18 @@ void CheckResidSpec::bookHistos()
       mHMan->addHisto(htgl2, il * 10 + iyz * 100 + 3000);
       auto htgl2p = new TH2F(fmt::format("{}_{}_{}_pull", dname, lrName, "tgl").c_str(), fmt::format("pull {}_{{{}}} vs {};tg#lambda; pull{}", dtit, lrName, "tg#lambda", dtit).c_str(), params.nBinsTgl, -params.maxTgl, params.maxTgl, params.nBinsRes, -params.maxPull, params.maxPull);
       mHMan->addHisto(htgl2p, il * 10 + iyz * 100 + 5 + 3000);
+
+      if (il > 0) {
+        const int ilr = il - 1;
+        const int nChips = mChipMap.getNChipsOnLayer(ilr) / 2;
+        for (int ib = 0; ib < 2; ++ib) { // chips per halfbarrel
+          const int startChip = ib * nChips + mChipMap.getFirstChipsOnLayer(ilr);
+          auto h2 = new TH2F(fmt::format("{}_{}_{}", dname, lrName, ib).c_str(), fmt::format("{} Lr{} HB{};chip;{}", dname, lrName, ib, dtit).c_str(), nChips, startChip - 0.5, startChip - 0.5 + nChips, params.nBinsRes, -params.maxDYZ[il], params.maxDYZ[il]);
+          mHMan->addHisto(h2, (2 * il + ib) * 100 + iyz * 10 + 15000);
+          auto h2p = new TH2F(fmt::format("{}_{}_{}_pull", dname, lrName, ib).c_str(), fmt::format("{} Lr{} HB{} pull;chip;pull{}", dname, lrName, ib, dtit).c_str(), nChips, startChip - 0.5, startChip - 0.5 + nChips, params.nBinsRes, -params.maxPull, params.maxPull);
+          mHMan->addHisto(h2p, (2 * il + ib) * 100 + iyz * 10 + 5 + 15000);
+        }
+      }
     }
   }
 
@@ -797,6 +835,16 @@ void CheckResidSpec::postProcessHistos()
         }
       }
     }
+    for (int il = 1; il < 8; il++) {
+      for (int ib = 0; ib < 2; ib++) {
+        for (int iyz = 0; iyz < 2; iyz++) {
+          for (int iht = 0; iht < 2; iht++) {
+            const int offsV = iht == 0 ? 0 : 5;
+            fitSlices((2 * il + ib) * 100 + iyz * 10 + offsV + 15000);
+          }
+        }
+      }
+    }
     histm->write();
   }
   delete gs;
@@ -804,13 +852,104 @@ void CheckResidSpec::postProcessHistos()
 
 void CheckResidSpec::drawHistos()
 {
-  gROOT->SetBatch(true);
+  // gROOT->SetBatch(true);
   gStyle->SetTitleX(0.2);
   gStyle->SetTitleY(0.88);
   gStyle->SetTitleW(0.25);
   gStyle->SetOptStat(0);
+  const auto& params = o2::checkresid::CheckResidConfig::Instance();
   int nhm = mHManV.size();
   std::array<unsigned int, 3> hcol{EColor::kRed, EColor::kBlue, EColor::kGreen + 2};
+  const auto hmNames = o2::utils::Str::tokenize(params.ext_hm_list, ",;");
+  const auto colorNames = o2::utils::Str::tokenize(params.ext_color_list, ",;");
+  const auto markerIDs = o2::utils::Str::tokenize(params.ext_marker_list, ",;");
+  bool useColors = colorNames.size() == hmNames.size() && !colorNames.empty();
+  bool useMarkers = markerIDs.size() == hmNames.size() && !markerIDs.empty();
+  if (!useColors) {
+    LOGP(warn, "{} color names provided for {} external histomanagers, will use automatic colors", colorNames.size(), hmNames.size());
+  }
+  if (!useMarkers) {
+    LOGP(warn, "{} marker IDs provided for {} external histomanagers, will use automatic markers", markerIDs.size(), hmNames.size());
+  }
+  constexpr std::array<std::pair<std::string_view, int>, 15> rootColors{{
+    {"kWhite", EColor::kWhite},
+    {"kBlack", EColor::kBlack},
+    {"kGray", EColor::kGray},
+    {"kRed", EColor::kRed},
+    {"kGreen", EColor::kGreen},
+    {"kBlue", EColor::kBlue},
+    {"kYellow", EColor::kYellow},
+    {"kMagenta", EColor::kMagenta},
+    {"kCyan", EColor::kCyan},
+    {"kOrange", EColor::kOrange},
+    {"kSpring", EColor::kSpring},
+    {"kTeal", EColor::kTeal},
+    {"kAzure", EColor::kAzure},
+    {"kViolet", EColor::kViolet},
+    {"kPink", EColor::kPink},
+  }};
+  auto parseColor = [&rootColors](const std::string& token) -> std::optional<int> {
+    std::string normalized;
+    normalized.reserve(token.size());
+    for (unsigned char ch : token) {
+      if (!std::isspace(ch)) {
+        normalized.push_back(ch);
+      }
+    }
+    for (const auto& [name, value] : rootColors) {
+      if (normalized.compare(0, name.size(), name) != 0) {
+        continue;
+      }
+      const auto increment = std::string_view(normalized).substr(name.size());
+      if (increment.empty()) {
+        return value;
+      }
+      if (increment.size() < 2 || (increment.front() != '+' && increment.front() != '-')) {
+        return std::nullopt;
+      }
+      int offset = 0;
+      const auto* begin = increment.data() + 1;
+      const auto* end = increment.data() + increment.size();
+      auto [parsedEnd, error] = std::from_chars(begin, end, offset);
+      if (error != std::errc{} || parsedEnd != end) {
+        return std::nullopt;
+      }
+      const auto signedOffset = increment.front() == '-' ? -static_cast<long long>(offset) : static_cast<long long>(offset);
+      const auto color = static_cast<long long>(value) + signedOffset;
+      if (color < std::numeric_limits<int>::min() || color > std::numeric_limits<int>::max()) {
+        return std::nullopt;
+      }
+      return static_cast<int>(color);
+    }
+    return std::nullopt;
+  };
+  std::vector<int> colors;
+  if (useColors) {
+    for (const auto& colorName : colorNames) {
+      auto color = parseColor(colorName);
+      if (!color) {
+        LOGP(warn, "Unrecognized EColor name '{}', will use automatic colors", colorName);
+        useColors = false;
+        break;
+      }
+      colors.push_back(*color);
+    }
+  }
+  std::vector<int> markers;
+  if (useMarkers) {
+    for (const auto& markerID : markerIDs) {
+      int marker = 0;
+      const auto* begin = markerID.data();
+      const auto* end = begin + markerID.size();
+      auto [parsedEnd, error] = std::from_chars(begin, end, marker);
+      if (error != std::errc{} || parsedEnd != end) {
+        LOGP(warn, "Unrecognized marker ID '{}', will use automatic markers", markerID);
+        useMarkers = false;
+        break;
+      }
+      markers.push_back(marker);
+    }
+  }
   std::unique_ptr<TLegend> lg;
   lg = std::make_unique<TLegend>(0.12, 0.13, 0.9, 0.13 + std::min(0.5f, nhm * 0.2f / 3.f));
   lg->SetFillStyle(0);
@@ -820,15 +959,17 @@ void CheckResidSpec::drawHistos()
     if (!hman || hman->GetLast() < 1) {
       continue;
     }
-    hman->setMarkerStyle(20 + i + (i % 2) * 4, 0.5);
-    hman->setColor(hcol[i % hcol.size()]);
+    const int marker = useMarkers ? markers[i] : 20 + i + (i % 2) * 4;
+    const int color = useColors ? colors[i] : hcol[i % hcol.size()];
+    hman->setMarkerStyle(marker, 0.5);
+    hman->setColor(color);
     auto le = lg->AddEntry(hman->getHisto(1), hman->GetName(), "lp");
-    le->SetTextColor(hcol[i % hcol.size()]);
+    le->SetTextColor(color);
   }
   TCanvas cly("cly", "", 600, 800), clz("clz", "", 600, 800), clpar("clpar", "", 600, 800);
   TCanvas czly("czly", "", 600, 800), czlz("czlz", "", 600, 800), czlpar("czlpar", "", 600, 800);
-  const auto& params = o2::checkresid::CheckResidConfig::Instance();
-
+  TCanvas cchip("cchip", "", 600, 800);
+  constexpr std::array<const char*, 4> chipTitles{"#DeltaY", "pull #DeltaY", "#DeltaZ", "pull #DeltaZ"};
   auto AddLabel = [](const char* txt, float x = 0.1, float y = 0.9, int color = kBlack, float size = 0.04) {
     TLatex* lt = new TLatex(x, y, txt);
     lt->SetNDC();
@@ -962,6 +1103,37 @@ void CheckResidSpec::drawHistos()
   lg->Draw();
   AddLabel("IB-OB tracks params differences at R = 12 cm", 0.2, 0.8);
   czlpar.Print(Form("%s_hman.pdf", params.outname.c_str()));
+
+  for (int il = 1; il < 8; ++il) {
+    for (int ib = 0; ib < 2; ib++) {
+      cchip.Clear();
+      cchip.Divide(1, 4);
+      for (int iv = 0; iv < 4; ++iv) {
+        cchip.cd(iv + 1);
+        const int iyz = iv / 2;
+        const float yRange = iyz == 0 ? params.resMMLrY[il] : params.resMMLrZ[il];
+        int nh = this->mHManV.size();
+        bool drawn = false;
+        for (int j = 0; j < nh; j++) {
+          auto hman = this->mHManV[j].get();
+          const int id = 15000 + iyz * 10 + (2 * il + ib) * 100 + 1 + (iv % 2);
+          auto histo = hman->getHisto(id);
+          if (histo) {
+            histo->SetMaximum(yRange);
+            histo->SetMinimum((iv % 2) ? 0 : -yRange);
+            if (il > 3) {
+              histo->SetMarkerSize(0.3);
+              histo->SetLineStyle(3);
+            }
+            histo->Draw(drawn ? "same" : "");
+            drawn = true;
+          }
+        }
+        gPad->SetGrid();
+      }
+      cchip.Print(Form("%s_hman.pdf", params.outname.c_str()));
+    }
+  }
 
   cly.Print(Form("%s_hman.pdf]", params.outname.c_str()));
 }

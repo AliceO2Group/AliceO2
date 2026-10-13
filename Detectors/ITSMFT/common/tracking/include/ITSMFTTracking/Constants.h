@@ -41,8 +41,10 @@ constexpr int MinNumberOfConcurrentSeeds = (1 << 8);  // minimum chunk size for 
 constexpr int MaxNumberOfConcurrentSeeds = (1 << 12); // maximum chunk size for a worker for the final track fit/extraploation step
 constexpr float MaxTrackSeedQ2Pt = 1.e3f;             // maximum q/pt for track seeds
 
-constexpr int MaxBootstrapPasses = 5;               // beam bootstrap: cap on the re-trackleting passes
-constexpr float BeamConvergence2 = 5.e-3f * 5.e-3f; // beam bootstrap: stop below a (50 um)^2 beam shift
+constexpr int MaxBootstrapPasses = 5;                    // beam bootstrap: cap on the re-trackleting passes
+constexpr float BeamConvergence2 = 5.e-3f * 5.e-3f;      // beam bootstrap: stop below a (50 um)^2 beam shift
+constexpr float VtxMinGoodThreshold = 2.f;               // seeding emit: floor of the k*sqrt(ROF load) debris threshold (bounds included)
+constexpr float VtxOverpopulatedRofTrimFraction = 0.02f; // overpopulated-ROF pruning: busiest fraction of ROFs left out of the per-ROF mean
 
 namespace helpers
 {

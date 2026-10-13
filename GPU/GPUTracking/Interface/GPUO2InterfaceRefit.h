@@ -67,7 +67,8 @@ class GPUO2InterfaceRefit
   int32_t RefitTrackAsGPU(o2::tpc::TrackTPC& trk, bool outward = false, bool resetCov = false);
   int32_t RefitTrackAsTrackParCov(o2::tpc::TrackTPC& trk, bool outward = false, bool resetCov = false);
   int32_t RefitTrackAsGPU(o2::track::TrackParCov& trk, const o2::tpc::TrackTPCClusRef& clusRef, float time0, float* chi2 = nullptr, bool outward = false, bool resetCov = false);
-  int32_t RefitTrackAsTrackParCov(o2::track::TrackParCov& trk, const o2::tpc::TrackTPCClusRef& clusRef, float time0, float* chi2 = nullptr, bool outward = false, bool resetCov = false);
+  // eLossSign: energy-loss sign of the propagations, 0 along the track parameters (loss forward, gain backward), +1 gain, -1 loss
+  int32_t RefitTrackAsTrackParCov(o2::track::TrackParCov& trk, const o2::tpc::TrackTPCClusRef& clusRef, float time0, float* chi2 = nullptr, bool outward = false, bool resetCov = false, int32_t eLossSign = 0);
   void setTrackReferenceX(float v);
   void setIgnoreErrorsAtTrackEnds(bool v);
   void updateCalib(const o2::gpu::TPCFastTransformPOD* trans, float bzNominalGPU);

@@ -264,7 +264,7 @@ class GeneratorPythia8 : public Generator
   void seedGenerator();
 
   // Hyperloop flag
-  const bool mIsHyperloop = std::getenv("IS_HYPERLOOP") && std::atoi(std::getenv("IS_HYPERLOOP"));
+  const bool mIsHyperloop = Generator::isHyperloop();
 
   /** Pythia8 **/
   // Show banner only when not running in Hyperloop

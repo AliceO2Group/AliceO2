@@ -427,9 +427,26 @@ void FT3Layer::createLayer(TGeoVolume* motherVolume)
     double innerRadiusForAirTube = mIsMiddleLayer ? mInnerRadius : mInnerRadius - 9.0;
     double outerRadiusForAirTube = mIsMiddleLayer ? mOuterRadius + 2.5 : mOuterRadius + 3.0;
     // MvL: try 70.5 // 2.5 cm tolerance instead
-    TGeoTube* layer = new TGeoTube(innerRadiusForAirTube - 0.2, outerRadiusForAirTube,
-                                   z_layer_thickness / 2);
-    layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
+    const double rInEnv = innerRadiusForAirTube - 0.2;
+    const double rOutEnv = outerRadiusForAirTube;
+    const double H0 = z_layer_thickness / 2;
+    if (ft3Params.addDiskEosCards) {
+      // Extend the envelope DOWNSTREAM only (away from the IP) with a union, so the
+      // end-of-stave cards fit without growing toward the IP / the neighbouring disk.
+      const double ext = o2::ft3::ModuleConstants::eosCardEnvelopeExtension(mIsMiddleLayer);
+      const double s = (mDirection == 1) ? 1.0 : -1.0; // downstream sign
+      TGeoTube* baseTube = new TGeoTube((mLayerName + "_base").c_str(), rInEnv, rOutEnv, H0);
+      TGeoTube* extTube = new TGeoTube((mLayerName + "_eosext").c_str(), rInEnv, rOutEnv, ext / 2);
+      TGeoTranslation* extTr = new TGeoTranslation((mLayerName + "_eosext_tr").c_str(), 0, 0, s * (H0 + ext / 2));
+      extTr->RegisterYourself();
+      TGeoCompositeShape* layerShape = new TGeoCompositeShape(
+        (mLayerName + "_env").c_str(),
+        Form("%s + %s:%s", baseTube->GetName(), extTube->GetName(), extTr->GetName()));
+      layerVol = new TGeoVolume(mLayerName.c_str(), layerShape, medAir);
+    } else {
+      TGeoTube* layer = new TGeoTube(rInEnv, rOutEnv, H0);
+      layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
+    }
 
     if (ft3Params.drawReferenceCircles) {
       std::string referenceCirclesName = "ReferenceCircles_Dir" + std::to_string(mDirection) + "_Layer" + std::to_string(mLayerNumber);

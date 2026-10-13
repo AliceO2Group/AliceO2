@@ -64,6 +64,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   GID::mask_t allowedSourcesClus = GID::getSourcesMask("ITS");
 
   // Update the (declared) parameters if changed from the command line
+  const std::string PVDef = "pvertexer.useMeanVertexConstraint=false;pvertexer.meanVertexExtraErrSelection=0.2;pvertexer.iniScale2=100;pvertexer.acceptableScale2=10.;pvertexer.useTimeInChi2=false;";
+  o2::conf::ConfigurableParam::updateFromString(PVDef); // first set proper defaults of PV refitting, the CL options will override them if provided
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
 
   GID::mask_t srcTrc = allowedSourcesTrc & GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));

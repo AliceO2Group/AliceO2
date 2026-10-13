@@ -25,7 +25,7 @@
 #include <string>
 #include <memory>
 
-typedef cl_half half;
+typedef int16_t half; // TODO: Fixme once we have C++23 and proper host side half support
 
 #include "GPULogging.h"
 

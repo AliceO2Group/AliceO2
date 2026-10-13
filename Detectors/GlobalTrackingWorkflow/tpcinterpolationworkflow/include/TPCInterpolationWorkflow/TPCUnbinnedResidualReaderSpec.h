@@ -30,7 +30,7 @@ namespace tpc
 class TPCUnbinnedResidualReader : public o2::framework::Task
 {
  public:
-  TPCUnbinnedResidualReader(bool trkInput) : mTrackInput(trkInput){};
+  TPCUnbinnedResidualReader(bool trkInput, bool mcInput) : mTrackInput(trkInput), mMCInput(mcInput) {};
   ~TPCUnbinnedResidualReader() override = default;
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
@@ -38,6 +38,7 @@ class TPCUnbinnedResidualReader : public o2::framework::Task
  private:
   void connectTree();
   bool mTrackInput = false;
+  bool mMCInput = false;
   std::unique_ptr<TFile> mFileIn;
   std::unique_ptr<TTree> mTreeIn;
   std::string mInFileName;
@@ -45,11 +46,12 @@ class TPCUnbinnedResidualReader : public o2::framework::Task
   std::vector<UnbinnedResid> mUnbinnedResid, *mUnbinnedResidPtr = &mUnbinnedResid;
   std::vector<DetInfoResid> mDetInfoUnbRes, *mDetInfoUnbResPtr = &mDetInfoUnbRes;
   std::vector<TrackData> mTrackData, *mTrackDataPtr = &mTrackData;
+  std::vector<TrackDataMC> mTrackDataMC, *mTrackDataMCPtr = &mTrackDataMC;
   std::vector<TrackDataCompact> mTrackDataCompact, *mTrackDataCompactPtr = &mTrackDataCompact;
 };
 
-/// read unbinned TPC residuals and reference tracks from a root file
-framework::DataProcessorSpec getUnbinnedTPCResidualsReaderSpec(bool trkInput);
+/// read unbinned TPC residuals and reference tracks (with mcInput also their MC truth) from a root file
+framework::DataProcessorSpec getUnbinnedTPCResidualsReaderSpec(bool trkInput, bool mcInput);
 
 } // namespace tpc
 } // namespace o2
