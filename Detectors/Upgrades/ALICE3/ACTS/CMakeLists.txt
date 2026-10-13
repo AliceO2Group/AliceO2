@@ -15,13 +15,10 @@ if(NOT Acts_FOUND)
   return()
 endif()
 
-o2_add_library(ALICE3ACTS
-               SOURCES src/TrkTGeoBlueprintBuilder.cxx
-               PUBLIC_LINK_LIBRARIES O2::ACTSInterface
-                                     nlohmann_json::nlohmann_json)
 
+add_subdirectory(interface)
 add_subdirectory(macros)
 
-# Geometry description consumed at runtime by Gen3BlueprintBuilder. Installed to
-# $O2_ROOT/share/Detectors/Upgrades/ALICE3/ACTS/config/
-o2_data_file(COPY config DESTINATION Detectors/Upgrades/ALICE3/ACTS)
+# # Geometry description consumed at runtime by Gen3BlueprintBuilder. Installed to
+# # $O2_ROOT/share/Detectors/Upgrades/ALICE3/ACTS/config/
+# o2_data_file(COPY config DESTINATION Detectors/Upgrades/ALICE3/ACTS)
