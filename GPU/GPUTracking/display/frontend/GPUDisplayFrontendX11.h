@@ -36,6 +36,7 @@ class GPUDisplayFrontendX11 : public GPUDisplayFrontend
   void SetVSync(bool enable) override;
   void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) override;
   void getSize(int32_t& width, int32_t& height) override;
+  float getDisplayScale() const override { return mScale; }
   int32_t getVulkanSurface(void* instance, void* surface) override;
   uint32_t getReqVulkanExtensions(const char**& p) override;
 
@@ -51,6 +52,7 @@ class GPUDisplayFrontendX11 : public GPUDisplayFrontend
   Display* mXDisplay = nullptr;
   Window mWindow;
   void updateWindowState();
+  float mScale = 1.f; // From the Xft.dpi X resource (desktop scaling, e.g. KDE with "Apply scaling themselves" for X11 apps)
 
   PFNGLXSWAPINTERVALEXTPROC mGlXSwapIntervalEXT = nullptr;
   bool vsync_supported = false;

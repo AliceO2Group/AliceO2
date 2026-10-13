@@ -24,6 +24,7 @@
 
 #include <unistd.h>
 #include <X11/Xatom.h>
+#include <X11/Xresource.h>
 
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_VULKAN
 #include <vulkan/vulkan.h>
@@ -202,6 +203,19 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
     return (-1);
   }
 
+  XrmInitialize();
+  if (const char* resources = XResourceManagerString(mXDisplay)) {
+    XrmDatabase db = XrmGetStringDatabase(resources);
+    char* type = nullptr;
+    XrmValue value;
+    if (db && XrmGetResource(db, "Xft.dpi", "Xft.Dpi", &type, &value) && value.addr && atof(value.addr) > 0) {
+      mScale = atof(value.addr) / 96.;
+    }
+    if (db) {
+      XrmDestroyDatabase(db);
+    }
+  }
+
   // Make sure OpenGL's GLX extension supported
   if (!glXQueryExtension(mXDisplay, &errorBase, &eventBase)) {
     GPUError("X server has no OpenGL GLX extension");
@@ -264,13 +278,13 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
   windowAttributes.event_mask = ExposureMask | VisibilityChangeMask | KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask | StructureNotifyMask | SubstructureNotifyMask | FocusChangeMask | PropertyChangeMask;
 
   // Create an X window with the selected visual
-  mWindow = XCreateWindow(mXDisplay, win, 50, 50, INIT_WIDTH, INIT_HEIGHT, // Position / Width and height of window
+  mWindow = XCreateWindow(mXDisplay, win, 50, 50, INIT_WIDTH * mScale, INIT_HEIGHT * mScale, // Position / Width and height of window
                           0, visualInfo->depth, InputOutput, visualInfo->visual, CWBorderPixel | CWColormap | CWEventMask, &windowAttributes);
   XSetStandardProperties(mXDisplay, mWindow, DISPLAY_WINDOW_NAME, DISPLAY_WINDOW_NAME, None, nullptr, 0, nullptr);
   XSizeHints sizeHints{};
   sizeHints.flags = PMinSize;
-  sizeHints.min_width = MIN_WIDTH;
-  sizeHints.min_height = MIN_HEIGHT;
+  sizeHints.min_width = MIN_WIDTH * mScale;
+  sizeHints.min_height = MIN_HEIGHT * mScale;
   XSetWMNormalHints(mXDisplay, mWindow, &sizeHints);
   if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
     glXMakeCurrent(mXDisplay, mWindow, glxContext);

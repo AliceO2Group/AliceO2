@@ -35,6 +35,7 @@ class GPUDisplayFrontendGlfw : public GPUDisplayFrontend
   void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) override;
   bool EnableSendKey() override;
   void getSize(int32_t& width, int32_t& height) override;
+  float getDisplayScale() const override { return mScale; }
   int32_t getVulkanSurface(void* instance, void* surface) override;
   uint32_t getReqVulkanExtensions(const char**& p) override;
 
@@ -51,10 +52,16 @@ class GPUDisplayFrontendGlfw : public GPUDisplayFrontend
   static void resize_callback(GLFWwindow* mWindow, int32_t width, int32_t height);
   static void maximize_callback(GLFWwindow* mWindow, int32_t maximized);
   static void focus_callback(GLFWwindow* mWindow, int32_t focused);
+  static void contentScale_callback(GLFWwindow* mWindow, float xscale, float yscale);
   static int32_t GetKey(int32_t key);
   static void GetKey(int32_t keyin, int32_t scancode, int32_t mods, int32_t& keyOut, int32_t& keyPressOut);
 
   GLFWwindow* mWindow;
+  float mScale = 1.f;         // Content scale for text / UI
+  int32_t mWindowedWidth = 0; // Window size before maximizing (Wayland)
+  int32_t mWindowedHeight = 0;
+  bool mRestoreWindowedSize = false;
+  double mPixelRatio = 1.; // Framebuffer pixels per window coordinate (1 on X11 / Win32, scale on Wayland / macOS)
 
   pthread_mutex_t mSemLockExit = PTHREAD_MUTEX_INITIALIZER;
   int32_t mWindowX = 0;
