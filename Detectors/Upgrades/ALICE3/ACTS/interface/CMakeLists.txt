@@ -15,6 +15,6 @@ o2_add_library(ALICE3ACTS
                PUBLIC_LINK_LIBRARIES O2::ACTSInterface
                                      nlohmann_json::nlohmann_json)
 
-o2_target_root_dictionary(IOTOFSimulation
+o2_target_root_dictionary(ALICE3ACTS
                           HEADERS include/ALICE3ACTS/TrkTGeoBlueprintBuilder.h
                                   )
