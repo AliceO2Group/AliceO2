@@ -398,7 +398,7 @@ void GPUDisplay::DrawFinal(int32_t iSector, int32_t /*iCol*/, const GPUTPCGMProp
       }
 
       // Print TRD part of track
-      auto tmpDoTRDTracklets = [&](const auto& trk) {
+      auto tmpDoTRDTracklets = [this, &drawing, &lastSide, iSector](const auto& trk) {
         for (int32_t k = 5; k >= 0; k--) {
           int32_t cid = trk.getTrackletIndex(k);
           if (cid < 0) {
@@ -817,9 +817,9 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
   }
 
   int32_t numThreads = getNumThreads();
-  tbb::task_arena(numThreads).execute([&] {
+  tbb::task_arena(numThreads).execute([this, &timer, numThreads] {
     if (mChain && (mChain->GetRecoSteps() & gpudatatypes::RecoStep::TPCSectorTracking)) {
-      tbb::parallel_for(0, NSECTORS, [&](int32_t iSector) {
+      tbb::parallel_for(0, NSECTORS, [this](int32_t iSector) {
         GPUTPCTracker& tracker = (GPUTPCTracker&)sectorTracker(iSector);
         tracker.SetPointersDataLinks(tracker.LinkTmpMemory());
         mGlDLLines[iSector][tINITLINK] = DrawLinks(tracker, tINITLINK, true);
@@ -829,7 +829,7 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
         GPUInfo("Display Time: Vertex Links:\t\t\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
       }
 
-      tbb::parallel_for(0, NSECTORS, [&](int32_t iSector) {
+      tbb::parallel_for(0, NSECTORS, [this](int32_t iSector) {
         const GPUTPCTracker& tracker = sectorTracker(iSector);
 
         mGlDLLines[iSector][tLINK] = DrawLinks(tracker, tLINK);
@@ -845,7 +845,7 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
         GPUInfo("Display Time: Vertex Seeds:\t\t\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
       }
 
-      tbb::parallel_for(0, NSECTORS, [&](int32_t iSector) {
+      tbb::parallel_for(0, NSECTORS, [this](int32_t iSector) {
         const GPUTPCTracker& tracker = sectorTracker(iSector);
         mGlDLLines[iSector][tEXTRAPOLATEDTRACK] = DrawTracks(tracker, 1); // clang-format off
       }, tbb::simple_partitioner()); // clang-format on
@@ -853,7 +853,7 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
         GPUInfo("Display Time: Vertex Sector Tracks:\t\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
       }
     }
-    tbb::parallel_for(0, numThreads, [&](int32_t iThread) {
+    tbb::parallel_for(0, numThreads, [this](int32_t iThread) {
       mThreadTracks[iThread].resize(mNCollissions);
       for (int32_t i = 0; i < mNCollissions; i++) {
         for (int32_t j = 0; j < NSECTORS; j++) {
@@ -865,9 +865,9 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
     }, tbb::simple_partitioner()); // clang-format on
     if (mConfig.showTPCTracksFromO2Format) {
 #ifndef GPUCA_RUN2
-      uint32_t col = 0;
-      tbb::parallel_for<uint32_t>(0, mIOPtrs->nOutputTracksTPCO2, [&](auto i) {
+      tbb::parallel_for<uint32_t>(0, mIOPtrs->nOutputTracksTPCO2, [this](auto i) {
         uint8_t sector, row;
+        uint32_t col = 0;
         if (mIOPtrs->clustersNative) {
           mIOPtrs->outputTracksTPCO2[i].getCluster(mIOPtrs->outputClusRefsTPCO2, 0, *mIOPtrs->clustersNative, sector, row);
         } else {
@@ -880,7 +880,7 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
       });
 #endif
     } else {
-      tbb::parallel_for<uint32_t>(0, mIOPtrs->nMergedTracks, [&](auto i) {
+      tbb::parallel_for<uint32_t>(0, mIOPtrs->nMergedTracks, [this](auto i) {
         const GPUTPCGMMergedTrack* track = &mIOPtrs->mergedTracks[i];
         if (track->NClusters() == 0) {
           return;
@@ -904,7 +904,7 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
       });
     }
     for (uint32_t col = 0; col < mIOPtrs->nMCInfosTPCCol; col++) {
-      tbb::parallel_for(mIOPtrs->mcInfosTPCCol[col].first, mIOPtrs->mcInfosTPCCol[col].first + mIOPtrs->mcInfosTPCCol[col].num, [&](uint32_t i) {
+      tbb::parallel_for(mIOPtrs->mcInfosTPCCol[col].first, mIOPtrs->mcInfosTPCCol[col].first + mIOPtrs->mcInfosTPCCol[col].num, [this, col](uint32_t i) {
         const GPUTPCMCInfo& mc = mIOPtrs->mcInfosTPC[i];
         if (mc.charge == 0.f) {
           return;
@@ -933,7 +933,7 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
     prop.SetMaterialTPC();
     prop.SetPolynomialField(&mParam->polynomialField);
 
-    tbb::parallel_for(0, NSECTORS, [&](int32_t iSector) {
+    tbb::parallel_for(0, NSECTORS, [this, numThreads, prop](int32_t iSector) {
       int32_t numThread = GPUReconstruction::getHostThreadIndex();
       for (int32_t iCol = 0; iCol < mNCollissions; iCol++) {
         mThreadBuffers[numThread].clear();
@@ -959,14 +959,14 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
       GPUInfo("Display Time: Vertex Merged Tracks:\t\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
     }
 
-    tbb::parallel_for(0, NSECTORS, [&](int32_t iSector) {
+    tbb::parallel_for(0, NSECTORS, [this](int32_t iSector) {
       DrawClusters(iSector); // clang-format off
     }, tbb::simple_partitioner()); // clang-format on
     if (timer.IsRunning()) {
       GPUInfo("Display Time: Vertex Clusters:\t\t\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
     }
   });
-  // End omp parallel
+  // End tbb task arena
 
   mGlDLFinalITS = DrawFinalITS();
   for (int32_t iSector = 0; iSector < NSECTORS; iSector++) {
