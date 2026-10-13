@@ -845,7 +845,6 @@ void CheckResidSpec::postProcessHistos()
         }
       }
     }
-    histm->write();
   }
   delete gs;
 }
@@ -1104,37 +1103,94 @@ void CheckResidSpec::drawHistos()
   AddLabel("IB-OB tracks params differences at R = 12 cm", 0.2, 0.8);
   czlpar.Print(Form("%s_hman.pdf", params.outname.c_str()));
 
+  auto getHMinMax = [this](int id, float marginFrac = 0.2, float maxDev, int roundToMicrons) -> std::tuple<float, float, float> {
+    float maxV = std::numeric_limits<float>::min(), minV = std::numeric_limits<float>::max();
+    const int nh = this->mHManV.size();
+    for (int j = 0; j < nh; j++) {
+      if (auto histo = this->mHManV[j]->getHisto(id); histo != nullptr) {
+        const int nb = histo->GetNbinsX();
+        for (int ib = 1; ib <= nb; ib++) {
+          float v = histo->GetBinContent(ib);
+          maxV = std::max(maxV, v);
+          minV = std::min(minV, v);
+        }
+      }
+    }
+    if (maxV < minV) {
+      return {0.f, 1.f, 0.1f};
+    }
+    auto delta = maxV - minV;
+    maxV += delta * marginFrac;
+    minV -= delta * marginFrac;
+    if (roundToMicrons > 0) {
+      maxV = ((int(std::ceil(maxV * 1e4)) / roundToMicrons + 1) * roundToMicrons) * 1e-4;
+      minV = ((int(std::floor(minV * 1e4)) / roundToMicrons - 1) * roundToMicrons) * 1e-4;
+    }
+    minV = std::max(minV, -maxDev);
+    maxV = std::min(maxV, maxDev);
+    return {minV, maxV, std::max(std::abs(minV), std::abs(maxV))};
+  };
+  auto collectSpread = [](TH1* hin, TH1* hout) {
+    const int nb = hin->GetNbinsX();
+    for (int ib = 1; ib <= nb; ib++) {
+      if (hin->GetBinError(ib) != 0) {
+        hout->Fill(hin->GetBinContent(ib));
+      }
+    }
+    hout->SetLineColor(hin->GetLineColor());
+    hout->SetMarkerColor(hin->GetMarkerColor());
+    hout->SetMarkerStyle(hin->GetMarkerStyle());
+  };
+  int nh = this->mHManV.size();
   for (int il = 1; il < 8; ++il) {
     for (int ib = 0; ib < 2; ib++) {
       cchip.Clear();
       cchip.Divide(1, 4);
-      for (int iv = 0; iv < 4; ++iv) {
-        cchip.cd(iv + 1);
-        const int iyz = iv / 2;
-        const float yRange = iyz == 0 ? params.resMMLrY[il] : params.resMMLrZ[il];
-        int nh = this->mHManV.size();
-        bool drawn = false;
-        for (int j = 0; j < nh; j++) {
-          auto hman = this->mHManV[j].get();
-          const int id = 15000 + iyz * 10 + (2 * il + ib) * 100 + 1 + (iv % 2);
-          auto histo = hman->getHisto(id);
-          if (histo) {
-            histo->SetMaximum(yRange);
-            histo->SetMinimum((iv % 2) ? 0 : -yRange);
-            if (il > 3) {
-              histo->SetMarkerSize(0.3);
-              histo->SetLineStyle(3);
+      for (int iyz = 0; iyz < 2; iyz++) {
+        for (int iv = 0; iv < 2; iv++) { // mean or sigma
+          const float yRange = iyz == 0 ? params.resMMLrY[il] : params.resMMLrZ[il];
+          bool drawn = false;
+          const int id = 15000 + iyz * 10 + (2 * il + ib) * 100 + 1 + iv;
+          auto [minV, maxV, absMax] = getHMinMax(id, 0.15, (iv == 0 ? 2 : 4) * yRange, 10);
+          TH1* firstAuto = nullptr;
+          float maxAuto = 0.f;
+          for (int j = 0; j < nh; j++) {
+            auto hman = this->mHManV[j].get();
+            auto histo = hman->getHisto(id);
+            if (histo) {
+              histo->SetMaximum(absMax);
+              histo->SetMinimum(iv ? 0 : -absMax);
+              if (il > 3) {
+                histo->SetMarkerSize(0.3);
+                histo->SetLineStyle(3);
+              }
+              cchip.cd(2 * iv + 1);
+              histo->Draw(drawn ? "same" : "");
+              if (!drawn) {
+                gPad->SetGrid();
+              }
+              auto hmeans = new TH1F(Form("%s_spread", histo->GetName()), Form("%s spread", histo->GetTitle()), params.nBinsRes, iv == 0 ? minV : std::max(0.f, minV), maxV);
+              collectSpread(histo, hmeans);
+              hman->addHisto(hmeans, id + 2);
+              cchip.cd(2 * iv + 2);
+              if (!drawn) {
+                firstAuto = hmeans;
+              }
+              maxAuto = std::max(maxAuto, (float)hmeans->GetMaximum());
+              hmeans->Draw(drawn ? "same" : "");
+              drawn = true;
             }
-            histo->Draw(drawn ? "same" : "");
-            drawn = true;
+          }
+          if (firstAuto) {
+            firstAuto->SetMaximum(maxAuto * 1.25);
+            gPad->SetGrid();
+            gPad->Modified();
           }
         }
-        gPad->SetGrid();
+        cchip.Print(Form("%s_hman.pdf", params.outname.c_str()));
       }
-      cchip.Print(Form("%s_hman.pdf", params.outname.c_str()));
     }
   }
-
   cly.Print(Form("%s_hman.pdf]", params.outname.c_str()));
 }
 
@@ -1146,6 +1202,13 @@ void CheckResidSpec::endOfStream(EndOfStreamContext& ec)
   }
   if (mDraw) {
     drawHistos();
+  }
+  if (auto nh = mHManV.size(); nh > 0) {
+    for (int ihm = 0; ihm < nh; ihm++) {
+      if (mHManV[ihm]) {
+        mHManV[ihm].get()->write();
+      }
+    }
   }
 }
 
