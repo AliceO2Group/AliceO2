@@ -328,9 +328,10 @@ int32_t GPUDisplayFrontendGlfw::FrontendMain()
     glfwSwapInterval(1);
   }
 
-  pthread_mutex_lock(&mSemLockExit);
-  mDisplayRunning = true;
-  pthread_mutex_unlock(&mSemLockExit);
+  {
+    std::lock_guard lock(mExitStateMutex);
+    mDisplayRunning = true;
+  }
 
   if (mBackend->ExtInit()) {
     fprintf(stderr, "Error initializing GL extension wrapper\n");
@@ -362,23 +363,20 @@ int32_t GPUDisplayFrontendGlfw::FrontendMain()
   }
 
   ExitDisplay();
-  mDisplayControl = 2;
-  pthread_mutex_lock(&mSemLockExit);
-  glfwDestroyWindow(mWindow);
-  glfwTerminate();
-  mDisplayRunning = false;
-  pthread_mutex_unlock(&mSemLockExit);
+  {
+    std::lock_guard lock(mExitStateMutex);
+    mDisplayControl = 2;
+    glfwDestroyWindow(mWindow);
+    glfwTerminate();
+    mDisplayRunning = false;
+  }
 
   return 0;
 }
 
-void GPUDisplayFrontendGlfw::DisplayExit()
+void GPUDisplayFrontendGlfw::StopDisplayA()
 {
-  pthread_mutex_lock(&mSemLockExit);
-  if (mDisplayRunning) {
-    glfwSetWindowShouldClose(mWindow, true);
-  }
-  pthread_mutex_unlock(&mSemLockExit);
+  glfwSetWindowShouldClose(mWindow, true);
 }
 
 void GPUDisplayFrontendGlfw::OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton)

@@ -265,26 +265,24 @@ int32_t GPUDisplayFrontendGlut::FrontendMain()
   glutMouseWheelFunc(mMouseWheelFunc);
   applyInitialWindowState();
 
-  pthread_mutex_lock(&mSemLockExit);
-  mDisplayRunning = true;
-  pthread_mutex_unlock(&mSemLockExit);
+  {
+    std::lock_guard lock(mExitStateMutex);
+    mDisplayRunning = true;
+  }
   glutMainLoop();
-  mDisplayControl = 2;
-  pthread_mutex_lock(&mSemLockExit);
-  mDisplayRunning = false;
-  pthread_mutex_unlock(&mSemLockExit);
+  {
+    std::lock_guard lock(mExitStateMutex);
+    mDisplayControl = 2;
+    mDisplayRunning = false;
+  }
 
   ExitDisplay();
   return 0;
 }
 
-void GPUDisplayFrontendGlut::DisplayExit()
+void GPUDisplayFrontendGlut::StopDisplayA()
 {
-  pthread_mutex_lock(&mSemLockExit);
-  if (mDisplayRunning) {
-    glutLeaveMainLoop();
-  }
-  pthread_mutex_unlock(&mSemLockExit);
+  glutLeaveMainLoop();
 }
 
 void GPUDisplayFrontendGlut::OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton)

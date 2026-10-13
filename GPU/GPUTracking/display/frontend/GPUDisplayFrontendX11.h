@@ -16,7 +16,6 @@
 #define GPUDISPLAYFRONTENDX11_H
 
 #include "GPUDisplayFrontend.h"
-#include <pthread.h>
 #include <X11/Xlib.h>
 #include <GL/gl.h>
 #include <GL/glx.h>
@@ -30,7 +29,6 @@ class GPUDisplayFrontendX11 : public GPUDisplayFrontend
   GPUDisplayFrontendX11();
   ~GPUDisplayFrontendX11() override = default;
 
-  void DisplayExit() override;
   void SwitchFullscreen(bool set) override;
   void ToggleMaximized(bool set) override;
   void SetVSync(bool enable) override;
@@ -44,8 +42,6 @@ class GPUDisplayFrontendX11 : public GPUDisplayFrontend
   int32_t FrontendMain() override;
   int32_t GetKey(int32_t key);
   void GetKey(XEvent& event, int32_t& keyOut, int32_t& keyPressOut);
-
-  pthread_mutex_t mSemLockExit = PTHREAD_MUTEX_INITIALIZER;
 
   GLuint mFontBase;
 

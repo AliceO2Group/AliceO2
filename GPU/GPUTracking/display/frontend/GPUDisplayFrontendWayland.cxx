@@ -559,9 +559,10 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
     return (1);
   }
 
-  pthread_mutex_lock(&mSemLockExit);
-  mDisplayRunning = true;
-  pthread_mutex_unlock(&mSemLockExit);
+  {
+    std::lock_guard lock(mExitStateMutex);
+    mDisplayRunning = true;
+  }
 
   while (mDisplayControl != 2) {
     bool error = false;
@@ -606,9 +607,10 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
   }
   xkb_context_unref(mXKBcontext);
 
-  pthread_mutex_lock(&mSemLockExit);
-  mDisplayRunning = false;
-  pthread_mutex_unlock(&mSemLockExit);
+  {
+    std::lock_guard lock(mExitStateMutex);
+    mDisplayRunning = false;
+  }
 
   if (mCursorShapeDevice) {
     wp_cursor_shape_device_v1_destroy(mCursorShapeDevice);
@@ -676,15 +678,6 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
   wl_display_disconnect(mWayland);
 
   return (0);
-}
-
-void GPUDisplayFrontendWayland::DisplayExit()
-{
-  pthread_mutex_lock(&mSemLockExit);
-  if (mDisplayRunning) {
-    mDisplayControl = 2;
-  }
-  pthread_mutex_unlock(&mSemLockExit);
 }
 
 void GPUDisplayFrontendWayland::SwitchFullscreen(bool set)

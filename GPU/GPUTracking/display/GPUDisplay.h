@@ -49,8 +49,10 @@ class GPUDisplay : public GPUDisplayInterface
   ~GPUDisplay() override = default;
 
   int32_t StartDisplay() override;
+  void ExitDisplay();
   void ShowNextEvent(const GPUTrackingInOutPointers* ptrs = nullptr) override;
   void BlockTillNextEvent() override;
+  void UnblockDisplay();
   void WaitTillEventShown() override;
   void SetCollisionFirstCluster(uint32_t collision, int32_t sector, int32_t cluster) override;
   void UpdateCalib(const GPUCalibObjectsConst* calib) override { mCalib = calib; }
@@ -60,7 +62,6 @@ class GPUDisplay : public GPUDisplayInterface
   int32_t DrawGLScene();
   void HandleSendKey(int32_t key);
   int32_t InitDisplay(bool initFailure = false);
-  void ExitDisplay();
   void ResizeScene(int32_t width, int32_t height, bool init = false);
 
   const GPUSettingsDisplayRenderer& cfgR() const { return mCfgR; }

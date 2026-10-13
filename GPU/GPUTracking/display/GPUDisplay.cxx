@@ -734,6 +734,12 @@ void GPUDisplay::ShowNextEvent(const GPUTrackingInOutPointers* ptrs)
 
 void GPUDisplay::BlockTillNextEvent() { mSemLockDisplay.Lock(); }
 
+void GPUDisplay::UnblockDisplay()
+{
+  mSemLockDisplay.Trylock();
+  mSemLockDisplay.Unlock();
+}
+
 void GPUDisplay::WaitTillEventShown()
 {
   std::unique_lock<std::mutex> lock(mMutexLoadAndShowEvent);

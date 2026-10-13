@@ -16,7 +16,6 @@
 #define GPUDISPLAYFRONTENDWAYLAND_H
 
 #include "GPUDisplayFrontend.h"
-#include <pthread.h>
 #include <wayland-client.h>
 #include "xdg-shell-client-protocol.h"
 #include "fractional-scale-client-protocol.h"
@@ -41,7 +40,6 @@ class GPUDisplayFrontendWayland : public GPUDisplayFrontend
   GPUDisplayFrontendWayland();
   ~GPUDisplayFrontendWayland() override = default;
 
-  void DisplayExit() override;
   void SwitchFullscreen(bool set) override;
   void ToggleMaximized(bool set) override;
   void SetVSync(bool enable) override;
@@ -68,8 +66,6 @@ class GPUDisplayFrontendWayland : public GPUDisplayFrontend
     std::string name;
   };
   OutputInfo* findOutput(wl_output* output);
-
-  pthread_mutex_t mSemLockExit = PTHREAD_MUTEX_INITIALIZER;
 
   wl_display* mWayland = nullptr;
   wl_registry* mRegistry = nullptr;

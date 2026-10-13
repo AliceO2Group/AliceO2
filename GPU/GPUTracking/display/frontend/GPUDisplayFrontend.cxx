@@ -248,3 +248,20 @@ int32_t GPUDisplayFrontend::StartDisplay()
 #endif
   return (0);
 }
+
+void GPUDisplayFrontend::StopDisplay()
+{
+  {
+    std::lock_guard lock(mExitStateMutex);
+    if (mDisplayRunning) {
+      mDisplayControl = 2;
+      StopDisplayA();
+      mDisplay->UnblockDisplay();
+    }
+  }
+  while (mDisplayRunning) {
+    std::this_thread::sleep_for(std::chrono::microseconds(10000)); // TODO: Signal by semaphore
+  }
+}
+
+void GPUDisplayFrontend::StopDisplayA() {}

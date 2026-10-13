@@ -39,7 +39,7 @@ GPUO2InterfaceDisplay::GPUO2InterfaceDisplay(const GPUO2InterfaceConfiguration* 
 
 GPUO2InterfaceDisplay::~GPUO2InterfaceDisplay() = default;
 
-int32_t GPUO2InterfaceDisplay::startDisplay()
+int32_t GPUO2InterfaceDisplay::StartUnmanagedDisplay()
 {
   int32_t retVal = mDisplay->StartDisplay();
   if (retVal) {
@@ -71,12 +71,9 @@ int32_t GPUO2InterfaceDisplay::show(const GPUTrackingInOutPointers* ptrs)
   return 0;
 }
 
-int32_t GPUO2InterfaceDisplay::endDisplay()
+int32_t GPUO2InterfaceDisplay::StopUnmanagedDisplay()
 {
-  mFrontend->DisplayExit();
-  while (mFrontend->IsRunning()) {
-    usleep(10000);
-  }
+  mFrontend->StopDisplay();
   return 0;
 }
 
