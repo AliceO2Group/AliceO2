@@ -211,6 +211,8 @@ struct TrackingKernels {
                                            int* lineSlots,
                                            const float beamX,
                                            const float beamY,
+                                           const float bz,
+                                           const float curvatureScale,
                                            const float maxZ,
                                            const float minPt,
                                            float* linesZs,
