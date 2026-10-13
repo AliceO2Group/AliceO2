@@ -89,8 +89,8 @@ void canNotJoin(std::vector<std::shared_ptr<arrow::Table>> const& tables, std::s
 {
   for (auto i = 0U; i < tables.size() - 1; ++i) {
     if (tables[i]->num_rows() != tables[i + 1]->num_rows()) {
-      throw o2::framework::runtime_error_f("Tables %s and %s have different sizes (%d vs %d) and cannot be joined!",
-                                           makeString(labels[i]), makeString(labels[i + 1]), tables[i]->num_rows(), tables[i + 1]->num_rows());
+      throw o2::framework::runtime_error_f("Tables %s and %s have different sizes (%lld vs %lld) and cannot be joined!",
+                                           makeString(labels[i]), makeString(labels[i + 1]), (long long)tables[i]->num_rows(), (long long)tables[i + 1]->num_rows());
     }
   }
 }
@@ -102,11 +102,20 @@ void IncompatibleRanges(std::vector<ArrowTableRef> const& tables, std::span<T> l
   if (loc != std::ranges::cend(tables)) {
     auto pos = std::distance(tables.begin(), loc);
     auto next = loc + 1;
-    if (labels.empty()) {
-      throw o2::framework::runtime_error_f("Incompatible ranges at %d: (%zu, %z) vs. (%zu, %z)", pos, loc->range.offset, loc->range.size, next->range.offset, next->range.size);
-    } else {
-      throw o2::framework::runtime_error_f("Incompatible ranges at %d between %s and %s: (%zu, %z) vs. (%zu, %z)", pos, makeString(labels[pos]), makeString(labels[pos + 1]), loc->range.offset, loc->range.size, next->range.offset, next->range.size);
+    if (loc->range.size != next->range.size) {
+      if (labels.empty()) {
+        throw o2::framework::runtime_error_f("Tables at positions %d and %d have different sizes (%lld vs %lld) and cannot be joined!",
+                                             (int)pos, (int)pos + 1, (long long)loc->range.size, (long long)next->range.size);
+      }
+      throw o2::framework::runtime_error_f("Tables %s and %s have different sizes (%lld vs %lld) and cannot be joined!",
+                                           makeString(labels[pos]), makeString(labels[pos + 1]), (long long)loc->range.size, (long long)next->range.size);
     }
+    if (labels.empty()) {
+      throw o2::framework::runtime_error_f("Incompatible ranges at %d: (%llu, %lld) vs. (%llu, %lld)",
+                                           (int)pos, (unsigned long long)loc->range.offset, (long long)loc->range.size, (unsigned long long)next->range.offset, (long long)next->range.size);
+    }
+    throw o2::framework::runtime_error_f("Incompatible ranges at %d between %s and %s: (%llu, %lld) vs. (%llu, %lld)",
+                                         (int)pos, makeString(labels[pos]), makeString(labels[pos + 1]), (unsigned long long)loc->range.offset, (long long)loc->range.size, (unsigned long long)next->range.offset, (long long)next->range.size);
   }
 }
 
