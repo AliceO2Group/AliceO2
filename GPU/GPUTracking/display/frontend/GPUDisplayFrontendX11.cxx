@@ -344,9 +344,10 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
     return (1);
   }
 
-  pthread_mutex_lock(&mSemLockExit);
-  mDisplayRunning = true;
-  pthread_mutex_unlock(&mSemLockExit);
+  {
+    std::lock_guard lock(mExitStateMutex);
+    mDisplayRunning = true;
+  }
 
   while (1) {
     do {
@@ -471,20 +472,12 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
   XDestroyWindow(mXDisplay, mWindow);
   XCloseDisplay(mXDisplay);
 
-  pthread_mutex_lock(&mSemLockExit);
-  mDisplayRunning = false;
-  pthread_mutex_unlock(&mSemLockExit);
+  {
+    std::lock_guard lock(mExitStateMutex);
+    mDisplayRunning = false;
+  }
 
   return (0);
-}
-
-void GPUDisplayFrontendX11::DisplayExit()
-{
-  pthread_mutex_lock(&mSemLockExit);
-  if (mDisplayRunning) {
-    mDisplayControl = 2;
-  }
-  pthread_mutex_unlock(&mSemLockExit);
 }
 
 void GPUDisplayFrontendX11::updateWindowState()

@@ -52,8 +52,7 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   static constexpr int32_t GL_MIN_VERSION_MINOR = 5;
 
   int32_t StartDisplay();                                                                                                    // Start the display. This function returns, and should spawn a thread that runs the display, and calls InitDisplay
-  void DisplayExit() override = 0;                                                                                           // Stop the display. Display thread should call ExitDisplay and then wait that IsRunning() returns false
-  bool IsRunning() const override { return mDisplayRunning; }
+  void StopDisplay() override;                                                                                               // Stop the display. Display thread should call ExitDisplay. Functions waits for display thread to terminate
   virtual void SwitchFullscreen(bool set) = 0;                                                                               // Toggle full-screen mode
   virtual void ToggleMaximized(bool set) = 0;                                                                                // Maximize window
   virtual void SetVSync(bool enable) = 0;                                                                                    // Enable / disable vsync
@@ -79,6 +78,7 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
 
  protected:
   virtual int32_t FrontendMain() = 0;
+  virtual void StopDisplayA();
   static void* FrontendThreadWrapper(void*);
   void waitForFPSLimit(); // Sleep until the next frame is due according to fpsRate (no sleep with maxFPSRate or fpsRate <= 0)
 
@@ -121,6 +121,7 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   volatile int32_t mNeedUpdate = 0;     // flag that backend shall update the GL window, and call DrawGLScene
   std::mutex mSendKeyMutex;
   std::vector<int32_t> mSendKeys; // Keys sent by external entity (usually console), may be ignored by backend.
+  std::mutex mExitStateMutex;
 
   // Keyboard / Mouse actions
   bool mMouseDn = false;          // Mouse button down

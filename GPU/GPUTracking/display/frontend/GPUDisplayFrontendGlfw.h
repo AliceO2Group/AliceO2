@@ -16,7 +16,6 @@
 #define GPUDISPLAYFRONTENDGLFW_H
 
 #include "GPUDisplayFrontend.h"
-#include <pthread.h>
 
 struct GLFWwindow;
 
@@ -28,7 +27,7 @@ class GPUDisplayFrontendGlfw : public GPUDisplayFrontend
   GPUDisplayFrontendGlfw();
   ~GPUDisplayFrontendGlfw() override = default;
 
-  void DisplayExit() override;
+  void StopDisplayA() override;
   void SwitchFullscreen(bool set) override;
   void ToggleMaximized(bool set) override;
   void SetVSync(bool enable) override;
@@ -63,7 +62,6 @@ class GPUDisplayFrontendGlfw : public GPUDisplayFrontend
   bool mRestoreWindowedSize = false;
   double mPixelRatio = 1.; // Framebuffer pixels per window coordinate (1 on X11 / Win32, scale on Wayland / macOS)
 
-  pthread_mutex_t mSemLockExit = PTHREAD_MUTEX_INITIALIZER;
   int32_t mWindowX = 0;
   int32_t mWindowY = 0;
   int32_t mWindowWidth = INIT_WIDTH;
