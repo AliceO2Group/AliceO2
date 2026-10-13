@@ -17,7 +17,7 @@
 
 GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread,
                                                        processorType& clusterer,
-                                                       const CfFragment& fragment,
+                                                       const CfFragment& frag,
                                                        GPUSharedMemory& smem,
                                                        const CfArray2D<PackedCharge>& chargeMap,
                                                        const CfChargePos* filteredPeakPositions,
@@ -49,19 +49,19 @@ GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int32_t nBlocks, int32_t 
     smem.buf,
     smem.innerAboveThreshold,
     &pc,
-    labelAcc);
+    labelAcc GPUCA_THREAD_INFO_PROVIDE);
 
   if (idx >= clusternum) {
     return;
   }
-  if (fragment.isOverlap(pos.time())) {
+  if (frag.isOverlap(pos.time())) {
     if (clusterPosInRow) {
       clusterPosInRow[idx] = maxClusterPerRow;
     }
     return;
   }
   tpc::ClusterNative myCluster;
-  pc.finalize(pos, charge, fragment.start);
+  pc.finalize(pos, charge, frag.start);
   bool rejectCluster = !pc.toNative(pos, charge, myCluster, clusterer.Param(), chargeMap);
   if (!isAccepted) {
     rejectCluster = true;
@@ -151,7 +151,7 @@ GPUdii() void GPUTPCCFClusterizer::buildCluster(
   PackedCharge* buf,
   uint8_t* innerAboveThreshold,
   ClusterAccumulator* myCluster,
-  MCLabelAccumulator* labelAcc)
+  MCLabelAccumulator* labelAcc GPUCA_THREAD_INFO_DECL)
 {
   uint16_t ll = get_local_id(0);
 
@@ -208,7 +208,7 @@ GPUdii() void GPUTPCCFClusterizer::buildCluster(
       labelAcc);
   }
 
-#if defined(GPUCA_GPUCODE)
+#if defined(GPUCA_GPUCODE) && !defined(GPUCA_DEVICE_SINGLE_THREAD)
   CfUtils::condBlockLoad(
     chargeMap,
     wgSizeHalf,

@@ -26,7 +26,9 @@
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
 #include "GlobalTrackingWorkflow/CosmicsMatchingSpec.h"
+#include "GlobalTracking/MatchCosmicsParams.h"
 #include "GlobalTrackingWorkflow/TrackCosmicsWriterSpec.h"
+#include "GlobalTrackingWorkflow/CosmicsClusterCollectorSpec.h"
 #include "Algorithm/RangeTokenizer.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "Framework/CallbacksPolicy.h"
@@ -52,6 +54,10 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
     {"use-pv-info", o2::framework::VariantType::Bool, false, {"request primary vertex for relevant cuts in the collision/cosmics interleaved data"}},
+    {"pv-contributor-sources", VariantType::String, "", {"global track sources loaded only to reject the TPC track of a primary-vertex contributor as a leg (cosmicsMatch.discardPVContributors, implies --use-pv-info); sources without TPC are ignored, so the vertexing sources can be passed as they are"}},
+    {"enable-cluster-output", o2::framework::VariantType::Bool, false, {"collect the raw clusters of the cosmics (legs + road around them) and write them with the cosmics"}},
+    {"road-detectors", VariantType::String, "ITS,TOF,TRD", {"with --enable-cluster-output: detectors whose hits along the cosmic are collected besides the TPC road"}},
+    {"cosmics-preset", VariantType::String, "", {"named set of cosmicsMatch settings applied before --configKeyValues (which can override single keys): physics-v1 = cosmics in collision data"}},
     {"track-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::itsmft::DPLAlpideParamInitializer::addITSConfigOption(options);
@@ -70,6 +76,9 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
   policies.push_back(o2::tpc::TPCSectorCompletionPolicy("cosmics-matcher",
                                                         o2::tpc::TPCSectorCompletionPolicy::Config::RequireAll,
                                                         InputSpec{"cluster", o2::framework::ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}})());
+  policies.push_back(o2::tpc::TPCSectorCompletionPolicy("cosmics-cluster-collector",
+                                                        o2::tpc::TPCSectorCompletionPolicy::Config::RequireAll,
+                                                        InputSpec{"cluster", o2::framework::ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}})());
   policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*cosm.*[W,w]riter.*"));
 }
 
@@ -82,7 +91,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   WorkflowSpec specs;
   GID::mask_t alowedSources = GID::getSourcesMask("ITS,TPC,ITS-TPC,TPC-TRD,TPC-TOF,TPC-TRD-TOF,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
 
-  // Update the (declared) parameters if changed from the command line
+  // Update the (declared) parameters if changed from the command line: first an eventual preset, then the explicit key=values
+  auto preset = configcontext.options().get<std::string>("cosmics-preset");
+  if (!preset.empty()) {
+    o2::conf::ConfigurableParam::updateFromString(o2::globaltracking::getMatchCosmicsPreset(preset));
+  }
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   // write the configuration used for the workflow
   o2::conf::ConfigurableParam::writeINI("o2match-cosmics-workflow_configuration.ini");
@@ -105,21 +118,51 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     src = src | GID::getSourcesMask("CTP");
   }
 
-  GID::mask_t srcCl = src;
+  // legs with an ITS part need the ITS tracks and clusters for their refit, also if standalone ITS tracks are no legs (not added to src)
+  const GID::mask_t srcITS = o2::globaltracking::getLegITSSources(src);
+  GID::mask_t srcCl = src | srcITS;
+  const bool useTOFClusters = o2::globaltracking::MatchCosmicsParams::Instance().tofFlightSelection;
+  if (useTOFClusters) {
+    srcCl |= GID::getSourceMask(GID::TOF);
+  }
   GID::mask_t dummy;
   if (!configcontext.options().get<bool>("disable-root-input")) {
     specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt));
   }
   bool usePV = configcontext.options().get<bool>("use-pv-info");
-  specs.emplace_back(o2::globaltracking::getCosmicsMatchingSpec(src, usePV, useMC, doStag));
+  GID::mask_t srcPV = GID::getSourcesMask("ITS-TPC,TPC-TRD,TPC-TOF,ITS-TPC-TRD,TPC-TRD-TOF,ITS-TPC-TOF,ITS-TPC-TRD-TOF") &
+                      GID::getSourcesMask(configcontext.options().get<std::string>("pv-contributor-sources"));
+  if (srcPV.any() && !o2::globaltracking::MatchCosmicsParams::Instance().discardPVContributors) {
+    LOG(warning) << "--pv-contributor-sources ignored: cosmicsMatch.discardPVContributors is off";
+    srcPV.reset();
+  }
+  usePV |= srcPV.any();
+  specs.emplace_back(o2::globaltracking::getCosmicsMatchingSpec(src, usePV, useMC, doStag, useTOFClusters, srcPV));
+  const auto srcPVLoaded = o2::globaltracking::addPVContributorParents(srcPV); // with the parents needed to resolve the contributors
+  bool clusterOutput = configcontext.options().get<bool>("enable-cluster-output");
+  if (clusterOutput) {
+    if (!src[GID::TPC]) {
+      LOG(fatal) << "--enable-cluster-output needs TPC tracks in --track-sources";
+    }
+    const auto roadDets = DetID::getMask(configcontext.options().get<std::string>("road-detectors")) & DetID::getMask("ITS,TOF,TRD");
+    for (auto det : {DetID::ITS, DetID::TOF, DetID::TRD}) {
+      if (roadDets[det]) {
+        srcCl |= GID::getSourceMask(det == DetID::ITS ? GID::ITS : (det == DetID::TOF ? GID::TOF : GID::TRD));
+      }
+    }
+    specs.emplace_back(o2::globaltracking::getCosmicsClusterCollectorSpec(src, useMC, doStag, roadDets));
+  }
 
-  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, src, src, src, useMC, dummy); // clusters MC is not needed
+  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCl, src | srcPVLoaded | srcITS, src | srcPVLoaded | srcITS, useMC, dummy); // clusters MC is not needed
   if (usePV) {
     o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC); // P-vertex is always needed
   }
 
   if (!disableRootOut) {
     specs.emplace_back(o2::globaltracking::getTrackCosmicsWriterSpec(useMC));
+    if (clusterOutput) {
+      specs.emplace_back(o2::globaltracking::getCosmicsFullWriterSpec());
+    }
   }
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit

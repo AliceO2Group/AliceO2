@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 
 # NOTE!!!! - Whenever this file is changed, move it over to alidist/resources
-# FindO2GPU.cmake Version 21
+# FindO2GPU.cmake Version 22
 
 set(CUDA_COMPUTETARGET_DEFAULT_FULL 80-real;86-real;89-real;120-real;75-virtual)
 set(HIP_AMDGPUTARGET_DEFAULT_FULL gfx906;gfx908)
@@ -281,6 +281,15 @@ endif()
 
 # ================================== OpenCL ==================================
 if(ENABLE_OPENCL)
+  if(NOT OpenCL_ROOT AND DEFINED ENV{OpenCL_ROOT})
+    set(OpenCL_ROOT "$ENV{OpenCL_ROOT}")
+  endif()
+  if(OpenCL_ROOT)
+    unset(OpenCL_INCLUDE_DIR CACHE)
+    unset(OpenCL_LIBRARY CACHE)
+    find_path(OpenCL_INCLUDE_DIR NAMES CL/cl.h PATHS "${OpenCL_ROOT}" PATH_SUFFIXES include NO_DEFAULT_PATH)
+    find_library(OpenCL_LIBRARY NAMES OpenCL PATHS "${OpenCL_ROOT}" PATH_SUFFIXES lib lib64 NO_DEFAULT_PATH)
+  endif()
   find_package(OpenCL)
   if(ENABLE_OPENCL AND NOT ENABLE_OPENCL STREQUAL "AUTO")
     set_package_properties(OpenCL PROPERTIES TYPE REQUIRED)
@@ -317,7 +326,8 @@ if(ENABLE_OPENCL)
      (OpenCL_VERSION_STRING VERSION_GREATER_EQUAL 2.2
      OR OPENCL_ENABLED_SPIRV))
     set(OPENCL_ENABLED ON)
-    message(STATUS "Found OpenCL ${OpenCL_VERSION_STRING} (SPIR-V ${OPENCL_ENABLED_SPIRV} ${LLVM_CLANG} ${LLVM_PACKAGE_VERSION} ${LLVM_SPIRV})")
+    get_filename_component(OpenCL_LIBRARY_DIR "${OpenCL_LIBRARY}" DIRECTORY)
+    message(STATUS "Found OpenCL ${OpenCL_VERSION_STRING} (Headers ${OpenCL_INCLUDE_DIR}, Library ${OpenCL_LIBRARY_DIR}, SPIR-V ${OPENCL_ENABLED_SPIRV} ${LLVM_CLANG} ${LLVM_PACKAGE_VERSION} ${LLVM_SPIRV})")
   elseif(NOT ENABLE_OPENCL STREQUAL "AUTO")
     message(FATAL_ERROR "OpenCL >= 2.x not available")
   else()

@@ -12,6 +12,14 @@
 #include "GlobalTrackingStudy/CheckResidSpec.h"
 #include "GlobalTrackingStudy/CheckResidTypes.h"
 #include "GlobalTrackingStudy/CheckResidConfig.h"
+#include <algorithm>
+#include <array>
+#include <charconv>
+#include <cctype>
+#include <limits>
+#include <optional>
+#include <string_view>
+#include <utility>
 #include <vector>
 #include "ReconstructionDataFormats/Track.h"
 #include <TStopwatch.h>
@@ -144,7 +152,7 @@ void CheckResidSpec::init(InitContext& ic)
     bookHistos();
   }
   if (!params.ext_hm_list.empty()) {
-    auto vecNames = o2::utils::Str::tokenize(params.ext_hm_list, ',');
+    auto vecNames = o2::utils::Str::tokenize(params.ext_hm_list, ",;");
     auto vecLegends = o2::utils::Str::tokenize(params.ext_leg_list, ',');
     bool useLeg = true;
     if (vecNames.size() != vecLegends.size()) {
@@ -809,8 +817,99 @@ void CheckResidSpec::drawHistos()
   gStyle->SetTitleY(0.88);
   gStyle->SetTitleW(0.25);
   gStyle->SetOptStat(0);
+  const auto& params = o2::checkresid::CheckResidConfig::Instance();
   int nhm = mHManV.size();
   std::array<unsigned int, 3> hcol{EColor::kRed, EColor::kBlue, EColor::kGreen + 2};
+  const auto hmNames = o2::utils::Str::tokenize(params.ext_hm_list, ",;");
+  const auto colorNames = o2::utils::Str::tokenize(params.ext_color_list, ",;");
+  const auto markerIDs = o2::utils::Str::tokenize(params.ext_marker_list, ",;");
+  bool useColors = colorNames.size() == hmNames.size() && !colorNames.empty();
+  bool useMarkers = markerIDs.size() == hmNames.size() && !markerIDs.empty();
+  if (!useColors) {
+    LOGP(warn, "{} color names provided for {} external histomanagers, will use automatic colors", colorNames.size(), hmNames.size());
+  }
+  if (!useMarkers) {
+    LOGP(warn, "{} marker IDs provided for {} external histomanagers, will use automatic markers", markerIDs.size(), hmNames.size());
+  }
+  constexpr std::array<std::pair<std::string_view, int>, 15> rootColors{{
+    {"kWhite", EColor::kWhite},
+    {"kBlack", EColor::kBlack},
+    {"kGray", EColor::kGray},
+    {"kRed", EColor::kRed},
+    {"kGreen", EColor::kGreen},
+    {"kBlue", EColor::kBlue},
+    {"kYellow", EColor::kYellow},
+    {"kMagenta", EColor::kMagenta},
+    {"kCyan", EColor::kCyan},
+    {"kOrange", EColor::kOrange},
+    {"kSpring", EColor::kSpring},
+    {"kTeal", EColor::kTeal},
+    {"kAzure", EColor::kAzure},
+    {"kViolet", EColor::kViolet},
+    {"kPink", EColor::kPink},
+  }};
+  auto parseColor = [&rootColors](const std::string& token) -> std::optional<int> {
+    std::string normalized;
+    normalized.reserve(token.size());
+    for (unsigned char ch : token) {
+      if (!std::isspace(ch)) {
+        normalized.push_back(ch);
+      }
+    }
+    for (const auto& [name, value] : rootColors) {
+      if (normalized.compare(0, name.size(), name) != 0) {
+        continue;
+      }
+      const auto increment = std::string_view(normalized).substr(name.size());
+      if (increment.empty()) {
+        return value;
+      }
+      if (increment.size() < 2 || (increment.front() != '+' && increment.front() != '-')) {
+        return std::nullopt;
+      }
+      int offset = 0;
+      const auto* begin = increment.data() + 1;
+      const auto* end = increment.data() + increment.size();
+      auto [parsedEnd, error] = std::from_chars(begin, end, offset);
+      if (error != std::errc{} || parsedEnd != end) {
+        return std::nullopt;
+      }
+      const auto signedOffset = increment.front() == '-' ? -static_cast<long long>(offset) : static_cast<long long>(offset);
+      const auto color = static_cast<long long>(value) + signedOffset;
+      if (color < std::numeric_limits<int>::min() || color > std::numeric_limits<int>::max()) {
+        return std::nullopt;
+      }
+      return static_cast<int>(color);
+    }
+    return std::nullopt;
+  };
+  std::vector<int> colors;
+  if (useColors) {
+    for (const auto& colorName : colorNames) {
+      auto color = parseColor(colorName);
+      if (!color) {
+        LOGP(warn, "Unrecognized EColor name '{}', will use automatic colors", colorName);
+        useColors = false;
+        break;
+      }
+      colors.push_back(*color);
+    }
+  }
+  std::vector<int> markers;
+  if (useMarkers) {
+    for (const auto& markerID : markerIDs) {
+      int marker = 0;
+      const auto* begin = markerID.data();
+      const auto* end = begin + markerID.size();
+      auto [parsedEnd, error] = std::from_chars(begin, end, marker);
+      if (error != std::errc{} || parsedEnd != end) {
+        LOGP(warn, "Unrecognized marker ID '{}', will use automatic markers", markerID);
+        useMarkers = false;
+        break;
+      }
+      markers.push_back(marker);
+    }
+  }
   std::unique_ptr<TLegend> lg;
   lg = std::make_unique<TLegend>(0.12, 0.13, 0.9, 0.13 + std::min(0.5f, nhm * 0.2f / 3.f));
   lg->SetFillStyle(0);
@@ -820,15 +919,15 @@ void CheckResidSpec::drawHistos()
     if (!hman || hman->GetLast() < 1) {
       continue;
     }
-    hman->setMarkerStyle(20 + i + (i % 2) * 4, 0.5);
-    hman->setColor(hcol[i % hcol.size()]);
+    const int marker = useMarkers ? markers[i] : 20 + i + (i % 2) * 4;
+    const int color = useColors ? colors[i] : hcol[i % hcol.size()];
+    hman->setMarkerStyle(marker, 0.5);
+    hman->setColor(color);
     auto le = lg->AddEntry(hman->getHisto(1), hman->GetName(), "lp");
-    le->SetTextColor(hcol[i % hcol.size()]);
+    le->SetTextColor(color);
   }
   TCanvas cly("cly", "", 600, 800), clz("clz", "", 600, 800), clpar("clpar", "", 600, 800);
   TCanvas czly("czly", "", 600, 800), czlz("czlz", "", 600, 800), czlpar("czlpar", "", 600, 800);
-  const auto& params = o2::checkresid::CheckResidConfig::Instance();
-
   auto AddLabel = [](const char* txt, float x = 0.1, float y = 0.9, int color = kBlack, float size = 0.04) {
     TLatex* lt = new TLatex(x, y, txt);
     lt->SetNDC();

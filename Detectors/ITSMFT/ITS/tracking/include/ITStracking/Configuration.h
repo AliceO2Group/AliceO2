@@ -151,6 +151,7 @@ struct TrackingParameters {
   int VertPerRofThreshold = 0; // max vertices in a ROF for the UPC pass to still run on it
   float VtxPhiCut = -1.f;
   float VtxLineMinPt = -1.f;
+  float VtxLineCurvatureScale = 0.5f;
   float VtxMaxZPositionAllowed = -1.f;
   float VtxClusterCut = -1.f;
   float VtxPairCut = -1.f;
@@ -165,6 +166,7 @@ struct TrackingParameters {
   float VtxGoodContributorsSignificance = -1.f;
   int VtxClusterContributorsCut = -1;
   int VtxSuppressLowMultDebris = -1;
+  float VtxOverpopulatedRofNSigma = -1.f;
 };
 
 struct VertexingParameters {

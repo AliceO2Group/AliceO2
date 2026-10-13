@@ -43,6 +43,13 @@ void MCKinematicsReader::ensureTracksForSourceAndEvent(int source, int event) co
 
 MCKinematicsReader::~MCKinematicsReader()
 {
+  for (auto& perSource : mTracks) {
+    for (auto tracks : perSource) {
+      delete tracks;
+    }
+  }
+  mTracks.clear();
+
   for (auto chain : mInputChains) {
     delete chain;
   }

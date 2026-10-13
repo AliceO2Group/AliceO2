@@ -122,6 +122,13 @@ GeneratorHybrid::GeneratorHybrid(const std::string& inputgens)
         mGens.push_back(gen);
       } else if (gen.compare("external") == 0) {
         int confextIndex = std::stoi(mConfigs[index].substr(9));
+        // Hybrid configs can clone the same external generator config multiple times so
+        // an external macro that self-seeds from gRandom could sample the same seed.
+        // For this reason the shared RNG state is advanced as a precaution
+        // mirroring what GeneratorPythia8::seedGenerator() does for multiple Pythia8 instances.
+        if (std::count(mGens.begin(), mGens.end(), "external") > 0) {
+          gRandom->Rndm();
+        }
         // we need analyse the ini file to update the config key param
         if (mExternalGenConfigs[confextIndex]->iniFile.size() > 0) {
           LOG(info) << "Setting up external gen using the given INI file";

@@ -38,7 +38,6 @@
 #include <cstring> //needed for memcmp
 #include <string>
 #include <stdexcept>
-#include <climits>
 #include <limits>
 #include <cerrno>
 
@@ -258,28 +257,31 @@ struct Descriptor {
   ///
   /// Note: no assignment operator operator=(const char*) as this potentially runs
   /// into trouble with this general pointer type.
-  void runtimeInit(const char* string, short length = -1)
+  void runtimeInit(std::string_view string)
   {
-    char* target = str;
-    char* targetEnd = target;
-    if (length >= 0 && length < (int)N) {
-      targetEnd += length;
-    } else {
-      targetEnd += N;
+    // empty strings and string longet than the descriptor size are not allowed
+    if (!string.empty() && (string.size() > (int)N)) {
+      throw std::invalid_argument("argument must not be longer than the descriptor size");
     }
-    const char* source = string;
-    for (; source != nullptr && target < targetEnd && *source != 0; ++target, ++source) {
-      *target = *source;
+    // copy the content directly
+    std::memcpy(str, string.data(), string.size());
+    // nullify the remainder
+    auto* ptr = str + string.size();
+    for (; ptr < str + N; ++ptr) {
+      *ptr = 0;
     }
-    targetEnd = str + N;
-    for (; target < targetEnd; ++target) {
-      *target = 0;
-    }
-    // require the string to be not longer than the descriptor size
-    if (source != nullptr && (*source == 0 || (length >= 0 && length <= (int)N))) {
-    } else {
-      throw std::invalid_argument("argument must not be longer than descriptor size");
-    }
+  }
+
+  /// compatibility version for null-terminated strings
+  void runtimeInit(const char* string)
+  {
+    runtimeInit(std::string_view{string, std::strlen(string)});
+  }
+
+  /// compatibility version for explicit length
+  void runtimeInit(const char* buffer, size_t length)
+  {
+    runtimeInit(std::string_view{buffer, length});
   }
 
   bool operator==(const Descriptor& other) const { return std::memcmp(this->str, other.str, N) == 0; }
@@ -298,7 +300,8 @@ struct Descriptor {
 
   /// get the descriptor as std::string
   template <typename T>
-  std::enable_if_t<std::is_same<T, std::string>::value == true, T> as() const
+    requires(std::same_as<T, std::string>)
+  T as() const
   {
     // backward search to find first non-zero char
     // FIXME: can optimize this by using the int value to start at e.g. size/2

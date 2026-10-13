@@ -23,8 +23,8 @@ GPUTPCDecompressionUtilKernels_sortPerSectorRow,256,,,,,,,,,256,,256,256,,256,,,
 GPUTPCDecompressionUtilKernels_countFilteredClusters,256,,,,,,,,,256,,256,256,,256,,,256
 GPUTPCDecompressionUtilKernels_storeFilteredClusters,256,,,,,,,,,256,,256,256,,256,,,256
 GPUTPCCFDecodeZS,"[128, 4]",,"[64, 4]","[64, 1]",,,,,,"[32, 10]","[64, 8]","[32, 10]","[32, 10]",,"[64, 1]",,"[64, 10]","[64, 1]"
-GPUTPCCFDecodeZSLink,"""GPUCA_WARP_SIZE""",,"""GPUCA_WARP_SIZE""","""GPUCA_WARP_SIZE""",,,,,,"""GPUCA_WARP_SIZE""","""GPUCA_WARP_SIZE""","""GPUCA_WARP_SIZE""","""GPUCA_WARP_SIZE""",,64,,"""GPUCA_WARP_SIZE""","""GPUCA_WARP_SIZE"""
-GPUTPCCFDecodeZSDenseLink,"""GPUCA_WARP_SIZE""",,"[""GPUCA_WARP_SIZE"", 4]","[""GPUCA_WARP_SIZE"", 14]",,,,,,"[""GPUCA_WARP_SIZE"", 14]","""GPUCA_WARP_SIZE""","[""GPUCA_WARP_SIZE"", 22]","[""GPUCA_WARP_SIZE"", 22]",,"[64, 17]",,"[""GPUCA_WARP_SIZE"", 8]","[""GPUCA_WARP_SIZE"", 5]"
+GPUTPCCFDecodeZSLink,"""GPUCA_WARP_SIZE""",,"""GPUCA_WARP_SIZE""","""GPUCA_WARP_SIZE""",,,,,,"""GPUCA_WARP_SIZE""","""GPUCA_WARP_SIZE""","""GPUCA_WARP_SIZE""","""GPUCA_WARP_SIZE""",,"""GPUCA_WARP_SIZE""",,"""GPUCA_WARP_SIZE""","""GPUCA_WARP_SIZE"""
+GPUTPCCFDecodeZSDenseLink,"""GPUCA_WARP_SIZE""",,"[""GPUCA_WARP_SIZE"", 4]","[""GPUCA_WARP_SIZE"", 14]",,,,,,"[""GPUCA_WARP_SIZE"", 14]","""GPUCA_WARP_SIZE""","[""GPUCA_WARP_SIZE"", 22]","[""GPUCA_WARP_SIZE"", 22]",,"[""GPUCA_WARP_SIZE"", 17]",,"[""GPUCA_WARP_SIZE"", 8]","[""GPUCA_WARP_SIZE"", 5]"
 GPUTPCCFGather,"[1024, 1]",,"[1024, 5]","[1024, 1]",,,,,,"[160, 11]","[1024, 1]",736,896,,"[928, 1]",,"[1024, 1]","[320, 2]"
 COMPRESSION_GATHER,1024,,1024,1024,,,,,,1024,1024,,1024,,,,,
 GPUTPCGMMergerTrackFit,256,,"[192, 2]","[64, 7]",,,,,,"[32, 16]","[32, 8]","[32, 14]","[160, 2]",,"[32, 24]",,"[64, 8]","[64, 6]"

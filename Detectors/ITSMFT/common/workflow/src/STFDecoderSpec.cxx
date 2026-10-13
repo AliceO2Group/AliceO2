@@ -71,8 +71,8 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     auto v2 = o2::utils::Str::tokenize(v1[1], '?');
     header::DataOrigin dataOrig;
     header::DataDescription dataDesc;
-    dataOrig.runtimeInit(v1[0].c_str());
-    dataDesc.runtimeInit(v2[0].c_str());
+    dataOrig.runtimeInit(v1[0]);
+    dataDesc.runtimeInit(v2[0]);
     Mapping map;
     for (int iLayer{0}; iLayer < mLayers; ++iLayer) {
       auto& dec = mDecoder.emplace_back(std::make_unique<RawPixelDecoder<Mapping>>());

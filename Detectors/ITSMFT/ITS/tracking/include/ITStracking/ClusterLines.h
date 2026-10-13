@@ -19,6 +19,7 @@
 #include <cmath>
 #endif
 #include "ITStracking/Cluster.h"
+#include "ITStracking/Cell.h"
 #include "ITSMFTTracking/Constants.h"
 #include "ITStracking/Tracklet.h"
 #include "GPUCommonDef.h"
@@ -120,6 +121,25 @@ struct Line final {
   float cosinesDirector[3] = {0.f, 0.f, 0.f};
   TimeEstBC mTime;
 };
+
+GPUdi() bool getCellLineAtBeam(const CellSeed& cell, const float beamX, const float beamY, const float bz, const float curvatureScale, std::array<float, 3>& origin, std::array<float, 3>& direction)
+{
+  cell.getXYZGlo(origin);
+  if (!cell.getPxPyPzGlo(direction)) {
+    return false;
+  }
+  o2::track::TrackParametrization<float> par{cell};
+  par.setQ2Pt(par.getQ2Pt() * curvatureScale);
+  std::array<float, 3> dcaOrigin, dcaDirection;
+  if (par.propagateParamToDCA({beamX, beamY, 0.f}, bz)) {
+    par.getXYZGlo(dcaOrigin);
+    if (par.getPxPyPzGlo(dcaDirection)) {
+      origin = dcaOrigin;
+      direction = dcaDirection;
+    }
+  }
+  return true;
+}
 
 /// Least-squares vertex fit over a set of lines (the normal equations AX = -B).
 class ClusterLines final

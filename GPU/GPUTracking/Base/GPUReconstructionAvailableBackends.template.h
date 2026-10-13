@@ -17,5 +17,6 @@
 #cmakedefine HIP_ENABLED
 #cmakedefine OPENCL_ENABLED
 #cmakedefine METAL_ENABLED
+#cmakedefine CPUDEVICE_ENABLED
 #cmakedefine GPUCA_COMPILER_VERSIONS @GPUCA_COMPILER_VERSIONS@
 // clang-format on

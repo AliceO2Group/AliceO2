@@ -131,7 +131,7 @@ o2::framework::DataProcessorSpec getITSDCSDataGeneratorSpec(const char* detName)
 
   o2::header::DataDescription dd;
 
-  dd.runtimeInit(desc.c_str(), desc.size());
+  dd.runtimeInit(desc);
 
   return DataProcessorSpec{
     "its-dcs-data-generator",

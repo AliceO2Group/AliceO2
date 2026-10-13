@@ -40,6 +40,8 @@ struct HIPTailDescriptor {
   uint16_t pad;
   uint16_t tailStart;
   uint16_t tailEnd;
+  int16_t satStart; // First timebin of the saturated plateau that triggered the tail on this pad, -1 if the tail was only inherited from a neighboring pad
+  int16_t satEnd;   // Last timebin of that plateau, -1 if inherited
   float qTot;
   float qMax;
 };
@@ -113,6 +115,12 @@ class GPUTPCCFCheckPadBaseline : public GPUKernelTemplate
     int16_t aboveThresholdStart = -1; // first TB of current above-hipTailThreshold streak; used to extend the tail back over the rising edge before saturation
     HipTailRange activeHIPTail{-1, -1};
     tpccf::Charge tailFilterCharge = 0;
+    int16_t plateauStart = -1; // first TB of the current / last saturated plateau, only tracked in chunks with a HIP trigger
+    bool plateauOpen = false;  // previous TB was saturated
+    int16_t satStart = -1;     // saturated plateau that triggered in the current chunk
+    int16_t satEnd = -1;
+    int16_t activeSatStart = -1; // saturated plateau of the active tail, -1 if inherited from a neighbor
+    int16_t activeSatEnd = -1;
   };
 
   typedef GPUTPCClusterFinder processorType;
