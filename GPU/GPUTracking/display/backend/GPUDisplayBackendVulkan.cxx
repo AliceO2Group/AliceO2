@@ -562,7 +562,9 @@ void GPUDisplayBackendVulkan::createSemaphoresAndFences()
   mTextFinishedSemaphore.resize(mFramesInFlight);
   mMixFinishedSemaphore.resize(mFramesInFlight);
   mDownsampleFinishedSemaphore.resize(mFramesInFlight);
+  mPresentSemaphore.resize(mImageCount);
   mInFlightFence.resize(mFramesInFlight);
+  mImageFence.resize(mImageCount);
   for (uint32_t i = 0; i < mFramesInFlight; i++) {
     mImageAvailableSemaphore[i] = mDevice.createSemaphore(semaphoreInfo, nullptr);
     mRenderFinishedSemaphore[i] = mDevice.createSemaphore(semaphoreInfo, nullptr);
@@ -570,6 +572,10 @@ void GPUDisplayBackendVulkan::createSemaphoresAndFences()
     mMixFinishedSemaphore[i] = mDevice.createSemaphore(semaphoreInfo, nullptr);
     mDownsampleFinishedSemaphore[i] = mDevice.createSemaphore(semaphoreInfo, nullptr);
     mInFlightFence[i] = mDevice.createFence(fenceInfo, nullptr);
+  }
+  for (uint32_t i = 0; i < mImageCount; i++) {
+    mPresentSemaphore[i] = mDevice.createSemaphore(semaphoreInfo, nullptr);
+    mImageFence[i] = VkFence(VK_NULL_HANDLE);
   }
   fenceInfo.flags = {};
   mSingleCommitFence = mDevice.createFence(fenceInfo, nullptr);
@@ -582,6 +588,7 @@ void GPUDisplayBackendVulkan::clearSemaphoresAndFences()
   clearVector(mTextFinishedSemaphore, [&](auto& x) { mDevice.destroySemaphore(x, nullptr); });
   clearVector(mMixFinishedSemaphore, [&](auto& x) { mDevice.destroySemaphore(x, nullptr); });
   clearVector(mDownsampleFinishedSemaphore, [&](auto& x) { mDevice.destroySemaphore(x, nullptr); });
+  clearVector(mPresentSemaphore, [&](auto& x) { mDevice.destroySemaphore(x, nullptr); });
   clearVector(mInFlightFence, [&](auto& x) { mDevice.destroyFence(x, nullptr); });
   mDevice.destroyFence(mSingleCommitFence, nullptr);
 }
@@ -768,11 +775,11 @@ void GPUDisplayBackendVulkan::createSwapChain(bool forScreenshot, bool forMixing
   mSwapChain = mDevice.createSwapchainKHR(swapCreateInfo, nullptr);
 
   mSwapChainImages = mDevice.getSwapchainImagesKHR(mSwapChain);
-  uint32_t oldFramesInFlight = mFramesInFlight;
+  uint32_t oldFramesInFlight = mFramesInFlight, oldImageCount = mImageCount;
   mFramesInFlight = mDisplay->cfg().vulkan.nFramesInFlight;
   mImageCount = mSwapChainImages.size();
 
-  if (mFramesInFlight > oldFramesInFlight || !mCommandInfrastructureCreated) {
+  if (mFramesInFlight != oldFramesInFlight || mImageCount != oldImageCount || !mCommandInfrastructureCreated) {
     if (mCommandInfrastructureCreated) {
       clearUniformLayoutsAndBuffers(); // TODO: Check what must actually be cleaned up if frames in flight changes
       clearCommandBuffers();
@@ -1522,12 +1529,7 @@ void GPUDisplayBackendVulkan::prepareDraw(const hmm_mat4& proj, const hmm_mat4& 
     mCurrentFrame = (mCurrentFrame + 1) % mFramesInFlight;
     CHKERR(mDevice.waitForFences(1, &mInFlightFence[mCurrentFrame], true, UINT64_MAX));
     auto getImage = [&]() {
-      vk::Fence fen = VkFence(VK_NULL_HANDLE);
-      vk::Semaphore sem = VkSemaphore(VK_NULL_HANDLE);
-      fen = mInFlightFence[mCurrentFrame];
-      CHKERR(mDevice.resetFences(1, &fen));
-      // sem = mImageAvailableSemaphore[mCurrentFrame]; // TODO: Why not !
-      return mDevice.acquireNextImageKHR(mSwapChain, UINT64_MAX, sem, fen, &mCurrentImageIndex);
+      return mDevice.acquireNextImageKHR(mSwapChain, UINT64_MAX, mImageAvailableSemaphore[mCurrentFrame], VkFence(VK_NULL_HANDLE), &mCurrentImageIndex);
     };
 
     vk::Result retVal = vk::Result::eSuccess;
@@ -1545,8 +1547,12 @@ void GPUDisplayBackendVulkan::prepareDraw(const hmm_mat4& proj, const hmm_mat4& 
       retVal = getImage();
     }
     CHKERR(retVal);
-    CHKERR(mDevice.waitForFences(1, &mInFlightFence[mCurrentFrame], true, UINT64_MAX));
+    if (mImageFence[mCurrentImageIndex]) {
+      CHKERR(mDevice.waitForFences(1, &mImageFence[mCurrentImageIndex], true, UINT64_MAX));
+    }
+    mImageFence[mCurrentImageIndex] = mInFlightFence[mCurrentFrame];
     CHKERR(mDevice.resetFences(1, &mInFlightFence[mCurrentFrame]));
+
     mMustUpdateSwapChain = false;
     mHasDrawnText = false;
 
@@ -1578,14 +1584,14 @@ void GPUDisplayBackendVulkan::finishFrame(bool doScreenshot, bool toMixBuffer, f
 
   vk::SubmitInfo submitInfo{};
   vk::PipelineStageFlags waitStages[] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
-  submitInfo.pWaitSemaphores = includeMixImage > 0.f ? &mRenderFinishedSemaphore[mCurrentFrame] : nullptr;
-  submitInfo.waitSemaphoreCount = submitInfo.pWaitSemaphores != nullptr ? 1 : 0;
+  submitInfo.pWaitSemaphores = includeMixImage > 0.f ? &mRenderFinishedSemaphore[mCurrentFrame] : &mImageAvailableSemaphore[mCurrentFrame];
+  submitInfo.waitSemaphoreCount = 1;
   submitInfo.pWaitDstStageMask = waitStages;
   submitInfo.commandBufferCount = 1;
   submitInfo.pCommandBuffers = &mCurrentCommandBuffer;
   submitInfo.signalSemaphoreCount = 1;
   submitInfo.pSignalSemaphores = stageFinishedSemaphore;
-  CHKERR(mGraphicsQueue.submit(1, &submitInfo, includeMixImage > 0 || toMixBuffer || mHasDrawnText || mDownsampleFSAA ? noFence : mInFlightFence[mCurrentFrame]));
+  CHKERR(mGraphicsQueue.submit(1, &submitInfo, noFence));
   if (!toMixBuffer) {
     if (includeMixImage > 0.f) {
       mixImages(mCommandBuffersTexture[mCurrentImageIndex], includeMixImage);
@@ -1595,7 +1601,7 @@ void GPUDisplayBackendVulkan::finishFrame(bool doScreenshot, bool toMixBuffer, f
       submitInfo.pCommandBuffers = &mCommandBuffersTexture[mCurrentImageIndex];
       stageFinishedSemaphore = &mMixFinishedSemaphore[mCurrentFrame];
       submitInfo.pSignalSemaphores = stageFinishedSemaphore;
-      CHKERR(mGraphicsQueue.submit(1, &submitInfo, mHasDrawnText || mDownsampleFSAA ? noFence : mInFlightFence[mCurrentFrame]));
+      CHKERR(mGraphicsQueue.submit(1, &submitInfo, noFence));
     }
 
     if (mDownsampleFSAA) {
@@ -1606,7 +1612,7 @@ void GPUDisplayBackendVulkan::finishFrame(bool doScreenshot, bool toMixBuffer, f
       submitInfo.waitSemaphoreCount = 1;
       stageFinishedSemaphore = &mDownsampleFinishedSemaphore[mCurrentFrame];
       submitInfo.pSignalSemaphores = stageFinishedSemaphore;
-      CHKERR(mGraphicsQueue.submit(1, &submitInfo, mHasDrawnText ? noFence : mInFlightFence[mCurrentFrame]));
+      CHKERR(mGraphicsQueue.submit(1, &submitInfo, noFence));
     }
 
     if (doScreenshot) {
@@ -1625,13 +1631,21 @@ void GPUDisplayBackendVulkan::finishFrame(bool doScreenshot, bool toMixBuffer, f
       submitInfo.pCommandBuffers = &mCommandBuffersText[mCurrentImageIndex];
       stageFinishedSemaphore = &mTextFinishedSemaphore[mCurrentFrame];
       submitInfo.pSignalSemaphores = stageFinishedSemaphore;
-      CHKERR(mGraphicsQueue.submit(1, &submitInfo, mInFlightFence[mCurrentFrame]));
+      CHKERR(mGraphicsQueue.submit(1, &submitInfo, noFence));
     }
 
-    CHKERR(mDevice.waitForFences(1, &mInFlightFence[mCurrentFrame], true, UINT64_MAX)); // TODO: I think we need to wait for the fence, so that the image was acquired before we present. Perhaps we can present later to avoid delays
+    vk::PipelineStageFlags presentWaitStage = vk::PipelineStageFlagBits::eAllCommands;
+    submitInfo.commandBufferCount = 0;
+    submitInfo.waitSemaphoreCount = 1;
+    submitInfo.pWaitSemaphores = stageFinishedSemaphore;
+    submitInfo.pWaitDstStageMask = &presentWaitStage;
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores = &mPresentSemaphore[mCurrentImageIndex];
+    CHKERR(mGraphicsQueue.submit(1, &submitInfo, mInFlightFence[mCurrentFrame])); // Empty submit to signal InFlightFence and PresentSemaphore
+
     vk::PresentInfoKHR presentInfo{};
     presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores = stageFinishedSemaphore;
+    presentInfo.pWaitSemaphores = &mPresentSemaphore[mCurrentImageIndex];
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = &mSwapChain;
     presentInfo.pImageIndices = &mCurrentImageIndex;
