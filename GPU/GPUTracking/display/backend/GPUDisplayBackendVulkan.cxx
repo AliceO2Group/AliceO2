@@ -273,13 +273,29 @@ static inline void clearVector(T& v, S func, bool downsize = true)
 
 // ---------------------------- VULKAN DEVICE MANAGEMENT ----------------------------
 
-double GPUDisplayBackendVulkan::checkDevice(vk::PhysicalDevice device, const std::vector<const char*>& reqDeviceExtensions, bool silent)
+static bool hasFeatures(const vk::PhysicalDeviceFeatures& available, const vk::PhysicalDeviceFeatures& required) // The struct consists only of VkBool32 members
+{
+  static_assert(sizeof(vk::PhysicalDeviceFeatures) % sizeof(vk::Bool32) == 0);
+  const vk::Bool32* a = reinterpret_cast<const vk::Bool32*>(&available);
+  const vk::Bool32* r = reinterpret_cast<const vk::Bool32*>(&required);
+  for (size_t i = 0; i < sizeof(vk::PhysicalDeviceFeatures) / sizeof(vk::Bool32); i++) {
+    if (r[i] && !a[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+double GPUDisplayBackendVulkan::checkDevice(vk::PhysicalDevice device, const std::vector<const char*>& reqDeviceExtensions, const vk::PhysicalDeviceFeatures& reqDeviceFeatures, bool silent)
 {
   double score = -1.;
   vk::PhysicalDeviceProperties deviceProperties = device.getProperties();
   vk::PhysicalDeviceFeatures deviceFeatures = device.getFeatures();
   vk::PhysicalDeviceMemoryProperties memoryProperties = device.getMemoryProperties();
-  if (!deviceFeatures.geometryShader || !deviceFeatures.wideLines || !deviceFeatures.largePoints) {
+  if (!hasFeatures(deviceFeatures, reqDeviceFeatures)) {
+    if (!silent) {
+      GPUInfo("%s ignored due to missing features", &deviceProperties.deviceName[0]);
+    }
     return (-1);
   }
 
@@ -431,8 +447,9 @@ void GPUDisplayBackendVulkan::createDevice()
     throw std::runtime_error("Frontend does not provide Vulkan surface");
   }
 
-  const std::vector<const char*> reqDeviceExtensions = {
-    VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+  const std::vector<const char*> reqDeviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+  vk::PhysicalDeviceFeatures reqDeviceFeatures{};
+  reqDeviceFeatures.geometryShader = reqDeviceFeatures.wideLines = reqDeviceFeatures.largePoints = VK_TRUE;
 
   mPhysicalDevice = VkPhysicalDevice(VK_NULL_HANDLE);
   std::vector<vk::PhysicalDevice> devices = mInstance.enumeratePhysicalDevices();
@@ -441,7 +458,7 @@ void GPUDisplayBackendVulkan::createDevice()
   }
   double bestScore = -1.;
   for (uint32_t i = 0; i < devices.size(); i++) {
-    double score = checkDevice(devices[i], reqDeviceExtensions);
+    double score = checkDevice(devices[i], reqDeviceExtensions, reqDeviceFeatures);
     if (mDisplay->GetProcessingSettings().debugLevel >= 2) {
       vk::PhysicalDeviceProperties deviceProperties = devices[i].getProperties();
       GPUInfo("Available Vulkan device %d: %s - Score %f", i, &deviceProperties.deviceName[0], score);
@@ -460,13 +477,12 @@ void GPUDisplayBackendVulkan::createDevice()
   if (!mPhysicalDevice) {
     throw std::runtime_error("All available Vulkan devices unsuited");
   }
-  if (checkDevice(mPhysicalDevice, reqDeviceExtensions, true) <= 0) {
+  if (checkDevice(mPhysicalDevice, reqDeviceExtensions, reqDeviceFeatures, true) <= 0) {
     throw std::runtime_error("Selected vulkan device is incompatible");
   }
 
   updateSwapChainDetails(mPhysicalDevice);
   vk::PhysicalDeviceProperties deviceProperties = mPhysicalDevice.getProperties();
-  vk::PhysicalDeviceFeatures deviceFeatures = mPhysicalDevice.getFeatures();
   vk::FormatProperties depth32FormatProperties = mPhysicalDevice.getFormatProperties(vk::Format::eD32Sfloat);
   vk::FormatProperties depth64FormatProperties = mPhysicalDevice.getFormatProperties(vk::Format::eD32SfloatS8Uint);
   GPUInfo("Using physical Vulkan device %s", &deviceProperties.deviceName[0]);
@@ -486,7 +502,7 @@ void GPUDisplayBackendVulkan::createDevice()
   vk::DeviceCreateInfo deviceCreateInfo{};
   deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
   deviceCreateInfo.queueCreateInfoCount = 1;
-  deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
+  deviceCreateInfo.pEnabledFeatures = &reqDeviceFeatures;
   deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(reqDeviceExtensions.size());
   deviceCreateInfo.ppEnabledExtensionNames = reqDeviceExtensions.data();
   mDevice = mPhysicalDevice.createDevice(deviceCreateInfo, nullptr);
