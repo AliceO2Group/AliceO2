@@ -26,6 +26,7 @@
 #include <cerrno>
 #include <chrono>
 #include <algorithm>
+#include <cmath>
 
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_wayland.h>
@@ -37,6 +38,7 @@
 #include <wayland-client.h>
 #include "xdg-shell-client-protocol.h"
 #include "xdg-decoration-client-protocol.h"
+#include "viewporter-client-protocol.h"
 #include <xkbcommon/xkbcommon.h>
 #include <linux/input-event-codes.h>
 
@@ -353,6 +355,10 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
       wl_seat_add_listener(me->mSeat, &me->mSeatListener, me);
     } else if (strcmp(interface, zxdg_decoration_manager_v1_interface.name) == 0) {
       me->mDecManager = (zxdg_decoration_manager_v1*)wl_registry_bind(registry, name, &zxdg_decoration_manager_v1_interface, 1);
+    } else if (strcmp(interface, wp_viewporter_interface.name) == 0) {
+      me->mViewporter = (wp_viewporter*)wl_registry_bind(registry, name, &wp_viewporter_interface, 1);
+    } else if (strcmp(interface, wp_fractional_scale_manager_v1_interface.name) == 0) {
+      me->mFractionalScaleManager = (wp_fractional_scale_manager_v1*)wl_registry_bind(registry, name, &wp_fractional_scale_manager_v1_interface, 1);
     }
   };
   auto registry_global_remove = [](void* data, wl_registry* registry, uint32_t name) {
@@ -415,6 +421,18 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
 #endif
   };
   wl_surface_add_listener(mSurface, &mSurfaceListener, this);
+
+  if (mViewporter && mFractionalScaleManager) {
+    auto fractional_scale_preferred_scale = [](void* data, wp_fractional_scale_v1* fractional_scale, uint32_t scale) {
+      GPUDisplayFrontendWayland* me = (GPUDisplayFrontendWayland*)data;
+      me->mFractionalScale120 = scale;
+      me->updateScale();
+    };
+    mFractionalScaleListener = wp_fractional_scale_v1_listener{.preferred_scale = fractional_scale_preferred_scale};
+    mViewport = wp_viewporter_get_viewport(mViewporter, mSurface);
+    mFractionalScale = wp_fractional_scale_manager_v1_get_fractional_scale(mFractionalScaleManager, mSurface);
+    wp_fractional_scale_v1_add_listener(mFractionalScale, &mFractionalScaleListener, this);
+  }
 
   mXdgSurface = xdg_wm_base_get_xdg_surface(mXdgBase, mSurface);
   if (mXdgSurface == nullptr) {
@@ -594,9 +612,25 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
     zxdg_toplevel_decoration_v1_destroy(mXdgDecoration);
     mXdgDecoration = nullptr;
   }
+  if (mFractionalScale) {
+    wp_fractional_scale_v1_destroy(mFractionalScale);
+    mFractionalScale = nullptr;
+  }
+  if (mViewport) {
+    wp_viewport_destroy(mViewport);
+    mViewport = nullptr;
+  }
   xdg_toplevel_destroy(mXdgToplevel);
   xdg_surface_destroy(mXdgSurface);
   wl_surface_destroy(mSurface);
+  if (mFractionalScaleManager) {
+    wp_fractional_scale_manager_v1_destroy(mFractionalScaleManager);
+    mFractionalScaleManager = nullptr;
+  }
+  if (mViewporter) {
+    wp_viewporter_destroy(mViewporter);
+    mViewporter = nullptr;
+  }
   if (mDecManager) {
     zxdg_decoration_manager_v1_destroy(mDecManager);
     mDecManager = nullptr;
@@ -665,25 +699,37 @@ GPUDisplayFrontendWayland::OutputInfo* GPUDisplayFrontendWayland::findOutput(wl_
 
 void GPUDisplayFrontendWayland::updateScale()
 {
-  int32_t scale = mPreferredScale;
-  if (scale == 0) {
-    scale = 1;
-    for (auto* output : mSurfaceOutputs) {
-      if (auto* o = findOutput(output)) {
-        scale = std::max(scale, o->scale);
+  double scale;
+  if (mFractionalScale) {
+    scale = mFractionalScale120 ? mFractionalScale120 / 120. : 1.;
+  } else {
+    int32_t intScale = mPreferredScale;
+    if (intScale == 0) {
+      intScale = 1;
+      for (auto* output : mSurfaceOutputs) {
+        if (auto* o = findOutput(output)) {
+          intScale = std::max(intScale, o->scale);
+        }
       }
     }
+    scale = intScale;
   }
   if (scale != mScale && mSurface) {
     mScale = scale;
-    wl_surface_set_buffer_scale(mSurface, mScale); // Applied with the next commit, i.e. the next present, which happens after the swapchain was recreated with the new size by ResizeScene
+    if (!mFractionalScale) {
+      wl_surface_set_buffer_scale(mSurface, (int32_t)mScale); // Applied with the next commit, i.e. the next present, which happens after the swapchain was recreated with the new size by ResizeScene
+    }
     updateSize();
   }
 }
 
 void GPUDisplayFrontendWayland::updateSize()
 {
-  const int32_t width = mWidthLogical * mScale, height = mHeightLogical * mScale;
+  if (mViewport) {
+    wp_viewport_set_destination(mViewport, mWidthLogical, mHeightLogical); // Surface size in logical coordinates, independent of the buffer size, applied with the next present
+  }
+  const int32_t width = mFractionalScale ? (int32_t)std::lround(mWidthLogical * mScale) : (mWidthLogical * (int32_t)mScale);
+  const int32_t height = mFractionalScale ? (int32_t)std::lround(mHeightLogical * mScale) : (mHeightLogical * (int32_t)mScale);
   if (width != mDisplayWidth || height != mDisplayHeight) {
     if (mDisplayRunning) {
       ResizeScene(width, height); // Swapchain is recreated by the backend, Vulkan WSI commits the new buffer

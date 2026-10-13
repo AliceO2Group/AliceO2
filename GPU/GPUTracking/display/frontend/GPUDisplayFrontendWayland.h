@@ -19,10 +19,13 @@
 #include <pthread.h>
 #include <wayland-client.h>
 #include "xdg-shell-client-protocol.h"
+#include "fractional-scale-client-protocol.h"
 #include <vector>
 #include <string>
 
 struct zxdg_decoration_manager_v1;
+struct wp_viewporter;
+struct wp_viewport;
 struct zxdg_toplevel_decoration_v1;
 struct xkb_context;
 struct xkb_keymap;
@@ -49,7 +52,7 @@ class GPUDisplayFrontendWayland : public GPUDisplayFrontend
  private:
   int32_t FrontendMain() override;
   int32_t GetKey(uint32_t key, uint32_t state);
-  void updateScale();                  // Buffer scale from wl_surface.preferred_buffer_scale, or max scale of the outputs the surface is on (older compositors)
+  void updateScale();                  // Scale from wp_fractional_scale_v1, else integer wl_surface.preferred_buffer_scale, or max scale of the outputs the surface is on (older compositors)
   void updateSize();                   // Physical size = logical size * scale, resizes the scene if changed
   void reportError(const char* where); // Print the Wayland display error (protocol error with interface and object, or errno) after a call returned -1
   void handleKeyRepeat();              // Call HandleKey for the held key according to wl_keyboard.repeat_info
@@ -88,6 +91,7 @@ class GPUDisplayFrontendWayland : public GPUDisplayFrontend
   xdg_wm_base_listener mXdgWmBaseListener{};
   xdg_surface_listener mXdgSurfaceListener{};
   xdg_toplevel_listener mXdgToplevelListener{};
+  wp_fractional_scale_v1_listener mFractionalScaleListener{};
 
   std::vector<OutputInfo> mOutputs;
   std::vector<wl_output*> mSurfaceOutputs; // Outputs the surface is on, most recently entered last
@@ -100,6 +104,11 @@ class GPUDisplayFrontendWayland : public GPUDisplayFrontend
   zxdg_decoration_manager_v1* mDecManager = nullptr;
   zxdg_toplevel_decoration_v1* mXdgDecoration = nullptr;
 
+  wp_viewporter* mViewporter = nullptr; // Fractional scaling (if both are available): buffer scale 1, buffer at physical size, viewport destination = logical size
+  wp_fractional_scale_manager_v1* mFractionalScaleManager = nullptr;
+  wp_viewport* mViewport = nullptr;
+  wp_fractional_scale_v1* mFractionalScale = nullptr;
+
   int32_t mWidthRequested = 0;
   int32_t mHeightRequested = 0;
   int32_t mWidthLogical = INIT_WIDTH;
@@ -109,8 +118,9 @@ class GPUDisplayFrontendWayland : public GPUDisplayFrontend
   bool mStateFullScreenOrMaximized = false;
   int32_t mBoundsWidth = 0;
   int32_t mBoundsHeight = 0;
-  int32_t mScale = 1;
-  int32_t mPreferredScale = 0; // 0 = not sent by compositor
+  double mScale = 1;                // Physical pixels per logical pixel
+  int32_t mPreferredScale = 0;      // Integer scale from wl_surface.preferred_buffer_scale, 0 = not sent by compositor
+  uint32_t mFractionalScale120 = 0; // Scale * 120 from wp_fractional_scale_v1, 0 = not sent yet
   bool mSuspended = false;
   bool mCanFullscreen = true;
   bool mCanMaximize = true;
