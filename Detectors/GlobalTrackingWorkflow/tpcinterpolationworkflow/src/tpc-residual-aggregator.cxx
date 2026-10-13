@@ -53,9 +53,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     LOG(error) << "MC truth input requires the track input (enable-track-input), will be ignored";
     mcInput = false;
   }
-  if (mcInput && !configcontext.options().get<bool>("disable-root-input")) {
-    LOG(fatal) << "MC truth input is only supported directly from the interpolation workflow (disable-root-input)";
-  }
 
   bool writeUnbinnedResiduals = false;
   bool writeBinnedResiduals = false;
@@ -85,7 +82,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   WorkflowSpec specs;
   if (!configcontext.options().get<bool>("disable-root-input")) {
-    specs.emplace_back(o2::tpc::getUnbinnedTPCResidualsReaderSpec(trkInput));
+    specs.emplace_back(o2::tpc::getUnbinnedTPCResidualsReaderSpec(trkInput, mcInput));
   }
   specs.emplace_back(getTPCResidualAggregatorSpec(trkInput, ctpInput, writeUnbinnedResiduals, writeBinnedResiduals, writeTrackData, mcInput));
 
