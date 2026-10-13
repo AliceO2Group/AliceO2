@@ -1533,19 +1533,18 @@ void GPUDisplayBackendVulkan::prepareDraw(const hmm_mat4& proj, const hmm_mat4& 
     };
 
     vk::Result retVal = vk::Result::eSuccess;
-    bool mustUpdateRendering = mMustUpdateSwapChain;
-    if (mDisplay->updateRenderPipeline() || (requestScreenshot && !mSwapchainImageReadable) || (toMixBuffer && !mMixingSupported) || mDownsampleFactor != getDownsampleFactor(requestScreenshot)) {
-      mustUpdateRendering = true;
-    } else if (!mMustUpdateSwapChain) {
+    bool mustUpdateSwapChain = mMustUpdateSwapChain || mDisplay->updateRenderPipeline() || (requestScreenshot && !mSwapchainImageReadable) || (toMixBuffer && !mMixingSupported) || mDownsampleFactor != getDownsampleFactor(requestScreenshot);
+    if (!mustUpdateSwapChain) {
       retVal = getImage();
-    }
-    if (mMustUpdateSwapChain || mustUpdateRendering || retVal == vk::Result::eErrorOutOfDateKHR || retVal == vk::Result::eSuboptimalKHR) {
-      if (!mustUpdateRendering) {
-        GPUInfo("Pipeline out of data / suboptimal, recreating");
+      if (retVal == vk::Result::eErrorOutOfDateKHR) {
+        mustUpdateSwapChain = mMustUpdateSwapChain = true;
       }
+    }
+    if (mustUpdateSwapChain) {
       recreateRendering(requestScreenshot, toMixBuffer);
       retVal = getImage();
     }
+    mMustUpdateSwapChain = retVal == vk::Result::eSuboptimalKHR;
     CHKERR(retVal);
     if (mImageFence[mCurrentImageIndex]) {
       CHKERR(mDevice.waitForFences(1, &mImageFence[mCurrentImageIndex], true, UINT64_MAX));
@@ -1553,9 +1552,7 @@ void GPUDisplayBackendVulkan::prepareDraw(const hmm_mat4& proj, const hmm_mat4& 
     mImageFence[mCurrentImageIndex] = mInFlightFence[mCurrentFrame];
     CHKERR(mDevice.resetFences(1, &mInFlightFence[mCurrentFrame]));
 
-    mMustUpdateSwapChain = false;
     mHasDrawnText = false;
-
     const hmm_mat4 modelViewProj = proj * view;
     writeToBuffer(mUniformBuffersMat[0][mCurrentImageIndex], sizeof(modelViewProj), &modelViewProj);
   }
@@ -1651,7 +1648,7 @@ void GPUDisplayBackendVulkan::finishFrame(bool doScreenshot, bool toMixBuffer, f
     presentInfo.pImageIndices = &mCurrentImageIndex;
     presentInfo.pResults = nullptr;
     vk::Result retVal = mGraphicsQueue.presentKHR(&presentInfo);
-    if (retVal == vk::Result::eErrorOutOfDateKHR) {
+    if (retVal == vk::Result::eErrorOutOfDateKHR || retVal == vk::Result::eSuboptimalKHR) {
       mMustUpdateSwapChain = true;
     } else {
       CHKERR(retVal);
