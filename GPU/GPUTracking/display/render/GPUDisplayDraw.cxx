@@ -973,6 +973,7 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
     for (int32_t i = N_POINTS_TYPE_TPC + N_POINTS_TYPE_TRD + N_POINTS_TYPE_TOF; i < N_POINTS_TYPE_TPC + N_POINTS_TYPE_TRD + N_POINTS_TYPE_TOF + N_POINTS_TYPE_ITS; i++) {
       for (int32_t iCol = 0; iCol < mNCollissions; iCol++) {
         mGlDLPoints[iSector][i][iCol] = DrawSpacePointsITS(iSector, i, iCol);
+        break; // TODO: Only collision 0 filled for now
       }
     }
     break; // TODO: Only sector 0 filled for now
@@ -997,6 +998,7 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
     for (int32_t i = N_POINTS_TYPE_TPC + N_POINTS_TYPE_TRD; i < N_POINTS_TYPE_TPC + N_POINTS_TYPE_TRD + N_POINTS_TYPE_TOF; i++) {
       for (int32_t iCol = 0; iCol < mNCollissions; iCol++) {
         mGlDLPoints[iSector][i][iCol] = DrawSpacePointsTOF(iSector, i, iCol);
+        break; // TODO: Only collision 0 filled for now
       }
     }
     break; // TODO: Only sector 0 filled for now

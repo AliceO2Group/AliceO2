@@ -465,12 +465,14 @@ void GPUDisplay::DrawGLScene_drawCommands()
     if (mCfgL.drawTOF) {
       SetColorTOF();
       mBackend->pointSizeFactor(2);
-      LOOP_SECTOR LOOP_COLLISION_COL(drawVertices(mGlDLPoints[0][tTOFCLUSTER][0], GPUDisplayBackend::POINTS));
+      // LOOP_SECTOR LOOP_COLLISION_COL(drawVertices(mGlDLPoints[iSector][tTOFCLUSTER][iCol], GPUDisplayBackend::POINTS));
+      drawVertices(mGlDLPoints[0][tTOFCLUSTER][0], GPUDisplayBackend::POINTS);
       mBackend->pointSizeFactor(1);
     }
     if (mCfgL.drawITS) {
       SetColorITS();
-      LOOP_SECTOR LOOP_COLLISION_COL(drawVertices(mGlDLPoints[0][tITSCLUSTER][0], GPUDisplayBackend::POINTS));
+      // LOOP_SECTOR LOOP_COLLISION_COL(drawVertices(mGlDLPoints[iSector][tITSCLUSTER][iCol], GPUDisplayBackend::POINTS));
+      drawVertices(mGlDLPoints[0][tITSCLUSTER][0], GPUDisplayBackend::POINTS);
     }
     if (mCfgL.drawTPC) {
       SetColorClusters();
