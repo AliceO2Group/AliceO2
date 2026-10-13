@@ -532,8 +532,8 @@ void GPUDisplayBackendVulkan::createCommandBuffers()
   vk::CommandBufferAllocateInfo allocInfo{};
   allocInfo.commandPool = mCommandPool;
   allocInfo.level = vk::CommandBufferLevel::ePrimary;
-  allocInfo.commandBufferCount = mFramesInFlight;
-  mCommandBufferUpToDate.resize(mFramesInFlight, false);
+  allocInfo.commandBufferCount = mImageCount;
+  mCommandBufferUpToDate.resize(mImageCount, false);
   mCommandBuffers = mDevice.allocateCommandBuffers(allocInfo);
   mCommandBuffersText = mDevice.allocateCommandBuffers(allocInfo);
   mCommandBuffersTexture = mDevice.allocateCommandBuffers(allocInfo);
@@ -591,9 +591,9 @@ void GPUDisplayBackendVulkan::clearSemaphoresAndFences()
 void GPUDisplayBackendVulkan::createUniformLayoutsAndBuffers()
 {
   for (int32_t j = 0; j < 3; j++) {
-    mUniformBuffersMat[j].resize(mFramesInFlight);
-    mUniformBuffersCol[j].resize(mFramesInFlight);
-    for (uint32_t i = 0; i < mFramesInFlight; i++) {
+    mUniformBuffersMat[j].resize(mImageCount);
+    mUniformBuffersCol[j].resize(mImageCount);
+    for (uint32_t i = 0; i < mImageCount; i++) {
       mUniformBuffersMat[j][i] = createBuffer(sizeof(hmm_mat4), nullptr, vk::BufferUsageFlagBits::eUniformBuffer, mDisplay->cfg().vulkan.uniformBuffersInDeviceMemory ? 2 : 0);
       mUniformBuffersCol[j][i] = createBuffer(sizeof(float) * 4, nullptr, vk::BufferUsageFlagBits::eUniformBuffer, mDisplay->cfg().vulkan.uniformBuffersInDeviceMemory ? 2 : 0);
     }
@@ -601,13 +601,13 @@ void GPUDisplayBackendVulkan::createUniformLayoutsAndBuffers()
 
   std::array<vk::DescriptorPoolSize, 2> poolSizes{};
   poolSizes[0].type = vk::DescriptorType::eUniformBuffer;
-  poolSizes[0].descriptorCount = (uint32_t)mFramesInFlight * (2 * 3);
+  poolSizes[0].descriptorCount = (uint32_t)mImageCount * (2 * 3);
   poolSizes[1].type = vk::DescriptorType::eCombinedImageSampler;
-  poolSizes[1].descriptorCount = (uint32_t)mFramesInFlight * 2;
+  poolSizes[1].descriptorCount = (uint32_t)mImageCount * 2;
   vk::DescriptorPoolCreateInfo poolInfo{};
   poolInfo.poolSizeCount = poolSizes.size();
   poolInfo.pPoolSizes = poolSizes.data();
-  poolInfo.maxSets = (uint32_t)mFramesInFlight * 3;
+  poolInfo.maxSets = (uint32_t)mImageCount * 3;
   mDescriptorPool = mDevice.createDescriptorPool(poolInfo, nullptr);
 
   vk::DescriptorSetLayoutBinding uboLayoutBindingMat{};
@@ -634,15 +634,15 @@ void GPUDisplayBackendVulkan::createUniformLayoutsAndBuffers()
 
   vk::DescriptorSetAllocateInfo allocInfo{};
   allocInfo.descriptorPool = mDescriptorPool;
-  allocInfo.descriptorSetCount = (uint32_t)mFramesInFlight;
+  allocInfo.descriptorSetCount = (uint32_t)mImageCount;
   for (int32_t j = 0; j < 3; j++) { // 0 = Render, 1 = Text, 2 = Texture
-    std::vector<vk::DescriptorSetLayout> layouts(mFramesInFlight, j ? mUniformDescriptorTexture : mUniformDescriptor);
+    std::vector<vk::DescriptorSetLayout> layouts(mImageCount, j ? mUniformDescriptorTexture : mUniformDescriptor);
     allocInfo.pSetLayouts = layouts.data();
     mDescriptorSets[j] = mDevice.allocateDescriptorSets(allocInfo);
 
     for (int32_t k = 0; k < 2; k++) {
       auto& mUniformBuffers = k ? mUniformBuffersCol[j] : mUniformBuffersMat[j];
-      for (uint32_t i = 0; i < mFramesInFlight; i++) {
+      for (uint32_t i = 0; i < mImageCount; i++) {
         vk::DescriptorBufferInfo bufferInfo{};
         bufferInfo.buffer = mUniformBuffers[i].buffer;
         bufferInfo.offset = 0;
@@ -733,7 +733,7 @@ void GPUDisplayBackendVulkan::createSwapChain(bool forScreenshot, bool forMixing
   mPresentMode = chooseSwapPresentMode(mSwapChainDetails.presentModes, mDisplay->cfgR().drawQualityVSync ? vk::PresentModeKHR::eMailbox : vk::PresentModeKHR::eImmediate);
   vk::Extent2D extent = chooseSwapExtent(mSwapChainDetails.capabilities);
 
-  uint32_t imageCount = mSwapChainDetails.capabilities.minImageCount + 1;
+  uint32_t imageCount = std::max<uint32_t>(mSwapChainDetails.capabilities.minImageCount + 1, mDisplay->cfg().vulkan.nFramesInFlight + 1);
   if (mSwapChainDetails.capabilities.maxImageCount > 0 && imageCount > mSwapChainDetails.capabilities.maxImageCount) {
     imageCount = mSwapChainDetails.capabilities.maxImageCount;
   }
@@ -769,13 +769,12 @@ void GPUDisplayBackendVulkan::createSwapChain(bool forScreenshot, bool forMixing
 
   mSwapChainImages = mDevice.getSwapchainImagesKHR(mSwapChain);
   uint32_t oldFramesInFlight = mFramesInFlight;
+  mFramesInFlight = mDisplay->cfg().vulkan.nFramesInFlight;
   mImageCount = mSwapChainImages.size();
-  mFramesInFlight = mDisplay->cfg().vulkan.nFramesInFlight == 0 ? mImageCount : mDisplay->cfg().vulkan.nFramesInFlight;
-  mCommandBufferPerImage = mFramesInFlight == mImageCount;
 
   if (mFramesInFlight > oldFramesInFlight || !mCommandInfrastructureCreated) {
     if (mCommandInfrastructureCreated) {
-      clearUniformLayoutsAndBuffers();
+      clearUniformLayoutsAndBuffers(); // TODO: Check what must actually be cleaned up if frames in flight changes
       clearCommandBuffers();
       clearSemaphoresAndFences();
     }
@@ -1016,14 +1015,12 @@ void GPUDisplayBackendVulkan::createOffscreenBuffers(bool forScreenshot, bool fo
       {(float)mRenderWidth, (float)mRenderHeight, 1.0f, 1.0f}};
     mMixingTextureVertexArray = createBuffer(sizeof(vertices), &vertices[0][0], vk::BufferUsageFlagBits::eVertexBuffer, 1);
 
-    if (mCommandBufferPerImage) {
-      for (uint32_t i = 0; i < mFramesInFlight; i++) {
-        setMixDescriptor(i, i);
-      }
+    for (uint32_t i = 0; i < mImageCount; i++) {
+      setMixDescriptor(i, i);
     }
   }
 
-  mFontVertexBuffer.resize(mFramesInFlight);
+  mFontVertexBuffer.resize(mImageCount);
 }
 
 void GPUDisplayBackendVulkan::clearOffscreenBuffers()
@@ -1253,7 +1250,7 @@ void GPUDisplayBackendVulkan::startFillCommandBuffer(vk::CommandBuffer& commandB
 
   vk::DeviceSize offsets[] = {0};
   commandBuffer.bindVertexBuffers(0, 1, &mVBO.buffer, offsets);
-  commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, mPipelineLayout, 0, 1, &mDescriptorSets[0][mCurrentBufferSet], 0, nullptr);
+  commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, mPipelineLayout, 0, 1, &mDescriptorSets[0][mCurrentImageIndex], 0, nullptr);
 }
 
 void GPUDisplayBackendVulkan::endFillCommandBuffer(vk::CommandBuffer& commandBuffer)
@@ -1428,7 +1425,7 @@ void GPUDisplayBackendVulkan::clearImage(VulkanImage& image)
 int32_t GPUDisplayBackendVulkan::InitBackendA()
 {
   mEnableValidationLayers = (mDisplay->param() && mDisplay->GetProcessingSettings().debugLevel >= 2) || (getenv("GPUCA_VULKAN_VALIDATION") && atoi(getenv("GPUCA_VULKAN_VALIDATION")));
-  mFramesInFlight = 2;
+  mFramesInFlight = mDisplay->cfg().vulkan.nFramesInFlight;
 
   createDevice();
   createShaders();
@@ -1496,7 +1493,7 @@ uint32_t GPUDisplayBackendVulkan::drawVertices(const vboList& v, const drawType 
   if (count == 0) {
     return 0;
   }
-  if (mCommandBufferUpToDate[mCurrentBufferSet]) {
+  if (mCommandBufferUpToDate[mCurrentImageIndex]) {
     return count;
   }
 
@@ -1527,12 +1524,9 @@ void GPUDisplayBackendVulkan::prepareDraw(const hmm_mat4& proj, const hmm_mat4& 
     auto getImage = [&]() {
       vk::Fence fen = VkFence(VK_NULL_HANDLE);
       vk::Semaphore sem = VkSemaphore(VK_NULL_HANDLE);
-      if (mCommandBufferPerImage) {
-        fen = mInFlightFence[mCurrentFrame];
-        CHKERR(mDevice.resetFences(1, &fen));
-      } else {
-        sem = mImageAvailableSemaphore[mCurrentFrame];
-      }
+      fen = mInFlightFence[mCurrentFrame];
+      CHKERR(mDevice.resetFences(1, &fen));
+      // sem = mImageAvailableSemaphore[mCurrentFrame]; // TODO: Why not !
       return mDevice.acquireNextImageKHR(mSwapChain, UINT64_MAX, sem, fen, &mCurrentImageIndex);
     };
 
@@ -1551,31 +1545,28 @@ void GPUDisplayBackendVulkan::prepareDraw(const hmm_mat4& proj, const hmm_mat4& 
       retVal = getImage();
     }
     CHKERR(retVal);
-    if (mCommandBufferPerImage) {
-      CHKERR(mDevice.waitForFences(1, &mInFlightFence[mCurrentFrame], true, UINT64_MAX));
-    }
+    CHKERR(mDevice.waitForFences(1, &mInFlightFence[mCurrentFrame], true, UINT64_MAX));
     CHKERR(mDevice.resetFences(1, &mInFlightFence[mCurrentFrame]));
     mMustUpdateSwapChain = false;
     mHasDrawnText = false;
-    mCurrentBufferSet = mCommandBufferPerImage ? mCurrentImageIndex : mCurrentFrame;
 
     const hmm_mat4 modelViewProj = proj * view;
-    writeToBuffer(mUniformBuffersMat[0][mCurrentBufferSet], sizeof(modelViewProj), &modelViewProj);
+    writeToBuffer(mUniformBuffersMat[0][mCurrentImageIndex], sizeof(modelViewProj), &modelViewProj);
   }
 
-  mCurrentCommandBuffer = toMixBuffer ? mCommandBuffersMix[mCurrentBufferSet] : mCommandBuffers[mCurrentBufferSet];
+  mCurrentCommandBuffer = toMixBuffer ? mCommandBuffersMix[mCurrentImageIndex] : mCommandBuffers[mCurrentImageIndex];
   mCurrentCommandBufferLastPipeline = -1;
-  if (!mCommandBufferUpToDate[mCurrentBufferSet]) {
+  if (!mCommandBufferUpToDate[mCurrentImageIndex]) {
     startFillCommandBuffer(mCurrentCommandBuffer, mCurrentImageIndex, toMixBuffer);
   }
 }
 
 void GPUDisplayBackendVulkan::finishDraw(bool doScreenshot, bool toMixBuffer, float includeMixImage)
 {
-  if (!mCommandBufferUpToDate[mCurrentBufferSet]) {
+  if (!mCommandBufferUpToDate[mCurrentImageIndex]) {
     endFillCommandBuffer(mCurrentCommandBuffer);
-    if (!toMixBuffer && includeMixImage == 0.f && mCommandBufferPerImage) {
-      mCommandBufferUpToDate[mCurrentBufferSet] = true;
+    if (!toMixBuffer && includeMixImage == 0.f) {
+      mCommandBufferUpToDate[mCurrentImageIndex] = true;
     }
   }
 }
@@ -1587,7 +1578,7 @@ void GPUDisplayBackendVulkan::finishFrame(bool doScreenshot, bool toMixBuffer, f
 
   vk::SubmitInfo submitInfo{};
   vk::PipelineStageFlags waitStages[] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
-  submitInfo.pWaitSemaphores = includeMixImage > 0.f ? &mRenderFinishedSemaphore[mCurrentFrame] : (!mCommandBufferPerImage ? &mImageAvailableSemaphore[mCurrentFrame] : nullptr);
+  submitInfo.pWaitSemaphores = includeMixImage > 0.f ? &mRenderFinishedSemaphore[mCurrentFrame] : nullptr;
   submitInfo.waitSemaphoreCount = submitInfo.pWaitSemaphores != nullptr ? 1 : 0;
   submitInfo.pWaitDstStageMask = waitStages;
   submitInfo.commandBufferCount = 1;
@@ -1597,19 +1588,19 @@ void GPUDisplayBackendVulkan::finishFrame(bool doScreenshot, bool toMixBuffer, f
   CHKERR(mGraphicsQueue.submit(1, &submitInfo, includeMixImage > 0 || toMixBuffer || mHasDrawnText || mDownsampleFSAA ? noFence : mInFlightFence[mCurrentFrame]));
   if (!toMixBuffer) {
     if (includeMixImage > 0.f) {
-      mixImages(mCommandBuffersTexture[mCurrentBufferSet], includeMixImage);
+      mixImages(mCommandBuffersTexture[mCurrentImageIndex], includeMixImage);
       submitInfo.pWaitSemaphores = stageFinishedSemaphore;
       waitStages[0] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
       submitInfo.waitSemaphoreCount = 1;
-      submitInfo.pCommandBuffers = &mCommandBuffersTexture[mCurrentBufferSet];
+      submitInfo.pCommandBuffers = &mCommandBuffersTexture[mCurrentImageIndex];
       stageFinishedSemaphore = &mMixFinishedSemaphore[mCurrentFrame];
       submitInfo.pSignalSemaphores = stageFinishedSemaphore;
       CHKERR(mGraphicsQueue.submit(1, &submitInfo, mHasDrawnText || mDownsampleFSAA ? noFence : mInFlightFence[mCurrentFrame]));
     }
 
     if (mDownsampleFSAA) {
-      downsampleToFramebuffer(mCommandBuffersDownsample[mCurrentBufferSet]);
-      submitInfo.pCommandBuffers = &mCommandBuffersDownsample[mCurrentBufferSet];
+      downsampleToFramebuffer(mCommandBuffersDownsample[mCurrentImageIndex]);
+      submitInfo.pCommandBuffers = &mCommandBuffersDownsample[mCurrentImageIndex];
       submitInfo.pWaitSemaphores = stageFinishedSemaphore;
       waitStages[0] = {vk::PipelineStageFlagBits::eTransfer};
       submitInfo.waitSemaphoreCount = 1;
@@ -1631,7 +1622,7 @@ void GPUDisplayBackendVulkan::finishFrame(bool doScreenshot, bool toMixBuffer, f
       submitInfo.pWaitSemaphores = stageFinishedSemaphore;
       waitStages[0] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
       submitInfo.waitSemaphoreCount = 1;
-      submitInfo.pCommandBuffers = &mCommandBuffersText[mCurrentBufferSet];
+      submitInfo.pCommandBuffers = &mCommandBuffersText[mCurrentImageIndex];
       stageFinishedSemaphore = &mTextFinishedSemaphore[mCurrentFrame];
       submitInfo.pSignalSemaphores = stageFinishedSemaphore;
       CHKERR(mGraphicsQueue.submit(1, &submitInfo, mInFlightFence[mCurrentFrame]));
@@ -1690,7 +1681,7 @@ void GPUDisplayBackendVulkan::downsampleToFramebuffer(vk::CommandBuffer& command
 void GPUDisplayBackendVulkan::prepareText()
 {
   hmm_mat4 proj = HMM_Orthographic(0.f, mScreenWidth, 0.f, mScreenHeight, -1, 1);
-  writeToBuffer(mUniformBuffersMat[1][mCurrentBufferSet], sizeof(proj), &proj);
+  writeToBuffer(mUniformBuffersMat[1][mCurrentImageIndex], sizeof(proj), &proj);
 
   mFontVertexBufferHost.clear();
   mTextDrawCommands.clear();
@@ -1702,11 +1693,11 @@ void GPUDisplayBackendVulkan::finishText()
     return;
   }
 
-  mCommandBuffersText[mCurrentBufferSet].reset({});
+  mCommandBuffersText[mCurrentImageIndex].reset({});
 
   vk::CommandBufferBeginInfo beginInfo{};
   beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
-  mCommandBuffersText[mCurrentBufferSet].begin(beginInfo);
+  mCommandBuffersText[mCurrentImageIndex].begin(beginInfo);
 
   vk::RenderPassBeginInfo renderPassInfo{};
   renderPassInfo.renderPass = mRenderPassText;
@@ -1714,33 +1705,33 @@ void GPUDisplayBackendVulkan::finishText()
   renderPassInfo.renderArea.offset = vk::Offset2D{0, 0};
   renderPassInfo.renderArea.extent = vk::Extent2D{mScreenWidth, mScreenHeight};
   renderPassInfo.clearValueCount = 0;
-  mCommandBuffersText[mCurrentBufferSet].beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
+  mCommandBuffersText[mCurrentImageIndex].beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
 
-  if (mFontVertexBuffer[mCurrentBufferSet].size) {
-    clearBuffer(mFontVertexBuffer[mCurrentBufferSet]);
+  if (mFontVertexBuffer[mCurrentImageIndex].size) {
+    clearBuffer(mFontVertexBuffer[mCurrentImageIndex]);
   }
-  mFontVertexBuffer[mCurrentBufferSet] = createBuffer(mFontVertexBufferHost.size() * sizeof(float), mFontVertexBufferHost.data(), vk::BufferUsageFlagBits::eVertexBuffer, 0);
+  mFontVertexBuffer[mCurrentImageIndex] = createBuffer(mFontVertexBufferHost.size() * sizeof(float), mFontVertexBufferHost.data(), vk::BufferUsageFlagBits::eVertexBuffer, 0);
 
-  mCommandBuffersText[mCurrentBufferSet].bindPipeline(vk::PipelineBindPoint::eGraphics, mPipelines[3]);
-  mCommandBuffersText[mCurrentBufferSet].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, mPipelineLayoutTexture, 0, 1, &mDescriptorSets[1][mCurrentBufferSet], 0, nullptr);
+  mCommandBuffersText[mCurrentImageIndex].bindPipeline(vk::PipelineBindPoint::eGraphics, mPipelines[3]);
+  mCommandBuffersText[mCurrentImageIndex].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, mPipelineLayoutTexture, 0, 1, &mDescriptorSets[1][mCurrentImageIndex], 0, nullptr);
   vk::DeviceSize offsets[] = {0};
-  mCommandBuffersText[mCurrentBufferSet].bindVertexBuffers(0, 1, &mFontVertexBuffer[mCurrentBufferSet].buffer, offsets);
+  mCommandBuffersText[mCurrentImageIndex].bindVertexBuffers(0, 1, &mFontVertexBuffer[mCurrentImageIndex].buffer, offsets);
 
   for (const auto& cmd : mTextDrawCommands) {
-    mCommandBuffersText[mCurrentBufferSet].pushConstants(mPipelineLayoutTexture, vk::ShaderStageFlagBits::eFragment, 0, sizeof(cmd.color), cmd.color);
-    mCommandBuffersText[mCurrentBufferSet].draw(cmd.nVertices, 1, cmd.firstVertex, 0);
+    mCommandBuffersText[mCurrentImageIndex].pushConstants(mPipelineLayoutTexture, vk::ShaderStageFlagBits::eFragment, 0, sizeof(cmd.color), cmd.color);
+    mCommandBuffersText[mCurrentImageIndex].draw(cmd.nVertices, 1, cmd.firstVertex, 0);
   }
 
   mFontVertexBufferHost.clear();
 
-  mCommandBuffersText[mCurrentBufferSet].endRenderPass();
-  mCommandBuffersText[mCurrentBufferSet].end();
+  mCommandBuffersText[mCurrentImageIndex].endRenderPass();
+  mCommandBuffersText[mCurrentImageIndex].end();
 }
 
 void GPUDisplayBackendVulkan::mixImages(vk::CommandBuffer commandBuffer, float mixSlaveImage)
 {
   hmm_mat4 proj = HMM_Orthographic(0.f, mRenderWidth, 0.f, mRenderHeight, -1, 1);
-  writeToBuffer(mUniformBuffersMat[2][mCurrentBufferSet], sizeof(proj), &proj);
+  writeToBuffer(mUniformBuffersMat[2][mCurrentImageIndex], sizeof(proj), &proj);
 
   commandBuffer.reset({});
   vk::CommandBufferBeginInfo beginInfo{};
@@ -1760,10 +1751,7 @@ void GPUDisplayBackendVulkan::mixImages(vk::CommandBuffer commandBuffer, float m
   commandBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
 
   commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, mPipelines[4]);
-  if (!mCommandBufferPerImage) {
-    setMixDescriptor(mCurrentBufferSet, mCurrentImageIndex);
-  }
-  commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, mPipelineLayoutTexture, 0, 1, &mDescriptorSets[2][mCurrentBufferSet], 0, nullptr);
+  commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, mPipelineLayoutTexture, 0, 1, &mDescriptorSets[2][mCurrentImageIndex], 0, nullptr);
   vk::DeviceSize offsets[] = {0};
   commandBuffer.bindVertexBuffers(0, 1, &mMixingTextureVertexArray.buffer, offsets);
 
@@ -1776,7 +1764,7 @@ void GPUDisplayBackendVulkan::mixImages(vk::CommandBuffer commandBuffer, float m
 
 void GPUDisplayBackendVulkan::ActivateColor(std::array<float, 4>& color)
 {
-  if (mCommandBufferUpToDate[mCurrentBufferSet]) {
+  if (mCommandBufferUpToDate[mCurrentImageIndex]) {
     return;
   }
   mCurrentCommandBuffer.pushConstants(mPipelineLayout, vk::ShaderStageFlagBits::eFragment, 0, sizeof(color), color.data());
@@ -1784,7 +1772,7 @@ void GPUDisplayBackendVulkan::ActivateColor(std::array<float, 4>& color)
 
 void GPUDisplayBackendVulkan::pointSizeFactor(float factor)
 {
-  if (mCommandBufferUpToDate[mCurrentBufferSet]) {
+  if (mCommandBufferUpToDate[mCurrentImageIndex]) {
     return;
   }
   float size = mDisplay->cfgL().pointSize * mDownsampleFactor * factor;
@@ -1793,7 +1781,7 @@ void GPUDisplayBackendVulkan::pointSizeFactor(float factor)
 
 void GPUDisplayBackendVulkan::lineWidthFactor(float factor)
 {
-  if (mCommandBufferUpToDate[mCurrentBufferSet]) {
+  if (mCommandBufferUpToDate[mCurrentImageIndex]) {
     return;
   }
   mCurrentCommandBuffer.setLineWidth(mDisplay->cfgL().lineWidth * mDownsampleFactor * factor);
@@ -1893,7 +1881,7 @@ void GPUDisplayBackendVulkan::updateFontTextureDescriptor()
   imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
   imageInfo.imageView = mFontImage.view;
   imageInfo.sampler = mTextureSampler;
-  for (uint32_t i = 0; i < mFramesInFlight; i++) {
+  for (uint32_t i = 0; i < mImageCount; i++) {
     vk::WriteDescriptorSet descriptorWrite{};
     descriptorWrite.dstSet = mDescriptorSets[1][i];
     descriptorWrite.dstBinding = 2;
@@ -2024,5 +2012,5 @@ uint32_t GPUDisplayBackendVulkan::DepthBits()
 
 bool GPUDisplayBackendVulkan::backendNeedRedraw()
 {
-  return !mCommandBufferUpToDate[mCurrentBufferSet];
+  return !mCommandBufferUpToDate[mCurrentImageIndex];
 }

@@ -162,13 +162,11 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   std::vector<vk::Framebuffer> mFramebuffersTexture;
   vk::CommandPool mCommandPool;
 
-  bool mCommandBufferPerImage = false;
   bool mCommandInfrastructureCreated = false;
   uint32_t mImageCount = 0;
   uint32_t mFramesInFlight = 0;
   int32_t mCurrentFrame = 0;
   uint32_t mCurrentImageIndex = 0;
-  int32_t mCurrentBufferSet = 0;
   vk::CommandBuffer mCurrentCommandBuffer;
   int32_t mCurrentCommandBufferLastPipeline = -1;
 
