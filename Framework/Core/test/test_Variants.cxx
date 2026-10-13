@@ -229,6 +229,64 @@ TEST_CASE("Array2DTest")
   }
 }
 
+TEST_CASE("Array2DAssignmentTest")
+{
+  std::vector<int> v = {1, 2, 3, 4, 5, 6};
+  Array2D<int> source(v, 2, 3);
+
+  // copy assignment to an array of different shape makes an independent deep copy
+  Array2D<int> copied(std::vector<int>{7}, 1, 1);
+  copied = source;
+  REQUIRE(copied.rows == 2);
+  REQUIRE(copied.cols == 3);
+  REQUIRE(copied.data != source.data);
+  source[0][0] = 42;
+  REQUIRE(copied(0, 0) == 1);
+  for (auto i = 1U; i < 6; ++i) {
+    REQUIRE(copied(i / 3, i % 3) == v[i]);
+  }
+
+  // self copy assignment keeps the contents
+  auto& self = copied;
+  copied = self;
+  REQUIRE(copied.rows == 2);
+  REQUIRE(copied.cols == 3);
+  REQUIRE(copied(1, 2) == 6);
+
+  // move assignment takes over the buffer and empties the source
+  auto* buffer = copied.data;
+  Array2D<int> moved(std::vector<int>{7, 8}, 1, 2);
+  moved = std::move(copied);
+  REQUIRE(moved.data == buffer);
+  REQUIRE(moved.rows == 2);
+  REQUIRE(moved.cols == 3);
+  REQUIRE(moved(1, 2) == 6);
+  REQUIRE(copied.data == nullptr);
+  REQUIRE(copied.rows == 0);
+  REQUIRE(copied.cols == 0);
+
+  // self move assignment keeps the contents
+  auto& selfMoved = moved;
+  moved = std::move(selfMoved);
+  REQUIRE(moved.data == buffer);
+  REQUIRE(moved(1, 2) == 6);
+
+  // assigning an empty array releases the old buffer and leaves an empty array
+  moved = Array2D<int>{};
+  REQUIRE(moved.data == nullptr);
+  REQUIRE(moved.rows == 0);
+  REQUIRE(moved.cols == 0);
+
+  // strings are copied element by element
+  std::vector<std::string> s = {"one", "two"};
+  Array2D<std::string> ms(s, 2, 1);
+  Array2D<std::string> msc;
+  msc = ms;
+  ms[0][0] = "changed";
+  REQUIRE(msc(0, 0) == "one");
+  REQUIRE(msc(1, 0) == "two");
+}
+
 TEST_CASE("LabeledArrayTest")
 {
   float m[3][4] = {{0.1, 0.2, 0.3, 0.4}, {0.5, 0.6, 0.7, 0.8}, {0.9, 1.0, 1.1, 1.2}};
