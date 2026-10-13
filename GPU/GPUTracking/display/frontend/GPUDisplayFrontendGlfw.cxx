@@ -227,11 +227,17 @@ void GPUDisplayFrontendGlfw::scroll_callback(GLFWwindow* window, double x, doubl
 
 void GPUDisplayFrontendGlfw::cursorPos_callback(GLFWwindow* window, double x, double y)
 {
-  me->mMouseMvX = x;
-  me->mMouseMvY = y;
+  me->mMouseMvX = x * me->mPixelRatio; // Window coordinates to framebuffer pixels
+  me->mMouseMvY = y * me->mPixelRatio;
 }
 
-void GPUDisplayFrontendGlfw::resize_callback(GLFWwindow* window, int32_t width, int32_t height) { me->ResizeScene(width, height); }
+void GPUDisplayFrontendGlfw::resize_callback(GLFWwindow* window, int32_t width, int32_t height) // Framebuffer size in pixels
+{
+  int32_t windowWidth, windowHeight;
+  glfwGetWindowSize(window, &windowWidth, &windowHeight);
+  me->mPixelRatio = windowWidth ? (double)width / windowWidth : 1.;
+  me->ResizeScene(width, height);
+}
 
 void GPUDisplayFrontendGlfw::focus_callback(GLFWwindow* window, int32_t focused)
 {
@@ -240,7 +246,22 @@ void GPUDisplayFrontendGlfw::focus_callback(GLFWwindow* window, int32_t focused)
   }
 }
 
-void GPUDisplayFrontendGlfw::maximize_callback(GLFWwindow* window, int32_t maximized) { me->setWindowState(glfwGetWindowMonitor(window) != nullptr, maximized); }
+void GPUDisplayFrontendGlfw::contentScale_callback(GLFWwindow* window, float xscale, float yscale)
+{
+  me->mScale = xscale;
+}
+
+void GPUDisplayFrontendGlfw::maximize_callback(GLFWwindow* window, int32_t maximized)
+{
+  me->setWindowState(glfwGetWindowMonitor(window) != nullptr, maximized);
+  if (glfwGetPlatform() == GLFW_PLATFORM_WAYLAND) { // Called before the resize. GLFW keeps the maximized size if the compositor leaves the size to the client when unmaximizing, so restore the last windowed size
+    if (maximized) {
+      glfwGetWindowSize(window, &me->mWindowedWidth, &me->mWindowedHeight);
+    } else {
+      me->mRestoreWindowedSize = true; // Must be applied after GLFW has processed the configure event, otherwise GLFW resizes to the pending maximized size again
+    }
+  }
+}
 
 #ifndef GPUCA_STANDALONE
 void GPUDisplayFrontendGlfw::DisplayLoop()
@@ -273,6 +294,7 @@ int32_t GPUDisplayFrontendGlfw::FrontendMain()
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, 0);
     glfwWindowHint(GLFW_OPENGL_PROFILE, mBackend->CoreProfile() ? GLFW_OPENGL_CORE_PROFILE : GLFW_OPENGL_COMPAT_PROFILE);
   }
+  glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE); // Initial size scaled by the content scale on X11 / Win32
   mWindow = glfwCreateWindow(INIT_WIDTH, INIT_HEIGHT, DISPLAY_WINDOW_NAME, nullptr, nullptr);
   if (!mWindow) {
     fprintf(stderr, "Error creating glfw window\n");
@@ -288,10 +310,19 @@ int32_t GPUDisplayFrontendGlfw::FrontendMain()
   glfwSetMouseButtonCallback(mWindow, mouseButton_callback);
   glfwSetScrollCallback(mWindow, scroll_callback);
   glfwSetCursorPosCallback(mWindow, cursorPos_callback);
-  glfwSetWindowSizeCallback(mWindow, resize_callback);
+  glfwSetFramebufferSizeCallback(mWindow, resize_callback);
   glfwSetWindowMaximizeCallback(mWindow, maximize_callback);
   glfwSetWindowFocusCallback(mWindow, focus_callback);
-  glfwSetWindowSizeLimits(mWindow, MIN_WIDTH, MIN_HEIGHT, GLFW_DONT_CARE, GLFW_DONT_CARE);
+  float xscale, yscale;
+  glfwGetWindowContentScale(mWindow, &xscale, &yscale);
+  contentScale_callback(mWindow, xscale, yscale);
+  glfwSetWindowContentScaleCallback(mWindow, contentScale_callback);
+  const float limitScale = (glfwGetPlatform() == GLFW_PLATFORM_X11 || glfwGetPlatform() == GLFW_PLATFORM_WIN32) ? mScale : 1.f; // Window coordinates are pixels on X11 / Win32, logical on Wayland / macOS
+  glfwSetWindowSizeLimits(mWindow, MIN_WIDTH * limitScale, MIN_HEIGHT * limitScale, GLFW_DONT_CARE, GLFW_DONT_CARE);
+  int32_t fbWidth, fbHeight, windowWidth, windowHeight;
+  glfwGetFramebufferSize(mWindow, &fbWidth, &fbHeight);
+  glfwGetWindowSize(mWindow, &windowWidth, &windowHeight);
+  mPixelRatio = windowWidth ? (double)fbWidth / windowWidth : 1.; // Updated in resize_callback, which must not be called before InitDisplay
   applyInitialWindowState();
   if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
     glfwSwapInterval(1);
@@ -322,6 +353,12 @@ int32_t GPUDisplayFrontendGlfw::FrontendMain()
     }
     waitForFPSLimit();
     glfwPollEvents();
+    if (mRestoreWindowedSize) {
+      mRestoreWindowedSize = false;
+      if (mWindowedWidth > 0 && mWindowedHeight > 0 && !glfwGetWindowAttrib(mWindow, GLFW_MAXIMIZED)) {
+        glfwSetWindowSize(mWindow, mWindowedWidth, mWindowedHeight);
+      }
+    }
   }
 
   ExitDisplay();
