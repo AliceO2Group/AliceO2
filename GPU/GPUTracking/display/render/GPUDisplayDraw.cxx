@@ -195,7 +195,9 @@ void GPUDisplay::DrawClusters(int32_t iSector)
     for (int32_t i = 0; i < N_POINTS_TYPE_TPC; i++) {
       uint32_t count = vertexCache[iCol][i].size();
       mClusterBufferSizeCache[iSector][iCol][i] = std::max(mClusterBufferSizeCache[iSector][iCol][i], count);
-      memcpy((void*)(mVertexBuffer[iSector].data() + startCountInner), (const void*)vertexCache[iCol][i].data(), count * sizeof(vertexCache[iCol][i][0]));
+      if (count) {
+        memcpy((void*)(mVertexBuffer[iSector].data() + startCountInner), (const void*)vertexCache[iCol][i].data(), count * sizeof(vertexCache[iCol][i][0]));
+      }
       size_t startCount = mVertexBufferStart[iSector].size();
       insertVertexList(iSector, startCountInner, startCountInner + count);
       startCountInner += count;
