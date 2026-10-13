@@ -380,8 +380,9 @@ void Detector::defineSensitiveVolumes()
   for (int ivol = 0; ivol < mChannelCounter; ivol++) {
     std::string volumeName = "fd3_node" + std::to_string(ivol);
     auto v = (TGeoVolume*)gGeoManager->GetVolume(volumeName.c_str());
-    if (!v)
+    if (!v) {
       continue;
+    }
     int volId = registerSensitiveVolumeAndGetVolID(v);
     mChannelId[volId] = ivol;
   }
