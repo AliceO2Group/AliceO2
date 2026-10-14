@@ -27,28 +27,28 @@ TEST_CASE("TestVerifyWorkflowSerialization")
                                                                                                          ConfigParamSpec{"bUrl", VariantType::String, "foo/foo", {"Another InputSpec option"}}, //
                                                                                                        }}},                                                                                     //
                                     {OutputSpec{{"bar"}, "C", "D", 2, Lifetime::Timeframe}},                                                                                                    //
-                                    AlgorithmSpec{[](ProcessingContext& /*ctx*/) {}},                                                                                                               //
+                                    AlgorithmSpec{[](ProcessingContext& /*ctx*/) {}},                                                                                                           //
                                     {                                                                                                                                                           //
                                      ConfigParamSpec{"aInt", VariantType::Int, 0, {"An Int"}},                                                                                                  //
                                      ConfigParamSpec{"aFloat", VariantType::Float, 1.3, {"A Float"}},                                                                                           //
                                      ConfigParamSpec{"aBool", VariantType::Bool, true, {"A Bool"}},                                                                                             //
                                      ConfigParamSpec{"aString", VariantType::String, "some string", {"A String"}},                                                                              //
-                                     ConfigParamSpec{"aLabeledArray", VariantType::LabeledArrayInt, labeled, {"A LabeledArray"}}}},                                                                            //                                                                                                    //
+                                     ConfigParamSpec{"aLabeledArray", VariantType::LabeledArrayInt, labeled, {"A LabeledArray"}}}},                                                             //                                                                                                    //
                   DataProcessorSpec{"B",                                                                                                                                                        //
                                     {InputSpec{"foo", "C", "D"}},                                                                                                                               //
                                     {                                                                                                                                                           //
                                      OutputSpec{{"bar1"}, "E", "F", 0},                                                                                                                         //
                                      OutputSpec{{"bar2"}, "E", "F", 1}},                                                                                                                        //
-                                    AlgorithmSpec{[](ProcessingContext& /*ctx*/) {}},                                                                                                               //
+                                    AlgorithmSpec{[](ProcessingContext& /*ctx*/) {}},                                                                                                           //
                                     {}},                                                                                                                                                        //
                   DataProcessorSpec{"C", {},                                                                                                                                                    //
                                     {                                                                                                                                                           //
                                      OutputSpec{{"bar"}, "G", "H"}},                                                                                                                            //
-                                    AlgorithmSpec{[](ProcessingContext& /*ctx*/) {}},                                                                                                               //
+                                    AlgorithmSpec{[](ProcessingContext& /*ctx*/) {}},                                                                                                           //
                                     {}},                                                                                                                                                        //
                   DataProcessorSpec{"D", {InputSpec{"foo", {"C", "D"}}},                                                                                                                        //
                                     {OutputSpec{{"bar"}, {"I", "L"}}},                                                                                                                          //
-                                    AlgorithmSpec{[](ProcessingContext& /*ctx*/) {}},                                                                                                               //
+                                    AlgorithmSpec{[](ProcessingContext& /*ctx*/) {}},                                                                                                           //
                                     {},                                                                                                                                                         //
                                     CommonServices::defaultServices(),                                                                                                                          //
                                     {{"label a"}, {"label \"b\""}},
