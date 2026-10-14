@@ -226,6 +226,11 @@ void GPUDisplayFrontend::applyInitialWindowState()
   }
 }
 
+bool GPUDisplayFrontend::vsyncEnabled() const
+{
+  return mDisplay->cfgR().drawQualityVSync;
+}
+
 int32_t& GPUDisplayFrontend::drawTextFontSize()
 {
   return mDisplay->drawTextFontSize();
