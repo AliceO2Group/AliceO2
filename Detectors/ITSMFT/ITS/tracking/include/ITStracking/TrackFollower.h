@@ -206,7 +206,7 @@ GPUhdi() bool followTrackExtensionDirection(const TrackExtensionHypothesis<NLaye
 
       const float ePhi{o2::gpu::CAMath::Sqrt(hypo.param.getSigmaSnp2() / hypo.param.getCsp2())};
       const float eZ{o2::gpu::CAMath::Sqrt(hypo.param.getSigmaZ2())};
-      const int4 selectedBins = getBinsRect(iLayer, hypo.param.getPhi(), hypo.param.getZ(), ctx.nSigmaCutZ * eZ, ctx.nSigmaCutPhi * ePhi, utils);
+      const int4 selectedBins = getBinsRect(iLayer, hypo.param.getPhiPos(), hypo.param.getZ(), ctx.nSigmaCutZ * eZ, ctx.nSigmaCutPhi * ePhi, utils);
       if (selectedBins.x < 0) {
         continue;
       }
