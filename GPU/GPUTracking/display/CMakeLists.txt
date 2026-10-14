@@ -84,10 +84,18 @@ if(Vulkan_FOUND)
 endif()
 if(Freetype_FOUND)
   set(GPUCA_EVENT_DISPLAY_FREETYPE ON)
+  if(Fontconfig_FOUND)
+    set(GPUCA_EVENT_DISPLAY_FONTCONFIG ON)
+  endif()
 endif()
 if(Qt6_FOUND)
   set(GPUCA_EVENT_DISPLAY_QT ON)
 endif()
+foreach(feature OPENGL VULKAN WAYLAND FREETYPE FONTCONFIG QT)
+  if(NOT GPUCA_EVENT_DISPLAY_${feature})
+    set(GPUCA_EVENT_DISPLAY_${feature} OFF)
+  endif()
+endforeach()
 
 set(SRCS ../utils/qsem.cxx
          GPUDisplay.cxx
@@ -161,12 +169,11 @@ if(GLFW_FOUND)
 endif()
 
 if(GPUCA_EVENT_DISPLAY_QT)
-  set(CMAKE_AUTOMOC ON)
-  set(CMAKE_AUTORCC ON)
-  set(CMAKE_AUTOUIC ON)
+  qt_wrap_cpp(GPUCA_QT_MOC_SRCS frontend/GPUDisplayGUI.h) # Explicit moc / uic instead of AUTOMOC / AUTOUIC: rerun only if these files change; add new Q_OBJECT headers / .ui files here
+  qt_wrap_ui(GPUCA_QT_UI_HDRS frontend/GPUDisplayGUI.ui)
 
   set(SRCS ${SRCS} frontend/GPUDisplayGUI.cxx frontend/GPUDisplayGUIWrapper.cxx)
-  set(SRCS_NO_H ${SRCS_NO_H} frontend/GPUDisplayGUI.ui)
+  set(SRCS_NO_H ${SRCS_NO_H} ${GPUCA_QT_MOC_SRCS} ${GPUCA_QT_UI_HDRS})
 endif()
 
 string(REPLACE ".cxx" ".h" HDRS "${SRCS}")
@@ -203,7 +210,7 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/setinclude.sh PERMISSIONS OWNER_READ O
 
 target_compile_definitions(${targetName} PRIVATE $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>)
 
-message(STATUS "Building GPU Event Display (OpenGL ${GPUCA_EVENT_DISPLAY_OPENGL}, Vulkan ${GPUCA_EVENT_DISPLAY_VULKAN} ${Vulkan_VERSION}, Wayland ${GPUCA_EVENT_DISPLAY_WAYLAND}, Freetype ${GPUCA_EVENT_DISPLAY_FREETYPE}, Fontconfig ${Fontconfig_FOUND}, Qt ${GPUCA_EVENT_DISPLAY_QT})")
+message(STATUS "Building GPU Event Display (OpenGL ${GPUCA_EVENT_DISPLAY_OPENGL}, Vulkan ${GPUCA_EVENT_DISPLAY_VULKAN} ${Vulkan_VERSION}, Wayland ${GPUCA_EVENT_DISPLAY_WAYLAND}, Freetype ${GPUCA_EVENT_DISPLAY_FREETYPE}, Fontconfig ${GPUCA_EVENT_DISPLAY_FONTCONFIG}, Qt ${GPUCA_EVENT_DISPLAY_QT})")
 target_include_directories(${targetName} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 if(X11_FOUND)
@@ -275,7 +282,7 @@ endif()
 if(GPUCA_EVENT_DISPLAY_FREETYPE)
   target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_EVENT_DISPLAY_FREETYPE)
   target_link_libraries(${targetName} PRIVATE Freetype::Freetype)
-  if(Fontconfig_FOUND)
+  if(GPUCA_EVENT_DISPLAY_FONTCONFIG)
     target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_EVENT_DISPLAY_FONTCONFIG)
     target_link_libraries(${targetName} PRIVATE Fontconfig::Fontconfig)
   endif()
@@ -284,6 +291,7 @@ endif()
 if(GPUCA_EVENT_DISPLAY_QT)
   target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_EVENT_DISPLAY_QT)
   target_link_libraries(${targetName} PRIVATE Qt6::Widgets)
+  target_include_directories(${targetName} PRIVATE ${CMAKE_CURRENT_BINARY_DIR}) # ui_*.h
 endif()
 
 target_link_libraries(${targetName} PRIVATE TBB::tbb)
