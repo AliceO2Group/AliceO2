@@ -96,19 +96,22 @@ static vk::SurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<vk::Surfac
   return availableFormats[0];
 }
 
-static vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR>& availablePresentModes, vk::PresentModeKHR desiredMode = vk::PresentModeKHR::eMailbox)
+vk::PresentModeKHR GPUDisplayBackendVulkan::chooseSwapPresentMode()
 {
-  for (const auto& availablePresentMode : availablePresentModes) {
-    if (availablePresentMode == desiredMode) {
-      return availablePresentMode;
+  // Lowest latency first. VSync: no tearing, MAILBOX, then FIFO_LATEST_READY (shows the newest ready image at each vblank). No VSync: IMMEDIATE, else the same (often no IMMEDIATE on Wayland). FIFO is always supported.
+  const bool vsync = mDisplay->cfgR().drawQualityVSync;
+  const auto& available = mSwapChainDetails.presentModes;
+  for (vk::PresentModeKHR mode : {vk::PresentModeKHR::eImmediate, vk::PresentModeKHR::eMailbox, vk::PresentModeKHR::eFifoLatestReady, vk::PresentModeKHR::eFifo}) {
+    if ((mode == vk::PresentModeKHR::eImmediate && vsync) || (mode == vk::PresentModeKHR::eFifoLatestReady && !mFifoLatestReadySupported) || std::find(available.begin(), available.end(), mode) == available.end()) {
+      continue;
     }
+    if (mode != (vsync ? vk::PresentModeKHR::eMailbox : vk::PresentModeKHR::eImmediate) && !mPresentModeErrorShown) {
+      mPresentModeErrorShown = true;
+      GPUError("VULKAN ERROR: Desired present mode %s not available, using %s", vsync ? "MAILBOX" : "IMMEDIATE", vk::to_string(mode).c_str());
+    }
+    return mode;
   }
-  static bool errorShown = false;
-  if (!errorShown) {
-    errorShown = true;
-    GPUError("VULKAN ERROR: Desired present mode not available, using FIFO mode");
-  }
-  return vk::PresentModeKHR::eFifo;
+  return vk::PresentModeKHR::eFifo; // Unreachable, FIFO is always supported
 }
 
 vk::Extent2D GPUDisplayBackendVulkan::chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities)
@@ -532,6 +535,19 @@ void GPUDisplayBackendVulkan::createDevice()
   }
   mSmoothLinesSupported = getFeatures(mPhysicalDevice, reqDeviceFeatures).get<vk::PhysicalDeviceVulkan14Features>().smoothLines;
   reqDeviceFeatures.get<vk::PhysicalDeviceVulkan14Features>().smoothLines = mSmoothLinesSupported;
+  std::vector<const char*> deviceExtensions = reqDeviceExtensions;
+  vk::PhysicalDevicePresentModeFifoLatestReadyFeaturesKHR fifoLatestReadyFeatures{};
+  const std::vector<vk::ExtensionProperties> availableDeviceExtensions = mPhysicalDevice.enumerateDeviceExtensionProperties(nullptr);
+  for (const char* ext : {VK_KHR_PRESENT_MODE_FIFO_LATEST_READY_EXTENSION_NAME, VK_EXT_PRESENT_MODE_FIFO_LATEST_READY_EXTENSION_NAME}) { // Optional, same feature struct for both
+    if (std::any_of(availableDeviceExtensions.begin(), availableDeviceExtensions.end(), [ext](const auto& e) { return strcmp(ext, e.extensionName) == 0; })) {
+      mFifoLatestReadySupported = mPhysicalDevice.getFeatures2<vk::PhysicalDeviceFeatures2, vk::PhysicalDevicePresentModeFifoLatestReadyFeaturesKHR>().get<vk::PhysicalDevicePresentModeFifoLatestReadyFeaturesKHR>().presentModeFifoLatestReady;
+      if (mFifoLatestReadySupported) {
+        deviceExtensions.emplace_back(ext);
+        fifoLatestReadyFeatures.presentModeFifoLatestReady = VK_TRUE;
+      }
+      break;
+    }
+  }
 
   updateSwapChainDetails(mPhysicalDevice);
   vk::PhysicalDeviceProperties deviceProperties = mPhysicalDevice.getProperties();
@@ -545,7 +561,7 @@ void GPUDisplayBackendVulkan::createDevice()
   mStencilSupported = (bool)(depth64FormatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment);
   bool mailboxSupported = std::find(mSwapChainDetails.presentModes.begin(), mSwapChainDetails.presentModes.end(), vk::PresentModeKHR::eMailbox) != mSwapChainDetails.presentModes.end();
   if (mDisplay->GetProcessingSettings().debugLevel >= 2) {
-    GPUInfo("Max MSAA: %d, 32 bit Z buffer %d, 32 bit Z buffer + stencil buffer %d, Mailbox present mode %d, smooth lines %d\n", (int32_t)mMaxMSAAsupported, (int32_t)mZSupported, (int32_t)mStencilSupported, (int32_t)mailboxSupported, (int32_t)mSmoothLinesSupported);
+    GPUInfo("Max MSAA: %d, 32 bit Z buffer %d, 32 bit Z buffer + stencil buffer %d, Mailbox present mode %d, FIFO latest ready present mode %d, smooth lines %d\n", (int32_t)mMaxMSAAsupported, (int32_t)mZSupported, (int32_t)mStencilSupported, (int32_t)mailboxSupported, (int32_t)mFifoLatestReadySupported, (int32_t)mSmoothLinesSupported);
   }
 
   vk::DeviceQueueCreateInfo queueCreateInfo{};
@@ -557,9 +573,13 @@ void GPUDisplayBackendVulkan::createDevice()
   deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
   deviceCreateInfo.queueCreateInfoCount = 1;
   deviceCreateInfo.pNext = &reqDeviceFeatures.get<vk::PhysicalDeviceFeatures2>();
+  if (mFifoLatestReadySupported) {
+    fifoLatestReadyFeatures.pNext = &reqDeviceFeatures.get<vk::PhysicalDeviceFeatures2>();
+    deviceCreateInfo.pNext = &fifoLatestReadyFeatures;
+  }
   deviceCreateInfo.pEnabledFeatures = nullptr;
-  deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(reqDeviceExtensions.size());
-  deviceCreateInfo.ppEnabledExtensionNames = reqDeviceExtensions.data();
+  deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
+  deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
   mDevice = mPhysicalDevice.createDevice(deviceCreateInfo, nullptr);
   VULKAN_HPP_DEFAULT_DISPATCHER.init(mDevice);
   mGraphicsQueue = mDevice.getQueue(mGraphicsFamily, 0);
@@ -720,7 +740,10 @@ void GPUDisplayBackendVulkan::createSwapChain(vk::SwapchainKHR oldSwapChain)
 {
   updateSwapChainDetails(mPhysicalDevice);
   mSurfaceFormat = chooseSwapSurfaceFormat(mSwapChainDetails.formats);
-  mPresentMode = chooseSwapPresentMode(mSwapChainDetails.presentModes, mDisplay->cfgR().drawQualityVSync ? vk::PresentModeKHR::eMailbox : vk::PresentModeKHR::eImmediate);
+  mPresentMode = chooseSwapPresentMode();
+  if (mDisplay->GetProcessingSettings().debugLevel >= 2) {
+    GPUInfo("Vulkan present mode %s (VSync %d)", vk::to_string(mPresentMode).c_str(), (int32_t)mDisplay->cfgR().drawQualityVSync);
+  }
   vk::Extent2D extent = chooseSwapExtent(mSwapChainDetails.capabilities);
 
   uint32_t imageCount = std::max<uint32_t>(mSwapChainDetails.capabilities.minImageCount + 1, mDisplay->cfg().vulkan.nFramesInFlight + 1);
