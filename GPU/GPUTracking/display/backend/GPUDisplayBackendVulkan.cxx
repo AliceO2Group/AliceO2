@@ -1562,6 +1562,7 @@ void GPUDisplayBackendVulkan::prepareDraw(const hmm_mat4& proj, const hmm_mat4& 
   if (!mCommandBufferUpToDate[mCurrentImageIndex]) {
     startFillCommandBuffer(mCurrentCommandBuffer, mCurrentImageIndex, toMixBuffer);
   }
+  mSubmitQueue.clear();
 }
 
 void GPUDisplayBackendVulkan::finishDraw(bool doScreenshot, bool toMixBuffer, float includeMixImage)
@@ -1577,7 +1578,6 @@ void GPUDisplayBackendVulkan::finishDraw(bool doScreenshot, bool toMixBuffer, fl
 void GPUDisplayBackendVulkan::finishFrame(bool doScreenshot, bool toMixBuffer, float includeMixImage)
 {
   vk::Semaphore* stageFinishedSemaphore = &mRenderFinishedSemaphore[mCurrentFrame];
-  const vk::Fence noFence = VkFence(VK_NULL_HANDLE);
 
   vk::SubmitInfo submitInfo{};
   vk::PipelineStageFlags waitStages[] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
@@ -1588,7 +1588,8 @@ void GPUDisplayBackendVulkan::finishFrame(bool doScreenshot, bool toMixBuffer, f
   submitInfo.pCommandBuffers = &mCurrentCommandBuffer;
   submitInfo.signalSemaphoreCount = 1;
   submitInfo.pSignalSemaphores = stageFinishedSemaphore;
-  CHKERR(mGraphicsQueue.submit(1, &submitInfo, noFence));
+  mSubmitQueue.emplace_back(submitInfo);
+
   if (!toMixBuffer) {
     if (includeMixImage > 0.f) {
       mixImages(mCommandBuffersTexture[mCurrentImageIndex], includeMixImage);
@@ -1598,7 +1599,7 @@ void GPUDisplayBackendVulkan::finishFrame(bool doScreenshot, bool toMixBuffer, f
       submitInfo.pCommandBuffers = &mCommandBuffersTexture[mCurrentImageIndex];
       stageFinishedSemaphore = &mMixFinishedSemaphore[mCurrentFrame];
       submitInfo.pSignalSemaphores = stageFinishedSemaphore;
-      CHKERR(mGraphicsQueue.submit(1, &submitInfo, noFence));
+      mSubmitQueue.emplace_back(submitInfo);
     }
 
     if (mDownsampleFSAA) {
@@ -1609,16 +1610,18 @@ void GPUDisplayBackendVulkan::finishFrame(bool doScreenshot, bool toMixBuffer, f
       submitInfo.waitSemaphoreCount = 1;
       stageFinishedSemaphore = &mDownsampleFinishedSemaphore[mCurrentFrame];
       submitInfo.pSignalSemaphores = stageFinishedSemaphore;
-      CHKERR(mGraphicsQueue.submit(1, &submitInfo, noFence));
+      mSubmitQueue.emplace_back(submitInfo);
     }
 
     if (doScreenshot) {
+      CHKERR(mGraphicsQueue.submit(mSubmitQueue.size(), mSubmitQueue.data(), VkFence(VK_NULL_HANDLE)));
       mDevice.waitIdle();
       if (mDisplay->cfgR().screenshotScaleFactor != 1) {
         readImageToPixels(mDownsampleImages[mCurrentImageIndex].image, vk::ImageLayout::eColorAttachmentOptimal, mScreenshotPixels);
       } else {
         readImageToPixels(mSwapChainImages[mCurrentImageIndex], vk::ImageLayout::ePresentSrcKHR, mScreenshotPixels);
       }
+      mSubmitQueue.clear();
     }
 
     if (mHasDrawnText) {
@@ -1628,20 +1631,19 @@ void GPUDisplayBackendVulkan::finishFrame(bool doScreenshot, bool toMixBuffer, f
       submitInfo.pCommandBuffers = &mCommandBuffersText[mCurrentImageIndex];
       stageFinishedSemaphore = &mTextFinishedSemaphore[mCurrentFrame];
       submitInfo.pSignalSemaphores = stageFinishedSemaphore;
-      CHKERR(mGraphicsQueue.submit(1, &submitInfo, noFence));
+      mSubmitQueue.emplace_back(submitInfo);
     }
 
-    vk::PipelineStageFlags presentWaitStage = vk::PipelineStageFlagBits::eAllCommands;
-    submitInfo.commandBufferCount = 0;
-    submitInfo.waitSemaphoreCount = 1;
-    submitInfo.pWaitSemaphores = stageFinishedSemaphore;
-    submitInfo.pWaitDstStageMask = &presentWaitStage;
-    submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = &mPresentSemaphore[mCurrentImageIndex];
-    CHKERR(mGraphicsQueue.submit(1, &submitInfo, mInFlightFence[mCurrentFrame])); // Empty submit to signal InFlightFence and PresentSemaphore
+    if (mSubmitQueue.size()) {
+      vk::SubmitInfo& submitInfoLast = mSubmitQueue.back();
+      vk::PipelineStageFlags presentWaitStage = vk::PipelineStageFlagBits::eAllCommands; // Last commit signals to present
+      submitInfoLast.pWaitDstStageMask = &presentWaitStage;
+      submitInfoLast.pSignalSemaphores = &mPresentSemaphore[mCurrentImageIndex];
+      CHKERR(mGraphicsQueue.submit(mSubmitQueue.size(), mSubmitQueue.data(), mInFlightFence[mCurrentFrame]));
+    }
 
     vk::PresentInfoKHR presentInfo{};
-    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.waitSemaphoreCount = mSubmitQueue.size() ? 1 : 0;
     presentInfo.pWaitSemaphores = &mPresentSemaphore[mCurrentImageIndex];
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = &mSwapChain;
