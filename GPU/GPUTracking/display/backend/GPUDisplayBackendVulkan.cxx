@@ -558,19 +558,11 @@ void GPUDisplayBackendVulkan::createSemaphoresAndFences()
   vk::FenceCreateInfo fenceInfo{};
   fenceInfo.flags = vk::FenceCreateFlagBits::eSignaled;
   mImageAvailableSemaphore.resize(mFramesInFlight);
-  mRenderFinishedSemaphore.resize(mFramesInFlight);
-  mTextFinishedSemaphore.resize(mFramesInFlight);
-  mMixFinishedSemaphore.resize(mFramesInFlight);
-  mDownsampleFinishedSemaphore.resize(mFramesInFlight);
   mPresentSemaphore.resize(mImageCount);
   mInFlightFence.resize(mFramesInFlight);
   mImageFence.resize(mImageCount);
   for (uint32_t i = 0; i < mFramesInFlight; i++) {
     mImageAvailableSemaphore[i] = mDevice.createSemaphore(semaphoreInfo, nullptr);
-    mRenderFinishedSemaphore[i] = mDevice.createSemaphore(semaphoreInfo, nullptr);
-    mTextFinishedSemaphore[i] = mDevice.createSemaphore(semaphoreInfo, nullptr);
-    mMixFinishedSemaphore[i] = mDevice.createSemaphore(semaphoreInfo, nullptr);
-    mDownsampleFinishedSemaphore[i] = mDevice.createSemaphore(semaphoreInfo, nullptr);
     mInFlightFence[i] = mDevice.createFence(fenceInfo, nullptr);
   }
   for (uint32_t i = 0; i < mImageCount; i++) {
@@ -584,10 +576,6 @@ void GPUDisplayBackendVulkan::createSemaphoresAndFences()
 void GPUDisplayBackendVulkan::clearSemaphoresAndFences()
 {
   clearVector(mImageAvailableSemaphore, [&](auto& x) { mDevice.destroySemaphore(x, nullptr); });
-  clearVector(mRenderFinishedSemaphore, [&](auto& x) { mDevice.destroySemaphore(x, nullptr); });
-  clearVector(mTextFinishedSemaphore, [&](auto& x) { mDevice.destroySemaphore(x, nullptr); });
-  clearVector(mMixFinishedSemaphore, [&](auto& x) { mDevice.destroySemaphore(x, nullptr); });
-  clearVector(mDownsampleFinishedSemaphore, [&](auto& x) { mDevice.destroySemaphore(x, nullptr); });
   clearVector(mPresentSemaphore, [&](auto& x) { mDevice.destroySemaphore(x, nullptr); });
   clearVector(mInFlightFence, [&](auto& x) { mDevice.destroyFence(x, nullptr); });
   mDevice.destroyFence(mSingleCommitFence, nullptr);
@@ -861,22 +849,25 @@ void GPUDisplayBackendVulkan::createOffscreenBuffers(bool forScreenshot, bool fo
   colorAttachmentRef.attachment = nAttachments++;
   colorAttachmentRef.layout = vk::ImageLayout::eColorAttachmentOptimal;
   vk::AttachmentReference depthAttachmentRef{};
-  // depthAttachmentRef.attachment // below
   depthAttachmentRef.layout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
   vk::AttachmentReference colorAttachmentResolveRef{};
-  // colorAttachmentResolveRef.attachment // below
   colorAttachmentResolveRef.layout = vk::ImageLayout::eColorAttachmentOptimal;
   vk::SubpassDescription subpass{};
   subpass.pipelineBindPoint = vk::PipelineBindPoint::eGraphics;
   subpass.colorAttachmentCount = 1;
   subpass.pColorAttachments = &colorAttachmentRef;
-  vk::SubpassDependency dependency{};
-  dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-  dependency.dstSubpass = 0;
-  dependency.srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eEarlyFragmentTests;
-  dependency.srcAccessMask = {};
-  dependency.dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eEarlyFragmentTests;
-  dependency.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
+  std::array<vk::SubpassDependency, 2> dependencies{};
+  dependencies[0].srcSubpass = dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+  dependencies[0].dstSubpass = 0;
+  dependencies[0].srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eEarlyFragmentTests | vk::PipelineStageFlagBits::eLateFragmentTests | vk::PipelineStageFlagBits::eTransfer | vk::PipelineStageFlagBits::eFragmentShader; // Includes eColorAttachmentOutput, the wait stage of the image acquire semaphore
+  dependencies[0].srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eDepthStencilAttachmentWrite | vk::AccessFlagBits::eTransferWrite;
+  dependencies[0].dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eEarlyFragmentTests | vk::PipelineStageFlagBits::eLateFragmentTests;
+  dependencies[0].dstAccessMask = vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
+  dependencies[1].srcSubpass = 0;
+  dependencies[1].srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eLateFragmentTests;
+  dependencies[1].srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
+  dependencies[1].dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eTransfer | vk::PipelineStageFlagBits::eFragmentShader;
+  dependencies[1].dstAccessMask = vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eTransferRead | vk::AccessFlagBits::eShaderRead;
 
   std::vector<vk::AttachmentDescription> attachments = {colorAttachment};
   if (mZActive) {
@@ -895,8 +886,8 @@ void GPUDisplayBackendVulkan::createOffscreenBuffers(bool forScreenshot, bool fo
   renderPassInfo.pAttachments = attachments.data();
   renderPassInfo.subpassCount = 1;
   renderPassInfo.pSubpasses = &subpass;
-  renderPassInfo.dependencyCount = 1;
-  renderPassInfo.pDependencies = &dependency;
+  renderPassInfo.dependencyCount = dependencies.size();
+  renderPassInfo.pDependencies = dependencies.data();
   mRenderPass = mDevice.createRenderPass(renderPassInfo, nullptr);
 
   const uint32_t imageCountWithMixImages = mImageCount * (mMixingSupported ? 2 : 1);
@@ -928,11 +919,6 @@ void GPUDisplayBackendVulkan::createOffscreenBuffers(bool forScreenshot, bool fo
   renderPassInfo.pAttachments = &colorAttachment;
   subpass.pDepthStencilAttachment = nullptr;
   subpass.pResolveAttachments = nullptr;
-  if (mFramebuffersText.size()) {
-    dependency.srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput; // Remove early fragment test
-    dependency.dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-    dependency.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite; // Remove depth/stencil dependencies
-  }
   colorAttachment.loadOp = vk::AttachmentLoadOp::eLoad;            // Don't clear the frame buffer
   colorAttachment.initialLayout = vk::ImageLayout::ePresentSrcKHR; // Initial layout is not undefined after 1st pass
   colorAttachment.samples = vk::SampleCountFlagBits::e1;           // No MSAA for Text
@@ -943,11 +929,6 @@ void GPUDisplayBackendVulkan::createOffscreenBuffers(bool forScreenshot, bool fo
     if (mDownsampleFSAA) {
       colorAttachment.initialLayout = vk::ImageLayout::eColorAttachmentOptimal;
       colorAttachment.finalLayout = mDownsampleFSAA ? vk::ImageLayout::eColorAttachmentOptimal : vk::ImageLayout::ePresentSrcKHR;
-    }
-    if (mFramebuffersTexture.size()) {
-      dependency.srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput; // Remove early fragment test
-      dependency.dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-      dependency.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite; // Remove depth/stencil dependencies
     }
     mRenderPassTexture = mDevice.createRenderPass(renderPassInfo, nullptr);
   }
@@ -1553,6 +1534,7 @@ void GPUDisplayBackendVulkan::prepareDraw(const hmm_mat4& proj, const hmm_mat4& 
     CHKERR(mDevice.resetFences(1, &mInFlightFence[mCurrentFrame]));
 
     mHasDrawnText = false;
+    mFrameCommandBuffers.clear();
     const hmm_mat4 modelViewProj = proj * view;
     writeToBuffer(mUniformBuffersMat[0][mCurrentImageIndex], sizeof(modelViewProj), &modelViewProj);
   }
@@ -1562,7 +1544,6 @@ void GPUDisplayBackendVulkan::prepareDraw(const hmm_mat4& proj, const hmm_mat4& 
   if (!mCommandBufferUpToDate[mCurrentImageIndex]) {
     startFillCommandBuffer(mCurrentCommandBuffer, mCurrentImageIndex, toMixBuffer);
   }
-  mSubmitQueue.clear();
 }
 
 void GPUDisplayBackendVulkan::finishDraw(bool doScreenshot, bool toMixBuffer, float includeMixImage)
@@ -1577,73 +1558,46 @@ void GPUDisplayBackendVulkan::finishDraw(bool doScreenshot, bool toMixBuffer, fl
 
 void GPUDisplayBackendVulkan::finishFrame(bool doScreenshot, bool toMixBuffer, float includeMixImage)
 {
-  vk::Semaphore* stageFinishedSemaphore = &mRenderFinishedSemaphore[mCurrentFrame];
-
-  vk::SubmitInfo submitInfo{};
-  vk::PipelineStageFlags waitStages[] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
-  submitInfo.pWaitSemaphores = includeMixImage > 0.f ? &mRenderFinishedSemaphore[mCurrentFrame] : &mImageAvailableSemaphore[mCurrentFrame];
-  submitInfo.waitSemaphoreCount = 1;
-  submitInfo.pWaitDstStageMask = waitStages;
-  submitInfo.commandBufferCount = 1;
-  submitInfo.pCommandBuffers = &mCurrentCommandBuffer;
-  submitInfo.signalSemaphoreCount = 1;
-  submitInfo.pSignalSemaphores = stageFinishedSemaphore;
-  mSubmitQueue.emplace_back(submitInfo);
-
+  mFrameCommandBuffers.emplace_back(mCurrentCommandBuffer);
   if (!toMixBuffer) {
     if (includeMixImage > 0.f) {
       mixImages(mCommandBuffersTexture[mCurrentImageIndex], includeMixImage);
-      submitInfo.pWaitSemaphores = stageFinishedSemaphore;
-      waitStages[0] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
-      submitInfo.waitSemaphoreCount = 1;
-      submitInfo.pCommandBuffers = &mCommandBuffersTexture[mCurrentImageIndex];
-      stageFinishedSemaphore = &mMixFinishedSemaphore[mCurrentFrame];
-      submitInfo.pSignalSemaphores = stageFinishedSemaphore;
-      mSubmitQueue.emplace_back(submitInfo);
+      mFrameCommandBuffers.emplace_back(mCommandBuffersTexture[mCurrentImageIndex]);
     }
-
     if (mDownsampleFSAA) {
       downsampleToFramebuffer(mCommandBuffersDownsample[mCurrentImageIndex]);
-      submitInfo.pCommandBuffers = &mCommandBuffersDownsample[mCurrentImageIndex];
-      submitInfo.pWaitSemaphores = stageFinishedSemaphore;
-      waitStages[0] = {vk::PipelineStageFlagBits::eTransfer};
-      submitInfo.waitSemaphoreCount = 1;
-      stageFinishedSemaphore = &mDownsampleFinishedSemaphore[mCurrentFrame];
-      submitInfo.pSignalSemaphores = stageFinishedSemaphore;
-      mSubmitQueue.emplace_back(submitInfo);
+      mFrameCommandBuffers.emplace_back(mCommandBuffersDownsample[mCurrentImageIndex]);
     }
 
+    vk::PipelineStageFlags waitStage = vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eTransfer;
+    vk::SubmitInfo submitInfo{};
+    submitInfo.waitSemaphoreCount = 1;
+    submitInfo.pWaitSemaphores = &mImageAvailableSemaphore[mCurrentFrame];
+    submitInfo.pWaitDstStageMask = &waitStage;
     if (doScreenshot) {
-      CHKERR(mGraphicsQueue.submit(mSubmitQueue.size(), mSubmitQueue.data(), VkFence(VK_NULL_HANDLE)));
+      submitInfo.commandBufferCount = mFrameCommandBuffers.size();
+      submitInfo.pCommandBuffers = mFrameCommandBuffers.data();
+      CHKERR(mGraphicsQueue.submit(1, &submitInfo, VkFence(VK_NULL_HANDLE)));
       mDevice.waitIdle();
       if (mDisplay->cfgR().screenshotScaleFactor != 1) {
         readImageToPixels(mDownsampleImages[mCurrentImageIndex].image, vk::ImageLayout::eColorAttachmentOptimal, mScreenshotPixels);
       } else {
         readImageToPixels(mSwapChainImages[mCurrentImageIndex], vk::ImageLayout::ePresentSrcKHR, mScreenshotPixels);
       }
-      mSubmitQueue.clear();
+      mFrameCommandBuffers.clear();
+      submitInfo.waitSemaphoreCount = 0;
     }
-
     if (mHasDrawnText) {
-      submitInfo.pWaitSemaphores = stageFinishedSemaphore;
-      waitStages[0] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
-      submitInfo.waitSemaphoreCount = 1;
-      submitInfo.pCommandBuffers = &mCommandBuffersText[mCurrentImageIndex];
-      stageFinishedSemaphore = &mTextFinishedSemaphore[mCurrentFrame];
-      submitInfo.pSignalSemaphores = stageFinishedSemaphore;
-      mSubmitQueue.emplace_back(submitInfo);
+      mFrameCommandBuffers.emplace_back(mCommandBuffersText[mCurrentImageIndex]);
     }
-
-    if (mSubmitQueue.size()) {
-      vk::SubmitInfo& submitInfoLast = mSubmitQueue.back();
-      vk::PipelineStageFlags presentWaitStage = vk::PipelineStageFlagBits::eAllCommands; // Last commit signals to present
-      submitInfoLast.pWaitDstStageMask = &presentWaitStage;
-      submitInfoLast.pSignalSemaphores = &mPresentSemaphore[mCurrentImageIndex];
-      CHKERR(mGraphicsQueue.submit(mSubmitQueue.size(), mSubmitQueue.data(), mInFlightFence[mCurrentFrame]));
-    }
+    submitInfo.commandBufferCount = mFrameCommandBuffers.size();
+    submitInfo.pCommandBuffers = mFrameCommandBuffers.data();
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores = &mPresentSemaphore[mCurrentImageIndex];
+    CHKERR(mGraphicsQueue.submit(1, &submitInfo, mInFlightFence[mCurrentFrame]));
 
     vk::PresentInfoKHR presentInfo{};
-    presentInfo.waitSemaphoreCount = mSubmitQueue.size() ? 1 : 0;
+    presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores = &mPresentSemaphore[mCurrentImageIndex];
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = &mSwapChain;
@@ -1666,7 +1620,7 @@ void GPUDisplayBackendVulkan::downsampleToFramebuffer(vk::CommandBuffer& command
   commandBuffer.begin(beginInfo);
 
   cmdImageMemoryBarrier(commandBuffer, mSwapChainImages[mCurrentImageIndex], {}, vk::AccessFlagBits::eTransferWrite, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer);
-  cmdImageMemoryBarrier(commandBuffer, mDownsampleImages[mCurrentImageIndex].image, vk::AccessFlagBits::eMemoryRead, vk::AccessFlagBits::eTransferRead, vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eTransferSrcOptimal, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer);
+  cmdImageMemoryBarrier(commandBuffer, mDownsampleImages[mCurrentImageIndex].image, vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eTransferRead, vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eTransferSrcOptimal, vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eTransfer);
 
   vk::Offset3D blitSizeSrc;
   blitSizeSrc.x = mRenderWidth;
@@ -1685,8 +1639,8 @@ void GPUDisplayBackendVulkan::downsampleToFramebuffer(vk::CommandBuffer& command
   imageBlitRegion.dstOffsets[1] = blitSizeDst;
   commandBuffer.blitImage(mDownsampleImages[mCurrentImageIndex].image, vk::ImageLayout::eTransferSrcOptimal, mSwapChainImages[mCurrentImageIndex], vk::ImageLayout::eTransferDstOptimal, 1, &imageBlitRegion, vk::Filter::eLinear);
 
-  cmdImageMemoryBarrier(commandBuffer, mSwapChainImages[mCurrentImageIndex], vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eMemoryRead, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer);
-  cmdImageMemoryBarrier(commandBuffer, mDownsampleImages[mCurrentImageIndex].image, vk::AccessFlagBits::eTransferRead, vk::AccessFlagBits::eMemoryRead, vk::ImageLayout::eUndefined, vk::ImageLayout::eColorAttachmentOptimal, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer);
+  cmdImageMemoryBarrier(commandBuffer, mSwapChainImages[mCurrentImageIndex], vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eColorAttachmentOutput); // Next: text pass, or present (ordered by the present semaphore)
+  cmdImageMemoryBarrier(commandBuffer, mDownsampleImages[mCurrentImageIndex].image, {}, vk::AccessFlagBits::eColorAttachmentWrite, vk::ImageLayout::eUndefined, vk::ImageLayout::eColorAttachmentOptimal, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eColorAttachmentOutput);                                                                     // Next frame renders into it again
 
   commandBuffer.end();
 }
@@ -1753,7 +1707,7 @@ void GPUDisplayBackendVulkan::mixImages(vk::CommandBuffer commandBuffer, float m
 
   vk::Image& image = mDownsampleFSAA ? mDownsampleImages[mCurrentImageIndex + mImageCount].image : mMixImages[mCurrentImageIndex].image;
   vk::ImageLayout srcLayout = mDownsampleFSAA ? vk::ImageLayout::eColorAttachmentOptimal : vk::ImageLayout::ePresentSrcKHR;
-  cmdImageMemoryBarrier(commandBuffer, image, {}, vk::AccessFlagBits::eMemoryRead, srcLayout, vk::ImageLayout::eShaderReadOnlyOptimal, vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eFragmentShader);
+  cmdImageMemoryBarrier(commandBuffer, image, vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eShaderRead, srcLayout, vk::ImageLayout::eShaderReadOnlyOptimal, vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eFragmentShader);
 
   vk::RenderPassBeginInfo renderPassInfo{};
   renderPassInfo.renderPass = mRenderPassTexture;
