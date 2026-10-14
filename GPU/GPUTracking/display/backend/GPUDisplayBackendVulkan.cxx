@@ -537,6 +537,8 @@ void GPUDisplayBackendVulkan::createDevice()
   if (checkDevice(mPhysicalDevice, reqDeviceExtensions, reqDeviceFeatures, true) <= 0) {
     throw std::runtime_error("Selected vulkan device is incompatible");
   }
+  mSmoothLinesSupported = getFeatures(mPhysicalDevice, reqDeviceFeatures).get<vk::PhysicalDeviceVulkan14Features>().smoothLines;
+  reqDeviceFeatures.get<vk::PhysicalDeviceVulkan14Features>().smoothLines = mSmoothLinesSupported;
 
   updateSwapChainDetails(mPhysicalDevice);
   vk::PhysicalDeviceProperties deviceProperties = mPhysicalDevice.getProperties();
@@ -548,7 +550,7 @@ void GPUDisplayBackendVulkan::createDevice()
   mStencilSupported = (bool)(depth64FormatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment);
   bool mailboxSupported = std::find(mSwapChainDetails.presentModes.begin(), mSwapChainDetails.presentModes.end(), vk::PresentModeKHR::eMailbox) != mSwapChainDetails.presentModes.end();
   if (mDisplay->GetProcessingSettings().debugLevel >= 2) {
-    GPUInfo("Max MSAA: %d, 32 bit Z buffer %d, 32 bit Z buffer + stencil buffer %d, Mailbox present mode %d\n", (int32_t)mMaxMSAAsupported, (int32_t)mZSupported, (int32_t)mStencilSupported, (int32_t)mailboxSupported);
+    GPUInfo("Max MSAA: %d, 32 bit Z buffer %d, 32 bit Z buffer + stencil buffer %d, Mailbox present mode %d, smooth lines %d\n", (int32_t)mMaxMSAAsupported, (int32_t)mZSupported, (int32_t)mStencilSupported, (int32_t)mailboxSupported, (int32_t)mSmoothLinesSupported);
   }
 
   vk::DeviceQueueCreateInfo queueCreateInfo{};
@@ -796,24 +798,27 @@ void GPUDisplayBackendVulkan::recreateRendering(bool forScreenshot, bool forMixi
   needRecordCommandBuffers();
   const bool needUpdateSwapChain = mMustUpdateSwapChain;
   const bool needUpdateOffscreenBuffers = needUpdateSwapChain || mDownsampleFactor != getDownsampleFactor(forScreenshot) || mMSAASampleCount != getMSAASamplesFlag(std::min<uint32_t>(mMaxMSAAsupported, mDisplay->cfgR().drawQualityMSAA)) || mZActive != (mZSupported && mDisplay->cfgL().depthBuffer) || mMixingSupported != forMixing;
-  if (!needUpdateOffscreenBuffers) {
+  const bool smoothLinesChanged = mSmoothLines != (mSmoothLinesSupported && mDisplay->cfgL().smoothLines);
+  if (!needUpdateOffscreenBuffers && !smoothLinesChanged) {
     return;
   }
   mDevice.waitIdle();
   const vk::Format oldFormat = mSurfaceFormat.format;
   const vk::SampleCountFlagBits oldMSAASampleCount = mMSAASampleCount;
   const bool oldZActive = mZActive;
-  clearOffscreenBuffers();
-  if (needUpdateSwapChain) {
-    clearSwapChain(true);
-    createSwapChain(mSwapChain);
+  if (needUpdateOffscreenBuffers) {
+    clearOffscreenBuffers();
+    if (needUpdateSwapChain) {
+      clearSwapChain(true);
+      createSwapChain(mSwapChain);
+    }
+    createOffscreenBuffers(forScreenshot, forMixing);
+    mUpdateUBOtextMatrix = mUpdateUBOmixMatrix = -1; // Screen / render size may have changed
   }
-  createOffscreenBuffers(forScreenshot, forMixing);
-  if (mSurfaceFormat.format != oldFormat || mMSAASampleCount != oldMSAASampleCount || mZActive != oldZActive) { // Viewport / scissor are dynamic
+  if (mSurfaceFormat.format != oldFormat || mMSAASampleCount != oldMSAASampleCount || mZActive != oldZActive || smoothLinesChanged) { // Viewport / scissor are dynamic
     clearPipeline();
     createPipeline();
   }
-  mUpdateUBOtextMatrix = mUpdateUBOmixMatrix = -1; // Screen / render size may have changed
 }
 
 // ---------------------------- VULKAN OFFSCREEN BUFFERS ----------------------------
@@ -1022,10 +1027,15 @@ void GPUDisplayBackendVulkan::createPipeline()
   pipelineInfo.basePipelineHandle = VkPipeline(VK_NULL_HANDLE); // Optional
   pipelineInfo.basePipelineIndex = -1;                          // Optional
 
+  mSmoothLines = mSmoothLinesSupported && mDisplay->cfgL().smoothLines;
+  vk::PipelineRasterizationLineStateCreateInfo smoothLineState{};
+  smoothLineState.lineRasterizationMode = vk::LineRasterizationMode::eRectangularSmooth; // Coverage goes to alpha, blending is enabled
+
   mPipelines.resize(5);
   static constexpr vk::PrimitiveTopology types[3] = {vk::PrimitiveTopology::ePointList, vk::PrimitiveTopology::eLineList, vk::PrimitiveTopology::eLineStrip};
   for (uint32_t i = 0; i < mPipelines.size(); i++) {
     if (i == 4) { // Texture rendering
+      rasterizer.pNext = nullptr;
       bindingDescription.stride = 4 * sizeof(float);
       attributeDescriptions.format = vk::Format::eR32G32B32A32Sfloat;
       inputAssembly.topology = vk::PrimitiveTopology::eTriangleList;
@@ -1038,6 +1048,7 @@ void GPUDisplayBackendVulkan::createPipeline()
       colorBlendAttachment.blendEnable = true;
       multisampling.rasterizationSamples = vk::SampleCountFlagBits::e1;
     } else if (i == 3) { // Text rendering
+      rasterizer.pNext = nullptr;
       bindingDescription.stride = 4 * sizeof(float);
       attributeDescriptions.format = vk::Format::eR32G32B32A32Sfloat;
       inputAssembly.topology = vk::PrimitiveTopology::eTriangleList;
@@ -1053,6 +1064,7 @@ void GPUDisplayBackendVulkan::createPipeline()
       bindingDescription.stride = 3 * sizeof(float);
       attributeDescriptions.format = vk::Format::eR32G32B32Sfloat;
       inputAssembly.topology = types[i];
+      rasterizer.pNext = mSmoothLines && types[i] != vk::PrimitiveTopology::ePointList ? &smoothLineState : nullptr;
       vertShaderStageInfo.module = mShaders[types[i] == vk::PrimitiveTopology::ePointList ? "vertexPoint" : "vertex"];
       fragShaderStageInfo.module = mShaders["fragment"];
       pipelineInfo.layout = mPipelineLayout;
@@ -1374,7 +1386,7 @@ void GPUDisplayBackendVulkan::prepareDraw(const hmm_mat4& proj, const hmm_mat4& 
     };
 
     vk::Result retVal = vk::Result::eSuccess;
-    bool mustUpdateSwapChain = mMustUpdateSwapChain || mDisplay->updateRenderPipeline() || (toMixBuffer && !mMixingSupported) || mDownsampleFactor != getDownsampleFactor(requestScreenshot);
+    bool mustUpdateSwapChain = mMustUpdateSwapChain || mDisplay->updateRenderPipeline() || (toMixBuffer && !mMixingSupported) || mDownsampleFactor != getDownsampleFactor(requestScreenshot) || mSmoothLines != (mSmoothLinesSupported && mDisplay->cfgL().smoothLines);
     if (!mustUpdateSwapChain) {
       retVal = getImage();
       if (retVal == vk::Result::eErrorOutOfDateKHR) {
