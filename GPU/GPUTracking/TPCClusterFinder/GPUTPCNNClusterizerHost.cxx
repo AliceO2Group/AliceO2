@@ -12,10 +12,6 @@
 /// \file GPUTPCNNClusterizerHost.cxx
 /// \author Christian Sonnabend
 
-#ifdef GPUCA_HAS_SOFIE
-#include "Rtypes.h"
-#endif
-
 #include <CommonUtils/StringUtils.h>
 
 #include "GPUTPCNNClusterizerHost.h"
@@ -33,8 +29,8 @@
 #endif
 
 #ifdef GPUCA_HAS_SOFIE
-#include <TMVA/RGPUModel.hxx>
-#include <TMVA/RModelParser_ONNX.hxx>
+#include <SOFIE/RGPUModel.hxx>
+#include <SOFIE/RModelParser_ONNX.hxx>
 #endif
 #include <array>
 #include <limits>
@@ -44,8 +40,8 @@ using namespace o2::gpu;
 
 struct GPUTPCNNClusterizerHost::SofieState {
 #ifdef GPUCA_HAS_SOFIE
-  std::array<std::shared_ptr<TMVA::Experimental::SOFIE::RGPUModel>, 3> models;
-  std::array<std::unique_ptr<TMVA::Experimental::SOFIE::RGPUModel::Session>, 3> sessions;
+  std::array<std::shared_ptr<SOFIE::RGPUModel>, 3> models;
+  std::array<std::unique_ptr<SOFIE::RGPUModel::Session>, 3> sessions;
 #endif
   std::array<std::string, 3> buffers;
   size_t workspaceSize = 0;
@@ -168,7 +164,7 @@ void GPUTPCNNClusterizerHost::initClusterizer(const GPUSettingsProcessingNNclust
     }
     clustererNN.mSofieWorkspaceSize = mSofie->workspaceSize;
     for (const auto& model : mSofie->models) {
-      if (model && ((model->GetPrecision() == TMVA::Experimental::SOFIE::RGPUModel::Precision::Float16) != (clustererNN.mNnInferenceInputDType == 1) || clustererNN.mNnInferenceInputDType != clustererNN.mNnInferenceOutputDType)) {
+      if (model && ((model->GetPrecision() == SOFIE::RGPUModel::Precision::Float16) != (clustererNN.mNnInferenceInputDType == 1) || clustererNN.mNnInferenceInputDType != clustererNN.mNnInferenceOutputDType)) {
         throw std::runtime_error("Changing SOFIE precision requires chain reinitialization");
       }
       if (model && model->InputSize() != static_cast<size_t>(clustererNN.mNnClusterizerElementSize)) {
@@ -328,7 +324,7 @@ MockedOrtAllocator* GPUTPCNNClusterizerHost::getMockedAllocator()
 void GPUTPCNNClusterizerHost::initSofie(const GPUSettingsProcessingNNclusterizer& settings, void* stream, int32_t device, bool hip, const GPUTPCNNClusterizerHost* source, const std::array<std::string_view, 3>& buffers, const GPUTPCNNClusterizerHost* previous)
 {
 #ifdef GPUCA_HAS_SOFIE
-  using Model = TMVA::Experimental::SOFIE::RGPUModel;
+  using Model = SOFIE::RGPUModel;
   if (!settings.nnClusterizerBatchedMode || settings.nnClusterizerBatchedMode > static_cast<unsigned>(std::numeric_limits<int32_t>::max())) {
     throw std::runtime_error("SOFIE requires a positive batch capacity within int32 range");
   }
@@ -339,7 +335,7 @@ void GPUTPCNNClusterizerHost::initSofie(const GPUSettingsProcessingNNclusterizer
     if (value == "FP16" || value == "fp16") {
       return Model::Precision::Float16;
     }
-    throw std::runtime_error("SOFIE precision must be FP32 or FP16");
+    throw std::runtime_error("SOFIE supports FP32 or FP16 model precision");
   };
   const auto inputType = precision(settings.nnInferenceInputDType);
   if (inputType != precision(settings.nnInferenceOutputDType)) {
@@ -383,7 +379,7 @@ void GPUTPCNNClusterizerHost::initSofie(const GPUSettingsProcessingNNclusterizer
       paths[i + 1] = regression[i];
     }
   }
-  TMVA::Experimental::SOFIE::RModelParser_ONNX parser;
+  SOFIE::RModelParser_ONNX parser;
   std::unordered_map<std::string, std::shared_ptr<Model>> compiled;
   if (settings.nnLoadFromCCDB && previous && previous->mSofie) {
     for (size_t i = 0; i < previous->mSofie->models.size(); i++) {
@@ -413,9 +409,9 @@ void GPUTPCNNClusterizerHost::initSofie(const GPUSettingsProcessingNNclusterizer
                 inputType == Model::Precision::Float16 ? "FP16" : "FP32");
         if (settings.nnLoadFromCCDB) {
           std::istringstream input(state->buffers[i], std::ios::in | std::ios::binary);
-          model = std::make_shared<Model>(parser.ParseGPU(input));
+          model = std::make_shared<Model>(parser.Parse(input, "clusterizer"));
         } else {
-          model = std::make_shared<Model>(parser.ParseGPU(paths[i]));
+          model = std::make_shared<Model>(parser.Parse(paths[i]));
         }
         if (model->GetPrecision() != inputType) {
           throw std::runtime_error("SOFIE model precision differs from nnInferenceInputDType: " + paths[i]);
@@ -423,7 +419,6 @@ void GPUTPCNNClusterizerHost::initSofie(const GPUSettingsProcessingNNclusterizer
         if (model->InputSize() != inputSize || model->OutputSize() > static_cast<size_t>(std::numeric_limits<int32_t>::max()) / settings.nnClusterizerBatchedMode) {
           throw std::runtime_error("SOFIE model shape does not match the clusterizer window or index range: " + paths[i]);
         }
-        model->WorkspaceSize(settings.nnClusterizerBatchedMode);
         model->Compile({hip ? Model::Backend::HIP : Model::Backend::CUDA, settings.sofieCompiler, settings.sofieArchitecture});
         GPUInfo("SOFIE: model %zu compilation succeeded, input=%zu, output=%zu",
                 i, model->InputSize(), model->OutputSize());
@@ -471,14 +466,16 @@ void GPUTPCNNClusterizerHost::bindSofieWorkspace(void* workspace, size_t bytes)
   if (!mSofie) {
     return;
   }
-  if (!workspace || bytes < mSofie->workspaceSize) {
+  if ((!workspace && mSofie->workspaceSize) || bytes < mSofie->workspaceSize) {
     throw std::runtime_error("O2 supplied insufficient SOFIE workspace");
   }
   auto* next = static_cast<char*>(workspace);
   for (const auto& session : mSofie->sessions) {
     if (session) {
       session->SetWorkspace(next, session->WorkspaceSize());
-      next += session->WorkspaceSize();
+      if (session->WorkspaceSize()) {
+        next += session->WorkspaceSize();
+      }
     }
   }
 #endif
