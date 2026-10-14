@@ -26,11 +26,6 @@
 #include <cstring>
 #include <unistd.h>
 
-#ifndef GPUCA_STANDALONE
-#include <DebugGUI/imgui.h>
-#include <DebugGUI/DebugGUI.h>
-#endif
-
 using namespace o2::gpu;
 
 GPUDisplayFrontendGlfw::GPUDisplayFrontendGlfw()
@@ -263,18 +258,6 @@ void GPUDisplayFrontendGlfw::maximize_callback(GLFWwindow* window, int32_t maxim
   }
 }
 
-#ifndef GPUCA_STANDALONE
-void GPUDisplayFrontendGlfw::DisplayLoop()
-{
-  ImGui::SetNextWindowPos(ImVec2(0, 0));
-  ImGui::SetNextWindowSize(ImVec2(me->mDisplayWidth, me->mDisplayHeight));
-  ImGui::SetNextWindowBgAlpha(0.f);
-  ImGui::Begin("Console", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
-  me->DrawGLScene();
-  ImGui::End();
-}
-#endif
-
 int32_t GPUDisplayFrontendGlfw::FrontendMain()
 {
   me = this;
@@ -410,11 +393,7 @@ void GPUDisplayFrontendGlfw::SetVSync(bool enable) { glfwSwapInterval(enable); }
 
 bool GPUDisplayFrontendGlfw::EnableSendKey()
 {
-#ifdef GPUCA_STANDALONE
   return true;
-#else
-  return false;
-#endif
 }
 
 void GPUDisplayFrontendGlfw::getSize(int32_t& width, int32_t& height)

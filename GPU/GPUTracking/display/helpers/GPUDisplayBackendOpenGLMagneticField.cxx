@@ -22,6 +22,7 @@
 #else
 #define gluErrorString(err) ""
 #endif
+#include "HandMadeMath.h"
 
 #include "GPUCommonDef.h"
 #include "GPUDisplayMagneticField.h"
