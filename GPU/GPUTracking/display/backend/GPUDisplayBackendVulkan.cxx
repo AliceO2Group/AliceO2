@@ -79,6 +79,9 @@ static uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags prop
       return i;
     }
   }
+  if ((properties & vk::MemoryPropertyFlagBits::eDeviceLocal) && (properties & vk::MemoryPropertyFlagBits::eHostVisible)) { // No host-visible device memory (e.g. no ReBAR), fall back to host memory
+    return findMemoryType(typeFilter, properties & ~vk::MemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal), physDev);
+  }
 
   throw std::runtime_error("failed to find suitable memory type!");
 }
