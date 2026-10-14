@@ -173,7 +173,7 @@
   #define GPUdouble() float
   #define GPUbarrier() threadgroup_barrier(mem_flags::mem_device | mem_flags::mem_threadgroup)
   #define GPUbarrierWarp() simdgroup_barrier(mem_flags::mem_device | mem_flags::mem_threadgroup)
-  #define GPUAtomic(type) atomic<type>                      // atomic variable type
+  #define GPUAtomic(type) type                      // atomic variable type
 #elif defined(__HIPCC__) //Defines for HIP
   #define GPUd() __device__
   #define GPUdDefault() __device__
