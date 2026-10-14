@@ -111,7 +111,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
 
   void updateSwapChainDetails(const vk::PhysicalDevice& device);
   void createDevice();
-  void createShaders();
+  void loadShaders();
   void createTextureSampler();
   void createCommandBuffers();
   void createSemaphores();
@@ -120,7 +120,6 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void createOffscreenBuffers(bool forScreenshot = false, bool forMixing = false);
   void createPipeline();
   void clearDevice();
-  void clearShaders();
   void clearTextureSampler();
   void clearCommandBuffers();
   void clearSemaphores();
@@ -158,7 +157,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   std::vector<VulkanImage> mDownsampleImages;
   std::vector<VulkanImage> mZImages;
   std::vector<VulkanImage> mMixImages;
-  std::unordered_map<std::string, vk::ShaderModule> mShaders;
+  std::unordered_map<std::string, vk::ShaderModuleCreateInfo> mShaders; // Embedded SPIR-V, chained into the pipeline shader stages (maintenance5, no shader modules)
   vk::PipelineLayout mPipelineLayout;
   vk::PipelineLayout mPipelineLayoutTexture;
   std::vector<vk::Pipeline> mPipelines;

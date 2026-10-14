@@ -125,14 +125,6 @@ vk::Extent2D GPUDisplayBackendVulkan::chooseSwapExtent(const vk::SurfaceCapabili
   }
 }
 
-static vk::ShaderModule createShaderModule(const char* code, size_t size, vk::Device device)
-{
-  vk::ShaderModuleCreateInfo createInfo{};
-  createInfo.codeSize = size;
-  createInfo.pCode = reinterpret_cast<const uint32_t*>(code);
-  return device.createShaderModule(createInfo, nullptr);
-}
-
 static void cmdImageMemoryBarrier(vk::CommandBuffer cmdbuffer, vk::Image image, vk::PipelineStageFlags2 srcStageMask, vk::AccessFlags2 srcAccessMask, vk::PipelineStageFlags2 dstStageMask, vk::AccessFlags2 dstAccessMask, vk::ImageLayout oldLayout, vk::ImageLayout newLayout, vk::ImageAspectFlags aspect = vk::ImageAspectFlagBits::eColor)
 {
   vk::ImageMemoryBarrier2 barrier{srcStageMask, srcAccessMask, dstStageMask, dstAccessMask, oldLayout, newLayout, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, image, {aspect, 0, 1, 0, 1}};
@@ -502,7 +494,7 @@ void GPUDisplayBackendVulkan::createDevice()
   auto& reqFeatures10 = reqDeviceFeatures.get<vk::PhysicalDeviceFeatures2>().features;
   reqFeatures10.geometryShader = reqFeatures10.wideLines = reqFeatures10.largePoints = reqFeatures10.multiDrawIndirect = VK_TRUE;
   reqDeviceFeatures.get<vk::PhysicalDeviceVulkan12Features>().timelineSemaphore = VK_TRUE;
-  reqDeviceFeatures.get<vk::PhysicalDeviceVulkan14Features>().pushDescriptor = VK_TRUE;
+  reqDeviceFeatures.get<vk::PhysicalDeviceVulkan14Features>().pushDescriptor = reqDeviceFeatures.get<vk::PhysicalDeviceVulkan14Features>().maintenance5 = VK_TRUE;
   reqDeviceFeatures.get<vk::PhysicalDeviceVulkan13Features>().dynamicRendering = reqDeviceFeatures.get<vk::PhysicalDeviceVulkan13Features>().synchronization2 = VK_TRUE;
   reqDeviceFeatures.get<vk::PhysicalDeviceVulkan13Features>().shaderDemoteToHelperInvocation = VK_TRUE; // discard in SPIR-V 1.6
   reqDeviceFeatures.get<vk::PhysicalDeviceSwapchainMaintenance1FeaturesKHR>().swapchainMaintenance1 = VK_TRUE;
@@ -913,11 +905,11 @@ void GPUDisplayBackendVulkan::createPipeline()
   vk::PipelineShaderStageCreateInfo shaderStages[2] = {vk::PipelineShaderStageCreateInfo{}, vk::PipelineShaderStageCreateInfo{}};
   vk::PipelineShaderStageCreateInfo& vertShaderStageInfo = shaderStages[0];
   vertShaderStageInfo.stage = vk::ShaderStageFlagBits::eVertex;
-  // vertShaderStageInfo.module // below
+  // vertShaderStageInfo.pNext // below: SPIR-V
   vertShaderStageInfo.pName = "main";
   vk::PipelineShaderStageCreateInfo& fragShaderStageInfo = shaderStages[1];
   fragShaderStageInfo.stage = vk::ShaderStageFlagBits::eFragment;
-  // fragShaderStageInfo.module // below
+  // fragShaderStageInfo.pNext // below: SPIR-V
   fragShaderStageInfo.pName = "main";
 
   vk::VertexInputBindingDescription bindingDescription{};
@@ -1043,8 +1035,8 @@ void GPUDisplayBackendVulkan::createPipeline()
       bindingDescription.stride = 4 * sizeof(float);
       attributeDescriptions.format = vk::Format::eR32G32B32A32Sfloat;
       inputAssembly.topology = vk::PrimitiveTopology::eTriangleList;
-      vertShaderStageInfo.module = mShaders["vertexTexture"];
-      fragShaderStageInfo.module = mShaders["fragmentTexture"];
+      vertShaderStageInfo.pNext = &mShaders.at("vertexTexture");
+      fragShaderStageInfo.pNext = &mShaders.at("fragmentTexture");
       dynamicState.dynamicStateCount = 2;
       pipelineInfo.layout = mPipelineLayoutTexture;
       renderingInfo.depthAttachmentFormat = vk::Format::eUndefined;
@@ -1056,8 +1048,8 @@ void GPUDisplayBackendVulkan::createPipeline()
       bindingDescription.stride = 4 * sizeof(float);
       attributeDescriptions.format = vk::Format::eR32G32B32A32Sfloat;
       inputAssembly.topology = vk::PrimitiveTopology::eTriangleList;
-      vertShaderStageInfo.module = mShaders["vertexTexture"];
-      fragShaderStageInfo.module = mShaders["fragmentText"];
+      vertShaderStageInfo.pNext = &mShaders.at("vertexTexture");
+      fragShaderStageInfo.pNext = &mShaders.at("fragmentText");
       dynamicState.dynamicStateCount = 2;
       pipelineInfo.layout = mPipelineLayoutTexture;
       renderingInfo.depthAttachmentFormat = vk::Format::eUndefined;
@@ -1070,8 +1062,8 @@ void GPUDisplayBackendVulkan::createPipeline()
       const uint32_t drawIdx = i >= 5 ? i - 5 : i;
       inputAssembly.topology = types[drawIdx];
       rasterizer.pNext = mSmoothLines && (i == 1 || i == 2) ? &smoothLineState : nullptr;
-      vertShaderStageInfo.module = mShaders[i < 5 ? (drawIdx == 0 ? "vertexPoint" : "vertex") : (drawIdx == 0 ? "vertexSmoothPoint" : "vertexSmoothLine")];
-      fragShaderStageInfo.module = mShaders[i < 5 ? "fragment" : (drawIdx == 0 ? "fragmentSmoothPoint" : "fragmentSmoothLine")];
+      vertShaderStageInfo.pNext = &mShaders.at(i < 5 ? (drawIdx == 0 ? "vertexPoint" : "vertex") : (drawIdx == 0 ? "vertexSmoothPoint" : "vertexSmoothLine"));
+      fragShaderStageInfo.pNext = &mShaders.at(i < 5 ? "fragment" : (drawIdx == 0 ? "fragmentSmoothPoint" : "fragmentSmoothLine"));
       pipelineInfo.layout = mPipelineLayout;
       renderingInfo.depthAttachmentFormat = mZActive ? vk::Format::eD32Sfloat : vk::Format::eUndefined;
       pipelineInfo.pDepthStencilState = mZActive ? &depthStencil : nullptr;
@@ -1142,9 +1134,9 @@ void GPUDisplayBackendVulkan::clearPipeline()
 // ---------------------------- VULKAN SHADERS ----------------------------
 
 #define LOAD_SHADER(file, ext) \
-  mShaders[#file] = createShaderModule(_binary_vulkan_##file##_##ext##_spv_start, _binary_vulkan_##file##_##ext##_spv_len, mDevice)
+  mShaders[#file] = vk::ShaderModuleCreateInfo { {}, _binary_vulkan_##file##_##ext##_spv_len, reinterpret_cast<const uint32_t*>(_binary_vulkan_##file##_##ext##_spv_start) }
 
-void GPUDisplayBackendVulkan::createShaders()
+void GPUDisplayBackendVulkan::loadShaders()
 {
   LOAD_SHADER(vertex, vert);
   LOAD_SHADER(fragment, frag);
@@ -1156,11 +1148,6 @@ void GPUDisplayBackendVulkan::createShaders()
   LOAD_SHADER(vertexTexture, vert);
   LOAD_SHADER(fragmentTexture, frag);
   LOAD_SHADER(fragmentText, frag);
-}
-
-void GPUDisplayBackendVulkan::clearShaders()
-{
-  clearVector(mShaders, [&](auto& x) { mDevice.destroyShaderModule(x.second, nullptr); });
 }
 
 // ---------------------------- VULKAN BUFFERS ----------------------------
@@ -1299,7 +1286,7 @@ int32_t GPUDisplayBackendVulkan::InitBackendA()
   mFramesInFlight = mDisplay->cfg().vulkan.nFramesInFlight;
 
   createDevice();
-  createShaders();
+  loadShaders();
   createTextureSampler();
   createSwapChain();
   createOffscreenBuffers();
@@ -1325,7 +1312,6 @@ void GPUDisplayBackendVulkan::ExitBackendA()
     clearUniformLayoutsAndBuffers();
   }
   clearTextureSampler();
-  clearShaders();
   clearDevice();
 }
 
