@@ -35,7 +35,6 @@
 
 using namespace o2::gpu;
 
-#ifdef GPUCA_BUILD_EVENT_DISPLAY_OPENGL // Set by CMake if OpenGL 4.6 headers and glslc are available, runtime minimum version in GPUDisplayFrontend.h
 #define GPUCA_DISPLAY_SHADER_TYPE_OPENGL
 #include "GPUDisplayLoadShaders.h"
 
@@ -766,33 +765,3 @@ void GPUDisplayBackendOpenGL::updateRenderer(bool withScreenshot)
   createFB(mMixBuffer, true, true, false, mRenderWidth, mRenderHeight);
   setQuality();
 }
-
-#else  // GPUCA_BUILD_EVENT_DISPLAY_OPENGL
-GPUDisplayBackendOpenGL::GPUDisplayBackendOpenGL()
-{
-}
-int32_t GPUDisplayBackendOpenGL::checkShaderStatus(uint32_t shader) { return 0; }
-int32_t GPUDisplayBackendOpenGL::checkProgramStatus(uint32_t program) { return 0; }
-int32_t GPUDisplayBackendOpenGL::ExtInit() { throw std::runtime_error("Insufficnet OpenGL version"); }
-bool GPUDisplayBackendOpenGL::CoreProfile() { return false; }
-uint32_t GPUDisplayBackendOpenGL::DepthBits() { return 0; }
-uint32_t GPUDisplayBackendOpenGL::drawVertices(const vboList& v, const drawType t) { return 0; }
-void GPUDisplayBackendOpenGL::ActivateColor(std::array<float, 4>& color) {}
-void GPUDisplayBackendOpenGL::setQuality() {}
-void GPUDisplayBackendOpenGL::setDepthBuffer() {}
-int32_t GPUDisplayBackendOpenGL::InitBackendA() { throw std::runtime_error("Insufficnet OpenGL version"); }
-void GPUDisplayBackendOpenGL::ExitBackendA() {}
-void GPUDisplayBackendOpenGL::loadDataToGPU(size_t totalVertizes) {}
-void GPUDisplayBackendOpenGL::prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot, bool toMixBuffer, float includeMixImage) {}
-void GPUDisplayBackendOpenGL::resizeScene(uint32_t width, uint32_t height) {}
-void GPUDisplayBackendOpenGL::finishDraw(bool doScreenshot, bool toMixBuffer, float includeMixImage) {}
-void GPUDisplayBackendOpenGL::finishFrame(bool doScreenshot, bool toMixBuffer, float includeMixImage) {}
-void GPUDisplayBackendOpenGL::prepareText() {}
-void GPUDisplayBackendOpenGL::finishText() {}
-void GPUDisplayBackendOpenGL::pointSizeFactor(float factor) {}
-void GPUDisplayBackendOpenGL::lineWidthFactor(float factor) {}
-void GPUDisplayBackendOpenGL::addFontSymbol(int32_t symbol, int32_t sizex, int32_t sizey, int32_t offsetx, int32_t offsety, int32_t advance, void* data) {}
-void GPUDisplayBackendOpenGL::initializeTextDrawing() {}
-void GPUDisplayBackendOpenGL::clearFontSymbols() {}
-void GPUDisplayBackendOpenGL::OpenGLPrint(const char* s, float x, float y, float* color, float scale) {}
-#endif // GPUCA_BUILD_EVENT_DISPLAY_OPENGL

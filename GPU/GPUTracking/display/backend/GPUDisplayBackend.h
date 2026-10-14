@@ -22,10 +22,6 @@
 #include <memory>
 #include <vector>
 
-#if defined(GPUCA_DISPLAY_GL3W) && !defined(GPUCA_DISPLAY_OPENGL_CORE)
-#define GPUCA_DISPLAY_OPENGL_CORE
-#endif
-
 union hmm_mat4;
 
 namespace o2::gpu

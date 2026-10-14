@@ -32,8 +32,6 @@
 
 using namespace o2::gpu;
 
-#ifdef GPUCA_BUILD_EVENT_DISPLAY_OPENGL // Set by CMake, see GPUDisplayBackendOpenGL.cxx
-
 #define GPUCA_DISPLAY_SHADER_TYPE_OPENGL
 #include "GPUDisplayLoadShaders.h"
 
@@ -161,12 +159,3 @@ void GPUDisplayBackendOpenGL::ExitMagFieldVisualization()
   CHKERR(glDeleteBuffers(1, &VBO_field));
   CHKERR(glDeleteVertexArrays(1, &VAO_field));
 }
-
-#else  // GPUCA_BUILD_EVENT_DISPLAY_OPENGL
-int32_t GPUDisplayBackendOpenGL::InitMagFieldVisualization()
-{
-  return 0;
-}
-uint32_t GPUDisplayBackendOpenGL::drawField() { return 0; }
-void GPUDisplayBackendOpenGL::ExitMagFieldVisualization() {}
-#endif // GPUCA_BUILD_EVENT_DISPLAY_OPENGL
