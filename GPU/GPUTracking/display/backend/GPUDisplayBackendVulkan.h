@@ -163,6 +163,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   vk::PipelineLayout mPipelineLayoutTexture;
   std::vector<vk::Pipeline> mPipelines;
   vk::CommandPool mCommandPool;
+  vk::PipelineCache mPipelineCache;
 
   bool mCommandInfrastructureCreated = false;
   uint32_t mImageCount = 0;
@@ -211,7 +212,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   bool mZActive = false;
   bool mSmoothLinesSupported = false; // Optional Vulkan 1.4 feature smoothLines, enabled if available
   bool mSmoothLines = false;
-  bool mStrictLines = false; // Wide lines are rectangles, not parallelograms
+  bool mStrictLines = false;
   bool mZSupported = false;
   bool mStencilSupported = false;
   bool mDownsampleFSAA = false;
