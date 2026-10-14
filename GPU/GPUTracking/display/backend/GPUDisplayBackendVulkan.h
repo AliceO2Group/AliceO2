@@ -175,13 +175,9 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   std::vector<vk::CommandBuffer> mCommandBuffersText;
   std::vector<vk::CommandBuffer> mCommandBuffersTexture;
   std::vector<vk::CommandBuffer> mCommandBuffersMix;
-  std::vector<vk::SubmitInfo> mSubmitQueue;
+  std::vector<vk::CommandBuffer> mFrameCommandBuffers; // All command buffers of the current frame, submitted as one batch, ordered by render pass dependencies and barriers
   std::vector<bool> mCommandBufferUpToDate;
   std::vector<vk::Semaphore> mImageAvailableSemaphore;
-  std::vector<vk::Semaphore> mRenderFinishedSemaphore;
-  std::vector<vk::Semaphore> mTextFinishedSemaphore;
-  std::vector<vk::Semaphore> mMixFinishedSemaphore;
-  std::vector<vk::Semaphore> mDownsampleFinishedSemaphore;
   std::vector<vk::Semaphore> mPresentSemaphore;
   std::vector<vk::Fence> mInFlightFence;
   std::vector<vk::Fence> mImageFence;
