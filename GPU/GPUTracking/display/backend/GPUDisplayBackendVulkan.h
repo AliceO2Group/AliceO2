@@ -151,6 +151,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   std::vector<vk::Image> mSwapChainImages;
   std::vector<vk::ImageView> mSwapChainImageViews;
   std::vector<vk::ImageView*> mRenderTargetView;
+  std::vector<vk::Image> mRenderTargetImage;
   std::vector<VulkanImage> mMSAAImages;
   std::vector<VulkanImage> mDownsampleImages;
   std::vector<VulkanImage> mZImages;
@@ -158,13 +159,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   std::unordered_map<std::string, vk::ShaderModule> mShaders;
   vk::PipelineLayout mPipelineLayout;
   vk::PipelineLayout mPipelineLayoutTexture;
-  vk::RenderPass mRenderPass;
-  vk::RenderPass mRenderPassText;
-  vk::RenderPass mRenderPassTexture;
   std::vector<vk::Pipeline> mPipelines;
-  std::vector<vk::Framebuffer> mFramebuffers;
-  std::vector<vk::Framebuffer> mFramebuffersText;
-  std::vector<vk::Framebuffer> mFramebuffersTexture;
   vk::CommandPool mCommandPool;
 
   bool mCommandInfrastructureCreated = false;
@@ -180,7 +175,8 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   std::vector<vk::CommandBuffer> mCommandBuffersText;
   std::vector<vk::CommandBuffer> mCommandBuffersTexture;
   std::vector<vk::CommandBuffer> mCommandBuffersMix;
-  std::vector<vk::CommandBuffer> mFrameCommandBuffers; // All command buffers of the current frame, submitted as one batch, ordered by render pass dependencies and barriers
+  std::vector<vk::CommandBuffer> mCommandBuffersPresent;         // Pre-recorded per swapchain image: transition to ePresentSrcKHR, last in every frame
+  std::vector<vk::CommandBufferSubmitInfo> mFrameCommandBuffers; // All command buffers of the current frame, submitted as one batch, ordered by barriers
   std::vector<bool> mCommandBufferUpToDate;
   std::vector<vk::Semaphore> mImageAvailableSemaphore;
   std::vector<vk::Semaphore> mPresentSemaphore;

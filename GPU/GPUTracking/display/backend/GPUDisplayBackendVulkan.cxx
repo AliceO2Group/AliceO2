@@ -133,17 +133,21 @@ static vk::ShaderModule createShaderModule(const char* code, size_t size, vk::De
   return device.createShaderModule(createInfo, nullptr);
 }
 
-static void cmdImageMemoryBarrier(vk::CommandBuffer cmdbuffer, vk::Image image, vk::AccessFlags srcAccessMask, vk::AccessFlags dstAccessMask, vk::ImageLayout oldLayout, vk::ImageLayout newLayout, vk::PipelineStageFlags srcStageMask, vk::PipelineStageFlags dstStageMask)
+static void cmdImageMemoryBarrier(vk::CommandBuffer cmdbuffer, vk::Image image, vk::PipelineStageFlags2 srcStageMask, vk::AccessFlags2 srcAccessMask, vk::PipelineStageFlags2 dstStageMask, vk::AccessFlags2 dstAccessMask, vk::ImageLayout oldLayout, vk::ImageLayout newLayout, vk::ImageAspectFlags aspect = vk::ImageAspectFlagBits::eColor)
 {
-  vk::ImageSubresourceRange range{vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1};
-  vk::ImageMemoryBarrier barrier{};
-  barrier.srcAccessMask = srcAccessMask;
-  barrier.dstAccessMask = dstAccessMask;
-  barrier.oldLayout = oldLayout;
-  barrier.newLayout = newLayout;
-  barrier.image = image;
-  barrier.subresourceRange = range;
-  cmdbuffer.pipelineBarrier(srcStageMask, dstStageMask, {}, 0, nullptr, 0, nullptr, 1, &barrier);
+  vk::ImageMemoryBarrier2 barrier{srcStageMask, srcAccessMask, dstStageMask, dstAccessMask, oldLayout, newLayout, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, image, {aspect, 0, 1, 0, 1}};
+  cmdbuffer.pipelineBarrier2(vk::DependencyInfo{{}, 0, nullptr, 0, nullptr, 1, &barrier});
+}
+
+static void cmdBeginRendering(vk::CommandBuffer cmdbuffer, uint32_t width, uint32_t height, const vk::RenderingAttachmentInfo& color, const vk::RenderingAttachmentInfo* depth = nullptr)
+{
+  cmdbuffer.beginRendering(vk::RenderingInfo{{}, vk::Rect2D{{0, 0}, {width, height}}, 1, 0, 1, &color, depth});
+}
+
+static void cmdBeginRenderingLoad(vk::CommandBuffer cmdbuffer, vk::Image image, vk::ImageView view, uint32_t width, uint32_t height) // Render on top of the content of a color attachment written by a previous pass
+{
+  cmdImageMemoryBarrier(cmdbuffer, image, vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::AccessFlagBits2::eColorAttachmentWrite, vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::AccessFlagBits2::eColorAttachmentRead | vk::AccessFlagBits2::eColorAttachmentWrite, vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eColorAttachmentOptimal);
+  cmdBeginRendering(cmdbuffer, width, height, vk::RenderingAttachmentInfo{view, vk::ImageLayout::eColorAttachmentOptimal}); // loadOp eLoad, storeOp eStore
 }
 
 void GPUDisplayBackendVulkan::updateSwapChainDetails(const vk::PhysicalDevice& device)
@@ -173,24 +177,17 @@ uint64_t GPUDisplayBackendVulkan::queueSubmit(uint64_t* timelineSignalValue, Arg
   if (timelineSignalValue) {
     *timelineSignalValue = ++mTimelineValue;
   }
-  CHKERR(mGraphicsQueue.submit(std::forward<Args>(args)...));
+  CHKERR(mGraphicsQueue.submit2(std::forward<Args>(args)...));
   return mTimelineValue;
 }
 
 void GPUDisplayBackendVulkan::submitSingleTimeCommandBuffer(vk::CommandBuffer commandBuffer)
 {
   commandBuffer.end();
-  vk::SubmitInfo submitInfo{};
-  submitInfo.commandBufferCount = 1;
-  submitInfo.pCommandBuffers = &commandBuffer;
-  uint64_t signalValue;
-  vk::TimelineSemaphoreSubmitInfo timelineInfo{};
-  timelineInfo.signalSemaphoreValueCount = 1;
-  timelineInfo.pSignalSemaphoreValues = &signalValue;
-  submitInfo.pNext = &timelineInfo;
-  submitInfo.signalSemaphoreCount = 1;
-  submitInfo.pSignalSemaphores = &mTimelineSemaphore;
-  waitTimeline(queueSubmit(&signalValue, 1, &submitInfo, VkFence(VK_NULL_HANDLE)));
+  vk::CommandBufferSubmitInfo commandBufferInfo{commandBuffer};
+  vk::SemaphoreSubmitInfo signalInfo{mTimelineSemaphore, 0, vk::PipelineStageFlagBits2::eAllCommands};
+  vk::SubmitInfo2 submitInfo{{}, 0, nullptr, 1, &commandBufferInfo, 1, &signalInfo};
+  waitTimeline(queueSubmit(&signalInfo.value, 1, &submitInfo, VkFence(VK_NULL_HANDLE)));
   mDevice.freeCommandBuffers(mCommandPool, 1, &commandBuffer);
 }
 
@@ -501,6 +498,7 @@ void GPUDisplayBackendVulkan::createDevice()
   auto& reqFeatures10 = reqDeviceFeatures.get<vk::PhysicalDeviceFeatures2>().features;
   reqFeatures10.geometryShader = reqFeatures10.wideLines = reqFeatures10.largePoints = reqFeatures10.multiDrawIndirect = VK_TRUE;
   reqDeviceFeatures.get<vk::PhysicalDeviceVulkan12Features>().timelineSemaphore = VK_TRUE;
+  reqDeviceFeatures.get<vk::PhysicalDeviceVulkan13Features>().dynamicRendering = reqDeviceFeatures.get<vk::PhysicalDeviceVulkan13Features>().synchronization2 = VK_TRUE;
   reqDeviceFeatures.get<vk::PhysicalDeviceSwapchainMaintenance1FeaturesKHR>().swapchainMaintenance1 = VK_TRUE;
   reqDeviceFeatures.get<vk::PhysicalDevicePresentIdFeaturesKHR>().presentId = VK_TRUE;
   reqDeviceFeatures.get<vk::PhysicalDevicePresentWaitFeaturesKHR>().presentWait = VK_TRUE;
@@ -594,6 +592,7 @@ void GPUDisplayBackendVulkan::createCommandBuffers()
   mCommandBuffersTexture = mDevice.allocateCommandBuffers(allocInfo);
   mCommandBuffersDownsample = mDevice.allocateCommandBuffers(allocInfo);
   mCommandBuffersMix = mDevice.allocateCommandBuffers(allocInfo);
+  mCommandBuffersPresent = mDevice.allocateCommandBuffers(allocInfo);
 }
 
 void GPUDisplayBackendVulkan::clearCommandBuffers()
@@ -603,6 +602,7 @@ void GPUDisplayBackendVulkan::clearCommandBuffers()
   mDevice.freeCommandBuffers(mCommandPool, mCommandBuffersTexture.size(), mCommandBuffersTexture.data());
   mDevice.freeCommandBuffers(mCommandPool, mCommandBuffersDownsample.size(), mCommandBuffersDownsample.data());
   mDevice.freeCommandBuffers(mCommandPool, mCommandBuffersMix.size(), mCommandBuffersMix.data());
+  mDevice.freeCommandBuffers(mCommandPool, mCommandBuffersPresent.size(), mCommandBuffersPresent.data());
 }
 
 // ---------------------------- VULKAN SEMAPHORES AND FENCES ----------------------------
@@ -834,6 +834,10 @@ void GPUDisplayBackendVulkan::createSwapChain(bool forScreenshot, bool forMixing
   mSwapChainImageViews.resize(mImageCount);
   for (uint32_t i = 0; i < mImageCount; i++) {
     mSwapChainImageViews[i] = createImageViewI(mDevice, mSwapChainImages[i], mSurfaceFormat.format);
+    mCommandBuffersPresent[i].reset({});
+    mCommandBuffersPresent[i].begin(vk::CommandBufferBeginInfo{});
+    cmdImageMemoryBarrier(mCommandBuffersPresent[i], mSwapChainImages[i], vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::AccessFlagBits2::eColorAttachmentWrite, vk::PipelineStageFlagBits2::eNone, vk::AccessFlagBits2::eNone, vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::ePresentSrcKHR);
+    mCommandBuffersPresent[i].end();
   }
 }
 
@@ -869,82 +873,9 @@ void GPUDisplayBackendVulkan::createOffscreenBuffers(bool forScreenshot, bool fo
   mZActive = mZSupported && mDisplay->cfgL().depthBuffer;
   mMixingSupported = forMixing;
 
-  vk::AttachmentDescription colorAttachment{};
-  colorAttachment.format = mSurfaceFormat.format;
-  colorAttachment.samples = mMSAASampleCount;
-  colorAttachment.loadOp = vk::AttachmentLoadOp::eClear;
-  colorAttachment.storeOp = vk::AttachmentStoreOp::eStore;
-  colorAttachment.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
-  colorAttachment.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-  colorAttachment.initialLayout = vk::ImageLayout::eUndefined;
-  colorAttachment.finalLayout = (mMSAASampleCount != vk::SampleCountFlagBits::e1 || mDownsampleFSAA) ? vk::ImageLayout::eColorAttachmentOptimal : vk::ImageLayout::ePresentSrcKHR;
-  vk::AttachmentDescription depthAttachment{};
-  depthAttachment.format = vk::Format::eD32Sfloat;
-  depthAttachment.samples = mMSAASampleCount;
-  depthAttachment.loadOp = vk::AttachmentLoadOp::eClear;
-  depthAttachment.storeOp = vk::AttachmentStoreOp::eDontCare;
-  depthAttachment.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
-  depthAttachment.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-  depthAttachment.initialLayout = vk::ImageLayout::eUndefined;
-  depthAttachment.finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
-  vk::AttachmentDescription colorAttachmentResolve{};
-  colorAttachmentResolve.format = mSurfaceFormat.format;
-  colorAttachmentResolve.samples = vk::SampleCountFlagBits::e1;
-  colorAttachmentResolve.loadOp = vk::AttachmentLoadOp::eDontCare;
-  colorAttachmentResolve.storeOp = vk::AttachmentStoreOp::eStore;
-  colorAttachmentResolve.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
-  colorAttachmentResolve.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-  colorAttachmentResolve.initialLayout = vk::ImageLayout::eUndefined;
-  colorAttachmentResolve.finalLayout = mDownsampleFSAA ? vk::ImageLayout::eColorAttachmentOptimal : vk::ImageLayout::ePresentSrcKHR;
-  int32_t nAttachments = 0;
-  vk::AttachmentReference colorAttachmentRef{};
-  colorAttachmentRef.attachment = nAttachments++;
-  colorAttachmentRef.layout = vk::ImageLayout::eColorAttachmentOptimal;
-  vk::AttachmentReference depthAttachmentRef{};
-  depthAttachmentRef.layout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
-  vk::AttachmentReference colorAttachmentResolveRef{};
-  colorAttachmentResolveRef.layout = vk::ImageLayout::eColorAttachmentOptimal;
-  vk::SubpassDescription subpass{};
-  subpass.pipelineBindPoint = vk::PipelineBindPoint::eGraphics;
-  subpass.colorAttachmentCount = 1;
-  subpass.pColorAttachments = &colorAttachmentRef;
-  std::array<vk::SubpassDependency, 2> dependencies{};
-  dependencies[0].srcSubpass = dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
-  dependencies[0].dstSubpass = 0;
-  dependencies[0].srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eEarlyFragmentTests | vk::PipelineStageFlagBits::eLateFragmentTests | vk::PipelineStageFlagBits::eTransfer | vk::PipelineStageFlagBits::eFragmentShader; // Includes eColorAttachmentOutput, the wait stage of the image acquire semaphore
-  dependencies[0].srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eDepthStencilAttachmentWrite | vk::AccessFlagBits::eTransferWrite;
-  dependencies[0].dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eEarlyFragmentTests | vk::PipelineStageFlagBits::eLateFragmentTests;
-  dependencies[0].dstAccessMask = vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
-  dependencies[1].srcSubpass = 0;
-  dependencies[1].srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eLateFragmentTests;
-  dependencies[1].srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
-  dependencies[1].dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eTransfer | vk::PipelineStageFlagBits::eFragmentShader;
-  dependencies[1].dstAccessMask = vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eTransferRead | vk::AccessFlagBits::eShaderRead;
-
-  std::vector<vk::AttachmentDescription> attachments = {colorAttachment};
-  if (mZActive) {
-    attachments.emplace_back(depthAttachment);
-    depthAttachmentRef.attachment = nAttachments++;
-    subpass.pDepthStencilAttachment = &depthAttachmentRef;
-  }
-  if (mMSAASampleCount != vk::SampleCountFlagBits::e1) {
-    attachments.emplace_back(colorAttachmentResolve);
-    colorAttachmentResolveRef.attachment = nAttachments++;
-    subpass.pResolveAttachments = &colorAttachmentResolveRef;
-  }
-
-  vk::RenderPassCreateInfo renderPassInfo{};
-  renderPassInfo.attachmentCount = attachments.size();
-  renderPassInfo.pAttachments = attachments.data();
-  renderPassInfo.subpassCount = 1;
-  renderPassInfo.pSubpasses = &subpass;
-  renderPassInfo.dependencyCount = dependencies.size();
-  renderPassInfo.pDependencies = dependencies.data();
-  mRenderPass = mDevice.createRenderPass(renderPassInfo, nullptr);
-
   const uint32_t imageCountWithMixImages = mImageCount * (mMixingSupported ? 2 : 1);
   mRenderTargetView.resize(imageCountWithMixImages);
-  mFramebuffers.resize(imageCountWithMixImages);
+  mRenderTargetImage.resize(imageCountWithMixImages);
   if (mDownsampleFSAA) {
     mDownsampleImages.resize(imageCountWithMixImages);
   }
@@ -954,35 +885,8 @@ void GPUDisplayBackendVulkan::createOffscreenBuffers(bool forScreenshot, bool fo
   if (mZActive) {
     mZImages.resize(imageCountWithMixImages);
   }
-  if (mMSAASampleCount != vk::SampleCountFlagBits::e1 || mZActive || mDownsampleFSAA) {
-    mFramebuffersText.resize(mImageCount);
-  }
-  if (mMixingSupported) {
-    if (mMSAASampleCount != vk::SampleCountFlagBits::e1 || mZActive || mDownsampleFSAA) {
-      mFramebuffersTexture.resize(mImageCount);
-    }
-    if (!mDownsampleFSAA) {
-      mMixImages.resize(mImageCount);
-    }
-  }
-
-  // Text overlay goes as extra rendering path
-  renderPassInfo.attachmentCount = 1; // Remove depth and MSAA attachments
-  renderPassInfo.pAttachments = &colorAttachment;
-  subpass.pDepthStencilAttachment = nullptr;
-  subpass.pResolveAttachments = nullptr;
-  colorAttachment.loadOp = vk::AttachmentLoadOp::eLoad;            // Don't clear the frame buffer
-  colorAttachment.initialLayout = vk::ImageLayout::ePresentSrcKHR; // Initial layout is not undefined after 1st pass
-  colorAttachment.samples = vk::SampleCountFlagBits::e1;           // No MSAA for Text
-  colorAttachment.finalLayout = vk::ImageLayout::ePresentSrcKHR;   // Might have been overwritten above for 1st pass in case of MSAA
-  mRenderPassText = mDevice.createRenderPass(renderPassInfo, nullptr);
-
-  if (mMixingSupported) {
-    if (mDownsampleFSAA) {
-      colorAttachment.initialLayout = vk::ImageLayout::eColorAttachmentOptimal;
-      colorAttachment.finalLayout = mDownsampleFSAA ? vk::ImageLayout::eColorAttachmentOptimal : vk::ImageLayout::ePresentSrcKHR;
-    }
-    mRenderPassTexture = mDevice.createRenderPass(renderPassInfo, nullptr);
+  if (mMixingSupported && !mDownsampleFSAA) {
+    mMixImages.resize(mImageCount);
   }
 
   for (uint32_t i = 0; i < imageCountWithMixImages; i++) {
@@ -992,56 +896,23 @@ void GPUDisplayBackendVulkan::createOffscreenBuffers(bool forScreenshot, bool fo
       createImageI(mDevice, mPhysicalDevice, mMixImages[i - mImageCount].image, mMixImages[i - mImageCount].memory, mRenderWidth, mRenderHeight, mSurfaceFormat.format, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled, vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageTiling::eOptimal);
       mMixImages[i - mImageCount].view = createImageViewI(mDevice, mMixImages[i - mImageCount].image, mSurfaceFormat.format, vk::ImageAspectFlagBits::eColor, 1);
     }
-    std::vector<vk::ImageView> att;
     if (mDownsampleFSAA) {
       vk::ImageUsageFlags usage = vk::ImageUsageFlagBits::eColorAttachment | (i >= mImageCount ? vk::ImageUsageFlagBits::eSampled : vk::ImageUsageFlagBits::eTransferSrc);
       createImageI(mDevice, mPhysicalDevice, mDownsampleImages[i].image, mDownsampleImages[i].memory, mRenderWidth, mRenderHeight, mSurfaceFormat.format, usage, vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageTiling::eOptimal);
       mDownsampleImages[i].view = createImageViewI(mDevice, mDownsampleImages[i].image, mSurfaceFormat.format, vk::ImageAspectFlagBits::eColor, 1);
       mRenderTargetView[i] = &mDownsampleImages[i].view;
+      mRenderTargetImage[i] = mDownsampleImages[i].image;
     } else {
       mRenderTargetView[i] = i < mImageCount ? &mSwapChainImageViews[i] : &mMixImages[i - mImageCount].view;
+      mRenderTargetImage[i] = i < mImageCount ? mSwapChainImages[i] : mMixImages[i - mImageCount].image;
     }
-    if (mMSAASampleCount != vk::SampleCountFlagBits::e1) { // First attachment is the render target, either the MSAA buffer or the framebuffer
+    if (mMSAASampleCount != vk::SampleCountFlagBits::e1) {
       createImageI(mDevice, mPhysicalDevice, mMSAAImages[i].image, mMSAAImages[i].memory, mRenderWidth, mRenderHeight, mSurfaceFormat.format, vk::ImageUsageFlagBits::eColorAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageTiling::eOptimal, mMSAASampleCount);
       mMSAAImages[i].view = createImageViewI(mDevice, mMSAAImages[i].image, mSurfaceFormat.format, vk::ImageAspectFlagBits::eColor, 1);
-      att.emplace_back(mMSAAImages[i].view);
-    } else {
-      att.emplace_back(*mRenderTargetView[i]);
     }
     if (mZActive) {
       createImageI(mDevice, mPhysicalDevice, mZImages[i].image, mZImages[i].memory, mRenderWidth, mRenderHeight, vk::Format::eD32Sfloat, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageTiling::eOptimal, mMSAASampleCount);
       mZImages[i].view = createImageViewI(mDevice, mZImages[i].image, vk::Format::eD32Sfloat, vk::ImageAspectFlagBits::eDepth, 1);
-      att.emplace_back(mZImages[i].view);
-    }
-    if (mMSAASampleCount != vk::SampleCountFlagBits::e1) { // If we use MSAA, we have to resolve to the framebuffer as the last target
-      att.emplace_back(*mRenderTargetView[i]);
-    }
-
-    vk::FramebufferCreateInfo framebufferInfo{};
-    framebufferInfo.renderPass = mRenderPass;
-    framebufferInfo.attachmentCount = att.size();
-    framebufferInfo.pAttachments = att.data();
-    framebufferInfo.width = mRenderWidth;
-    framebufferInfo.height = mRenderHeight;
-    framebufferInfo.layers = 1;
-    mFramebuffers[i] = mDevice.createFramebuffer(framebufferInfo, nullptr);
-
-    if (i < mImageCount && mFramebuffersText.size()) {
-      framebufferInfo.attachmentCount = 1;
-      framebufferInfo.pAttachments = &mSwapChainImageViews[i];
-      framebufferInfo.renderPass = mRenderPassText;
-      framebufferInfo.width = mScreenWidth;
-      framebufferInfo.height = mScreenHeight;
-      mFramebuffersText[i] = mDevice.createFramebuffer(framebufferInfo, nullptr);
-    }
-
-    if (i >= mImageCount && mFramebuffersTexture.size()) {
-      framebufferInfo.attachmentCount = 1;
-      framebufferInfo.pAttachments = mRenderTargetView[i - mImageCount];
-      framebufferInfo.renderPass = mRenderPassTexture;
-      framebufferInfo.width = mRenderWidth;
-      framebufferInfo.height = mRenderHeight;
-      mFramebuffersTexture[i - mImageCount] = mDevice.createFramebuffer(framebufferInfo, nullptr);
     }
   }
 
@@ -1065,17 +936,11 @@ void GPUDisplayBackendVulkan::createOffscreenBuffers(bool forScreenshot, bool fo
 
 void GPUDisplayBackendVulkan::clearOffscreenBuffers()
 {
-  clearVector(mFramebuffers, [&](auto& x) { mDevice.destroyFramebuffer(x, nullptr); });
   clearVector(mMSAAImages, [&](auto& x) { clearImage(x); });
   clearVector(mDownsampleImages, [&](auto& x) { clearImage(x); });
   clearVector(mZImages, [&](auto& x) { clearImage(x); });
   clearVector(mMixImages, [&](auto& x) { clearImage(x); });
-  clearVector(mFramebuffersText, [&](auto& x) { mDevice.destroyFramebuffer(x, nullptr); });
-  clearVector(mFramebuffersTexture, [&](auto& x) { mDevice.destroyFramebuffer(x, nullptr); });
-  mDevice.destroyRenderPass(mRenderPass, nullptr);
-  mDevice.destroyRenderPass(mRenderPassText, nullptr);
   if (mMixingSupported) {
-    mDevice.destroyRenderPass(mRenderPassTexture, nullptr);
     clearBuffer(mMixingTextureVertexArray);
   }
 }
@@ -1213,8 +1078,8 @@ void GPUDisplayBackendVulkan::createPipeline()
   pipelineInfo.pColorBlendState = &colorBlending;
   pipelineInfo.pDynamicState = &dynamicState;
   // pipelineInfo.layout // below
-  // pipelineInfo.renderPass // below
-  pipelineInfo.subpass = 0;
+  vk::PipelineRenderingCreateInfo renderingInfo{0, 1, &mSurfaceFormat.format};
+  pipelineInfo.pNext = &renderingInfo;
   pipelineInfo.pStages = shaderStages;
   pipelineInfo.basePipelineHandle = VkPipeline(VK_NULL_HANDLE); // Optional
   pipelineInfo.basePipelineIndex = -1;                          // Optional
@@ -1229,7 +1094,7 @@ void GPUDisplayBackendVulkan::createPipeline()
       vertShaderStageInfo.module = mShaders["vertexTexture"];
       fragShaderStageInfo.module = mShaders["fragmentTexture"];
       pipelineInfo.layout = mPipelineLayoutTexture;
-      pipelineInfo.renderPass = mRenderPassTexture;
+      renderingInfo.depthAttachmentFormat = vk::Format::eUndefined;
       pipelineInfo.pDepthStencilState = nullptr;
       colorBlendAttachment.blendEnable = true;
       multisampling.rasterizationSamples = vk::SampleCountFlagBits::e1;
@@ -1242,7 +1107,7 @@ void GPUDisplayBackendVulkan::createPipeline()
       vertShaderStageInfo.module = mShaders["vertexTexture"];
       fragShaderStageInfo.module = mShaders["fragmentText"];
       pipelineInfo.layout = mPipelineLayoutTexture;
-      pipelineInfo.renderPass = mRenderPassText;
+      renderingInfo.depthAttachmentFormat = vk::Format::eUndefined;
       pipelineInfo.pDepthStencilState = nullptr;
       colorBlendAttachment.blendEnable = true;
       multisampling.rasterizationSamples = vk::SampleCountFlagBits::e1;
@@ -1255,7 +1120,7 @@ void GPUDisplayBackendVulkan::createPipeline()
       vertShaderStageInfo.module = mShaders[types[i] == vk::PrimitiveTopology::ePointList ? "vertexPoint" : "vertex"];
       fragShaderStageInfo.module = mShaders["fragment"];
       pipelineInfo.layout = mPipelineLayout;
-      pipelineInfo.renderPass = mRenderPass;
+      renderingInfo.depthAttachmentFormat = mZActive ? vk::Format::eD32Sfloat : vk::Format::eUndefined;
       pipelineInfo.pDepthStencilState = mZActive ? &depthStencil : nullptr;
       colorBlendAttachment.blendEnable = true;
       multisampling.rasterizationSamples = mMSAASampleCount;
@@ -1275,18 +1140,32 @@ void GPUDisplayBackendVulkan::startFillCommandBuffer(vk::CommandBuffer& commandB
   beginInfo.flags = {};
   commandBuffer.begin(beginInfo);
 
-  vk::ClearValue clearValues[2];
-  clearValues[0].color = mDisplay->cfgL().invertColors ? vk::ClearColorValue{std::array<float, 4>{1.0f, 1.0f, 1.0f, 1.0f}} : vk::ClearColorValue{std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f}};
-  clearValues[1].depthStencil = vk::ClearDepthStencilValue{{1.0f, 0}};
+  const uint32_t idx = toMixBuffer ? imageIndex + mImageCount : imageIndex;
+  const bool msaa = mMSAASampleCount != vk::SampleCountFlagBits::e1;
+  const vk::PipelineStageFlags2 prevStages = vk::PipelineStageFlagBits2::eColorAttachmentOutput | vk::PipelineStageFlagBits2::eTransfer | vk::PipelineStageFlagBits2::eFragmentShader; // Previous use of the render target (rendering, blit, mix texture), and the wait stage of the acquire semaphore
+  cmdImageMemoryBarrier(commandBuffer, mRenderTargetImage[idx], prevStages, vk::AccessFlagBits2::eColorAttachmentWrite | vk::AccessFlagBits2::eTransferWrite, vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::AccessFlagBits2::eColorAttachmentWrite, vk::ImageLayout::eUndefined, vk::ImageLayout::eColorAttachmentOptimal);
+  if (msaa) {
+    cmdImageMemoryBarrier(commandBuffer, mMSAAImages[idx].image, vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::AccessFlagBits2::eColorAttachmentWrite, vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::AccessFlagBits2::eColorAttachmentWrite, vk::ImageLayout::eUndefined, vk::ImageLayout::eColorAttachmentOptimal);
+  }
+  if (mZActive) {
+    const vk::PipelineStageFlags2 depthStages = vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests;
+    cmdImageMemoryBarrier(commandBuffer, mZImages[idx].image, depthStages, vk::AccessFlagBits2::eDepthStencilAttachmentWrite, depthStages, vk::AccessFlagBits2::eDepthStencilAttachmentRead | vk::AccessFlagBits2::eDepthStencilAttachmentWrite, vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthStencilAttachmentOptimal, vk::ImageAspectFlagBits::eDepth);
+  }
 
-  vk::RenderPassBeginInfo renderPassInfo{};
-  renderPassInfo.renderPass = mRenderPass;
-  renderPassInfo.framebuffer = toMixBuffer ? mFramebuffers[imageIndex + mImageCount] : mFramebuffers[imageIndex];
-  renderPassInfo.renderArea.offset = vk::Offset2D{0, 0};
-  renderPassInfo.renderArea.extent = vk::Extent2D{mRenderWidth, mRenderHeight};
-  renderPassInfo.clearValueCount = mZActive ? 2 : 1;
-  renderPassInfo.pClearValues = clearValues;
-  commandBuffer.beginRenderPass(&renderPassInfo, vk::SubpassContents::eInline);
+  vk::RenderingAttachmentInfo colorAttachment{msaa ? mMSAAImages[idx].view : *mRenderTargetView[idx], vk::ImageLayout::eColorAttachmentOptimal};
+  colorAttachment.loadOp = vk::AttachmentLoadOp::eClear;
+  colorAttachment.storeOp = msaa ? vk::AttachmentStoreOp::eDontCare : vk::AttachmentStoreOp::eStore;
+  colorAttachment.clearValue.color = mDisplay->cfgL().invertColors ? vk::ClearColorValue{std::array<float, 4>{1.0f, 1.0f, 1.0f, 1.0f}} : vk::ClearColorValue{std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f}};
+  if (msaa) {
+    colorAttachment.resolveMode = vk::ResolveModeFlagBits::eAverage;
+    colorAttachment.resolveImageView = *mRenderTargetView[idx];
+    colorAttachment.resolveImageLayout = vk::ImageLayout::eColorAttachmentOptimal;
+  }
+  vk::RenderingAttachmentInfo depthAttachment{mZActive ? mZImages[idx].view : vk::ImageView{}, vk::ImageLayout::eDepthStencilAttachmentOptimal};
+  depthAttachment.loadOp = vk::AttachmentLoadOp::eClear;
+  depthAttachment.storeOp = vk::AttachmentStoreOp::eDontCare;
+  depthAttachment.clearValue.depthStencil = vk::ClearDepthStencilValue{1.0f, 0};
+  cmdBeginRendering(commandBuffer, mRenderWidth, mRenderHeight, colorAttachment, mZActive ? &depthAttachment : nullptr);
 
   vk::DeviceSize offsets[] = {0};
   commandBuffer.bindVertexBuffers(0, 1, &mVBO.buffer, offsets);
@@ -1295,7 +1174,7 @@ void GPUDisplayBackendVulkan::startFillCommandBuffer(vk::CommandBuffer& commandB
 
 void GPUDisplayBackendVulkan::endFillCommandBuffer(vk::CommandBuffer& commandBuffer)
 {
-  commandBuffer.endRenderPass();
+  commandBuffer.endRendering();
   commandBuffer.end();
 }
 
@@ -1418,7 +1297,7 @@ void GPUDisplayBackendVulkan::writeToImage(VulkanImage& image, const void* srcDa
   auto tmp = createBuffer(srcSize, srcData, vk::BufferUsageFlagBits::eTransferSrc, 0);
 
   vk::CommandBuffer commandBuffer = getSingleTimeCommandBuffer();
-  cmdImageMemoryBarrier(commandBuffer, image.image, {}, vk::AccessFlagBits::eTransferWrite, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal, vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eTransfer);
+  cmdImageMemoryBarrier(commandBuffer, image.image, vk::PipelineStageFlagBits2::eNone, vk::AccessFlagBits2::eNone, vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferWrite, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
   vk::BufferImageCopy region{};
   region.bufferOffset = 0;
   region.bufferRowLength = 0;
@@ -1430,7 +1309,7 @@ void GPUDisplayBackendVulkan::writeToImage(VulkanImage& image, const void* srcDa
   region.imageOffset = vk::Offset3D{0, 0, 0};
   region.imageExtent = vk::Extent3D{image.sizex, image.sizey, 1};
   commandBuffer.copyBufferToImage(tmp.buffer, image.image, vk::ImageLayout::eTransferDstOptimal, 1, &region);
-  cmdImageMemoryBarrier(commandBuffer, image.image, vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader);
+  cmdImageMemoryBarrier(commandBuffer, image.image, vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferWrite, vk::PipelineStageFlagBits2::eFragmentShader, vk::AccessFlagBits2::eShaderSampledRead, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
   submitSingleTimeCommandBuffer(commandBuffer);
 
   clearBuffer(tmp);
@@ -1617,38 +1496,31 @@ void GPUDisplayBackendVulkan::finishFrame(bool doScreenshot, bool toMixBuffer, f
       mFrameCommandBuffers.emplace_back(mCommandBuffersDownsample[mCurrentImageIndex]);
     }
 
-    vk::PipelineStageFlags waitStage = vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eTransfer;
-    vk::SubmitInfo submitInfo{};
-    submitInfo.waitSemaphoreCount = 1;
-    submitInfo.pWaitSemaphores = &mImageAvailableSemaphore[mCurrentFrame];
-    submitInfo.pWaitDstStageMask = &waitStage;
+    vk::SemaphoreSubmitInfo waitInfo{mImageAvailableSemaphore[mCurrentFrame], 0, vk::PipelineStageFlagBits2::eColorAttachmentOutput | vk::PipelineStageFlagBits2::eTransfer};
+    vk::SubmitInfo2 submitInfo{{}, 1, &waitInfo};
     if (doScreenshot) {
-      submitInfo.commandBufferCount = mFrameCommandBuffers.size();
-      submitInfo.pCommandBuffers = mFrameCommandBuffers.data();
+      submitInfo.commandBufferInfoCount = mFrameCommandBuffers.size();
+      submitInfo.pCommandBufferInfos = mFrameCommandBuffers.data();
       queueSubmit(nullptr, 1, &submitInfo, VkFence(VK_NULL_HANDLE));
       mDevice.waitIdle();
       if (mDisplay->cfgR().screenshotScaleFactor != 1) {
-        readImageToPixels(mDownsampleImages[mCurrentImageIndex].image, vk::ImageLayout::eColorAttachmentOptimal, mScreenshotPixels);
+        readImageToPixels(mDownsampleImages[mCurrentImageIndex].image, vk::ImageLayout::eTransferSrcOptimal, mScreenshotPixels);
       } else {
-        readImageToPixels(mSwapChainImages[mCurrentImageIndex], vk::ImageLayout::ePresentSrcKHR, mScreenshotPixels);
+        readImageToPixels(mSwapChainImages[mCurrentImageIndex], vk::ImageLayout::eColorAttachmentOptimal, mScreenshotPixels);
       }
       mFrameCommandBuffers.clear();
-      submitInfo.waitSemaphoreCount = 0;
+      submitInfo.waitSemaphoreInfoCount = 0;
     }
     if (mHasDrawnText) {
       mFrameCommandBuffers.emplace_back(mCommandBuffersText[mCurrentImageIndex]);
     }
-    submitInfo.commandBufferCount = mFrameCommandBuffers.size();
-    submitInfo.pCommandBuffers = mFrameCommandBuffers.data();
-    const vk::Semaphore signalSemaphores[2] = {mPresentSemaphore[mCurrentImageIndex], mTimelineSemaphore};
-    uint64_t signalValues[2] = {0, 0}; // First value ignored for the binary present semaphore
-    vk::TimelineSemaphoreSubmitInfo timelineInfo{};
-    timelineInfo.signalSemaphoreValueCount = 2;
-    timelineInfo.pSignalSemaphoreValues = signalValues;
-    submitInfo.pNext = &timelineInfo;
-    submitInfo.signalSemaphoreCount = 2;
-    submitInfo.pSignalSemaphores = signalSemaphores;
-    mFrameTimelineValue[mCurrentFrame] = mImageTimelineValue[mCurrentImageIndex] = queueSubmit(&signalValues[1], 1, &submitInfo, VkFence(VK_NULL_HANDLE));
+    mFrameCommandBuffers.emplace_back(mCommandBuffersPresent[mCurrentImageIndex]);
+    submitInfo.commandBufferInfoCount = mFrameCommandBuffers.size();
+    submitInfo.pCommandBufferInfos = mFrameCommandBuffers.data();
+    vk::SemaphoreSubmitInfo signalInfos[2] = {{mPresentSemaphore[mCurrentImageIndex], 0, vk::PipelineStageFlagBits2::eAllCommands}, {mTimelineSemaphore, 0, vk::PipelineStageFlagBits2::eAllCommands}};
+    submitInfo.signalSemaphoreInfoCount = 2;
+    submitInfo.pSignalSemaphoreInfos = signalInfos;
+    mFrameTimelineValue[mCurrentFrame] = mImageTimelineValue[mCurrentImageIndex] = queueSubmit(&signalInfos[1].value, 1, &submitInfo, VkFence(VK_NULL_HANDLE));
 
     vk::PresentInfoKHR presentInfo{};
     presentInfo.waitSemaphoreCount = 1;
@@ -1673,8 +1545,8 @@ void GPUDisplayBackendVulkan::downsampleToFramebuffer(vk::CommandBuffer& command
   beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
   commandBuffer.begin(beginInfo);
 
-  cmdImageMemoryBarrier(commandBuffer, mSwapChainImages[mCurrentImageIndex], {}, vk::AccessFlagBits::eTransferWrite, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer);
-  cmdImageMemoryBarrier(commandBuffer, mDownsampleImages[mCurrentImageIndex].image, vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eTransferRead, vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eTransferSrcOptimal, vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eTransfer);
+  cmdImageMemoryBarrier(commandBuffer, mSwapChainImages[mCurrentImageIndex], vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eNone, vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferWrite, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal); // Src stage chains with the acquire semaphore wait
+  cmdImageMemoryBarrier(commandBuffer, mDownsampleImages[mCurrentImageIndex].image, vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::AccessFlagBits2::eColorAttachmentWrite, vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferRead, vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eTransferSrcOptimal);
 
   vk::Offset3D blitSizeSrc;
   blitSizeSrc.x = mRenderWidth;
@@ -1693,8 +1565,7 @@ void GPUDisplayBackendVulkan::downsampleToFramebuffer(vk::CommandBuffer& command
   imageBlitRegion.dstOffsets[1] = blitSizeDst;
   commandBuffer.blitImage(mDownsampleImages[mCurrentImageIndex].image, vk::ImageLayout::eTransferSrcOptimal, mSwapChainImages[mCurrentImageIndex], vk::ImageLayout::eTransferDstOptimal, 1, &imageBlitRegion, vk::Filter::eLinear);
 
-  cmdImageMemoryBarrier(commandBuffer, mSwapChainImages[mCurrentImageIndex], vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eColorAttachmentOutput); // Next: text pass, or present (ordered by the present semaphore)
-  cmdImageMemoryBarrier(commandBuffer, mDownsampleImages[mCurrentImageIndex].image, {}, vk::AccessFlagBits::eColorAttachmentWrite, vk::ImageLayout::eUndefined, vk::ImageLayout::eColorAttachmentOptimal, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eColorAttachmentOutput);                                                                     // Next frame renders into it again
+  cmdImageMemoryBarrier(commandBuffer, mSwapChainImages[mCurrentImageIndex], vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferWrite, vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::AccessFlagBits2::eColorAttachmentRead | vk::AccessFlagBits2::eColorAttachmentWrite, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eColorAttachmentOptimal); // Next: text pass and / or present transition
 
   commandBuffer.end();
 }
@@ -1720,13 +1591,7 @@ void GPUDisplayBackendVulkan::finishText()
   beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
   mCommandBuffersText[mCurrentImageIndex].begin(beginInfo);
 
-  vk::RenderPassBeginInfo renderPassInfo{};
-  renderPassInfo.renderPass = mRenderPassText;
-  renderPassInfo.framebuffer = mFramebuffersText.size() ? mFramebuffersText[mCurrentImageIndex] : mFramebuffers[mCurrentImageIndex];
-  renderPassInfo.renderArea.offset = vk::Offset2D{0, 0};
-  renderPassInfo.renderArea.extent = vk::Extent2D{mScreenWidth, mScreenHeight};
-  renderPassInfo.clearValueCount = 0;
-  mCommandBuffersText[mCurrentImageIndex].beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
+  cmdBeginRenderingLoad(mCommandBuffersText[mCurrentImageIndex], mSwapChainImages[mCurrentImageIndex], mSwapChainImageViews[mCurrentImageIndex], mScreenWidth, mScreenHeight);
 
   if (mFontVertexBuffer[mCurrentImageIndex].size) {
     clearBuffer(mFontVertexBuffer[mCurrentImageIndex]);
@@ -1745,7 +1610,7 @@ void GPUDisplayBackendVulkan::finishText()
 
   mFontVertexBufferHost.clear();
 
-  mCommandBuffersText[mCurrentImageIndex].endRenderPass();
+  mCommandBuffersText[mCurrentImageIndex].endRendering();
   mCommandBuffersText[mCurrentImageIndex].end();
 }
 
@@ -1760,16 +1625,8 @@ void GPUDisplayBackendVulkan::mixImages(vk::CommandBuffer commandBuffer, float m
   commandBuffer.begin(beginInfo);
 
   vk::Image& image = mDownsampleFSAA ? mDownsampleImages[mCurrentImageIndex + mImageCount].image : mMixImages[mCurrentImageIndex].image;
-  vk::ImageLayout srcLayout = mDownsampleFSAA ? vk::ImageLayout::eColorAttachmentOptimal : vk::ImageLayout::ePresentSrcKHR;
-  cmdImageMemoryBarrier(commandBuffer, image, vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eShaderRead, srcLayout, vk::ImageLayout::eShaderReadOnlyOptimal, vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eFragmentShader);
-
-  vk::RenderPassBeginInfo renderPassInfo{};
-  renderPassInfo.renderPass = mRenderPassTexture;
-  renderPassInfo.framebuffer = mFramebuffersTexture.size() ? mFramebuffersTexture[mCurrentImageIndex] : mFramebuffers[mCurrentImageIndex];
-  renderPassInfo.renderArea.offset = vk::Offset2D{0, 0};
-  renderPassInfo.renderArea.extent = vk::Extent2D{mRenderWidth, mRenderHeight};
-  renderPassInfo.clearValueCount = 0;
-  commandBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
+  cmdImageMemoryBarrier(commandBuffer, image, vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::AccessFlagBits2::eColorAttachmentWrite, vk::PipelineStageFlagBits2::eFragmentShader, vk::AccessFlagBits2::eShaderSampledRead, vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
+  cmdBeginRenderingLoad(commandBuffer, mRenderTargetImage[mCurrentImageIndex], *mRenderTargetView[mCurrentImageIndex], mRenderWidth, mRenderHeight);
 
   commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, mPipelines[4]);
   commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, mPipelineLayoutTexture, 0, 1, &mDescriptorSets[2][mCurrentImageIndex], 0, nullptr);
@@ -1779,7 +1636,7 @@ void GPUDisplayBackendVulkan::mixImages(vk::CommandBuffer commandBuffer, float m
   commandBuffer.pushConstants(mPipelineLayoutTexture, vk::ShaderStageFlagBits::eFragment, 0, sizeof(mixSlaveImage), &mixSlaveImage);
   commandBuffer.draw(6, 1, 0, 0);
 
-  commandBuffer.endRenderPass();
+  commandBuffer.endRendering();
   commandBuffer.end();
 }
 
@@ -1980,10 +1837,10 @@ void GPUDisplayBackendVulkan::readImageToPixels(vk::Image image, vk::ImageLayout
   vk::DeviceMemory dstImageMemory;
   VulkanBuffer readBuffer = createBuffer(width * height * bytesPerPixel, nullptr, vk::BufferUsageFlagBits::eTransferDst, 0);
   vk::CommandBuffer cmdBuffer = getSingleTimeCommandBuffer();
-  cmdImageMemoryBarrier(cmdBuffer, image, vk::AccessFlagBits::eMemoryRead, vk::AccessFlagBits::eTransferRead, layout, vk::ImageLayout::eTransferSrcOptimal, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer);
+  cmdImageMemoryBarrier(cmdBuffer, image, vk::PipelineStageFlagBits2::eColorAttachmentOutput | vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eColorAttachmentWrite | vk::AccessFlagBits2::eTransferWrite, vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferRead, layout, vk::ImageLayout::eTransferSrcOptimal);
   if (mDisplay->cfgR().screenshotScaleFactor != 1) {
     createImageI(mDevice, mPhysicalDevice, dstImage, dstImageMemory, width, height, mSurfaceFormat.format, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageTiling::eOptimal);
-    cmdImageMemoryBarrier(cmdBuffer, dstImage, {}, vk::AccessFlagBits::eTransferWrite, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer);
+    cmdImageMemoryBarrier(cmdBuffer, dstImage, vk::PipelineStageFlagBits2::eNone, vk::AccessFlagBits2::eNone, vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferWrite, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
     vk::Offset3D blitSizeSrc = {(int32_t)mRenderWidth, (int32_t)mRenderHeight, 1};
     vk::Offset3D blitSizeDst = {(int32_t)width, (int32_t)height, 1};
     vk::ImageBlit imageBlitRegion{};
@@ -1995,7 +1852,7 @@ void GPUDisplayBackendVulkan::readImageToPixels(vk::Image image, vk::ImageLayout
     imageBlitRegion.dstOffsets[1] = blitSizeDst;
     cmdBuffer.blitImage(image, vk::ImageLayout::eTransferSrcOptimal, dstImage, vk::ImageLayout::eTransferDstOptimal, 1, &imageBlitRegion, vk::Filter::eLinear);
     src = dstImage;
-    cmdImageMemoryBarrier(cmdBuffer, dstImage, vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eTransferRead, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eTransferSrcOptimal, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer);
+    cmdImageMemoryBarrier(cmdBuffer, dstImage, vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferWrite, vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferRead, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eTransferSrcOptimal);
   } else {
     src = image;
   }
@@ -2006,9 +1863,9 @@ void GPUDisplayBackendVulkan::readImageToPixels(vk::Image image, vk::ImageLayout
   copyRegion.imageExtent = vk::Extent3D{width, height, 1};
   cmdBuffer.copyImageToBuffer(src, vk::ImageLayout::eTransferSrcOptimal, readBuffer.buffer, 1, &copyRegion);
 
-  vk::BufferMemoryBarrier hostBarrier{vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eHostRead, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, readBuffer.buffer, 0, VK_WHOLE_SIZE};
-  cmdBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eHost, {}, 0, nullptr, 1, &hostBarrier, 0, nullptr);
-  cmdImageMemoryBarrier(cmdBuffer, image, vk::AccessFlagBits::eTransferRead, vk::AccessFlagBits::eMemoryRead, vk::ImageLayout::eTransferSrcOptimal, layout, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer);
+  vk::BufferMemoryBarrier2 hostBarrier{vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferWrite, vk::PipelineStageFlagBits2::eHost, vk::AccessFlagBits2::eHostRead, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, readBuffer.buffer, 0, VK_WHOLE_SIZE};
+  cmdBuffer.pipelineBarrier2(vk::DependencyInfo{{}, 0, nullptr, 1, &hostBarrier, 0, nullptr});
+  cmdImageMemoryBarrier(cmdBuffer, image, vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eNone, vk::PipelineStageFlagBits2::eColorAttachmentOutput | vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eNone, vk::ImageLayout::eTransferSrcOptimal, layout); // Back to the layout the following passes expect
   submitSingleTimeCommandBuffer(cmdBuffer);
 
   const bool swapRB = format == vk::Format::eR8G8B8A8Unorm || format == vk::Format::eR8G8B8A8Srgb; // Raw copy in swapchain format, the BMP needs BGRA
