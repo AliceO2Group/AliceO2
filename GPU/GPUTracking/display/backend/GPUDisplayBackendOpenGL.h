@@ -49,6 +49,7 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   void setFrameBuffer(uint32_t newID = 0);
   int32_t InitBackendA() override;
   int32_t InitMagFieldVisualization();
+  bool mMagneticFieldFailed = false; // Initialization of the field drawing failed, do not retry
   void ExitBackendA() override;
   void ExitMagFieldVisualization();
   static int32_t checkShaderStatus(uint32_t shader);
@@ -68,6 +69,9 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   void lineWidthFactor(float factor) override;
   size_t needMultiVBO() override { return 0x100000000ll; }
   void readImageToPixels();
+  static uint32_t loadShader(uint32_t type, const char* spirv, size_t size); // Create shader from SPIR-V
+  static constexpr int32_t UNIFORM_LOCATION_MATRIX = 0;                      // Explicit uniform locations in the OpenGL variant of the shaders (shaders/*.vert, *.frag)
+  static constexpr int32_t UNIFORM_LOCATION_COLOR = 4;                       // color, textColor, alpha
 
   void addFontSymbol(int32_t symbol, int32_t sizex, int32_t sizey, int32_t offsetx, int32_t offsety, int32_t advance, void* data) override;
   void initializeTextDrawing() override;
@@ -94,14 +98,6 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   uint32_t mIndirectId;
   std::vector<uint32_t> mVBOId;
   std::vector<FontSymbolOpenGL> mFontSymbols;
-  int32_t mModelViewProjId;
-  int32_t mColorId;
-  int32_t mModelViewProjIdTexture;
-  int32_t mAlphaIdTexture;
-  int32_t mModelViewProjIdText;
-  int32_t mColorIdText;
-  uint32_t mSPIRVModelViewBuffer;
-  uint32_t mSPIRVColorBuffer;
 
   uint32_t mFieldModelViewBuffer;
   uint32_t mFieldModelConstantsBuffer;
@@ -115,8 +111,6 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   uint32_t VAO_texture, VBO_texture;
 
   uint32_t VAO_field, VBO_field;
-
-  bool mSPIRVShaders = false;
 
   GLfb mMixBuffer;
   GLfb mOffscreenBufferMSAA, mOffscreenBuffer;

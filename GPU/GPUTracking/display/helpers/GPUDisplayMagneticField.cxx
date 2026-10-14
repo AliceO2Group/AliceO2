@@ -32,13 +32,13 @@ using namespace o2::gpu;
 
 GPUDisplayMagneticField::GPUDisplayMagneticField()
 {
-  initializeUniforms();
+  mValid = initializeUniforms() == 0;
 }
 
 #ifndef GPUCA_STANDALONE
 GPUDisplayMagneticField::GPUDisplayMagneticField(o2::field::MagneticField* field)
 {
-  initializeUniformsFromField(field);
+  mValid = initializeUniformsFromField(field) == 0;
 }
 #endif
 
