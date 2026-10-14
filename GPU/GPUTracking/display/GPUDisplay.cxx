@@ -75,7 +75,7 @@ GPUDisplay::GPUDisplay(GPUDisplayFrontend* frontend, GPUChainTracking* chain, GP
   mBackend->mDisplay = this;
   frontend->mDisplay = this;
   frontend->mBackend = mBackend.get();
-  mCfgR.openGLCore = mBackend->CoreProfile();
+  mCfgR.rendererCompatSmoothing &= !mBackend->CoreProfile();
 }
 
 void GPUDisplay::calcXYZ(const float* matrix)

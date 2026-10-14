@@ -120,6 +120,8 @@ class GPUDisplayBackend
   bool mFrontendCompatTextDraw = false;
   std::vector<char> mScreenshotPixels;
 
+  static constexpr float SMOOTH_POINT_EXTRA_SIZE = 0.6f;
+  static constexpr float SMOOTH_LINE_EXTRA_WIDTH = 0.8f;
   int32_t mDownsampleFactor = 1;
 
   uint32_t mRenderWidth = 0;

@@ -500,7 +500,7 @@ AddOption(camYUp, bool, false, "", 0, "Orient the camera such that the y-axis is
 AddOption(cameraMode, int32_t, 0, "", 0, "Camera mode")
 AddOption(fullScreen, bool, false, "", 0, "Full Screen")
 AddOption(maximized, bool, true, "", 0, "Maximized window")
-AddOption(openGLCore, bool, false, "", 0, "Use renderer path for OpenGL core profile")
+AddOption(rendererCompatSmoothing, bool, false, "", 0, "Use compat smoothing (if available) of instad of shader for smooth lines / points")
 AddOption(drawQualityMSAA, int32_t, 0, "", 0, "MultiSample Anti Aliasing")
 AddOption(drawQualityDownsampleFSAA, int32_t, 0, "", 0, "Downsampling Anti Aliasing")
 AddOption(drawQualityVSync, bool, true, "", 0, "Enable Vertical Sync")

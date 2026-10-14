@@ -257,9 +257,13 @@ if(GPUCA_EVENT_DISPLAY_VULKAN OR GPUCA_EVENT_DISPLAY_OPENGL)
   include(shaders.cmake)
   set(SHADERS shaders/vertex.vert
               shaders/vertexPoint.vert
+              shaders/vertexSmoothPoint.vert
               shaders/vertexTexture.vert
               shaders/vertexPassthrough.vert
               shaders/fragment.frag
+              shaders/fragmentSmoothPoint.frag
+              shaders/vertexSmoothLine.vert
+              shaders/fragmentSmoothLine.frag
               shaders/fragmentText.frag
               shaders/fragmentTexture.frag
               shaders/field.geom)

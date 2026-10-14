@@ -81,6 +81,8 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void cmdPushDescriptors(vk::CommandBuffer commandBuffer, vk::PipelineLayout layout, const VulkanBuffer& ubo, vk::ImageView textureView = {}); // Push descriptors: UBO at binding 0, optional texture at binding 2
   void pointSizeFactor(float factor) override;
   void lineWidthFactor(float factor) override;
+  bool useNativeSmoothLines() const;
+  bool useSmoothLineShader() const;
   void resizeScene(uint32_t width, uint32_t height) override;
   float getYFactor() const override { return -1.0f; }
   int32_t getMaxMSAA() const override { return mMaxMSAAsupported; }
@@ -209,6 +211,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   bool mZActive = false;
   bool mSmoothLinesSupported = false; // Optional Vulkan 1.4 feature smoothLines, enabled if available
   bool mSmoothLines = false;
+  bool mStrictLines = false; // Wide lines are rectangles, not parallelograms
   bool mZSupported = false;
   bool mStencilSupported = false;
   bool mDownsampleFSAA = false;
