@@ -114,7 +114,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void createCommandBuffers();
   void createSemaphores();
   void createUniformLayoutsAndBuffers();
-  void createSwapChain(bool forScreenshot = false, bool forMixing = false, vk::SwapchainKHR oldSwapChain = {});
+  void createSwapChain(vk::SwapchainKHR oldSwapChain = {});
   void createOffscreenBuffers(bool forScreenshot = false, bool forMixing = false);
   void createPipeline();
   void clearDevice();
@@ -204,7 +204,6 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   vecpod<float> mFontVertexBufferHost;
   bool mHasDrawnText = false;
 
-  bool mSwapchainImageReadable = false;
   vk::SampleCountFlagBits mMSAASampleCount = vk::SampleCountFlagBits::e16;
   uint32_t mMaxMSAAsupported = 0;
   bool mZActive = false;
