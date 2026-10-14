@@ -188,6 +188,7 @@ TEST_CASE("HTTPParser1")
     decode_websocket(encoded[0].base, encoded[0].len, handler);
     REQUIRE(handler.mSize[0] == strlen(buffer) + 1);
     REQUIRE(handler.mFrame[0].substr(0, handler.mSize[0] - 1) == std::string(buffer));
+    std::ranges::for_each(encoded, [](auto& buf) { free(buf.base); });
   }
   {
     // WebSocket multiple frame encoding / decoding
@@ -216,6 +217,7 @@ TEST_CASE("HTTPParser1")
     REQUIRE(handler.mSize.size() == 2);
     REQUIRE(handler.mFrame[0].substr(0, handler.mSize[0] - 1) == std::string(buffer));
     REQUIRE(handler.mFrame[1].substr(0, handler.mSize[1] - 1) == std::string(buffer2));
+    std::ranges::for_each(encoded, [](auto& buf) { free(buf.base); });
   }
   {
     // Decode a frame which is split in two.
@@ -230,6 +232,7 @@ TEST_CASE("HTTPParser1")
     REQUIRE(handler.mFrame.size() == 1);
     REQUIRE(handler.mSize.size() == 1);
     REQUIRE(handler.mFrame[0].substr(0, handler.mSize[0] - 1) == std::string(buffer));
+    std::ranges::for_each(encoded, [](auto& buf) { free(buf.base); });
   }
   {
     // Decode a long frame which is split in two.
@@ -244,6 +247,7 @@ TEST_CASE("HTTPParser1")
     REQUIRE(handler.mFrame.size() == 1);
     REQUIRE(handler.mSize.size() == 1);
     REQUIRE(handler.mFrame[0].substr(0, handler.mSize[0] - 1) == std::string(buffer));
+    std::ranges::for_each(encoded, [](auto& buf) { free(buf.base); });
   }
   {
     // WebSocket multiple frame encoding / decoding, long frames
@@ -261,6 +265,7 @@ TEST_CASE("HTTPParser1")
     REQUIRE(handler.mSize.size() == 2);
     REQUIRE(handler.mFrame[0].substr(0, handler.mSize[0] - 1) == std::string(buffer));
     REQUIRE(handler.mFrame[1].substr(0, handler.mSize[1] - 1) == std::string(buffer2));
+    std::ranges::for_each(encoded, [](auto& buf) { free(buf.base); });
   }
   {
     // Decode a long frame which is split in two, after the first byte.
@@ -283,6 +288,7 @@ TEST_CASE("HTTPParser1")
       REQUIRE(handler.mSize.size() == 1);
       REQUIRE(handler.mFrame[0].substr(0, handler.mSize[0] - 1) == std::string(buffer));
     }
+    std::ranges::for_each(encoded, [](auto& buf) { free(buf.base); });
   }
   {
     // Decode a long frame which is split in two, after the first byte.
@@ -313,6 +319,7 @@ TEST_CASE("HTTPParser1")
         REQUIRE(handler.mFrame[0].substr(0, handler.mSize[0] - 1) == std::string(buffer));
       }
     }
+    std::ranges::for_each(encoded, [](auto& buf) { free(buf.base); });
   }
   {
     std::string checkRequest =
