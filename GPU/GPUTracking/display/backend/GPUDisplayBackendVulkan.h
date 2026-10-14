@@ -152,8 +152,8 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   vk::PresentModeKHR mPresentMode;
   vk::SwapchainKHR mSwapChain;
   bool mMustUpdateSwapChain = false;
-  uint8_t mSwapChainSuboptimal = 0;  // Bitmasl if Last acquire / present / ... returned SUBOPTIMAL: recreate only on the first one
-  bool mFrameSkipped = false;        // No image acquired in this frame (timeout)
+  uint8_t mSwapChainSuboptimal = 0; // Bitmask if last acquire / present / ... returned SUBOPTIMAL: recreate only on the first one
+  bool mFrameSkipped = false;       // No image acquired in this frame (timeout)
   void handleSwapChainResult(vk::Result retVal, uint8_t suboptimalBit);
   std::vector<vk::Image> mSwapChainImages;
   std::vector<vk::ImageView> mSwapChainImageViews;
@@ -185,7 +185,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   std::vector<vk::CommandBuffer> mCommandBuffersMix;
   std::vector<vk::CommandBuffer> mCommandBuffersPresent;
   std::vector<vk::CommandBufferSubmitInfo> mFrameCommandBuffers; // All command buffers of the current frame, submitted as one batch, ordered by barriers
-  std::vector<bool> mCommandBufferUpToDate;
+  std::vector<bool> mCommandBufferUpToDate;                      // Per image: main and mix command buffers recorded and still valid (cached across frames), set after the main pass of the frame
   std::vector<vk::Semaphore> mImageAvailableSemaphore;
   std::vector<vk::Semaphore> mPresentSemaphore;
   vk::Semaphore mTimelineSemaphore;          // Signaled with an increasing value by every queue submit, replaces fences
