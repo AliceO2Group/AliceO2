@@ -47,8 +47,7 @@ if(${PKGNAME}_LIBRARY_SHARED AND ${PKGNAME}_XKBCOMMON_LIBRARY_SHARED AND ${PKGNA
   add_library(WAYLAND-all_libraries INTERFACE)
   target_link_libraries(WAYLAND-all_libraries INTERFACE ${${PKGNAME}_LIBRARY_SHARED} ${${PKGNAME}_XKBCOMMON_LIBRARY_SHARED})
   set_target_properties(WAYLAND-all_libraries PROPERTIES
-                                   INTERFACE_INCLUDE_DIRECTORIES ${${PKGNAME}_INCLUDE_DIR}
-                                   INTERFACE_INCLUDE_DIRECTORIES ${${PKGNAME}_XKBCOMMON_INCLUDE_DIR})
+                                   INTERFACE_INCLUDE_DIRECTORIES "${${PKGNAME}_INCLUDE_DIR};${${PKGNAME}_XKBCOMMON_INCLUDE_DIR}")
 
   add_library(GPUWayland::wayland-client ALIAS WAYLAND-all_libraries)
 endif()

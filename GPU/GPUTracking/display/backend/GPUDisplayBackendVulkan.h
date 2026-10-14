@@ -72,7 +72,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   int32_t InitBackendA() override;
   void ExitBackendA() override;
   void loadDataToGPU(size_t totalVertizes) override;
-  void prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot, bool toMixBuffer, float includeMixImage) override;
+  bool prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot, bool toMixBuffer, float includeMixImage) override;
   void finishDraw(bool doScreenshot, bool toMixBuffer, float includeMixImage) override;
   void finishFrame(bool doScreenshot, bool toMixBuffer, float includeMixImage) override;
   void prepareText() override;
@@ -93,7 +93,6 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   double checkDevice(vk::PhysicalDevice device, const std::vector<const char*>& reqDeviceExtensions, const FeatureChain& reqDeviceFeatures, bool silent = false);
   vk::Extent2D chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities);
   vk::PresentModeKHR chooseSwapPresentMode();
-  void transitionImageLayout(vk::CommandBuffer commandBuffer, vk::Image image, vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout);
   VulkanBuffer createBuffer(size_t size, const void* srcData = nullptr, vk::BufferUsageFlags type = vk::BufferUsageFlagBits::eVertexBuffer, int32_t deviceMemory = 1);
   void writeToBuffer(VulkanBuffer& buffer, size_t size, const void* srcData);
   void clearBuffer(VulkanBuffer& buffer);
@@ -153,6 +152,9 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   vk::PresentModeKHR mPresentMode;
   vk::SwapchainKHR mSwapChain;
   bool mMustUpdateSwapChain = false;
+  uint8_t mSwapChainSuboptimal = 0;  // Bitmasl if Last acquire / present / ... returned SUBOPTIMAL: recreate only on the first one
+  bool mFrameSkipped = false;        // No image acquired in this frame (timeout)
+  void handleSwapChainResult(vk::Result retVal, uint8_t suboptimalBit);
   std::vector<vk::Image> mSwapChainImages;
   std::vector<vk::ImageView> mSwapChainImageViews;
   std::vector<vk::ImageView*> mRenderTargetView;
@@ -214,6 +216,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   uint32_t mMaxMSAAsupported = 0;
   bool mZSupported = false;
   bool mStencilSupported = false;
+  float mMaxLineWidth = 1.f, mMaxPointSize = 1.f;
   bool mStrictLines = false;              // Wide lines are rectangles, not parallelograms
   bool mSmoothLinesSupported = false;     // Optional Vulkan 1.4 feature smoothLines
   bool mFifoLatestReadySupported = false; // Optional present mode FIFO_LATEST_READY (VK_KHR / VK_EXT_present_mode_fifo_latest_ready)

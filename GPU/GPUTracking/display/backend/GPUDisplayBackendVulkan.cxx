@@ -571,6 +571,8 @@ void GPUDisplayBackendVulkan::createDevice()
   GPUInfo("Using physical Vulkan device %s", &deviceProperties.deviceName[0]);
   mMaxMSAAsupported = getMaxUsableSampleCount(deviceProperties);
   mStrictLines = deviceProperties.limits.strictLines;
+  mMaxLineWidth = deviceProperties.limits.lineWidthRange[1];
+  mMaxPointSize = deviceProperties.limits.pointSizeRange[1];
   mMaxRenderSize = std::min({deviceProperties.limits.maxImageDimension2D, deviceProperties.limits.maxFramebufferWidth, deviceProperties.limits.maxFramebufferHeight});
   mZSupported = (bool)(depth32FormatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment);
   mStencilSupported = (bool)(depth64FormatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment);
@@ -1196,7 +1198,9 @@ void GPUDisplayBackendVulkan::startFillCommandBuffer(vk::CommandBuffer& commandB
   cmdBeginRendering(commandBuffer, mRenderWidth, mRenderHeight, colorAttachment, mZActive ? &depthAttachment : nullptr);
 
   vk::DeviceSize offsets[] = {0};
-  commandBuffer.bindVertexBuffers(0, 1, &mVBO.buffer, offsets);
+  if (mVBO.size) {
+    commandBuffer.bindVertexBuffers(0, 1, &mVBO.buffer, offsets);
+  }
   cmdPushDescriptors(commandBuffer, mPipelineLayout, mUniformBuffersMat[0][imageIndex]);
   const float viewport[2] = {(float)mRenderWidth, (float)mRenderHeight};
   commandBuffer.pushConstants(mPipelineLayout, vk::ShaderStageFlagBits::eVertex, 6 * sizeof(float), sizeof(viewport), viewport);
@@ -1399,6 +1403,11 @@ void GPUDisplayBackendVulkan::ExitBackendA()
   }
   clearTextureSampler();
   clearDevice();
+  mCommandInfrastructureCreated = false;
+  mImageCount = 0;
+  mLastPresentId = 0;
+  mSwapChainSuboptimal = 0;
+  mFrameSkipped = false;
 }
 
 // ---------------------------- USER CODE ----------------------------
@@ -1419,10 +1428,14 @@ void GPUDisplayBackendVulkan::loadDataToGPU(size_t totalVertizes)
 {
   mDevice.waitIdle();
   clearVertexBuffers();
-  mVBO = createBuffer(totalVertizes * sizeof(mDisplay->vertexBuffer()[0][0]), mDisplay->vertexBuffer()[0].data(), vk::BufferUsageFlagBits::eVertexBuffer, 1);
+  if (totalVertizes) { // Zero-size buffers are invalid (empty event)
+    mVBO = createBuffer(totalVertizes * sizeof(mDisplay->vertexBuffer()[0][0]), mDisplay->vertexBuffer()[0].data(), vk::BufferUsageFlagBits::eVertexBuffer, 1);
+  }
   if (mDisplay->cfgR().useGLIndirectDraw) {
     fillIndirectCmdBuffer();
-    mIndirectCommandBuffer = createBuffer(mCmdBuffer.size() * sizeof(mCmdBuffer[0]), mCmdBuffer.data(), vk::BufferUsageFlagBits::eIndirectBuffer, 1);
+    if (mCmdBuffer.size()) {
+      mIndirectCommandBuffer = createBuffer(mCmdBuffer.size() * sizeof(mCmdBuffer[0]), mCmdBuffer.data(), vk::BufferUsageFlagBits::eIndirectBuffer, 1);
+    }
     mCmdBuffer.clear();
   }
   needRecordCommandBuffers();
@@ -1456,25 +1469,27 @@ uint32_t GPUDisplayBackendVulkan::drawVertices(const vboList& v, const drawType 
   return count;
 }
 
-void GPUDisplayBackendVulkan::prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot, bool toMixBuffer, float includeMixImage)
+bool GPUDisplayBackendVulkan::prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot, bool toMixBuffer, float includeMixImage)
 {
   if (mDisplay->updateDrawCommands() || toMixBuffer || includeMixImage > 0) {
     needRecordCommandBuffers();
   }
 
+  if (includeMixImage > 0.f && mFrameSkipped) {
+    return false; // The render to the mix buffer of this frame did not get an image
+  }
   if (includeMixImage == 0.f) {
     mCurrentFrame = (mCurrentFrame + 1) % mFramesInFlight;
     waitTimeline(mFrameTimelineValue[mCurrentFrame]);
     if (mLastPresentId > 1 && fpsLimitMode() == FPS_LIMIT_VSYNC) { // Refresh rate limit (FIFO): at most one frame queued (wait for the second-last present), keeps the rate if a frame misses the deadline, timeout in case the window is hidden
       const vk::Result retVal = (vk::Result)VULKAN_HPP_DEFAULT_DISPATCHER.vkWaitForPresentKHR(static_cast<VkDevice>(mDevice), static_cast<VkSwapchainKHR>(mSwapChain), mLastPresentId - 1, 100'000'000);
-      if (retVal == vk::Result::eErrorOutOfDateKHR || retVal == vk::Result::eSuboptimalKHR) {
-        mMustUpdateSwapChain = true;
-      } else if (retVal != vk::Result::eTimeout) {
+      handleSwapChainResult(retVal, 1);
+      if (retVal != vk::Result::eTimeout && retVal != vk::Result::eErrorOutOfDateKHR) {
         CHKERR(retVal);
       }
     }
-    auto getImage = [&]() {
-      return mDevice.acquireNextImageKHR(mSwapChain, UINT64_MAX, mImageAvailableSemaphore[mCurrentFrame], VkFence(VK_NULL_HANDLE), &mCurrentImageIndex);
+    auto getImage = [&]() { // Timeout so that a hidden window cannot block the thread (which may also dispatch the window system events) forever
+      return mDevice.acquireNextImageKHR(mSwapChain, 100'000'000, mImageAvailableSemaphore[mCurrentFrame], VkFence(VK_NULL_HANDLE), &mCurrentImageIndex);
     };
 
     vk::Result retVal = vk::Result::eSuccess;
@@ -1491,8 +1506,13 @@ void GPUDisplayBackendVulkan::prepareDraw(const hmm_mat4& proj, const hmm_mat4& 
     if (mustUpdateSwapChain) {
       recreateRendering(requestScreenshot, toMixBuffer);
       retVal = getImage();
+      mMustUpdateSwapChain = false;
     }
-    mMustUpdateSwapChain = retVal == vk::Result::eSuboptimalKHR;
+    handleSwapChainResult(retVal, 2);
+    mFrameSkipped = retVal == vk::Result::eTimeout || retVal == vk::Result::eNotReady || retVal == vk::Result::eErrorOutOfDateKHR;
+    if (mFrameSkipped) {
+      return false;
+    }
     CHKERR(retVal);
     waitTimeline(mImageTimelineValue[mCurrentImageIndex]);                                        // Previous frame using this image's resources (command buffers, uniform buffer, ...) finished
     if (mPresentFences.size()) {                                                                  // Previous present of this image done, its present semaphore can be signaled again
@@ -1518,6 +1538,20 @@ void GPUDisplayBackendVulkan::prepareDraw(const hmm_mat4& proj, const hmm_mat4& 
   mCurrentCommandBufferLastPipeline = -1;
   if (!mCommandBufferUpToDate[mCurrentImageIndex]) {
     startFillCommandBuffer(mCurrentCommandBuffer, mCurrentImageIndex, toMixBuffer);
+  }
+  return true;
+}
+
+void GPUDisplayBackendVulkan::handleSwapChainResult(vk::Result retVal, uint8_t suboptimalBit)
+{
+  if (retVal == vk::Result::eErrorOutOfDateKHR || (retVal == vk::Result::eSuboptimalKHR && !(mSwapChainSuboptimal & suboptimalBit))) {
+    mMustUpdateSwapChain = true;
+    if (retVal == vk::Result::eSuboptimalKHR) {
+      mSwapChainSuboptimal |= suboptimalBit;
+    }
+  }
+  if (retVal == vk::Result::eSuccess && !mMustUpdateSwapChain) {
+    mSwapChainSuboptimal &= ~suboptimalBit;
   }
 }
 
@@ -1588,10 +1622,13 @@ void GPUDisplayBackendVulkan::finishFrame(bool doScreenshot, bool toMixBuffer, f
       presentFenceInfo = vk::SwapchainPresentFenceInfoKHR{1, &mPresentFences[mCurrentImageIndex], presentInfo.pNext};
       presentInfo.pNext = &presentFenceInfo;
     }
-    vk::Result retVal = mGraphicsQueue.presentKHR(&presentInfo);
-    if (retVal == vk::Result::eErrorOutOfDateKHR || retVal == vk::Result::eSuboptimalKHR) {
-      mMustUpdateSwapChain = true;
-    } else {
+    vk::Result retVal;
+    {
+      std::lock_guard<std::mutex> guard(mQueueMutex);
+      retVal = mGraphicsQueue.presentKHR(&presentInfo);
+    }
+    handleSwapChainResult(retVal, 4);
+    if (retVal != vk::Result::eErrorOutOfDateKHR) {
       CHKERR(retVal);
     }
   }
@@ -1740,7 +1777,7 @@ void GPUDisplayBackendVulkan::pointSizeFactor(float factor)
   if (mCommandBufferUpToDate[mCurrentImageIndex]) {
     return;
   }
-  float size = mDisplay->cfgL().pointSize * mDownsampleFactor * factor + (mDisplay->cfgL().smoothPoints ? SMOOTH_POINT_EXTRA_SIZE : 0.f);
+  float size = std::min(mDisplay->cfgL().pointSize * mDownsampleFactor * factor + (mDisplay->cfgL().smoothPoints ? SMOOTH_POINT_EXTRA_SIZE : 0.f), mMaxPointSize);
   mCurrentCommandBuffer.pushConstants(mPipelineLayout, vk::ShaderStageFlagBits::eVertex, sizeof(std::array<float, 4>), sizeof(size), &size);
 }
 
@@ -1761,11 +1798,12 @@ void GPUDisplayBackendVulkan::lineWidthFactor(float factor)
   }
   float width = mDisplay->cfgL().lineWidth * mDownsampleFactor * factor;
   if (useSmoothLineShader()) {
-    width += SMOOTH_LINE_EXTRA_WIDTH;
+    const float expand = mStrictLines ? 1.f : 1.4143f;                         // Non-strict wide lines may be parallelograms, widen so that the perpendicular width is covered
+    width = std::min(width + SMOOTH_LINE_EXTRA_WIDTH, mMaxLineWidth / expand); // The shader must see the width that is actually rasterized
     mCurrentCommandBuffer.pushConstants(mPipelineLayout, vk::ShaderStageFlagBits::eVertex, 5 * sizeof(float), sizeof(width), &width);
-    width *= mStrictLines ? 1.f : 1.4143f; // Non-strict wide lines may be parallelograms, widen so that the perpendicular width is covered
+    width *= expand;
   }
-  mCurrentCommandBuffer.setLineWidth(width);
+  mCurrentCommandBuffer.setLineWidth(std::min(width, mMaxLineWidth));
 }
 
 void GPUDisplayBackendVulkan::needRecordCommandBuffers()

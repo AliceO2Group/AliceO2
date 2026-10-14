@@ -90,7 +90,7 @@ class GPUDisplayBackend
   void updateFontScale(float scale); // Rasterize the font again if the display (HiDPI) scale changed
   void ExitBackend();
   virtual void loadDataToGPU(size_t totalVertizes) = 0;
-  virtual void prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot = false, bool toMixBuffer = false, float includeMixImage = 0.f) = 0;
+  virtual bool prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot = false, bool toMixBuffer = false, float includeMixImage = 0.f) = 0; // Returns false if the frame must be skipped (no swapchain image available)
   virtual void finishDraw(bool doScreenshot, bool toMixBuffer = false, float includeMixImage = 0.f) = 0;
   virtual void finishFrame(bool doScreenshot, bool toMixBuffer = false, float includeMixImage = 0.f) = 0;
   virtual void prepareText() = 0;

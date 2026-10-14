@@ -56,6 +56,7 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   virtual void SwitchFullscreen(bool set) = 0;                                                                               // Toggle full-screen mode
   virtual void ToggleMaximized(bool set) = 0;                                                                                // Maximize window
   virtual void SetVSync(bool enable) = 0;                                                                                    // Enable / disable vsync
+  virtual bool canSetVSync() { return false; }                                                                               // OpenGL: swap interval can be set
   bool EnableSendKey() override;                                                                                             // Request external keys (e.g. from terminal)
   virtual void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) = 0; // Print text on the display (needs the backend to build the font)
   GPUDisplayBackend* backend();

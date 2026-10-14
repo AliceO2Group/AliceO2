@@ -24,7 +24,7 @@ const char* HelpText[] = {
   "[l] / [k] / [J]               Draw single sector (next  / previous sector), draw related sectors (same plane in phi)",
   "[;] / [:]                     Show splitting of TPC in sectors by extruding volume, [:] resets",
   "[#]                           Invert colors",
-  "[y] / [Y] / [X] / [M]         Start Animation, Add / remove Animation point, Reset Points, Cycle animation camera mode (resets)",
+  "[y] / [Y] / ['] / [X] / [M]   Start Animation, Add / remove Animation point, Reset Points, Cycle animation camera mode (resets)",
   "[>] / [<]                     Toggle config interpolation during Animation / change Animation interval (via movement)",
   "[g]                           Draw Grid",
   "[i]                           Project onto XY-plane",
@@ -54,7 +54,7 @@ const char* HelpText[] = {
   "[e] / [f]                     Rotate left / right",
   "[+] / [-]                     Increase / decrease point size (Hold SHIFT for lines)",
   "[b]                           Change FOV (field of view)",
-  "[']                           Switch between core / compat renderer path (OpenGL profile, Vulkan smooth lines)",
+  "[m]                           Switch between core / compat renderer path (OpenGL profile, Vulkan smooth lines)",
   "[MOUSE 1]                     Look around",
   "[MOUSE 2]                     Strafe camera",
   "[MOUSE 1+2]                   Zoom / Rotate",
@@ -65,7 +65,7 @@ const char* HelpText[] = {
   "[F1] / [F2] / [F3] / [F4]     Enable / disable drawing of TPC / TRD / TOF / ITS",
   "[SHIFT] + [F1] to [F4]        Enable / disable track detector filter",
   "[SHIFT] + [F12]               Switch track detector filter between AND and OR mode"
-  // FREE: [m] [SPACE] [Q]
+  // FREE: [SPACE] [Q]
   // Test setting: ^
 };
 
@@ -205,7 +205,7 @@ void GPUDisplay::HandleKey(uint8_t key)
       mCfgR.fov = 5;
     }
     SetInfo("Set FOV to %f", mCfgR.fov);
-  } else if (key == 39) { // character = "'"
+  } else if (key == 'm') {
 #ifdef GPUCA_DISPLAY_OPENGL_CORE
     if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
       SetInfo("OpenGL compat profile not available, using core profile", 1);
