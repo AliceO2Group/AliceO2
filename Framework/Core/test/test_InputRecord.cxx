@@ -167,6 +167,8 @@ TEST_CASE("TestInputRecord")
   REQUIRE(record.end().parts().size() == 0);
   // thus there is no element and begin == end
   REQUIRE(record.end().parts().begin() == record.end().parts().end());
+
+  std::ranges::for_each(inputs, [](auto* x){ free(x); });
 }
 
 // TODO:
