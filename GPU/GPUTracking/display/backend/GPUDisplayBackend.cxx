@@ -171,6 +171,15 @@ void GPUDisplayBackend::fillIndirectCmdBuffer()
   }
 }
 
+int32_t GPUDisplayBackend::fpsLimitMode() const
+{
+  const auto& cfg = mDisplay->cfgR();
+  if (cfg.fpsLimit == FPS_LIMIT_VSYNC) {
+    return !cfg.drawQualityVSync ? FPS_LIMIT_NONE : (canLimitToVSync() ? FPS_LIMIT_VSYNC : FPS_LIMIT_RATE);
+  }
+  return cfg.fpsLimit;
+}
+
 float GPUDisplayBackend::getDownsampleFactor(bool screenshot)
 {
   float factor = 1.0f;

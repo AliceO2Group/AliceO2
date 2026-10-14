@@ -77,6 +77,11 @@ class GPUDisplayBackend
   virtual void ActivateColor(std::array<float, 4>& color) = 0;
   virtual void setQuality() {};
   virtual void SetVSync(bool enable) {};
+  enum fpsLimitModes : int32_t { FPS_LIMIT_NONE = 0,
+                                 FPS_LIMIT_VSYNC = 1,
+                                 FPS_LIMIT_RATE = 2 };   // Values of GPUSettingsDisplayRenderer::fpsLimit
+  virtual bool canLimitToVSync() const { return false; } // Rendering is throttled to the refresh rate with VSync (blocking buffer swap / present wait)
+  int32_t fpsLimitMode() const;                          // Effective mode: VSync limit without VSync = none, VSync limit not supported by the backend = fpsRate
   virtual bool backendNeedRedraw() { return true; }
   virtual void setDepthBuffer() = 0;
   virtual int32_t InitBackendA() = 0;

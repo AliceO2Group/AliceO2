@@ -309,7 +309,12 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
   };
 
   auto output_geometry = [](void* data, wl_output* output, int32_t x, int32_t y, int32_t physical_width, int32_t physical_height, int32_t subpixel, const char* make, const char* model, int32_t transform) {};
-  auto output_mode = [](void* data, wl_output* output, uint32_t flags, int32_t width, int32_t height, int32_t refresh) {};
+  auto output_mode = [](void* data, wl_output* output, uint32_t flags, int32_t width, int32_t height, int32_t refresh) {
+    GPUDisplayFrontendWayland* me = (GPUDisplayFrontendWayland*)data;
+    if (auto* o = me->findOutput(output); o && (flags & WL_OUTPUT_MODE_CURRENT)) {
+      o->refresh = refresh;
+    }
+  };
   auto output_done = [](void* data, wl_output* output) {};
   auto output_scale = [](void* data, wl_output* output, int32_t factor) {
     GPUDisplayFrontendWayland* me = (GPUDisplayFrontendWayland*)data;
@@ -700,6 +705,12 @@ void GPUDisplayFrontendWayland::ToggleMaximized(bool set)
   } else {
     xdg_toplevel_unset_maximized(mXdgToplevel);
   }
+}
+
+float GPUDisplayFrontendWayland::getRefreshRate()
+{
+  auto* o = mSurfaceOutputs.size() ? findOutput(mSurfaceOutputs.back()) : nullptr;
+  return o ? o->refresh / 1000.f : 0.f;
 }
 
 GPUDisplayFrontendWayland::OutputInfo* GPUDisplayFrontendWayland::findOutput(wl_output* output)

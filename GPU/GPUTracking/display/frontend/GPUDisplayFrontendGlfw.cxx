@@ -396,6 +396,13 @@ bool GPUDisplayFrontendGlfw::EnableSendKey()
   return true;
 }
 
+float GPUDisplayFrontendGlfw::getRefreshRate()
+{
+  GLFWmonitor* monitor = glfwGetWindowMonitor(mWindow) ? glfwGetWindowMonitor(mWindow) : glfwGetPrimaryMonitor(); // Monitor of a windowed window is not known, use the primary one
+  const GLFWvidmode* mode = monitor ? glfwGetVideoMode(monitor) : nullptr;
+  return mode ? mode->refreshRate : 0.f;
+}
+
 void GPUDisplayFrontendGlfw::getSize(int32_t& width, int32_t& height)
 {
   glfwGetFramebufferSize(mWindow, &width, &height);

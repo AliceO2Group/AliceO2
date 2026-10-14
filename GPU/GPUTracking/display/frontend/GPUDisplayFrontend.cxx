@@ -81,7 +81,7 @@ void GPUDisplayFrontend::waitForFPSLimit()
   mNeedUpdate = 0;
   const auto now = std::chrono::steady_clock::now();
   const auto& cfg = mDisplay->cfgR();
-  if (cfg.maxFPSRate || cfg.fpsRate <= 0) {
+  if (mBackend->fpsLimitMode() != GPUDisplayBackend::FPS_LIMIT_RATE || cfg.fpsRate <= 0) {
     mNextFrameTime = now;
     return;
   }

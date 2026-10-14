@@ -35,6 +35,7 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   ~GPUDisplayBackendOpenGL() override = default;
   int32_t ExtInit() override;
   bool CoreProfile() override;
+  bool canLimitToVSync() const override { return true; } // Buffer swap blocks with VSync
   uint32_t DepthBits() override;
 
  protected:

@@ -83,6 +83,8 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void lineWidthFactor(float factor) override;
   bool useNativeSmoothLines() const;
   bool useSmoothLineShader() const;
+  bool canLimitToVSync() const override { return true; } // Present wait
+  void waitPresentFences();
   void resizeScene(uint32_t width, uint32_t height) override;
   float getYFactor() const override { return -1.0f; }
   int32_t getMaxMSAA() const override { return mMaxMSAAsupported; }
@@ -208,16 +210,21 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   vecpod<float> mFontVertexBufferHost;
   bool mHasDrawnText = false;
 
-  vk::SampleCountFlagBits mMSAASampleCount = vk::SampleCountFlagBits::e16;
+  // Device capabilities, set in createDevice (optional features are enabled only if supported)
   uint32_t mMaxMSAAsupported = 0;
-  bool mZActive = false;
-  bool mSmoothLinesSupported = false; // Optional Vulkan 1.4 feature smoothLines, enabled if available
-  bool mSmoothLines = false;
-  bool mPresentModeErrorShown = false;
-  bool mFifoLatestReadySupported = false; // Optional present mode FIFO_LATEST_READY (VK_KHR / VK_EXT_present_mode_fifo_latest_ready), enabled if available
-  bool mStrictLines = false;
   bool mZSupported = false;
   bool mStencilSupported = false;
+  bool mStrictLines = false;              // Wide lines are rectangles, not parallelograms
+  bool mSmoothLinesSupported = false;     // Optional Vulkan 1.4 feature smoothLines
+  bool mFifoLatestReadySupported = false; // Optional present mode FIFO_LATEST_READY (VK_KHR / VK_EXT_present_mode_fifo_latest_ready)
+
+  vk::SampleCountFlagBits mMSAASampleCount = vk::SampleCountFlagBits::e16;
+  bool mZActive = false;
+  bool mSmoothLines = false;
+  bool mPresentModeErrorShown = false;
+  bool mPresentModeForVSyncLimit = false; // Swapchain created with FIFO for the refresh rate FPS limit
+  std::vector<vk::Fence> mPresentFences;  // Per swapchain image, signaled when its last present is done (swapchain_maintenance1)
+  uint64_t mLastPresentId = 0;            // Last present ID of the current swapchain, 0 = none
   bool mDownsampleFSAA = false;
   bool mMixingSupported = 0;
 
