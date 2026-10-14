@@ -43,7 +43,7 @@ const char* HelpText[] = {
   "[Z]                           Change screenshot resolution (scaling factor)",
   "[S] / [A] / [D]               Enable or disable smoothing of points / smoothing of lines / depth buffer",
   "[W] / [U] / [V]               Toggle anti-aliasing (MSAA at raster level / change downsampling FSAA factor) / toggle VSync",
-  "[F] / [_] / [R]               Switch mFullScreen / Maximized window / FPS rate limiter",
+  "[F] / [_] / [R]               Switch mFullScreen / Maximized window / FPS limit (none, refresh rate, fpsRate)",
   "[I]                           Enable / disable GL indirect draw",
   "[o] / [p] / [O] / [P]         Save / restore current camera position / Animation path",
   "[h]                           Print Help",
@@ -158,8 +158,25 @@ void GPUDisplay::HandleKey(uint8_t key)
     mCfgR.maximized ^= 1;
     SetInfo("Toggling Maximized window (%d)", (int32_t)mCfgR.maximized);
   } else if (key == 'R') {
-    mCfgR.maxFPSRate = !mCfgR.maxFPSRate;
-    SetInfo("FPS rate %s", mCfgR.maxFPSRate ? "not limited" : "limited");
+    mCfgR.fpsLimit = (mCfgR.fpsLimit + 1) % 3;
+    if (mCfgR.fpsLimit == GPUDisplayBackend::FPS_LIMIT_RATE) {
+      SetInfo("FPS limit: %d FPS", mCfgR.fpsRate);
+    } else if (mCfgR.fpsLimit == GPUDisplayBackend::FPS_LIMIT_VSYNC) {
+      char rate[32] = "unknown rate";
+      if (mFrontend->getRefreshRate() > 0.f) {
+        snprintf(rate, sizeof(rate), "%.1f Hz", mFrontend->getRefreshRate());
+      }
+      const int32_t mode = mBackend->fpsLimitMode();
+      if (mode == GPUDisplayBackend::FPS_LIMIT_NONE) {
+        SetInfo("FPS limit: refresh rate (%s) - VSync disabled, no limit", rate);
+      } else if (mode == GPUDisplayBackend::FPS_LIMIT_RATE) {
+        SetInfo("FPS limit: refresh rate (%s) - not supported by the backend, fallback to %d FPS", rate, mCfgR.fpsRate);
+      } else {
+        SetInfo("FPS limit: refresh rate (%s)", rate);
+      }
+    } else {
+      SetInfo("FPS limit: none");
+    }
   } else if (key == 'H') {
     mPrintInfoText += 1;
     mPrintInfoText &= 3;

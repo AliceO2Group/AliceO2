@@ -46,6 +46,7 @@ class GPUDisplayFrontendWayland : public GPUDisplayFrontend
   void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) override;
   void getSize(int32_t& width, int32_t& height) override;
   float getDisplayScale() const override { return mScale; }
+  float getRefreshRate() override;
   int32_t getVulkanSurface(void* instance, void* surface) override;
   uint32_t getReqVulkanExtensions(const char**& p) override;
 
@@ -64,6 +65,7 @@ class GPUDisplayFrontendWayland : public GPUDisplayFrontend
     uint32_t version;
     int32_t scale = 1;
     std::string name;
+    int32_t refresh = 0; // mHz, current mode
   };
   OutputInfo* findOutput(wl_output* output);
 

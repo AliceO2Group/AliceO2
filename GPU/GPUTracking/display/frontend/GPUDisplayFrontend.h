@@ -61,6 +61,7 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   GPUDisplayBackend* backend();
   static GPUDisplayFrontend* getFrontend(const char* type);
   virtual void getSize(int32_t& width, int32_t& height) { width = height = 0; }
+  virtual float getRefreshRate() { return 0.f; }        // Refresh rate of the display the window is on in Hz, 0 = unknown
   virtual float getDisplayScale() const { return 1.f; } // HiDPI scale factor: physical pixels per logical pixel, text positions and sizes are scaled by it
   virtual int32_t getVulkanSurface(void* instance, void* surface) { return 1; }
   virtual uint32_t getReqVulkanExtensions(const char**& p) { return 0; };
@@ -80,7 +81,7 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   virtual int32_t FrontendMain() = 0;
   virtual void StopDisplayA();
   static void* FrontendThreadWrapper(void*);
-  void waitForFPSLimit(); // Sleep until the next frame is due according to fpsRate (no sleep with maxFPSRate or fpsRate <= 0)
+  void waitForFPSLimit(); // Sleep until the next frame is due according to fpsRate (only in FPS_LIMIT_RATE mode, see GPUDisplayBackend::fpsLimitMode)
 
   static constexpr int32_t INIT_WIDTH = 1024, INIT_HEIGHT = 768;                        // Initial window size, before maximizing
   static constexpr int32_t MIN_WIDTH = 200, MIN_HEIGHT = 150;                           // Minimum window size

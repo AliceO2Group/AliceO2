@@ -99,6 +99,10 @@ static vk::SurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<vk::Surfac
 vk::PresentModeKHR GPUDisplayBackendVulkan::chooseSwapPresentMode()
 {
   // Lowest latency first. VSync: no tearing, MAILBOX, then FIFO_LATEST_READY (shows the newest ready image at each vblank). No VSync: IMMEDIATE, else the same (often no IMMEDIATE on Wayland). FIFO is always supported.
+  mPresentModeForVSyncLimit = fpsLimitMode() == FPS_LIMIT_VSYNC;
+  if (mPresentModeForVSyncLimit) {
+    return vk::PresentModeKHR::eFifo; // Refresh rate limit: one frame per refresh, queue depth limited by present wait
+  }
   const bool vsync = mDisplay->cfgR().drawQualityVSync;
   const auto& available = mSwapChainDetails.presentModes;
   for (vk::PresentModeKHR mode : {vk::PresentModeKHR::eImmediate, vk::PresentModeKHR::eMailbox, vk::PresentModeKHR::eFifoLatestReady, vk::PresentModeKHR::eFifo}) {
@@ -311,6 +315,25 @@ template <class... T>
 static void clearFeatures(vk::StructureChain<T...>& chain) // Zero all feature flags including padding, which the member-wise comparison in hasFeatures reads
 {
   ((memset(reinterpret_cast<char*>(&chain.template get<T>()) + sizeof(VkBaseOutStructure), 0, sizeof(T) - sizeof(VkBaseOutStructure))), ...);
+}
+
+template <class T> // Enable the first available of the extensions (aliases) if the device supports the feature, chaining the feature struct in front of chain
+static bool enableOptionalFeature(vk::PhysicalDevice device, const std::vector<vk::ExtensionProperties>& available, std::initializer_list<const char*> extensions, vk::Bool32 T::* feature, T& featureStruct, std::vector<const char*>& enabledExtensions, void*& chain)
+{
+  for (const char* ext : extensions) {
+    if (std::none_of(available.begin(), available.end(), [ext](const auto& e) { return strcmp(ext, e.extensionName) == 0; })) {
+      continue;
+    }
+    if (!(device.getFeatures2<vk::PhysicalDeviceFeatures2, T>().template get<T>().*feature)) {
+      return false;
+    }
+    enabledExtensions.emplace_back(ext);
+    featureStruct.*feature = VK_TRUE;
+    featureStruct.pNext = chain;
+    chain = &featureStruct;
+    return true;
+  }
+  return false;
 }
 
 template <class... T>
@@ -536,18 +559,10 @@ void GPUDisplayBackendVulkan::createDevice()
   mSmoothLinesSupported = getFeatures(mPhysicalDevice, reqDeviceFeatures).get<vk::PhysicalDeviceVulkan14Features>().smoothLines;
   reqDeviceFeatures.get<vk::PhysicalDeviceVulkan14Features>().smoothLines = mSmoothLinesSupported;
   std::vector<const char*> deviceExtensions = reqDeviceExtensions;
-  vk::PhysicalDevicePresentModeFifoLatestReadyFeaturesKHR fifoLatestReadyFeatures{};
+  void* featureChain = &reqDeviceFeatures.get<vk::PhysicalDeviceFeatures2>();
   const std::vector<vk::ExtensionProperties> availableDeviceExtensions = mPhysicalDevice.enumerateDeviceExtensionProperties(nullptr);
-  for (const char* ext : {VK_KHR_PRESENT_MODE_FIFO_LATEST_READY_EXTENSION_NAME, VK_EXT_PRESENT_MODE_FIFO_LATEST_READY_EXTENSION_NAME}) { // Optional, same feature struct for both
-    if (std::any_of(availableDeviceExtensions.begin(), availableDeviceExtensions.end(), [ext](const auto& e) { return strcmp(ext, e.extensionName) == 0; })) {
-      mFifoLatestReadySupported = mPhysicalDevice.getFeatures2<vk::PhysicalDeviceFeatures2, vk::PhysicalDevicePresentModeFifoLatestReadyFeaturesKHR>().get<vk::PhysicalDevicePresentModeFifoLatestReadyFeaturesKHR>().presentModeFifoLatestReady;
-      if (mFifoLatestReadySupported) {
-        deviceExtensions.emplace_back(ext);
-        fifoLatestReadyFeatures.presentModeFifoLatestReady = VK_TRUE;
-      }
-      break;
-    }
-  }
+  vk::PhysicalDevicePresentModeFifoLatestReadyFeaturesKHR fifoLatestReadyFeatures{};
+  mFifoLatestReadySupported = enableOptionalFeature(mPhysicalDevice, availableDeviceExtensions, {VK_KHR_PRESENT_MODE_FIFO_LATEST_READY_EXTENSION_NAME, VK_EXT_PRESENT_MODE_FIFO_LATEST_READY_EXTENSION_NAME}, &vk::PhysicalDevicePresentModeFifoLatestReadyFeaturesKHR::presentModeFifoLatestReady, fifoLatestReadyFeatures, deviceExtensions, featureChain);
 
   updateSwapChainDetails(mPhysicalDevice);
   vk::PhysicalDeviceProperties deviceProperties = mPhysicalDevice.getProperties();
@@ -572,11 +587,7 @@ void GPUDisplayBackendVulkan::createDevice()
   vk::DeviceCreateInfo deviceCreateInfo{};
   deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
   deviceCreateInfo.queueCreateInfoCount = 1;
-  deviceCreateInfo.pNext = &reqDeviceFeatures.get<vk::PhysicalDeviceFeatures2>();
-  if (mFifoLatestReadySupported) {
-    fifoLatestReadyFeatures.pNext = &reqDeviceFeatures.get<vk::PhysicalDeviceFeatures2>();
-    deviceCreateInfo.pNext = &fifoLatestReadyFeatures;
-  }
+  deviceCreateInfo.pNext = featureChain;
   deviceCreateInfo.pEnabledFeatures = nullptr;
   deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
   deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
@@ -648,6 +659,19 @@ void GPUDisplayBackendVulkan::createSemaphores()
   mTimelineValue = 0;
   mFrameTimelineValue.assign(mFramesInFlight, 0);
   mImageTimelineValue.assign(mImageCount, 0);
+  for (uint32_t i = 0; i < mImageCount; i++) {
+    mPresentFences.emplace_back(mDevice.createFence(vk::FenceCreateInfo{vk::FenceCreateFlagBits::eSignaled}, nullptr));
+  }
+}
+
+void GPUDisplayBackendVulkan::waitPresentFences()
+{
+  if (mPresentFences.size()) { // Timeout in case a failed present did not signal its fence
+    vk::Result retVal = mDevice.waitForFences(mPresentFences.size(), mPresentFences.data(), true, 1'000'000'000);
+    if (retVal != vk::Result::eTimeout) {
+      CHKERR(retVal);
+    }
+  }
 }
 
 void GPUDisplayBackendVulkan::clearSemaphores()
@@ -655,6 +679,7 @@ void GPUDisplayBackendVulkan::clearSemaphores()
   clearVector(mImageAvailableSemaphore, [&](auto& x) { mDevice.destroySemaphore(x, nullptr); });
   clearVector(mPresentSemaphore, [&](auto& x) { mDevice.destroySemaphore(x, nullptr); });
   mDevice.destroySemaphore(mTimelineSemaphore, nullptr);
+  clearVector(mPresentFences, [&](auto& x) { mDevice.destroyFence(x, nullptr); });
 }
 
 // ---------------------------- VULKAN UNIFORM LAYOUTS AND BUFFERS  ----------------------------
@@ -770,8 +795,23 @@ void GPUDisplayBackendVulkan::createSwapChain(vk::SwapchainKHR oldSwapChain)
   swapCreateInfo.presentMode = mPresentMode;
   swapCreateInfo.clipped = true;
   swapCreateInfo.oldSwapchain = oldSwapChain;
+  vk::SwapchainPresentScalingCreateInfoKHR scalingInfo{};
+  { // Let the compositor scale the last image while resizing, until the new swapchain is presented
+    const vk::SurfacePresentModeKHR surfacePresentMode{mPresentMode};
+    const auto caps = mPhysicalDevice.getSurfaceCapabilities2KHR<vk::SurfaceCapabilities2KHR, vk::SurfacePresentScalingCapabilitiesKHR>(vk::PhysicalDeviceSurfaceInfo2KHR{mSurface, &surfacePresentMode}).get<vk::SurfacePresentScalingCapabilitiesKHR>();
+    auto gravity = [](vk::PresentGravityFlagsKHR f) { return (f & vk::PresentGravityFlagBitsKHR::eCentered) ? vk::PresentGravityFlagBitsKHR::eCentered : (f & vk::PresentGravityFlagBitsKHR::eMin) ? vk::PresentGravityFlagBitsKHR::eMin
+                                                                                                                                                                                                   : vk::PresentGravityFlagsKHR(f & vk::PresentGravityFlagBitsKHR::eMax); };
+    scalingInfo.scalingBehavior = (caps.supportedPresentScaling & vk::PresentScalingFlagBitsKHR::eAspectRatioStretch) ? vk::PresentScalingFlagBitsKHR::eAspectRatioStretch : vk::PresentScalingFlagsKHR(caps.supportedPresentScaling & vk::PresentScalingFlagBitsKHR::eStretch);
+    scalingInfo.presentGravityX = gravity(caps.supportedPresentGravityX);
+    scalingInfo.presentGravityY = gravity(caps.supportedPresentGravityY);
+    if (scalingInfo.scalingBehavior && scalingInfo.presentGravityX && scalingInfo.presentGravityY) {
+      swapCreateInfo.pNext = &scalingInfo;
+    }
+  }
   mSwapChain = mDevice.createSwapchainKHR(swapCreateInfo, nullptr);
+  mLastPresentId = 0; // Present IDs are per swapchain
   if (oldSwapChain) {
+    waitPresentFences(); // Presentation engine done with the old swapchain
     mDevice.destroySwapchainKHR(oldSwapChain, nullptr);
   }
 
@@ -809,6 +849,7 @@ void GPUDisplayBackendVulkan::clearSwapChain(bool keepSwapChain)
 {
   clearVector(mSwapChainImageViews, [&](auto& x) { mDevice.destroyImageView(x, nullptr); });
   if (!keepSwapChain) {
+    waitPresentFences();
     mDevice.destroySwapchainKHR(mSwapChain, nullptr);
   }
 }
@@ -1424,11 +1465,22 @@ void GPUDisplayBackendVulkan::prepareDraw(const hmm_mat4& proj, const hmm_mat4& 
   if (includeMixImage == 0.f) {
     mCurrentFrame = (mCurrentFrame + 1) % mFramesInFlight;
     waitTimeline(mFrameTimelineValue[mCurrentFrame]);
+    if (mLastPresentId > 1 && fpsLimitMode() == FPS_LIMIT_VSYNC) { // Refresh rate limit (FIFO): at most one frame queued (wait for the second-last present), keeps the rate if a frame misses the deadline, timeout in case the window is hidden
+      const vk::Result retVal = (vk::Result)VULKAN_HPP_DEFAULT_DISPATCHER.vkWaitForPresentKHR(static_cast<VkDevice>(mDevice), static_cast<VkSwapchainKHR>(mSwapChain), mLastPresentId - 1, 100'000'000);
+      if (retVal == vk::Result::eErrorOutOfDateKHR || retVal == vk::Result::eSuboptimalKHR) {
+        mMustUpdateSwapChain = true;
+      } else if (retVal != vk::Result::eTimeout) {
+        CHKERR(retVal);
+      }
+    }
     auto getImage = [&]() {
       return mDevice.acquireNextImageKHR(mSwapChain, UINT64_MAX, mImageAvailableSemaphore[mCurrentFrame], VkFence(VK_NULL_HANDLE), &mCurrentImageIndex);
     };
 
     vk::Result retVal = vk::Result::eSuccess;
+    if (mPresentModeForVSyncLimit != (fpsLimitMode() == FPS_LIMIT_VSYNC)) { // Present mode depends on the FPS limit mode
+      mMustUpdateSwapChain = true;
+    }
     bool mustUpdateSwapChain = mMustUpdateSwapChain || mDisplay->updateRenderPipeline() || (toMixBuffer && !mMixingSupported) || mDownsampleFactor != getDownsampleFactor(requestScreenshot) || mSmoothLines != useNativeSmoothLines();
     if (!mustUpdateSwapChain) {
       retVal = getImage();
@@ -1442,7 +1494,11 @@ void GPUDisplayBackendVulkan::prepareDraw(const hmm_mat4& proj, const hmm_mat4& 
     }
     mMustUpdateSwapChain = retVal == vk::Result::eSuboptimalKHR;
     CHKERR(retVal);
-    waitTimeline(mImageTimelineValue[mCurrentImageIndex]); // Previous frame using this image's resources (command buffers, uniform buffer, ...) finished
+    waitTimeline(mImageTimelineValue[mCurrentImageIndex]);                                        // Previous frame using this image's resources (command buffers, uniform buffer, ...) finished
+    if (mPresentFences.size()) {                                                                  // Previous present of this image done, its present semaphore can be signaled again
+      CHKERR(mDevice.waitForFences(1, &mPresentFences[mCurrentImageIndex], true, 1'000'000'000)); // Timeout (positive result, not an error) in case a failed present did not signal it
+      CHKERR(mDevice.resetFences(1, &mPresentFences[mCurrentImageIndex]));
+    }
 
     mHasDrawnText = false;
     mFrameCommandBuffers.clear();
@@ -1521,6 +1577,17 @@ void GPUDisplayBackendVulkan::finishFrame(bool doScreenshot, bool toMixBuffer, f
     presentInfo.pSwapchains = &mSwapChain;
     presentInfo.pImageIndices = &mCurrentImageIndex;
     presentInfo.pResults = nullptr;
+    const uint64_t presentId = mLastPresentId + 1;
+    vk::PresentIdKHR presentIdInfo{1, &presentId};
+    if (fpsLimitMode() == FPS_LIMIT_VSYNC) { // Present wait only for the refresh rate limit, the fpsRate limit (frontend timer) must not be capped at the refresh rate
+      presentInfo.pNext = &presentIdInfo;
+      mLastPresentId = presentId;
+    }
+    vk::SwapchainPresentFenceInfoKHR presentFenceInfo{};
+    if (mPresentFences.size()) {
+      presentFenceInfo = vk::SwapchainPresentFenceInfoKHR{1, &mPresentFences[mCurrentImageIndex], presentInfo.pNext};
+      presentInfo.pNext = &presentFenceInfo;
+    }
     vk::Result retVal = mGraphicsQueue.presentKHR(&presentInfo);
     if (retVal == vk::Result::eErrorOutOfDateKHR || retVal == vk::Result::eSuboptimalKHR) {
       mMustUpdateSwapChain = true;

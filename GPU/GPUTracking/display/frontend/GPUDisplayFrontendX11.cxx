@@ -291,6 +291,8 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
   }
   XMapWindow(mXDisplay, mWindow);
 
+  XEvent mapEvent; // Maximize only after the window manager placed the window (on the active monitor), so that it restores to this position when un-maximized
+  XPeekIfEvent(mXDisplay, &mapEvent, [](Display*, XEvent* ev, XPointer window) -> Bool { return ev->type == MapNotify && ev->xmap.window == *(Window*)window; }, (XPointer)&mWindow);
   applyInitialWindowState();
 
   // Receive signal when window closed
@@ -523,7 +525,7 @@ void GPUDisplayFrontendX11::ToggleMaximized(bool set)
   xev.xclient.window = mWindow;
   xev.xclient.message_type = XInternAtom(mXDisplay, "_NET_WM_STATE", False);
   xev.xclient.format = 32;
-  xev.xclient.data.l[0] = set ? 1 : 2; //_NET_WM_STATE_ADD
+  xev.xclient.data.l[0] = set ? 1 : 0; // _NET_WM_STATE_ADD / _NET_WM_STATE_REMOVE
   xev.xclient.data.l[1] = XInternAtom(mXDisplay, "_NET_WM_STATE_MAXIMIZED_HORZ", False);
   xev.xclient.data.l[2] = XInternAtom(mXDisplay, "_NET_WM_STATE_MAXIMIZED_VERT", False);
   XSendEvent(mXDisplay, DefaultRootWindow(mXDisplay), False, SubstructureNotifyMask, &xev);
