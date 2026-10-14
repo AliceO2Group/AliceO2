@@ -80,12 +80,12 @@ class DPLClientParser : public HTTPParser
 class TestWSHandler : public WebSocketHandler
 {
  public:
-  std::vector<char const*> mFrame;
+  std::vector<std::string> mFrame;
   std::vector<size_t> mSize;
   void frame(const char* f, size_t s) final
   {
-    mFrame.push_back(strdup(f));
-    mSize.push_back(s);
+    mFrame.emplace_back(f, s);
+    mSize.emplace_back(s);
   }
 };
 
@@ -187,7 +187,7 @@ TEST_CASE("HTTPParser1")
     ; // 1 for the 0, 2 for the header
     decode_websocket(encoded[0].base, encoded[0].len, handler);
     REQUIRE(handler.mSize[0] == strlen(buffer) + 1);
-    REQUIRE(std::string(handler.mFrame[0], handler.mSize[0] - 1) == std::string(buffer));
+    REQUIRE(handler.mFrame[0].substr(0, handler.mSize[0] - 1) == std::string(buffer));
   }
   {
     // WebSocket multiple frame encoding / decoding
@@ -214,8 +214,8 @@ TEST_CASE("HTTPParser1")
     decode_websocket(multiBuffer, encoded[0].len + encoded[1].len, handler);
     REQUIRE(handler.mFrame.size() == 2);
     REQUIRE(handler.mSize.size() == 2);
-    REQUIRE(std::string(handler.mFrame[0], handler.mSize[0] - 1) == std::string(buffer));
-    REQUIRE(std::string(handler.mFrame[1], handler.mSize[1] - 1) == std::string(buffer2));
+    REQUIRE(handler.mFrame[0].substr(0, handler.mSize[0] - 1) == std::string(buffer));
+    REQUIRE(handler.mFrame[1].substr(0, handler.mSize[1] - 1) == std::string(buffer2));
   }
   {
     // Decode a frame which is split in two.
@@ -229,7 +229,7 @@ TEST_CASE("HTTPParser1")
     decode_websocket(encoded[0].base + encoded[0].len / 2, encoded[0].len - encoded[0].len / 2, handler);
     REQUIRE(handler.mFrame.size() == 1);
     REQUIRE(handler.mSize.size() == 1);
-    REQUIRE(std::string(handler.mFrame[0], handler.mSize[0] - 1) == std::string(buffer));
+    REQUIRE(handler.mFrame[0].substr(0, handler.mSize[0] - 1) == std::string(buffer));
   }
   {
     // Decode a long frame which is split in two.
@@ -243,7 +243,7 @@ TEST_CASE("HTTPParser1")
     decode_websocket(encoded[0].base + encoded[0].len / 2, encoded[0].len - encoded[0].len / 2, handler);
     REQUIRE(handler.mFrame.size() == 1);
     REQUIRE(handler.mSize.size() == 1);
-    REQUIRE(std::string(handler.mFrame[0], handler.mSize[0] - 1) == std::string(buffer));
+    REQUIRE(handler.mFrame[0].substr(0, handler.mSize[0] - 1) == std::string(buffer));
   }
   {
     // WebSocket multiple frame encoding / decoding, long frames
@@ -259,8 +259,8 @@ TEST_CASE("HTTPParser1")
     decode_websocket(encoded[0].base, encoded[0].len, handler);
     REQUIRE(handler.mFrame.size() == 2);
     REQUIRE(handler.mSize.size() == 2);
-    REQUIRE(std::string(handler.mFrame[0], handler.mSize[0] - 1) == std::string(buffer));
-    REQUIRE(std::string(handler.mFrame[1], handler.mSize[1] - 1) == std::string(buffer2));
+    REQUIRE(handler.mFrame[0].substr(0, handler.mSize[0] - 1) == std::string(buffer));
+    REQUIRE(handler.mFrame[1].substr(0, handler.mSize[1] - 1) == std::string(buffer2));
   }
   {
     // Decode a long frame which is split in two, after the first byte.
@@ -281,7 +281,7 @@ TEST_CASE("HTTPParser1")
       decode_websocket(buffer2, encoded[0].len - i, handler);
       REQUIRE(handler.mFrame.size() == 1);
       REQUIRE(handler.mSize.size() == 1);
-      REQUIRE(std::string(handler.mFrame[0], handler.mSize[0] - 1) == std::string(buffer));
+      REQUIRE(handler.mFrame[0].substr(0, handler.mSize[0] - 1) == std::string(buffer));
     }
   }
   {
@@ -310,7 +310,7 @@ TEST_CASE("HTTPParser1")
         decode_websocket(buffer3, encoded[0].len - j, handler);
         REQUIRE(handler.mFrame.size() == 1);
         REQUIRE(handler.mSize.size() == 1);
-        REQUIRE(std::string(handler.mFrame[0], handler.mSize[0] - 1) == std::string(buffer));
+        REQUIRE(handler.mFrame[0].substr(0, handler.mSize[0] - 1) == std::string(buffer));
       }
     }
   }
