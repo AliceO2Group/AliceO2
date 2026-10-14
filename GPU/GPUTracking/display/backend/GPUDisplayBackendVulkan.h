@@ -90,6 +90,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   using FeatureChain = vk::StructureChain<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan11Features, vk::PhysicalDeviceVulkan12Features, vk::PhysicalDeviceVulkan13Features, vk::PhysicalDeviceVulkan14Features, vk::PhysicalDeviceSwapchainMaintenance1FeaturesKHR, vk::PhysicalDevicePresentIdFeaturesKHR, vk::PhysicalDevicePresentWaitFeaturesKHR>;
   double checkDevice(vk::PhysicalDevice device, const std::vector<const char*>& reqDeviceExtensions, const FeatureChain& reqDeviceFeatures, bool silent = false);
   vk::Extent2D chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities);
+  vk::PresentModeKHR chooseSwapPresentMode();
   void transitionImageLayout(vk::CommandBuffer commandBuffer, vk::Image image, vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout);
   VulkanBuffer createBuffer(size_t size, const void* srcData = nullptr, vk::BufferUsageFlags type = vk::BufferUsageFlagBits::eVertexBuffer, int32_t deviceMemory = 1);
   void writeToBuffer(VulkanBuffer& buffer, size_t size, const void* srcData);
@@ -212,6 +213,8 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   bool mZActive = false;
   bool mSmoothLinesSupported = false; // Optional Vulkan 1.4 feature smoothLines, enabled if available
   bool mSmoothLines = false;
+  bool mPresentModeErrorShown = false;
+  bool mFifoLatestReadySupported = false; // Optional present mode FIFO_LATEST_READY (VK_KHR / VK_EXT_present_mode_fifo_latest_ready), enabled if available
   bool mStrictLines = false;
   bool mZSupported = false;
   bool mStencilSupported = false;
