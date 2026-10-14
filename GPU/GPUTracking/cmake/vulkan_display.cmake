@@ -25,7 +25,7 @@ function(add_glslc_shader TARGET SHADER)
 
     add_custom_command(
         OUTPUT ${spirv-file}
-        COMMAND ${Vulkan_GLSLC_EXECUTABLE} -o ${spirv-file} ${input-file-abs} -MD -MT ${spirv-file} -MF ${spirv-file}.d
+        COMMAND ${Vulkan_GLSLC_EXECUTABLE} --target-env=vulkan1.4 -o ${spirv-file} ${input-file-abs} -MD -MT ${spirv-file} -MF ${spirv-file}.d
         DEPENDS ${input-file-abs}
         DEPFILE ${spirv-file}.d
         COMMENT "Compiling GLSL to SPIRV: ${SHADER}"
