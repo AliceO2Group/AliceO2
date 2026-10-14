@@ -175,6 +175,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   std::vector<vk::CommandBuffer> mCommandBuffersText;
   std::vector<vk::CommandBuffer> mCommandBuffersTexture;
   std::vector<vk::CommandBuffer> mCommandBuffersMix;
+  std::vector<vk::SubmitInfo> mSubmitQueue;
   std::vector<bool> mCommandBufferUpToDate;
   std::vector<vk::Semaphore> mImageAvailableSemaphore;
   std::vector<vk::Semaphore> mRenderFinishedSemaphore;
