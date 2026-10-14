@@ -39,6 +39,14 @@ class InvalidAODReadError : public std::runtime_error
   using std::runtime_error::runtime_error;
 };
 
+// Opening an input file can fail before its timeframes are known. The reader
+// must advance to the next file rather than retrying subsequent timeframe indices.
+class AODFileOpenError : public std::runtime_error
+{
+ public:
+  using std::runtime_error::runtime_error;
+};
+
 struct FileNameHolder {
   std::string fileName;
   int numberOfTimeFrames = 0;

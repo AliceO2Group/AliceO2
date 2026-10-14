@@ -165,7 +165,7 @@ bool DataInputDescriptor::setFile(int counter, int wantedParentLevel, std::strin
     if (tfile && !externalFile) {
       delete tfile;
     }
-    throw std::runtime_error(fmt::format("Couldn't open file \"{}\"!", filename));
+    throw AODFileOpenError(fmt::format("Couldn't open file \"{}\"!", filename));
   }
   mCurrentFilesystem = std::make_shared<TFileFileSystem>(tfile, 50 * 1024 * 1024, mFactory, !externalFile);
   rootFS = std::dynamic_pointer_cast<TFileFileSystem>(mCurrentFilesystem);

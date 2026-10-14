@@ -260,6 +260,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
       static size_t totalSizeCompressed = 0;
       static uint64_t totalDFSent = 0;
       static uint64_t totalInvalidReadSkipped = 0;
+      static uint64_t totalFileOpenSkipped = 0;
 
       // check if RuntimeLimit is reached
       if (!watchdog->update()) {
@@ -274,15 +275,18 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
 
       int64_t startTime = uv_hrtime();
       int64_t startSize = totalSizeCompressed;
-      auto skipInvalidRead = [&](ConcreteDataMatcher const& concrete, InvalidAODReadError const& e) {
-        auto skippedTimeframes = ++totalInvalidReadSkipped;
-        LOGP(error, "Invalid AOD read for table {}: fileCounter {}, timeFrame {}. Skipping timeframe (skipped timeframes: {}). Reason: {}",
-             concrete.origin.as<std::string>(), fcnt, ntf, skippedTimeframes, describeException(e));
+      auto discardTimeframe = [&didir, &arrowContext, &messageContext, &stringContext]() {
         clean_all_runtime_errors();
         didir->finishTimeFrame(true);
         arrowContext.clear();
         messageContext.discard();
         stringContext.clear();
+      };
+      auto skipInvalidRead = [&fcnt, &ntf, &discardTimeframe, &dpstats, &fileCounter, &numTF, &device](ConcreteDataMatcher const& concrete, InvalidAODReadError const& e) {
+        auto skippedTimeframes = ++totalInvalidReadSkipped;
+        LOGP(error, "Invalid AOD read for table {}: fileCounter {}, timeFrame {}. Skipping timeframe (skipped timeframes: {}). Reason: {}",
+             concrete.origin.as<std::string>(), fcnt, ntf, skippedTimeframes, describeException(e));
+        discardTimeframe();
         dpstats.updateStats({static_cast<short>(ProcessingStatsId::AOD_INVALID_READ_SKIPPED_TIMEFRAMES), DataProcessingStats::Op::Add, 1});
         *fileCounter = (fcnt - device.inputTimesliceId) / device.maxInputTimeslices;
         *numTF = ntf;
@@ -294,6 +298,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
         TRY_NEXT_FILE,
         TIMEFRAME_READ,
         INVALID_TIMEFRAME,
+        INVALID_FILE,
       };
       auto readState = TFReaderState::READ_FIRST_TABLE;
       [[maybe_unused]] auto stateName = [](TFReaderState state) -> char const* {
@@ -310,6 +315,8 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
             return "TIMEFRAME_READ";
           case TFReaderState::INVALID_TIMEFRAME:
             return "INVALID_TIMEFRAME";
+          case TFReaderState::INVALID_FILE:
+            return "INVALID_FILE";
         }
         return "UNKNOWN";
       };
@@ -344,7 +351,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
           outputs.make<std::string>(o2) = currentFilename;
         }
       };
-      auto tryReadTable = [&device, &didir, &fcnt, &ntf, &outputs, &reportTimeframe, &requestedTables, &routeIndex, &skipInvalidRead, skipInvalidReads](TFReaderState currentState) -> TFReaderState {
+      auto tryReadTable = [&device, &didir, &fcnt, &ntf, &outputs, &reportTimeframe, &requestedTables, &routeIndex, &skipInvalidRead, &discardTimeframe, &dpstats, skipInvalidReads](TFReaderState currentState) -> TFReaderState {
         while (routeIndex < requestedTables.size() &&
                (device.inputTimesliceId % requestedTables[routeIndex].maxTimeslices) != requestedTables[routeIndex].timeslice) {
           ++routeIndex;
@@ -365,6 +372,16 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
           if (!didir->readTree(outputs, dh, fcnt, ntf, totalSizeCompressed, totalSizeUncompressed, wasAOD)) {
             return TFReaderState::TRY_NEXT_FILE;
           }
+        } catch (AODFileOpenError const& e) {
+          if (!skipInvalidReads) {
+            throw;
+          }
+          auto skippedFiles = ++totalFileOpenSkipped;
+          LOGP(error, "Unable to open AOD input for table {}: fileCounter {}, timeFrame {}. Skipping file (skipped files: {}). Reason: {}",
+               concrete.origin.as<std::string>(), fcnt, ntf, skippedFiles, describeException(e));
+          discardTimeframe();
+          dpstats.updateStats({static_cast<short>(ProcessingStatsId::AOD_FILE_OPEN_SKIPPED_FILES), DataProcessingStats::Op::Add, 1});
+          return TFReaderState::INVALID_FILE;
         } catch (InvalidAODReadError const& e) {
           if (!skipInvalidReads) {
             throw;
@@ -394,6 +411,10 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
               throw std::runtime_error("Processing is stopped!");
             }
             break;
+          case TFReaderState::INVALID_FILE:
+            // Undo the discard so outputs read from the next file are checked as usual
+            messageContext.clear();
+            [[fallthrough]];
           case TFReaderState::TRY_NEXT_FILE:
             didir->finishTimeFrame();
             fcnt += device.maxInputTimeslices;
