@@ -46,7 +46,7 @@ void DigitContainer::fillOutputContainer(std::vector<Digit>& output,
   auto& cdb = CDBInterface::instance();
 
   // ion tail per pad parameters
-  const CalPad* padParams[3] = {nullptr, nullptr, nullptr};
+  const CalPad* padParams[4] = {nullptr, nullptr, nullptr, nullptr};
 
   if (eleParam.doIonTailPerPad) {
     const auto& itSettings = IonTailSettings::Instance();
@@ -59,6 +59,7 @@ void DigitContainer::fillOutputContainer(std::vector<Digit>& output,
   if (eleParam.doCommonModePerPad) {
     padParams[2] = &cdb.getCMkValues();
   }
+  padParams[3] = &cdb.getPedestals();
 
   const bool needsPrevDigArray = eleParam.doIonTail || eleParam.doIonTailPerPad || eleParam.doSaturationTail;
   const bool needsEmptyTimeBins = needsPrevDigArray || eleParam.doNoiseEmptyPads;
