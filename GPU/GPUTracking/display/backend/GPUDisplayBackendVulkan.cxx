@@ -142,6 +142,10 @@ static void cmdImageMemoryBarrier(vk::CommandBuffer cmdbuffer, vk::Image image, 
 static void cmdBeginRendering(vk::CommandBuffer cmdbuffer, uint32_t width, uint32_t height, const vk::RenderingAttachmentInfo& color, const vk::RenderingAttachmentInfo* depth = nullptr)
 {
   cmdbuffer.beginRendering(vk::RenderingInfo{{}, vk::Rect2D{{0, 0}, {width, height}}, 1, 0, 1, &color, depth});
+  vk::Viewport viewport{0.f, 0.f, (float)width, (float)height, 0.f, 1.f};
+  vk::Rect2D scissor{{0, 0}, {width, height}};
+  cmdbuffer.setViewport(0, 1, &viewport);
+  cmdbuffer.setScissor(0, 1, &scissor);
 }
 
 static void cmdBeginRenderingLoad(vk::CommandBuffer cmdbuffer, vk::Image image, vk::ImageView view, uint32_t width, uint32_t height) // Render on top of the content of a color attachment written by a previous pass
@@ -713,12 +717,8 @@ void GPUDisplayBackendVulkan::clearTextureSampler()
 
 // ---------------------------- VULKAN SWAPCHAIN MANAGEMENT ----------------------------
 
-void GPUDisplayBackendVulkan::createSwapChain(bool forScreenshot, bool forMixing, vk::SwapchainKHR oldSwapChain)
+void GPUDisplayBackendVulkan::createSwapChain(vk::SwapchainKHR oldSwapChain)
 {
-  mDownsampleFactor = getDownsampleFactor(forScreenshot);
-  mDownsampleFSAA = mDownsampleFactor != 1;
-  mSwapchainImageReadable = forScreenshot;
-
   updateSwapChainDetails(mPhysicalDevice);
   mSurfaceFormat = chooseSwapSurfaceFormat(mSwapChainDetails.formats);
   mPresentMode = chooseSwapPresentMode(mSwapChainDetails.presentModes, mDisplay->cfgR().drawQualityVSync ? vk::PresentModeKHR::eMailbox : vk::PresentModeKHR::eImmediate);
@@ -731,8 +731,6 @@ void GPUDisplayBackendVulkan::createSwapChain(bool forScreenshot, bool forMixing
 
   mScreenWidth = extent.width;
   mScreenHeight = extent.height;
-  mRenderWidth = mScreenWidth * mDownsampleFactor;
-  mRenderHeight = mScreenHeight * mDownsampleFactor;
 
   vk::SwapchainCreateInfoKHR swapCreateInfo{};
   swapCreateInfo.surface = mSurface;
@@ -741,7 +739,7 @@ void GPUDisplayBackendVulkan::createSwapChain(bool forScreenshot, bool forMixing
   swapCreateInfo.imageColorSpace = mSurfaceFormat.colorSpace;
   swapCreateInfo.imageExtent = extent;
   swapCreateInfo.imageArrayLayers = 1;
-  swapCreateInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
+  swapCreateInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst; // Transfer for screenshots / FSAA downsampling, so that they need no swapchain recreation
   swapCreateInfo.imageSharingMode = vk::SharingMode::eExclusive;
   swapCreateInfo.queueFamilyIndexCount = 0;     // Optional
   swapCreateInfo.pQueueFamilyIndices = nullptr; // Optional
@@ -750,12 +748,6 @@ void GPUDisplayBackendVulkan::createSwapChain(bool forScreenshot, bool forMixing
   swapCreateInfo.presentMode = mPresentMode;
   swapCreateInfo.clipped = true;
   swapCreateInfo.oldSwapchain = oldSwapChain;
-  if (mSwapchainImageReadable) {
-    swapCreateInfo.imageUsage |= vk::ImageUsageFlagBits::eTransferSrc;
-  }
-  if (mDownsampleFSAA) {
-    swapCreateInfo.imageUsage |= vk::ImageUsageFlagBits::eTransferDst;
-  }
   mSwapChain = mDevice.createSwapchainKHR(swapCreateInfo, nullptr);
   if (oldSwapChain) {
     mDevice.destroySwapchainKHR(oldSwapChain, nullptr);
@@ -801,20 +793,26 @@ void GPUDisplayBackendVulkan::clearSwapChain(bool keepSwapChain)
 
 void GPUDisplayBackendVulkan::recreateRendering(bool forScreenshot, bool forMixing)
 {
-  mDevice.waitIdle();
-  bool needUpdateSwapChain = mMustUpdateSwapChain || mDownsampleFactor != getDownsampleFactor(forScreenshot) || mSwapchainImageReadable != forScreenshot;
-  bool needUpdateOffscreenBuffers = needUpdateSwapChain || mMSAASampleCount != getMSAASamplesFlag(std::min<uint32_t>(mMaxMSAAsupported, mDisplay->cfgR().drawQualityMSAA)) || mZActive != (mZSupported && mDisplay->cfgL().depthBuffer) || mMixingSupported != forMixing;
-  clearPipeline();
-  if (needUpdateOffscreenBuffers) {
-    clearOffscreenBuffers();
-    if (needUpdateSwapChain) {
-      clearSwapChain(true);
-      createSwapChain(forScreenshot, forMixing, mSwapChain);
-    }
-    createOffscreenBuffers(forScreenshot, forMixing);
-  }
-  createPipeline();
   needRecordCommandBuffers();
+  const bool needUpdateSwapChain = mMustUpdateSwapChain;
+  const bool needUpdateOffscreenBuffers = needUpdateSwapChain || mDownsampleFactor != getDownsampleFactor(forScreenshot) || mMSAASampleCount != getMSAASamplesFlag(std::min<uint32_t>(mMaxMSAAsupported, mDisplay->cfgR().drawQualityMSAA)) || mZActive != (mZSupported && mDisplay->cfgL().depthBuffer) || mMixingSupported != forMixing;
+  if (!needUpdateOffscreenBuffers) {
+    return;
+  }
+  mDevice.waitIdle();
+  const vk::Format oldFormat = mSurfaceFormat.format;
+  const vk::SampleCountFlagBits oldMSAASampleCount = mMSAASampleCount;
+  const bool oldZActive = mZActive;
+  clearOffscreenBuffers();
+  if (needUpdateSwapChain) {
+    clearSwapChain(true);
+    createSwapChain(mSwapChain);
+  }
+  createOffscreenBuffers(forScreenshot, forMixing);
+  if (mSurfaceFormat.format != oldFormat || mMSAASampleCount != oldMSAASampleCount || mZActive != oldZActive) { // Viewport / scissor are dynamic
+    clearPipeline();
+    createPipeline();
+  }
   mUpdateUBOtextMatrix = mUpdateUBOmixMatrix = -1; // Screen / render size may have changed
 }
 
@@ -825,6 +823,10 @@ void GPUDisplayBackendVulkan::createOffscreenBuffers(bool forScreenshot, bool fo
   mMSAASampleCount = getMSAASamplesFlag(std::min<uint32_t>(mMaxMSAAsupported, mDisplay->cfgR().drawQualityMSAA));
   mZActive = mZSupported && mDisplay->cfgL().depthBuffer;
   mMixingSupported = forMixing;
+  mDownsampleFactor = getDownsampleFactor(forScreenshot);
+  mDownsampleFSAA = mDownsampleFactor != 1;
+  mRenderWidth = mScreenWidth * mDownsampleFactor;
+  mRenderHeight = mScreenHeight * mDownsampleFactor;
 
   const uint32_t imageCountWithMixImages = mImageCount * (mMixingSupported ? 2 : 1);
   mRenderTargetView.resize(imageCountWithMixImages);
@@ -929,23 +931,9 @@ void GPUDisplayBackendVulkan::createPipeline()
   // inputAssembly.topology // below
   inputAssembly.primitiveRestartEnable = false;
 
-  vk::Viewport viewport{};
-  viewport.x = 0.0f;
-  viewport.y = 0.0f;
-  // viewport.width // below
-  // viewport.height // below
-  viewport.minDepth = 0.0f;
-  viewport.maxDepth = 1.0f;
-
-  vk::Rect2D scissor{};
-  scissor.offset = vk::Offset2D{0, 0};
-  // scissor.extent // below
-
-  vk::PipelineViewportStateCreateInfo viewportState{};
+  vk::PipelineViewportStateCreateInfo viewportState{}; // Viewport and scissor are dynamic
   viewportState.viewportCount = 1;
-  viewportState.pViewports = &viewport;
   viewportState.scissorCount = 1;
-  viewportState.pScissors = &scissor;
 
   vk::PipelineRasterizationStateCreateInfo rasterizer{};
   rasterizer.depthClampEnable = false;
@@ -995,9 +983,9 @@ void GPUDisplayBackendVulkan::createPipeline()
   depthStencil.depthBoundsTestEnable = false;
   depthStencil.stencilTestEnable = false;
 
-  vk::DynamicState dynamicStates[] = {vk::DynamicState::eLineWidth};
+  vk::DynamicState dynamicStates[] = {vk::DynamicState::eViewport, vk::DynamicState::eScissor, vk::DynamicState::eLineWidth};
   vk::PipelineDynamicStateCreateInfo dynamicState{};
-  dynamicState.dynamicStateCount = 1;
+  // dynamicState.dynamicStateCount // below: viewport + scissor for text / texture, + line width for the main pipelines
   dynamicState.pDynamicStates = dynamicStates;
 
   vk::PushConstantRange pushConstantRanges[2] = {vk::PushConstantRange{}, vk::PushConstantRange{}};
@@ -1034,7 +1022,7 @@ void GPUDisplayBackendVulkan::createPipeline()
   pipelineInfo.basePipelineHandle = VkPipeline(VK_NULL_HANDLE); // Optional
   pipelineInfo.basePipelineIndex = -1;                          // Optional
 
-  mPipelines.resize(mMixingSupported ? 5 : 4);
+  mPipelines.resize(5);
   static constexpr vk::PrimitiveTopology types[3] = {vk::PrimitiveTopology::ePointList, vk::PrimitiveTopology::eLineList, vk::PrimitiveTopology::eLineStrip};
   for (uint32_t i = 0; i < mPipelines.size(); i++) {
     if (i == 4) { // Texture rendering
@@ -1043,26 +1031,24 @@ void GPUDisplayBackendVulkan::createPipeline()
       inputAssembly.topology = vk::PrimitiveTopology::eTriangleList;
       vertShaderStageInfo.module = mShaders["vertexTexture"];
       fragShaderStageInfo.module = mShaders["fragmentTexture"];
+      dynamicState.dynamicStateCount = 2;
       pipelineInfo.layout = mPipelineLayoutTexture;
       renderingInfo.depthAttachmentFormat = vk::Format::eUndefined;
       pipelineInfo.pDepthStencilState = nullptr;
       colorBlendAttachment.blendEnable = true;
       multisampling.rasterizationSamples = vk::SampleCountFlagBits::e1;
-      viewport.width = scissor.extent.width = mRenderWidth;
-      viewport.height = scissor.extent.height = mRenderHeight;
     } else if (i == 3) { // Text rendering
       bindingDescription.stride = 4 * sizeof(float);
       attributeDescriptions.format = vk::Format::eR32G32B32A32Sfloat;
       inputAssembly.topology = vk::PrimitiveTopology::eTriangleList;
       vertShaderStageInfo.module = mShaders["vertexTexture"];
       fragShaderStageInfo.module = mShaders["fragmentText"];
+      dynamicState.dynamicStateCount = 2;
       pipelineInfo.layout = mPipelineLayoutTexture;
       renderingInfo.depthAttachmentFormat = vk::Format::eUndefined;
       pipelineInfo.pDepthStencilState = nullptr;
       colorBlendAttachment.blendEnable = true;
       multisampling.rasterizationSamples = vk::SampleCountFlagBits::e1;
-      viewport.width = scissor.extent.width = mScreenWidth;
-      viewport.height = scissor.extent.height = mScreenHeight;
     } else { // Point / line / line-strip rendering
       bindingDescription.stride = 3 * sizeof(float);
       attributeDescriptions.format = vk::Format::eR32G32B32Sfloat;
@@ -1072,10 +1058,9 @@ void GPUDisplayBackendVulkan::createPipeline()
       pipelineInfo.layout = mPipelineLayout;
       renderingInfo.depthAttachmentFormat = mZActive ? vk::Format::eD32Sfloat : vk::Format::eUndefined;
       pipelineInfo.pDepthStencilState = mZActive ? &depthStencil : nullptr;
+      dynamicState.dynamicStateCount = 3;
       colorBlendAttachment.blendEnable = true;
       multisampling.rasterizationSamples = mMSAASampleCount;
-      viewport.width = scissor.extent.width = mRenderWidth;
-      viewport.height = scissor.extent.height = mRenderHeight;
     }
 
     CHKERR(mDevice.createGraphicsPipelines(VkPipelineCache(VK_NULL_HANDLE), 1, &pipelineInfo, nullptr, &mPipelines[i])); // TODO: multiple at once + cache?
@@ -1389,7 +1374,7 @@ void GPUDisplayBackendVulkan::prepareDraw(const hmm_mat4& proj, const hmm_mat4& 
     };
 
     vk::Result retVal = vk::Result::eSuccess;
-    bool mustUpdateSwapChain = mMustUpdateSwapChain || mDisplay->updateRenderPipeline() || (requestScreenshot && !mSwapchainImageReadable) || (toMixBuffer && !mMixingSupported) || mDownsampleFactor != getDownsampleFactor(requestScreenshot);
+    bool mustUpdateSwapChain = mMustUpdateSwapChain || mDisplay->updateRenderPipeline() || (toMixBuffer && !mMixingSupported) || mDownsampleFactor != getDownsampleFactor(requestScreenshot);
     if (!mustUpdateSwapChain) {
       retVal = getImage();
       if (retVal == vk::Result::eErrorOutOfDateKHR) {
