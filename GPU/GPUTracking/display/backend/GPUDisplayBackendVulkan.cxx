@@ -540,6 +540,7 @@ void GPUDisplayBackendVulkan::createDevice()
   GPUInfo("Using physical Vulkan device %s", &deviceProperties.deviceName[0]);
   mMaxMSAAsupported = getMaxUsableSampleCount(deviceProperties);
   mStrictLines = deviceProperties.limits.strictLines;
+  mMaxRenderSize = std::min({deviceProperties.limits.maxImageDimension2D, deviceProperties.limits.maxFramebufferWidth, deviceProperties.limits.maxFramebufferHeight});
   mZSupported = (bool)(depth32FormatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment);
   mStencilSupported = (bool)(depth64FormatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment);
   bool mailboxSupported = std::find(mSwapChainDetails.presentModes.begin(), mSwapChainDetails.presentModes.end(), vk::PresentModeKHR::eMailbox) != mSwapChainDetails.presentModes.end();
@@ -853,7 +854,13 @@ void GPUDisplayBackendVulkan::createOffscreenBuffers(bool forScreenshot, bool fo
       mMixImages[i - mImageCount].view = createImageViewI(mDevice, mMixImages[i - mImageCount].image, mSurfaceFormat.format, vk::ImageAspectFlagBits::eColor, 1);
     }
     if (mDownsampleFSAA) {
-      vk::ImageUsageFlags usage = vk::ImageUsageFlagBits::eColorAttachment | (i >= mImageCount ? vk::ImageUsageFlagBits::eSampled : vk::ImageUsageFlagBits::eTransferSrc);
+      vk::ImageUsageFlags usage = vk::ImageUsageFlagBits::eColorAttachment;
+      if (i >= mImageCount || mDownsampleFactor != 2) {
+        usage |= vk::ImageUsageFlagBits::eSampled; // Mixing, shader downsampling
+      }
+      if (i < mImageCount && (mDownsampleFactor == 2 || forScreenshot)) {
+        usage |= vk::ImageUsageFlagBits::eTransferSrc; // Blit downsampling, scaled screenshots (blit or copy for screenshot factor <= 2)
+      }
       createImageI(mDevice, mPhysicalDevice, mDownsampleImages[i].image, mDownsampleImages[i].memory, mRenderWidth, mRenderHeight, mSurfaceFormat.format, usage, vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageTiling::eOptimal);
       mDownsampleImages[i].view = createImageViewI(mDevice, mDownsampleImages[i].image, mSurfaceFormat.format, vk::ImageAspectFlagBits::eColor, 1);
       mRenderTargetView[i] = &mDownsampleImages[i].view;
@@ -1027,10 +1034,23 @@ void GPUDisplayBackendVulkan::createPipeline()
   vk::PipelineRasterizationLineStateCreateInfo smoothLineState{};
   smoothLineState.lineRasterizationMode = vk::LineRasterizationMode::eRectangularSmooth; // Coverage goes to alpha, blending is enabled
 
-  mPipelines.resize(8); // 0 points, 1 lines, 2 line strip (drawType index), 3 text, 4 texture, 5-7 smooth (shader-based) points, lines, line strip
+  mPipelines.resize(9); // 0 points, 1 lines, 2 line strip (drawType index), 3 text, 4 texture, 5-7 smooth (shader-based) points, lines, line strip, 8 FSAA downsampling
   static constexpr vk::PrimitiveTopology types[3] = {vk::PrimitiveTopology::ePointList, vk::PrimitiveTopology::eLineList, vk::PrimitiveTopology::eLineStrip};
   for (uint32_t i = 0; i < mPipelines.size(); i++) {
-    if (i == 4) { // Texture rendering
+    if (i == 8) { // FSAA downsampling, full-screen triangle without vertex input (last pipeline, the changed states are not reset)
+      rasterizer.pNext = nullptr;
+      rasterizer.cullMode = vk::CullModeFlagBits::eNone;
+      vertexInputInfo.vertexBindingDescriptionCount = vertexInputInfo.vertexAttributeDescriptionCount = 0;
+      inputAssembly.topology = vk::PrimitiveTopology::eTriangleList;
+      vertShaderStageInfo.pNext = &mShaders.at("vertexFullscreen");
+      fragShaderStageInfo.pNext = &mShaders.at("fragmentDownsample");
+      dynamicState.dynamicStateCount = 2;
+      pipelineInfo.layout = mPipelineLayoutTexture;
+      renderingInfo.depthAttachmentFormat = vk::Format::eUndefined;
+      pipelineInfo.pDepthStencilState = nullptr;
+      colorBlendAttachment.blendEnable = false;
+      multisampling.rasterizationSamples = vk::SampleCountFlagBits::e1;
+    } else if (i == 4) { // Texture rendering
       rasterizer.pNext = nullptr;
       bindingDescription.stride = 4 * sizeof(float);
       attributeDescriptions.format = vk::Format::eR32G32B32A32Sfloat;
@@ -1148,6 +1168,8 @@ void GPUDisplayBackendVulkan::loadShaders()
   LOAD_SHADER(vertexTexture, vert);
   LOAD_SHADER(fragmentTexture, frag);
   LOAD_SHADER(fragmentText, frag);
+  LOAD_SHADER(vertexFullscreen, vert);
+  LOAD_SHADER(fragmentDownsample, frag);
 }
 
 // ---------------------------- VULKAN BUFFERS ----------------------------
@@ -1451,9 +1473,9 @@ void GPUDisplayBackendVulkan::finishFrame(bool doScreenshot, bool toMixBuffer, f
       queueSubmit(nullptr, 1, &submitInfo, VkFence(VK_NULL_HANDLE));
       mDevice.waitIdle();
       if (mDisplay->cfgR().screenshotScaleFactor != 1) {
-        readImageToPixels(mDownsampleImages[mCurrentImageIndex].image, vk::ImageLayout::eTransferSrcOptimal, mScreenshotPixels);
+        readImageToPixels(mDownsampleImages[mCurrentImageIndex].image, mDownsampleImages[mCurrentImageIndex].view, mDownsampleFactor == 2 ? vk::ImageLayout::eTransferSrcOptimal : vk::ImageLayout::eShaderReadOnlyOptimal, mScreenshotPixels);
       } else {
-        readImageToPixels(mSwapChainImages[mCurrentImageIndex], vk::ImageLayout::eColorAttachmentOptimal, mScreenshotPixels);
+        readImageToPixels(mSwapChainImages[mCurrentImageIndex], mSwapChainImageViews[mCurrentImageIndex], vk::ImageLayout::eColorAttachmentOptimal, mScreenshotPixels);
       }
       mFrameCommandBuffers.clear();
       submitInfo.waitSemaphoreInfoCount = 0;
@@ -1492,6 +1514,13 @@ void GPUDisplayBackendVulkan::downsampleToFramebuffer(vk::CommandBuffer& command
   beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
   commandBuffer.begin(beginInfo);
 
+  if (mDownsampleFactor != 2) {                                                                                                                                                                                                                                                                                                        // Exact box filter by shader, the linear blit below is only exact for factor 2
+    cmdImageMemoryBarrier(commandBuffer, mSwapChainImages[mCurrentImageIndex], vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::AccessFlagBits2::eNone, vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::AccessFlagBits2::eColorAttachmentWrite, vk::ImageLayout::eUndefined, vk::ImageLayout::eColorAttachmentOptimal); // Src stage chains with the acquire semaphore wait
+    cmdImageMemoryBarrier(commandBuffer, mDownsampleImages[mCurrentImageIndex].image, vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::AccessFlagBits2::eColorAttachmentWrite, vk::PipelineStageFlagBits2::eFragmentShader, vk::AccessFlagBits2::eShaderSampledRead, vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
+    cmdDownsample(commandBuffer, mDownsampleImages[mCurrentImageIndex].view, mSwapChainImageViews[mCurrentImageIndex], mScreenWidth, mScreenHeight, mDownsampleFactor);
+    commandBuffer.end();
+    return;
+  }
   cmdImageMemoryBarrier(commandBuffer, mSwapChainImages[mCurrentImageIndex], vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eNone, vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferWrite, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal); // Src stage chains with the acquire semaphore wait
   cmdImageMemoryBarrier(commandBuffer, mDownsampleImages[mCurrentImageIndex].image, vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::AccessFlagBits2::eColorAttachmentWrite, vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferRead, vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eTransferSrcOptimal);
 
@@ -1515,6 +1544,18 @@ void GPUDisplayBackendVulkan::downsampleToFramebuffer(vk::CommandBuffer& command
   cmdImageMemoryBarrier(commandBuffer, mSwapChainImages[mCurrentImageIndex], vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferWrite, vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::AccessFlagBits2::eColorAttachmentRead | vk::AccessFlagBits2::eColorAttachmentWrite, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eColorAttachmentOptimal); // Next: text pass and / or present transition
 
   commandBuffer.end();
+}
+
+void GPUDisplayBackendVulkan::cmdDownsample(vk::CommandBuffer commandBuffer, vk::ImageView src, vk::ImageView dst, uint32_t width, uint32_t height, int32_t factor)
+{
+  vk::RenderingAttachmentInfo colorAttachment{dst, vk::ImageLayout::eColorAttachmentOptimal};
+  colorAttachment.loadOp = vk::AttachmentLoadOp::eDontCare; // Fully overwritten
+  cmdBeginRendering(commandBuffer, width, height, colorAttachment);
+  commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, mPipelines[8]);
+  cmdPushDescriptors(commandBuffer, mPipelineLayoutTexture, mUniformBuffersMat[2][mCurrentImageIndex], src); // The UBO is not used by the shader
+  commandBuffer.pushConstants(mPipelineLayoutTexture, vk::ShaderStageFlagBits::eFragment, 0, sizeof(factor), &factor);
+  commandBuffer.draw(3, 1, 0, 0);
+  commandBuffer.endRendering();
 }
 
 void GPUDisplayBackendVulkan::prepareText()
@@ -1773,7 +1814,7 @@ void GPUDisplayBackendVulkan::OpenGLPrint(const char* s, float x, float y, float
   }
 }
 
-void GPUDisplayBackendVulkan::readImageToPixels(vk::Image image, vk::ImageLayout layout, std::vector<char>& pixels)
+void GPUDisplayBackendVulkan::readImageToPixels(vk::Image image, vk::ImageView view, vk::ImageLayout layout, std::vector<char>& pixels)
 {
   const vk::Format format = mSurfaceFormat.format;
   if (format != vk::Format::eB8G8R8A8Unorm && format != vk::Format::eB8G8R8A8Srgb && format != vk::Format::eR8G8B8A8Unorm && format != vk::Format::eR8G8B8A8Srgb) {
@@ -1787,11 +1828,24 @@ void GPUDisplayBackendVulkan::readImageToPixels(vk::Image image, vk::ImageLayout
   pixels.resize(width * height * bytesPerPixel);
 
   vk::Image dstImage, src;
+  vk::ImageView dstView;
   vk::DeviceMemory dstImageMemory;
+  const bool scaled = mDisplay->cfgR().screenshotScaleFactor != 1;
+  const int32_t factor = mRenderWidth / width;                        // FSAA factor between the rendered image and the screenshot
+  const bool shaderDownsample = scaled && factor != 1 && factor != 2; // Exact box filter, the linear blit is only exact for factor 2
+  const vk::ImageLayout srcLayout = shaderDownsample ? vk::ImageLayout::eShaderReadOnlyOptimal : vk::ImageLayout::eTransferSrcOptimal;
+  const vk::PipelineStageFlags2 srcStage = shaderDownsample ? vk::PipelineStageFlagBits2::eFragmentShader : vk::PipelineStageFlagBits2::eTransfer;
   VulkanBuffer readBuffer = createBuffer(width * height * bytesPerPixel, nullptr, vk::BufferUsageFlagBits::eTransferDst, 0);
   vk::CommandBuffer cmdBuffer = getSingleTimeCommandBuffer();
-  cmdImageMemoryBarrier(cmdBuffer, image, vk::PipelineStageFlagBits2::eColorAttachmentOutput | vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eColorAttachmentWrite | vk::AccessFlagBits2::eTransferWrite, vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferRead, layout, vk::ImageLayout::eTransferSrcOptimal);
-  if (mDisplay->cfgR().screenshotScaleFactor != 1) {
+  cmdImageMemoryBarrier(cmdBuffer, image, vk::PipelineStageFlagBits2::eColorAttachmentOutput | vk::PipelineStageFlagBits2::eTransfer | vk::PipelineStageFlagBits2::eFragmentShader, vk::AccessFlagBits2::eColorAttachmentWrite | vk::AccessFlagBits2::eTransferWrite, srcStage, shaderDownsample ? vk::AccessFlagBits2::eShaderSampledRead : vk::AccessFlagBits2::eTransferRead, layout, srcLayout);
+  if (shaderDownsample) {
+    createImageI(mDevice, mPhysicalDevice, dstImage, dstImageMemory, width, height, mSurfaceFormat.format, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageTiling::eOptimal);
+    dstView = createImageViewI(mDevice, dstImage, mSurfaceFormat.format);
+    cmdImageMemoryBarrier(cmdBuffer, dstImage, vk::PipelineStageFlagBits2::eNone, vk::AccessFlagBits2::eNone, vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::AccessFlagBits2::eColorAttachmentWrite, vk::ImageLayout::eUndefined, vk::ImageLayout::eColorAttachmentOptimal);
+    cmdDownsample(cmdBuffer, view, dstView, width, height, factor);
+    cmdImageMemoryBarrier(cmdBuffer, dstImage, vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::AccessFlagBits2::eColorAttachmentWrite, vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferRead, vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eTransferSrcOptimal);
+    src = dstImage;
+  } else if (scaled) {
     createImageI(mDevice, mPhysicalDevice, dstImage, dstImageMemory, width, height, mSurfaceFormat.format, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageTiling::eOptimal);
     cmdImageMemoryBarrier(cmdBuffer, dstImage, vk::PipelineStageFlagBits2::eNone, vk::AccessFlagBits2::eNone, vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferWrite, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
     vk::Offset3D blitSizeSrc = {(int32_t)mRenderWidth, (int32_t)mRenderHeight, 1};
@@ -1818,7 +1872,7 @@ void GPUDisplayBackendVulkan::readImageToPixels(vk::Image image, vk::ImageLayout
 
   vk::BufferMemoryBarrier2 hostBarrier{vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferWrite, vk::PipelineStageFlagBits2::eHost, vk::AccessFlagBits2::eHostRead, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, readBuffer.buffer, 0, VK_WHOLE_SIZE};
   cmdBuffer.pipelineBarrier2(vk::DependencyInfo{{}, 0, nullptr, 1, &hostBarrier, 0, nullptr});
-  cmdImageMemoryBarrier(cmdBuffer, image, vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eNone, vk::PipelineStageFlagBits2::eColorAttachmentOutput | vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eNone, vk::ImageLayout::eTransferSrcOptimal, layout); // Back to the layout the following passes expect
+  cmdImageMemoryBarrier(cmdBuffer, image, srcStage, vk::AccessFlagBits2::eNone, vk::PipelineStageFlagBits2::eColorAttachmentOutput | vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eNone, srcLayout, layout); // Back to the layout the following passes expect
   submitSingleTimeCommandBuffer(cmdBuffer);
 
   const bool swapRB = format == vk::Format::eR8G8B8A8Unorm || format == vk::Format::eR8G8B8A8Srgb; // Raw copy in swapchain format, the BMP needs BGRA
@@ -1833,7 +1887,10 @@ void GPUDisplayBackendVulkan::readImageToPixels(vk::Image image, vk::ImageLayout
     }
   }
   clearBuffer(readBuffer);
-  if (mDisplay->cfgR().screenshotScaleFactor != 1) {
+  if (scaled) {
+    if (dstView) {
+      mDevice.destroyImageView(dstView, nullptr);
+    }
     mDevice.freeMemory(dstImageMemory, nullptr);
     mDevice.destroyImage(dstImage, nullptr);
   }

@@ -126,6 +126,7 @@ class GPUDisplayBackend
 
   uint32_t mRenderWidth = 0;
   uint32_t mRenderHeight = 0;
+  uint32_t mMaxRenderSize = UINT32_MAX; // Maximum width / height of render targets, set by the backend
   uint32_t mScreenWidth = 0;
   uint32_t mScreenHeight = 0;
 

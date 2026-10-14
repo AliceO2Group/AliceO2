@@ -65,6 +65,7 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   void prepareText() override;
   void finishText() override;
   void mixImages(float mixSlaveImage);
+  void drawDownsample(uint32_t srcTexture, uint32_t dstFramebuffer, uint32_t width, uint32_t height, int32_t factor); // Exact box filter (fragmentDownsample.frag) for FSAA factors other than 2
   void pointSizeFactor(float factor) override;
   void lineWidthFactor(float factor) override;
   size_t needMultiVBO() override { return 0x100000000ll; }
@@ -95,6 +96,8 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   uint32_t mVertexShaderPassthrough;
   uint32_t mFragmentShaderTexture;
   uint32_t mFragmentShaderText;
+  uint32_t mVertexShaderFullscreen;
+  uint32_t mFragmentShaderDownsample;
   uint32_t mGeometryShader;
   uint32_t mShaderProgram;
   uint32_t mShaderProgramSmoothPoint; // Points with fragmentSmoothPoint.frag, for smoothPoints in the core profile (no GL_POINT_SMOOTH)
@@ -103,6 +106,7 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   bool mUseSmoothLineShader = false;
   uint32_t mShaderProgramText;
   uint32_t mShaderProgramTexture;
+  uint32_t mShaderProgramDownsample;
   uint32_t mShaderProgramField;
   uint32_t mVertexArray;
 
