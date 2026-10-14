@@ -629,6 +629,14 @@ void GPUDisplay::DrawGLScene_drawCommands()
 
 void GPUDisplay::DrawGLScene_internal(float animateTime, bool renderToMixBuffer) // negative time = no mixing
 {
+  if (mRequestScreenshot || mAnimateScreenshot) {
+    const uint32_t factor = std::max(1, mCfgR.drawQualityDownsampleFSAA) * std::max(1, mCfgR.screenshotScaleFactor);
+    if (std::max(mBackend->mScreenWidth, mBackend->mScreenHeight) * factor > mBackend->mMaxRenderSize) {
+      GPUError("Screenshot not taken: requested render size %u x %u (window x FSAA x screenshot scale) exceeds the maximum size %u x %u", mBackend->mScreenWidth * factor, mBackend->mScreenHeight * factor, mBackend->mMaxRenderSize, mBackend->mMaxRenderSize);
+      mRequestScreenshot = false;
+      mAnimateScreenshot = 0;
+    }
+  }
   bool doScreenshot = (mRequestScreenshot || mAnimateScreenshot) && animateTime < 0;
 
   updateOptions();

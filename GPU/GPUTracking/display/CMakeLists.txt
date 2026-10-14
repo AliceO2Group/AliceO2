@@ -260,6 +260,8 @@ if(GPUCA_EVENT_DISPLAY_VULKAN OR GPUCA_EVENT_DISPLAY_OPENGL)
               shaders/vertexSmoothPoint.vert
               shaders/vertexTexture.vert
               shaders/vertexPassthrough.vert
+              shaders/vertexFullscreen.vert
+              shaders/fragmentDownsample.frag
               shaders/fragment.frag
               shaders/fragmentSmoothPoint.frag
               shaders/vertexSmoothLine.vert

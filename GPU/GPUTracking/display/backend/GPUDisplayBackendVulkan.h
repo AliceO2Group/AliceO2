@@ -106,8 +106,9 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   template <class... Args>
   uint64_t queueSubmit(uint64_t* timelineSignalValue, Args&&... args); // Submit under mQueueMutex; if timelineSignalValue (the entry in pSignalSemaphoreValues) is set, write the next timeline value there first. Returns the current timeline value
   void submitSingleTimeCommandBuffer(vk::CommandBuffer commandBuffer);
-  void readImageToPixels(vk::Image image, vk::ImageLayout layout, std::vector<char>& pixels);
+  void readImageToPixels(vk::Image image, vk::ImageView view, vk::ImageLayout layout, std::vector<char>& pixels);
   void downsampleToFramebuffer(vk::CommandBuffer& commandBuffer);
+  void cmdDownsample(vk::CommandBuffer commandBuffer, vk::ImageView src, vk::ImageView dst, uint32_t width, uint32_t height, int32_t factor); // Exact box filter (fragmentDownsample.frag) for factors other than 2, src in eShaderReadOnlyOptimal, dst in eColorAttachmentOptimal
 
   void updateSwapChainDetails(const vk::PhysicalDevice& device);
   void createDevice();
