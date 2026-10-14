@@ -575,11 +575,13 @@ void GPUDisplayBackendVulkan::createDevice()
   poolInfo.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
   poolInfo.queueFamilyIndex = mGraphicsFamily;
   mCommandPool = mDevice.createCommandPool(poolInfo, nullptr);
+  mPipelineCache = mDevice.createPipelineCache(vk::PipelineCacheCreateInfo{}, nullptr);
 }
 
 void GPUDisplayBackendVulkan::clearDevice()
 {
   mDevice.destroyCommandPool(mCommandPool, nullptr);
+  mDevice.destroyPipelineCache(mPipelineCache, nullptr);
   mDevice.destroy(nullptr);
   mInstance.destroySurfaceKHR(mSurface, nullptr);
   if (mEnableValidationLayers) {
@@ -1078,7 +1080,7 @@ void GPUDisplayBackendVulkan::createPipeline()
       multisampling.rasterizationSamples = mMSAASampleCount;
     }
 
-    CHKERR(mDevice.createGraphicsPipelines(VkPipelineCache(VK_NULL_HANDLE), 1, &pipelineInfo, nullptr, &mPipelines[i])); // TODO: multiple at once + cache?
+    CHKERR(mDevice.createGraphicsPipelines(mPipelineCache, 1, &pipelineInfo, nullptr, &mPipelines[i]));
   }
 }
 
