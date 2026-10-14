@@ -20,6 +20,7 @@
 
 #include <vector>
 #include <unordered_map>
+#include <mutex>
 #include <utils/vecpod.h>
 
 namespace o2::gpu
@@ -98,6 +99,9 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void startFillCommandBuffer(vk::CommandBuffer& commandBuffer, uint32_t imageIndex, bool toMixBuffer = false);
   void endFillCommandBuffer(vk::CommandBuffer& commandBuffer);
   vk::CommandBuffer getSingleTimeCommandBuffer();
+  void waitTimeline(uint64_t value); // Wait until the timeline semaphore reached value, 0 = nothing to wait for
+  template <class... Args>
+  uint64_t queueSubmit(uint64_t* timelineSignalValue, Args&&... args); // Submit under mQueueMutex; if timelineSignalValue (the entry in pSignalSemaphoreValues) is set, write the next timeline value there first. Returns the current timeline value
   void submitSingleTimeCommandBuffer(vk::CommandBuffer commandBuffer);
   void readImageToPixels(vk::Image image, vk::ImageLayout layout, std::vector<char>& pixels);
   void downsampleToFramebuffer(vk::CommandBuffer& commandBuffer);
@@ -108,7 +112,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void createShaders();
   void createTextureSampler();
   void createCommandBuffers();
-  void createSemaphoresAndFences();
+  void createSemaphores();
   void createUniformLayoutsAndBuffers();
   void createSwapChain(bool forScreenshot = false, bool forMixing = false);
   void createOffscreenBuffers(bool forScreenshot = false, bool forMixing = false);
@@ -117,7 +121,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void clearShaders();
   void clearTextureSampler();
   void clearCommandBuffers();
-  void clearSemaphoresAndFences();
+  void clearSemaphores();
   void clearUniformLayoutsAndBuffers();
   void clearOffscreenBuffers();
   void clearSwapChain();
@@ -180,8 +184,11 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   std::vector<bool> mCommandBufferUpToDate;
   std::vector<vk::Semaphore> mImageAvailableSemaphore;
   std::vector<vk::Semaphore> mPresentSemaphore;
-  std::vector<vk::Fence> mInFlightFence;
-  std::vector<vk::Fence> mImageFence;
+  vk::Semaphore mTimelineSemaphore;          // Signaled with an increasing value by every queue submit, replaces fences
+  uint64_t mTimelineValue = 0;               // Last value used for a submit
+  std::vector<uint64_t> mFrameTimelineValue; // Per frame slot: value of its last submit, slot (and its acquire semaphore) free once reached
+  std::vector<uint64_t> mImageTimelineValue; // Per swapchain image: value of the last submit using its resources
+  std::mutex mQueueMutex;                    // Queue submissions must be externally synchronized
   std::vector<VulkanBuffer> mUniformBuffersMat[3];
   std::vector<VulkanBuffer> mUniformBuffersCol[3];
   std::vector<vk::DescriptorSet> mDescriptorSets[3];
@@ -210,8 +217,6 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   bool mMixingSupported = 0;
 
   VulkanBuffer mMixingTextureVertexArray;
-
-  vk::Fence mSingleCommitFence;
 };
 } // namespace o2::gpu
 

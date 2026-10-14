@@ -163,20 +163,40 @@ vk::CommandBuffer GPUDisplayBackendVulkan::getSingleTimeCommandBuffer()
   return commandBuffer;
 }
 
+template <class... Args>
+uint64_t GPUDisplayBackendVulkan::queueSubmit(uint64_t* timelineSignalValue, Args&&... args)
+{
+  std::lock_guard<std::mutex> guard(mQueueMutex);
+  if (timelineSignalValue) {
+    *timelineSignalValue = ++mTimelineValue;
+  }
+  CHKERR(mGraphicsQueue.submit(std::forward<Args>(args)...));
+  return mTimelineValue;
+}
+
 void GPUDisplayBackendVulkan::submitSingleTimeCommandBuffer(vk::CommandBuffer commandBuffer)
 {
   commandBuffer.end();
   vk::SubmitInfo submitInfo{};
   submitInfo.commandBufferCount = 1;
   submitInfo.pCommandBuffers = &commandBuffer;
-  static std::mutex fenceMutex;
-  {
-    std::lock_guard<std::mutex> guard(fenceMutex);
-    CHKERR(mGraphicsQueue.submit(1, &submitInfo, mSingleCommitFence));
-    CHKERR(mDevice.waitForFences(1, &mSingleCommitFence, true, UINT64_MAX));
-    CHKERR(mDevice.resetFences(1, &mSingleCommitFence));
-  }
+  uint64_t signalValue;
+  vk::TimelineSemaphoreSubmitInfo timelineInfo{};
+  timelineInfo.signalSemaphoreValueCount = 1;
+  timelineInfo.pSignalSemaphoreValues = &signalValue;
+  submitInfo.pNext = &timelineInfo;
+  submitInfo.signalSemaphoreCount = 1;
+  submitInfo.pSignalSemaphores = &mTimelineSemaphore;
+  waitTimeline(queueSubmit(&signalValue, 1, &submitInfo, VkFence(VK_NULL_HANDLE)));
   mDevice.freeCommandBuffers(mCommandPool, 1, &commandBuffer);
+}
+
+void GPUDisplayBackendVulkan::waitTimeline(uint64_t value)
+{
+  if (value) {
+    vk::SemaphoreWaitInfo waitInfo{{}, 1, &mTimelineSemaphore, &value};
+    CHKERR(mDevice.waitSemaphores(&waitInfo, UINT64_MAX));
+  }
 }
 
 static vk::ImageView createImageViewI(vk::Device device, vk::Image image, vk::Format format, vk::ImageAspectFlags aspectFlags = vk::ImageAspectFlagBits::eColor, uint32_t mipLevels = 1)
@@ -477,6 +497,7 @@ void GPUDisplayBackendVulkan::createDevice()
   clearFeatures(reqDeviceFeatures);
   auto& reqFeatures10 = reqDeviceFeatures.get<vk::PhysicalDeviceFeatures2>().features;
   reqFeatures10.geometryShader = reqFeatures10.wideLines = reqFeatures10.largePoints = reqFeatures10.multiDrawIndirect = VK_TRUE;
+  reqDeviceFeatures.get<vk::PhysicalDeviceVulkan12Features>().timelineSemaphore = VK_TRUE;
   reqDeviceFeatures.get<vk::PhysicalDeviceSwapchainMaintenance1FeaturesKHR>().swapchainMaintenance1 = VK_TRUE;
   reqDeviceFeatures.get<vk::PhysicalDevicePresentIdFeaturesKHR>().presentId = VK_TRUE;
   reqDeviceFeatures.get<vk::PhysicalDevicePresentWaitFeaturesKHR>().presentWait = VK_TRUE;
@@ -583,33 +604,30 @@ void GPUDisplayBackendVulkan::clearCommandBuffers()
 
 // ---------------------------- VULKAN SEMAPHORES AND FENCES ----------------------------
 
-void GPUDisplayBackendVulkan::createSemaphoresAndFences()
+void GPUDisplayBackendVulkan::createSemaphores()
 {
   vk::SemaphoreCreateInfo semaphoreInfo{};
-  vk::FenceCreateInfo fenceInfo{};
-  fenceInfo.flags = vk::FenceCreateFlagBits::eSignaled;
   mImageAvailableSemaphore.resize(mFramesInFlight);
   mPresentSemaphore.resize(mImageCount);
-  mInFlightFence.resize(mFramesInFlight);
-  mImageFence.resize(mImageCount);
   for (uint32_t i = 0; i < mFramesInFlight; i++) {
     mImageAvailableSemaphore[i] = mDevice.createSemaphore(semaphoreInfo, nullptr);
-    mInFlightFence[i] = mDevice.createFence(fenceInfo, nullptr);
   }
   for (uint32_t i = 0; i < mImageCount; i++) {
     mPresentSemaphore[i] = mDevice.createSemaphore(semaphoreInfo, nullptr);
-    mImageFence[i] = VkFence(VK_NULL_HANDLE);
   }
-  fenceInfo.flags = {};
-  mSingleCommitFence = mDevice.createFence(fenceInfo, nullptr);
+  vk::SemaphoreTypeCreateInfo timelineTypeInfo{vk::SemaphoreType::eTimeline, 0};
+  semaphoreInfo.pNext = &timelineTypeInfo;
+  mTimelineSemaphore = mDevice.createSemaphore(semaphoreInfo, nullptr);
+  mTimelineValue = 0;
+  mFrameTimelineValue.assign(mFramesInFlight, 0);
+  mImageTimelineValue.assign(mImageCount, 0);
 }
 
-void GPUDisplayBackendVulkan::clearSemaphoresAndFences()
+void GPUDisplayBackendVulkan::clearSemaphores()
 {
   clearVector(mImageAvailableSemaphore, [&](auto& x) { mDevice.destroySemaphore(x, nullptr); });
   clearVector(mPresentSemaphore, [&](auto& x) { mDevice.destroySemaphore(x, nullptr); });
-  clearVector(mInFlightFence, [&](auto& x) { mDevice.destroyFence(x, nullptr); });
-  mDevice.destroyFence(mSingleCommitFence, nullptr);
+  mDevice.destroySemaphore(mTimelineSemaphore, nullptr);
 }
 
 // ---------------------------- VULKAN UNIFORM LAYOUTS AND BUFFERS  ----------------------------
@@ -802,11 +820,11 @@ void GPUDisplayBackendVulkan::createSwapChain(bool forScreenshot, bool forMixing
     if (mCommandInfrastructureCreated) {
       clearUniformLayoutsAndBuffers(); // TODO: Check what must actually be cleaned up if frames in flight changes
       clearCommandBuffers();
-      clearSemaphoresAndFences();
+      clearSemaphores();
     }
     createUniformLayoutsAndBuffers();
     createCommandBuffers();
-    createSemaphoresAndFences();
+    createSemaphores();
     mCommandInfrastructureCreated = true;
   }
 
@@ -1468,7 +1486,7 @@ void GPUDisplayBackendVulkan::ExitBackendA()
   clearOffscreenBuffers();
   clearSwapChain();
   if (mCommandInfrastructureCreated) {
-    clearSemaphoresAndFences();
+    clearSemaphores();
     clearCommandBuffers();
     clearUniformLayoutsAndBuffers();
   }
@@ -1539,7 +1557,7 @@ void GPUDisplayBackendVulkan::prepareDraw(const hmm_mat4& proj, const hmm_mat4& 
 
   if (includeMixImage == 0.f) {
     mCurrentFrame = (mCurrentFrame + 1) % mFramesInFlight;
-    CHKERR(mDevice.waitForFences(1, &mInFlightFence[mCurrentFrame], true, UINT64_MAX));
+    waitTimeline(mFrameTimelineValue[mCurrentFrame]);
     auto getImage = [&]() {
       return mDevice.acquireNextImageKHR(mSwapChain, UINT64_MAX, mImageAvailableSemaphore[mCurrentFrame], VkFence(VK_NULL_HANDLE), &mCurrentImageIndex);
     };
@@ -1558,11 +1576,7 @@ void GPUDisplayBackendVulkan::prepareDraw(const hmm_mat4& proj, const hmm_mat4& 
     }
     mMustUpdateSwapChain = retVal == vk::Result::eSuboptimalKHR;
     CHKERR(retVal);
-    if (mImageFence[mCurrentImageIndex]) {
-      CHKERR(mDevice.waitForFences(1, &mImageFence[mCurrentImageIndex], true, UINT64_MAX));
-    }
-    mImageFence[mCurrentImageIndex] = mInFlightFence[mCurrentFrame];
-    CHKERR(mDevice.resetFences(1, &mInFlightFence[mCurrentFrame]));
+    waitTimeline(mImageTimelineValue[mCurrentImageIndex]); // Previous frame using this image's resources (command buffers, uniform buffer, ...) finished
 
     mHasDrawnText = false;
     mFrameCommandBuffers.clear();
@@ -1608,7 +1622,7 @@ void GPUDisplayBackendVulkan::finishFrame(bool doScreenshot, bool toMixBuffer, f
     if (doScreenshot) {
       submitInfo.commandBufferCount = mFrameCommandBuffers.size();
       submitInfo.pCommandBuffers = mFrameCommandBuffers.data();
-      CHKERR(mGraphicsQueue.submit(1, &submitInfo, VkFence(VK_NULL_HANDLE)));
+      queueSubmit(nullptr, 1, &submitInfo, VkFence(VK_NULL_HANDLE));
       mDevice.waitIdle();
       if (mDisplay->cfgR().screenshotScaleFactor != 1) {
         readImageToPixels(mDownsampleImages[mCurrentImageIndex].image, vk::ImageLayout::eColorAttachmentOptimal, mScreenshotPixels);
@@ -1623,9 +1637,15 @@ void GPUDisplayBackendVulkan::finishFrame(bool doScreenshot, bool toMixBuffer, f
     }
     submitInfo.commandBufferCount = mFrameCommandBuffers.size();
     submitInfo.pCommandBuffers = mFrameCommandBuffers.data();
-    submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = &mPresentSemaphore[mCurrentImageIndex];
-    CHKERR(mGraphicsQueue.submit(1, &submitInfo, mInFlightFence[mCurrentFrame]));
+    const vk::Semaphore signalSemaphores[2] = {mPresentSemaphore[mCurrentImageIndex], mTimelineSemaphore};
+    uint64_t signalValues[2] = {0, 0}; // First value ignored for the binary present semaphore
+    vk::TimelineSemaphoreSubmitInfo timelineInfo{};
+    timelineInfo.signalSemaphoreValueCount = 2;
+    timelineInfo.pSignalSemaphoreValues = signalValues;
+    submitInfo.pNext = &timelineInfo;
+    submitInfo.signalSemaphoreCount = 2;
+    submitInfo.pSignalSemaphores = signalSemaphores;
+    mFrameTimelineValue[mCurrentFrame] = mImageTimelineValue[mCurrentImageIndex] = queueSubmit(&signalValues[1], 1, &submitInfo, VkFence(VK_NULL_HANDLE));
 
     vk::PresentInfoKHR presentInfo{};
     presentInfo.waitSemaphoreCount = 1;
