@@ -37,12 +37,12 @@ using namespace o2::tpc::constants;
 // ===========================================================================
 
 template <>
-GPUdii() void GPUTPCCFDecodeZS::Thread<GPUTPCCFDecodeZS::decodeZS>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer, int32_t firstHBF, int32_t tpcTimeBinCut)
+GPUdii() void GPUTPCCFDecodeZS::Thread<GPUTPCCFDecodeZS::decodeZS>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& clusterer, int32_t firstHBF, int32_t tpcTimeBinCut)
 {
   GPUTPCCFDecodeZS::decode(clusterer, smem, nBlocks, nThreads, iBlock, iThread, firstHBF, tpcTimeBinCut);
 }
 
-GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUSharedMemory& s, int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t firstHBF, int32_t tpcTimeBinCut)
+GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUsharedref() GPUSharedMemory& s, int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t firstHBF, int32_t tpcTimeBinCut)
 {
   const uint32_t sector = clusterer.mISector;
 #ifdef GPUCA_GPUCODE
