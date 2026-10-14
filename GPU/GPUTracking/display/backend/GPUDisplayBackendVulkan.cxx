@@ -273,12 +273,12 @@ static inline void clearVector(T& v, S func, bool downsize = true)
 
 // ---------------------------- VULKAN DEVICE MANAGEMENT ----------------------------
 
-static bool hasFeatures(const vk::PhysicalDeviceFeatures& available, const vk::PhysicalDeviceFeatures& required) // The struct consists only of VkBool32 members
+template <class T> // Feature structs: sType, pNext, then only VkBool32 members (possibly followed by padding)
+static bool hasFeatures(const T& available, const T& required)
 {
-  static_assert(sizeof(vk::PhysicalDeviceFeatures) % sizeof(vk::Bool32) == 0);
-  const vk::Bool32* a = reinterpret_cast<const vk::Bool32*>(&available);
-  const vk::Bool32* r = reinterpret_cast<const vk::Bool32*>(&required);
-  for (size_t i = 0; i < sizeof(vk::PhysicalDeviceFeatures) / sizeof(vk::Bool32); i++) {
+  const vk::Bool32* a = reinterpret_cast<const vk::Bool32*>(reinterpret_cast<const char*>(&available) + sizeof(VkBaseOutStructure));
+  const vk::Bool32* r = reinterpret_cast<const vk::Bool32*>(reinterpret_cast<const char*>(&required) + sizeof(VkBaseOutStructure));
+  for (size_t i = 0; i < (sizeof(T) - sizeof(VkBaseOutStructure)) / sizeof(vk::Bool32); i++) {
     if (r[i] && !a[i]) {
       return false;
     }
@@ -286,13 +286,54 @@ static bool hasFeatures(const vk::PhysicalDeviceFeatures& available, const vk::P
   return true;
 }
 
-double GPUDisplayBackendVulkan::checkDevice(vk::PhysicalDevice device, const std::vector<const char*>& reqDeviceExtensions, const vk::PhysicalDeviceFeatures& reqDeviceFeatures, bool silent)
+template <class... T>
+static bool hasFeatures(const vk::StructureChain<T...>& available, const vk::StructureChain<T...>& required)
+{
+  return (hasFeatures(available.template get<T>(), required.template get<T>()) && ...);
+}
+
+template <class... T>
+static void clearFeatures(vk::StructureChain<T...>& chain) // Zero all feature flags including padding, which the member-wise comparison in hasFeatures reads
+{
+  ((memset(reinterpret_cast<char*>(&chain.template get<T>()) + sizeof(VkBaseOutStructure), 0, sizeof(T) - sizeof(VkBaseOutStructure))), ...);
+}
+
+template <class... T>
+static vk::StructureChain<T...> getFeatures(vk::PhysicalDevice device, const vk::StructureChain<T...>&)
+{
+  return device.getFeatures2<T...>();
+}
+
+double GPUDisplayBackendVulkan::checkDevice(vk::PhysicalDevice device, const std::vector<const char*>& reqDeviceExtensions, const FeatureChain& reqDeviceFeatures, bool silent)
 {
   double score = -1.;
   vk::PhysicalDeviceProperties deviceProperties = device.getProperties();
-  vk::PhysicalDeviceFeatures deviceFeatures = device.getFeatures();
   vk::PhysicalDeviceMemoryProperties memoryProperties = device.getMemoryProperties();
-  if (!hasFeatures(deviceFeatures, reqDeviceFeatures)) {
+  if (deviceProperties.apiVersion < VK_API_VERSION_1_4) {
+    if (!silent) {
+      GPUInfo("%s ignored, supports only Vulkan %u.%u", &deviceProperties.deviceName[0], VK_API_VERSION_MAJOR(deviceProperties.apiVersion), VK_API_VERSION_MINOR(deviceProperties.apiVersion));
+    }
+    return (-1);
+  }
+
+  std::vector<vk::ExtensionProperties> availableExtensions = device.enumerateDeviceExtensionProperties(nullptr);
+  uint32_t extensionsFound = 0;
+  for (uint32_t i = 0; i < reqDeviceExtensions.size(); i++) {
+    for (uint32_t j = 0; j < availableExtensions.size(); j++) {
+      if (strcmp(reqDeviceExtensions[i], availableExtensions[j].extensionName) == 0) {
+        extensionsFound++;
+        break;
+      }
+    }
+  }
+  if (extensionsFound < reqDeviceExtensions.size()) {
+    if (!silent) {
+      GPUInfo("%s ignored due to missing extensions", &deviceProperties.deviceName[0]);
+    }
+    return (-1);
+  }
+
+  if (!hasFeatures(getFeatures(device, reqDeviceFeatures), reqDeviceFeatures)) { // Query only after the version and extension checks, the chain contains 1.4 and extension structs
     if (!silent) {
       GPUInfo("%s ignored due to missing features", &deviceProperties.deviceName[0]);
     }
@@ -316,23 +357,6 @@ double GPUDisplayBackendVulkan::checkDevice(vk::PhysicalDevice device, const std
   if (!found) {
     if (!silent) {
       GPUInfo("%s ignored due to missing queue properties", &deviceProperties.deviceName[0]);
-    }
-    return (-1);
-  }
-
-  std::vector<vk::ExtensionProperties> availableExtensions = device.enumerateDeviceExtensionProperties(nullptr);
-  uint32_t extensionsFound = 0;
-  for (uint32_t i = 0; i < reqDeviceExtensions.size(); i++) {
-    for (uint32_t j = 0; j < availableExtensions.size(); j++) {
-      if (strcmp(reqDeviceExtensions[i], availableExtensions[j].extensionName) == 0) {
-        extensionsFound++;
-        break;
-      }
-    }
-  }
-  if (extensionsFound < reqDeviceExtensions.size()) {
-    if (!silent) {
-      GPUInfo("%s ignored due to missing extensions", &deviceProperties.deviceName[0]);
     }
     return (-1);
   }
@@ -369,7 +393,7 @@ void GPUDisplayBackendVulkan::createDevice()
   appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
   appInfo.pEngineName = "GPU CI Standalone Engine";
   appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-  appInfo.apiVersion = VK_API_VERSION_1_0;
+  appInfo.apiVersion = VK_API_VERSION_1_4;
 
   vk::InstanceCreateInfo instanceCreateInfo;
   instanceCreateInfo.pApplicationInfo = &appInfo;
@@ -377,6 +401,19 @@ void GPUDisplayBackendVulkan::createDevice()
   const char** frontendExtensions;
   uint32_t frontendExtensionCount = mDisplay->frontend()->getReqVulkanExtensions(frontendExtensions);
   std::vector<const char*> reqInstanceExtensions(frontendExtensions, frontendExtensions + frontendExtensionCount);
+  reqInstanceExtensions.insert(reqInstanceExtensions.end(), {VK_EXT_DEBUG_UTILS_EXTENSION_NAME, VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME, VK_KHR_SURFACE_MAINTENANCE_1_EXTENSION_NAME}); // The latter two are required by VK_KHR_swapchain_maintenance1
+  std::vector<vk::ExtensionProperties> availableInstanceExtensions = vk::enumerateInstanceExtensionProperties(nullptr);
+  if (mDisplay->GetProcessingSettings().debugLevel >= 3) {
+    std::cout << "available instance extensions: " << availableInstanceExtensions.size() << "\n";
+    for (const auto& extension : availableInstanceExtensions) {
+      std::cout << '\t' << extension.extensionName << '\n';
+    }
+  }
+  for (const char* ext : reqInstanceExtensions) {
+    if (std::none_of(availableInstanceExtensions.begin(), availableInstanceExtensions.end(), [ext](const auto& e) { return strcmp(ext, e.extensionName) == 0; })) {
+      throw std::runtime_error(std::string("Required Vulkan instance extension not available: ") + ext);
+    }
+  }
 
   const std::vector<const char*> reqValidationLayers = {"VK_LAYER_KHRONOS_validation"};
   auto debugCallback = [](vk::DebugUtilsMessageSeverityFlagBitsEXT messageSeverity, vk::DebugUtilsMessageTypeFlagsEXT messageType, const vk::DebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) -> VkBool32 {
@@ -412,7 +449,6 @@ void GPUDisplayBackendVulkan::createDevice()
     if (checkVulkanLayersSupported(reqValidationLayers)) {
       throw std::runtime_error("Requested validation layer support not available");
     }
-    reqInstanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     instanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(reqValidationLayers.size());
     instanceCreateInfo.ppEnabledLayerNames = reqValidationLayers.data();
     instanceCreateInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
@@ -435,21 +471,19 @@ void GPUDisplayBackendVulkan::createDevice()
     GPUInfo("Enabling Vulkan Validation Layers");
     mDebugMessenger = mInstance.createDebugUtilsMessengerEXT(debugCreateInfo, nullptr);
   }
-  std::vector<vk::ExtensionProperties> extensions = vk::enumerateInstanceExtensionProperties(nullptr);
-  if (mDisplay->GetProcessingSettings().debugLevel >= 3) {
-    std::cout << "available instance extensions: " << extensions.size() << "\n";
-    for (const auto& extension : extensions) {
-      std::cout << '\t' << extension.extensionName << '\n';
-    }
-  }
 
   if (mDisplay->frontend()->getVulkanSurface(&mInstance, &mSurface)) {
     throw std::runtime_error("Frontend does not provide Vulkan surface");
   }
 
-  const std::vector<const char*> reqDeviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-  vk::PhysicalDeviceFeatures reqDeviceFeatures{};
-  reqDeviceFeatures.geometryShader = reqDeviceFeatures.wideLines = reqDeviceFeatures.largePoints = VK_TRUE;
+  const std::vector<const char*> reqDeviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME, VK_KHR_PRESENT_ID_EXTENSION_NAME, VK_KHR_PRESENT_WAIT_EXTENSION_NAME};
+  FeatureChain reqDeviceFeatures; // Exactly these features are required and enabled
+  clearFeatures(reqDeviceFeatures);
+  auto& reqFeatures10 = reqDeviceFeatures.get<vk::PhysicalDeviceFeatures2>().features;
+  reqFeatures10.geometryShader = reqFeatures10.wideLines = reqFeatures10.largePoints = VK_TRUE;
+  reqDeviceFeatures.get<vk::PhysicalDeviceSwapchainMaintenance1FeaturesKHR>().swapchainMaintenance1 = VK_TRUE;
+  reqDeviceFeatures.get<vk::PhysicalDevicePresentIdFeaturesKHR>().presentId = VK_TRUE;
+  reqDeviceFeatures.get<vk::PhysicalDevicePresentWaitFeaturesKHR>().presentWait = VK_TRUE;
 
   mPhysicalDevice = VkPhysicalDevice(VK_NULL_HANDLE);
   std::vector<vk::PhysicalDevice> devices = mInstance.enumeratePhysicalDevices();
@@ -502,7 +536,8 @@ void GPUDisplayBackendVulkan::createDevice()
   vk::DeviceCreateInfo deviceCreateInfo{};
   deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
   deviceCreateInfo.queueCreateInfoCount = 1;
-  deviceCreateInfo.pEnabledFeatures = &reqDeviceFeatures;
+  deviceCreateInfo.pNext = &reqDeviceFeatures.get<vk::PhysicalDeviceFeatures2>();
+  deviceCreateInfo.pEnabledFeatures = nullptr;
   deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(reqDeviceExtensions.size());
   deviceCreateInfo.ppEnabledExtensionNames = reqDeviceExtensions.data();
   mDevice = mPhysicalDevice.createDevice(deviceCreateInfo, nullptr);
