@@ -155,6 +155,7 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   int32_t InitDisplay(bool initFailure = false);   // Callback to initialize the GL Display (to be called in StartDisplay)
   void ExitDisplay();                              // Callback to clean up the GL Display
   int32_t& drawTextFontSize();
+  bool vsyncEnabled() const;                            // VSync setting (drawQualityVSync)
   void setWindowState(bool fullScreen, bool maximized); // Sync the settings if the window manager changed the window state
   void focusLost();                                     // Release all keys and mouse buttons when the window loses focus, since the release events go to another window
   void applyInitialWindowState();                       // Switch to fullscreen / maximize at startup according to the settings
