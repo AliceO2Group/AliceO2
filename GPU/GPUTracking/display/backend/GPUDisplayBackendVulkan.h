@@ -78,7 +78,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void prepareText() override;
   void finishText() override;
   void mixImages(vk::CommandBuffer cmdBuffer, float mixSlaveImage);
-  void setMixDescriptor(int32_t descriptorIndex, int32_t imageIndex);
+  void cmdPushDescriptors(vk::CommandBuffer commandBuffer, vk::PipelineLayout layout, const VulkanBuffer& ubo, vk::ImageView textureView = {}); // Push descriptors: UBO at binding 0, optional texture at binding 2
   void pointSizeFactor(float factor) override;
   void lineWidthFactor(float factor) override;
   void resizeScene(uint32_t width, uint32_t height) override;
@@ -108,7 +108,6 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void downsampleToFramebuffer(vk::CommandBuffer& commandBuffer);
 
   void updateSwapChainDetails(const vk::PhysicalDevice& device);
-  void updateFontTextureDescriptor();
   void createDevice();
   void createShaders();
   void createTextureSampler();
@@ -191,10 +190,8 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   uint32_t mUpdateUBOtextMatrix = -1;
   uint32_t mUpdateUBOmixMatrix = -1;
   float mLastMVP[16] = {};
-  std::vector<vk::DescriptorSet> mDescriptorSets[3];
   vk::DescriptorSetLayout mUniformDescriptor;
   vk::DescriptorSetLayout mUniformDescriptorTexture;
-  vk::DescriptorPool mDescriptorPool;
 
   VulkanBuffer mVBO;
   VulkanBuffer mIndirectCommandBuffer;
