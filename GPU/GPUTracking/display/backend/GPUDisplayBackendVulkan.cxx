@@ -480,7 +480,7 @@ void GPUDisplayBackendVulkan::createDevice()
   FeatureChain reqDeviceFeatures; // Exactly these features are required and enabled
   clearFeatures(reqDeviceFeatures);
   auto& reqFeatures10 = reqDeviceFeatures.get<vk::PhysicalDeviceFeatures2>().features;
-  reqFeatures10.geometryShader = reqFeatures10.wideLines = reqFeatures10.largePoints = VK_TRUE;
+  reqFeatures10.geometryShader = reqFeatures10.wideLines = reqFeatures10.largePoints = reqFeatures10.multiDrawIndirect = VK_TRUE;
   reqDeviceFeatures.get<vk::PhysicalDeviceSwapchainMaintenance1FeaturesKHR>().swapchainMaintenance1 = VK_TRUE;
   reqDeviceFeatures.get<vk::PhysicalDevicePresentIdFeaturesKHR>().presentId = VK_TRUE;
   reqDeviceFeatures.get<vk::PhysicalDevicePresentWaitFeaturesKHR>().presentWait = VK_TRUE;
