@@ -297,6 +297,7 @@ class GPUDisplay : public GPUDisplayInterface
   HighResTimer mAnimationTimer;
   int32_t mAnimationFrame = 0;
   int32_t mAnimationLastBase = 0;
+  int32_t mAnimationMixBase = -1; // Target keyframe of the current config blend (mixing), -1 = none
   int32_t mAnimateScreenshot = 0;
   int32_t mAnimationExport = 0;
   bool mAnimationChangeConfig = true;

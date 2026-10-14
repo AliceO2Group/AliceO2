@@ -623,7 +623,7 @@ void GPUDisplayBackendVulkan::createCommandBuffers()
   allocInfo.commandPool = mCommandPool;
   allocInfo.level = vk::CommandBufferLevel::ePrimary;
   allocInfo.commandBufferCount = mImageCount;
-  mCommandBufferUpToDate.resize(mImageCount, false);
+  mCommandBufferUpToDate.assign(mImageCount, false);
   mCommandBuffers = mDevice.allocateCommandBuffers(allocInfo);
   mCommandBuffersText = mDevice.allocateCommandBuffers(allocInfo);
   mCommandBuffersTexture = mDevice.allocateCommandBuffers(allocInfo);
@@ -1471,7 +1471,7 @@ uint32_t GPUDisplayBackendVulkan::drawVertices(const vboList& v, const drawType 
 
 bool GPUDisplayBackendVulkan::prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot, bool toMixBuffer, float includeMixImage)
 {
-  if (mDisplay->updateDrawCommands() || toMixBuffer || includeMixImage > 0) {
+  if (mDisplay->updateDrawCommands()) { // Main and mix command buffers stay cached while mixing, only the blend pass with the alpha value is recorded per frame
     needRecordCommandBuffers();
   }
 
@@ -1559,7 +1559,7 @@ void GPUDisplayBackendVulkan::finishDraw(bool doScreenshot, bool toMixBuffer, fl
 {
   if (!mCommandBufferUpToDate[mCurrentImageIndex]) {
     endFillCommandBuffer(mCurrentCommandBuffer);
-    if (!toMixBuffer && includeMixImage == 0.f) {
+    if (!toMixBuffer) { // The mix pass is recorded before the main pass of the same frame, both are valid only after the latter
       mCommandBufferUpToDate[mCurrentImageIndex] = true;
     }
   }
