@@ -45,6 +45,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
     vk::DeviceMemory memory;
     size_t size = 0;
     int32_t deviceMemory;
+    void* mapped = nullptr; // Persistent mapping of host-visible buffers (deviceMemory 0 / 2)
   };
   struct VulkanImage {
     vk::Image image;
@@ -186,7 +187,10 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   std::vector<uint64_t> mImageTimelineValue; // Per swapchain image: value of the last submit using its resources
   std::mutex mQueueMutex;                    // Queue submissions must be externally synchronized
   std::vector<VulkanBuffer> mUniformBuffersMat[3];
-  std::vector<VulkanBuffer> mUniformBuffersCol[3];
+  uint32_t mUpdateUBOdrawMatrix = -1; // Bitmask per swapchain image: UBO must be rewritten when the image is drawn next, set to -1 to update all
+  uint32_t mUpdateUBOtextMatrix = -1;
+  uint32_t mUpdateUBOmixMatrix = -1;
+  float mLastMVP[16] = {};
   std::vector<vk::DescriptorSet> mDescriptorSets[3];
   vk::DescriptorSetLayout mUniformDescriptor;
   vk::DescriptorSetLayout mUniformDescriptorTexture;
