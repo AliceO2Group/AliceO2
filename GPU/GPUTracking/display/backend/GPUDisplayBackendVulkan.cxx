@@ -1911,19 +1911,25 @@ void GPUDisplayBackendVulkan::OpenGLPrint(const char* s, float x, float y, float
 
 void GPUDisplayBackendVulkan::readImageToPixels(vk::Image image, vk::ImageLayout layout, std::vector<char>& pixels)
 {
+  const vk::Format format = mSurfaceFormat.format;
+  if (format != vk::Format::eB8G8R8A8Unorm && format != vk::Format::eB8G8R8A8Srgb && format != vk::Format::eR8G8B8A8Unorm && format != vk::Format::eR8G8B8A8Srgb) {
+    GPUError("Screenshot not supported for swapchain format %s, only 8 bit BGRA / RGBA", vk::to_string(format).c_str());
+    pixels.clear();
+    return;
+  }
   uint32_t width = mScreenWidth * mDisplay->cfgR().screenshotScaleFactor;
   uint32_t height = mScreenHeight * mDisplay->cfgR().screenshotScaleFactor;
   static constexpr int32_t bytesPerPixel = 4;
   pixels.resize(width * height * bytesPerPixel);
 
-  vk::Image dstImage, dstImage2, src2;
-  vk::DeviceMemory dstImageMemory, dstImageMemory2;
-  createImageI(mDevice, mPhysicalDevice, dstImage, dstImageMemory, width, height, vk::Format::eR8G8B8A8Unorm, vk::ImageUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, vk::ImageTiling::eLinear);
+  vk::Image dstImage, src;
+  vk::DeviceMemory dstImageMemory;
+  VulkanBuffer readBuffer = createBuffer(width * height * bytesPerPixel, nullptr, vk::BufferUsageFlagBits::eTransferDst, 0);
   vk::CommandBuffer cmdBuffer = getSingleTimeCommandBuffer();
   cmdImageMemoryBarrier(cmdBuffer, image, vk::AccessFlagBits::eMemoryRead, vk::AccessFlagBits::eTransferRead, layout, vk::ImageLayout::eTransferSrcOptimal, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer);
   if (mDisplay->cfgR().screenshotScaleFactor != 1) {
-    createImageI(mDevice, mPhysicalDevice, dstImage2, dstImageMemory2, width, height, mSurfaceFormat.format, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageTiling::eOptimal);
-    cmdImageMemoryBarrier(cmdBuffer, dstImage2, {}, vk::AccessFlagBits::eTransferWrite, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer);
+    createImageI(mDevice, mPhysicalDevice, dstImage, dstImageMemory, width, height, mSurfaceFormat.format, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageTiling::eOptimal);
+    cmdImageMemoryBarrier(cmdBuffer, dstImage, {}, vk::AccessFlagBits::eTransferWrite, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer);
     vk::Offset3D blitSizeSrc = {(int32_t)mRenderWidth, (int32_t)mRenderHeight, 1};
     vk::Offset3D blitSizeDst = {(int32_t)width, (int32_t)height, 1};
     vk::ImageBlit imageBlitRegion{};
@@ -1933,42 +1939,41 @@ void GPUDisplayBackendVulkan::readImageToPixels(vk::Image image, vk::ImageLayout
     imageBlitRegion.dstSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
     imageBlitRegion.dstSubresource.layerCount = 1;
     imageBlitRegion.dstOffsets[1] = blitSizeDst;
-    cmdBuffer.blitImage(image, vk::ImageLayout::eTransferSrcOptimal, dstImage2, vk::ImageLayout::eTransferDstOptimal, 1, &imageBlitRegion, vk::Filter::eLinear);
-    src2 = dstImage2;
-    cmdImageMemoryBarrier(cmdBuffer, dstImage2, vk::AccessFlagBits::eMemoryRead, vk::AccessFlagBits::eTransferRead, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eTransferSrcOptimal, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer);
+    cmdBuffer.blitImage(image, vk::ImageLayout::eTransferSrcOptimal, dstImage, vk::ImageLayout::eTransferDstOptimal, 1, &imageBlitRegion, vk::Filter::eLinear);
+    src = dstImage;
+    cmdImageMemoryBarrier(cmdBuffer, dstImage, vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eTransferRead, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eTransferSrcOptimal, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer);
   } else {
-    src2 = image;
+    src = image;
   }
 
-  cmdImageMemoryBarrier(cmdBuffer, dstImage, {}, vk::AccessFlagBits::eTransferWrite, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer);
-  vk::ImageCopy imageCopyRegion{};
-  imageCopyRegion.srcSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
-  imageCopyRegion.srcSubresource.layerCount = 1;
-  imageCopyRegion.dstSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
-  imageCopyRegion.dstSubresource.layerCount = 1;
-  imageCopyRegion.extent.width = width;
-  imageCopyRegion.extent.height = height;
-  imageCopyRegion.extent.depth = 1;
-  cmdBuffer.copyImage(src2, vk::ImageLayout::eTransferSrcOptimal, dstImage, vk::ImageLayout::eTransferDstOptimal, 1, &imageCopyRegion);
+  vk::BufferImageCopy copyRegion{};
+  copyRegion.imageSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+  copyRegion.imageSubresource.layerCount = 1;
+  copyRegion.imageExtent = vk::Extent3D{width, height, 1};
+  cmdBuffer.copyImageToBuffer(src, vk::ImageLayout::eTransferSrcOptimal, readBuffer.buffer, 1, &copyRegion);
 
-  cmdImageMemoryBarrier(cmdBuffer, dstImage, vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eMemoryRead, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eGeneral, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer);
+  vk::BufferMemoryBarrier hostBarrier{vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eHostRead, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, readBuffer.buffer, 0, VK_WHOLE_SIZE};
+  cmdBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eHost, {}, 0, nullptr, 1, &hostBarrier, 0, nullptr);
   cmdImageMemoryBarrier(cmdBuffer, image, vk::AccessFlagBits::eTransferRead, vk::AccessFlagBits::eMemoryRead, vk::ImageLayout::eTransferSrcOptimal, layout, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer);
   submitSingleTimeCommandBuffer(cmdBuffer);
 
-  vk::ImageSubresource subResource{vk::ImageAspectFlagBits::eColor, 0, 0};
-  vk::SubresourceLayout subResourceLayout = mDevice.getImageSubresourceLayout(dstImage, subResource);
+  const bool swapRB = format == vk::Format::eR8G8B8A8Unorm || format == vk::Format::eR8G8B8A8Srgb; // Raw copy in swapchain format, the BMP needs BGRA
   const char* data;
-  CHKERR(mDevice.mapMemory(dstImageMemory, 0, VK_WHOLE_SIZE, {}, (void**)&data));
-  data += subResourceLayout.offset;
-  for (uint32_t i = 0; i < height; i++) {
-    memcpy(pixels.data() + i * width * bytesPerPixel, data + (height - i - 1) * width * bytesPerPixel, width * bytesPerPixel);
+  CHKERR(mDevice.mapMemory(readBuffer.memory, 0, VK_WHOLE_SIZE, {}, (void**)&data));
+  for (uint32_t i = 0; i < height; i++) { // BMP rows are bottom-up
+    char* dst = pixels.data() + i * width * bytesPerPixel;
+    memcpy(dst, data + (height - i - 1) * width * bytesPerPixel, width * bytesPerPixel);
+    if (swapRB) {
+      for (uint32_t j = 0; j < width; j++) {
+        std::swap(dst[j * bytesPerPixel], dst[j * bytesPerPixel + 2]);
+      }
+    }
   }
-  mDevice.unmapMemory(dstImageMemory);
-  mDevice.freeMemory(dstImageMemory, nullptr);
-  mDevice.destroyImage(dstImage, nullptr);
+  mDevice.unmapMemory(readBuffer.memory);
+  clearBuffer(readBuffer);
   if (mDisplay->cfgR().screenshotScaleFactor != 1) {
-    mDevice.freeMemory(dstImageMemory2, nullptr);
-    mDevice.destroyImage(dstImage2, nullptr);
+    mDevice.freeMemory(dstImageMemory, nullptr);
+    mDevice.destroyImage(dstImage, nullptr);
   }
 }
 
