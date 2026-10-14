@@ -1103,7 +1103,7 @@ void CheckResidSpec::drawHistos()
   AddLabel("IB-OB tracks params differences at R = 12 cm", 0.2, 0.8);
   czlpar.Print(Form("%s_hman.pdf", params.outname.c_str()));
 
-  auto getHMinMax = [this](int id, float marginFrac = 0.2, float maxDev, int roundToMicrons) -> std::tuple<float, float, float> {
+  auto getHMinMax = [this](int id, float marginFrac, float maxDev, int roundToMicrons) -> std::tuple<float, float, float> {
     float maxV = std::numeric_limits<float>::min(), minV = std::numeric_limits<float>::max();
     const int nh = this->mHManV.size();
     for (int j = 0; j < nh; j++) {
