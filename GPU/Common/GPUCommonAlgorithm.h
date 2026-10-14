@@ -429,6 +429,47 @@ GPUdi() T warp_broadcast_FUNC(T v, int32_t i)
 #endif
 }
 
+template <class T>
+GPUdi() T warp_shuffle_xor(T v, int32_t laneMask)
+{
+#ifdef __CUDACC__
+  return __shfl_xor_sync(0xFFFFFFFF, v, laneMask);
+#else // HIP
+  return __shfl_xor(v, laneMask);
+#endif
+}
+
+// Butterfly all-reduce over groups of Width lanes: every lane gets the result.
+// Width is a power of two and must not exceed the hardware warp size.
+template <int32_t Width, class T>
+GPUdi() T warp_reduce_add(T v)
+{
+  for (int32_t m = Width / 2; m > 0; m >>= 1) {
+    v += warp_shuffle_xor(v, m);
+  }
+  return v;
+}
+
+template <int32_t Width, class T>
+GPUdi() T warp_reduce_min(T v)
+{
+  for (int32_t m = Width / 2; m > 0; m >>= 1) {
+    const T o = warp_shuffle_xor(v, m);
+    v = o < v ? o : v;
+  }
+  return v;
+}
+
+template <int32_t Width, class T>
+GPUdi() T warp_reduce_max(T v)
+{
+  for (int32_t m = Width / 2; m > 0; m >>= 1) {
+    const T o = warp_shuffle_xor(v, m);
+    v = o > v ? o : v;
+  }
+  return v;
+}
+
 [[nodiscard]] GPUdi() bool work_group_any(bool pred)
 {
   return __syncthreads_or(pred);
@@ -468,6 +509,24 @@ GPUdi() T warp_scan_inclusive_add(T v)
 
 template <class T>
 GPUdi() T warp_broadcast(T v, int32_t i)
+{
+  return v;
+}
+
+template <int32_t Width, class T>
+GPUdi() T warp_reduce_add(T v)
+{
+  return v;
+}
+
+template <int32_t Width, class T>
+GPUdi() T warp_reduce_min(T v)
+{
+  return v;
+}
+
+template <int32_t Width, class T>
+GPUdi() T warp_reduce_max(T v)
 {
   return v;
 }

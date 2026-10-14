@@ -52,6 +52,7 @@
 #include "ITStrackingGPU/TrackingKernels.h"
 #include "ITStrackingGPU/Utils.h"
 #include "MathUtils/Utils.h"
+#include "GPUCommonAlgorithm.h"
 #include "ITStracking/ClusterLines.h"
 #include "ITStracking/LineProjection.h"
 #include "utils/strtag.h"
@@ -1000,85 +1001,108 @@ GPUg() void fitPeaksKernel(const int* nPeaksDevice,
                            VertexCand* cands)
 {
   const int nPeaks = *nPeaksDevice;
-  const o2::its::TimeEstBC* t = lineProjSorted.t;
   const int* idx = lineProjSorted.idx;
-  for (int p = blockIdx.x * blockDim.x + threadIdx.x; p < nPeaks; p += blockDim.x * gridDim.x) {
-    cands[p].ok = 0;
-    cands[p].nGood = 0;
-    const int k = peakLineIdx[p];
-    cands[p].fine = isZPeakFine != nullptr ? isZPeakFine[k] : 0;
+  const o2::its::TimeEstBC* t = lineProjSorted.t;
+  const int lane = threadIdx.x % gpu::WarpSize;
+  const int nWarps = blockDim.x * gridDim.x / gpu::WarpSize;
+  const int iWarp = (blockIdx.x * blockDim.x + threadIdx.x) / gpu::WarpSize;
+  for (int iPeak = iWarp; iPeak < nPeaks; iPeak += nWarps) {
+    const int k = peakLineIdx[iPeak];
+    if (lane == 0) {
+      cands[iPeak].ok = 0;
+      cands[iPeak].nGood = 0;
+      cands[iPeak].fine = isZPeakFine != nullptr ? isZPeakFine[k] : 0;
+    }
     const auto tk = t[k];
     const LineWindow wk = win[k];
-
-    o2::its::ClusterLines seed;
     int nMembers = 0;
-    for (int j = wk.lo; j < wk.hi; ++j) {
-      const auto tj = t[j];
-      if (tk.isCompatible(tj)) {
-        seed.add(lines[idx[j]]);
-        ++nMembers;
+    WarpFit seed;
+    for (int iLine = wk.lo + lane; iLine < wk.hi; iLine += gpu::WarpSize) {
+      const auto tj = t[iLine];
+      if (!tk.isCompatible(tj)) {
+        continue;
       }
+      seed.add(lines[idx[iLine]]);
+      ++nMembers;
     }
-    float seedVertex[3];
-    if (nMembers < 2 || !seed.solve(seedVertex)) {
+    seed.reduce<gpu::WarpSize>();
+    nMembers = warp_reduce_add<gpu::WarpSize>(nMembers);
+    seed.computeClusterCentroid();
+    if (nMembers < 2 || !seed.isValid()) {
       continue;
     }
+    const float* seedVertex = seed.getVertex();
 
-    o2::its::ClusterLines fit;
+    WarpFit fit;
     int nKept = 0;
     int nGood = 0;
-    for (int j = wk.lo; j < wk.hi; ++j) {
-      const auto tj = t[j];
-      if (tk.isCompatible(tj)) {
-        const o2::its::Line& line = lines[idx[j]];
-        if (o2::its::Line::getDistance2FromPoint(line, seedVertex) < pairCut2) {
-          fit.add(line);
-          const float c = lineChi2[idx[j]];
-          const float pt = linePt[idx[j]];
-          const bool okChi2 = (goodLineChi2Cut <= 0.f || c <= goodLineChi2Cut);
-          const bool okPt = (goodLinePtCut <= 0.f || pt >= goodLinePtCut);
-          nGood += okChi2 && okPt;
-          ++nKept;
-        }
+    for (int iLine = wk.lo + lane; iLine < wk.hi; iLine += gpu::WarpSize) {
+      const auto tj = t[iLine];
+      if (!tk.isCompatible(tj)) {
+        continue;
       }
+      const o2::its::Line& line = lines[idx[iLine]];
+      if (!(o2::its::Line::getDistance2FromPoint(line, seedVertex) < pairCut2)) {
+        continue;
+      }
+      fit.add(line);
+      const float c = lineChi2[idx[iLine]];
+      const float pt = linePt[idx[iLine]];
+      const bool okChi2 = (goodLineChi2Cut <= 0.f || c <= goodLineChi2Cut);
+      const bool okPt = (goodLinePtCut <= 0.f || pt >= goodLinePtCut);
+      nGood += okChi2 && okPt;
+      ++nKept;
     }
-    float vertex[3];
-    if (nKept < 2 || !fit.solve(vertex)) {
+    fit.reduce<gpu::WarpSize>();
+    nKept = warp_reduce_add<gpu::WarpSize>(nKept);
+    nGood = warp_reduce_add<gpu::WarpSize>(nGood);
+    fit.computeClusterCentroid();
+    if (nKept < 2 || !fit.isValid()) {
       continue;
     }
-    cands[p].seed[0] = seedVertex[0];
-    cands[p].seed[1] = seedVertex[1];
-    cands[p].seed[2] = seedVertex[2];
+    const float* vertex = fit.getVertex();
+
+    if (lane == 0) {
+      cands[iPeak].seed[0] = seedVertex[0];
+      cands[iPeak].seed[1] = seedVertex[1];
+      cands[iPeak].seed[2] = seedVertex[2];
+    }
+
     const float bd2 = (beamX - vertex[0]) * (beamX - vertex[0]) + (beamY - vertex[1]) * (beamY - vertex[1]);
-    if (nKept < minContributors || !(bd2 < nSigmaCut)) {
+    if (fit.getNContributors() < minContributors || !(bd2 < nSigmaCut)) {
       continue;
     }
-    if (fineMaxDrift > 0.f && cands[p].fine &&
+    if (fineMaxDrift > 0.f && (isZPeakFine != nullptr ? isZPeakFine[k] : 0) &&
         o2::gpu::GPUCommonMath::Abs(vertex[2] - seedVertex[2]) > fineMaxDrift) {
       continue;
     }
 
-    for (int j = wk.lo; j < wk.hi; ++j) {
-      const auto tj = t[j];
-      if (tk.isCompatible(tj)) {
-        const o2::its::Line& line = lines[idx[j]];
-        if (o2::its::Line::getDistance2FromPoint(line, seedVertex) < pairCut2) {
-          fit.addResidual(line, vertex);
-        }
+    for (int iLine = wk.lo + lane; iLine < wk.hi; iLine += gpu::WarpSize) {
+      const auto tj = t[iLine];
+      if (!tk.isCompatible(tj)) {
+        continue;
       }
+      const o2::its::Line& line = lines[idx[iLine]];
+      if (!(o2::its::Line::getDistance2FromPoint(line, seedVertex) < pairCut2)) {
+        continue;
+      }
+      fit.addResidual(line, vertex);
     }
+    fit.reduceResiduals<gpu::WarpSize>(nKept);
 
-    cands[p].x = vertex[0];
-    cands[p].y = vertex[1];
-    cands[p].z = vertex[2];
-    for (int i = 0; i < 6; ++i) {
-      cands[p].rms2[i] = fit.getRMS2()[i];
+    if (lane == 0) {
+      cands[iPeak].x = vertex[0];
+      cands[iPeak].y = vertex[1];
+      cands[iPeak].z = vertex[2];
+      for (int i = 0; i < 6; ++i) {
+        cands[iPeak].rms2[i] = fit.getRMS2()[i];
+      }
+      cands[iPeak].avgDist2 = fit.getAvgDistance2();
+      cands[iPeak].nGood = nGood;
+      cands[iPeak].time = fit.getTimeStamp();
+      cands[iPeak].size = fit.getNContributors();
+      cands[iPeak].ok = 1;
     }
-    cands[p].avgDist2 = fit.getAvgDistance2();
-    cands[p].nGood = nGood;
-    cands[p].time = fit.getTimeStamp();
-    cands[p].size = nKept;
-    cands[p].ok = 1;
   }
 }
 
@@ -1721,6 +1745,13 @@ void TrackingKernels<NLayers>::fitPeaksHandler(const int* nPeaksDevice,
                                                gpu::VertexCand* cands,
                                                gpu::Stream& stream)
 {
+  // the kernel reduces with shuffles over gpu::WarpSize lanes: a device with another warp size would silently sum the wrong lanes
+  int dev = 0, warpSize = 0;
+  GPUChkErrS(cudaGetDevice(&dev));
+  GPUChkErrS(cudaDeviceGetAttribute(&warpSize, cudaDevAttrWarpSize, dev));
+  if (warpSize != gpu::WarpSize) {
+    LOGP(fatal, "fitPeaksKernel compiled for warp size {} but the device runs {}", gpu::WarpSize, warpSize);
+  }
   gpu::fitPeaksKernel<NLayers><<<gpu::gridBlocks(gpu::DefaultBlocksPerComputeUnit), gpu::GPUThreads, 0, stream.get()>>>(
     nPeaksDevice, peakLineIdx, win, sortedSoa, lines, lineChi2, linePt, goodLineChi2Cut, goodLinePtCut, pairCut2, nSigmaCut, minContributors, beamX, beamY, isPeakFine, fineMaxDrift, cands);
 }
