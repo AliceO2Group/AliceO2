@@ -16,6 +16,7 @@
 #include "frontend/GPUDisplayInfo.inc"
 
 #include "GPUTPCDef.h"
+#include "HandMadeMath.h"
 
 #include <vector>
 #include <memory>
@@ -60,6 +61,8 @@ const GPUSettingsProcessing& GPUDisplay::GetProcessingConfig(GPUChainTracking* c
 
 GPUDisplay::GPUDisplay(GPUDisplayFrontend* frontend, GPUChainTracking* chain, GPUQA* qa, const GPUParam* param, const GPUCalibObjectsConst* calib, const GPUSettingsDisplay* config, const GPUSettingsProcessing* proc) : GPUDisplayInterface(), mFrontend(frontend), mChain(chain), mConfig(config ? *config : GetConfig(chain)), mProcessingSettings(proc ? *proc : GetProcessingConfig(chain)), mQA(qa)
 {
+  mViewMatrix = std::make_unique<hmm_mat4>();
+  mModelMatrix = std::make_unique<hmm_mat4>();
   mParam = param ? param : &mChain->GetParam();
   mCalib = calib;
   mCfgL = mConfig.light;
@@ -146,8 +149,8 @@ void GPUDisplay::ResizeScene(int32_t width, int32_t height, bool init)
 
   if (init) {
     mResetScene = true;
-    mViewMatrix = MY_HMM_IDENTITY;
-    mModelMatrix = MY_HMM_IDENTITY;
+    *mViewMatrix = MY_HMM_IDENTITY;
+    *mModelMatrix = MY_HMM_IDENTITY;
   }
 }
 
@@ -251,6 +254,7 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
   if (mCfgL.drawSector != -1) {
     scalefactor *= 0.2f;
   }
+  float* const mViewMatrixP = &mViewMatrix->Elements[0][0];
   float sqrdist = sqrtf(sqrtf(mViewMatrixP[12] * mViewMatrixP[12] + mViewMatrixP[13] * mViewMatrixP[13] + mViewMatrixP[14] * mViewMatrixP[14]) * GL_SCALE_FACTOR) * 0.8f;
   if (sqrdist < 0.2f) {
     sqrdist = 0.2f;
@@ -267,8 +271,8 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
   } else if (mResetScene) {
     const float initialZpos = mCfgH.projectXY ? 16 : (mParam->par.continuousTracking ? (mMaxClusterZ * GL_SCALE_FACTOR + 8) : 8);
     nextViewMatrix = nextViewMatrix * HMM_Translate({{0, 0, -initialZpos}});
-    mViewMatrix = MY_HMM_IDENTITY;
-    mModelMatrix = MY_HMM_IDENTITY;
+    *mViewMatrix = MY_HMM_IDENTITY;
+    *mModelMatrix = MY_HMM_IDENTITY;
 
     mCfgL.pointSize = 2.0f;
     mCfgL.lineWidth = 1.4f;
@@ -367,23 +371,23 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
           nextViewMatrix = nextViewMatrix * HMM_Rotate(rotRoll * mYFactor, {{0, 0, 1}});
         }
       }
-      nextViewMatrix = nextViewMatrix * mViewMatrix; // Apply previous translation / rotation
+      nextViewMatrix = nextViewMatrix * *mViewMatrix; // Apply previous translation / rotation
       if (yUp) {
         calcXYZ(&nextViewMatrix.Elements[0][0]);
         nextViewMatrix = HMM_Rotate(mAngle[2] * 180.f / CAMath::Pi(), {{0, 0, 1}}) * nextViewMatrix;
       }
       if (rotateModel) {
         if (rotYaw != 0.f) {
-          mModelMatrix = HMM_Rotate(rotYaw, {{nextViewMatrix.Elements[0][1], nextViewMatrix.Elements[1][1], nextViewMatrix.Elements[2][1]}}) * mModelMatrix;
+          *mModelMatrix = HMM_Rotate(rotYaw, {{nextViewMatrix.Elements[0][1], nextViewMatrix.Elements[1][1], nextViewMatrix.Elements[2][1]}}) * *mModelMatrix;
         }
         if (rotPitch != 0.f) {
-          mModelMatrix = HMM_Rotate(rotPitch, {{nextViewMatrix.Elements[0][0], nextViewMatrix.Elements[1][0], nextViewMatrix.Elements[2][0]}}) * mModelMatrix;
+          *mModelMatrix = HMM_Rotate(rotPitch, {{nextViewMatrix.Elements[0][0], nextViewMatrix.Elements[1][0], nextViewMatrix.Elements[2][0]}}) * *mModelMatrix;
         }
         if (rotRoll != 0.f) {
           if (rotateModelTPC) {
-            mModelMatrix = HMM_Rotate(-rotRoll, {{0, 0, 1}}) * mModelMatrix;
+            *mModelMatrix = HMM_Rotate(-rotRoll, {{0, 0, 1}}) * *mModelMatrix;
           } else {
-            mModelMatrix = HMM_Rotate(-rotRoll, {{nextViewMatrix.Elements[0][2], nextViewMatrix.Elements[1][2], nextViewMatrix.Elements[2][2]}}) * mModelMatrix;
+            *mModelMatrix = HMM_Rotate(-rotRoll, {{nextViewMatrix.Elements[0][2], nextViewMatrix.Elements[1][2], nextViewMatrix.Elements[2][2]}}) * *mModelMatrix;
           }
         }
       }
@@ -414,8 +418,8 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
 
   // Store position
   if (animateTime < 0) {
-    mViewMatrix = nextViewMatrix;
-    calcXYZ(mViewMatrixP);
+    *mViewMatrix = nextViewMatrix;
+    calcXYZ(&mViewMatrix->Elements[0][0]);
   }
 
   if (mFrontend->mMouseDn || mFrontend->mMouseDnR) {
@@ -659,7 +663,7 @@ void GPUDisplay::DrawGLScene_internal(float animateTime, bool renderToMixBuffer)
   }
 
   // Draw Event
-  nextViewMatrix = nextViewMatrix * mModelMatrix;
+  nextViewMatrix = nextViewMatrix * *mModelMatrix;
   const float zFar = ((mParam->par.continuousTracking ? (mMaxClusterZ * GL_SCALE_FACTOR) : 8.f) + 50.f) * 2.f;
   const hmm_mat4 proj = HMM_Perspective(mCfgR.fov, (float)mBackend->mRenderWidth / (float)mBackend->mRenderHeight, 0.1f, zFar);
   mBackend->prepareDraw(proj, nextViewMatrix, doScreenshot || mRequestScreenshot, renderToMixBuffer, mixSlaveImage);

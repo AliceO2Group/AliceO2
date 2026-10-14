@@ -25,7 +25,7 @@
 #include <mutex>
 #include <condition_variable>
 
-#include "HandMadeMath.h"
+union hmm_mat4; // From HandMadeMath
 
 #include "utils/timer.h"
 #include "utils/vecpod.h"
@@ -248,8 +248,7 @@ class GPUDisplay : public GPUDisplayInterface
   float mAngleRollOrigin = -1e9;
   float mMaxClusterZ = -1;
 
-  hmm_mat4 mViewMatrix, mModelMatrix;
-  float* const mViewMatrixP = &mViewMatrix.Elements[0][0];
+  std::unique_ptr<hmm_mat4> mViewMatrix, mModelMatrix;
   float mXYZ[3];
   float mAngle[3];
   float mRPhiTheta[3];
