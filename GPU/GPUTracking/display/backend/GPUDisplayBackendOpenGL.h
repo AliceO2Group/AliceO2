@@ -72,6 +72,9 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   static uint32_t loadShader(uint32_t type, const char* spirv, size_t size); // Create shader from SPIR-V
   static constexpr int32_t UNIFORM_LOCATION_MATRIX = 0;                      // Explicit uniform locations in the OpenGL variant of the shaders (shaders/*.vert, *.frag)
   static constexpr int32_t UNIFORM_LOCATION_COLOR = 4;                       // color, textColor, alpha
+  static constexpr int32_t UNIFORM_LOCATION_POINT_SIZE = 5;                  // vertexSmoothPoint.vert
+  static constexpr int32_t UNIFORM_LOCATION_VIEWPORT = 6;                    // vertexSmoothLine.vert
+  static constexpr int32_t UNIFORM_LOCATION_LINE_WIDTH = 7;                  // vertexSmoothLine.vert
 
   void addFontSymbol(int32_t symbol, int32_t sizex, int32_t sizey, int32_t offsetx, int32_t offsety, int32_t advance, void* data) override;
   void initializeTextDrawing() override;
@@ -84,12 +87,20 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
 
   uint32_t mVertexShader;
   uint32_t mFragmentShader;
+  uint32_t mVertexShaderSmoothPoint;
+  uint32_t mFragmentShaderSmoothPoint;
+  uint32_t mVertexShaderSmoothLine;
+  uint32_t mFragmentShaderSmoothLine;
   uint32_t mVertexShaderTexture;
   uint32_t mVertexShaderPassthrough;
   uint32_t mFragmentShaderTexture;
   uint32_t mFragmentShaderText;
   uint32_t mGeometryShader;
   uint32_t mShaderProgram;
+  uint32_t mShaderProgramSmoothPoint; // Points with fragmentSmoothPoint.frag, for smoothPoints in the core profile (no GL_POINT_SMOOTH)
+  bool mUseSmoothPointShader = false;
+  uint32_t mShaderProgramSmoothLine; // Lines with vertexSmoothLine.vert / fragmentSmoothLine.frag, for smoothLines in the core profile (no GL_LINE_SMOOTH)
+  bool mUseSmoothLineShader = false;
   uint32_t mShaderProgramText;
   uint32_t mShaderProgramTexture;
   uint32_t mShaderProgramField;

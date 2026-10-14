@@ -504,6 +504,7 @@ void GPUDisplayBackendVulkan::createDevice()
   reqDeviceFeatures.get<vk::PhysicalDeviceVulkan12Features>().timelineSemaphore = VK_TRUE;
   reqDeviceFeatures.get<vk::PhysicalDeviceVulkan14Features>().pushDescriptor = VK_TRUE;
   reqDeviceFeatures.get<vk::PhysicalDeviceVulkan13Features>().dynamicRendering = reqDeviceFeatures.get<vk::PhysicalDeviceVulkan13Features>().synchronization2 = VK_TRUE;
+  reqDeviceFeatures.get<vk::PhysicalDeviceVulkan13Features>().shaderDemoteToHelperInvocation = VK_TRUE; // discard in SPIR-V 1.6
   reqDeviceFeatures.get<vk::PhysicalDeviceSwapchainMaintenance1FeaturesKHR>().swapchainMaintenance1 = VK_TRUE;
   reqDeviceFeatures.get<vk::PhysicalDevicePresentIdFeaturesKHR>().presentId = VK_TRUE;
   reqDeviceFeatures.get<vk::PhysicalDevicePresentWaitFeaturesKHR>().presentWait = VK_TRUE;
@@ -546,6 +547,7 @@ void GPUDisplayBackendVulkan::createDevice()
   vk::FormatProperties depth64FormatProperties = mPhysicalDevice.getFormatProperties(vk::Format::eD32SfloatS8Uint);
   GPUInfo("Using physical Vulkan device %s", &deviceProperties.deviceName[0]);
   mMaxMSAAsupported = getMaxUsableSampleCount(deviceProperties);
+  mStrictLines = deviceProperties.limits.strictLines;
   mZSupported = (bool)(depth32FormatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment);
   mStencilSupported = (bool)(depth64FormatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment);
   bool mailboxSupported = std::find(mSwapChainDetails.presentModes.begin(), mSwapChainDetails.presentModes.end(), vk::PresentModeKHR::eMailbox) != mSwapChainDetails.presentModes.end();
@@ -798,7 +800,7 @@ void GPUDisplayBackendVulkan::recreateRendering(bool forScreenshot, bool forMixi
   needRecordCommandBuffers();
   const bool needUpdateSwapChain = mMustUpdateSwapChain;
   const bool needUpdateOffscreenBuffers = needUpdateSwapChain || mDownsampleFactor != getDownsampleFactor(forScreenshot) || mMSAASampleCount != getMSAASamplesFlag(std::min<uint32_t>(mMaxMSAAsupported, mDisplay->cfgR().drawQualityMSAA)) || mZActive != (mZSupported && mDisplay->cfgL().depthBuffer) || mMixingSupported != forMixing;
-  const bool smoothLinesChanged = mSmoothLines != (mSmoothLinesSupported && mDisplay->cfgL().smoothLines);
+  const bool smoothLinesChanged = mSmoothLines != useNativeSmoothLines();
   if (!needUpdateOffscreenBuffers && !smoothLinesChanged) {
     return;
   }
@@ -999,7 +1001,7 @@ void GPUDisplayBackendVulkan::createPipeline()
   pushConstantRanges[0].size = sizeof(float) * 4;
   pushConstantRanges[1].stageFlags = vk::ShaderStageFlagBits::eVertex;
   pushConstantRanges[1].offset = pushConstantRanges[0].size;
-  pushConstantRanges[1].size = sizeof(float);
+  pushConstantRanges[1].size = 4 * sizeof(float); // Point size, line width, viewport
   vk::PipelineLayoutCreateInfo pipelineLayoutInfo{};
   pipelineLayoutInfo.setLayoutCount = 1;
   pipelineLayoutInfo.pSetLayouts = &mUniformDescriptor;
@@ -1027,11 +1029,11 @@ void GPUDisplayBackendVulkan::createPipeline()
   pipelineInfo.basePipelineHandle = VkPipeline(VK_NULL_HANDLE); // Optional
   pipelineInfo.basePipelineIndex = -1;                          // Optional
 
-  mSmoothLines = mSmoothLinesSupported && mDisplay->cfgL().smoothLines;
+  mSmoothLines = useNativeSmoothLines();
   vk::PipelineRasterizationLineStateCreateInfo smoothLineState{};
   smoothLineState.lineRasterizationMode = vk::LineRasterizationMode::eRectangularSmooth; // Coverage goes to alpha, blending is enabled
 
-  mPipelines.resize(5);
+  mPipelines.resize(8); // 0 points, 1 lines, 2 line strip (drawType index), 3 text, 4 texture, 5-7 smooth (shader-based) points, lines, line strip
   static constexpr vk::PrimitiveTopology types[3] = {vk::PrimitiveTopology::ePointList, vk::PrimitiveTopology::eLineList, vk::PrimitiveTopology::eLineStrip};
   for (uint32_t i = 0; i < mPipelines.size(); i++) {
     if (i == 4) { // Texture rendering
@@ -1063,10 +1065,11 @@ void GPUDisplayBackendVulkan::createPipeline()
     } else { // Point / line / line-strip rendering
       bindingDescription.stride = 3 * sizeof(float);
       attributeDescriptions.format = vk::Format::eR32G32B32Sfloat;
-      inputAssembly.topology = types[i];
-      rasterizer.pNext = mSmoothLines && types[i] != vk::PrimitiveTopology::ePointList ? &smoothLineState : nullptr;
-      vertShaderStageInfo.module = mShaders[types[i] == vk::PrimitiveTopology::ePointList ? "vertexPoint" : "vertex"];
-      fragShaderStageInfo.module = mShaders["fragment"];
+      const uint32_t drawIdx = i >= 5 ? i - 5 : i;
+      inputAssembly.topology = types[drawIdx];
+      rasterizer.pNext = mSmoothLines && (i == 1 || i == 2) ? &smoothLineState : nullptr;
+      vertShaderStageInfo.module = mShaders[i < 5 ? (drawIdx == 0 ? "vertexPoint" : "vertex") : (drawIdx == 0 ? "vertexSmoothPoint" : "vertexSmoothLine")];
+      fragShaderStageInfo.module = mShaders[i < 5 ? "fragment" : (drawIdx == 0 ? "fragmentSmoothPoint" : "fragmentSmoothLine")];
       pipelineInfo.layout = mPipelineLayout;
       renderingInfo.depthAttachmentFormat = mZActive ? vk::Format::eD32Sfloat : vk::Format::eUndefined;
       pipelineInfo.pDepthStencilState = mZActive ? &depthStencil : nullptr;
@@ -1117,6 +1120,8 @@ void GPUDisplayBackendVulkan::startFillCommandBuffer(vk::CommandBuffer& commandB
   vk::DeviceSize offsets[] = {0};
   commandBuffer.bindVertexBuffers(0, 1, &mVBO.buffer, offsets);
   cmdPushDescriptors(commandBuffer, mPipelineLayout, mUniformBuffersMat[0][imageIndex]);
+  const float viewport[2] = {(float)mRenderWidth, (float)mRenderHeight};
+  commandBuffer.pushConstants(mPipelineLayout, vk::ShaderStageFlagBits::eVertex, 6 * sizeof(float), sizeof(viewport), viewport);
 }
 
 void GPUDisplayBackendVulkan::endFillCommandBuffer(vk::CommandBuffer& commandBuffer)
@@ -1141,6 +1146,10 @@ void GPUDisplayBackendVulkan::createShaders()
 {
   LOAD_SHADER(vertex, vert);
   LOAD_SHADER(fragment, frag);
+  LOAD_SHADER(fragmentSmoothPoint, frag);
+  LOAD_SHADER(vertexSmoothLine, vert);
+  LOAD_SHADER(vertexSmoothPoint, vert);
+  LOAD_SHADER(fragmentSmoothLine, frag);
   LOAD_SHADER(vertexPoint, vert);
   LOAD_SHADER(vertexTexture, vert);
   LOAD_SHADER(fragmentTexture, frag);
@@ -1357,9 +1366,10 @@ uint32_t GPUDisplayBackendVulkan::drawVertices(const vboList& v, const drawType 
     return count;
   }
 
-  if (mCurrentCommandBufferLastPipeline != tt) {
-    mCurrentCommandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, mPipelines[tt]);
-    mCurrentCommandBufferLastPipeline = tt;
+  const int32_t pipeline = tt + ((tt == POINTS ? mDisplay->cfgL().smoothPoints : useSmoothLineShader()) ? 5 : 0);
+  if (mCurrentCommandBufferLastPipeline != pipeline) {
+    mCurrentCommandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, mPipelines[pipeline]);
+    mCurrentCommandBufferLastPipeline = pipeline;
   }
   if (mDisplay->cfgR().useGLIndirectDraw) {
     mCurrentCommandBuffer.drawIndirect(mIndirectCommandBuffer.buffer, (mIndirectSectorOffset[iSector] + first) * sizeof(DrawArraysIndirectCommand), count, sizeof(DrawArraysIndirectCommand));
@@ -1386,7 +1396,7 @@ void GPUDisplayBackendVulkan::prepareDraw(const hmm_mat4& proj, const hmm_mat4& 
     };
 
     vk::Result retVal = vk::Result::eSuccess;
-    bool mustUpdateSwapChain = mMustUpdateSwapChain || mDisplay->updateRenderPipeline() || (toMixBuffer && !mMixingSupported) || mDownsampleFactor != getDownsampleFactor(requestScreenshot) || mSmoothLines != (mSmoothLinesSupported && mDisplay->cfgL().smoothLines);
+    bool mustUpdateSwapChain = mMustUpdateSwapChain || mDisplay->updateRenderPipeline() || (toMixBuffer && !mMixingSupported) || mDownsampleFactor != getDownsampleFactor(requestScreenshot) || mSmoothLines != useNativeSmoothLines();
     if (!mustUpdateSwapChain) {
       retVal = getImage();
       if (retVal == vk::Result::eErrorOutOfDateKHR) {
@@ -1611,8 +1621,18 @@ void GPUDisplayBackendVulkan::pointSizeFactor(float factor)
   if (mCommandBufferUpToDate[mCurrentImageIndex]) {
     return;
   }
-  float size = mDisplay->cfgL().pointSize * mDownsampleFactor * factor;
+  float size = mDisplay->cfgL().pointSize * mDownsampleFactor * factor + (mDisplay->cfgL().smoothPoints ? SMOOTH_POINT_EXTRA_SIZE : 0.f);
   mCurrentCommandBuffer.pushConstants(mPipelineLayout, vk::ShaderStageFlagBits::eVertex, sizeof(std::array<float, 4>), sizeof(size), &size);
+}
+
+bool GPUDisplayBackendVulkan::useNativeSmoothLines() const
+{
+  return mDisplay->cfgL().smoothLines && mSmoothLinesSupported && mDisplay->cfgR().rendererCompatSmoothing;
+}
+
+bool GPUDisplayBackendVulkan::useSmoothLineShader() const
+{
+  return mDisplay->cfgL().smoothLines && !useNativeSmoothLines();
 }
 
 void GPUDisplayBackendVulkan::lineWidthFactor(float factor)
@@ -1620,7 +1640,13 @@ void GPUDisplayBackendVulkan::lineWidthFactor(float factor)
   if (mCommandBufferUpToDate[mCurrentImageIndex]) {
     return;
   }
-  mCurrentCommandBuffer.setLineWidth(mDisplay->cfgL().lineWidth * mDownsampleFactor * factor);
+  float width = mDisplay->cfgL().lineWidth * mDownsampleFactor * factor;
+  if (useSmoothLineShader()) {
+    width += SMOOTH_LINE_EXTRA_WIDTH;
+    mCurrentCommandBuffer.pushConstants(mPipelineLayout, vk::ShaderStageFlagBits::eVertex, 5 * sizeof(float), sizeof(width), &width);
+    width *= mStrictLines ? 1.f : 1.4143f; // Non-strict wide lines may be parallelograms, widen so that the perpendicular width is covered
+  }
+  mCurrentCommandBuffer.setLineWidth(width);
 }
 
 void GPUDisplayBackendVulkan::needRecordCommandBuffers()
