@@ -99,7 +99,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void startFillCommandBuffer(vk::CommandBuffer& commandBuffer, uint32_t imageIndex, bool toMixBuffer = false);
   void endFillCommandBuffer(vk::CommandBuffer& commandBuffer);
   vk::CommandBuffer getSingleTimeCommandBuffer();
-  void waitTimeline(uint64_t value); // Wait until the timeline semaphore reached value, 0 = nothing to wait for
+  void waitTimeline(uint64_t value);
   template <class... Args>
   uint64_t queueSubmit(uint64_t* timelineSignalValue, Args&&... args); // Submit under mQueueMutex; if timelineSignalValue (the entry in pSignalSemaphoreValues) is set, write the next timeline value there first. Returns the current timeline value
   void submitSingleTimeCommandBuffer(vk::CommandBuffer commandBuffer);
@@ -114,7 +114,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void createCommandBuffers();
   void createSemaphores();
   void createUniformLayoutsAndBuffers();
-  void createSwapChain(bool forScreenshot = false, bool forMixing = false);
+  void createSwapChain(bool forScreenshot = false, bool forMixing = false, vk::SwapchainKHR oldSwapChain = {});
   void createOffscreenBuffers(bool forScreenshot = false, bool forMixing = false);
   void createPipeline();
   void clearDevice();
@@ -124,7 +124,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void clearSemaphores();
   void clearUniformLayoutsAndBuffers();
   void clearOffscreenBuffers();
-  void clearSwapChain();
+  void clearSwapChain(bool keepSwapChain = false);
   void clearPipeline();
   void recreateRendering(bool forScreenshot = false, bool forMixing = false);
   void needRecordCommandBuffers();
@@ -175,7 +175,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   std::vector<vk::CommandBuffer> mCommandBuffersText;
   std::vector<vk::CommandBuffer> mCommandBuffersTexture;
   std::vector<vk::CommandBuffer> mCommandBuffersMix;
-  std::vector<vk::CommandBuffer> mCommandBuffersPresent;         // Pre-recorded per swapchain image: transition to ePresentSrcKHR, last in every frame
+  std::vector<vk::CommandBuffer> mCommandBuffersPresent;
   std::vector<vk::CommandBufferSubmitInfo> mFrameCommandBuffers; // All command buffers of the current frame, submitted as one batch, ordered by barriers
   std::vector<bool> mCommandBufferUpToDate;
   std::vector<vk::Semaphore> mImageAvailableSemaphore;

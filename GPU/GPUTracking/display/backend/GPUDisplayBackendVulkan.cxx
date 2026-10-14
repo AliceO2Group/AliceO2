@@ -769,7 +769,7 @@ void GPUDisplayBackendVulkan::clearTextureSampler()
 
 // ---------------------------- VULKAN SWAPCHAIN MANAGEMENT ----------------------------
 
-void GPUDisplayBackendVulkan::createSwapChain(bool forScreenshot, bool forMixing)
+void GPUDisplayBackendVulkan::createSwapChain(bool forScreenshot, bool forMixing, vk::SwapchainKHR oldSwapChain)
 {
   mDownsampleFactor = getDownsampleFactor(forScreenshot);
   mDownsampleFSAA = mDownsampleFactor != 1;
@@ -805,7 +805,7 @@ void GPUDisplayBackendVulkan::createSwapChain(bool forScreenshot, bool forMixing
   swapCreateInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
   swapCreateInfo.presentMode = mPresentMode;
   swapCreateInfo.clipped = true;
-  swapCreateInfo.oldSwapchain = VkSwapchainKHR(VK_NULL_HANDLE);
+  swapCreateInfo.oldSwapchain = oldSwapChain;
   if (mSwapchainImageReadable) {
     swapCreateInfo.imageUsage |= vk::ImageUsageFlagBits::eTransferSrc;
   }
@@ -813,6 +813,9 @@ void GPUDisplayBackendVulkan::createSwapChain(bool forScreenshot, bool forMixing
     swapCreateInfo.imageUsage |= vk::ImageUsageFlagBits::eTransferDst;
   }
   mSwapChain = mDevice.createSwapchainKHR(swapCreateInfo, nullptr);
+  if (oldSwapChain) {
+    mDevice.destroySwapchainKHR(oldSwapChain, nullptr);
+  }
 
   mSwapChainImages = mDevice.getSwapchainImagesKHR(mSwapChain);
   uint32_t oldFramesInFlight = mFramesInFlight, oldImageCount = mImageCount;
@@ -841,10 +844,12 @@ void GPUDisplayBackendVulkan::createSwapChain(bool forScreenshot, bool forMixing
   }
 }
 
-void GPUDisplayBackendVulkan::clearSwapChain()
+void GPUDisplayBackendVulkan::clearSwapChain(bool keepSwapChain)
 {
   clearVector(mSwapChainImageViews, [&](auto& x) { mDevice.destroyImageView(x, nullptr); });
-  mDevice.destroySwapchainKHR(mSwapChain, nullptr);
+  if (!keepSwapChain) {
+    mDevice.destroySwapchainKHR(mSwapChain, nullptr);
+  }
 }
 
 void GPUDisplayBackendVulkan::recreateRendering(bool forScreenshot, bool forMixing)
@@ -856,8 +861,8 @@ void GPUDisplayBackendVulkan::recreateRendering(bool forScreenshot, bool forMixi
   if (needUpdateOffscreenBuffers) {
     clearOffscreenBuffers();
     if (needUpdateSwapChain) {
-      clearSwapChain();
-      createSwapChain(forScreenshot, forMixing);
+      clearSwapChain(true);
+      createSwapChain(forScreenshot, forMixing, mSwapChain);
     }
     createOffscreenBuffers(forScreenshot, forMixing);
   }
