@@ -30,15 +30,46 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   set_package_properties(Qt6 PROPERTIES TYPE OPTIONAL)
 endif()
 
+# glslc compiles the shaders to SPIR-V for both backends
+if(Vulkan_GLSLC_EXECUTABLE AND NOT Vulkan_GLSLC_EXECUTABLE MATCHES "NOTFOUND")
+  set(GPUCA_GLSLC ${Vulkan_GLSLC_EXECUTABLE})
+else()
+  find_program(GPUCA_GLSLC glslc)
+endif()
+
+# OpenGL backend: OpenGL 4.6 headers (bundled gl3w, or GLEW) for SPIR-V shaders, and glslc
+if(GPUCA_GLSLC)
+  include(CheckSymbolExists)
+  if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR GPUCA_CONFIG_GL3W)
+    set(CMAKE_REQUIRED_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty)
+    check_symbol_exists(GL_VERSION_4_6 "GL/glcorearb.h" GPUCA_GL3W_HAS_GL_4_6) # Bundled header
+    if(GPUCA_GL3W_HAS_GL_4_6)
+      set(GPUCA_EVENT_DISPLAY_OPENGL ON)
+    endif()
+  else()
+    set(CMAKE_REQUIRED_INCLUDES ${GLEW_INCLUDE_DIRS})
+    check_symbol_exists(GL_VERSION_4_6 "GL/glew.h" GPUCA_GLEW_HAS_GL_4_6)
+    if(GPUCA_GLEW_HAS_GL_4_6)
+      set(GPUCA_EVENT_DISPLAY_OPENGL ON)
+    endif()
+  endif()
+  unset(CMAKE_REQUIRED_INCLUDES)
+endif()
+if(NOT GPUCA_EVENT_DISPLAY_OPENGL)
+  if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
+    message(FATAL_ERROR "OpenGL event display needs OpenGL 4.6 headers and glslc")
+  endif()
+  message(STATUS "OpenGL event display backend disabled: needs OpenGL 4.6 headers and glslc")
+endif()
+
 if(Vulkan_FOUND)
   string(FIND "${Vulkan_VERSION}" "." vulkan_dot_index)
-  if(NOT ${Vulkan_VERSION} VERSION_GREATER_EQUAL "1.4.328" OR vulkan_dot_index EQUAL -1 OR Vulkan_GLSLC_EXECUTABLE STREQUAL "Vulkan_GLSLC_EXECUTABLE-NOTFOUND")
+  if(NOT ${Vulkan_VERSION} VERSION_GREATER_EQUAL "1.4.328" OR vulkan_dot_index EQUAL -1 OR NOT GPUCA_GLSLC)
     message(STATUS "Vulkan event display disabled: need Vulkan headers >= 1.4.328 (found ${Vulkan_VERSION}) and glslc")
     set(Vulkan_FOUND 0)
   endif()
 endif()
 if(Vulkan_FOUND)
-  include(../cmake/vulkan_display.cmake)
   set(GPUCA_EVENT_DISPLAY_VULKAN ON)
   if(O2GPUWayland_FOUND)
     set(GPUCA_EVENT_DISPLAY_WAYLAND ON)
@@ -72,7 +103,7 @@ set(SRCS_NO_H helpers/GPUDisplayLoader.cxx
               helpers/GPUDisplayROOT.cxx
               frontend/GPUDisplayKeys.cxx)
 
-set(HDRS_INSTALL shaders/GPUDisplayShaders.h)
+set(HDRS_INSTALL helpers/GPUDisplayMagneticFieldConstants.h)
 
 if(GPUCA_EVENT_DISPLAY_VULKAN)
   set(SRCS ${SRCS} backend/GPUDisplayBackendVulkan.cxx)
@@ -160,7 +191,7 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/setinclude.sh PERMISSIONS OWNER_READ O
 
 target_compile_definitions(${targetName} PRIVATE $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>)
 
-message(STATUS "Building GPU Event Display (Vulkan ${GPUCA_EVENT_DISPLAY_VULKAN} ${Vulkan_VERSION}, Wayland ${GPUCA_EVENT_DISPLAY_WAYLAND}, Freetype ${GPUCA_EVENT_DISPLAY_FREETYPE}, Fontconfig ${Fontconfig_FOUND}, Qt ${GPUCA_EVENT_DISPLAY_QT})")
+message(STATUS "Building GPU Event Display (OpenGL ${GPUCA_EVENT_DISPLAY_OPENGL}, Vulkan ${GPUCA_EVENT_DISPLAY_VULKAN} ${Vulkan_VERSION}, Wayland ${GPUCA_EVENT_DISPLAY_WAYLAND}, Freetype ${GPUCA_EVENT_DISPLAY_FREETYPE}, Fontconfig ${Fontconfig_FOUND}, Qt ${GPUCA_EVENT_DISPLAY_QT})")
 target_link_libraries(${targetName} PUBLIC ${GLFW_LIBRARIES} OpenGL::GL)
 target_include_directories(${targetName} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -193,17 +224,30 @@ if (OPENGL_GLU_FOUND)
   target_link_libraries(${targetName} PRIVATE OpenGL::GLU)
 endif()
 
+if(GPUCA_EVENT_DISPLAY_OPENGL)
+  target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_EVENT_DISPLAY_OPENGL)
+endif()
+
+if(GPUCA_EVENT_DISPLAY_VULKAN OR GPUCA_EVENT_DISPLAY_OPENGL)
+  include(shaders.cmake)
+  set(SHADERS shaders/vertex.vert
+              shaders/vertexPoint.vert
+              shaders/vertexTexture.vert
+              shaders/vertexPassthrough.vert
+              shaders/fragment.frag
+              shaders/fragmentText.frag
+              shaders/fragmentTexture.frag
+              shaders/field.geom)
+  foreach(shader ${SHADERS})
+    add_glslc_shader(${targetName} ${shader})
+  endforeach()
+  write_glslc_shader_header(${targetName} GPUDisplayLoadShaders.h)
+endif()
+
 if(GPUCA_EVENT_DISPLAY_VULKAN)
   target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_EVENT_DISPLAY_VULKAN)
   target_link_libraries(${targetName} PRIVATE Vulkan::Vulkan)
 
-  add_glslc_shader(${targetName} shaders/fragment.frag)
-  add_glslc_shader(${targetName} shaders/vertex.vert)
-  add_glslc_shader(${targetName} shaders/fragmentText.frag)
-  add_glslc_shader(${targetName} shaders/vertexTexture.vert)
-  add_glslc_shader(${targetName} shaders/fragmentTexture.frag)
-  add_glslc_shader(${targetName} shaders/fragmentUniform.frag)
-  add_glslc_shader(${targetName} shaders/vertexPoint.vert)
   if(GPUCA_EVENT_DISPLAY_WAYLAND)
     target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_EVENT_DISPLAY_WAYLAND)
     target_link_libraries(${targetName} PRIVATE GPUWayland::wayland-client)

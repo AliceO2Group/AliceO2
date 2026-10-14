@@ -47,9 +47,9 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
     TYPE_NONE = 5
   };
 
-  // Compile time minimum version defined in GPUDisplay.h, keep in sync!
+  // Compile time minimum version checked in display/CMakeLists.txt (OpenGL 4.6 headers for SPIR-V shaders), keep in sync!
   static constexpr int32_t GL_MIN_VERSION_MAJOR = 4;
-  static constexpr int32_t GL_MIN_VERSION_MINOR = 5;
+  static constexpr int32_t GL_MIN_VERSION_MINOR = 6;
 
   int32_t StartDisplay();                                                                                                    // Start the display. This function returns, and should spawn a thread that runs the display, and calls InitDisplay
   void StopDisplay() override;                                                                                               // Stop the display. Display thread should call ExitDisplay. Functions waits for display thread to terminate
