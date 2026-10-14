@@ -498,6 +498,7 @@ void GPUDisplayBackendVulkan::createDevice()
   auto& reqFeatures10 = reqDeviceFeatures.get<vk::PhysicalDeviceFeatures2>().features;
   reqFeatures10.geometryShader = reqFeatures10.wideLines = reqFeatures10.largePoints = reqFeatures10.multiDrawIndirect = VK_TRUE;
   reqDeviceFeatures.get<vk::PhysicalDeviceVulkan12Features>().timelineSemaphore = VK_TRUE;
+  reqDeviceFeatures.get<vk::PhysicalDeviceVulkan14Features>().pushDescriptor = VK_TRUE;
   reqDeviceFeatures.get<vk::PhysicalDeviceVulkan13Features>().dynamicRendering = reqDeviceFeatures.get<vk::PhysicalDeviceVulkan13Features>().synchronization2 = VK_TRUE;
   reqDeviceFeatures.get<vk::PhysicalDeviceSwapchainMaintenance1FeaturesKHR>().swapchainMaintenance1 = VK_TRUE;
   reqDeviceFeatures.get<vk::PhysicalDevicePresentIdFeaturesKHR>().presentId = VK_TRUE;
@@ -644,17 +645,6 @@ void GPUDisplayBackendVulkan::createUniformLayoutsAndBuffers()
     }
   }
 
-  std::array<vk::DescriptorPoolSize, 2> poolSizes{};
-  poolSizes[0].type = vk::DescriptorType::eUniformBuffer;
-  poolSizes[0].descriptorCount = (uint32_t)mImageCount * 3;
-  poolSizes[1].type = vk::DescriptorType::eCombinedImageSampler;
-  poolSizes[1].descriptorCount = (uint32_t)mImageCount * 2;
-  vk::DescriptorPoolCreateInfo poolInfo{};
-  poolInfo.poolSizeCount = poolSizes.size();
-  poolInfo.pPoolSizes = poolSizes.data();
-  poolInfo.maxSets = (uint32_t)mImageCount * 3;
-  mDescriptorPool = mDevice.createDescriptorPool(poolInfo, nullptr);
-
   vk::DescriptorSetLayoutBinding uboLayoutBindingMat{};
   uboLayoutBindingMat.binding = 0;
   uboLayoutBindingMat.descriptorType = vk::DescriptorType::eUniformBuffer;
@@ -668,69 +658,31 @@ void GPUDisplayBackendVulkan::createUniformLayoutsAndBuffers()
   vk::DescriptorSetLayoutBinding bindings[2] = {uboLayoutBindingMat, samplerLayoutBinding};
 
   vk::DescriptorSetLayoutCreateInfo layoutInfo{};
+  layoutInfo.flags = vk::DescriptorSetLayoutCreateFlagBits::ePushDescriptor;
   layoutInfo.bindingCount = 1;
   layoutInfo.pBindings = bindings;
   mUniformDescriptor = mDevice.createDescriptorSetLayout(layoutInfo, nullptr);
   layoutInfo.bindingCount = 2;
   mUniformDescriptorTexture = mDevice.createDescriptorSetLayout(layoutInfo, nullptr);
 
-  vk::DescriptorSetAllocateInfo allocInfo{};
-  allocInfo.descriptorPool = mDescriptorPool;
-  allocInfo.descriptorSetCount = (uint32_t)mImageCount;
-  for (int32_t j = 0; j < 3; j++) { // 0 = Render, 1 = Text, 2 = Texture
-    std::vector<vk::DescriptorSetLayout> layouts(mImageCount, j ? mUniformDescriptorTexture : mUniformDescriptor);
-    allocInfo.pSetLayouts = layouts.data();
-    mDescriptorSets[j] = mDevice.allocateDescriptorSets(allocInfo);
-
-    for (uint32_t i = 0; i < mImageCount; i++) {
-      vk::DescriptorBufferInfo bufferInfo{};
-      bufferInfo.buffer = mUniformBuffersMat[j][i].buffer;
-      bufferInfo.offset = 0;
-      bufferInfo.range = mUniformBuffersMat[j][i].size;
-
-      vk::WriteDescriptorSet descriptorWrite{};
-      descriptorWrite.dstSet = mDescriptorSets[j][i];
-      descriptorWrite.dstBinding = 0;
-      descriptorWrite.dstArrayElement = 0;
-      descriptorWrite.descriptorType = vk::DescriptorType::eUniformBuffer;
-      descriptorWrite.descriptorCount = 1;
-      descriptorWrite.pBufferInfo = &bufferInfo;
-      descriptorWrite.pImageInfo = nullptr;
-      descriptorWrite.pTexelBufferView = nullptr;
-      mDevice.updateDescriptorSets(1, &descriptorWrite, 0, nullptr);
-    }
-  }
   mUpdateUBOdrawMatrix = mUpdateUBOtextMatrix = mUpdateUBOmixMatrix = -1;
-
-  if (mFontImage.sizex && mFontImage.sizey) {
-    updateFontTextureDescriptor();
-  }
 }
 
 void GPUDisplayBackendVulkan::clearUniformLayoutsAndBuffers()
 {
   mDevice.destroyDescriptorSetLayout(mUniformDescriptor, nullptr);
   mDevice.destroyDescriptorSetLayout(mUniformDescriptorTexture, nullptr);
-  mDevice.destroyDescriptorPool(mDescriptorPool, nullptr);
   for (int32_t j = 0; j < 3; j++) {
     clearVector(mUniformBuffersMat[j], [&](auto& x) { clearBuffer(x); });
   }
 }
 
-void GPUDisplayBackendVulkan::setMixDescriptor(int32_t descriptorIndex, int32_t imageIndex)
+void GPUDisplayBackendVulkan::cmdPushDescriptors(vk::CommandBuffer commandBuffer, vk::PipelineLayout layout, const VulkanBuffer& ubo, vk::ImageView textureView)
 {
-  vk::DescriptorImageInfo imageInfo{};
-  imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-  imageInfo.sampler = mTextureSampler;
-  imageInfo.imageView = *mRenderTargetView[imageIndex + mImageCount];
-  vk::WriteDescriptorSet descriptorWrite{};
-  descriptorWrite.dstSet = mDescriptorSets[2][descriptorIndex];
-  descriptorWrite.dstBinding = 2;
-  descriptorWrite.dstArrayElement = 0;
-  descriptorWrite.descriptorType = vk::DescriptorType::eCombinedImageSampler;
-  descriptorWrite.descriptorCount = 1;
-  descriptorWrite.pImageInfo = &imageInfo;
-  mDevice.updateDescriptorSets(1, &descriptorWrite, 0, nullptr);
+  vk::DescriptorBufferInfo bufferInfo{ubo.buffer, 0, ubo.size};
+  vk::DescriptorImageInfo imageInfo{mTextureSampler, textureView, vk::ImageLayout::eShaderReadOnlyOptimal};
+  const vk::WriteDescriptorSet writes[2] = {{{}, 0, 0, 1, vk::DescriptorType::eUniformBuffer, nullptr, &bufferInfo}, {{}, 2, 0, 1, vk::DescriptorType::eCombinedImageSampler, &imageInfo}};
+  commandBuffer.pushDescriptorSet(vk::PipelineBindPoint::eGraphics, layout, 0, textureView ? 2 : 1, writes);
 }
 
 // ---------------------------- VULKAN TEXTURE SAMPLER ----------------------------
@@ -926,10 +878,6 @@ void GPUDisplayBackendVulkan::createOffscreenBuffers(bool forScreenshot, bool fo
       {(float)mRenderWidth, 0, 1.0f, 0.0f},
       {(float)mRenderWidth, (float)mRenderHeight, 1.0f, 1.0f}};
     mMixingTextureVertexArray = createBuffer(sizeof(vertices), &vertices[0][0], vk::BufferUsageFlagBits::eVertexBuffer, 1);
-
-    for (uint32_t i = 0; i < mImageCount; i++) {
-      setMixDescriptor(i, i);
-    }
   }
 
   mFontVertexBuffer.resize(mImageCount);
@@ -1171,7 +1119,7 @@ void GPUDisplayBackendVulkan::startFillCommandBuffer(vk::CommandBuffer& commandB
 
   vk::DeviceSize offsets[] = {0};
   commandBuffer.bindVertexBuffers(0, 1, &mVBO.buffer, offsets);
-  commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, mPipelineLayout, 0, 1, &mDescriptorSets[0][mCurrentImageIndex], 0, nullptr);
+  cmdPushDescriptors(commandBuffer, mPipelineLayout, mUniformBuffersMat[0][imageIndex]);
 }
 
 void GPUDisplayBackendVulkan::endFillCommandBuffer(vk::CommandBuffer& commandBuffer)
@@ -1610,7 +1558,7 @@ void GPUDisplayBackendVulkan::finishText()
   writeToBuffer(fontBuffer, fontBufferSize, mFontVertexBufferHost.data());
 
   mCommandBuffersText[mCurrentImageIndex].bindPipeline(vk::PipelineBindPoint::eGraphics, mPipelines[3]);
-  mCommandBuffersText[mCurrentImageIndex].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, mPipelineLayoutTexture, 0, 1, &mDescriptorSets[1][mCurrentImageIndex], 0, nullptr);
+  cmdPushDescriptors(mCommandBuffersText[mCurrentImageIndex], mPipelineLayoutTexture, mUniformBuffersMat[1][mCurrentImageIndex], mFontImage.view);
   vk::DeviceSize offsets[] = {0};
   mCommandBuffersText[mCurrentImageIndex].bindVertexBuffers(0, 1, &fontBuffer.buffer, offsets);
 
@@ -1642,7 +1590,7 @@ void GPUDisplayBackendVulkan::mixImages(vk::CommandBuffer commandBuffer, float m
   cmdBeginRenderingLoad(commandBuffer, mRenderTargetImage[mCurrentImageIndex], *mRenderTargetView[mCurrentImageIndex], mRenderWidth, mRenderHeight);
 
   commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, mPipelines[4]);
-  commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, mPipelineLayoutTexture, 0, 1, &mDescriptorSets[2][mCurrentImageIndex], 0, nullptr);
+  cmdPushDescriptors(commandBuffer, mPipelineLayoutTexture, mUniformBuffersMat[2][mCurrentImageIndex], *mRenderTargetView[mCurrentImageIndex + mImageCount]);
   vk::DeviceSize offsets[] = {0};
   commandBuffer.bindVertexBuffers(0, 1, &mMixingTextureVertexArray.buffer, offsets);
 
@@ -1753,7 +1701,6 @@ void GPUDisplayBackendVulkan::initializeTextDrawing()
   }
 
   mFontImage = createImage(sizex, sizey, bigImage.get(), sizex * sizey, vk::Format::eR8Unorm);
-  updateFontTextureDescriptor();
 }
 
 void GPUDisplayBackendVulkan::clearFontSymbols()
@@ -1764,24 +1711,6 @@ void GPUDisplayBackendVulkan::clearFontSymbols()
     mFontImage.sizex = mFontImage.sizey = 0;
   }
   mFontSymbols.clear();
-}
-
-void GPUDisplayBackendVulkan::updateFontTextureDescriptor()
-{
-  vk::DescriptorImageInfo imageInfo{};
-  imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-  imageInfo.imageView = mFontImage.view;
-  imageInfo.sampler = mTextureSampler;
-  for (uint32_t i = 0; i < mImageCount; i++) {
-    vk::WriteDescriptorSet descriptorWrite{};
-    descriptorWrite.dstSet = mDescriptorSets[1][i];
-    descriptorWrite.dstBinding = 2;
-    descriptorWrite.dstArrayElement = 0;
-    descriptorWrite.descriptorType = vk::DescriptorType::eCombinedImageSampler;
-    descriptorWrite.descriptorCount = 1;
-    descriptorWrite.pImageInfo = &imageInfo;
-    mDevice.updateDescriptorSets(1, &descriptorWrite, 0, nullptr);
-  }
 }
 
 void GPUDisplayBackendVulkan::OpenGLPrint(const char* s, float x, float y, float* color, float scale)
