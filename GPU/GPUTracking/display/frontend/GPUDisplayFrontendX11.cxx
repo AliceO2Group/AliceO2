@@ -224,7 +224,9 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
 
   const char* glxExt = glXQueryExtensionsString(mXDisplay, DefaultScreen(mXDisplay));
   if (strstr(glxExt, "GLX_EXT_swap_control") == nullptr) {
-    GPUError("No vsync support!");
+    if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
+      GPUError("GLX_EXT_swap_control not available, cannot change VSync");
+    }
     vsync_supported = false;
   } else {
     vsync_supported = true;
@@ -339,7 +341,7 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
       GPUError("Cannot enable vsync");
       return (-1);
     }
-    mGlXSwapIntervalEXT(mXDisplay, glXGetCurrentDrawable(), 1);
+    mGlXSwapIntervalEXT(mXDisplay, glXGetCurrentDrawable(), vsyncEnabled());
   }
 
   if (InitDisplay()) {

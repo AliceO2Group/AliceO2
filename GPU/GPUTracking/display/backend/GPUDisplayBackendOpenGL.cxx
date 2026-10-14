@@ -61,6 +61,11 @@ int32_t GPUDisplayBackendOpenGL::ExtInit()
 #endif
 }
 
+bool GPUDisplayBackendOpenGL::canLimitToVSync() const
+{
+  return mDisplay->frontend()->canSetVSync();
+}
+
 bool GPUDisplayBackendOpenGL::CoreProfile()
 {
 #ifdef GPUCA_DISPLAY_OPENGL_CORE
@@ -471,10 +476,13 @@ void GPUDisplayBackendOpenGL::loadDataToGPU(size_t totalVertizes)
   }
 }
 
-void GPUDisplayBackendOpenGL::prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot, bool toMixBuffer, float includeMixImage)
+bool GPUDisplayBackendOpenGL::prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot, bool toMixBuffer, float includeMixImage)
 {
   if (mDisplay->updateRenderPipeline() || mDownsampleFactor != getDownsampleFactor(requestScreenshot)) {
     updateRenderer(requestScreenshot);
+  }
+  if (toMixBuffer && !mMixBuffer.created) { // Only allocated when mixing is used, freed with the other offscreen buffers
+    createFB(mMixBuffer, true, true, false, mRenderWidth, mRenderHeight);
   }
   if (mOffscreenBufferMSAA.created) {
     setFrameBuffer(mOffscreenBufferMSAA.fb_id);
@@ -543,6 +551,7 @@ void GPUDisplayBackendOpenGL::prepareDraw(const hmm_mat4& proj, const hmm_mat4& 
       CHKERR(glNamedBufferSubData(mFieldModelViewBuffer, 0, sizeof(modelViewProj), &modelViewProj));
     }
   }
+  return true;
 }
 
 void GPUDisplayBackendOpenGL::finishDraw(bool doScreenshot, bool toMixBuffer, float includeMixImage)
@@ -557,7 +566,7 @@ void GPUDisplayBackendOpenGL::finishDraw(bool doScreenshot, bool toMixBuffer, fl
     CHKERR(glUseProgram(0));
   }
 
-  if (mDisplay->cfgR().drawQualityMSAA) {
+  if (mOffscreenBufferMSAA.created) {
     uint32_t dstId = toMixBuffer ? mMixBuffer.fb_id : (mDownsampleFactor != 1 ? mOffscreenBuffer.fb_id : 0);
     CHKERR(glBlitNamedFramebuffer(mOffscreenBufferMSAA.fb_id, dstId, 0, 0, mRenderWidth, mRenderHeight, 0, 0, mRenderWidth, mRenderHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR));
   }
@@ -788,8 +797,8 @@ void GPUDisplayBackendOpenGL::OpenGLPrint(const char* s, float x, float y, float
   if (smoothFont()) {
     scale *= 0.25f; // Font size is 48 to have nice bitmap, scale to size 12
   }
-  for (const char* c = s; *c; c++) {
-    if ((int32_t)*c > (int32_t)mFontSymbols.size()) {
+  for (const unsigned char* c = (const unsigned char*)s; *c; c++) {
+    if ((int32_t)*c >= (int32_t)mFontSymbols.size()) {
       GPUError("Trying to draw unsupported symbol: %d > %d\n", (int32_t)*c, (int32_t)mFontSymbols.size());
       continue;
     }
@@ -838,20 +847,6 @@ void GPUDisplayBackendOpenGL::resizeScene(uint32_t width, uint32_t height)
   mScreenHeight = height;
 
   updateRenderer(false);
-
-  float vertices[6][4] = {
-    {0, (float)mRenderHeight, 0.0f, 1.0f},
-    {0, 0, 0.0f, 0.0f},
-    {(float)mRenderWidth, 0, 1.0f, 0.0f},
-    {0, (float)mRenderHeight, 0.0f, 1.0f},
-    {(float)mRenderWidth, 0, 1.0f, 0.0f},
-    {(float)mRenderWidth, (float)mRenderHeight, 1.0f, 1.0f}};
-  CHKERR(glBindBuffer(GL_ARRAY_BUFFER, VBO_texture));
-  CHKERR(glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices));
-  CHKERR(glBindBuffer(GL_ARRAY_BUFFER, 0));
-  if (!mDisplay->useMultiVBO()) {
-    CHKERR(glBindBuffer(GL_ARRAY_BUFFER, mVBOId[0])); // If we don't use multiple buffers, we keep the default buffer bound
-  }
 }
 
 void GPUDisplayBackendOpenGL::updateRenderer(bool withScreenshot)
@@ -866,6 +861,16 @@ void GPUDisplayBackendOpenGL::updateRenderer(bool withScreenshot)
   if (mDownsampleFactor != 1) {
     createFB(mOffscreenBuffer, mDownsampleFactor != 2, true, false, mRenderWidth, mRenderHeight); // Texture for shader downsampling (factor != 2), screenshot downsampling uses the shader only if this factor is != 2 as well
   }
-  createFB(mMixBuffer, true, true, false, mRenderWidth, mRenderHeight);
   setQuality();
+
+  float vertices[6][4] = {// Mix quad at render size
+                          {0, (float)mRenderHeight, 0.0f, 1.0f},
+                          {0, 0, 0.0f, 0.0f},
+                          {(float)mRenderWidth, 0, 1.0f, 0.0f},
+                          {0, (float)mRenderHeight, 0.0f, 1.0f},
+                          {(float)mRenderWidth, 0, 1.0f, 0.0f},
+                          {(float)mRenderWidth, (float)mRenderHeight, 1.0f, 1.0f}};
+  CHKERR(glBindBuffer(GL_ARRAY_BUFFER, VBO_texture));
+  CHKERR(glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices));
+  CHKERR(glBindBuffer(GL_ARRAY_BUFFER, mDisplay->useMultiVBO() ? 0 : mVBOId[0])); // If we don't use multiple buffers, we keep the default buffer bound (also called from prepareDraw before the vertex pointers are set)
 }

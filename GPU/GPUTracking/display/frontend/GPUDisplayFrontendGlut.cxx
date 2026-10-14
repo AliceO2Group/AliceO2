@@ -316,9 +316,17 @@ void GPUDisplayFrontendGlut::ToggleMaximized(bool set) {}
 void GPUDisplayFrontendGlut::SetVSync(bool enable) // GLUT has no swap interval API, set it via GLX directly (no-op if freeglut does not use GLX)
 {
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_X11
-  auto swapInterval = (PFNGLXSWAPINTERVALEXTPROC)glXGetProcAddressARB((const GLubyte*)"glXSwapIntervalEXT");
-  if (swapInterval && glXGetCurrentDisplay()) {
-    swapInterval(glXGetCurrentDisplay(), glXGetCurrentDrawable(), enable);
+  if (canSetVSync()) {
+    ((PFNGLXSWAPINTERVALEXTPROC)glXGetProcAddressARB((const GLubyte*)"glXSwapIntervalEXT"))(glXGetCurrentDisplay(), glXGetCurrentDrawable(), enable);
   }
+#endif
+}
+
+bool GPUDisplayFrontendGlut::canSetVSync()
+{
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_X11
+  return glXGetProcAddressARB((const GLubyte*)"glXSwapIntervalEXT") && glXGetCurrentDisplay();
+#else
+  return false;
 #endif
 }

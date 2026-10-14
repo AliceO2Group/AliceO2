@@ -36,6 +36,7 @@ class GPUDisplayFrontendGlfw : public GPUDisplayFrontend
   void getSize(int32_t& width, int32_t& height) override;
   float getDisplayScale() const override { return mScale; }
   float getRefreshRate() override;
+  bool canSetVSync() override;
   int32_t getVulkanSurface(void* instance, void* surface) override;
   uint32_t getReqVulkanExtensions(const char**& p) override;
 

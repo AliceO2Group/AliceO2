@@ -35,7 +35,7 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   ~GPUDisplayBackendOpenGL() override = default;
   int32_t ExtInit() override;
   bool CoreProfile() override;
-  bool canLimitToVSync() const override { return true; } // Buffer swap blocks with VSync
+  bool canLimitToVSync() const override; // Buffer swap blocks with VSync, if the frontend can set the swap interval
   uint32_t DepthBits() override;
 
  protected:
@@ -57,7 +57,7 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   static int32_t checkProgramStatus(uint32_t program);
   void clearScreen(bool alphaOnly = false);
   void loadDataToGPU(size_t totalVertizes) override;
-  void prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot, bool toMixBuffer, float includeMixImage) override;
+  bool prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot, bool toMixBuffer, float includeMixImage) override;
   void resizeScene(uint32_t width, uint32_t height) override;
   void updateRenderer(bool withScreenshot);
   void ClearOffscreenBuffers();
@@ -101,9 +101,9 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   uint32_t mFragmentShaderDownsample;
   uint32_t mGeometryShader;
   uint32_t mShaderProgram;
-  uint32_t mShaderProgramSmoothPoint; // Points with fragmentSmoothPoint.frag, for smoothPoints in the core profile (no GL_POINT_SMOOTH)
+  uint32_t mShaderProgramSmoothPoint; // Points with fragmentSmoothPoint.frag, for smoothPoints with the shader path (not rendererCompatSmoothing / GL_POINT_SMOOTH)
   bool mUseSmoothPointShader = false;
-  uint32_t mShaderProgramSmoothLine; // Lines with vertexSmoothLine.vert / fragmentSmoothLine.frag, for smoothLines in the core profile (no GL_LINE_SMOOTH)
+  uint32_t mShaderProgramSmoothLine; // Lines with vertexSmoothLine.vert / fragmentSmoothLine.frag, for smoothLines with the shader path (not rendererCompatSmoothing / GL_LINE_SMOOTH)
   bool mUseSmoothLineShader = false;
   uint32_t mShaderProgramText;
   uint32_t mShaderProgramTexture;
