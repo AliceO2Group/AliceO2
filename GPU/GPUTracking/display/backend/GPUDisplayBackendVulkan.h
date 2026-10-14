@@ -207,6 +207,8 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   vk::SampleCountFlagBits mMSAASampleCount = vk::SampleCountFlagBits::e16;
   uint32_t mMaxMSAAsupported = 0;
   bool mZActive = false;
+  bool mSmoothLinesSupported = false; // Optional Vulkan 1.4 feature smoothLines, enabled if available
+  bool mSmoothLines = false;
   bool mZSupported = false;
   bool mStencilSupported = false;
   bool mDownsampleFSAA = false;
