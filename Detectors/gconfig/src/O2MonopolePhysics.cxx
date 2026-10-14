@@ -344,6 +344,12 @@ class O2MonopoleTransportation : public G4Transportation
     const G4bool previousMoment = G4Transportation::EnableMagneticMoment(true);
     auto* previousChordFinder = fieldManager->GetChordFinder();
     const G4bool previousChangesEnergy = fieldManager->DoesFieldChangeEnergy();
+    const G4double previousDeltaChord = mChordFinder->GetDeltaChord();
+    // Preserve the chord tolerance configured for the active field manager.
+    // The monopole chord finder is shared by global and local field managers.
+    if (previousChordFinder != nullptr) {
+      mChordFinder->SetDeltaChord(previousChordFinder->GetDeltaChord());
+    }
     fieldManager->SetChordFinder(mChordFinder);
     // the end kinetic energy and time of flight are then taken from the integrated track
     fieldManager->SetFieldChangesEnergy(true);
@@ -353,6 +359,7 @@ class O2MonopoleTransportation : public G4Transportation
 
     fieldManager->SetFieldChangesEnergy(previousChangesEnergy);
     fieldManager->SetChordFinder(previousChordFinder);
+    mChordFinder->SetDeltaChord(previousDeltaChord);
     G4Transportation::EnableMagneticMoment(previousMoment);
     return length;
   }
