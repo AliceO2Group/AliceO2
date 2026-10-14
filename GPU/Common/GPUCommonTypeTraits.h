@@ -114,7 +114,13 @@ struct is_pointer_t<T*> {
 };
 template <class T>
 struct is_pointer {
+#ifdef __METAL__
+  // A bare T* partial specialization does not match a pointer type deduced from
+  // an argument, which carries its address space; metal::is_pointer does.
+  enum { value = metal::is_pointer<T>::value };
+#else
   enum { value = is_pointer_t<typename std::remove_cv<T>::type>::value };
+#endif
 };
 
 template <class T>
