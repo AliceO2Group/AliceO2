@@ -139,10 +139,12 @@ class TrackerACTS
   /// Run track finding from seeds
   void findTracks();
 
-  /// Convert fitted ACTS states to a TrackITSExt and publish it in the TimeFrame. Also adds the corresponding MC labels if available.
+  /// Convert fitted ACTS states to a TrackITSExt and publish it in the TimeFrame.
   bool acceptTrack(const Acts::BoundTrackParameters& inner,
                    const Acts::BoundTrackParameters& outer,
                    const SeedACTS& seed, float chi2);
+  /// Assign one MC label per accepted track, after all ROFs have been processed.
+  void computeTracksMClabels();
 
   /// Helper: time a task
   template <typename Func>
@@ -161,6 +163,9 @@ class TrackerACTS
   std::vector<SeedACTS> mSeeds;
   // Avoid accepting seeds which reuse a cluster already assigned to a track.
   std::unordered_set<uint64_t> mAcceptedClusters;
+  // Layer-local indices in mUnsortedClusters, in the same order as getTracks().
+  // Keep them separate from the external indices stored in TrackITSExt.
+  std::vector<std::array<int, nLayers>> mAcceptedTrackClusterIndices;
 
   // Tracking state
   float mBz{0.5f}; ///< Magnetic field in Tesla

@@ -689,6 +689,8 @@ bool TrackerACTS<nLayers>::acceptTrack(const Acts::BoundTrackParameters& inner,
   const std::array<const SpacePoint*, 3> hits{seed.bottom, seed.middle, seed.top};
   std::array<int, o2::its::TrackITSExt::MaxClusters> clusterIndices;
   clusterIndices.fill(-1);
+  std::array<int, nLayers> internalIndices;
+  internalIndices.fill(-1);
   uint32_t pattern = 0;
   std::array<uint64_t, 3> keys{};
 
@@ -708,8 +710,8 @@ bool TrackerACTS<nLayers>::acceptTrack(const Acts::BoundTrackParameters& inner,
     if (mAcceptedClusters.contains(keys[i])) {
       return false;
     }
-    // The output track must refer to the original input-cluster index,
-    // not its position in the TimeFrame's unsorted collection.
+    // Keep the internal index for later MC lookup; publish the external one.
+    internalIndices[hit->layer] = hit->clusterId;
     clusterIndices[hit->layer] = mTimeFrame->getClusterExternalIndex(hit->layer, hit->clusterId);
     if (clusterIndices[hit->layer] < 0) {
       return false;
@@ -751,56 +753,99 @@ bool TrackerACTS<nLayers>::acceptTrack(const Acts::BoundTrackParameters& inner,
     o2Track.getTimeStamp().setTimeStampError(maxHalfROF);
   }
 
-  // Keep track-label output in lockstep with the accepted tracks.
-  o2::MCCompLabel label;
-  if (mTimeFrame->hasMCinformation()) {
-    std::vector<std::pair<o2::MCCompLabel, unsigned int>> counts;
-    for (const auto* hit : hits) {
-      for (const auto& candidate : mTimeFrame->getClusterLabels(hit->layer, hit->clusterId)) {
-        if (!candidate.isValid()) {
-          continue;
-        }
-
-        auto it = std::find_if(counts.begin(), counts.end(), [&](const auto& entry) {
-          return entry.first == candidate;
-        });
-        if (it == counts.end()) {
-          counts.emplace_back(candidate, 1u);
-        } else {
-          ++it->second;
-        }
-      }
-    }
-    if (!counts.empty()) {
-      const auto best = std::max_element(counts.begin(), counts.end(),
-                                         [](const auto& a, const auto& b) {
-                                           return a.second < b.second;
-                                         });
-      label = best->first;
-      if (best->second < hits.size()) {
-        label.setFakeFlag();
-      }
-      uint32_t correctMask = pattern;
-      for (const auto* hit : hits) {
-        bool correct = false;
-        for (const auto& candidate : mTimeFrame->getClusterLabels(hit->layer, hit->clusterId)) {
-          correct |= candidate.isValid() && candidate == best->first;
-        }
-        if (correct) {
-          correctMask |= (1u << (16 + hit->layer));
-        }
-      }
-      o2Track.setPattern(correctMask);
-    }
-  }
+  // Labels are computed once, after all ROFs, from the internal indices.
   mTimeFrame->getTracks().emplace_back(std::move(o2Track));
-  if (mTimeFrame->hasMCinformation()) {
-    mTimeFrame->getTracksLabel().emplace_back(label);
-  }
+  mAcceptedTrackClusterIndices.push_back(internalIndices);
   for (const auto key : keys) {
     mAcceptedClusters.insert(key);
   }
   return true;
+}
+
+template <int nLayers>
+void TrackerACTS<nLayers>::computeTracksMClabels()
+{
+  if (!mTimeFrame || !mTimeFrame->hasMCinformation()) {
+    return;
+  }
+
+  auto& tracks = mTimeFrame->getTracks();
+  auto& labels = mTimeFrame->getTracksLabel();
+
+  if (tracks.size() != mAcceptedTrackClusterIndices.size()) {
+    LOGP(fatal, "ACTS MC labeling: {} tracks but {} internal cluster reference sets",
+         tracks.size(), mAcceptedTrackClusterIndices.size());
+    return;
+  }
+
+  // There must be exactly one label for each accepted track, in track order.
+  labels.clear();
+  labels.reserve(tracks.size());
+
+  struct LabelCount {
+    o2::MCCompLabel label;
+    int count;
+    int lastHit;
+  };
+
+  for (size_t iTrack = 0; iTrack < tracks.size(); ++iTrack) {
+    auto& track = tracks[iTrack];
+    const auto& indices = mAcceptedTrackClusterIndices[iTrack];
+    std::vector<LabelCount> counts;
+    int nHits = 0;
+
+    for (int layer = 0; layer < nLayers; ++layer) {
+      if (indices[layer] < 0) {
+        continue;
+      }
+      ++nHits;
+      for (const auto& candidate : mTimeFrame->getClusterLabels(layer, indices[layer])) {
+        if (!candidate.isValid()) {
+          continue;
+        }
+
+        auto it = std::find_if(counts.begin(), counts.end(), [&candidate](const auto& entry) {
+          return entry.label == candidate;
+        });
+        if (it == counts.end()) {
+          counts.push_back({candidate, 1, nHits});
+        } else if (it->lastHit != nHits) {
+          // Count a given truth label at most once per attached cluster.
+          ++it->count;
+          it->lastHit = nHits;
+        }
+      }
+    }
+    o2::MCCompLabel winner;
+    uint32_t pattern = track.getPattern() & 0x0000ffffu;
+    if (counts.empty()) {
+      winner.setFakeFlag();
+    } else {
+      const auto best = std::max_element(counts.begin(), counts.end(), [](const auto& a, const auto& b) {
+        return a.count < b.count;
+      });
+      winner = best->label;
+      if (best->count != nHits) {
+        winner.setFakeFlag();
+      }
+      // Preserve the standard TrackITS pattern convention: bits [16, 31]
+      // indicate clusters compatible with the representative MC label.
+      for (int layer = 0; layer < nLayers; ++layer) {
+        if (indices[layer] < 0) {
+          continue;
+        }
+        for (const auto& candidate : mTimeFrame->getClusterLabels(layer, indices[layer])) {
+          if (candidate.isValid() && candidate == best->label) {
+            pattern |= (1u << (16 + layer));
+            break;
+          }
+        }
+      }
+    }
+    track.setPattern(pattern);
+    labels.emplace_back(winner);
+  }
+  LOGP(info, "ACTS MC labeling: {} tracks, {} labels", tracks.size(), labels.size());
 }
 
 template <int nLayers>
@@ -813,9 +858,9 @@ void TrackerACTS<nLayers>::clustersToTracks()
 
   double totalTime = 0.;
   mAcceptedClusters.clear();
+  mAcceptedTrackClusterIndices.clear();
   LOG(info) << "==== TRK ACTS Tracking ====";
 
-  // Initialize ACTS tracking geometry
   auto& actsGeometryManager = o2::acts::TrackingGeometryManager::instance();
   const auto& trackingGeometry = actsGeometryManager.get();
   (void)trackingGeometry;
@@ -840,6 +885,11 @@ void TrackerACTS<nLayers>::clustersToTracks()
 
     mCurState = TrackFinding;
     totalTime += evaluateTask([this]() { findTracks(); }, StateNames[mCurState]);
+  }
+
+  // Run MC labeling once, after every accepted track has been published.
+  if (mTimeFrame->hasMCinformation()) {
+    computeTracksMClabels();
   }
 
   LOG(info) << "=== TimeFrame " << mTimeFrameCounter << " completed in: " << totalTime << " ms ===";
