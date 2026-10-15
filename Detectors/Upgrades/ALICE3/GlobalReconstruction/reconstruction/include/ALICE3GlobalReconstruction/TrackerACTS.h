@@ -139,13 +139,10 @@ class TrackerACTS
   /// Run track finding from seeds
   void findTracks();
 
-  /// Convert fitted ACTS states to a TrackITSExt and publish it in the TimeFrame.
+  /// Convert fitted ACTS states to a TrackITSExt and publish it in the TimeFrame. Also adds the corresponding MC labels if available.
   bool acceptTrack(const Acts::BoundTrackParameters& inner,
                    const Acts::BoundTrackParameters& outer,
                    const SeedACTS& seed, float chi2);
-
-  /// Assign MC labels to tracks
-  void computeTracksMClabels();
 
   /// Helper: time a task
   template <typename Func>

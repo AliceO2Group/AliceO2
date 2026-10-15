@@ -678,57 +678,6 @@ void TrackerACTS<nLayers>::findTracks()
 }
 
 template <int nLayers>
-void TrackerACTS<nLayers>::computeTracksMClabels()
-{
-
-  return; // For now we skip MC labeling, will be implemented in the next iterations once we have track candidates to label
-
-  if (!mTimeFrame || !mTimeFrame->hasMCinformation()) {
-
-    return;
-  }
-
-  // MC labeling using majority voting on cluster labels
-
-  for (int iROF = 0; iROF < mTimeFrame->getNrof(0); ++iROF) {
-
-    for (auto& track : mTimeFrame->getTracks()) {
-      std::vector<std::pair<MCCompLabel, size_t>> labelCounts;
-
-      for (int iCluster = 0; iCluster < o2::its::TrackITSExt::MaxClusters; ++iCluster) {
-        const int clusterIdx = track.getClusterIndex(iCluster);
-        if (clusterIdx == o2::its::constants::UnusedIndex) {
-          continue;
-        }
-
-        auto clusterLabels = mTimeFrame->getClusterLabels(iCluster, clusterIdx);
-        for (const auto& label : clusterLabels) {
-          auto it = std::find_if(labelCounts.begin(), labelCounts.end(),
-                                 [&label](const auto& p) { return p.first == label; });
-          if (it != labelCounts.end()) {
-            ++(it->second);
-          } else {
-            labelCounts.emplace_back(label, 1);
-          }
-        }
-      }
-
-      if (!labelCounts.empty()) {
-        // Find label with most occurrences
-        auto maxIt = std::max_element(labelCounts.begin(), labelCounts.end(),
-                                      [](const auto& a, const auto& b) { return a.second < b.second; });
-
-        MCCompLabel trackLabel = maxIt->first;
-        if (maxIt->second < static_cast<size_t>(track.getNumberOfClusters())) {
-          trackLabel.setFakeFlag();
-        }
-        mTimeFrame->getTracksLabel().emplace_back(trackLabel);
-      }
-    }
-  }
-}
-
-template <int nLayers>
 bool TrackerACTS<nLayers>::acceptTrack(const Acts::BoundTrackParameters& inner,
                                        const Acts::BoundTrackParameters& outer,
                                        const SeedACTS& seed, float chi2)
@@ -891,10 +840,6 @@ void TrackerACTS<nLayers>::clustersToTracks()
 
     mCurState = TrackFinding;
     totalTime += evaluateTask([this]() { findTracks(); }, StateNames[mCurState]);
-  }
-
-  if (mTimeFrame->hasMCinformation()) {
-    computeTracksMClabels();
   }
 
   LOG(info) << "=== TimeFrame " << mTimeFrameCounter << " completed in: " << totalTime << " ms ===";
