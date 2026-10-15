@@ -25,10 +25,18 @@ find_program(${PKGNAME}_SCANNER wayland-scanner)
 find_package(PkgConfig)
 if(PkgConfig_FOUND)
   pkg_get_variable(${PKGNAME}_PROTOCOLS_DIR wayland-protocols pkgdatadir)
-  if(NOT ${PKGNAME}_PROTOCOLS_DIR OR NOT EXISTS "${${PKGNAME}_PROTOCOLS_DIR}/stable/xdg-shell/xdg-shell.xml" OR NOT EXISTS "${${PKGNAME}_PROTOCOLS_DIR}/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml")
-    message(STATUS "wayland xdg protocol missing in ${${PKGNAME}_PROTOCOLS_DIR}")
-    unset(${PKGNAME}_PROTOCOLS_DIR)
-  endif()
+  set(${PKGNAME}_PROTOCOLS stable/xdg-shell/xdg-shell.xml
+                           stable/viewporter/viewporter.xml
+                           stable/tablet/tablet-v2.xml
+                           unstable/xdg-decoration/xdg-decoration-unstable-v1.xml
+                           staging/fractional-scale/fractional-scale-v1.xml
+                           staging/cursor-shape/cursor-shape-v1.xml)
+  foreach(xml ${${PKGNAME}_PROTOCOLS})
+    if(${PKGNAME}_PROTOCOLS_DIR AND NOT EXISTS "${${PKGNAME}_PROTOCOLS_DIR}/${xml}")
+      message(STATUS "wayland protocol ${xml} missing in ${${PKGNAME}_PROTOCOLS_DIR}")
+      unset(${PKGNAME}_PROTOCOLS_DIR)
+    endif()
+  endforeach()
 endif()
 
 include(FindPackageHandleStandardArgs)

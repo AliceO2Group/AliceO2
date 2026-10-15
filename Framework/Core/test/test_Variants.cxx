@@ -287,6 +287,88 @@ TEST_CASE("Array2DAssignmentTest")
   REQUIRE(msc(1, 0) == "two");
 }
 
+TEST_CASE("VariantLifecycleTest")
+{
+  float m[2][3] = {{1, 2, 3}, {4, 5, 6}};
+  LabeledArray<float> laf{&m[0][0], 2, 3, {"r1", "r2"}, {"c1", "c2", "c3"}};
+  std::vector<std::string> vs{"s1", "s2", "s3"};
+  auto checkLabeled = [&](Variant const& v) {
+    REQUIRE(v.type() == VariantType::LabeledArrayFloat);
+    auto la = v.get<LabeledArray<float>>();
+    REQUIRE(la.rows() == 2);
+    REQUIRE(la.cols() == 3);
+    REQUIRE(la.get("r2", "c3") == 6);
+    REQUIRE(la.getLabelsRows() == std::vector<std::string>{"r1", "r2"});
+  };
+
+  Variant vl(laf);
+  // copies are independent and survive the destruction of the original
+  auto* copy = new Variant(vl);
+  Variant moved(std::move(*copy));
+  delete copy;
+  checkLabeled(vl);
+  checkLabeled(moved);
+
+  // assignment across types releases the previous content
+  Variant vstr("a string");
+  vstr = vl;
+  checkLabeled(vstr);
+  vstr = Variant("back to a string");
+  REQUIRE(vstr.type() == VariantType::String);
+  REQUIRE(std::string(vstr.get<const char*>()) == "back to a string");
+  vstr = std::move(moved);
+  checkLabeled(vstr);
+  Variant vvs(vs);
+  vstr = vvs;
+  REQUIRE(vstr.get<std::vector<std::string>>() == vs);
+
+  // self assignment keeps the content
+  auto& self = vl;
+  vl = self;
+  checkLabeled(vl);
+  vl = std::move(self);
+  checkLabeled(vl);
+
+  // moving a string array leaves a valid moved-from Variant behind
+  Variant vvsMoved(std::move(vvs));
+  REQUIRE(vvsMoved.get<std::vector<std::string>>() == vs);
+  vvs = vvsMoved;
+  REQUIRE(vvs.get<std::vector<std::string>>() == vs);
+
+  // reallocation of a container moves the Variants around
+  std::vector<Variant> collection;
+  for (auto i = 0; i < 20; ++i) {
+    collection.emplace_back(laf);
+    collection.emplace_back(Array2D<float>{&m[0][0], 2, 3});
+    collection.emplace_back(vs);
+    collection.emplace_back("a string");
+  }
+  std::vector<Variant> collectionCopy = collection;
+  collection.clear();
+  for (auto i = 0U; i < collectionCopy.size(); i += 4) {
+    checkLabeled(collectionCopy[i]);
+    REQUIRE(collectionCopy[i + 1].get<Array2D<float>>()(1, 2) == 6);
+    REQUIRE(collectionCopy[i + 2].get<std::vector<std::string>>() == vs);
+    REQUIRE(std::string(collectionCopy[i + 3].get<const char*>()) == "a string");
+  }
+
+  // a Variant created with only a type can be copied and destroyed
+  Variant typed(VariantType::LabeledArrayFloat);
+  Variant typedCopy(typed);
+  REQUIRE(typedCopy.get<LabeledArray<float>>().rows() == 0);
+  Variant typedString(VariantType::String);
+  Variant typedStringCopy(typedString);
+  REQUIRE(typedStringCopy.get<const char*>() == nullptr);
+
+  // set replaces the content and the type
+  Variant vset(1);
+  vset.set(laf);
+  checkLabeled(vset);
+  vset.set(vs);
+  REQUIRE(vset.type() == VariantType::ArrayString);
+  REQUIRE(vset.get<std::vector<std::string>>() == vs);
+}
+
 TEST_CASE("LabeledArrayTest")
 {
   float m[3][4] = {{0.1, 0.2, 0.3, 0.4}, {0.5, 0.6, 0.7, 0.8}, {0.9, 1.0, 1.1, 1.2}};
@@ -311,11 +393,14 @@ TEST_CASE("LabeledArrayTest")
 TEST_CASE("VariantTreeConversionsTest")
 {
   std::vector<std::string> vstrings{"0 1", "0 2", "0 3"};
-  Variant vvstr(std::move(vstrings));
+  Variant vvstr(vstrings);
 
   auto tree = vectorToBranch(vvstr.get<std::string*>(), vvstr.size());
-  auto v = Variant(vectorFromBranch<std::string>(tree));
+  auto fromTree = vectorFromBranch<std::string>(tree);
+  auto v = Variant(fromTree);
 
+  REQUIRE(vvstr.size() == vstrings.size());
+  REQUIRE(v.size() == vstrings.size());
   for (auto i = 0U; i < vvstr.size(); ++i) {
     REQUIRE(vvstr.get<std::string*>()[i] == v.get<std::string*>()[i]);
   }
@@ -408,5 +493,84 @@ TEST_CASE("VariantThrowing")
   } catch (RuntimeErrorRef& ref) {
     RuntimeError& error = error_from_ref(ref);
     REQUIRE(error.what == std::string("Variant::get: Mismatch between types 4 0."));
+  }
+}
+
+// A Variant can be created from a vector only by copying its content
+static_assert(!std::is_constructible_v<Variant, std::vector<int>>);
+static_assert(!std::is_constructible_v<Variant, std::vector<float>>);
+static_assert(!std::is_constructible_v<Variant, std::vector<double>>);
+static_assert(!std::is_constructible_v<Variant, std::vector<bool>>);
+static_assert(!std::is_constructible_v<Variant, std::vector<std::string>>);
+// assignment from a temporary vector copies it
+static_assert(std::is_assignable_v<Variant&, std::vector<int>>);
+static_assert(std::is_assignable_v<Variant&, std::vector<std::string>>);
+static_assert(std::is_constructible_v<Variant, std::vector<int>&>);
+static_assert(std::is_constructible_v<Variant, std::vector<int> const&>);
+static_assert(std::is_constructible_v<Variant, std::vector<std::string> const&>);
+static_assert(std::is_assignable_v<Variant&, std::vector<int> const&>);
+
+namespace
+{
+template <typename T>
+void checkVectorCopy(VariantType type, std::vector<T> source)
+{
+  auto check = [&](Variant const& v, std::vector<T> const& from) {
+    REQUIRE(v.type() == type);
+    REQUIRE(v.size() == from.size());
+    auto const* stored = v.get<T*>();
+    REQUIRE(stored != from.data());
+    for (auto i = 0U; i < from.size(); ++i) {
+      REQUIRE(stored[i] == from[i]);
+    }
+  };
+  std::vector<T> const constSource = source;
+  Variant fromConst(constSource);
+  check(fromConst, constSource);
+
+  Variant fromMutable(source);
+  check(fromMutable, source);
+  // the Variant owns a copy, unaffected by later changes of the source
+  auto const original = source;
+  source[0] = source.back();
+  source.push_back(source[0]);
+  check(fromMutable, original);
+}
+} // namespace
+
+TEST_CASE("VariantFromVectorTest")
+{
+  checkVectorCopy<int>(VariantType::ArrayInt, {1, 2, 3, 4});
+  checkVectorCopy<float>(VariantType::ArrayFloat, {0.5f, 1.5f, 2.5f});
+  checkVectorCopy<double>(VariantType::ArrayDouble, {1e-3, 1e3});
+  checkVectorCopy<std::string>(VariantType::ArrayString, {"a", "bb", "ccc"});
+
+  // assignment from a vector copies as well
+  std::vector<int> vi{7, 8, 9};
+  Variant v(1);
+  v = vi;
+  REQUIRE(v.type() == VariantType::ArrayInt);
+  REQUIRE(v.size() == 3);
+  REQUIRE(v.get<int*>() != vi.data());
+  REQUIRE(v.get<int*>()[2] == 9);
+  // also from a temporary
+  auto makeStrings = []() { return std::vector<std::string>{"x", "y"}; };
+  v = makeStrings();
+  REQUIRE(v.type() == VariantType::ArrayString);
+  REQUIRE(v.size() == 2);
+  REQUIRE(v.get<std::string*>()[1] == "y");
+  v = std::vector<double>{1.5, 2.5, 3.5};
+  REQUIRE(v.type() == VariantType::ArrayDouble);
+  REQUIRE(v.size() == 3);
+  REQUIRE(v.get<double*>()[2] == 3.5);
+
+  // a Variant created from a const vector round-trips through JSON
+  std::vector<double> const vd{0.25, 0.5, 0.75};
+  Variant vdv(vd);
+  std::stringstream is(vdv.asString());
+  auto read = VariantJSONHelpers::read<VariantType::ArrayDouble>(is);
+  REQUIRE(read.size() == vd.size());
+  for (auto i = 0U; i < vd.size(); ++i) {
+    REQUIRE(read.get<double*>()[i] == vd[i]);
   }
 }

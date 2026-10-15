@@ -32,15 +32,16 @@ GPUDisplayFrontendGlut::GPUDisplayFrontendGlut()
   mFrontendName = "GLUT";
 }
 
-void GPUDisplayFrontendGlut::displayFunc()
+void GPUDisplayFrontendGlut::displayFunc() // TODO: Functions should be lambdas, to get rid of the static me variable!
 {
   me->DrawGLScene();
   glutSwapBuffers();
+  me->waitForFPSLimit();
 }
 
 void GPUDisplayFrontendGlut::glutLoopFunc()
 {
-  me->HandleSendKey();
+  me->HandleSendKeys();
   displayFunc();
 }
 
@@ -194,6 +195,8 @@ void GPUDisplayFrontendGlut::mouseFunc(int32_t button, int32_t state, int32_t x,
       me->mMouseDn = true;
     } else if (button == GLUT_RIGHT_BUTTON) {
       me->mMouseDnR = true;
+    } else if (button == GLUT_MIDDLE_BUTTON) {
+      me->mMouseDnM = true;
     }
     me->mMouseDnX = x;
     me->mMouseDnY = y;
@@ -202,6 +205,8 @@ void GPUDisplayFrontendGlut::mouseFunc(int32_t button, int32_t state, int32_t x,
       me->mMouseDn = false;
     } else if (button == GLUT_RIGHT_BUTTON) {
       me->mMouseDnR = false;
+    } else if (button == GLUT_MIDDLE_BUTTON) {
+      me->mMouseDnM = false;
     }
   }
 }
@@ -258,31 +263,26 @@ int32_t GPUDisplayFrontendGlut::FrontendMain()
   glutMotionFunc(mouseMoveFunc);
   glutPassiveMotionFunc(mouseMoveFunc);
   glutMouseWheelFunc(mMouseWheelFunc);
-  ToggleMaximized(true);
+  applyInitialWindowState();
 
-  pthread_mutex_lock(&mSemLockExit);
-  mGlutRunning = true;
-  pthread_mutex_unlock(&mSemLockExit);
+  {
+    std::lock_guard lock(mExitStateMutex);
+    mDisplayRunning = true;
+  }
   glutMainLoop();
-  mDisplayControl = 2;
-  pthread_mutex_lock(&mSemLockExit);
-  mGlutRunning = false;
-  pthread_mutex_unlock(&mSemLockExit);
+  {
+    std::lock_guard lock(mExitStateMutex);
+    mDisplayControl = 2;
+    mDisplayRunning = false;
+  }
 
   ExitDisplay();
   return 0;
 }
 
-void GPUDisplayFrontendGlut::DisplayExit()
+void GPUDisplayFrontendGlut::StopDisplayA()
 {
-  pthread_mutex_lock(&mSemLockExit);
-  if (mGlutRunning) {
-    glutLeaveMainLoop();
-  }
-  pthread_mutex_unlock(&mSemLockExit);
-  while (mGlutRunning) {
-    usleep(10000);
-  }
+  glutLeaveMainLoop();
 }
 
 void GPUDisplayFrontendGlut::OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton)

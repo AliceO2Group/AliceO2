@@ -14,7 +14,7 @@
 
 #include "GPUDisplayGUI.h"
 #include "GPUDisplayGUIWrapper.h"
-#include "./ui_GPUDisplayGUI.h"
+#include "ui_GPUDisplayGUI.h"
 
 using namespace o2::gpu;
 

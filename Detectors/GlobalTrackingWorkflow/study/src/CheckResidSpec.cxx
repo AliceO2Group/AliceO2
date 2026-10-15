@@ -26,6 +26,7 @@
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DataFormatsITSMFT/TrkClusRef.h"
 #include "DataFormatsITSMFT/ClustersPerLayer.h"
+#include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
@@ -106,6 +107,7 @@ class CheckResidSpec final : public Task
   void postProcessHistos();
   void drawHistos();
 
+  o2::itsmft::ChipMappingITS mChipMap;
   o2::globaltracking::RecoContainer* mRecoData = nullptr;
   int mNThreads = 1;
   bool mMeanVertexUpdated = false;
@@ -632,6 +634,7 @@ bool CheckResidSpec::refitITStrack(o2::track::TrackParCov& track, GTrackID gid)
 void CheckResidSpec::fillHistos(const o2::checkresid::Track& trc)
 {
   const auto& params = CheckResidConfig::Instance();
+  auto geom = o2::its::GeometryTGeo::Instance();
   int np = trc.points.size();
   auto pt = trc.track.getPt();
   if (pt < params.minPt || pt > params.maxPt) {
@@ -661,6 +664,21 @@ void CheckResidSpec::fillHistos(const o2::checkresid::Track& trc)
       mHMan->getHisto2F(il * 10 + 1 * 100 + 5 + 1000)->Fill(pnt.z, pull);
       mHMan->getHisto2F(il * 10 + 1 * 100 + 5 + 2000)->Fill(pt, pull);
       mHMan->getHisto2F(il * 10 + 1 * 100 + 5 + 3000)->Fill(trc.track.getTgl(), pull);
+    }
+    if (pnt.lr >= 0 && pnt.sens >= 0 && geom->getLayer(pnt.sens) == pnt.lr) {
+      const int halfBarrel = geom->getHalfBarrel(pnt.sens);
+      const int chip = geom->getFirstChipIndex(pnt.lr) + geom->getChipIdInLayer(pnt.sens);
+      const int chipHistoID = (2 * il + halfBarrel) * 100 + 15000;
+      if (halfBarrel >= 0 && halfBarrel < 2) {
+        mHMan->getHisto2F(chipHistoID)->Fill(chip, pnt.dy);
+        mHMan->getHisto2F(chipHistoID + 10)->Fill(chip, pnt.dz);
+        if (pnt.sig2y > 0) {
+          mHMan->getHisto2F(chipHistoID + 5)->Fill(chip, pnt.dy / std::sqrt(pnt.sig2y));
+        }
+        if (pnt.sig2z > 0) {
+          mHMan->getHisto2F(chipHistoID + 15)->Fill(chip, pnt.dz / std::sqrt(pnt.sig2z));
+        }
+      }
     }
   }
   //--------------
@@ -726,6 +744,18 @@ void CheckResidSpec::bookHistos()
       mHMan->addHisto(htgl2, il * 10 + iyz * 100 + 3000);
       auto htgl2p = new TH2F(fmt::format("{}_{}_{}_pull", dname, lrName, "tgl").c_str(), fmt::format("pull {}_{{{}}} vs {};tg#lambda; pull{}", dtit, lrName, "tg#lambda", dtit).c_str(), params.nBinsTgl, -params.maxTgl, params.maxTgl, params.nBinsRes, -params.maxPull, params.maxPull);
       mHMan->addHisto(htgl2p, il * 10 + iyz * 100 + 5 + 3000);
+
+      if (il > 0) {
+        const int ilr = il - 1;
+        const int nChips = mChipMap.getNChipsOnLayer(ilr) / 2;
+        for (int ib = 0; ib < 2; ++ib) { // chips per halfbarrel
+          const int startChip = ib * nChips + mChipMap.getFirstChipsOnLayer(ilr);
+          auto h2 = new TH2F(fmt::format("{}_{}_{}", dname, lrName, ib).c_str(), fmt::format("{} Lr{} HB{};chip;{}", dname, lrName, ib, dtit).c_str(), nChips, startChip - 0.5, startChip - 0.5 + nChips, params.nBinsRes, -params.maxDYZ[il], params.maxDYZ[il]);
+          mHMan->addHisto(h2, (2 * il + ib) * 100 + iyz * 10 + 15000);
+          auto h2p = new TH2F(fmt::format("{}_{}_{}_pull", dname, lrName, ib).c_str(), fmt::format("{} Lr{} HB{} pull;chip;pull{}", dname, lrName, ib, dtit).c_str(), nChips, startChip - 0.5, startChip - 0.5 + nChips, params.nBinsRes, -params.maxPull, params.maxPull);
+          mHMan->addHisto(h2p, (2 * il + ib) * 100 + iyz * 10 + 5 + 15000);
+        }
+      }
     }
   }
 
@@ -805,14 +835,23 @@ void CheckResidSpec::postProcessHistos()
         }
       }
     }
-    histm->write();
+    for (int il = 1; il < 8; il++) {
+      for (int ib = 0; ib < 2; ib++) {
+        for (int iyz = 0; iyz < 2; iyz++) {
+          for (int iht = 0; iht < 2; iht++) {
+            const int offsV = iht == 0 ? 0 : 5;
+            fitSlices((2 * il + ib) * 100 + iyz * 10 + offsV + 15000);
+          }
+        }
+      }
+    }
   }
   delete gs;
 }
 
 void CheckResidSpec::drawHistos()
 {
-  gROOT->SetBatch(true);
+  // gROOT->SetBatch(true);
   gStyle->SetTitleX(0.2);
   gStyle->SetTitleY(0.88);
   gStyle->SetTitleW(0.25);
@@ -928,6 +967,8 @@ void CheckResidSpec::drawHistos()
   }
   TCanvas cly("cly", "", 600, 800), clz("clz", "", 600, 800), clpar("clpar", "", 600, 800);
   TCanvas czly("czly", "", 600, 800), czlz("czlz", "", 600, 800), czlpar("czlpar", "", 600, 800);
+  TCanvas cchip("cchip", "", 600, 800);
+  constexpr std::array<const char*, 4> chipTitles{"#DeltaY", "pull #DeltaY", "#DeltaZ", "pull #DeltaZ"};
   auto AddLabel = [](const char* txt, float x = 0.1, float y = 0.9, int color = kBlack, float size = 0.04) {
     TLatex* lt = new TLatex(x, y, txt);
     lt->SetNDC();
@@ -1062,6 +1103,94 @@ void CheckResidSpec::drawHistos()
   AddLabel("IB-OB tracks params differences at R = 12 cm", 0.2, 0.8);
   czlpar.Print(Form("%s_hman.pdf", params.outname.c_str()));
 
+  auto getHMinMax = [this](int id, float marginFrac, float maxDev, int roundToMicrons) -> std::tuple<float, float, float> {
+    float maxV = std::numeric_limits<float>::min(), minV = std::numeric_limits<float>::max();
+    const int nh = this->mHManV.size();
+    for (int j = 0; j < nh; j++) {
+      if (auto histo = this->mHManV[j]->getHisto(id); histo != nullptr) {
+        const int nb = histo->GetNbinsX();
+        for (int ib = 1; ib <= nb; ib++) {
+          float v = histo->GetBinContent(ib);
+          maxV = std::max(maxV, v);
+          minV = std::min(minV, v);
+        }
+      }
+    }
+    if (maxV < minV) {
+      return {0.f, 1.f, 0.1f};
+    }
+    auto delta = maxV - minV;
+    maxV += delta * marginFrac;
+    minV -= delta * marginFrac;
+    if (roundToMicrons > 0) {
+      maxV = ((int(std::ceil(maxV * 1e4)) / roundToMicrons + 1) * roundToMicrons) * 1e-4;
+      minV = ((int(std::floor(minV * 1e4)) / roundToMicrons - 1) * roundToMicrons) * 1e-4;
+    }
+    minV = std::max(minV, -maxDev);
+    maxV = std::min(maxV, maxDev);
+    return {minV, maxV, std::max(std::abs(minV), std::abs(maxV))};
+  };
+  auto collectSpread = [](TH1* hin, TH1* hout) {
+    const int nb = hin->GetNbinsX();
+    for (int ib = 1; ib <= nb; ib++) {
+      if (hin->GetBinError(ib) != 0) {
+        hout->Fill(hin->GetBinContent(ib));
+      }
+    }
+    hout->SetLineColor(hin->GetLineColor());
+    hout->SetMarkerColor(hin->GetMarkerColor());
+    hout->SetMarkerStyle(hin->GetMarkerStyle());
+  };
+  int nh = this->mHManV.size();
+  for (int il = 1; il < 8; ++il) {
+    for (int ib = 0; ib < 2; ib++) {
+      cchip.Clear();
+      cchip.Divide(1, 4);
+      for (int iyz = 0; iyz < 2; iyz++) {
+        for (int iv = 0; iv < 2; iv++) { // mean or sigma
+          const float yRange = iyz == 0 ? params.resMMLrY[il] : params.resMMLrZ[il];
+          bool drawn = false;
+          const int id = 15000 + iyz * 10 + (2 * il + ib) * 100 + 1 + iv;
+          auto [minV, maxV, absMax] = getHMinMax(id, 0.15, (iv == 0 ? 2 : 4) * yRange, 10);
+          TH1* firstAuto = nullptr;
+          float maxAuto = 0.f;
+          for (int j = 0; j < nh; j++) {
+            auto hman = this->mHManV[j].get();
+            auto histo = hman->getHisto(id);
+            if (histo) {
+              histo->SetMaximum(absMax);
+              histo->SetMinimum(iv ? 0 : -absMax);
+              if (il > 3) {
+                histo->SetMarkerSize(0.3);
+                histo->SetLineStyle(3);
+              }
+              cchip.cd(2 * iv + 1);
+              histo->Draw(drawn ? "same" : "");
+              if (!drawn) {
+                gPad->SetGrid();
+              }
+              auto hmeans = new TH1F(Form("%s_spread", histo->GetName()), Form("%s spread", histo->GetTitle()), params.nBinsRes, iv == 0 ? minV : std::max(0.f, minV), maxV);
+              collectSpread(histo, hmeans);
+              hman->addHisto(hmeans, id + 2);
+              cchip.cd(2 * iv + 2);
+              if (!drawn) {
+                firstAuto = hmeans;
+              }
+              maxAuto = std::max(maxAuto, (float)hmeans->GetMaximum());
+              hmeans->Draw(drawn ? "same" : "");
+              drawn = true;
+            }
+          }
+          if (firstAuto) {
+            firstAuto->SetMaximum(maxAuto * 1.25);
+            gPad->SetGrid();
+            gPad->Modified();
+          }
+        }
+        cchip.Print(Form("%s_hman.pdf", params.outname.c_str()));
+      }
+    }
+  }
   cly.Print(Form("%s_hman.pdf]", params.outname.c_str()));
 }
 
@@ -1073,6 +1202,13 @@ void CheckResidSpec::endOfStream(EndOfStreamContext& ec)
   }
   if (mDraw) {
     drawHistos();
+  }
+  if (auto nh = mHManV.size(); nh > 0) {
+    for (int ihm = 0; ihm < nh; ihm++) {
+      if (mHManV[ihm]) {
+        mHManV[ihm].get()->write();
+      }
+    }
   }
 }
 

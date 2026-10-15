@@ -54,7 +54,7 @@ const char* HelpText[] = {
   "[e] / [f]                     Rotate left / right",
   "[+] / [-]                     Increase / decrease point size (Hold SHIFT for lines)",
   "[b]                           Change FOV (field of view)",
-  "[']                           Switch between OpenGL core / compat code path",
+  "[']                           Switch between core / compat renderer path (OpenGL profile, Vulkan smooth lines)",
   "[MOUSE 1]                     Look around",
   "[MOUSE 2]                     Strafe camera",
   "[MOUSE 1+2]                   Zoom / Rotate",
@@ -158,7 +158,7 @@ void GPUDisplay::HandleKey(uint8_t key)
     mCfgR.maximized ^= 1;
     SetInfo("Toggling Maximized window (%d)", (int32_t)mCfgR.maximized);
   } else if (key == 'R') {
-    mCfgR.maxFPSRate ^= 1;
+    mCfgR.maxFPSRate = !mCfgR.maxFPSRate;
     SetInfo("FPS rate %s", mCfgR.maxFPSRate ? "not limited" : "limited");
   } else if (key == 'H') {
     mPrintInfoText += 1;
@@ -189,15 +189,14 @@ void GPUDisplay::HandleKey(uint8_t key)
     }
     SetInfo("Set FOV to %f", mCfgR.fov);
   } else if (key == 39) { // character = "'"
-    if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
 #ifdef GPUCA_DISPLAY_OPENGL_CORE
+    if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
       SetInfo("OpenGL compat profile not available, using core profile", 1);
-#else
-      mCfgR.openGLCore ^= 1;
-      SetInfo("Using renderer path for OpenGL %s profile", mCfgR.openGLCore ? "core" : "compat");
+    } else
 #endif
-    } else {
-      SetInfo("OpenGL options only available with OpenGL backend");
+    {
+      mCfgR.rendererCompatSmoothing ^= 1;
+      SetInfo("Using renderer path for %s profile", mCfgR.rendererCompatSmoothing ? "compat" : "core (shader)");
     }
   } else if (key == 'B') {
     mCfgH.markAdjacentClusters++;
@@ -512,9 +511,6 @@ void GPUDisplay::HandleKey(uint8_t key)
   }
   if (oldCfgR.maximized != mCfgR.maximized) {
     mFrontend->ToggleMaximized(mCfgR.maximized);
-  }
-  if (oldCfgR.maxFPSRate != mCfgR.maxFPSRate) {
-    mFrontend->mMaxFPSRate = mCfgR.maxFPSRate;
   }
   if (oldCfgR.useGLIndirectDraw != mCfgR.useGLIndirectDraw) {
     mUpdateEventData = true;

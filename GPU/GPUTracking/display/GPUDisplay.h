@@ -25,7 +25,7 @@
 #include <mutex>
 #include <condition_variable>
 
-#include "HandMadeMath.h"
+union hmm_mat4; // From HandMadeMath
 
 #include "utils/timer.h"
 #include "utils/vecpod.h"
@@ -41,14 +41,18 @@ class GPUTPCGMPropagator;
 
 class GPUDisplay : public GPUDisplayInterface
 {
+  friend class GPUDisplayFrontend;
+
  public:
   GPUDisplay(GPUDisplayFrontend* frontend, GPUChainTracking* chain, GPUQA* qa, const GPUParam* param = nullptr, const GPUCalibObjectsConst* calib = nullptr, const GPUSettingsDisplay* config = nullptr, const GPUSettingsProcessing* proc = nullptr);
   GPUDisplay(const GPUDisplay&) = delete;
   ~GPUDisplay() override = default;
 
   int32_t StartDisplay() override;
+  void ExitDisplay();
   void ShowNextEvent(const GPUTrackingInOutPointers* ptrs = nullptr) override;
   void BlockTillNextEvent() override;
+  void UnblockDisplay();
   void WaitTillEventShown() override;
   void SetCollisionFirstCluster(uint32_t collision, int32_t sector, int32_t cluster) override;
   void UpdateCalib(const GPUCalibObjectsConst* calib) override { mCalib = calib; }
@@ -58,7 +62,6 @@ class GPUDisplay : public GPUDisplayInterface
   int32_t DrawGLScene();
   void HandleSendKey(int32_t key);
   int32_t InitDisplay(bool initFailure = false);
-  void ExitDisplay();
   void ResizeScene(int32_t width, int32_t height, bool init = false);
 
   const GPUSettingsDisplayRenderer& cfgR() const { return mCfgR; }
@@ -245,8 +248,7 @@ class GPUDisplay : public GPUDisplayInterface
   float mAngleRollOrigin = -1e9;
   float mMaxClusterZ = -1;
 
-  hmm_mat4 mViewMatrix, mModelMatrix;
-  float* const mViewMatrixP = &mViewMatrix.Elements[0][0];
+  std::unique_ptr<hmm_mat4> mViewMatrix, mModelMatrix;
   float mXYZ[3];
   float mAngle[3];
   float mRPhiTheta[3];

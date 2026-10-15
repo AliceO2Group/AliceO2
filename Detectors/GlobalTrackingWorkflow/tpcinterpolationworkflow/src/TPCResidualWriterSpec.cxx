@@ -29,7 +29,7 @@ namespace tpc
 template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 
-DataProcessorSpec getTPCResidualWriterSpec(bool writeTrackData, bool debugOutput)
+DataProcessorSpec getTPCResidualWriterSpec(bool writeTrackData, bool debugOutput, bool writeTrackDataMC)
 {
   bool writeUnfiltered = SpacePointsCalibConfParam::Instance().writeUnfiltered;
   return MakeRootTreeWriterSpec("tpc-residuals-writer",
@@ -39,6 +39,7 @@ DataProcessorSpec getTPCResidualWriterSpec(bool writeTrackData, bool debugOutput
                                 BranchDefinition<std::vector<DetInfoResid>>{InputSpec{"detInfo", "GLO", "DETINFORES"}, "detInfo"},
                                 BranchDefinition<std::vector<TrackDataCompact>>{InputSpec{"trackRefs", "GLO", "TRKREFS"}, "trackRefs"},
                                 BranchDefinition<std::vector<TrackData>>{InputSpec{"tracks", "GLO", "TRKDATA"}, "tracks", (writeTrackData ? 1 : 0)},
+                                BranchDefinition<std::vector<TrackDataMC>>{InputSpec{"tracksMC", "GLO", "TRKDATAMC"}, "tracksMC", (writeTrackDataMC ? 1 : 0)},
                                 BranchDefinition<std::vector<TrackDataExtended>>{InputSpec{"trackExt", "GLO", "TRKDATAEXT"}, "trackExt", (debugOutput ? 1 : 0)})();
 }
 

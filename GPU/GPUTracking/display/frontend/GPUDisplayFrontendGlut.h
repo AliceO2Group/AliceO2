@@ -16,7 +16,6 @@
 #define GPUDISPLAYFRONTENDGLUT_H
 
 #include "GPUDisplayFrontend.h"
-#include <pthread.h>
 
 namespace o2::gpu
 {
@@ -26,7 +25,7 @@ class GPUDisplayFrontendGlut : public GPUDisplayFrontend
   GPUDisplayFrontendGlut();
   ~GPUDisplayFrontendGlut() override = default;
 
-  void DisplayExit() override;
+  void StopDisplayA() override;
   void SwitchFullscreen(bool set) override;
   void ToggleMaximized(bool set) override;
   void SetVSync(bool enable) override;
@@ -47,9 +46,6 @@ class GPUDisplayFrontendGlut : public GPUDisplayFrontend
   static void ResizeSceneWrapper(int32_t width, int32_t height);
   static int32_t GetKey(int32_t key);
   static void GetKey(int32_t keyin, int32_t& keyOut, int32_t& keyPressOut, bool special);
-
-  volatile bool mGlutRunning = false;
-  pthread_mutex_t mSemLockExit = PTHREAD_MUTEX_INITIALIZER;
 
   int32_t mWidth = INIT_WIDTH;
   int32_t mHeight = INIT_HEIGHT;

@@ -91,7 +91,8 @@ struct GRPGeomRequest {
   enum GeomRequest { None,
                      Aligned,
                      Ideal,
-                     Alignments };
+                     Alignments,
+                     AlignmentsAndAligned };
 
   bool askAggregateRunInfo = false;
   bool askGRPECS = false;
