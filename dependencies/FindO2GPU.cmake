@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 
 # NOTE!!!! - Whenever this file is changed, move it over to alidist/resources
-# FindO2GPU.cmake Version 22
+# FindO2GPU.cmake Version 23
 
 set(CUDA_COMPUTETARGET_DEFAULT_FULL 80-real;86-real;89-real;120-real;75-virtual)
 set(HIP_AMDGPUTARGET_DEFAULT_FULL gfx906;gfx908)
@@ -124,6 +124,9 @@ function(detect_gpu_arch backend) # Detect GPU architecture, optionally filterri
     endif()
     if(OPENCL_ENABLED OR backend STREQUAL "ALL")
       list(APPEND TARGET_ARCH "OPENCL")
+    endif()
+    if(METAL_ENABLED OR backend STREQUAL "ALL")
+      list(APPEND TARGET_ARCH "METAL")
     endif()
     set(TARGET_ARCH "${TARGET_ARCH}" PARENT_SCOPE)
   else()
