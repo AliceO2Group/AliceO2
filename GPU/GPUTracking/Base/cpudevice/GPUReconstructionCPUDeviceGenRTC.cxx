@@ -68,7 +68,7 @@ int32_t GPUReconstructionCPUDevice::genRTC(std::string& filename, uint32_t& nCom
 
   nCompile = proc.rtc.compilePerKernel ? kernels.size() : 1;
   const std::string compilerVersions = getBackendVersions();
-  rtc::Cache cache(proc, "rtc.cpudevice.cache", {rtcSource, rtcparam, baseCommand, kernelsall, launchBounds, compilerVersions});
+  rtc::Cache cache(proc, "cpudevice", {rtcSource, rtcparam, baseCommand, kernelsall, launchBounds, compilerVersions});
   if (!cache.load(filename, RTC_BIN_EXTENSION, nCompile)) {
     rtc::compile(proc, nCompile, "CPUDevice", [&](uint32_t i) {
       const std::string fileBase = filename + "_" + std::to_string(i);

@@ -22,6 +22,7 @@
 #include "Framework/SHA1.h"
 #include "utils/timer.h"
 
+#include <algorithm>
 #include <array>
 #include <cstdio>
 #include <cstring>
@@ -148,26 +149,40 @@ static void compile(const GPUSettingsProcessing& proc, uint32_t nCompile, const 
   }
 }
 
-class Cache // RTC cache file (if rtc.cacheOutput), locked while the object exists. Usage: if (!cache.load(...)) { compile; cache.store(...); }
+class Cache // RTC cache file <cacheFolder>/rtc.<backend>.cache.<id> (no id with rtctech.ignoreCacheValid) (if rtc.cacheOutput), id from the SHAs of the inputs, locked per backend while the object exists. Usage: if (!cache.load(...)) { compile; cache.store(...); }
 {
  public:
   static constexpr uint32_t N_SHA = 6;
   using Inputs = std::array<std::string_view, N_SHA>; // source, param, command line, kernel definitions, launch bounds, compiler versions
 
-  Cache(const GPUSettingsProcessing& proc, const char* cacheName, const Inputs& inputs) : mProc(proc), mFile(proc.rtctech.cacheFolder + "/" + cacheName)
+  Cache(const GPUSettingsProcessing& proc, const char* backend, const Inputs& inputs) : mProc(proc), mPrefix(std::string("rtc.") + backend + ".cache.")
   {
     if (!mProc.rtc.cacheOutput) {
       return;
     }
+    char shaSettings[21]; // Only for the id, the settings are compared with operator== on load (the raw bytes include padding)
     for (uint32_t i = 0; i < N_SHA; i++) {
       o2::framework::internal::SHA1(mSHA[i], inputs[i].data(), inputs[i].size());
     }
+    o2::framework::internal::SHA1(shaSettings, (const char*)&mProc.rtc, sizeof(mProc.rtc));
+    uint64_t id = 0;
+    for (uint32_t i = 0; i <= N_SHA; i++) {
+      for (uint32_t j = 0; j < 20; j += 5) { // XOR of all SHAs in 5-byte blocks
+        uint64_t block = 0;
+        memcpy(&block, (i < N_SHA ? mSHA[i] : shaSettings) + j, 5);
+        id ^= block;
+      }
+    }
+    char idStr[11];
+    snprintf(idStr, sizeof(idStr), "%010llX", (unsigned long long)id);
+    mFileName = mProc.rtctech.ignoreCacheValid ? mPrefix.substr(0, mPrefix.size() - 1) : (mPrefix + idStr); // Without id for ignoreCacheValid, to find the cache file for any input
+    mFile = mProc.rtctech.cacheFolder + "/" + mFileName;
     if (mProc.rtctech.cacheFolder != ".") {
       std::filesystem::create_directories(mProc.rtctech.cacheFolder);
     }
     if (mProc.rtctech.cacheMutex) {
       mode_t mask = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
-      mFd = open((mProc.rtctech.cacheFolder + "/cache.lock").c_str(), O_RDWR | O_CREAT | O_CLOEXEC, mask);
+      mFd = open((mProc.rtctech.cacheFolder + "/cache_" + backend + ".lock").c_str(), O_RDWR | O_CREAT | O_CLOEXEC, mask);
       if (mFd == -1) {
         throw std::runtime_error("Error opening rtc cache mutex lock file");
       }
@@ -204,6 +219,8 @@ class Cache // RTC cache file (if rtc.cacheOutput), locked while the object exis
     fclose(fp);
     if (retVal) {
       GPUInfo("Using RTC cache file");
+      std::error_code ec;
+      std::filesystem::last_write_time(mFile, std::filesystem::file_time_type::clock::now(), ec); // Mark as recently used for removeOldFiles()
     }
     return retVal;
   }
@@ -245,9 +262,32 @@ class Cache // RTC cache file (if rtc.cacheOutput), locked while the object exis
       }
     }
     fclose(fp);
+    removeOldFiles();
   }
 
  private:
+  void removeOldFiles() const // Keeps the rtctech.cacheSize most recent cache files of this backend, including the one just written
+  {
+    if (mProc.rtctech.cacheSize == 0 || mProc.rtctech.ignoreCacheValid) {
+      return;
+    }
+    std::vector<std::pair<std::filesystem::file_time_type, std::filesystem::path>> files;
+    std::error_code ec;
+    for (const auto& entry : std::filesystem::directory_iterator(mProc.rtctech.cacheFolder)) {
+      const std::string name = entry.path().filename().string();
+      if (name.starts_with(mPrefix) && name != mFileName && entry.is_regular_file(ec)) {
+        files.emplace_back(entry.last_write_time(ec), entry.path());
+      }
+    }
+    if (files.size() < mProc.rtctech.cacheSize) {
+      return;
+    }
+    std::sort(files.begin(), files.end(), std::greater<>()); // Most recent first
+    for (uint32_t i = mProc.rtctech.cacheSize - 1; i < files.size(); i++) {
+      std::filesystem::remove(files[i].second, ec);
+    }
+  }
+
   bool read(FILE* fp, const std::string& filename, const char* binExtension, uint32_t nCompile)
   {
     static constexpr const char* names[N_SHA] = {"source", "param", "command line", "kernel definitions", "launch bounds", "compiler versions"};
@@ -301,7 +341,8 @@ class Cache // RTC cache file (if rtc.cacheOutput), locked while the object exis
   }
 
   const GPUSettingsProcessing& mProc;
-  const std::string mFile;
+  const std::string mPrefix;
+  std::string mFileName, mFile;
   char mSHA[N_SHA][21];
   int32_t mFd = -1;
 };
