@@ -139,9 +139,22 @@ if(doBuildSimulation)
               LABELS generator
               PUBLIC_LINK_LIBRARIES O2::Generators)
 
+  o2_add_test(EventPoolChaining NAME test_Generator_test_EventPoolChaining
+              SOURCES test/test_EventPoolChaining.cxx
+              COMPONENT_NAME Generator
+              LABELS generator
+              PUBLIC_LINK_LIBRARIES O2::Generators)
   if(HepMC3_FOUND)
     o2_add_test(GeneratorHepMCIndexed NAME test_Generator_test_GeneratorHepMCIndexed
                 SOURCES test/test_GeneratorHepMCIndexed.cxx
+                COMPONENT_NAME Generator
+                LABELS generator
+                PUBLIC_LINK_LIBRARIES O2::Generators)
+  endif()
+
+  if(pythia_FOUND AND HepMC3_FOUND)
+    o2_add_test(GeneratorHybridEventPool NAME test_Generator_test_GeneratorHybridEventPool
+                SOURCES test/test_GeneratorHybridEventPool.cxx
                 COMPONENT_NAME Generator
                 LABELS generator
                 PUBLIC_LINK_LIBRARIES O2::Generators)

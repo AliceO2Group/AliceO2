@@ -18,6 +18,7 @@
 #include "TParticle.h"
 #include "Generators/Trigger.h"
 #include <functional>
+#include <optional>
 #include <vector>
 #include <unordered_map>
 
@@ -94,10 +95,13 @@ class Generator : public FairGenerator
   void addDeepTrigger(DeepTrigger trigger) { mDeepTriggers.push_back(trigger); };
   // setter for global number of events
   static void setTotalNEvents(unsigned int& n) { gTotalNEvents = n; }
+  // number of events this generator instance is expected to serve; 0 means unknown
+  void setExpectedNEvents(unsigned int n) { mExpectedNEvents = n; }
 
   /** getters **/
   const std::vector<TParticle>& getParticles() const { return mParticles; }; //!
   static unsigned int getTotalNEvents() { return gTotalNEvents; };
+  unsigned int getExpectedNEvents() const { return mExpectedNEvents.value_or(gTotalNEvents); }
 
   // Check if simulation is running in Hyperloop mode
   static bool isHyperloop();
@@ -178,6 +182,8 @@ class Generator : public FairGenerator
 
   // global static information about (upper limit of) number of events to be generated
   static unsigned int gTotalNEvents;
+  // number of events expected to be served by this instance. Number of events of the job if unset
+  std::optional<unsigned int> mExpectedNEvents; //!
 
   // Loopers generator instance
   o2::eventgen::GenTPCLoopers* mTPCLoopersGen = nullptr;

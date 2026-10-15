@@ -44,6 +44,7 @@
 #include <iostream>
 #include <thread>
 #include <atomic>
+#include <exception>
 
 namespace o2
 {
@@ -74,6 +75,12 @@ class GeneratorHybrid : public Generator
  private:
   GeneratorHybrid(const std::string& inputgens);
   ~GeneratorHybrid();
+  // number of events each sub-generator is expected to serve (0 == unknown)
+  std::vector<unsigned int> expectedNEventsPerGenerator(unsigned int nevents) const;
+  // schedules the generation of an event by a sub-generator, within its request budget
+  void requestEvent(int genIndex);
+  // re-raises, in the calling thread, a failure of a sub-generator during the generation of its event
+  void rethrowSubGeneratorFailure(int genIndex);
   o2::eventgen::Generator* currentgen = nullptr;
   std::vector<std::shared_ptr<o2::eventgen::Generator>> gens;
   const std::vector<std::string> generatorNames = {"evtpool", "boxgen", "external", "hepmc", "pythia8", "pythia8pp", "pythia8hi", "pythia8hf", "pythia8powheg"};
@@ -101,6 +108,9 @@ class GeneratorHybrid : public Generator
   int mIndex = 0;
   int mEventCounter = 0;
   int mTasksStarted = 0;
+  // number of events which are requested from each sub-generator. This is used if the share of
+  // each sub-generator is known exactly (fixed fractions, sequential or cocktail mode), empty otherwise
+  std::vector<unsigned int> mRequestBudget;
 
   // Cocktail mode
   bool mCocktailMode = false;
@@ -117,6 +127,8 @@ class GeneratorHybrid : public Generator
   std::vector<tbb::concurrent_bounded_queue<int>> mResultQueue;
   tbb::task_arena mTaskArena;
   std::atomic<bool> mStopFlag;
+  // failure of the last event generation of each sub-generator in a worker thread
+  std::vector<std::exception_ptr> mGenFailures;
   bool mIsInitialized = false;
 
   o2::dataformats::MCEventHeader mMCEventHeader; // to capture event headers
