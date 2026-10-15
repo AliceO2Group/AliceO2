@@ -476,9 +476,11 @@ elseif(CUDA_ENABLED OR OPENCL_ENABLED OR HIP_ENABLED)
     set(PARAMFILE ${CMAKE_CURRENT_BINARY_DIR}/genGPUArch/gpu_const_param_${GPU_ARCH}.par)
     add_custom_command(
       OUTPUT ${PARAMFILE}
+      COMMAND ${CMAKE_COMMAND} -E rm -f ${PARAMFILE}
       COMMAND bash -c
               "echo -e '#define GPUCA_GPUTYPE_${GPU_ARCH}\\n#define PARAMETER_FILE \"GPUDefParametersDefaults.h\"\\ngInterpreter->AddIncludePath(\"${CMAKE_CURRENT_SOURCE_DIR}/Definitions\");\\ngInterpreter->AddIncludePath(\"${ON_THE_FLY_DIR}\");\\n.x ${CMAKE_CURRENT_SOURCE_DIR}/Standalone/tools/dumpGPUDefParam.C(\"${PARAMFILE}\")\\n.q\\n'"
               | root -l -b > /dev/null
+      COMMAND test -f ${PARAMFILE} # root returns 0 also if the macro fails
       VERBATIM
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/genGPUArch
       MAIN_DEPENDENCY Standalone/tools/dumpGPUDefParam.C
