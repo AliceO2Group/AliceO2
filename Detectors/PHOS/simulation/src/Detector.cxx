@@ -163,6 +163,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 
   if (isNewPartile) { // mark track to be kept by stack
     stack->addHit(GetDetId());
+    stack->addTrackReference(o2::TrackReference(*fMC, GetDetId())); // PHOS entry (new superparent)
   }
 
   Double_t lostenergy = fMC->Edep();
