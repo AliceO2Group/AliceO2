@@ -28,13 +28,15 @@ class GPUReconstruction;
 class GPUDisplay;
 class GPUDisplayBackend;
 class GPUDisplayGUIWrapper;
+struct GPUDisplayGUIChannel;
 
 class GPUDisplayFrontend : public GPUDisplayFrontendInterface
 {
   friend class GPUDisplay;
+  friend class GPUDisplayGUI; // Key codes
 
  public:
-  GPUDisplayFrontend() = default;
+  GPUDisplayFrontend();
   ~GPUDisplayFrontend() override;
 
   enum frontendTypes {
@@ -101,7 +103,7 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   static constexpr int32_t KEY_ENTER = 13; // fixed at 13
   static constexpr int32_t KEY_F1 = 14;
   static constexpr int32_t KEY_F2 = 15;
-  static constexpr int32_t KEY_F3 = 26;
+  static constexpr int32_t KEY_F3 = 16;
   static constexpr int32_t KEY_F4 = 17;
   static constexpr int32_t KEY_F5 = 18;
   static constexpr int32_t KEY_F6 = 19;
@@ -146,6 +148,7 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   const char* mFrontendName = nullptr;
   volatile bool mDisplayRunning = false;
 
+  std::unique_ptr<GPUDisplayGUIChannel> mGUIChannel; // Must outlive mGUI
   std::unique_ptr<GPUDisplayGUIWrapper> mGUI;
 
   void HandleKey(uint8_t key);                     // Callback for handling key presses
@@ -161,7 +164,7 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   void focusLost();                                     // Release all keys and mouse buttons when the window loses focus, since the release events go to another window
   void applyInitialWindowState();                       // Switch to fullscreen / maximize at startup according to the settings
  private:
-  void HandleExternalGUIKeys();
+  bool HandleExternalGUIKeys(); // Returns whether keys were handled, config changes are not handled
 };
 } // namespace o2::gpu
 

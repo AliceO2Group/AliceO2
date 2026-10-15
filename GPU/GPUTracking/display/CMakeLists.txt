@@ -174,6 +174,7 @@ if(GPUCA_EVENT_DISPLAY_QT)
 
   set(SRCS ${SRCS} frontend/GPUDisplayGUI.cxx frontend/GPUDisplayGUIWrapper.cxx)
   set(SRCS_NO_H ${SRCS_NO_H} ${GPUCA_QT_MOC_SRCS} ${GPUCA_QT_UI_HDRS})
+  set(HDRS_INSTALL ${HDRS_INSTALL} frontend/GPUDisplayGUIChannel.h)
 endif()
 
 string(REPLACE ".cxx" ".h" HDRS "${SRCS}")

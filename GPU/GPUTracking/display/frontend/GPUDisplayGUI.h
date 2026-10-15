@@ -20,7 +20,12 @@
   {
 #define QT_END_NAMESPACE }
 
+#include "GPUDisplayGUIChannel.h"
 #include <QMainWindow>
+#include <QTimer>
+#include <memory>
+
+class QKeyEvent;
 
 QT_BEGIN_NAMESPACE
 namespace Ui
@@ -31,22 +36,30 @@ QT_END_NAMESPACE
 
 namespace o2::gpu
 {
-class GPUDisplayGUIWrapper;
 class GPUDisplayGUI : public QMainWindow
 {
   Q_OBJECT
 
  public:
-  GPUDisplayGUI(QWidget* parent = nullptr);
-  ~GPUDisplayGUI();
-  void setWrapper(GPUDisplayGUIWrapper* w) { mWrapper = w; }
+  explicit GPUDisplayGUI(GPUDisplayGUIChannel& channel, QWidget* parent = nullptr);
+  ~GPUDisplayGUI() override;
+  void bringToFront();
 
- private slots:
-  void UpdateTimer();
+ protected:
+  void keyPressEvent(QKeyEvent* event) override;
 
  private:
-  Ui::GPUDisplayGUI* ui;
-  GPUDisplayGUIWrapper* mWrapper;
+  void timerTick(); // Exchange updates / settings with the display
+  void applySettings();
+  static int32_t translateKey(const QKeyEvent* event); // Qt key → display key code, -1 if not forwarded
+
+  std::unique_ptr<Ui::GPUDisplayGUI> mUi;
+  QTimer mTimer;
+  GPUDisplayGUIChannel& mChannel;
+  GPUDisplayGUIChannel::Update mUpdate; // Changes collected since the last tick
+  GPUDisplayGUIChannel::State mState;   // Last state received from the display
+  uint64_t mLastSentId = 0;             // Id of the last update sent
+  uint64_t mLastAppliedId = 0;          // Id of the last update for which the display state was received
 };
 } // namespace o2::gpu
 
