@@ -105,7 +105,7 @@ TrkTGeoBlueprintBuilder::TrkTGeoBlueprintBuilder() : TrkTGeoBlueprintBuilder(Con
 TrkTGeoBlueprintBuilder::TrkTGeoBlueprintBuilder(Config config) : mConfig(std::move(config)) {}
 
 o2::acts::TrackingGeometryOutput TrkTGeoBlueprintBuilder::build(TGeoManager& tgeo,
-                                                               const Acts::GeometryContext& gctx)
+                                                                const Acts::GeometryContext& gctx)
 {
   ACTS_LOCAL_LOGGER(getDefaultLogger("ALICE3TRKAuto", mConfig.logLevel));
   ACTS_INFO("Building ACTS TRK geometry from the live TGeo '" << tgeo.GetName() << "'");
@@ -182,7 +182,7 @@ o2::acts::TrackingGeometryOutput TrkTGeoBlueprintBuilder::build(TGeoManager& tge
   ACTS_INFO("Found " << elements.size() << " sensors in " << layers.size() << " TRK layers");
   for (std::size_t i = 0; i < layers.size(); ++i) {
     ACTS_INFO("  TRK layer " << i << ": R=" << layers[i].radius / 1_mm
-                            << " mm, sensors=" << layers[i].surfaces.size());
+                             << " mm, sensors=" << layers[i].surfaces.size());
   }
 
   Blueprint::Config config;
@@ -207,7 +207,7 @@ o2::acts::TrackingGeometryOutput TrkTGeoBlueprintBuilder::build(TGeoManager& tge
   barrel.setResizeStrategies(VolumeResizeStrategy::Gap, VolumeResizeStrategy::Gap);
 
   const ExtentEnvelope layerEnvelope = ExtentEnvelope{{.z = {kLayerEnvelopeWidth, kLayerEnvelopeWidth},
-                                                        .r = {kLayerEnvelopeWidth, kLayerEnvelopeWidth}}};
+                                                       .r = {kLayerEnvelopeWidth, kLayerEnvelopeWidth}}};
   for (std::size_t i = 0; i < layers.size(); ++i) {
     barrel.addLayer("TRKBarrel_L" + std::to_string(i), [&layers, &layerEnvelope, i](LayerBlueprintNode& node) {
       node.setSurfaces(layers[i].surfaces);

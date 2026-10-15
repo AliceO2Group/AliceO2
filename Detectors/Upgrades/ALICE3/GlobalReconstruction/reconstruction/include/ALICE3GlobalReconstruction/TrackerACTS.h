@@ -36,7 +36,7 @@ namespace Acts
 {
 class Surface;
 class BoundTrackParameters;
-}
+} // namespace Acts
 namespace o2::trk
 {
 /// Configuration for the ACTS-based tracker
