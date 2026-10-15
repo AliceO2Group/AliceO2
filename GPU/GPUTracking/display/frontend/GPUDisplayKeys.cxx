@@ -77,11 +77,11 @@ void GPUDisplay::PrintHelp()
   }
 }
 
-void GPUDisplay::HandleKey(uint8_t key)
+void GPUDisplay::HandleKey(uint8_t key, bool doNotHandleConfigChanges)
 {
-  GPUSettingsDisplayHeavy oldCfgH = mCfgH;
-  GPUSettingsDisplayLight oldCfgL = mCfgL;
-  GPUSettingsDisplayRenderer oldCfgR = mCfgR;
+  const GPUSettingsDisplayHeavy oldCfgH = mCfgH;
+  const GPUSettingsDisplayLight oldCfgL = mCfgL;
+  const GPUSettingsDisplayRenderer oldCfgR = mCfgR;
   if (key == 'n') {
     mFrontend->mDisplayControl = 1;
     SetInfo("Showing next event", 1);
@@ -506,6 +506,13 @@ void GPUDisplay::HandleKey(uint8_t key)
   }
   */
 
+  if (!doNotHandleConfigChanges) {
+    checkAndApplyConfigChanges(oldCfgH, oldCfgL, oldCfgR);
+  }
+}
+
+void GPUDisplay::checkAndApplyConfigChanges(const GPUSettingsDisplayHeavy& oldCfgH, const GPUSettingsDisplayLight& oldCfgL, const GPUSettingsDisplayRenderer& oldCfgR)
+{
   if (memcmp((void*)&oldCfgH, (void*)&mCfgH, sizeof(mCfgH)) != 0) {
     mUpdateEventData = true;
   }
@@ -545,7 +552,7 @@ void GPUDisplay::HandleExternalGUIKey(int32_t key)
   }
   bool oldShift = mFrontend->mKeysShift[press];
   mFrontend->mKeysShift[press] = shifted;
-  HandleKey(key);
+  HandleKey(key, true);
   mFrontend->mKeysShift[press] = oldShift;
 }
 

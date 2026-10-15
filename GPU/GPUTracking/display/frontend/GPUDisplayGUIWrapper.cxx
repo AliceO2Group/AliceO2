@@ -14,143 +14,113 @@
 
 #include "GPUDisplayGUIWrapper.h"
 #include "GPUDisplayGUI.h"
+#include "GPUDisplayGUIChannel.h"
 
 #include <QApplication>
-#include <QTimer>
 
-#include <thread>
-#include <mutex>
+#include <atomic>
 #include <condition_variable>
+#include <mutex>
+#include <stdexcept>
+#include <thread>
 
 using namespace o2::gpu;
 
 namespace o2::gpu::internal
 {
 struct GPUDisplayGUIWrapperObjects {
+  int argc = 1;
+  char appName[64] = "GPU CA Standalone Event Display GUI";
+  char* argv[2] = {appName, nullptr}; // Must outlive the QApplication
   std::unique_ptr<QApplication> app;
-  std::unique_ptr<GPUDisplayGUI> gui;
-  std::unique_ptr<QTimer> timer;
-  std::thread t;
-  volatile bool start = false;
-  volatile bool stop = false;
-  volatile bool terminate = false;
-  volatile bool started = false;
-  volatile bool stopped = false;
-  std::mutex mutex, mutexRet;
-  std::condition_variable signal, signalRet;
+  std::unique_ptr<GPUDisplayGUI> gui; // Protected by mutex
+  std::thread thread;
+  std::mutex mutex;
+  std::condition_variable signal;
+  bool start = false, terminate = false; // Protected by mutex
+  std::atomic<bool> started = false;     // Written under mutex
 };
 } // namespace o2::gpu::internal
 
-GPUDisplayGUIWrapper::GPUDisplayGUIWrapper()
+namespace
 {
-  static bool first = true;
-  static std::mutex mutex;
-  {
-    std::lock_guard<std::mutex> guard(mutex);
-    if (!first) {
-      throw std::runtime_error("Must not start QApplication twice");
-      first = true;
-    }
+std::atomic<bool> instanceExists = false; // Qt supports only one QApplication
+} // namespace
+
+GPUDisplayGUIWrapper::GPUDisplayGUIWrapper(GPUDisplayGUIChannel& channel) : mChannel(channel)
+{
+  if (instanceExists.exchange(true)) {
+    throw std::runtime_error("Must not start QApplication twice");
   }
-  mO.reset(new internal::GPUDisplayGUIWrapperObjects);
-  mO->t = std::thread(&GPUDisplayGUIWrapper::guiThread, this);
+  mO = std::make_unique<internal::GPUDisplayGUIWrapperObjects>();
+  mO->thread = std::thread(&GPUDisplayGUIWrapper::guiThread, this);
 }
+
 GPUDisplayGUIWrapper::~GPUDisplayGUIWrapper()
 {
   stop();
   {
-    std::lock_guard<std::mutex> guard(mO->mutex);
+    std::lock_guard lock(mO->mutex);
     mO->terminate = true;
-    mO->signal.notify_one();
   }
-  mO->t.join();
-}
-
-void GPUDisplayGUIWrapper::UpdateTimer()
-{
-  if (mO->stop) {
-    mO->gui->close();
-    mO->stop = false;
-  }
+  mO->signal.notify_all();
+  mO->thread.join();
+  instanceExists = false;
 }
 
 void GPUDisplayGUIWrapper::guiThread()
 {
-  static int32_t tmp_argc = 1;
-  static const char* tmp_argv[2] = {"GPU CA Standalone Event Display GUI", NULL};
-  mO->app.reset(new QApplication(tmp_argc, (char**)tmp_argv));
-  while (!mO->terminate) {
-    {
-      std::unique_lock<std::mutex> lock(mO->mutex);
-      if (!mO->start && !mO->terminate) {
-        mO->signal.wait(lock);
-      }
-    }
+  mO->app = std::make_unique<QApplication>(mO->argc, mO->argv);
+  std::unique_lock lock(mO->mutex);
+  while (true) {
+    mO->signal.wait(lock, [this] { return mO->start || mO->terminate; });
     if (mO->terminate) {
       break;
     }
-    if (mO->start) {
-      mO->start = false;
-      mO->stopped = false;
-      mO->gui.reset(new GPUDisplayGUI);
-      mO->gui->setWrapper(this);
-      mO->gui->show();
-      mO->timer.reset(new QTimer(mO->gui.get()));
-      mO->timer->start(10);
-      mO->gui->connect(mO->timer.get(), SIGNAL(timeout()), mO->gui.get(), SLOT(UpdateTimer()));
-      {
-        std::lock_guard<std::mutex> guard(mO->mutexRet);
-        mO->started = true;
-        mO->signalRet.notify_one();
-      }
-      mO->app->exec();
-      mO->timer->stop();
-      mO->timer.reset(nullptr);
-      mO->gui.reset(nullptr);
-      std::lock_guard<std::mutex> guard(mO->mutexRet);
-      mO->started = false;
-      mO->stopped = true;
-      mO->signalRet.notify_one();
-    }
+    mO->start = false;
+    mO->gui = std::make_unique<GPUDisplayGUI>(mChannel);
+    mO->gui->show();
+    mO->started = true;
+    mO->signal.notify_all();
+    lock.unlock();
+    mO->app->exec(); // Returns when the GUI window is closed, by the user or by stop()
+    lock.lock();
+    mO->gui.reset();
+    mO->started = false;
+    mO->signal.notify_all();
   }
-  mO->app.reset(nullptr);
+  lock.unlock();
+  mO->app.reset();
 }
 
 int32_t GPUDisplayGUIWrapper::start()
 {
+  std::unique_lock lock(mO->mutex);
   if (!mO->started) {
-    {
-      std::lock_guard<std::mutex> guard(mO->mutex);
-      mO->start = true;
-      mO->signal.notify_one();
-    }
-    {
-      std::unique_lock<std::mutex> lock(mO->mutexRet);
-      while (mO->started == false) {
-        mO->signalRet.wait(lock);
-      }
-    }
+    mO->start = true;
+    mO->signal.notify_all();
+    mO->signal.wait(lock, [this] { return mO->started.load(); });
   }
   return 0;
 }
 
 int32_t GPUDisplayGUIWrapper::stop()
 {
-  if (mO->started) {
-    mO->stop = true;
-    {
-      std::unique_lock<std::mutex> lock(mO->mutexRet);
-      while (mO->stopped == false) {
-        mO->signalRet.wait(lock);
-      }
-    }
+  {
+    std::lock_guard lock(mChannel.mutex);
+    mChannel.stop = true;
   }
+  mChannel.stateUpdated.notify_all(); // Wake up the GUI if it waits for a reply
+  std::unique_lock lock(mO->mutex);
+  mO->signal.wait(lock, [this] { return !mO->started; });
   return 0;
 }
 
 int32_t GPUDisplayGUIWrapper::focus()
 {
+  std::lock_guard lock(mO->mutex);
   if (mO->started) {
+    QMetaObject::invokeMethod(mO->gui.get(), &GPUDisplayGUI::bringToFront, Qt::QueuedConnection); // Widgets must only be accessed from the GUI thread
   }
   return 0;
 }
