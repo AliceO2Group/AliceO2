@@ -145,17 +145,19 @@ void TrackerDPL::runTracking(framework::ProcessingContext& pc, TimeFrameT& timeF
       trackerTraits.findRoads(iter);
       LOGP(info, "Number of roads in iteration {}: {}", iter, timeFrame.getNumberOfTracks());
     }
+    if (mIsMC) {
+      itsTracker.computeTracksMClabels();
+    }
   }
   const auto trackingLoopElapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - trackingLoopStart).count();
   LOGP(info, "Tracking iterations block took {} ms", trackingLoopElapsedMs);
 
-  if (mIsMC) {
-    itsTracker.computeTracksMClabels();
-  }
-
   const auto& tracks = timeFrame.getTracks();
   const auto& labels = timeFrame.getTracksLabel();
-  const std::vector<o2::its::TrackITS> allTracks(tracks.begin(), tracks.end());
+  if (mIsMC && tracks.size() != labels.size()) {
+    LOGP(fatal, "TRK: {} reconstructed tracks but {} MC labels", tracks.size(), labels.size());
+  }
+  std::vector<o2::its::TrackITS> allTracks(tracks.begin(), tracks.end());
   std::vector<o2::MCCompLabel> allLabels;
 
   const int totalTracks = allTracks.size();
