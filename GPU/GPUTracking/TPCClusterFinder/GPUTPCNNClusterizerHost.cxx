@@ -138,6 +138,9 @@ void GPUTPCNNClusterizerHost::initClusterizer(const GPUSettingsProcessingNNclust
   if (!settings.nnClusterizerUseCfRegression) {
     if (mModelClass.getNumOutputNodes()[0][1] == 1 || !mModelReg2.isInitialized()) {
       clustererNN.mNnClusterizerModelReg1NumOutputNodes = mModelReg1.getNumOutputNodes()[0][1];
+      if (clustererNN.mNnClusterizerModelReg1NumOutputNodes > 6) {
+        clustererNN.mNnClusterizerUseMomentumVector = true;
+      }
     } else {
       clustererNN.mNnClusterizerModelReg1NumOutputNodes = mModelReg1.getNumOutputNodes()[0][1];
       clustererNN.mNnClusterizerModelReg2NumOutputNodes = mModelReg2.getNumOutputNodes()[0][1];

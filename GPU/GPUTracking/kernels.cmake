@@ -135,6 +135,7 @@ o2_gpu_add_kernel("GPUTPCNNClusterizerKernels, determineClass2Labels"     "= TPC
 o2_gpu_add_kernel("GPUTPCNNClusterizerKernels, publishClass1Regression"   "= TPCNNCLUSTERFINDER"                                  LB uint8_t sector int8_t dtype int8_t withMC uint32_t batchStart)
 o2_gpu_add_kernel("GPUTPCNNClusterizerKernels, publishClass2Regression"   "= TPCNNCLUSTERFINDER"                                  LB uint8_t sector int8_t dtype int8_t withMC uint32_t batchStart)
 o2_gpu_add_kernel("GPUTPCNNClusterizerKernels, publishDeconvolutionFlags" "= TPCNNCLUSTERFINDER"                                  LB uint8_t sector int8_t dtype int8_t withMC uint32_t batchStart)
+o2_gpu_add_kernel("GPUTPCNNClusterizerKernels, publishClass1RegressionWithNNDirection" "= TPCNNCLUSTERFINDER"                         LB uint8_t sector int8_t dtype int8_t withMC uint32_t batchStart)
 endif()
 
 o2_gpu_kernel_add_parameter(NEIGHBOURS_FINDER_MAX_NNEIGHUP  # Number of neighhbours finder hits to cache in shared memory

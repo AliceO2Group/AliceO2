@@ -21,6 +21,7 @@
 namespace o2::tpc
 {
 struct ClusterNative;
+struct ClusterNativeNNDirection;
 struct ClusterNativeAccess;
 } // namespace o2::tpc
 
@@ -44,7 +45,9 @@ class GPUTrackingInputProvider : public GPUProcessor
   void* SetPointersInputZS(void* mem);
   void* SetPointersInputClusterNativeAccess(void* mem);
   void* SetPointersInputClusterNativeBuffer(void* mem);
+  void* SetPointersInputClusterNativeNNDirectionBuffer(void* mem);
   void* SetPointersInputClusterNativeOutput(void* mem);
+  void* SetPointersInputClusterNativeNNDirectionOutput(void* mem);
   void* SetPointersInputTRD(void* mem);
   void* SetPointersErrorCodes(void* mem);
 #endif
@@ -52,7 +55,9 @@ class GPUTrackingInputProvider : public GPUProcessor
   uint16_t mResourceZS = -1;
   uint16_t mResourceClusterNativeAccess = -1;
   uint16_t mResourceClusterNativeBuffer = -1;
+  uint16_t mResourceClusterNativeNNDirectionBuffer = -1;
   uint16_t mResourceClusterNativeOutput = -1;
+  uint16_t mResourceClusterNativeNNDirectionOutput = -1;
   uint16_t mResourceErrorCodes = -1;
   uint16_t mResourceTRD = -1;
   uint16_t mResourceOccupancyMap = -1;
@@ -78,7 +83,9 @@ class GPUTrackingInputProvider : public GPUProcessor
 
   o2::tpc::ClusterNativeAccess* mPclusterNativeAccess = nullptr;
   o2::tpc::ClusterNative* mPclusterNativeBuffer = nullptr;
+  o2::tpc::ClusterNativeNNDirection* mPclusterNativeNNDirectionBuffer = nullptr;
   o2::tpc::ClusterNative* mPclusterNativeOutput = nullptr;
+  o2::tpc::ClusterNativeNNDirection* mPclusterNativeNNDirectionOutput = nullptr;
 
   uint32_t* mTPCClusterOccupancyMap = nullptr;
   uint32_t mTPCClusterOccupancyMapSize = 0;
