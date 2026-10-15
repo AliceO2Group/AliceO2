@@ -63,7 +63,7 @@ int32_t GPUReconstructionCUDA::genRTC(std::string& filename, uint32_t& nCompile)
 
   nCompile = proc.rtc.compilePerKernel ? kernels.size() : 1;
   const std::string compilerVersions = getBackendVersions();
-  rtc::Cache cache(proc, "rtc.cuda.cache", {rtcSource, rtcparam, baseCommand, kernelsall, launchBounds, compilerVersions});
+  rtc::Cache cache(proc, "cuda", {rtcSource, rtcparam, baseCommand, kernelsall, launchBounds, compilerVersions});
   if (!cache.load(filename, mRtcBinExtension, nCompile)) {
     rtc::compile(proc, nCompile, "CUDA", [&](uint32_t i) {
       const std::string fileBase = filename + "_" + std::to_string(i);
