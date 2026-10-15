@@ -60,7 +60,7 @@ class GPUDisplay : public GPUDisplayInterface
 
   void HandleKey(uint8_t key);
   int32_t DrawGLScene();
-  void HandleSendKey(int32_t key);
+  void HandleExternalGUIKey(int32_t key);
   int32_t InitDisplay(bool initFailure = false);
   void ResizeScene(int32_t width, int32_t height, bool init = false);
 

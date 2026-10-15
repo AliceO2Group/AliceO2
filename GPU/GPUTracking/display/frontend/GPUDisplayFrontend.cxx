@@ -85,7 +85,7 @@ void GPUDisplayFrontend::waitForFPSLimit()
     mNextFrameTime = now;
     return;
   }
-  const auto period = std::chrono::duration_cast<std::chrono::steady_clock::duration>(std::chrono::duration<double>(1. / cfg.fpsRate));
+  const auto period = std::chrono::duration_cast<std::chrono::steady_clock::duration>(std::chrono::duration<double>(1. / cfg.fpsRate)); // TODO: wake up on HasExternalGUISignals
   mNextFrameTime += period;
   if (mNextFrameTime < now - period) { // More than one frame behind (slow rendering, first frame), do not try to catch up
     mNextFrameTime = now;
@@ -93,19 +93,29 @@ void GPUDisplayFrontend::waitForFPSLimit()
   std::this_thread::sleep_until(mNextFrameTime);
 }
 
-void GPUDisplayFrontend::HandleSendKeys()
+void GPUDisplayFrontend::HandleExternalGUISignals()
 {
-  std::lock_guard lock(mSendKeyMutex);
-  for (auto key : mSendKeys) {
-    mDisplay->HandleSendKey(key);
-  }
-  mSendKeys.clear();
+  HandleExternalGUIKeys();
 }
 
-void GPUDisplayFrontend::sendKey(int32_t v)
+bool GPUDisplayFrontend::HasExternalGUISignals() const
 {
-  std::lock_guard lock(mSendKeyMutex);
-  mSendKeys.emplace_back(v);
+
+}
+
+void GPUDisplayFrontend::HandleExternalGUIKeys()
+{
+  std::lock_guard lock(mExternalGUIKeyMutex);
+  for (auto key : mExternalGUIKeys) {
+    mDisplay->HandleExternalGUIKey(key);
+  }
+  mExternalGUIKeys.clear();
+}
+
+void GPUDisplayFrontend::sendExternalGUIKey(int32_t v)
+{
+  std::lock_guard lock(mExternalGUIKeyMutex);
+  mExternalGUIKeys.emplace_back(v);
 }
 
 void GPUDisplayFrontend::HandleKey(uint8_t key) { mDisplay->HandleKey(key); }
@@ -124,7 +134,6 @@ void GPUDisplayFrontend::ExitDisplay()
   stopGUI();
   mGUI.reset(nullptr);
 }
-bool GPUDisplayFrontend::EnableSendKey() { return true; }
 
 void GPUDisplayFrontend::stopGUI()
 {

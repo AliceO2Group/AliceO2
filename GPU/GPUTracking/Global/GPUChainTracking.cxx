@@ -849,24 +849,23 @@ int32_t GPUChainTracking::RunChainFinalize()
 
     mEventDisplay->WaitTillEventShown();
 
-    if (GetProcessingSettings().eventDisplay->EnableSendKey()) {
+    if (GetProcessingSettings().runsStandalone) {
       while (kbhit()) {
         getch();
       }
       GPUInfo("Press key for next event!");
     }
-
     int32_t iKey;
     do {
       usleep(10000);
-      if (GetProcessingSettings().eventDisplay->EnableSendKey()) {
+      if (GetProcessingSettings().runsStandalone) {
         iKey = kbhit() ? getch() : 0;
         if (iKey == 27) {
           GetProcessingSettings().eventDisplay->setDisplayControl(2);
         } else if (iKey == 'n') {
           break;
         } else if (iKey) {
-          GetProcessingSettings().eventDisplay->sendKey(iKey);
+          GetProcessingSettings().eventDisplay->sendExternalGUIKey(iKey);
         }
       }
     } while (GetProcessingSettings().eventDisplay->getDisplayControl() == 0);

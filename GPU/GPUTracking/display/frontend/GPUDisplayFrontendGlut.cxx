@@ -45,7 +45,7 @@ void GPUDisplayFrontendGlut::displayFunc() // TODO: Functions should be lambdas,
 
 void GPUDisplayFrontendGlut::glutLoopFunc()
 {
-  me->HandleSendKeys();
+  me->HandleExternalGUISignals();
   displayFunc();
 }
 

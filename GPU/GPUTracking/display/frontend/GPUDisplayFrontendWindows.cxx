@@ -352,6 +352,7 @@ int32_t GPUDisplayFrontendWindows::FrontendMain()
         DispatchMessage(&msg);  // Dispatch The Message
       }
     } else {
+      HandleExternalGUISignals();
       if (active) // Program Active?
       {
         if (mKeys[VK_ESCAPE]) {
