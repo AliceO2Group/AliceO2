@@ -86,7 +86,7 @@ class ITSBeamBackgroundStudy : public Task
   int mStrobeFallBack = 594;
   int mStrobe = mStrobeFallBack;
 
-  // TODO: the following should be make configurable
+  // TODO: the following should be made configurable
 
   std::pair<double, double> TimeWindowZDC = std::make_pair(5., 11.);
   std::pair<double, double> TimeWindowZNAr = std::make_pair(5.64507, 9.64507);
