@@ -34,12 +34,13 @@ class O2DatabasePDG
  public:
   static TDatabasePDG* Instance()
   {
-    static bool initialized = false; // initialize this --> adds particles to TDatabasePDG;
-    auto db = TDatabasePDG::Instance();
-    if (!initialized) {
+    // adds the ALICE particles to TDatabasePDG on first use.
+    // Initialisation is done through a local static database to make the Instance() function thread-safe
+    static TDatabasePDG* db = [] {
+      auto db = TDatabasePDG::Instance();
       addALICEParticles(db);
-      initialized = true;
-    }
+      return db;
+    }();
     return db;
   }
 

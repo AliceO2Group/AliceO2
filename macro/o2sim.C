@@ -177,8 +177,8 @@ FairRunSim* o2sim_init(bool asservice, bool evalmat = false)
   // run init
   run->Init();
 
-  // add ALICE particles to TDatabasePDG singleton
-  o2::O2DatabasePDG::addALICEParticles(TDatabasePDG::Instance());
+  // ensure ALICE particles are in the TDatabasePDG singleton (added once, thread-safely)
+  o2::O2DatabasePDG::Instance();
 
   long runStart = timestamp;
   {
