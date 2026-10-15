@@ -27,12 +27,15 @@
 #include <Framework/Logger.h>
 #include <array>
 #include <vector>
+#include <unordered_set>
+#include "DataFormatsITS/TrackITS.h"
 #include <ITStracking/TimeFrame.h>
 #include <TH2F.h>
 
 namespace Acts
 {
 class Surface;
+class BoundTrackParameters;
 }
 namespace o2::trk
 {
@@ -136,6 +139,11 @@ class TrackerACTS
   /// Run track finding from seeds
   void findTracks();
 
+  /// Convert fitted ACTS states to a TrackITSExt and publish it in the TimeFrame.
+  bool acceptTrack(const Acts::BoundTrackParameters& inner,
+                   const Acts::BoundTrackParameters& outer,
+                   const SeedACTS& seed, float chi2);
+
   /// Assign MC labels to tracks
   void computeTracksMClabels();
 
@@ -154,6 +162,8 @@ class TrackerACTS
   std::vector<std::vector<const SpacePoint*>> mSpacePointsPerLayer;
   // Seeds
   std::vector<SeedACTS> mSeeds;
+  // Avoid accepting seeds which reuse a cluster already assigned to a track.
+  std::unordered_set<uint64_t> mAcceptedClusters;
 
   // Tracking state
   float mBz{0.5f}; ///< Magnetic field in Tesla

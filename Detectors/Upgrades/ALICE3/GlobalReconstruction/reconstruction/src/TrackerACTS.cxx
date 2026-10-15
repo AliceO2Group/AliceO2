@@ -56,6 +56,8 @@
 #include <array>
 #include <cmath>
 #include <cstdint>
+#include <limits>
+#include <optional>
 #include <memory>
 #include <span>
 #include <string>
@@ -65,6 +67,113 @@
 namespace o2::trk
 {
 
+namespace
+{
+// Convert ACTS surface-bound parameters to the O2 tracking frame
+// (x, alpha; y, z, sin(phi-alpha), tan(lambda), q/pT).
+// The covariance is transformed by a numerical Jacobian evaluated at the
+// fitted state. Position units are converted from ACTS mm to O2 cm.
+bool convertTrackParameters(const Acts::BoundTrackParameters& actsTrack,
+                            const Acts::GeometryContext& gctx,
+                            o2::track::TrackParCov& output)
+{
+  const auto& state = actsTrack.parameters();
+  if (!state.allFinite() || !actsTrack.covariance().has_value() ||
+      !actsTrack.covariance()->allFinite()) {
+    return false;
+  }
+
+  const auto position = actsTrack.position(gctx);
+  if (!position.allFinite()) {
+    return false;
+  }
+  const double alpha = std::atan2(position.y(), position.x());
+  const double ca = std::cos(alpha);
+  const double sa = std::sin(alpha);
+
+  auto toO2 = [&](const Acts::BoundVector& p, Eigen::Matrix<double, 5, 1>& dest) -> bool {
+    const double theta = p[Acts::eBoundTheta];
+    const double sinTheta = std::sin(theta);
+    if (!std::isfinite(sinTheta) || sinTheta <= 1.e-6) {
+      return false;
+    }
+    const auto direction = Acts::makeDirectionFromPhiTheta(p[Acts::eBoundPhi], theta);
+    const Acts::Vector2 local = p.head<2>();
+    const auto xyz = actsTrack.referenceSurface().localToGlobal(gctx, local, direction);
+    if (!xyz.allFinite()) {
+      return false;
+    }
+
+    const double snp = std::sin(p[Acts::eBoundPhi] - alpha);
+    if (!std::isfinite(snp) || std::abs(snp) >= 0.999999) {
+      return false;
+    }
+
+    dest << (-xyz.x() * sa + xyz.y() * ca) / Acts::UnitConstants::cm,
+            xyz.z() / Acts::UnitConstants::cm,
+            snp,
+            std::cos(theta) / sinTheta,
+            p[Acts::eBoundQOverP] * Acts::UnitConstants::GeV / sinTheta;
+    return dest.allFinite();
+  };
+
+  Eigen::Matrix<double, 5, 1> pars;
+  if (!toO2(state, pars)) {
+    return false;
+  }
+
+  const double x = (position.x() * ca + position.y() * sa) / Acts::UnitConstants::cm;
+  if (!std::isfinite(x)) {
+    return false;
+  }
+
+  Eigen::Matrix<double, 5, Acts::eBoundSize> jacobian;
+  jacobian.setZero();
+  for (int i = 0; i < Acts::eBoundSize; ++i) {
+    if (i == Acts::eBoundTime) {
+      continue; // O2 TrackParCov has no time coordinate
+    }
+    const double step = (i == Acts::eBoundLoc0 || i == Acts::eBoundLoc1)
+                          ? 1.e-3 * Acts::UnitConstants::mm
+                          : (i == Acts::eBoundQOverP)
+                              ? std::max(std::abs(state[i]) * 1.e-4,
+                                         1.e-6 / Acts::UnitConstants::GeV)
+                              : 1.e-5;
+    Acts::BoundVector plus = state;
+    Acts::BoundVector minus = state;
+    plus[i] += step;
+    minus[i] -= step;
+    Eigen::Matrix<double, 5, 1> fPlus, fMinus;
+    if (!toO2(plus, fPlus) || !toO2(minus, fMinus)) {
+      return false;
+    }
+    jacobian.col(i) = (fPlus - fMinus) / (2. * step);
+  }
+
+  const Eigen::Matrix<double, 5, 5> covariance =
+    jacobian * (*actsTrack.covariance()) * jacobian.transpose();
+  if (!covariance.allFinite()) {
+    return false;
+  }
+
+  o2::track::TrackParCov::params_t o2Params{};
+  o2::track::TrackParCov::covMat_t o2Cov{};
+  for (int i = 0; i < 5; ++i) {
+    if (!(covariance(i, i) > 0.) || !std::isfinite(pars[i])) {
+      return false;
+    }
+    o2Params[i] = static_cast<float>(pars[i]);
+    for (int j = 0; j <= i; ++j) {
+      o2Cov[o2::track::CovarMap[i][j]] =
+        static_cast<float>(0.5 * (covariance(i, j) + covariance(j, i)));
+    }
+  }
+  const int charge = state[Acts::eBoundQOverP] >= 0. ? 1 : -1;
+  output = o2::track::TrackParCov{static_cast<float>(x), static_cast<float>(alpha),
+                                  o2Params, o2Cov, charge, o2::track::PID::Pion};
+  return output.isValid();
+}
+} // namespace
 template <int nLayers>
 TrackerACTS<nLayers>::TrackerACTS()
 {
@@ -359,10 +468,8 @@ void TrackerACTS<nLayers>::findTracks()
       trackState.calibrated<2>() = hit.local;
       trackState.calibratedCovariance<2>() = hit.covariance;
 
-      trackState.setProjectorSubspaceIndices(
-        std::array<std::uint8_t, 2>{
-          static_cast<std::uint8_t>(Acts::eBoundLoc0),
-          static_cast<std::uint8_t>(Acts::eBoundLoc1)});
+      trackState.setProjectorSubspaceIndices(std::array<std::uint8_t, 2>{static_cast<std::uint8_t>(Acts::eBoundLoc0),
+                                                                         static_cast<std::uint8_t>(Acts::eBoundLoc1)});
     }
   };
 
@@ -377,24 +484,29 @@ void TrackerACTS<nLayers>::findTracks()
   extensions.updater.connect<&Acts::GainMatrixUpdater::operator()<Trajectory>>(&updater);
   extensions.smoother.connect<&Acts::GainMatrixSmoother::operator()<Trajectory>>(&smoother);
 
-  Acts::PropagatorPlainOptions propagatorOptions{
-    geometryContext, magneticFieldContext};
+  Acts::PropagatorPlainOptions propagatorOptions{geometryContext, magneticFieldContext};
 
-  Acts::KalmanFitterOptions<Trajectory> fitterOptions{
-    geometryContext,
-    magneticFieldContext,
-    calibrationContext,
-    extensions,
-    propagatorOptions,
-    nullptr,
-    false,
-    false};
+  Acts::KalmanFitterOptions<Trajectory> fitterOptions{geometryContext,
+                                                      magneticFieldContext,
+                                                      calibrationContext,
+                                                      extensions,
+                                                      propagatorOptions,
+                                                      nullptr,
+                                                      false,
+                                                      false};
 
   // Mutable TrackContainer uses reference-holder backends, not rvalue shared_ptrs.
   Acts::VectorTrackContainer trackBackend;
   Trajectory trajectoryBackend;
   TrackContainer tracks{trackBackend, trajectoryBackend};
 
+  struct FittedCandidate {
+    Acts::BoundTrackParameters inner;
+    Acts::BoundTrackParameters outer;
+    SeedACTS seed;
+    float chi2;
+  };
+  std::vector<FittedCandidate> candidates;
   int nFitted = 0;
   int nFailed = 0;
   int nInvalid = 0;
@@ -528,6 +640,24 @@ void TrackerACTS<nLayers>::findTracks()
       continue;
     }
 
+    const auto innerState = track.innermostTrackState();
+    if (!innerState.has_value()) {
+      ++nFailed;
+      continue;
+    }
+    const auto outerState = track.outermostTrackState();
+    if (!innerState->hasSmoothed() || !outerState.hasSmoothed() ||
+        !std::isfinite(track.chi2()) || track.chi2() < 0.f) {
+      ++nFailed;
+      continue;
+    }
+
+    // Explicitly use the smoothed fit, rather than the original seed estimate.
+    typename Trajectory::ConstTrackStateProxy innerProxy{*innerState};
+    typename Trajectory::ConstTrackStateProxy outerProxy{outerState};
+    candidates.push_back({track.createParametersFromState(innerProxy),
+                          track.createParametersFromState(outerProxy),
+                          seed, static_cast<float>(track.chi2())});
     ++nFitted;
     LOG(debug) << "ACTS fitted seed: "
                << "nMeasurements=" << track.nMeasurements()
@@ -535,10 +665,17 @@ void TrackerACTS<nLayers>::findTracks()
                << " nDoF=" << track.nDoF();
   }
 
+  // Accept lower-chi2 candidates first: multiple seeds can share clusters.
+  std::sort(candidates.begin(), candidates.end(), [](const auto& a, const auto& b) {
+    return a.chi2 < b.chi2;
+  });
+  int nAccepted = 0;
+  for (const auto& candidate : candidates) {
+    nAccepted += acceptTrack(candidate.inner, candidate.outer, candidate.seed, candidate.chi2);
+  }
   LOG(info) << "ACTS fitting: " << nFitted << " fitted, "
-            << nFailed << " failed, "
-            << nInvalid << " invalid from "
-            << mSeeds.size() << " seeds";
+            << nAccepted << " accepted, " << nFailed << " failed, "
+            << nInvalid << " invalid from " << mSeeds.size() << " seeds";
 }
 
 template <int nLayers>
@@ -593,6 +730,135 @@ void TrackerACTS<nLayers>::computeTracksMClabels()
 }
 
 template <int nLayers>
+bool TrackerACTS<nLayers>::acceptTrack(const Acts::BoundTrackParameters& inner,
+                                      const Acts::BoundTrackParameters& outer,
+                                      const SeedACTS& seed, float chi2)
+{
+  if (!mTimeFrame || !std::isfinite(chi2) || chi2 < 0.f) {
+    return false;
+  }
+
+  const std::array<const SpacePoint*, 3> hits{seed.bottom, seed.middle, seed.top};
+  std::array<int, o2::its::TrackITSExt::MaxClusters> clusterIndices;
+  clusterIndices.fill(-1);
+  uint32_t pattern = 0;
+  std::array<uint64_t, 3> keys{};
+
+  for (int i = 0; i < 3; ++i) {
+    const auto* hit = hits[i];
+    if (!hit || hit->layer < 0 || hit->layer >= nLayers || hit->clusterId < 0 ||
+        hit->rof < 0 || hit->rof >= mTimeFrame->getNrof(hit->layer)) {
+      return false;
+    }
+    const uint32_t mask = 1u << hit->layer;
+    if (pattern & mask) { // the TrackITSExt index array has one slot per layer
+      return false;
+    }
+    pattern |= mask;
+    keys[i] = (uint64_t(static_cast<uint32_t>(hit->layer)) << 32) |
+              static_cast<uint32_t>(hit->clusterId);
+    if (mAcceptedClusters.contains(keys[i])) {
+      return false;
+    }
+    // The output track must refer to the original input-cluster index,
+    // not its position in the TimeFrame's unsorted collection.
+    clusterIndices[hit->layer] = mTimeFrame->getClusterExternalIndex(hit->layer, hit->clusterId);
+    if (clusterIndices[hit->layer] < 0) {
+      return false;
+    }
+  }
+
+  o2::track::TrackParCov innerO2, outerO2;
+  const auto& gctx = o2::acts::TrackingGeometryManager::instance().getNominalContext();
+  if (!convertTrackParameters(inner, gctx, innerO2) ||
+      !convertTrackParameters(outer, gctx, outerO2)) {
+    return false;
+  }
+
+  // Intersect the ROF timing intervals exactly as in ITS track acceptance.
+  const auto& timing = mTimeFrame->getROFOverlapTableView();
+  auto nominal = timing.getLayer(hits[0]->layer).getROFTimeBounds(hits[0]->rof);
+  auto expanded = timing.getLayer(hits[0]->layer).getROFTimeBounds(hits[0]->rof, true);
+  bool nominalCompatible = true;
+  for (int i = 1; i < 3; ++i) {
+    const auto other = timing.getLayer(hits[i]->layer).getROFTimeBounds(hits[i]->rof);
+    const auto otherExpanded = timing.getLayer(hits[i]->layer).getROFTimeBounds(hits[i]->rof, true);
+    if (nominalCompatible) {
+      if (nominal.isCompatible(other)) {
+        nominal += other;
+      } else {
+        nominalCompatible = false;
+      }
+    }
+    if (!expanded.isCompatible(otherExpanded)) {
+      return false;
+    }
+    expanded += otherExpanded;
+  }
+
+  o2::its::TrackITSExt o2Track{std::move(innerO2), static_cast<short>(hits.size()),
+                                chi2, std::move(outerO2), clusterIndices};
+  o2Track.setPattern(pattern);
+  o2Track.getTimeStamp() = (nominalCompatible ? nominal : expanded).makeSymmetrical();
+  const float maxHalfROF = timing.getClockLayer().mROFLength * 0.5f;
+  if (o2Track.getTimeStamp().getTimeStampError() > maxHalfROF) {
+    o2Track.getTimeStamp().setTimeStampError(maxHalfROF);
+  }
+
+  // Keep track-label output in lockstep with the accepted tracks.
+  o2::MCCompLabel label;
+  if (mTimeFrame->hasMCinformation()) {
+    std::vector<std::pair<o2::MCCompLabel, unsigned int>> counts;
+    for (const auto* hit : hits) {
+      for (const auto& candidate : mTimeFrame->getClusterLabels(hit->layer, hit->clusterId)) {
+        if (!candidate.isValid()) {
+          continue;
+        }
+
+        auto it = std::find_if(counts.begin(), counts.end(), [&](const auto& entry) {
+          return entry.first == candidate;
+        });
+        if (it == counts.end()) {
+          counts.emplace_back(candidate, 1u);
+        } else {
+          ++it->second;
+        }
+      }
+
+    }
+    if (!counts.empty()) {
+      const auto best = std::max_element(counts.begin(), counts.end(),
+                                         [](const auto& a, const auto& b) {
+                                           return a.second < b.second;
+                                         });
+      label = best->first;
+      if (best->second < hits.size()) {
+        label.setFakeFlag();
+      }
+      uint32_t correctMask = pattern;
+      for (const auto* hit : hits) {
+        bool correct = false;
+        for (const auto& candidate : mTimeFrame->getClusterLabels(hit->layer, hit->clusterId)) {
+          correct |= candidate.isValid() && candidate == best->first;
+        }
+        if (correct) {
+          correctMask |= (1u << (16 + hit->layer));
+        }
+      }
+      o2Track.setPattern(correctMask);
+    }
+  }
+  mTimeFrame->getTracks().emplace_back(std::move(o2Track));
+  if (mTimeFrame->hasMCinformation()) {
+    mTimeFrame->getTracksLabel().emplace_back(label);
+  }
+  for (const auto key : keys) {
+    mAcceptedClusters.insert(key);
+  }
+  return true;
+}
+
+template <int nLayers>
 void TrackerACTS<nLayers>::clustersToTracks()
 {
   if (!mTimeFrame) {
@@ -601,6 +867,7 @@ void TrackerACTS<nLayers>::clustersToTracks()
   }
 
   double totalTime = 0.;
+  mAcceptedClusters.clear();
   LOG(info) << "==== TRK ACTS Tracking ====";
 
   // Initialize ACTS tracking geometry

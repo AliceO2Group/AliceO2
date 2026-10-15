@@ -128,7 +128,7 @@ void TrackerDPL::runTracking(framework::ProcessingContext& pc, TimeFrameT& timeF
     const auto& config = mHitRecoConfig.empty() ? mClusterRecoConfig : mHitRecoConfig;
     // The input magnetic field is in kG; ACTS TrackerACTS expects Tesla.
     actsTracker.setBz(config["geometry"]["bz"].get<float>() * 0.1f);
-    actsTracker.clustersToTracks();
+    actsTracker.clustersToTracks(); // This will run the full tracking chain: space point building, seeding, and track finding.
     actsTracker.printSummary();
   } else
 #endif
@@ -155,10 +155,10 @@ void TrackerDPL::runTracking(framework::ProcessingContext& pc, TimeFrameT& timeF
 
   const auto& tracks = timeFrame.getTracks();
   const auto& labels = timeFrame.getTracksLabel();
-  std::vector<o2::its::TrackITS> allTracks(tracks.begin(), tracks.end());
+  const std::vector<o2::its::TrackITS> allTracks(tracks.begin(), tracks.end());
   std::vector<o2::MCCompLabel> allLabels;
 
-  int totalTracks = allTracks.size();
+  const int totalTracks = allTracks.size();
   int goodTracks = 0;
   int fakeTracks = 0;
 
