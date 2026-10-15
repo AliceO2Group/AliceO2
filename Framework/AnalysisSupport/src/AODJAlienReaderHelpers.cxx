@@ -282,7 +282,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
         messageContext.discard();
         stringContext.clear();
       };
-      auto skipInvalidRead = [&fcnt, &ntf, &discardTimeframe, &dpstats, &fileCounter, &numTF, &device](ConcreteDataMatcher const& concrete, InvalidAODReadError const& e) {
+      auto skipInvalidRead = [&fcnt, &ntf, &discardTimeframe, &dpstats, &fileCounter, &numTF, &device](ConcreteDataMatcher const& concrete, AODReadError const& e) {
         auto skippedTimeframes = ++totalInvalidReadSkipped;
         LOGP(error, "Invalid AOD read for table {}: fileCounter {}, timeFrame {}. Skipping timeframe (skipped timeframes: {}). Reason: {}",
              concrete.origin.as<std::string>(), fcnt, ntf, skippedTimeframes, describeException(e));
@@ -372,22 +372,24 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
           if (!didir->readTree(outputs, dh, fcnt, ntf, totalSizeCompressed, totalSizeUncompressed, wasAOD)) {
             return TFReaderState::TRY_NEXT_FILE;
           }
-        } catch (AODFileOpenError const& e) {
+        } catch (AODReadError const& e) {
           if (!skipInvalidReads) {
             throw;
           }
-          auto skippedFiles = ++totalFileOpenSkipped;
-          LOGP(error, "Unable to open AOD input for table {}: fileCounter {}, timeFrame {}. Skipping file (skipped files: {}). Reason: {}",
-               concrete.origin.as<std::string>(), fcnt, ntf, skippedFiles, describeException(e));
-          discardTimeframe();
-          dpstats.updateStats({static_cast<short>(ProcessingStatsId::AOD_FILE_OPEN_SKIPPED_FILES), DataProcessingStats::Op::Add, 1});
-          return TFReaderState::INVALID_FILE;
-        } catch (InvalidAODReadError const& e) {
-          if (!skipInvalidReads) {
-            throw;
+          switch (e.getKind()) {
+            case AODReadError::Kind::InvalidTimeframe:
+              skipInvalidRead(concrete, e);
+              return TFReaderState::INVALID_TIMEFRAME;
+            case AODReadError::Kind::FileOpen: {
+              auto skippedFiles = ++totalFileOpenSkipped;
+              LOGP(error, "Unable to open AOD input for table {}: fileCounter {}, timeFrame {}. Skipping file (skipped files: {}). Reason: {}",
+                   concrete.origin.as<std::string>(), fcnt, ntf, skippedFiles, describeException(e));
+              discardTimeframe();
+              dpstats.updateStats({static_cast<short>(ProcessingStatsId::AOD_FILE_OPEN_SKIPPED_FILES), DataProcessingStats::Op::Add, 1});
+              return TFReaderState::INVALID_FILE;
+            }
           }
-          skipInvalidRead(concrete, e);
-          return TFReaderState::INVALID_TIMEFRAME;
+          throw;
         }
 
         if (currentState == TFReaderState::READ_FIRST_TABLE || currentState == TFReaderState::READ_FIRST_TABLE_FROM_NEXT_FILE) {
