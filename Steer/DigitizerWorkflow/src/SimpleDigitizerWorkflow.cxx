@@ -850,8 +850,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     }
   } else {
     std::vector<DataProcessorSpec> remaining;
-    specs.push_back(specCombiner("Digitizations", digitizerSpecs, remaining));
-    specs.push_back(specCombiner("Writers", writerSpecs, remaining));
+    // Skip combined device creation for an empty collection as specCombiner would
+    // return a device with no sub-tasks. This problem was discovered with run 537401 where both FT0,CTP detectors
+    // bypass digitizerSpecs and FV0 and EMC are not included in the run.
+    if (!digitizerSpecs.empty()) {
+      specs.push_back(specCombiner("Digitizations", digitizerSpecs, remaining));
+    }
+    if (!writerSpecs.empty()) {
+      specs.push_back(specCombiner("Writers", writerSpecs, remaining));
+    }
     for (auto& s : remaining) {
       specs.push_back(s);
     }
