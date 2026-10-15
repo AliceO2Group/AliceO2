@@ -422,6 +422,7 @@ AddOption(debugOnFailureMaxSize, uint32_t, 0, "", 0, "Max size of existing dumps
 AddOption(debugOnFailureDirectory, std::string, ".", "", 0, "Target folder for debug / dump")
 AddOption(ROOTDumpFile, std::string, "gpudebug.root", "", 0, "File name for ROOT dump (default gpudebug.root)")
 AddOption(memoryStat, bool, false, "", 0, "Print memory statistics")
+AddVariable(runsStandalone, bool, false)
 AddVariable(eventDisplay, o2::gpu::GPUDisplayFrontendInterface*, nullptr)
 AddSubConfig(GPUSettingsProcessingRTC, rtc)
 AddSubConfig(GPUSettingsProcessingRTCtechnical, rtctech)

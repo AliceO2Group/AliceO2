@@ -611,8 +611,8 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
     if (mDisplayControl == 2) {
       break;
     }
-    HandleSendKeys();
     handleKeyRepeat();
+    HandleExternalGUISignals();
     if (!mSuspended) { // Window not visible, compositor would not release swapchain images
       DrawGLScene();
     }

@@ -358,7 +358,6 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
       if (mDisplayControl == 2) {
         break;
       }
-      HandleSendKeys();
       if (!XPending(mXDisplay)) {
         event.type = Expose;
       } else {
@@ -455,6 +454,7 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
       break;
     }
 
+    HandleExternalGUISignals();
     DrawGLScene();
     if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
       glXSwapBuffers(mXDisplay, mWindow);

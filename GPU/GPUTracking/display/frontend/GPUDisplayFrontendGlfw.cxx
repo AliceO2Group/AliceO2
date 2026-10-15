@@ -326,7 +326,7 @@ int32_t GPUDisplayFrontendGlfw::FrontendMain()
 
   int32_t retVal = 0;
   while (!glfwWindowShouldClose(mWindow)) {
-    HandleSendKeys();
+    HandleExternalGUISignals();
     if (DrawGLScene()) {
       fprintf(stderr, "Error drawing GL scene\n");
       retVal = 1;
@@ -397,11 +397,6 @@ void GPUDisplayFrontendGlfw::SetVSync(bool enable)
 }
 
 bool GPUDisplayFrontendGlfw::canSetVSync() { return backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL; }
-
-bool GPUDisplayFrontendGlfw::EnableSendKey()
-{
-  return true;
-}
 
 float GPUDisplayFrontendGlfw::getRefreshRate()
 {

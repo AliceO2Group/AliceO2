@@ -534,7 +534,7 @@ void GPUDisplay::HandleKey(uint8_t key)
   }
 }
 
-void GPUDisplay::HandleSendKey(int32_t key)
+void GPUDisplay::HandleExternalGUIKey(int32_t key)
 {
   // GPUError("key %d '%c'", key, (char) key);
 

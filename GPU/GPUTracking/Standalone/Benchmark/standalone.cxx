@@ -760,6 +760,7 @@ int32_t main(int argc, char** argv)
   if (ReadConfiguration(argc, argv)) {
     return 1;
   }
+  configStandalone.proc.runsStandalone = true;
   eventsDir = std::string(configStandalone.absoluteEventsDir ? "" : "events/") + configStandalone.eventsDir + "/";
 
   GPUSettingsDeviceBackend deviceSet;
