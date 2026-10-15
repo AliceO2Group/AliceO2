@@ -30,6 +30,7 @@
 
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Stack.h"
+#include "SimulationDataFormat/MonopoleParticles.h"
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/range/irange.hpp>
@@ -106,6 +107,7 @@ void Detector::Reset()
   if (!o2::utils::ShmManager::Instance().isOperational()) {
     mHits->clear();
   }
+  mTrackRefLastTrackID = -1;
 }
 
 void Detector::Register() { FairRootManager::Instance()->RegisterAny(addNameTo("Hit").data(), mHits, kTRUE); }
@@ -123,6 +125,13 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   // ported from AliRoot 2019
   // ------------------------------------------------------------------------
 
+  if (fMC->IsTrackEntering() && !fMC->IsNewTrack() && (fMC->TrackCharge() != 0 || o2::sim::isMonopole(fMC->TrackPid()))) { // one reference per charged particle (or monopole), first entry from outside
+    auto o2stack = static_cast<o2::data::Stack*>(fMC->GetStack());
+    if (o2stack->GetCurrentTrackNumber() != mTrackRefLastTrackID) {
+      mTrackRefLastTrackID = o2stack->GetCurrentTrackNumber();
+      o2stack->addTrackReference(o2::TrackReference(*fMC, GetDetId()));
+    }
+  }
   // analyze only charged
   if (fMC->TrackCharge() == 0) {
     fMC->SetMaxStep(1.e10);

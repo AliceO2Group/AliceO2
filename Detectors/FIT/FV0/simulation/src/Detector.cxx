@@ -24,6 +24,7 @@
 #include "FV0Simulation/Detector.h"
 #include "Framework/Logger.h"
 #include "DetectorsBase/Stack.h"
+#include "SimulationDataFormat/MonopoleParticles.h"
 #include "FV0Base/Geometry.h"
 
 using namespace o2::fv0;
@@ -80,6 +81,13 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 {
   // This method is called from the MC stepping
 
+  if (fMC->IsTrackEntering() && !fMC->IsNewTrack() && (fMC->TrackCharge() != 0 || o2::sim::isMonopole(fMC->TrackPid()))) { // one reference per charged particle (or monopole), first entry from outside
+    auto o2stack = static_cast<o2::data::Stack*>(fMC->GetStack());
+    if (o2stack->GetCurrentTrackNumber() != mTrackRefLastTrackID) {
+      mTrackRefLastTrackID = o2stack->GetCurrentTrackNumber();
+      o2stack->addTrackReference(o2::TrackReference(*fMC, GetDetId()));
+    }
+  }
   // Track only charged particles and photons
   bool isPhotonTrack = false;
   Int_t particlePdg = fMC->TrackPid();
@@ -150,6 +158,7 @@ void Detector::Reset()
   if (!o2::utils::ShmManager::Instance().isOperational()) {
     mHits->clear();
   }
+  mTrackRefLastTrackID = -1;
 }
 
 void Detector::EndOfEvent()

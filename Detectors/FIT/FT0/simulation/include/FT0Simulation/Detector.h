@@ -149,8 +149,8 @@ class Detector : public o2::base::DetImpl<Detector>
   std::vector<Double_t> mRindexFrontWindow;
 
   // Define the aluminium frame for the detector
-  TGeoVolume* constructFrameAGeometry(); //A-side
-  TGeoVolume* constructFrameCGeometry(); //C-side
+  TGeoVolume* constructFrameAGeometry(); // A-side
+  TGeoVolume* constructFrameCGeometry(); // C-side
   std::string cPlateShapeString();
 
   // BEGIN: Support structure constants
@@ -179,6 +179,7 @@ class Detector : public o2::base::DetImpl<Detector>
 
   /// Container for data points
   std::vector<o2::ft0::HitType>* mHits = nullptr;
+  int mTrackRefLastTrackID = -1; //! last track that received a TrackReference in the current event
 
   // Define volume IDs
   int mREGVolID = -1;

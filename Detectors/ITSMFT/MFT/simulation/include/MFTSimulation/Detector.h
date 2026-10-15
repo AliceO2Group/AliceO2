@@ -148,6 +148,7 @@ class Detector : public o2::base::DetImpl<Detector>
  private:
   /// Container for hit data
   std::vector<o2::itsmft::Hit>* mHits;
+  int mTrackRefLastTrackID = -1; //! last track that received a TrackReference in the current event
 
   Detector(const Detector&);
   Detector& operator=(const Detector&);

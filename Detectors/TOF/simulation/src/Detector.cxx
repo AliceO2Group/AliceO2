@@ -27,6 +27,7 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/MaterialManager.h"
 #include "DetectorsBase/Stack.h"
+#include "SimulationDataFormat/MonopoleParticles.h"
 
 #include <algorithm>
 #include <array>
@@ -75,6 +76,13 @@ void Detector::InitializeO2Detector()
 Bool_t Detector::ProcessHits(FairVolume* v)
 {
   // This method is called from the MC stepping for the sensitive volume only
+  if (fMC->IsTrackEntering() && !fMC->IsNewTrack() && (fMC->TrackCharge() != 0 || o2::sim::isMonopole(fMC->TrackPid()))) { // one reference per charged particle (or monopole), first entry from outside
+    auto o2stack = static_cast<o2::data::Stack*>(fMC->GetStack());
+    if (o2stack->GetCurrentTrackNumber() != mTrackRefLastTrackID) {
+      mTrackRefLastTrackID = o2stack->GetCurrentTrackNumber();
+      o2stack->addTrackReference(o2::TrackReference(*fMC, GetDetId()));
+    }
+  }
   if (static_cast<int>(fMC->TrackCharge()) == 0) {
     // set a very large step size for neutral particles
     return kFALSE; // take only charged particles
@@ -130,6 +138,7 @@ void Detector::Reset()
     mHits->clear();
   }
   mLastChannelID = -1;
+  mTrackRefLastTrackID = -1;
 }
 
 void Detector::CreateMaterials()
@@ -1179,7 +1188,7 @@ void Detector::createBackZone(Double_t xtof, Double_t ytof, Double_t zlenA) cons
   if (mTOFHoles) {
     TVirtualMC::GetMC()->Gsvolu("FAIB", "BOX ", getMediumID(kAir), par, 3); // Air
   }
-  TVirtualMC::GetMC()->Gsvolu("FAIC", "BOX ", getMediumID(kAir), par, 3);   // Air
+  TVirtualMC::GetMC()->Gsvolu("FAIC", "BOX ", getMediumID(kAir), par, 3); // Air
 
   Double_t feaParam[3] = {Geo::FEAPARAMETERS[0], Geo::FEAPARAMETERS[1], Geo::FEAPARAMETERS[2]};
   Double_t feaRoof1[3] = {Geo::ROOF1PARAMETERS[0], Geo::ROOF1PARAMETERS[1], Geo::ROOF1PARAMETERS[2]};
