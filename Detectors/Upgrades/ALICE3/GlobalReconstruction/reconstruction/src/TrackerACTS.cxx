@@ -110,10 +110,10 @@ bool convertTrackParameters(const Acts::BoundTrackParameters& actsTrack,
     }
 
     dest << (-xyz.x() * sa + xyz.y() * ca) / Acts::UnitConstants::cm,
-            xyz.z() / Acts::UnitConstants::cm,
-            snp,
-            std::cos(theta) / sinTheta,
-            p[Acts::eBoundQOverP] * Acts::UnitConstants::GeV / sinTheta;
+      xyz.z() / Acts::UnitConstants::cm,
+      snp,
+      std::cos(theta) / sinTheta,
+      p[Acts::eBoundQOverP] * Acts::UnitConstants::GeV / sinTheta;
     return dest.allFinite();
   };
 
@@ -135,10 +135,9 @@ bool convertTrackParameters(const Acts::BoundTrackParameters& actsTrack,
     }
     const double step = (i == Acts::eBoundLoc0 || i == Acts::eBoundLoc1)
                           ? 1.e-3 * Acts::UnitConstants::mm
-                          : (i == Acts::eBoundQOverP)
-                              ? std::max(std::abs(state[i]) * 1.e-4,
-                                         1.e-6 / Acts::UnitConstants::GeV)
-                              : 1.e-5;
+                        : (i == Acts::eBoundQOverP)
+                          ? std::max(std::abs(state[i]) * 1.e-4, 1.e-6 / Acts::UnitConstants::GeV)
+                          : 1.e-5;
     Acts::BoundVector plus = state;
     Acts::BoundVector minus = state;
     plus[i] += step;
@@ -731,8 +730,8 @@ void TrackerACTS<nLayers>::computeTracksMClabels()
 
 template <int nLayers>
 bool TrackerACTS<nLayers>::acceptTrack(const Acts::BoundTrackParameters& inner,
-                                      const Acts::BoundTrackParameters& outer,
-                                      const SeedACTS& seed, float chi2)
+                                       const Acts::BoundTrackParameters& outer,
+                                       const SeedACTS& seed, float chi2)
 {
   if (!mTimeFrame || !std::isfinite(chi2) || chi2 < 0.f) {
     return false;
@@ -770,8 +769,7 @@ bool TrackerACTS<nLayers>::acceptTrack(const Acts::BoundTrackParameters& inner,
 
   o2::track::TrackParCov innerO2, outerO2;
   const auto& gctx = o2::acts::TrackingGeometryManager::instance().getNominalContext();
-  if (!convertTrackParameters(inner, gctx, innerO2) ||
-      !convertTrackParameters(outer, gctx, outerO2)) {
+  if (!convertTrackParameters(inner, gctx, innerO2) || !convertTrackParameters(outer, gctx, outerO2)) {
     return false;
   }
 
@@ -796,8 +794,7 @@ bool TrackerACTS<nLayers>::acceptTrack(const Acts::BoundTrackParameters& inner,
     expanded += otherExpanded;
   }
 
-  o2::its::TrackITSExt o2Track{std::move(innerO2), static_cast<short>(hits.size()),
-                                chi2, std::move(outerO2), clusterIndices};
+  o2::its::TrackITSExt o2Track{std::move(innerO2), static_cast<short>(hits.size()), chi2, std::move(outerO2), clusterIndices};
   o2Track.setPattern(pattern);
   o2Track.getTimeStamp() = (nominalCompatible ? nominal : expanded).makeSymmetrical();
   const float maxHalfROF = timing.getClockLayer().mROFLength * 0.5f;
@@ -824,7 +821,6 @@ bool TrackerACTS<nLayers>::acceptTrack(const Acts::BoundTrackParameters& inner,
           ++it->second;
         }
       }
-
     }
     if (!counts.empty()) {
       const auto best = std::max_element(counts.begin(), counts.end(),
@@ -909,12 +905,8 @@ void TrackerACTS<nLayers>::clustersToTracks()
 template <int nLayers>
 void TrackerACTS<nLayers>::printSummary() const
 {
-
   float avgTF = mTimeFrameCounter > 0 ? static_cast<float>(mTotalTime) / mTimeFrameCounter : 0.f;
-
-  LOGP(info, "TrackerACTS summary: Processed {} TFs in TOT={:.2f} ms, AVG/TF={:.2f} ms",
-
-       mTimeFrameCounter, mTotalTime, avgTF);
+  LOGP(info, "TrackerACTS summary: Processed {} TFs in TOT={:.2f} ms, AVG/TF={:.2f} ms", mTimeFrameCounter, mTotalTime, avgTF);
 }
 
 // Explicit template instantiations
