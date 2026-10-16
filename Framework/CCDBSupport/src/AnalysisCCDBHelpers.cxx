@@ -126,7 +126,7 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
         auto runDep = runDependent.find("ccdb-run-dependent:" + m.name.substr(strlen("ccdb:")));
         fieldMetadata->Append("runDependent", runDep != runDependent.end() ? runDep->second : "0");
         auto pos = m.name.rfind(std::string_view{"::"});
-        auto columnName = std::string{"f"} + m.name.substr(pos + 2, m.name.size());
+        auto columnName = fmt::format("f{}", m.name.substr(pos + 2, m.name.size()));
         fields.emplace_back(std::make_shared<arrow::Field>(columnName, soa::asArrowDataType<int64_t[3]>(), false, fieldMetadata));
       }
       schemas.emplace_back(std::make_shared<arrow::Schema>(fields, schemaMetadata));
