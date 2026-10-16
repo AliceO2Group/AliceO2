@@ -40,11 +40,17 @@ GPUDisplayFrontend* createGPUDisplayFrontendWayland();
 
 #include "GPUDisplayGUIChannel.h"
 #include "GPULogging.h"
+#include "utils/qconfig_rtti.h"
+#include "utils/qconfig_internal_helpers.h"
 #include <cstring>
 #include <exception>
 #include <algorithm>
 #include <iterator>
+#include <limits>
+#include <optional>
+#include <stdexcept>
 #include <thread>
+#include <tuple>
 #include <utility>
 
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_QT
@@ -59,6 +65,11 @@ class GPUDisplayGUIWrapper
 #endif
 
 using namespace o2::gpu;
+
+namespace
+{
+#include "utils/qconfig_genrtti.inc"
+} // namespace
 
 GPUDisplayFrontend::GPUDisplayFrontend() = default;
 GPUDisplayFrontend::~GPUDisplayFrontend() = default;

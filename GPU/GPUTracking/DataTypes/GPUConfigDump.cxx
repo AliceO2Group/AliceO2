@@ -27,10 +27,7 @@ using namespace o2::gpu;
 namespace
 {
 GPUSettingsStandalone configStandalone;
-std::vector<std::function<void()>> qprint_global;
-#define QCONFIG_PRINT
-#include "utils/qconfig_internal.h"
-#undef QCONFIG_PRINT
+#include "utils/qconfig_print.inc"
 } // namespace
 
 void GPUConfigDump::dumpConfig(const GPUSettingsRec* rec, const GPUSettingsProcessing* proc, const GPUSettingsQA* qa, const GPUSettingsDisplay* display, const GPUSettingsDeviceBackend* device, const GPURecoStepConfiguration* workflow)
