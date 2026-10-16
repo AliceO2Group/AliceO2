@@ -119,6 +119,9 @@ class GeneratorHybrid : public Generator
   std::atomic<bool> mStopFlag;
   bool mIsInitialized = false;
 
+  // Hyperloop flag
+  const bool mIsHyperloop = Generator::isHyperloop();
+
   o2::dataformats::MCEventHeader mMCEventHeader; // to capture event headers
   int mHeaderGeneratorIndex = -1;                // index of the generator that updated the header in current event
 
