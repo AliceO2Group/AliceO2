@@ -1,4 +1,4 @@
-# Copyright 2019-2026 CERN and copyright holders of ALICE O2.
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
 # See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 # All rights not expressly granted are reserved.
 #
@@ -8,6 +8,7 @@
 # In applying this license CERN does not waive the privileges and immunities
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
+
 
 o2_add_library(ACTSInterface
                TARGETVARNAME targetName
@@ -24,3 +25,12 @@ o2_add_library(ACTSInterface
                                      Acts::PluginJson)
 
 target_compile_definitions(${targetName} PUBLIC O2_WITH_ACTS)
+
+o2_add_library(ALICE3ACTS
+               SOURCES src/TrkTGeoBlueprintBuilder.cxx
+               PUBLIC_LINK_LIBRARIES O2::ACTSInterface
+                                     nlohmann_json::nlohmann_json)
+
+o2_target_root_dictionary(ALICE3ACTS
+                          HEADERS include/ALICE3ACTS/TrkTGeoBlueprintBuilder.h
+                                  )
