@@ -1734,15 +1734,16 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             // after updating the urls, verify the consistency
             for (auto& input : device.inputs) {
               for (auto& param : input.metadata) {
-                if (param.type != VariantType::String || param.name.starts_with("ccdb:")) {
+                if (param.type != VariantType::String || !param.name.starts_with("ccdb:")) {
                   continue;
                 }
                 if (ccdbPaths.contains(param.name)) {
                   if (ccdbPaths[param.name] != param.defaultValue.get<std::string>()) {
-                    throw runtime_error_f("Task {} has a CCDB path inconsistent with another found in same workflow: {} vs {}",
-                                          device.name.c_str(),
-                                          param.defaultValue.get<std::string>().c_str(),
-                                          ccdbPaths[param.name].c_str());
+                    throw runtime_error_f(fmt::format("Task {} has a CCDB path inconsistent with another found in same workflow: {} vs {}",
+                                                      device.name.c_str(),
+                                                      param.defaultValue.get<std::string>().c_str(),
+                                                      ccdbPaths[param.name].c_str())
+                                            .c_str());
                   }
                 } else {
                   ccdbPaths.emplace(param.name, param.defaultValue.get<std::string>());
