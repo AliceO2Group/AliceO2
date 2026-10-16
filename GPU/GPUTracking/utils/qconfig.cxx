@@ -17,11 +17,16 @@
 #include <memory.h>
 #include <utility>
 #include <vector>
+#include <algorithm>
 #include <functional>
 #include <iostream>
+#include <limits>
+#include <optional>
+#include <stdexcept>
 #include <tuple>
 #include "qconfig.h"
 #include "qconfig_helpers.h"
+#include "qconfig_rtti.h"
 #include "qconfig_internal_helpers.h"
 
 // Create config instances
@@ -42,33 +47,11 @@ static inline const char* getOptName(const char** argv, int32_t i)
 }
 
 template <typename T>
-struct qConfigSettings {
-  qConfigSettings() : checkMin(false), checkMax(false), doSet(false), doDefault(false), min(), max(), set(), message(nullptr), allowEmpty(false) {};
-  template <typename S>
-  qConfigSettings(const qConfigSettings<S> v) : checkMin(false), checkMax(false), doSet(false), doDefault(false), min(), max(), set(), message(v.message), allowEmpty(v.allowEmpty){};
-  bool checkMin, checkMax;
-  bool doSet, doDefault;
-  T min, max;
-  T set;
-  const char* message;
-  bool allowEmpty;
-};
-
-template <typename T>
 static int32_t qAddOptionType(qConfigSettings<T>& settings, T& ref, int32_t& i, const char** argv, const int argc, T def);
 template <typename T>
 static void qAddOptionMessage(qConfigSettings<T>& settings, T& ref);
 template <typename T>
 static int32_t qAddOptionMinMax(qConfigSettings<T>& settings, T& ref, const char* arg);
-
-template <typename T>
-struct qSettingsType {
-  typedef T settingsType;
-};
-template <typename... X>
-struct qSettingsType<std::tuple<X...>> {
-  typedef int32_t settingsType;
-};
 
 template <typename T>
 struct qConfigTypeSpecialized {
@@ -130,41 +113,8 @@ inline int32_t qConfigTypeSpecialized<std::tuple<X...>>::qAddOptionMain(qConfigS
 }
 
 template <typename T>
-struct qConfigType {
-  // Recursive handling of additional settings
-  static inline void qProcessSetting(qConfigSettings<T>& settings, qmin_t<T> minval)
-  {
-    static_assert(!std::is_same_v<T, bool>, "min option not supported for boolean settings");
-    settings.checkMin = true;
-    settings.min = minval.v;
-  }
-  static inline void qProcessSetting(qConfigSettings<T>& settings, qmax_t<T> maxval)
-  {
-    static_assert(!std::is_same_v<T, bool>, "max option not supported for boolean settings");
-    settings.checkMax = true;
-    settings.max = maxval.v;
-  }
-  static inline void qProcessSetting(qConfigSettings<T>& settings, qmessage_t msg) { settings.message = msg.v; }
-  template <typename S>
-  static inline void qProcessSetting(qConfigSettings<T>& settings, qset_t<S> set)
-  {
-    settings.doSet = true;
-    settings.set = set.v;
-  }
-  template <typename S>
-  static inline void qProcessSetting(qConfigSettings<T>& settings, qdef_t<S> set)
-  {
-    settings.doDefault = true;
-    settings.set = set.v;
-  }
-
-  static inline void qAddOptionSettings(qConfigSettings<T>& /*settings*/) {}
-  template <typename Arg1, typename... Args>
-  static inline void qAddOptionSettings(qConfigSettings<T>& settings, Arg1&& arg1, Args&&... args)
-  {
-    qProcessSetting(settings, arg1);
-    qAddOptionSettings(settings, args...);
-  }
+struct qConfigType : public qConfigSettingsParser<T> {
+  using qConfigSettingsParser<T>::qConfigGetSettings;
 
   template <typename... Args>
   static inline int32_t qAddOption(T& ref, int32_t& i, const char** argv, const int argc, T def, const char* /*help*/, Args&&... args)
@@ -263,14 +213,6 @@ struct qConfigType {
       std::cout << "\t\tCan be set multiple times, accepts multiple arguments.\n";
     }
     std::cout << "\n";
-  }
-
-  template <typename... Args>
-  static inline auto qConfigGetSettings(Args&... args)
-  {
-    qConfigSettings<typename qSettingsType<T>::settingsType> settings;
-    qConfigType<typename qSettingsType<T>::settingsType>::qAddOptionSettings(settings, args...);
-    return (settings);
   }
 };
 
@@ -480,10 +422,7 @@ int32_t qConfigParse(int argc, const char** argv, const char* /*filename*/)
   return (0);
 }
 
-std::vector<std::function<void()>> qprint_global;
-#define QCONFIG_PRINT
-#include "qconfig_internal.h"
-#undef QCONFIG_PRINT
+#include "qconfig_print.inc"
 
 void qConfigPrint()
 {
@@ -491,4 +430,10 @@ void qConfigPrint()
     f();
   }
 }
+namespace internal
+{
+#include "qconfig_genrtti.inc"
+} // namespace internal
+
+std::tuple<std::vector<qConfigRTTIentry>, std::vector<std::string>> qConfigGenRTTI(const std::vector<std::string>* configStructs) { return internal::qConfigGenRTTI(configStructs); }
 } // end namespace qConfig

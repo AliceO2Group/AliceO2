@@ -260,6 +260,28 @@ void qConfigPrint(const T& qconfig_tmp_object, const std::string& blockName); //
 #define AddOptionSet(...)
 
 // End QCONFIG_PRINT_RTC
+#elif defined(QCONFIG_GEN_RTTI)
+#define QCONFIG_RTTI(vName, vType, rtc, variable, vector, count, defaultValue, ...)                                                                                                                                                                                                                          \
+  qConfigRTTIEntry<vType>(retVal,                                                                                                                                                                                                                                                                            \
+                          {.name = qon_mxstr(vName), .type = qon_mxstr(vType), .isRTC = rtc, .isVariable = variable, .isVector = vector, .offset = static_cast<size_t>(reinterpret_cast<const char*>(&qConfigObject.vName) - reinterpret_cast<const char*>(&qConfigObject)), .configStruct = qConfigStruct}, \
+                          count, *qConfigStructIndex, defaultValue, __VA_ARGS__);
+#define AddOption(name, type, default, optname, optnameshort, ...) QCONFIG_RTTI(name, type, false, false, false, 0, print_type(static_cast<type>(default)), __VA_ARGS__)
+#define AddOptionRTC(name, type, default, optname, optnameshort, ...) QCONFIG_RTTI(name, type, true, false, false, 0, print_type(static_cast<type>(default)), __VA_ARGS__)
+#define AddVariable(name, type, default) QCONFIG_RTTI(name, type, false, true, false, 0, print_type(static_cast<type>(default)), "")
+#define AddVariableRTC(name, type, default) QCONFIG_RTTI(name, type, true, true, false, 0, print_type(static_cast<type>(default)), "")
+#define AddOptionVec(name, type, optname, optnameshort, ...) QCONFIG_RTTI(name, type, false, false, true, 0, "", __VA_ARGS__)
+#define AddOptionArray(name, type, count, default, optname, optnameshort, ...) QCONFIG_RTTI(name, type, false, false, false, count, qon_mxstr(default), __VA_ARGS__)
+#define AddOptionArrayRTC(name, type, count, default, optname, optnameshort, ...) QCONFIG_RTTI(name, type, true, false, false, count, qon_mxstr(default), __VA_ARGS__)
+#define AddOptionSet(...)
+#define AddSubConfig(name, instance)
+#define BeginConfig(name, instance)                                                                                    \
+  if (const auto qConfigStructIndex = qConfigRTTIStructIndex(retStructs, qon_mxstr(name), configStructs != nullptr)) { \
+    [[maybe_unused]] constexpr const char* qConfigStruct = qon_mxstr(name);                                            \
+    [[maybe_unused]] const name qConfigObject{}; // Default-constructed instance to compute the member offsets
+#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr, ...) BeginConfig(name, instance)
+#define EndConfig() }
+
+// End QCONFIG_GEN_RTTI
 #else // Define structures
 
 #error Internal error, qconfig_internal called with action type
