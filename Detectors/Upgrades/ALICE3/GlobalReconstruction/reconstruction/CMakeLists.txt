@@ -10,7 +10,10 @@
 # or submit itself to any jurisdiction.
 
 if(Acts_FOUND)
-  set(actsTarget Acts::Core)
+  set(actsTarget
+        Acts::Core
+        O2::ACTSInterface
+        O2::ALICE3ACTS)
 endif()
 
 o2_add_library(ALICE3GlobalReconstruction
@@ -38,5 +41,6 @@ o2_add_library(ALICE3GlobalReconstruction
                        TBB::tbb)
 
 if(Acts_FOUND)
+  target_sources(${targetName} PRIVATE src/TrackerACTS.cxx)
   target_compile_definitions(${targetName} PUBLIC O2_WITH_ACTS)
 endif()
