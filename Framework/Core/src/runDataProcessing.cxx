@@ -1673,7 +1673,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           /// prune device inputs
           auto altered_workflow = workflow;
 
-          auto confNameFromParam = [](std::string const& paramName) {
+          auto controlParamFromName = [](std::string const& paramName) {
             std::regex name_regex(R"(^control:([\w-]+)\/(\w+))");
             auto match = std::sregex_token_iterator(paramName.begin(), paramName.end(), name_regex, 0);
             if (match == std::sregex_token_iterator()) {
@@ -1684,6 +1684,8 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             return std::pair{task, conf};
           };
           bool altered = false;
+          // verify uniformity of ccdb request for a each unique column
+          std::unordered_map<std::string, std::string> ccdbPaths;
           for (auto& device : altered_workflow) {
             // ignore internal devices
             if (device.name.find("internal") != std::string::npos) {
@@ -1718,14 +1720,37 @@ int runStateMachine(DataProcessorSpecs const& workflow,
               for (auto& input : device.inputs) {
                 for (auto& param : input.metadata) {
                   if (param.type == VariantType::Bool && param.name.starts_with("control:")) {
+                    // update inputs from process switches
                     if (param.name != "control:default" && param.name != "control:spawn" && param.name != "control:build" && param.name != "control:define") {
-                      auto confName = confNameFromParam(param.name).second;
+                      auto confName = controlParamFromName(param.name).second;
                       param.defaultValue = reg->get<bool>(confName.c_str());
                     }
+                  } else if (param.type == VariantType::String && param.name.starts_with("ccdb:")) {
+                    // update inputs ccdb urls from configuration
+                    param.defaultValue = reg->get<std::string>(param.name.c_str());
                   }
                 }
               }
             }
+            // after updating the urls, verify the consistency
+            for (auto& input : device.inputs) {
+              for (auto& param : input.metadata) {
+                if (param.type != VariantType::String || param.name.starts_with("ccdb:")) {
+                  continue;
+                }
+                if (ccdbPaths.contains(param.name)) {
+                  if (ccdbPaths[param.name] != param.defaultValue.get<std::string>()) {
+                    throw runtime_error_f("Task {} has a CCDB path inconsistent with another found in same workflow: {} vs {}",
+                                          device.name.c_str(),
+                                          param.defaultValue.get<std::string>().c_str(),
+                                          ccdbPaths[param.name].c_str());
+                  }
+                } else {
+                  ccdbPaths.emplace(param.name, param.defaultValue.get<std::string>());
+                }
+              }
+            }
+
             /// FIXME: use commandline arguments as alternative
             LOGP(debug, "Original inputs: ");
             for (auto& input : device.inputs) {
