@@ -12,8 +12,8 @@
 /// \file Hit.h
 /// \brief Definition of the FD3 Hit class (based on ITSMFT and FV0)
 
-#ifndef ALICEO2_FVD_HIT_H_
-#define ALICEO2_FVD_HIT_H_
+#ifndef ALICEO2_FD3_HIT_H_
+#define ALICEO2_FD3_HIT_H_
 
 #include <iosfwd>
 #include "SimulationDataFormat/BaseHits.h" // for BasicXYZEHit
