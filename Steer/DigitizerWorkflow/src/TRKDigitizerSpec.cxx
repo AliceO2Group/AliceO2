@@ -286,8 +286,10 @@ class TRKFT3DPLDigitizerTask : BaseDPLDigitizer
       mLabels.resize(mLayers);
       mLabelsAccum.resize(mLayers);
 
+      // FT3's discs take the AlmiraParam entries after TRK's barrel layers, which it reserves for them.
+      constexpr int firstParLayer = N == o2::detectors::DetID::TRK ? 0 : o2::trk::AlmiraParam::getNLayers() - o2::trk::constants::MLOTDisks::nLayers;
       for (int iLayer = 0; iLayer < mLayers; ++iLayer) {
-        const int parLayer = std::min<int>(iLayer, o2::trk::AlmiraParam::getNLayers() - 1);
+        const int parLayer = std::min<int>(firstParLayer + iLayer, o2::trk::AlmiraParam::getNLayers() - 1);
         const auto roFrameLengthInBC = aopt.getROFLengthInBC(parLayer);
         const auto frameNS = roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingNS;
         digipar.setROFrameLengthInBC(roFrameLengthInBC, iLayer);

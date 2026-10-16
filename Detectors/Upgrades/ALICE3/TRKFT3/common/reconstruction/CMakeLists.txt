@@ -23,6 +23,7 @@ o2_add_library(TRKReconstruction
                        O2::DataFormatsTRKFT3
                        O2::SimulationDataFormat
                        O2::TRKBase
+                       O2::FT3Base
                        nlohmann_json::nlohmann_json
                        ${actsTarget})
 
