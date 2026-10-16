@@ -20,6 +20,7 @@
 #include "IOTOFSimulation/DPLDigitizerParam.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "CCDB/BasicCCDBManager.h"
+#include "CommonConstants/MathConstants.h"
 
 #include <TCollection.h>
 #include <TFile.h>
@@ -63,14 +64,14 @@ void Digitizer::init()
     // initialize the vector of TDC states
     mChips[i].resizeTDCStates(nReadOutCols);
     for (auto& tdcStates : mChips[i].getTDCStates()) {
-      for (int iT{0}; iT < 4; ++iT) {
-        tdcStates[iT] = -999.f;
+      for (int iT = 0; iT < 4; ++iT) {
+        tdcStates[iT] = -o2::constants::math::VeryBig;
       }
     }
     // initialize the vector of mask states
     mChips[i].resizeMaskStates(nReadOutCols);
     for (auto& maskStates: mChips[i].getMaskStates()) {
-      maskStates = -999.f;
+      maskStates = -o2::constants::math::VeryBig;
     }
   }
 
