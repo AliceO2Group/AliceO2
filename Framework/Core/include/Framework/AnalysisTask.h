@@ -105,14 +105,7 @@ struct AnalysisDataProcessorBuilder {
     spec.metadata.emplace_back(ConfigParamSpec{std::string{"control:"} + name, VariantType::Bool, value, {"\"\""}});
     auto matcher = DataSpecUtils::asConcreteDataMatcher(spec);
     DataSpecUtils::updateInputList(inputs, std::move(spec));
-    auto locate = std::ranges::find_if(iInfos, [&hash](auto const& info) { return info.hash == hash; });
-    if (locate == iInfos.end()) {
-      iInfos.emplace_back(hash, std::vector{std::pair{ai, matcher}});
-    } else {
-      if (std::ranges::none_of(locate->matchers, [&ai, &matcher](auto const& match) { return (match.first == ai) && (match.second == matcher); })) {
-        locate->matchers.emplace_back(std::pair{ai, matcher});
-      }
-    }
+    updateInputInfos(iInfos, std::move(matcher), hash, ai);
   }
 
   /// helpers to append expression information for a single argument
@@ -144,6 +137,38 @@ struct AnalysisDataProcessorBuilder {
     }.template operator()<A::originals.size(), std::decay_t<A>::originals>(std::make_index_sequence<std::decay_t<A>::originals.size()>());
   }
 
+  /// helpers to append InputSpect for a single argument with grouping
+  template <soa::is_iterator G, soa::is_table A>
+    requires(soa::relatedByIndex<std::decay_t<G>, std::decay_t<A>>())
+  static void addSlicingInput(const char* name, bool value, std::vector<InputSpec>& inputs, header::DataOrigin&& newOrigin = header::DataOrigin{"AOD"})
+  {
+    auto key = std::string{"fIndex"} + o2::framework::cutString(soa::getLabelFromType<std::decay_t<G>>());
+    Entry entry{soa::getLabelFromTypeForKey<std::decay_t<A>>(key), soa::getMatcherFromTypeForKey<std::decay_t<A>>(key), key, value};
+    // replace the origin of the sliced table first, so that both the slicer source and the slice info carry the new origin
+    bool originReplaced = (entry.matcher.origin == header::DataOrigin{"AOD"}) && (newOrigin != header::DataOrigin{"AOD"});
+    if (originReplaced) {
+      entry.matcher = replaceOrigin(entry.matcher, newOrigin);
+    }
+    auto spec = inputForEntry(entry, !o2::soa::is_smallgroups<std::decay_t<A>>);
+    spec.metadata.emplace_back(ConfigParamSpec{std::string{"control:"} + name, VariantType::Bool, value, {"\"\""}});
+    if (originReplaced) {
+      spec.metadata.emplace_back(ConfigParamSpec{"aod-origin-replaced", VariantType::Bool, true, {"\"\""}});
+    }
+
+    DataSpecUtils::updateInputList(inputs, std::move(spec));
+  }
+
+  template <soa::is_iterator G, soa::is_table A>
+    requires(!soa::relatedByIndex<std::decay_t<G>, std::decay_t<A>>())
+  static void addSlicingInput(const char*, bool, std::vector<InputSpec>&, header::DataOrigin&&)
+  {
+  }
+
+  template <soa::is_table G, soa::is_table A>
+  static void addSlicingInput(const char*, bool, std::vector<InputSpec>&, header::DataOrigin&&)
+  {
+  }
+
   /// helper to append the inputs and expression information for normalized arguments
   template <soa::is_table... As>
   static void addInputsAndExpressions(uint32_t hash, const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos, std::vector<InputInfo>& iInfos, header::DataOrigin&& newOrigin = header::DataOrigin{"AOD"})
@@ -154,6 +179,17 @@ struct AnalysisDataProcessorBuilder {
       using T = std::decay_t<As>;
       addExpression<T>(ai, hash, eInfos);
       addInput<T>(name, value, inputs, iInfos, ai, hash, std::move(newOrigin));
+    }(),
+     ...);
+  }
+
+  /// helper to append the slicing inputs
+  template <soa::is_iterator G, soa::is_table... As>
+  static void addSlicingInputs(const char* name, bool value, std::vector<InputSpec>& inputs, header::DataOrigin&& newOrigin = header::DataOrigin{"AOD"})
+  {
+    ([&name, &value, &inputs, newOrigin]() mutable {
+      using T = std::decay_t<As>;
+      addSlicingInput<G, T>(name, value, inputs, std::move(newOrigin));
     }(),
      ...);
   }
@@ -196,7 +232,11 @@ struct AnalysisDataProcessorBuilder {
     requires(std::is_lvalue_reference_v<A> && (std::is_lvalue_reference_v<Args> && ...))
   {
     constexpr auto hash = o2::framework::TypeIdHelpers::uniqueId<void (C::*)(A, Args...)>();
-    addInputsAndExpressions<typename std::decay_t<A>::parent_t, Args...>(hash, name, value, inputs, eInfos, iInfos, std::move(newOrigin));
+    // here we also add slicing inputs with the same constrol config param spec as normal inputs, so it can be removed in adjust topology
+    // step if the process function is disabled
+    auto newOriginCopy = newOrigin;
+    addSlicingInputs<A, Args...>(name, value, inputs, std::move(newOrigin));
+    addInputsAndExpressions<typename std::decay_t<A>::parent_t, Args...>(hash, name, value, inputs, eInfos, iInfos, std::move(newOriginCopy));
   }
 
   /// 3. generic case
@@ -595,16 +635,50 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
   // replace origins in Preslice declarations
   homogeneous_apply_refs_sized<numElements>([&newOrigin](auto& element) { return analysis_task_parsers::replaceOrigin(element, newOrigin); }, *task.get());
 
-  auto algo = AlgorithmSpec::InitCallback
-  {
+  // add slicing inputs from Preslice declarations
+  homogeneous_apply_refs_sized<numElements>(
+    [&inputs, &newOrigin](auto& element) {
+      return analysis_task_parsers::addSlicingInputs(element, inputs, newOrigin);
+    },
+    *task.get());
+
+  auto algo = AlgorithmSpec::InitCallback{
     [task = task, expressionInfos, inputInfos, newOrigin, newOriginStr](InitContext& ic) mutable {
+      homogeneous_apply_refs_sized<numElements>([&ic](auto&& element) { return analysis_task_parsers::prepareOption(ic, element); }, *task.get());
+      homogeneous_apply_refs_sized<numElements>([&ic](auto&& element) { return analysis_task_parsers::prepareService(ic, element); }, *task.get());
+
       Cache bindingsKeys;
       Cache bindingsKeysUnsorted;
       // add preslice declarations to slicing cache definition
-      homogeneous_apply_refs_sized<numElements>([&bindingsKeys, &bindingsKeysUnsorted](auto& element) { return analysis_task_parsers::registerCache(element, bindingsKeys, bindingsKeysUnsorted); }, *task.get());
+      homogeneous_apply_refs_sized<numElements>(
+        [&bindingsKeys, &bindingsKeysUnsorted](auto& element) {
+          return analysis_task_parsers::registerCache(element, bindingsKeys, bindingsKeysUnsorted);
+        },
+        *task.get());
 
-      homogeneous_apply_refs_sized<numElements>([&ic](auto&& element) { return analysis_task_parsers::prepareOption(ic, element); }, *task.get());
-      homogeneous_apply_refs_sized<numElements>([&ic](auto&& element) { return analysis_task_parsers::prepareService(ic, element); }, *task.get());
+      /// parse process functions to enable requested grouping caches - note that at this state process configurables have their final values
+      if constexpr (requires { &T::process; }) {
+        AnalysisDataProcessorBuilder::cacheFromArgs(&T::process, true, bindingsKeys, bindingsKeysUnsorted);
+      }
+      homogeneous_apply_refs_sized<numElements>(
+        [&bindingsKeys, &bindingsKeysUnsorted](auto& x) {
+          return AnalysisDataProcessorBuilder::requestCacheFromArgs(x, bindingsKeys, bindingsKeysUnsorted);
+        },
+        *task.get());
+
+      /// replace origin in slicing caches
+      std::ranges::transform(bindingsKeys, bindingsKeys.begin(), [&newOrigin](Entry& entry) {
+        if ((entry.matcher.origin == header::DataOrigin{"AOD"}) && (newOrigin != header::DataOrigin{"AOD"})) {
+          entry.matcher = replaceOrigin(entry.matcher, newOrigin);
+        }
+        return entry;
+      });
+      std::ranges::transform(bindingsKeysUnsorted, bindingsKeysUnsorted.begin(), [&newOrigin](Entry& entry) {
+        if ((entry.matcher.origin == header::DataOrigin{"AOD"}) && (newOrigin != header::DataOrigin{"AOD"})) {
+          entry.matcher = replaceOrigin(entry.matcher, newOrigin);
+        }
+        return entry;
+      });
 
       auto& callbacks = ic.services().get<CallbackService>();
       auto eoscb = [task](EndOfStreamContext& eosContext) {
@@ -632,30 +706,6 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
         return analysis_task_parsers::createExpressionTrees(expressionInfos, element);
       },
                                                 *task.get());
-
-      /// parse process functions to enable requested grouping caches - note that at this state process configurables have their final values
-      if constexpr (requires { &T::process; }) {
-        AnalysisDataProcessorBuilder::cacheFromArgs(&T::process, true, bindingsKeys, bindingsKeysUnsorted);
-      }
-      homogeneous_apply_refs_sized<numElements>(
-        [&bindingsKeys, &bindingsKeysUnsorted](auto& x) {
-          return AnalysisDataProcessorBuilder::requestCacheFromArgs(x, bindingsKeys, bindingsKeysUnsorted);
-        },
-        *task.get());
-
-      /// replace origin in slicing caches
-      std::ranges::transform(bindingsKeys, bindingsKeys.begin(), [&newOrigin](Entry& entry) {
-        if ((entry.matcher.origin == header::DataOrigin{"AOD"}) && (newOrigin != header::DataOrigin{"AOD"})) {
-          entry.matcher = replaceOrigin(entry.matcher, newOrigin);
-        }
-        return entry;
-      });
-      std::ranges::transform(bindingsKeysUnsorted, bindingsKeysUnsorted.begin(), [&newOrigin](Entry& entry) {
-        if ((entry.matcher.origin == header::DataOrigin{"AOD"}) && (newOrigin != header::DataOrigin{"AOD"})) {
-          entry.matcher = replaceOrigin(entry.matcher, newOrigin);
-        }
-        return entry;
-      });
 
       ic.services().get<ArrowTableSlicingCacheDef>().setCaches(std::move(bindingsKeys));
       ic.services().get<ArrowTableSlicingCacheDef>().setCachesUnsorted(std::move(bindingsKeysUnsorted));
@@ -715,8 +765,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
         // finalize outputs
         homogeneous_apply_refs_sized<numElements>([&pc](auto& element) { return analysis_task_parsers::finalizeOutput(pc, element); }, *task.get());
       };
-    }
-  };
+    }};
 
   return {
     name,
