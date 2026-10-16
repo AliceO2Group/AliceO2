@@ -99,6 +99,23 @@ struct AxisSpec {
   // first entry is assumed to be the number of bins; in case of variable size binning it must be set to zero
   AxisSpec(ConfigurableAxis binEdges_, std::optional<std::string> title_ = std::nullopt, std::optional<std::string> name_ = std::nullopt);
 
+  // Out of line too, and for the same reason: every registry.add() call site
+  // materialises AxisSpec temporaries, so the *destructor* is expanded there as
+  // well -- on both the normal and the exception-unwind path. Measured with
+  // -Rpass=inline on a 276-histogram init(): ~optional<string> inlined 2164
+  // times, ~vector<AxisSpec> 552, ~vector<double> 367, ~AxisSpec 279.
+  //
+  // Declaring a destructor suppresses the implicit move operations, so all five
+  // are declared here to keep AxisSpec movable. The moves are explicitly
+  // noexcept: an out-of-line defaulted function does NOT inherit the implicit
+  // exception specification, and without it vector<AxisSpec> reallocation would
+  // silently fall back to copying.
+  ~AxisSpec();
+  AxisSpec(AxisSpec const&);
+  AxisSpec(AxisSpec&&) noexcept;
+  AxisSpec& operator=(AxisSpec const&);
+  AxisSpec& operator=(AxisSpec&&) noexcept;
+
   [[nodiscard]] long getNbins() const;
 
   /// Function to make the axis logarithmic
@@ -122,6 +139,10 @@ struct HistogramConfigSpec {
   HistogramConfigSpec() = default;
   HistogramConfigSpec(HistogramConfigSpec const& other) = default;
   HistogramConfigSpec(HistogramConfigSpec&& other) = default;
+  // Out of line: inlined 552 times into a single 276-histogram init().
+  // The copy/move constructors above stay declared, so this does not suppress
+  // them.
+  ~HistogramConfigSpec();
 
   void addAxis(const AxisSpec& axis)
   {
