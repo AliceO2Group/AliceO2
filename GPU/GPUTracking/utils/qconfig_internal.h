@@ -18,8 +18,6 @@
 #include "qconfig_general.h"
 #include "qconfig_helpers.h"
 
-#if !defined(QCONFIG_HEADER_GUARD_NO_INCLUDE) || defined(QCONFIG_GENRTC)
-
 #ifdef QCONFIG_PARSE
 
 #define QCONFIG_COMPARE(name, optname, optnameshort)                                                                                                                                           \
@@ -269,5 +267,3 @@ void qConfigPrint(const T& qconfig_tmp_object, const std::string& blockName); //
 #endif
 
 #include "qconfig_wrapinclude.h"
-
-#endif // QCONFIG_HEADER_GUARD_NO_INCLUDE
