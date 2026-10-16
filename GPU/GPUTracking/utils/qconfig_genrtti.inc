@@ -13,7 +13,7 @@
 /// \author David Rohr
 
 // Provides static inline qConfigGenRTTI() in the namespace it is included in.
-// Requires <algorithm>, <limits>, <optional>, <stdexcept>, <string>, <tuple>, <vector>, "qconfig_rtti.h", "qconfig_internal_helpers.h" to be included before (outside of the namespace), and the config structs to be visible unqualified.
+// Requires <algorithm>, <limits>, <optional>, <stdexcept>, "qconfig_rtti.h" (brings <string>, <tuple>, <vector>), "qconfig_internal_helpers.h" to be included before (outside of the namespace), and the config structs to be visible unqualified.
 
 #ifndef QCONFIG_GENRTTI_INC
 #define QCONFIG_GENRTTI_INC
