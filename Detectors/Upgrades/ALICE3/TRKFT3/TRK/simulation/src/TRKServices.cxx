@@ -113,6 +113,7 @@ void TRKServices::createMaterials()
   matmgr.Mixture("ALICE3_TRKSERVICES", 74, "ALUMINIUM5083", aAl5083, zAl5083, dAl5083, 9, wAl5083);                                    // AL5083 - Candidate for IRIS vacuum vessel
   matmgr.Mixture("ALICE3_TRKSERVICES", 75, "ALUMINIUMBERYLLIUMMETAL", aAlBeMet, zAlBeMet, dAlBeMet, 2, wAlBeMet);                      // Aluminium-Beryllium metal - Candidate for IRIS vacuum vessel
   matmgr.Material("ALICE3_TRKSERVICES", 76, "CARBONFIBERM55J6K", 12.0107, 6, 1.92, 22.4, 45.4);                                        // Carbon Fiber M55J
+  matmgr.Material("ALICE3_TRKSERVICES", 78, "ALUMINIUM", 26.9815, 13, 2.70, 8.897, 39.70);                                             // Aluminium for the IRIS service modules
   matmgr.Mixture("ALICE3_PIPE", 77, "VACUUM", aAir, zAir, dAir1, 4, wAir);
 
   matmgr.Medium("ALICE3_TRKSERVICES", 1, "CERAMIC", 66, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);                  // Ceramic for cold plate
@@ -127,6 +128,7 @@ void TRKServices::createMaterials()
   matmgr.Medium("ALICE3_TRKSERVICES", 10, "ALUMINIUMBERYLLIUMMETAL", 75, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin); // AlBeMet for IRIS vacuum vessel
   matmgr.Medium("ALICE3_TRKSERVICES", 11, "CARBONFIBERM55J6K", 76, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);       // Carbon Fiber M55J
   matmgr.Medium("ALICE3_PIPE", 12, "VACUUM", 77, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);                         // Vacuum inside the beam pipe
+  matmgr.Medium("ALICE3_TRKSERVICES", 13, "ALUMINIUM", 78, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);               // Aluminium for the IRIS service modules
 }
 
 void TRKServices::createServices(TGeoVolume* motherVolume)
