@@ -87,6 +87,9 @@ class ConfigParamRegistry
 
   void override(const char* key, ConfigValueType auto const& val) const;
 
+  // Remove an option (a leaf or a whole subtree) from the active store, no-op if it is missing
+  void erase(const char* key) const;
+
   // Load extra parameters discovered while we process data
   void loadExtra(std::vector<ConfigParamSpec>& extras);
 

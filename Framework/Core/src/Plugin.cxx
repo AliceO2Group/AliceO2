@@ -129,10 +129,14 @@ struct DiscoverMetadataInCommandLine : o2::framework::ConfigDiscoveryPlugin {
           std::string value = argv[i + 1];
           O2_SIGNPOST_EVENT_EMIT(capabilities, sid, "DiscoverMetadataInCommandLine",
                                  "Found %{public}s with value %{public}s.", key.c_str(), value.c_str());
-          if (key == "aod-metadata-tables") {
+          if (key == "aod-metadata-tables" || (key.starts_with("aod-metadata-origin-") && key.ends_with("-tables"))) {
             std::stringstream is(value);
             auto arrayValue = VariantJSONHelpers::read<VariantType::ArrayString>(is);
             results.push_back(ConfigParamSpec{key, VariantType::ArrayString, arrayValue, {"Metadata in command line"}});
+          } else if (key == "aod-metadata-origins") {
+            std::stringstream is(value);
+            auto arrayValue = VariantJSONHelpers::read<VariantType::LabeledArrayString>(is);
+            results.push_back(ConfigParamSpec{key, VariantType::LabeledArrayString, arrayValue, {"Metadata in command line"}});
           } else {
             results.push_back(ConfigParamSpec{key, VariantType::String, value, {"Metadata in command line"}});
           }
@@ -175,6 +179,13 @@ struct DiscoverAODOptionsInCommandLine : o2::framework::ConfigDiscoveryPlugin {
           }
           if (key == "aod-origin-level-mapping") {
             results.push_back(ConfigParamSpec{"aod-origin-level-mapping", VariantType::String, value, {"Map origin to parent level for AOD reading. Syntax: ORIGIN:LEVEL[,ORIGIN2:LEVEL2,...]. E.g. \"DYN:1\"."}});
+            LabeledArray<int> levelMap;
+            try {
+              levelMap = ConfigParamDiscovery::parseOriginLevelMapping(value);
+            } catch (std::runtime_error const& e) {
+              LOGP(fatal, "{}", e.what());
+            }
+            results.push_back(ConfigParamSpec{"aod-origin-level-map", VariantType::LabeledArrayInt, levelMap, {"Parsed aod-origin-level-mapping: one row per origin, with its parent level"}});
           }
         }
         if (injectOption) {
