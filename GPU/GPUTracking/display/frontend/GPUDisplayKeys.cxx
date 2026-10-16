@@ -511,51 +511,6 @@ void GPUDisplay::HandleKey(uint8_t key, bool doNotHandleConfigChanges)
   }
 }
 
-void GPUDisplay::checkAndApplyConfigChanges(const GPUSettingsDisplayHeavy& oldCfgH, const GPUSettingsDisplayLight& oldCfgL, const GPUSettingsDisplayRenderer& oldCfgR)
-{
-  if (memcmp((void*)&oldCfgH, (void*)&mCfgH, sizeof(mCfgH)) != 0) {
-    mUpdateEventData = true;
-  }
-  if (mCfgL.propagateTracks != 0 && !mTracksArePropagated) {
-    mUpdateVertexLists = true;
-  }
-  if (memcmp((void*)&oldCfgL, (void*)&mCfgL, sizeof(mCfgL)) != 0 || memcmp((void*)&oldCfgR, (void*)&mCfgR, sizeof(mCfgR)) != 0) {
-    mUpdateDrawCommands = true;
-  }
-  if (oldCfgR.drawQualityMSAA != mCfgR.drawQualityMSAA || oldCfgR.drawQualityDownsampleFSAA != mCfgR.drawQualityDownsampleFSAA || oldCfgL.depthBuffer != mCfgL.depthBuffer || oldCfgR.screenshotScaleFactor != mCfgR.screenshotScaleFactor) {
-    mUpdateRenderPipeline = true;
-  }
-
-  if (oldCfgR.drawQualityVSync != mCfgR.drawQualityVSync) {
-    mFrontend->SetVSync(mCfgR.drawQualityVSync);
-    mBackend->SetVSync(mCfgR.drawQualityVSync);
-  }
-  if (oldCfgR.fullScreen != mCfgR.fullScreen) {
-    mFrontend->SwitchFullscreen(mCfgR.fullScreen);
-  }
-  if (oldCfgR.maximized != mCfgR.maximized) {
-    mFrontend->ToggleMaximized(mCfgR.maximized);
-  }
-  if (oldCfgR.useGLIndirectDraw != mCfgR.useGLIndirectDraw) {
-    mUpdateEventData = true;
-  }
-}
-
-void GPUDisplay::HandleExternalGUIKey(int32_t key)
-{
-  // GPUError("key %d '%c'", key, (char) key);
-
-  bool shifted = key >= 'A' && key <= 'Z';
-  int32_t press = key;
-  if (press >= 'a' && press <= 'z') {
-    press += 'A' - 'a';
-  }
-  bool oldShift = mFrontend->mKeysShift[press];
-  mFrontend->mKeysShift[press] = shifted;
-  HandleKey(key, true);
-  mFrontend->mKeysShift[press] = oldShift;
-}
-
 void GPUDisplay::PrintGLHelpText(float colorValue)
 {
   for (uint32_t i = 0; i < sizeof(HelpText) / sizeof(HelpText[0]); i++) {

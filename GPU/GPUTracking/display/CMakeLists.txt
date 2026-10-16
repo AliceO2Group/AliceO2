@@ -113,7 +113,8 @@ set(SRCS_NO_H helpers/GPUDisplayLoader.cxx
               helpers/GPUDisplayQuaternion.cxx
               helpers/GPUDisplayInterpolation.cxx
               helpers/GPUDisplayROOT.cxx
-              frontend/GPUDisplayKeys.cxx)
+              frontend/GPUDisplayKeys.cxx
+              frontend/GPUDisplayFrontendConfig.cxx)
 
 set(HDRS_INSTALL helpers/GPUDisplayMagneticFieldConstants.h)
 
