@@ -51,6 +51,7 @@ o2_add_library(DetectorsBase
                                      O2::SimulationDataFormat
                                      O2::SimConfig
                                      O2::CCDB
+                                     O2::ML
                                      O2::GPUDataTypes
                                      MC::VMC
                                      TBB::tbb
