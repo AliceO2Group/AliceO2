@@ -80,7 +80,7 @@ class DigitGlobalPad
                 o2::dataformats::LabelContainer<std::pair<MCCompLabel, int>, false>&);
 
   /// Fold signal with previous pad signal add ion tail and ToT for sigmal saturation
-  void foldSignal(PrevDigitInfo& prevDigit, const int sector, const int pad, const TimeBin time, Streamer* debugStream = nullptr, const CalPad* padParams[3] = nullptr);
+  void foldSignal(PrevDigitInfo& prevDigit, const int sector, const int pad, const TimeBin time, Streamer* debugStream = nullptr, const CalPad* padParams[4] = nullptr);
 
   void setID(int id) { mID = id; }
   int getID() const { return mID; }
@@ -131,7 +131,7 @@ inline void DigitGlobalPad::addDigit(const MCCompLabel& label, float signal,
   mChargePad += signal;
 }
 
-inline void DigitGlobalPad::foldSignal(PrevDigitInfo& prevDigit, const int sector, const int pad, const TimeBin time, Streamer* debugStream, const CalPad* padParams[3])
+inline void DigitGlobalPad::foldSignal(PrevDigitInfo& prevDigit, const int sector, const int pad, const TimeBin time, Streamer* debugStream, const CalPad* padParams[4])
 {
   const auto& eleParam = ParameterElectronics::Instance();
   const auto& itSettings = IonTailSettings::Instance();
