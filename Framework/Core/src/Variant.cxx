@@ -66,6 +66,10 @@ std::ostream& operator<<(std::ostream& oss, Variant const& val)
     case VariantType::Array2DInt:
     case VariantType::Array2DFloat:
     case VariantType::Array2DDouble:
+    case VariantType::LabeledArrayInt:
+    case VariantType::LabeledArrayFloat:
+    case VariantType::LabeledArrayDouble:
+    case VariantType::LabeledArrayString:
       VariantJSONHelpers::write(oss, val);
       break;
     case VariantType::Empty:
