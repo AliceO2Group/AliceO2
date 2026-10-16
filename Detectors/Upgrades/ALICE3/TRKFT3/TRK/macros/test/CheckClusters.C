@@ -566,4 +566,3 @@ void CheckClusters(const std::string& clusfile = "o2clus_trk.root",
 
   LOGP(info, "Output saved to CheckClusters.root and PNG files");
 }
-
