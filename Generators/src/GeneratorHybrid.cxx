@@ -459,7 +459,9 @@ bool GeneratorHybrid::importParticles()
   if (mCocktailMode) {
     // in cocktail mode we need to merge the particles from the different generators
     for (auto subIndex : subGenIndex) {
-      LOG(info) << "Importing particles for task " << subIndex;
+      if (!mIsHyperloop) {
+        LOG(info) << "Importing particles for task " << subIndex;
+      }
       auto subParticles = gens[subIndex]->getParticles();
 
       auto time_unit = gens[subIndex]->getTimeUnit();
@@ -488,7 +490,9 @@ bool GeneratorHybrid::importParticles()
       mTasksStarted++;
     }
   } else {
-    LOG(info) << "Importing particles for task " << genIndex;
+    if (!mIsHyperloop) {
+      LOG(info) << "Importing particles for task " << genIndex;
+    }
     // at this moment the mIndex-th generator is ready to be used
     mParticles = gens[genIndex]->getParticles();
 
