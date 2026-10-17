@@ -21,8 +21,11 @@ namespace o2::its
 struct Cluster;
 struct TrackingFrameInfo;
 class TrackITSExt;
-class GPUFrameworkExternalAllocator;
 } // namespace o2::its
+namespace o2::itsmft::tracking
+{
+class ExternalAllocator;
+} // namespace o2::itsmft::tracking
 
 namespace o2::gpu
 {
@@ -39,15 +42,16 @@ class GPUChainITS final : public GPUChain
 
   void RegisterPermanentMemoryAndProcessors() final {};
   void RegisterGPUProcessors() final {};
-  void MemorySize(size_t&, size_t&) final {};
+  void MemorySize(size_t& gpuMem, size_t& pageLockedHostMem) final;
 
   o2::its::TrackerTraits<7>* GetITSTrackerTraits();
   o2::its::VertexerTraits<7>* GetITSVertexerTraits();
   o2::its::TimeFrame<7>* GetITSTimeframe();
+  o2::itsmft::tracking::ExternalAllocator* GetITSMFTFrameworkAllocator();
 
  protected:
   GPUChainITS(GPUReconstruction* rec);
-  std::unique_ptr<o2::its::GPUFrameworkExternalAllocator> mFrameworkAllocator;
+  std::unique_ptr<o2::itsmft::tracking::ExternalAllocator> mFrameworkAllocator;
   std::unique_ptr<o2::its::TimeFrame<7>> mITSTimeFrame;
   std::unique_ptr<o2::its::TrackerTraits<7>> mITSTrackerTraits;
   std::unique_ptr<o2::its::VertexerTraits<7>> mITSVertexerTraits;

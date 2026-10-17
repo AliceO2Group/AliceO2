@@ -37,9 +37,8 @@ GPUExternalAllocator::~GPUExternalAllocator()
   releaseAll();
 }
 
-void* GPUExternalAllocator::allocate(size_t size)
+void* GPUExternalAllocator::allocate(size_t size, Type type)
 {
-  const auto type = static_cast<MemoryType>(getType());
   const bool useHost = (type & static_cast<MemoryType>(o2::gpu::GPUMemoryResource::MEMORY_HOST)) != 0;
   const bool useStack = (type & static_cast<MemoryType>(o2::gpu::GPUMemoryResource::MEMORY_STACK)) != 0;
 
