@@ -16,6 +16,7 @@
 #include "Framework/ConfigContext.h"
 #include "Framework/CompletionPolicyHelpers.h"
 
+#include <stdexcept>
 #include <vector>
 
 using namespace o2::framework;
@@ -28,7 +29,7 @@ void customize(std::vector<CallbacksPolicy>& policies)
 void customize(std::vector<CompletionPolicy>& policies)
 {
   // ordered policies for the writers
-  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*(?:TRK|trk).*[W,w]riter.*"));
+  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*(?:TRK|trk|FT3|ft3).*[W,w]riter.*"));
 }
 
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
@@ -39,6 +40,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"clusters-from-upstream", VariantType::Bool, false, {"clusters will be provided from upstream, skip clusterizer"}},
     {"disable-root-output", VariantType::Bool, false, {"do not write output root files"}},
     {"disable-mc", VariantType::Bool, false, {"disable MC propagation even if available"}},
+    {"detectors", VariantType::String, "TRK", {"comma-separated list of the detectors to process: TRK, FT3"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
   std::swap(workflowOptions, options);
 }
@@ -53,10 +55,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto extDigits = configcontext.options().get<bool>("digits-from-upstream");
   auto extClusters = configcontext.options().get<bool>("clusters-from-upstream");
   auto disableRootOutput = configcontext.options().get<bool>("disable-root-output");
+  const auto detectors = o2::detectors::DetID::getMask(configcontext.options().get<std::string>("detectors"));
+  if ((detectors & ~(o2::detectors::DetID::getMask(o2::detectors::DetID::TRK) | o2::detectors::DetID::getMask(o2::detectors::DetID::FT3))).any() || detectors.none()) {
+    throw std::invalid_argument("--detectors takes TRK and/or FT3");
+  }
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
 
   // write the configuration used for the reco workflow
   o2::conf::ConfigurableParam::writeINI("o2itsrecoflow_configuration.ini");
 
-  return o2::trk::reco_workflow::getWorkflow(useMC, extDigits, extClusters, disableRootOutput);
+  return o2::trk::reco_workflow::getWorkflow(useMC, extDigits, extClusters, disableRootOutput, detectors);
 }
