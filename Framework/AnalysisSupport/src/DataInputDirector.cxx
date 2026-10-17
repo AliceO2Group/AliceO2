@@ -165,7 +165,7 @@ bool DataInputDescriptor::setFile(int counter, int wantedParentLevel, std::strin
     if (tfile && !externalFile) {
       delete tfile;
     }
-    throw std::runtime_error(fmt::format("Couldn't open file \"{}\"!", filename));
+    throw AODReadError(AODReadError::Kind::FileOpen, fmt::format("Couldn't open file \"{}\"!", filename));
   }
   mCurrentFilesystem = std::make_shared<TFileFileSystem>(tfile, 50 * 1024 * 1024, mFactory, !externalFile);
   rootFS = std::dynamic_pointer_cast<TFileFileSystem>(mCurrentFilesystem);
@@ -363,7 +363,7 @@ std::shared_ptr<DataInputDescriptor> DataInputDescriptor::getParentFile(int coun
   // The current DF is not found in the parent map (this should not happen and is a fatal error)
   auto rootFS = std::dynamic_pointer_cast<TFileFileSystem>(mCurrentFilesystem);
   if (!parentFileName) {
-    throw InvalidAODReadError(fmt::format(R"(parent file map exists but does not contain the current DF "{}" in file "{}")", folderName.c_str(), rootFS->GetFile()->GetName()));
+    throw AODReadError(AODReadError::Kind::InvalidTimeframe, fmt::format(R"(parent file map exists but does not contain the current DF "{}" in file "{}")", folderName.c_str(), rootFS->GetFile()->GetName()));
   }
 
   if (mParentFile) {
@@ -392,7 +392,7 @@ std::shared_ptr<DataInputDescriptor> DataInputDescriptor::getParentFile(int coun
     }
   } catch (...) {
     mParentFile.reset();
-    std::throw_with_nested(InvalidAODReadError(fmt::format("Unable to open parent file \"{}\" for {}", parentFileName->GetString().Data(), folderName)));
+    std::throw_with_nested(AODReadError(AODReadError::Kind::InvalidTimeframe, fmt::format("Unable to open parent file \"{}\" for {}", parentFileName->GetString().Data(), folderName)));
   }
   return mParentFile;
 }
@@ -575,11 +575,11 @@ try {
     }
     if (parentFile == nullptr) {
       auto rootFS = std::dynamic_pointer_cast<TFileFileSystem>(mCurrentFilesystem);
-      throw InvalidAODReadError(fmt::format(R"(No parent file found for "{}" while looking for level {} in "{}")", treename, wantedLevel, rootFS->GetFile()->GetName()));
+      throw AODReadError(AODReadError::Kind::InvalidTimeframe, fmt::format(R"(No parent file found for "{}" while looking for level {} in "{}")", treename, wantedLevel, rootFS->GetFile()->GetName()));
     }
     if (parentNumTF == -1) {
       auto parentRootFS = std::dynamic_pointer_cast<TFileFileSystem>(parentFile->mCurrentFilesystem);
-      throw InvalidAODReadError(fmt::format(R"(DF not found in parent file "{}")", parentRootFS->GetFile()->GetName()));
+      throw AODReadError(AODReadError::Kind::InvalidTimeframe, fmt::format(R"(DF not found in parent file "{}")", parentRootFS->GetFile()->GetName()));
     }
     t.deactivate();
     return parentFile->readTree(outputs, dh, 0, parentNumTF, treename, totalSizeCompressed, totalSizeUncompressed);
@@ -634,7 +634,7 @@ try {
     int parentNumTF = parentFile->findDFNumber(0, folder.path());
     if (parentNumTF == -1) {
       auto parentRootFS = std::dynamic_pointer_cast<TFileFileSystem>(parentFile->mCurrentFilesystem);
-      throw InvalidAODReadError(fmt::format(R"(DF {} listed in parent file map but not found in the corresponding file "{}")", folder.path(), parentRootFS->GetFile()->GetName()));
+      throw AODReadError(AODReadError::Kind::InvalidTimeframe, fmt::format(R"(DF {} listed in parent file map but not found in the corresponding file "{}")", folder.path(), parentRootFS->GetFile()->GetName()));
     }
     // first argument is 0 as the parent file object contains only 1 file
     return parentFile->readTree(outputs, dh, 0, parentNumTF, treename, totalSizeCompressed, totalSizeUncompressed);
@@ -642,7 +642,7 @@ try {
 
   auto schemaOpt = format->Inspect(fullpath);
   if (!schemaOpt.ok()) {
-    throw InvalidAODReadError(fmt::format("Unable to inspect tree {}: {}", treename, schemaOpt.status().ToString()));
+    throw AODReadError(AODReadError::Kind::InvalidTimeframe, fmt::format("Unable to inspect tree {}: {}", treename, schemaOpt.status().ToString()));
   }
   auto physicalSchema = schemaOpt;
   std::vector<std::shared_ptr<arrow::Field>> fields;
@@ -673,16 +673,16 @@ try {
     f2b.release();
   } catch (...) {
     f2b.discard();
-    std::throw_with_nested(InvalidAODReadError(fmt::format("Unable to {} tree {}", operation, treename)));
+    std::throw_with_nested(AODReadError(AODReadError::Kind::InvalidTimeframe, fmt::format("Unable to {} tree {}", operation, treename)));
   }
 
   return true;
-} catch (InvalidAODReadError const&) {
+} catch (AODReadError const& e) {
   auto rootFS = std::dynamic_pointer_cast<TFileFileSystem>(mCurrentFilesystem);
   auto filename = rootFS ? std::string(rootFS->GetFile()->GetName()) : mfilenames.at(counter).fileName;
   auto const& dfs = mfilenames.at(counter).listOfTimeFrameNumbers;
   auto df = numTF >= 0 && static_cast<size_t>(numTF) < dfs.size() ? fmt::format("DF_{}", dfs[numTF]) : fmt::format("timeframe index {}", numTF);
-  std::throw_with_nested(InvalidAODReadError(fmt::format("Reading tree {} in {} from file \"{}\" at parent level {}", treename, df, filename, mLevel)));
+  std::throw_with_nested(AODReadError(e.getKind(), fmt::format("Reading tree {} in {} from file \"{}\" at parent level {}", treename, df, filename, mLevel)));
 }
 
 DataInputDirector::DataInputDirector(std::vector<std::string> inputFiles, DataInputDirectorContext&& context)
