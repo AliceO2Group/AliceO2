@@ -58,6 +58,15 @@ HistogramConfigSpec::HistogramConfigSpec(HistType type_, std::vector<AxisSpec> a
 {
 }
 
+// Out of line: see the comments on the declarations in HistogramSpec.h.
+AxisSpec::~AxisSpec() = default;
+AxisSpec::AxisSpec(AxisSpec const&) = default;
+AxisSpec::AxisSpec(AxisSpec&&) noexcept = default;
+AxisSpec& AxisSpec::operator=(AxisSpec const&) = default;
+AxisSpec& AxisSpec::operator=(AxisSpec&&) noexcept = default;
+
+HistogramConfigSpec::~HistogramConfigSpec() = default;
+
 void AxisSpec::makeLogarithmic()
 {
   if (binEdges.size() > 2) {
