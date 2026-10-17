@@ -17,6 +17,8 @@
 #include <array>
 #ifndef GPUCA_GPUCODE
 #include <cmath>
+#else
+#include "GPUCommonAlgorithm.h" // warp reductions of WarpFit
 #endif
 #include "ITStracking/Cluster.h"
 #include "ITStracking/Cell.h"
@@ -141,27 +143,19 @@ GPUdi() bool getCellLineAtBeam(const CellSeed& cell, const float beamX, const fl
   return true;
 }
 
-/// Least-squares vertex fit over a set of lines (the normal equations AX = -B).
-class ClusterLines final
+/// Normal equations AX = -B of the point closest to a set of lines, and their solution. Base of the
+/// sequential fit (ClusterLines) and of the device warp-parallel fit (WarpFit), which only differ in how they accumulate.
+class LineFit
 {
  public:
-  GPUhdDefault() ClusterLines() = default;
-  /// Fit over lines[lineIndices[i]]; lineIndices must be sorted and unique.
-  ClusterLines(gsl::span<const int> lineIndices, gsl::span<const Line> lines);
-
-  /// Accumulate one line into the normal equations and the time estimate.
-  GPUhdi() void add(const Line& line)
+  /// Accumulate one line
+  GPUhdi() bool add(const Line& line)
   {
     const double d0 = line.cosinesDirector[0], d1 = line.cosinesDirector[1], d2 = line.cosinesDirector[2];
     const double o0 = line.originPoint[0], o1 = line.originPoint[1], o2 = line.originPoint[2];
     const double det = d0 * d0 + d1 * d1 + d2 * d2; // == 1 for a normalised director
     if (det <= 0.) {
-      return;
-    }
-    if (mNContributors <= 0) {
-      mTime = line.mTime;
-    } else {
-      mTime += line.mTime;
+      return false;
     }
     mA[0] += (det - d0 * d0) / det;
     mA[1] += (-d0 * d1) / det;
@@ -173,20 +167,19 @@ class ClusterLines final
     mB[0] += (d0 * dDotO - det * o0) / det;
     mB[1] += (d1 * dDotO - det * o1) / det;
     mB[2] += (d2 * dDotO - det * o2) / det;
-    ++mNContributors;
+    return true;
   }
 
-  /// Solve the symmetric 3x3 system into an external vertex (= -A^-1 B)
+  /// Solve the symmetric 3x3 system into vertex (= -A^-1 B); false if it is singular
   GPUhdi() bool solve(float vertex[3]) const
   {
-    const double a = mA[0], b = mA[1], c = mA[2], d = mA[3], e = mA[4], f = mA[5];
-    const double c00 = d * f - e * e;
-    const double c01 = c * e - b * f;
-    const double c02 = b * e - c * d;
-    const double c11 = a * f - c * c;
-    const double c12 = b * c - a * e;
-    const double c22 = a * d - b * b;
-    const double det = a * c00 + b * c01 + c * c02;
+    const double c00 = mA[3] * mA[5] - mA[4] * mA[4];
+    const double c01 = mA[2] * mA[4] - mA[1] * mA[5];
+    const double c02 = mA[1] * mA[4] - mA[2] * mA[3];
+    const double c11 = mA[0] * mA[5] - mA[2] * mA[2];
+    const double c12 = mA[1] * mA[2] - mA[0] * mA[4];
+    const double c22 = mA[0] * mA[3] - mA[1] * mA[1];
+    const double det = mA[0] * c00 + mA[1] * c01 + mA[2] * c02;
     if (o2::gpu::GPUCommonMath::Abs(det) < 1.e-12) {
       return false;
     }
@@ -202,6 +195,49 @@ class ClusterLines final
 
   /// Solve into the stored vertex, setting the validity flag
   GPUhdi() void computeClusterCentroid() { mIsValid = solve(mVertex); }
+
+  GPUhdi() bool isValid() const noexcept { return mIsValid; }
+  GPUhdi() const float* getVertex() const noexcept { return mVertex; }
+  GPUhdi() int getSize() const noexcept { return mNContributors; }
+  GPUhdi() int getNContributors() const noexcept { return mNContributors; }
+  GPUhdi() const TimeEstBC& getTimeStamp() const noexcept { return mTime; }
+  GPUhdi() float getR2() const noexcept { return (mVertex[0] * mVertex[0]) + (mVertex[1] * mVertex[1]); }
+  GPUhdi() float getR() const noexcept { return o2::gpu::GPUCommonMath::Sqrt(getR2()); }
+  GPUhdi() const float* getRMS2() const noexcept { return mRMS2; } // {XX, XY, YY, XZ, YZ, ZZ}
+  GPUhdi() float getAvgDistance2() const noexcept { return mAvgDistance2; }
+
+ protected:
+  double mA[6] = {0., 0., 0., 0., 0., 0.};         // AX=B, packed symmetric normal matrix
+  double mB[3] = {0., 0., 0.};                     // AX=B, right-hand side
+  float mVertex[3] = {0.f, 0.f, 0.f};              // cluster centroid position
+  float mRMS2[6] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f}; // mean DCA components about the vertex
+  float mAvgDistance2 = 0.f;                       // mean squared distance about the vertex
+  int mNContributors = 0;                          // lines accumulated into the normal equations
+  bool mIsValid = false;                           // true if the linear system was solved successfully
+  TimeEstBC mTime;                                 // intersection of the contributors' time intervals
+};
+
+/// Least-squares vertex fit over a set of lines (the normal equations AX = -B).
+class ClusterLines final : public LineFit
+{
+ public:
+  GPUhdDefault() ClusterLines() = default;
+  /// Fit over lines[lineIndices[i]]; lineIndices must be sorted and unique.
+  ClusterLines(gsl::span<const int> lineIndices, gsl::span<const Line> lines);
+
+  /// Accumulate one line into the normal equations and the time estimate.
+  GPUhdi() void add(const Line& line)
+  {
+    if (!LineFit::add(line)) {
+      return;
+    }
+    if (mNContributors <= 0) {
+      mTime = line.mTime;
+    } else {
+      mTime += line.mTime;
+    }
+    ++mNContributors;
+  }
 
   /// Running-mean update of the RMS2 and average distance about the stored vertex
   GPUhdi() void addResidual(const Line& line) { addResidual(line, mVertex); }
@@ -220,28 +256,66 @@ class ClusterLines final
     mAvgDistance2 += (d2 - mAvgDistance2) / static_cast<float>(mResidualCount);
   }
 
-  GPUhdi() bool isValid() const noexcept { return mIsValid; }
-  GPUhdi() const float* getVertex() const noexcept { return mVertex; }
-  GPUhdi() const float* getRMS2() const noexcept { return mRMS2; } // {XX, XY, YY, XZ, YZ, ZZ}
-  GPUhdi() float getAvgDistance2() const noexcept { return mAvgDistance2; }
-  GPUhdi() int getSize() const noexcept { return mNContributors; }
-  GPUhdi() int getNContributors() const noexcept { return mNContributors; }
-  GPUhdi() const TimeEstBC& getTimeStamp() const noexcept { return mTime; }
-  GPUhdi() float getR2() const noexcept { return (mVertex[0] * mVertex[0]) + (mVertex[1] * mVertex[1]); }
-  GPUhdi() float getR() const noexcept { return o2::gpu::GPUCommonMath::Sqrt(getR2()); }
   bool operator==(const ClusterLines& rhs) const noexcept;
 
  private:
-  double mA[6] = {0., 0., 0., 0., 0., 0.}; // AX=B, packed symmetric normal matrix
-  double mB[3] = {0., 0., 0.};             // AX=B, right-hand side
-  float mVertex[3] = {0.f, 0.f, 0.f};      // cluster centroid position
-  float mRMS2[6] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
-  float mAvgDistance2 = 0.f;
-  int mNContributors = 0;
-  int mResidualCount = 0;
-  bool mIsValid = false; // true if the linear system was solved successfully
-  TimeEstBC mTime;
+  int mResidualCount = 0; // lines folded into the running means
 };
+
+#ifdef GPUCA_GPUCODE
+/// Device counterpart of ClusterLines: each lane of a warp add()s its own subset of lines, then reduce() leaves
+/// the full sums, contributor count and time intersection in every lane
+struct WarpFit : public LineFit {
+  uint32_t tLo = 0, tHi = 0xffffffffu;
+
+  GPUdi() void add(const Line& l)
+  {
+    if (LineFit::add(l)) {
+      tLo = o2::gpu::GPUCommonMath::Max(tLo, l.mTime.lower());
+      tHi = o2::gpu::GPUCommonMath::Min(tHi, l.mTime.upper());
+      ++mNContributors;
+    }
+  }
+
+  template <int Width>
+  GPUdi() void reduce()
+  {
+    for (int i = 0; i < 6; ++i) {
+      mA[i] = warp_reduce_add<Width>(mA[i]);
+    }
+    for (int i = 0; i < 3; ++i) {
+      mB[i] = warp_reduce_add<Width>(mB[i]);
+    }
+    tLo = warp_reduce_max<Width>(tLo);
+    tHi = warp_reduce_min<Width>(tHi);
+    mNContributors = warp_reduce_add<Width>(mNContributors);
+    mTime = TimeEstBC{tLo, tHi - tLo};
+  }
+
+  GPUdi() void addResidual(const Line& l, const float vertex[3])
+  {
+    float dca[6];
+    Line::getDCAComponents(l, vertex, dca);
+    for (int i = 0; i < 6; ++i) {
+      rms2Sum[i] += dca[i];
+    }
+    dist2Sum += Line::getDistance2FromPoint(l, vertex);
+  }
+
+  /// Means over the n lines of the whole warp, left in every lane
+  template <int Width>
+  GPUdi() void reduceResiduals(const int n)
+  {
+    for (int i = 0; i < 6; ++i) {
+      mRMS2[i] = warp_reduce_add<Width>(rms2Sum[i]) / n;
+    }
+    mAvgDistance2 = warp_reduce_add<Width>(dist2Sum) / n;
+  }
+
+  double rms2Sum[6] = {0., 0., 0., 0., 0., 0.};
+  double dist2Sum = 0.;
+};
+#endif
 
 } // namespace o2::its
 #endif /* O2_ITS_CLUSTERLINES_H */
