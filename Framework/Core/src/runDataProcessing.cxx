@@ -1699,13 +1699,13 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             if (!hasMetadata) {
               continue;
             }
-            // ignore devices with no control options
-            auto hasControls = std::ranges::any_of(device.inputs, [](InputSpec const& spec) {
+            // ignore devices with no control or ccdb options
+            auto hasControlsOrCcdbs = std::ranges::any_of(device.inputs, [](InputSpec const& spec) {
               return std::ranges::any_of(spec.metadata, [](ConfigParamSpec const& param) {
-                return param.type == VariantType::Bool && param.name.find("control:") != std::string::npos;
+                return param.type == VariantType::Bool && (param.name.starts_with("control:") || param.name.starts_with("ccdb:"));
               });
             });
-            if (!hasControls) {
+            if (!hasControlsOrCcdbs) {
               continue;
             }
 
@@ -1716,7 +1716,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
               auto reg = std::make_unique<ConfigParamRegistry>(std::move(configStore));
               for (auto& input : device.inputs) {
                 for (auto& param : input.metadata) {
-                  if (param.type == VariantType::Bool && param.name.find("control:") != std::string::npos) {
+                  if (param.type == VariantType::Bool && param.name.starts_with("control:")) {
                     if (param.name != "control:default" && param.name != "control:spawn" && param.name != "control:build" && param.name != "control:define") {
                       auto confName = confNameFromParam(param.name).second;
                       param.defaultValue = reg->get<bool>(confName.c_str());
