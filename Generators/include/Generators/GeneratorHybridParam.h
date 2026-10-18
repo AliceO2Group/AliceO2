@@ -33,6 +33,7 @@ struct GeneratorHybridParam : public o2::conf::ConfigurableParamHelper<Generator
   bool randomize = false;         // randomize the order of the generators, if not generator using fractions
   int num_workers = 1;            // number of threads available for asyn/parallel event generation
   bool switchExtToHybrid = false; // force external generator to be executed as hybrid mode, useful for Hyperloop MCGEN
+  bool reuseIdenticalGenerators = true; // in sequential mode, generators configured in exactly the same way share a single instance by default
   O2ParamDef(GeneratorHybridParam, "GeneratorHybrid");
 };
 
