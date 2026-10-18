@@ -81,6 +81,12 @@ class GeneratorHybrid : public Generator
   std::vector<std::string> mGens;
   std::vector<std::string> mConfigs;
   std::vector<std::string> mConfsPythia8;
+  // canonical description of how each configured slot is set up (name, configuration and
+  // triggers). Slots sharing a signature are served by one single generator instance
+  std::vector<std::string> mGenSignatures;
+  // Maps a configured generator onto the generator instance in 'gens' serving it.
+  // In sequential mode, slots configured in exactly the same way share a single instance by default
+  std::vector<int> mSlotToInstance;
 
   std::vector<bool> mGenIsInitialized;
 

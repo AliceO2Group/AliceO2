@@ -12,6 +12,7 @@
 #include "Generators/GeneratorHybrid.h"
 #include <fairlogger/Logger.h>
 #include <algorithm>
+#include <unordered_map>
 #include <tbb/concurrent_queue.h>
 #include <tbb/task_arena.h>
 #include <tbb/parallel_for.h>
@@ -29,6 +30,20 @@ GeneratorHybrid& GeneratorHybrid::Instance(const std::string& inputgens)
   static GeneratorHybrid instance(inputgens);
   return instance;
 }
+
+namespace
+{
+// Canonical description of a parsed generator configuration
+template <typename T>
+std::string canonicalConfig(T const* conf)
+{
+  if (!conf) {
+    return {};
+  }
+  auto json = TBufferJSON::ToJSON(conf);
+  return std::string(json.Data(), json.Length());
+}
+} // namespace
 
 GeneratorHybrid::GeneratorHybrid(const std::string& inputgens)
 {
@@ -62,7 +77,7 @@ GeneratorHybrid::GeneratorHybrid(const std::string& inputgens)
     exit(1);
   }
   mRandomize = GeneratorHybridParam::Instance().randomize;
-  if (mConfigs.size() != mInputGens.size()) {
+  if (mConfigs.size() != mInputGens.size() || mGenSignatures.size() != mInputGens.size()) {
     LOG(fatal) << "Number of configurations does not match the number of generators";
     exit(1);
   }
@@ -90,11 +105,30 @@ GeneratorHybrid::GeneratorHybrid(const std::string& inputgens)
       return;
     }
   }
+  // Only in sequential mode, generators which are configured in exactly the same way are
+  // instantiated only once and the corresponding slots are served by that single instance.
+  // If num_workers <= 1, the reuse of identical generators is automatically disabled.
+  const bool reuseIdentical = (mGenerationMode == GenMode::kSeq) && GeneratorHybridParam::Instance().reuseIdenticalGenerators && GeneratorHybridParam::Instance().num_workers <= 1;
+  std::unordered_map<std::string, int> signatureToInstance;
   for (auto gen : mInputGens) {
     // Search if the generator name is inside generatorNames (which is a vector of strings)
     LOG(info) << "Checking if generator " << gen << " is in the list of available generators \n";
     if (std::find(generatorNames.begin(), generatorNames.end(), gen) != generatorNames.end()) {
       LOG(info) << "Found generator " << gen << " in the list of available generators \n";
+      if (reuseIdentical) {
+        auto const& signature = mGenSignatures[index];
+        auto known = signatureToInstance.find(signature);
+        if (known != signatureToInstance.end()) {
+          LOG(info) << "Generator " << gen << " (slot " << index << ") is configured exactly as instance "
+                    << known->second << ": reusing it instead of creating a new one";
+          mSlotToInstance.push_back(known->second);
+          mGens.push_back(gen);
+          index++;
+          continue;
+        }
+        // the instance about to be created will be the last one of 'gens'
+        signatureToInstance[signature] = gens.size();
+      }
       if (gen.compare("boxgen") == 0) {
         if (mConfigs[index].compare("") == 0) {
           gens.push_back(std::make_shared<o2::eventgen::BoxGenerator>());
@@ -184,7 +218,16 @@ GeneratorHybrid::GeneratorHybrid(const std::string& inputgens)
       LOG(fatal) << "Generator " << gen << " not found in the list of available generators \n";
       exit(1);
     }
+    // a new instance has just been created for this slot
+    mSlotToInstance.push_back(gens.size() - 1);
     index++;
+  }
+  LOG(info) << "Hybrid generator: " << mInputGens.size() << " configured generator(s) served by "
+            << gens.size() << " generator instance(s)";
+  if (reuseIdentical) {
+    for (size_t slot = 0; slot < mSlotToInstance.size(); ++slot) {
+      LOG(info) << "  slot " << slot << " (" << mInputGens[slot] << ") -> instance " << mSlotToInstance[slot];
+    }
   }
 }
 
@@ -197,29 +240,39 @@ GeneratorHybrid::~GeneratorHybrid()
 Bool_t GeneratorHybrid::Init()
 {
   // init all sub-gens
+  mGenIsInitialized.resize(gens.size(), false);
   int count = 0;
   for (auto& gen : mGens) {
+    // slots sharing one instance must configure, initialise and equip it only once
+    const auto instance = mSlotToInstance[count];
+    if (mGenIsInitialized[instance]) {
+      LOG(info) << "Generator " << gen << " (slot " << count << ") is served by the already initialized instance " << instance;
+      addSubGenerator(count, gen);
+      count++;
+      continue;
+    }
     if (gen == "pythia8pp") {
       auto config = std::string(std::getenv("O2_ROOT")) + "/share/Generators/egconfig/pythia8_inel.cfg";
       LOG(info) << "Setting \'Pythia8\' base configuration: " << config << std::endl;
-      dynamic_cast<o2::eventgen::GeneratorPythia8*>(gens[count].get())->setConfig(config);
+      dynamic_cast<o2::eventgen::GeneratorPythia8*>(gens[instance].get())->setConfig(config);
     } else if (gen == "pythia8hf") {
       auto config = std::string(std::getenv("O2_ROOT")) + "/share/Generators/egconfig/pythia8_hf.cfg";
       LOG(info) << "Setting \'Pythia8\' base configuration: " << config << std::endl;
-      dynamic_cast<o2::eventgen::GeneratorPythia8*>(gens[count].get())->setConfig(config);
+      dynamic_cast<o2::eventgen::GeneratorPythia8*>(gens[instance].get())->setConfig(config);
     } else if (gen == "pythia8hi") {
       auto config = std::string(std::getenv("O2_ROOT")) + "/share/Generators/egconfig/pythia8_hi.cfg";
       LOG(info) << "Setting \'Pythia8\' base configuration: " << config << std::endl;
-      dynamic_cast<o2::eventgen::GeneratorPythia8*>(gens[count].get())->setConfig(config);
+      dynamic_cast<o2::eventgen::GeneratorPythia8*>(gens[instance].get())->setConfig(config);
     } else if (gen == "pythia8powheg") {
       auto config = std::string(std::getenv("O2_ROOT")) + "/share/Generators/egconfig/pythia8_powheg.cfg";
       LOG(info) << "Setting \'Pythia8\' base configuration: " << config << std::endl;
-      dynamic_cast<o2::eventgen::GeneratorPythia8*>(gens[count].get())->setConfig(config);
+      dynamic_cast<o2::eventgen::GeneratorPythia8*>(gens[instance].get())->setConfig(config);
     }
-    gens[count]->Init(); // TODO: move this to multi-threaded
+    gens[instance]->Init(); // TODO: move this to multi-threaded
+    mGenIsInitialized[instance] = true;
     addSubGenerator(count, gen);
     if (mTriggerModes[count] != o2::eventgen::Generator::kTriggerOFF) {
-      gens[count]->setTriggerMode(mTriggerModes[count]);
+      gens[instance]->setTriggerMode(mTriggerModes[count]);
       LOG(info) << "Setting Trigger mode of generator " << gen << " to: " << mTriggerModes[count];
       o2::eventgen::Trigger trigger = nullptr;
       o2::eventgen::DeepTrigger deeptrigger = nullptr;
@@ -244,9 +297,9 @@ Bool_t GeneratorHybrid::Init()
           LOG(info) << "Trigger " << trg << " of generator " << gen << " successfully set";
         }
         if (trigger) {
-          gens[count]->addTrigger(trigger);
+          gens[instance]->addTrigger(trigger);
         } else {
-          gens[count]->addDeepTrigger(deeptrigger);
+          gens[instance]->addDeepTrigger(deeptrigger);
         }
       }
     }
@@ -293,7 +346,6 @@ Bool_t GeneratorHybrid::Init()
     LOG(info) << "Generators will be used in sequence, following provided fractions";
   }
 
-  mGenIsInitialized.resize(gens.size(), false);
   if (mGenerationMode == GenMode::kParallel) {
     // in parallel mode we just use one queue --> collaboration
     mResultQueue.resize(1);
@@ -411,24 +463,15 @@ bool GeneratorHybrid::generateEvent()
 bool GeneratorHybrid::importParticles()
 {
   int genIndex = -1;
-  std::vector<int> subGenIndex = {};
   if (mIndex == -1) {
     // this means parallel mode ---> we have a common queue
     mResultQueue[0].pop(genIndex);
-  } else {
-    // need to pop from a particular queue
-    if (!mCocktailMode) {
-      mResultQueue[mIndex].pop(genIndex);
-    } else {
-      // in cocktail mode we need to pop from the group queue
-      subGenIndex.resize(mGroups[mIndex].size());
-      for (size_t pos = 0; pos < mGroups[mIndex].size(); ++pos) {
-        int subIndex = mGroups[mIndex][pos];
-        LOG(info) << "Getting generator " << mGens[subIndex] << " from cocktail group " << mIndex;
-        mResultQueue[subIndex].pop(subGenIndex[pos]);
-      }
-    }
+  } else if (!mCocktailMode) {
+    // need to pop from the queue of the instance serving this generator slot
+    mResultQueue[mSlotToInstance[mIndex]].pop(genIndex);
   }
+  // in cocktail mode the events of the group members are popped one by one while they are
+  // imported, so that one instance shared by two members of the same group can serve both of them.
 
   auto unit_transformer = [](auto& p, auto pos_unit, auto time_unit, auto en_unit, auto mom_unit) {
     p.SetMomentum(p.Px() * mom_unit, p.Py() * mom_unit, p.Pz() * mom_unit, p.Energy() * en_unit);
@@ -456,9 +499,13 @@ bool GeneratorHybrid::importParticles()
   // this is important when using event pools where the full header information is forwarded from the generator
   // otherwise some events might have mixed header information from different generators
   mMCEventHeader.Reset();
-  if (mCocktailMode) {
+  if (mCocktailMode && mIndex >= 0) {
     // in cocktail mode we need to merge the particles from the different generators
-    for (auto subIndex : subGenIndex) {
+    for (size_t pos = 0; pos < mGroups[mIndex].size(); ++pos) {
+      const auto slotIndex = mGroups[mIndex][pos];
+      LOG(info) << "Getting generator " << mGens[slotIndex] << " from cocktail group " << mIndex;
+      int subIndex = -1;
+      mResultQueue[mSlotToInstance[slotIndex]].pop(subIndex);
       LOG(info) << "Importing particles for task " << subIndex;
       auto subParticles = gens[subIndex]->getParticles();
 
@@ -550,27 +597,32 @@ Bool_t GeneratorHybrid::confSetter(const auto& gen)
 {
   std::string name = gen["name"].GetString();
   mInputGens.push_back(name);
+  std::string cfgSignature{"default"}; // canonical description of the configuration parsed below
   if (gen.HasMember("config")) {
     if (name == "boxgen") {
       const auto& boxconf = gen["config"];
       auto boxConfig = TBufferJSON::FromJSON<o2::eventgen::BoxGenConfig>(jsonValueToString(boxconf).c_str());
       mBoxGenConfigs.push_back(std::move(boxConfig));
       mConfigs.push_back("boxgen_" + std::to_string(mBoxGenConfigs.size() - 1));
+      cfgSignature = canonicalConfig(mBoxGenConfigs.back().get());
     } else if (name == "pythia8") {
       const auto& pythia8conf = gen["config"];
       auto pythia8Config = TBufferJSON::FromJSON<o2::eventgen::Pythia8GenConfig>(jsonValueToString(pythia8conf).c_str());
       mPythia8GenConfigs.push_back(std::move(pythia8Config));
       mConfigs.push_back("pythia8_" + std::to_string(mPythia8GenConfigs.size() - 1));
+      cfgSignature = canonicalConfig(mPythia8GenConfigs.back().get());
     } else if (name == "evtpool") {
       const auto& o2kineconf = gen["config"];
       auto poolConfig = TBufferJSON::FromJSON<o2::eventgen::EventPoolGenConfig>(jsonValueToString(o2kineconf).c_str());
       mEventPoolConfigs.push_back(*poolConfig);
       mConfigs.push_back("evtpool_" + std::to_string(mEventPoolConfigs.size() - 1));
+      cfgSignature = canonicalConfig(&mEventPoolConfigs.back());
     } else if (name == "external") {
       const auto& extconf = gen["config"];
       auto extConfig = TBufferJSON::FromJSON<o2::eventgen::ExternalGenConfig>(jsonValueToString(extconf).c_str());
       mExternalGenConfigs.push_back(std::move(extConfig));
       mConfigs.push_back("external_" + std::to_string(mExternalGenConfigs.size() - 1));
+      cfgSignature = canonicalConfig(mExternalGenConfigs.back().get());
     } else if (name == "hepmc") {
       const auto& genconf = gen["config"];
       const auto& cmdconf = genconf["configcmd"];
@@ -580,6 +632,7 @@ Bool_t GeneratorHybrid::confSetter(const auto& gen)
       mFileOrCmdGenConfigs.push_back(std::move(cmdConfig));
       mHepMCGenConfigs.push_back(std::move(hepmcConfig));
       mConfigs.push_back("hepmc_" + std::to_string(mFileOrCmdGenConfigs.size() - 1));
+      cfgSignature = canonicalConfig(mFileOrCmdGenConfigs.back().get()) + canonicalConfig(mHepMCGenConfigs.back().get());
     } else {
       mConfigs.push_back("");
     }
@@ -591,6 +644,12 @@ Bool_t GeneratorHybrid::confSetter(const auto& gen)
       mConfigs.push_back("");
     }
   }
+  // Slots are served by one shared instance only when their signatures match, so a
+  // configuration which could not be serialised must never compare equal to another one.
+  if (cfgSignature.empty()) {
+    cfgSignature = "slot:" + std::to_string(mInputGens.size() - 1);
+  }
+  mGenSignatures.push_back(name + "|cfg:" + cfgSignature);
   if (gen.HasMember("triggers")) {
     const auto& trigger = gen["triggers"];
     auto trigger_specs = [this, &trigger]() {
@@ -652,6 +711,14 @@ Bool_t GeneratorHybrid::confSetter(const auto& gen)
     mTriggerModes.push_back(o2::eventgen::Generator::kTriggerOFF);
     mTriggerMacros.push_back({""});
     mTriggerFuncs.push_back({""});
+  }
+  // the triggers are attached to the generator instance, hence they are part of its identity
+  mGenSignatures.back() += "|trg:" + std::to_string(static_cast<int>(mTriggerModes.back()));
+  for (size_t trg = 0; trg < mTriggerMacros.back().size(); ++trg) {
+    mGenSignatures.back() += "|" + mTriggerMacros.back()[trg];
+    if (trg < mTriggerFuncs.back().size()) {
+      mGenSignatures.back() += ":" + mTriggerFuncs.back()[trg];
+    }
   }
   return true;
 }
