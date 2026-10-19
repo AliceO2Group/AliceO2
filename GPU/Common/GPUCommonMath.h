@@ -72,6 +72,7 @@ class GPUCommonMath
     return Max(lo, Min(v, hi));
   }
   GPUhdni() constexpr static float Sqrt(float x);
+  GPUd() constexpr static double Sqrtd(double x);
   GPUd() static float InvSqrt(float x);
   template <class T>
   GPUdi() constexpr static T Square(T x)
@@ -81,18 +82,27 @@ class GPUCommonMath
   template <class T>
   GPUhd() constexpr static T Abs(T x);
   GPUd() constexpr static float ASin(float x);
+  GPUd() constexpr static double ASind(double x);
   GPUd() constexpr static float ACos(float x);
+  GPUd() constexpr static double ACosd(double x);
   GPUd() constexpr static float ATan(float x);
+  GPUd() constexpr static double ATand(double x);
   GPUhd() constexpr static float ATan2(float y, float x);
+  GPUd() constexpr static double ATan2d(double y, double x);
   GPUd() constexpr static float Sin(float x);
+  GPUd() constexpr static double Sind(double x);
   GPUd() constexpr static float Cos(float x);
+  GPUd() constexpr static double Cosd(double x);
   GPUhdni() static void SinCos(float x, float& s, float& c);
   GPUhdni() static void SinCosd(double x, double& s, double& c);
   GPUd() constexpr static float Tan(float x);
+  GPUd() constexpr static double Tand(double x);
   GPUd() constexpr static float Pow(float x, float y);
   GPUd() constexpr static float Log(float x);
+  GPUd() constexpr static double Logd(double x);
   GPUd() constexpr static float Exp(float x);
   GPUhdni() constexpr static float Copysign(float x, float y) { return GPUCA_CHOICE(std::copysignf(x, y), copysignf(x, y), copysign(x, y)); }
+  GPUd() constexpr static double Copysignd(double x, double y);
   GPUd() constexpr static float TwoPi() { return 6.2831853f; }
   GPUd() constexpr static float Pi() { return 3.1415927f; }
   GPUd() constexpr static float Round(float x);
@@ -110,6 +120,9 @@ class GPUCommonMath
   GPUd() constexpr static uint32_t Clz(uint32_t val);
   GPUd() constexpr static uint32_t Ctz(uint32_t val);
   GPUd() constexpr static uint32_t Popcount(uint32_t val);
+  GPUd() constexpr static uint32_t Clz64(uint64_t val);
+  GPUd() constexpr static uint32_t Ctz64(uint64_t val);
+  GPUd() constexpr static uint32_t Popcount64(uint64_t val);
 
   GPUd() static void memcpy(void* dst, const void* src, size_t size);
 
@@ -146,6 +159,16 @@ class GPUCommonMath
   GPUdi() static void AtomicMin(GPUglobalref() GPUgeneric() GPUAtomic(T) * addr, T val)
   {
     GPUCommonMath::AtomicMinInternal(addr, val);
+  }
+  template <class T>
+  GPUdi() static T AtomicLoad(GPUglobalref() GPUgeneric() GPUAtomic(T) * addr)
+  {
+    return GPUCommonMath::AtomicLoadInternal<T>(addr);
+  }
+  template <class T>
+  GPUdi() static void AtomicStore(GPUglobalref() GPUgeneric() GPUAtomic(T) * addr, T val)
+  {
+    GPUCommonMath::AtomicStoreInternal(addr, val);
   }
   template <class T>
   GPUdi() static T AtomicExchShared(GPUsharedref() GPUgeneric() GPUAtomic(T) * addr, T val)
@@ -187,6 +210,10 @@ class GPUCommonMath
   GPUd() static void AtomicMaxInternal(S* addr, T val);
   template <class S, class T>
   GPUd() static void AtomicMinInternal(S* addr, T val);
+  template <class T, class S>
+  GPUd() static T AtomicLoadInternal(S* addr);
+  template <class S, class T>
+  GPUd() static void AtomicStoreInternal(S* addr, T val);
 };
 
 typedef GPUCommonMath CAMath;
@@ -267,6 +294,8 @@ GPUdi() uint32_t GPUCommonMath::Float2UIntReint(const float& x)
   return __float_as_uint(x);
 #elif defined(GPUCA_GPUCODE_DEVICE) && defined(__OPENCL__)
   return as_uint(x);
+#elif !defined(GPUCA_GPUCODE_DEVICE)
+  return __builtin_bit_cast(uint32_t, x);
 #else
   return reinterpret_cast<const uint32_t&>(x);
 #endif
@@ -338,6 +367,17 @@ GPUhdi() void GPUCommonMath::SinCosd(double x, double& s, double& c)
   GPUCA_CHOICE((void)((s = sin(x)) + (c = cos(x))), sincos(x, &s, &c), s = sincos(x, &c));
 #endif
 }
+
+GPUdi() constexpr double GPUCommonMath::Sqrtd(double x) { return GPUCA_CHOICE(std::sqrt(x), sqrt(x), sqrt(x)); }
+GPUdi() constexpr double GPUCommonMath::ASind(double x) { return GPUCA_CHOICE(std::asin(x), asin(x), asin(x)); }
+GPUdi() constexpr double GPUCommonMath::ACosd(double x) { return GPUCA_CHOICE(std::acos(x), acos(x), acos(x)); }
+GPUdi() constexpr double GPUCommonMath::ATand(double x) { return GPUCA_CHOICE(std::atan(x), atan(x), atan(x)); }
+GPUdi() constexpr double GPUCommonMath::ATan2d(double y, double x) { return GPUCA_CHOICE(std::atan2(y, x), atan2(y, x), atan2(y, x)); }
+GPUdi() constexpr double GPUCommonMath::Sind(double x) { return GPUCA_CHOICE(std::sin(x), sin(x), sin(x)); }
+GPUdi() constexpr double GPUCommonMath::Cosd(double x) { return GPUCA_CHOICE(std::cos(x), cos(x), cos(x)); }
+GPUdi() constexpr double GPUCommonMath::Tand(double x) { return GPUCA_CHOICE(std::tan(x), tan(x), tan(x)); }
+GPUdi() constexpr double GPUCommonMath::Logd(double x) { return GPUCA_CHOICE(std::log(x), log(x), log(x)); }
+GPUdi() constexpr double GPUCommonMath::Copysignd(double x, double y) { return GPUCA_CHOICE(std::copysign(x, y), copysign(x, y), copysign(x, y)); }
 #endif
 
 GPUdi() constexpr uint32_t GPUCommonMath::Clz(uint32_t x)
@@ -377,6 +417,44 @@ GPUdi() constexpr uint32_t GPUCommonMath::Popcount(uint32_t x)
   x = x - ((x >> 1) & 0x55555555);
   x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
   return (((x + (x >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
+#endif
+}
+
+GPUdi() constexpr uint32_t GPUCommonMath::Clz64(uint64_t x)
+{
+#if (defined(__GNUC__) || defined(__clang__) || defined(__CUDACC__) || defined(__HIPCC__))
+  return x == 0 ? 64 : GPUCA_CHOICE(__builtin_clzll(x), __clzll(x), __builtin_clzll(x)); // use builtin if available
+#else
+  for (int32_t i = 63; i >= 0; i--) {
+    if (x & (1ull << i)) {
+      return (63 - i);
+    }
+  }
+  return 64;
+#endif
+}
+
+GPUdi() constexpr uint32_t GPUCommonMath::Ctz64(uint64_t x)
+{
+#if (defined(__GNUC__) || defined(__clang__) || defined(__CUDACC__) || defined(__HIPCC__))
+  return x == 0 ? 64 : GPUCA_CHOICE(__builtin_ctzll(x), __ffsll((long long)x) - 1, __builtin_ctzll(x));
+#else
+  for (uint32_t i = 0; i < 64; ++i) {
+    if (x & (1ull << i)) {
+      return i;
+    }
+  }
+  return 64;
+#endif
+}
+
+GPUdi() constexpr uint32_t GPUCommonMath::Popcount64(uint64_t x)
+{
+#if (defined(__GNUC__) || defined(__clang__) || defined(__CUDACC__) || defined(__HIPCC__)) && !defined(__OPENCL__) // TODO: remove OPENCL when reported SPIR-V bug is fixed
+  // use builtin if available
+  return GPUCA_CHOICE(__builtin_popcountll(x), __popcll(x), __builtin_popcountll(x));
+#else
+  return Popcount((uint32_t)x) + Popcount((uint32_t)(x >> 32));
 #endif
 }
 
@@ -598,6 +676,41 @@ GPUdi() void GPUCommonMath::AtomicMinInternal(S* addr, T val)
   while ((current = *(volatile S*)addr) > val && !AtomicCASInternal(addr, current, val)) {
   }
 #endif // GPUCA_GPUCODE
+}
+
+// Relaxed, as the device atomics above
+template <class T, class S>
+GPUdi() T GPUCommonMath::AtomicLoadInternal(S* addr)
+{
+#if defined(GPUCA_GPUCODE) && defined(__OPENCL__) && (!defined(__clang__) || defined(GPUCA_OPENCL_CLANG_C11_ATOMICS))
+  return ::atomic_load_explicit(addr, memory_order_relaxed);
+#elif defined(GPUCA_GPUCODE) && (defined(__OPENCL__) || defined(__CUDACC__) || defined(__HIPCC__))
+  return *(volatile S*)addr;
+#elif defined(GPUCA_GPUCODE) && defined(__METAL__)
+  return atomic_load_explicit(GPUCommonMathMetalAtomic(addr), memory_order_relaxed);
+#elif defined(WITH_OPENMP)
+  T ret;
+  __atomic_load(addr, &ret, __ATOMIC_RELAXED);
+  return ret;
+#else
+  return reinterpret_cast<std::atomic<T>*>(addr)->load(std::memory_order_relaxed);
+#endif
+}
+
+template <class S, class T>
+GPUdi() void GPUCommonMath::AtomicStoreInternal(S* addr, T val)
+{
+#if defined(GPUCA_GPUCODE) && defined(__OPENCL__) && (!defined(__clang__) || defined(GPUCA_OPENCL_CLANG_C11_ATOMICS))
+  ::atomic_store_explicit(addr, val, memory_order_relaxed);
+#elif defined(GPUCA_GPUCODE) && (defined(__OPENCL__) || defined(__CUDACC__) || defined(__HIPCC__))
+  *(volatile S*)addr = val;
+#elif defined(GPUCA_GPUCODE) && defined(__METAL__)
+  atomic_store_explicit(GPUCommonMathMetalAtomic(addr), val, memory_order_relaxed);
+#elif defined(WITH_OPENMP)
+  __atomic_store(addr, &val, __ATOMIC_RELAXED);
+#else
+  reinterpret_cast<std::atomic<T>*>(addr)->store(val, std::memory_order_relaxed);
+#endif
 }
 
 #if (defined(__CUDACC__) || defined(__HIPCC__)) && !defined(G__ROOT) && !defined(__CLING__)
