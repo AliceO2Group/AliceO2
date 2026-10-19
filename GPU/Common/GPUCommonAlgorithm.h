@@ -49,6 +49,8 @@ class GPUCommonAlgorithm
 #endif
   template <class T>
   GPUd() static void swap(T& a, T& b);
+  template <class I, class P>
+  GPUhd() static I partitionPoint(I first, I count, const P& pred);
 
  private:
   template <typename I>
@@ -329,6 +331,24 @@ GPUdi() void GPUCommonAlgorithm::swap(T& a, T& b)
   std::swap(a, b);
 }
 #endif
+
+// std::partition_point over the indices [first, first + count): the first index for which pred is false, pred being true on a prefix.
+// A lower bound of value in a sorted key(i) is pred(i) = key(i) < value, an upper bound pred(i) = !(value < key(i)).
+template <class I, class P>
+GPUhdi() I GPUCommonAlgorithm::partitionPoint(I first, I count, const P& pred)
+{
+  while (count > 0) {
+    const I step = count / 2;
+    const I middle = first + step;
+    if (pred(middle)) {
+      first = middle + 1;
+      count -= step + 1;
+    } else {
+      count = step;
+    }
+  }
+  return first;
+}
 
 } // namespace o2::gpu
 
