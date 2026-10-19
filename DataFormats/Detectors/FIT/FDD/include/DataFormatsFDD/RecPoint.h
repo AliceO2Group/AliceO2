@@ -53,6 +53,7 @@ class RecPoint
  public:
   enum TimeTypeIndex : int { TimeA,
                              TimeC };
+  enum ETriggerBits { kSwTrigger = 7 };
   RecPoint() = default;
   RecPoint(const std::array<int, 2>& collisiontime, int first, int ne,
            o2::InteractionRecord iRec, o2::fdd::Triggers triggers)
