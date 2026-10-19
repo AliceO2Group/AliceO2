@@ -31,22 +31,24 @@ namespace eventgen
 struct GeneratorFromO2KineParam : public o2::conf::ConfigurableParamHelper<GeneratorFromO2KineParam> {
   bool skipNonTrackable = true;
   bool continueMode = false;
-  bool roundRobin = false;   // read events with period boundary conditions
-  bool randomize = false;    // randomize the order of events
+  bool roundRobin = false;   // start over from the first file/event once all events have been used
+  bool randomize = false;    // serve the events of each file in random order (each one exactly once)
   unsigned int rngseed = 0;  // randomizer seed, 0 for random value
   bool randomphi = false;    // randomize phi angle
-  std::string fileName = ""; // filename to read from - takes precedence over SimConfig if given
+  std::string fileName = ""; // filename(s) to read from - takes precedence over SimConfig if given;
+                             // a comma-separated list of files is read one file after the other
   O2ParamDef(GeneratorFromO2KineParam, "GeneratorFromO2Kine");
 };
 
 struct O2KineGenConfig {
   bool skipNonTrackable = true;
   bool continueMode = false;
-  bool roundRobin = false;   // read events with period boundary conditions
-  bool randomize = false;    // randomize the order of events
+  bool roundRobin = false;   // start over from the first file/event once all events have been used
+  bool randomize = false;    // serve the events of each file in random order (each one exactly once)
   unsigned int rngseed = 0;  // randomizer seed, 0 for random value
   bool randomphi = false;    // randomize phi angle
-  std::string fileName = ""; // filename to read from - takes precedence over SimConfig if given
+  std::string fileName = ""; // filename(s) to read from - takes precedence over SimConfig if given;
+                             // a comma-separated list of files is read one file after the other
 };
 
 struct EventPoolGenConfig {
@@ -54,8 +56,8 @@ struct EventPoolGenConfig {
                                   // or .. a local file containing a list of files to use
                                   // or .. a concrete file path to a kinematics file
   bool skipNonTrackable = true;   // <--- do we need this?
-  bool roundRobin = false;        // read events with period boundary conditions
-  bool randomize = true;          // randomize the order of events
+  bool roundRobin = false;        // start over from the first file/event once all events have been used
+  bool randomize = true;          // serve the events of each file in random order (each one exactly once)
   unsigned int rngseed = 0;       // randomizer seed, 0 for random value
   bool randomphi = false;         // randomize phi angle; rotates tracks in events by some phi-angle
 };
