@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include <vector>
+#include <cassert>
 
 #include "TTree.h"
 
@@ -21,7 +22,6 @@
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/IOMCTruthContainerView.h"
-#include <cassert>
 
 using namespace o2::framework;
 using namespace o2::itsmft;
@@ -64,6 +64,7 @@ void DigitReader::run(ProcessingContext& pc)
   if (mUseMC) {
     mTree->SetBranchAddress(mDigtMCTruthBranchName.c_str(), &plabels);
   }
+
   mTree->GetEntry(ent);
   LOG(info) << mDetName << "DigitReader pushes " << mDigROFRec.size() << " ROFRecords, "
             << mDigits.size() << " digits at entry " << ent;
@@ -72,11 +73,11 @@ void DigitReader::run(ProcessingContext& pc)
   // To be fixed once the names-definition class is ready
   pc.outputs().snapshot(Output{mOrigin, "DIGITSROF", 0}, mDigROFRec);
   pc.outputs().snapshot(Output{mOrigin, "DIGITS", 0}, mDigits);
+
   if (mUseCalib) {
     pc.outputs().snapshot(Output{mOrigin, "GBTCALIB", 0}, mCalib);
   }
 
-<<<<<<< HEAD:Detectors/Upgrades/ALICE3/TRK/workflow/src/DigitReaderSpec.cxx
   if (mUseMC) {
     auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{mOrigin, "DIGITSMCTR", 0});
     plabels->copyandflatten(sharedlabels);
@@ -85,9 +86,6 @@ void DigitReader::run(ProcessingContext& pc)
   }
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
-=======
-  if (noEntry || mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
->>>>>>> ce7127efef (Publish an empty timeframe where the readers only ended the stream):Detectors/Upgrades/ALICE3/TRKFT3/common/workflow/src/DigitReaderSpec.cxx
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }
@@ -103,18 +101,21 @@ void DigitReader::connectTree(const std::string& filename)
 
   mTree->SetBranchAddress(mDigROFBranchName.c_str(), &mDigROFRecPtr);
   mTree->SetBranchAddress(mDigitBranchName.c_str(), &mDigitsPtr);
+
   if (mUseCalib) {
     if (!mTree->GetBranch(mCalibBranchName.c_str())) {
       throw std::runtime_error("GBT calibration data requested but not found in the tree");
     }
     mTree->SetBranchAddress(mCalibBranchName.c_str(), &mCalibPtr);
   }
+
   if (mUseMC) {
     if (!mTree->GetBranch(mDigtMC2ROFBranchName.c_str()) || !mTree->GetBranch(mDigtMCTruthBranchName.c_str())) {
       throw std::runtime_error("MC data requested but not found in the tree");
     }
     mTree->SetBranchAddress(mDigtMC2ROFBranchName.c_str(), &mDigMC2ROFsPtr);
   }
+
   LOG(info) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
@@ -123,9 +124,11 @@ DataProcessorSpec getTRKDigitReaderSpec(bool useMC, bool useCalib, std::string d
   std::vector<OutputSpec> outputSpec;
   outputSpec.emplace_back("TRK", "DIGITS", 0, Lifetime::Timeframe);
   outputSpec.emplace_back("TRK", "DIGITSROF", 0, Lifetime::Timeframe);
+
   if (useCalib) {
     outputSpec.emplace_back("TRK", "GBTCALIB", 0, Lifetime::Timeframe);
   }
+
   if (useMC) {
     outputSpec.emplace_back("TRK", "DIGITSMCTR", 0, Lifetime::Timeframe);
     outputSpec.emplace_back("TRK", "DIGITSMC2ROF", 0, Lifetime::Timeframe);
