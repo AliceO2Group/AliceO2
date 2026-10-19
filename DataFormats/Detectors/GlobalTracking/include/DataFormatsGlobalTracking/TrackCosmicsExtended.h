@@ -110,16 +110,20 @@ struct TrackCosmicsExtended {
                                                ///< approach to the beam line; valid if chi2MatchPolished >= 0
   float chi2MatchPolished = -1.f;              ///< chi2 of the polished bottom and top halves at the closest approach (< 0: not polished)
   o2::MCCompLabel label{};                     ///< MC label of the cosmic (MC only)
+  float tpcOccBef = -1.f;                      ///< TPC clusters in the orbit before the time of the cosmic (TOF time if hasTOFTime(), else the matcher's),
+                                               ///< from the TPC occupancy map (-1: no map, or the orbit is not fully inside the TF)
+  float tpcOccAft = -1.f;                      ///< same for the orbit after the time of the cosmic, i.e. while its clusters drift
 
   bool hasTOFTime() const { return scoreTOFPair >= 0.f; } ///< a HitTOFFlight pair gave the cosmic its time timeTOFMUS
-  ClassDefNV(TrackCosmicsExtended, 1);
+  ClassDefNV(TrackCosmicsExtended, 2);
 };
 
-/// per-TF quantities of the TPC transformation used in the reconstruction
+/// per-TF quantities: the TPC transformation used in the reconstruction and the TPC occupancy
 struct CosmicsTFInfo {
-  float vDrift = 0.f; ///< drift velocity of the transformation [cm/time bin]
-  float t0 = 0.f;     ///< time offset of the transformation [time bins]
-  ClassDefNV(CosmicsTFInfo, 1);
+  float vDrift = 0.f;  ///< drift velocity of the transformation [cm/time bin]
+  float t0 = 0.f;      ///< time offset of the transformation [time bins]
+  float tpcOcc = -1.f; ///< TPC clusters per orbit, average of the TF (TPC occupancy map) (< 0: no map)
+  ClassDefNV(CosmicsTFInfo, 2);
 };
 
 } // namespace o2::dataformats
