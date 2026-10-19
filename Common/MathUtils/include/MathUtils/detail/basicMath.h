@@ -91,17 +91,25 @@ GPUdi() T log(T x)
   return o2::gpu::GPUCommonMath::Log(x);
 };
 
-#ifndef GPUCA_GPUCODE_DEVICE // Double overloads using std namespace not visible on GPU
+#if !defined(GPUCA_GPUCODE_DEVICE) || defined(__CUDACC__) || defined(__HIPCC__) // Double specialisations, not for OpenCL and Metal
 template <>
 GPUhdi() double copysign(double x, double y)
 {
-  return std::copysign(x, y);
+  return o2::gpu::GPUCommonMath::Copysignd(x, y);
 }
 template <>
 GPUhdi() double sqrt(double x)
 {
-  return std::sqrt(x);
+  return o2::gpu::GPUCommonMath::Sqrtd(x);
 };
+template <>
+GPUdi() double log(double x)
+{
+  return o2::gpu::GPUCommonMath::Logd(x);
+};
+#endif
+
+#ifndef GPUCA_GPUCODE_DEVICE // Double overloads using std namespace not visible on GPU
 GPUhdi() double abs(double x)
 {
   return std::abs(x);
@@ -120,11 +128,6 @@ GPUdi() bool finite(double x)
   return std::isfinite(x);
 #endif
 }
-template <>
-GPUdi() double log(double x)
-{
-  return std::log(x);
-};
 #endif
 
 } // namespace detail

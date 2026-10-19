@@ -299,7 +299,7 @@ GPUhdi() constexpr T fastATan2(T y, T x)
     if (xx < 0) { // p1 is in the range [Pi/4, 3*Pi/4]
       phi0 = Pi075;
       tan = y1 > T(0) ? -x1 / y1 : T(0); // yy is always >=0, hence y1>=0
-    } else { // p1 is in the range [-Pi/4, Pi/4]
+    } else {                             // p1 is in the range [-Pi/4, Pi/4]
       phi0 = Pi025;
       tan = x1 > T(0) ? y1 / x1 : T(0);
     }
@@ -376,41 +376,41 @@ GPUdi() double pi()
   return o2::constants::math::PI;
 }
 
-#ifndef GPUCA_GPUCODE_DEVICE
+#if !defined(GPUCA_GPUCODE_DEVICE) || defined(__CUDACC__) || defined(__HIPCC__) // Double specialisations, not for OpenCL and Metal
 template <>
 GPUdi() double tan(double x)
 {
-  return std::tan(x);
+  return o2::gpu::GPUCommonMath::Tand(x);
 };
 template <>
 GPUdi() double sin(double x)
 {
-  return std::sin(x);
+  return o2::gpu::GPUCommonMath::Sind(x);
 };
 template <>
 GPUdi() double atan2(double y, double x)
 {
-  return std::atan2(y, x);
+  return o2::gpu::GPUCommonMath::ATan2d(y, x);
 };
 template <>
 GPUdi() double atan(double x)
 {
-  return std::atan(x);
+  return o2::gpu::GPUCommonMath::ATand(x);
 };
 template <>
 GPUdi() double asin(double x)
 {
-  return std::asin(x);
+  return o2::gpu::GPUCommonMath::ASind(x);
 };
 template <>
 GPUdi() double acos(double x)
 {
-  return std::acos(x);
+  return o2::gpu::GPUCommonMath::ACosd(x);
 };
 template <>
 GPUdi() double cos(double x)
 {
-  return std::cos(x);
+  return o2::gpu::GPUCommonMath::Cosd(x);
 };
 #endif
 
