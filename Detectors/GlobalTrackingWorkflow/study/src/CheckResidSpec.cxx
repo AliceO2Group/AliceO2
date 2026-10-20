@@ -453,6 +453,7 @@ bool CheckResidSpec::processITSTrack(const o2::its::TrackITS& iTrack, const o2::
     bcPV.setSigmaY2(0.5 * (pv.getSigmaX2() + pv.getSigmaY2()));
     bcPV.setSigmaZ2(pv.getSigmaZ2());
     bcPV.setSensorID(-1);
+    bcPV.setSigmaYZ(0.f); // not initialised by the BaseCluster default constructor
     clArr[0] = &bcPV;
   }
   // collect all track clusters to array, placing them to layer+1 slot
