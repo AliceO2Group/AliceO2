@@ -225,6 +225,8 @@ void Detector::configFromFile(std::string fileName)
         // tmpBuff[4] = nMods
         // tmpBuff[5] = stagOffset (required ONLY for ML)
         // tmpBuff[6] = matBudgetMode (optional, default = Thickness)
+        // tmpBuff[7] = rInnRow (optional, ML only, default = 0): which staves of a staggered layer sit at
+        //              rInn, 0 = even, 1 = odd (needs tmpBuff[6]); in the flipped layer the rInn row is the outer one
 
         // Base parameters for all segmented layers (at least 5 needed)
         if (tmpBuff.size() < 5) {
@@ -250,8 +252,9 @@ void Detector::configFromFile(std::string fileName)
           if (tmpBuff.size() >= 7) {
             matBudgetMode = static_cast<MatBudgetParamMode>(static_cast<int>(tmpBuff[6]));
           }
+          const int rInnRow = (tmpBuff.size() >= 8) ? static_cast<int>(tmpBuff[7]) : 0;
 
-          mLayers.push_back(std::make_unique<TRKMLLayer>(layerCount, name, rInn, stagOffset, tiltAngle, nStaves, nMods, thick, matBudgetMode));
+          mLayers.push_back(std::make_unique<TRKMLLayer>(layerCount, name, rInn, stagOffset, tiltAngle, nStaves, nMods, thick, matBudgetMode, rInnRow));
         } else {
           // OT layers do NOT have stagOffset. The optional mode is at index 5.
           if (tmpBuff.size() >= 6) {

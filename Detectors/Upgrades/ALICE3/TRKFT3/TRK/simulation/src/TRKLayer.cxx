@@ -233,8 +233,8 @@ std::pair<float, float> TRKSegmentedLayer::getBoundingRadii(double staveWidth) c
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-TRKMLLayer::TRKMLLayer(int layerNumber, std::string layerName, float rInn, float staggerOffset, float tiltAngle, int numberOfStaves, int numberOfModules, float thickOrX2X0, MatBudgetParamMode mode)
-  : TRKSegmentedLayer(layerNumber, layerName, rInn, tiltAngle, numberOfStaves, numberOfModules, thickOrX2X0, mode), mStaggerOffset(staggerOffset)
+TRKMLLayer::TRKMLLayer(int layerNumber, std::string layerName, float rInn, float staggerOffset, float tiltAngle, int numberOfStaves, int numberOfModules, float thickOrX2X0, MatBudgetParamMode mode, int rInnRow)
+  : TRKSegmentedLayer(layerNumber, layerName, rInn, tiltAngle, numberOfStaves, numberOfModules, thickOrX2X0, mode), mStaggerOffset(staggerOffset), mRInnRow(rInnRow)
 {
   if (mLayerNumber == sFlippedLayerNumber) {
     mOuterRadius = rInn;
@@ -242,6 +242,18 @@ TRKMLLayer::TRKMLLayer(int layerNumber, std::string layerName, float rInn, float
     mIsFlipped = true;
     mStaggerOffset = -staggerOffset;
     LOGP(info, "Layer {} is flipped: sensor and metal stack positions are switched", mLayerNumber);
+  }
+  if (mRInnRow != 0 && mRInnRow != 1) {
+    LOGP(fatal, "Layer {}: rInnRow = {}, use 0 (even staves at rInn) or 1 (odd staves at rInn)", mLayerNumber, mRInnRow);
+  }
+  if (mRInnRow != 0) {
+    if (mLayerNumber == 3 || mLayerNumber == 4) {
+      // even staves (stave 0) go to the shifted row: inside the rInn row in the flipped layer, outside
+      // otherwise (stagOffset >= 0; a negative stagOffset is not handled by getBoundingRadii)
+      LOGP(info, "Layer {} (staggered): even staves in the {} row (rInnRow = {})", mLayerNumber, mIsFlipped ? "inner" : "outer", mRInnRow);
+    } else {
+      LOGP(info, "Layer {} is not staggered: rInnRow = {} has no effect", mLayerNumber, mRInnRow);
+    }
   }
 }
 
@@ -342,7 +354,7 @@ void TRKMLLayer::createLayer(TGeoVolume* motherVolume)
     TGeoRotation* rot = new TGeoRotation("rot", phiDeg + 90 + mTiltAngle, 0, 0);
     trans->SetRotation(rot);
     // float trueRadius = (mLayerNumber == 3 || mLayerNumber == 4) ? (iStave % 2 == 0 ? mInnerRadius : mInnerRadius + mStaggerOffset) : mInnerRadius;
-    float trueRadius = (mLayerNumber == 3 || mLayerNumber == 4) ? (iStave % 2 == 0 ? avgRadiusInner : avgRadiusOuter) : avgRadiusInner;
+    float trueRadius = (mLayerNumber == 3 || mLayerNumber == 4) ? (iStave % 2 == mRInnRow ? avgRadiusInner : avgRadiusOuter) : avgRadiusInner;
     trans->SetTranslation(trueRadius * std::cos(phi), trueRadius * std::sin(phi), 0);
     LOGP(debug, "Inserting {} in {} ", staveVol->GetName(), layerVol->GetName());
     layerVol->AddNode(staveVol, iStave, trans);

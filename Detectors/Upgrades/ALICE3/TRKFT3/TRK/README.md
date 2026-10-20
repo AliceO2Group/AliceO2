@@ -68,7 +68,8 @@ Both layouts use the same configuration-file syntax (only the OT geometry implem
 
 **Middle Layers (ML) - Indices 0 to 4**
 The first 5 valid lines are parsed as `TRKMLLayer` objects. These layers **require** a 6th parameter for the staggering offset (`stagOffset`).
-* **Format:** `rInn` \t `thick` \t `tiltAngle` \t `nStaves` \t `nMods` \t `stagOffset` \t `[optional_mode]`
+* **Format:** `rInn` \t `thick` \t `tiltAngle` \t `nStaves` \t `nMods` \t `stagOffset` \t `[optional_mode]` \t `[optional_rInnRow]`
+* Layers 3 and 4 are staggered: one stave out of two sits at `rInn`, the others are shifted by `stagOffset`. By default the even staves (stave 0 at phi = 0) are at `rInn`; `rInnRow` = 1 puts the odd staves there instead, i.e. stave 0 in the shifted row. In the flipped layer 3 the `rInn` row is the outer one and the shift points inwards, so there `rInnRow` = 1 puts stave 0 in the inner row; in layer 4 in the outer row. To give `rInnRow`, the mode column must be written too.
 
 **Outer Layers (OT) - Indices 5 and above**
 From the 6th valid line onwards, lines are parsed as OT layer objects (`TRKOTLayer` for `kSegmented`, `TRKOTLayerRealistic` for `kSimplifiedRealistic`). These layers do **not** have a staggering offset. The optional mode parameter shifts to the 6th column.
