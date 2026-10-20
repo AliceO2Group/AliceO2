@@ -101,6 +101,7 @@ class GPUCommonMath
   GPUd() constexpr static float Log(float x);
   GPUd() constexpr static double Logd(double x);
   GPUd() constexpr static float Exp(float x);
+  GPUd() constexpr static double Expd(double x);
   GPUhdni() constexpr static float Copysign(float x, float y) { return GPUCA_CHOICE(std::copysignf(x, y), copysignf(x, y), copysign(x, y)); }
   GPUd() constexpr static double Copysignd(double x, double y);
   GPUd() constexpr static float TwoPi() { return 6.2831853f; }
@@ -377,6 +378,7 @@ GPUdi() constexpr double GPUCommonMath::Sind(double x) { return GPUCA_CHOICE(std
 GPUdi() constexpr double GPUCommonMath::Cosd(double x) { return GPUCA_CHOICE(std::cos(x), cos(x), cos(x)); }
 GPUdi() constexpr double GPUCommonMath::Tand(double x) { return GPUCA_CHOICE(std::tan(x), tan(x), tan(x)); }
 GPUdi() constexpr double GPUCommonMath::Logd(double x) { return GPUCA_CHOICE(std::log(x), log(x), log(x)); }
+GPUdi() constexpr double GPUCommonMath::Expd(double x) { return GPUCA_CHOICE(std::exp(x), exp(x), exp(x)); }
 GPUdi() constexpr double GPUCommonMath::Copysignd(double x, double y) { return GPUCA_CHOICE(std::copysign(x, y), copysign(x, y), copysign(x, y)); }
 #endif
 
