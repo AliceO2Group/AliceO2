@@ -73,22 +73,6 @@ void Digitizer::init()
   LOG(info) << "  Charge threshold: " << digitizerParams.chargeThreshold << " electrons";
   LOG(info) << "  Continuous mode: " << (mContinuous ? "ON" : "OFF");
 
-  loadMap(mEfficiencyMap, digitizerParams.efficiencyMapPath, "hEfficiencyMap");
-  if (!mEfficiencyMap) {
-    LOG(info) << "No efficiency map loaded, using uniform efficiency: " << digitizerParams.efficiency * 100 << " %";
-  }
-
-  loadMap(mResolutionMap, digitizerParams.resolutionMapPath, "hSigmaPixel");
-  prepareScaledResolutionMap();
-  if (!mResolutionMap) {
-    LOG(info) << "No resolution map loaded, using uniform time resolution: " << digitizerParams.timeResolution * 1e3 << " ps";
-  }
-
-  loadMap(mTimeOfArrivalMap, digitizerParams.timeOfArrivalMapPath, "toa_pixel");
-  if (!mTimeOfArrivalMap) {
-    LOG(info) << "No time of arrival map loaded";
-  }
-
   sSegmentation = o2::iotof::Segmentation::Instance();
 }
 
@@ -375,58 +359,22 @@ int Digitizer::energyToCharge(float energyLoss) const
 
 //_______________________________________________________________________
 
-void Digitizer::loadMap(TH2D*& map, const std::string& path, const char* mapName)
+void Digitizer::loadEfficiencyMap(const TH2D* map)
 {
-  // Load a map either from CCDB (path prefixed with "ccdb://") or from a ROOT file
-  // (anything TFile::Open understands: local path, alien://, root://, http://, ...)
-  static constexpr std::string_view ccdbPrefix = "ccdb://";
+  mEfficiencyMap = dynamic_cast<TH2D*>(map->Clone());
+  mEfficiencyMap->SetDirectory(nullptr);
+}
 
-  if (path.empty()) {
-    return;
-  }
+void Digitizer::loadResolutionMap(const TH2D* map)
+{
+  mResolutionMap = dynamic_cast<TH2D*>(map->Clone());
+  mResolutionMap->SetDirectory(nullptr);
+}
 
-  TH2D* rawMap = nullptr;
-  TFile* file = nullptr;
-
-  if (path.rfind(ccdbPrefix, 0) == 0) {
-    const std::string ccdbPath = path.substr(ccdbPrefix.size());
-    LOG(info) << "Loading " << mapName << " from CCDB: " << ccdbPath;
-    rawMap = o2::ccdb::BasicCCDBManager::instance().get<TH2D>(ccdbPath); // owned by the CCDB manager
-    if (!rawMap) {
-      LOG(error) << "Failed to retrieve " << mapName << " from CCDB path: " << ccdbPath;
-      return;
-    }
-  } else {
-    LOG(info) << "Loading " << mapName << " from file: " << path;
-    file = TFile::Open(path.c_str());
-    if (!file || !file->IsOpen()) {
-      LOG(error) << "Failed to open file: " << path;
-      delete file;
-      return;
-    }
-    rawMap = dynamic_cast<TH2D*>(file->Get(mapName));
-    if (!rawMap) {
-      LOG(error) << "Failed to retrieve " << mapName << " from file: " << path;
-      LOG(error) << "Available keys in the file:";
-      TIter next(file->GetListOfKeys());
-      TKey* key;
-      while ((key = dynamic_cast<TKey*>(next()))) {
-        LOG(error) << "  " << key->GetName() << " (" << key->GetClassName() << ")";
-      }
-      file->Close();
-      delete file;
-      return;
-    }
-  }
-
-  map = dynamic_cast<TH2D*>(rawMap->Clone());
-  map->SetDirectory(nullptr); // Detach from file to avoid deletion when file is closed
-  LOG(info) << "Loaded " << mapName << " (" << map->GetNbinsX() << " x " << map->GetNbinsY() << " bins)";
-
-  if (file) {
-    file->Close();
-    delete file;
-  }
+void Digitizer::loadTimeOfArrivalMap(const TH2D* map)
+{
+  mTimeOfArrivalMap = dynamic_cast<TH2D*>(map->Clone());
+  mTimeOfArrivalMap->SetDirectory(nullptr);
 }
 
 void Digitizer::prepareScaledResolutionMap()

@@ -54,6 +54,10 @@ class IOTOFDPLDigitizerTask : o2::base::BaseDPLDigitizer
   void initDigitizerTask(framework::InitContext& ic) override
   {
     mDisableQED = ic.options().get<bool>("disable-qed");
+    mEnableResponseFiles = ic.options().get<bool>("enable-response-files");
+    mLocalEfficiencyFile = ic.options().get<std::string>("local-efficiency-file");
+    mLocalTimeResoFile = ic.options().get<std::string>("local-timereso-file");
+    mLocalToAFile = ic.options().get<std::string>("local-toa-file");
 
     auto geom = GeometryTGeo::Instance();
     geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G)); // make sure L2G matrices are loaded
@@ -163,10 +167,34 @@ class IOTOFDPLDigitizerTask : o2::base::BaseDPLDigitizer
     mFinished = true;
   }
 
+  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+  {
+    if (!mEnableResponseFiles) {
+      return;
+    }
+    if (matcher == ConcreteDataMatcher(mOrigin, "MADPIXEFF", 0)) {
+      if (mLocalEfficiencyFile.empty()) {
+        LOG(info) << "Using CCDB/MADPIX efficiency file";
+        mDigitizer.loadEfficiencyMap((const TH2D*)obj);
+      } else {
+        LOG(info) << "Response function will be loaded from local file: " << mLocalEfficiencyFile;
+        std::unique_ptr<TFile> file(TFile::Open(mLocalEfficiencyFile.data(), "READ"));
+        if (!file) {
+          LOG(fatal) << "Cannot open response file " << mLocalEfficiencyFile.data();
+        }
+        mDigitizer.loadEfficiencyMap((const TH2D*)file->Get("hEfficiencyMap"));
+      }
+    }
+  }
+
  private:
   bool mDisableQED = false;
+  bool mEnableResponseFiles = false;
   bool mWithMCTruth{true};
   bool mFinished{false};
+  std::string mLocalEfficiencyFile{""};
+  std::string mLocalTimeResoFile{""};
+  std::string mLocalToAFile{""};
   unsigned long mFirstOrbitTF = 0x0;
   const o2::detectors::DetID mID{o2::detectors::DetID::TF3};
   const o2::header::DataOrigin mOrigin{o2::header::gDataOriginTF3};
@@ -197,7 +225,9 @@ o2::framework::DataProcessorSpec getIOTOFDigitizerSpec(int channel, bool mctruth
 {
   std::vector<o2::framework::InputSpec> inputs;
   inputs.emplace_back("collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<o2::header::DataHeader::SubSpecificationType>(channel), o2::framework::Lifetime::Timeframe);
-  inputs.emplace_back("IOTOF_aptsresp", "TF3", "APTSRESP", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("IT3/Calib/APTSResponse"));
+  inputs.emplace_back("madpixeff", "TF3", "MADPIXEFF", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("Users/g/glucia/tmp/ALICE3/IOTOF/pixelEfficiency"));
+  inputs.emplace_back("madpixreso", "TF3", "MADPIXRESO", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("Users/g/glucia/tmp/ALICE3/IOTOF/pixelResolution"));
+  inputs.emplace_back("madpixtoa", "TF3", "MADPIXTOA", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("Users/g/glucia/tmp/ALICE3/IOTOF/pixelTimeOfArrival"));
 
   const std::string detStr = o2::detectors::DetID::getName(o2::detectors::DetID::TF3);
   return o2::framework::DataProcessorSpec{detStr + "Digitizer",
@@ -206,7 +236,10 @@ o2::framework::DataProcessorSpec getIOTOFDigitizerSpec(int channel, bool mctruth
                                           o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<IOTOFDPLDigitizerTask>(mctruth)},
                                           o2::framework::Options{
                                             {"disable-qed", o2::framework::VariantType::Bool, false, {"disable QED handling"}},
-                                            {"local-response-file", o2::framework::VariantType::String, "", {"use response file saved locally at this path/filename"}}}};
+                                            {"enable-response-files", o2::framework::VariantType::Bool, false, {"enable in-pixel response maps from data"}},
+                                            {"local-efficiency-file", o2::framework::VariantType::String, "", {"use efficiency map saved locally at this path/filename"}},
+                                            {"local-timereso-file", o2::framework::VariantType::String, "", {"use time resolution map saved locally at this path/filename"}},
+                                            {"local-toa-file", o2::framework::VariantType::String, "", {"use ToA map saved locally at this path/filename"}}}};
 }
 
 } // namespace o2::iotof
