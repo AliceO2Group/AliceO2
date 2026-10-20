@@ -13,6 +13,9 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <cstdlib>
+#include <filesystem>
+#include <memory>
 #include <format>
 #include <fstream>
 #include <numeric>
@@ -43,6 +46,8 @@
 
 #ifdef O2_WITH_ACTS
 #include "ALICE3GlobalReconstruction/TrackerACTS.h"
+#include "ALICE3ACTS/TrkTGeoBlueprintBuilder.h"
+#include "ACTSInterface/TrackingGeometryManager.h"
 #endif
 
 #include <TFile.h>
@@ -75,12 +80,16 @@ TrackerDPL::TrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr,
                        int trackingThreads)
 {
   if (!hitRecoConfigFileName.empty()) {
+    LOG(debug) << "Loading ALICE3 TRK hit reconstruction config from file: " << hitRecoConfigFileName;
     std::ifstream configFile(hitRecoConfigFileName);
     mHitRecoConfig = nlohmann::json::parse(configFile);
+    LOG(debug) << "Loaded ALICE3 TRK hit reconstruction config: " << mHitRecoConfig.dump();
   }
   if (!clusterRecoConfigFileName.empty()) {
+    LOG(debug) << "Loading ALICE3 TRK cluster reconstruction config from file: " << clusterRecoConfigFileName;
     std::ifstream configFile(clusterRecoConfigFileName);
     mClusterRecoConfig = nlohmann::json::parse(configFile);
+    LOG(debug) << "Loaded ALICE3 TRK cluster reconstruction config: " << mClusterRecoConfig.dump();
   }
   mIsMC = isMC;
   mDeviceType = dType;
@@ -91,6 +100,10 @@ void TrackerDPL::init(InitContext& ic)
 {
 #ifdef O2_WITH_ACTS
   mUseACTS = ic.options().get<bool>("useACTS");
+  if (mUseACTS) {
+    o2::acts::TrackingGeometryManager::instance().setBuilder(std::make_unique<o2::alice3::TrkTGeoBlueprintBuilder>());
+    LOG(info) << "Registered automatic ACTS TRK geometry builder";
+  }
 #endif
 }
 
@@ -104,6 +117,7 @@ std::vector<o2::its::TrackingParameters> TrackerDPL::createTrackingParamsFromCon
   std::vector<o2::its::TrackingParameters> trackingParams;
   auto loadTrackingParamsFromJson = [](std::vector<o2::its::TrackingParameters>& trackingParams, const nlohmann::json& paramConfigJson) {
     for (const auto& paramConfig : paramConfigJson) {
+      LOG(debug) << "Loading ALICE3 TRK tracking parameters from config: " << paramConfig.dump();
       o2::its::TrackingParameters params;
       auto applyPassFlag = [&](const char* name, o2::its::IterationStep step) {
         if (paramConfig.contains(name)) {
@@ -136,7 +150,6 @@ std::vector<o2::its::TrackingParameters> TrackerDPL::createTrackingParamsFromCon
       if (paramConfig.contains("StartLayerMask")) {
         params.StartLayerMask = paramConfig["StartLayerMask"].get<uint16_t>();
       }
-
       if (paramConfig.contains("NSigmaCut")) {
         params.NSigmaCut = paramConfig["NSigmaCut"].get<float>();
       }
@@ -155,7 +168,6 @@ std::vector<o2::its::TrackingParameters> TrackerDPL::createTrackingParamsFromCon
       if (paramConfig.contains("MaxChi2NDF")) {
         params.MaxChi2NDF = paramConfig["MaxChi2NDF"].get<float>();
       }
-
       if (paramConfig.contains("UseDiamond")) {
         params.UseDiamond = paramConfig["UseDiamond"].get<bool>();
       }
@@ -220,7 +232,6 @@ std::vector<o2::its::TrackingParameters> TrackerDPL::createTrackingParamsFromCon
       if (paramConfig.contains("DropTFUponFailure")) {
         params.DropTFUponFailure = paramConfig["DropTFUponFailure"].get<bool>();
       }
-
       if (paramConfig.contains("LayerZ")) {
         params.LayerZ = paramConfig["LayerZ"].get<std::vector<float>>();
       }
@@ -307,6 +318,12 @@ void TrackerDPL::run(ProcessingContext& pc)
   mTimer.Start(false);
 
   const bool useGPU = mDeviceType != o2::gpu::gpudatatypes::DeviceType::CPU;
+#ifdef O2_WITH_ACTS
+  if (useGPU && mUseACTS) {
+    LOG(fatal) << "ACTS tracking is only supported with the CPU backend";
+    return;
+  }
+#endif
 
   if (useGPU) {
     runGPUTracking(pc);
@@ -418,7 +435,11 @@ DataProcessorSpec getTrackerSpec(bool useMC, const std::string& hitRecoConfig, c
                                             clusterRecoConfig,
                                             dType,
                                             trackingThreads)},
-    Options{}};
+    Options{
+#ifdef O2_WITH_ACTS
+      {"useACTS", o2::framework::VariantType::Bool, false, {"Use ACTS for tracking"}}
+#endif
+    }};
 }
 
 } // namespace trk

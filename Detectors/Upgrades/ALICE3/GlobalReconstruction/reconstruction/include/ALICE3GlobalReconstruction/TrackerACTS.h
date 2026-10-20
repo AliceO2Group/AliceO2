@@ -19,28 +19,37 @@
 #ifndef ALICE3_GLOBALRECONSTRUCTION_INCLUDE_TRACKERACTS_H_
 #define ALICE3_GLOBALRECONSTRUCTION_INCLUDE_TRACKERACTS_H_
 
-#include "Acts/Definitions/Units.hpp"
-#include "Framework/Logger.h"
+#include <Acts/Definitions/Units.hpp>
+#include <chrono>
+#include <cmath>
+#include <iomanip>
+#include <string_view>
+#include <Framework/Logger.h>
+#include <array>
+#include <vector>
+#include <unordered_set>
+#include "DataFormatsITS/TrackITS.h"
+#include <ITStracking/TimeFrame.h>
+#include <TH2F.h>
 
-#include "ITStracking/TimeFrame.h"
-#include "TH2F.h"
-
+namespace Acts
+{
+class Surface;
+class BoundTrackParameters;
+} // namespace Acts
 namespace o2::trk
 {
-
 /// Configuration for the ACTS-based tracker
 struct TrackerACTSConfig {
   // Seeding parameters
   float minPt = 0.4f * Acts::UnitConstants::GeV;             ///< Minimum pT for seeds
   float maxImpactParameter = 10.f * Acts::UnitConstants::mm; ///< Maximum impact parameter
   float cotThetaMax = std::sinh(4.0f);                       ///< Maximum cot(theta), corresponds to eta ~4
-
   // Delta R cuts for doublet/triplet formation
   float deltaRMinBottom = 5.f * Acts::UnitConstants::mm;   ///< Min deltaR for bottom-middle
   float deltaRMaxBottom = 200.f * Acts::UnitConstants::mm; ///< Max deltaR for bottom-middle
   float deltaRMinTop = 5.f * Acts::UnitConstants::mm;      ///< Min deltaR for middle-top
   float deltaRMaxTop = 200.f * Acts::UnitConstants::mm;    ///< Max deltaR for middle-top
-
   // Z cuts
   float zMin = -3000.f * Acts::UnitConstants::mm;
   float zMax = 3000.f * Acts::UnitConstants::mm;
@@ -53,7 +62,6 @@ struct TrackerACTSConfig {
   float maxSeedsPerMiddleSP = 2;
   float deltaPhiMax = 0.1f; ///< Maximum phi difference for doublets
 };
-
 /// Space point representation for tracking
 struct SpacePoint {
   float x{0.f};
@@ -62,12 +70,13 @@ struct SpacePoint {
   int layer{-1};
   int clusterId{-1};
   int rof{-1};
+  int sensorId{-1};
+  const Acts::Surface* surface{nullptr};
 
   // Derived quantities
   float r() const { return std::hypot(x, y); }
   float radius() const { return r(); } // required by Acts::CylindricalGridElement concept
   float phi() const { return std::atan2(y, x); }
-
   // Variance estimates (can be refined based on cluster properties)
   float varianceR{0.01f}; // ~100 um resolution squared
   float varianceZ{0.01f};
@@ -80,7 +89,6 @@ struct SeedACTS {
   const SpacePoint* top{nullptr};
   float quality{0.f};
 };
-
 /// TRK Tracker using ACTS algorithms for seeding and track finding
 template <int nLayers>
 class TrackerACTS
@@ -98,6 +106,10 @@ class TrackerACTS
 
   /// Adopt a TimeFrame for processing
   void adoptTimeFrame(o2::its::TimeFrame<nLayers>& tf);
+  void adoptSensorIDs(const std::array<std::vector<int>, nLayers>& sensorIDs)
+  {
+    mSensorIDs = &sensorIDs;
+  }
 
   /// Main tracking entry point: convert clusters to tracks
   void clustersToTracks();
@@ -109,7 +121,6 @@ class TrackerACTS
 
   /// Set the magnetic field strength
   void setBz(float bz) { mBz = bz; }
-
   /// Get the magnetic field strength
   float getBz() const { return mBz; }
 
@@ -125,13 +136,14 @@ class TrackerACTS
   /// Create seeds (triplets) from space points using ACTS SeedFinder
   void createSeeds();
 
-  /// Estimate track parameters from a seed using ACTS
-  bool estimateTrackParams(const SeedACTS& seed, o2::its::TrackITSExt& track) const;
-
   /// Run track finding from seeds
   void findTracks();
 
-  /// Assign MC labels to tracks
+  /// Convert fitted ACTS states to a TrackITSExt and publish it in the TimeFrame.
+  bool acceptTrack(const Acts::BoundTrackParameters& inner,
+                   const Acts::BoundTrackParameters& outer,
+                   const SeedACTS& seed, float chi2);
+  /// Assign one MC label per accepted track, after all ROFs have been processed.
   void computeTracksMClabels();
 
   /// Helper: time a task
@@ -147,15 +159,19 @@ class TrackerACTS
   // Space points built from clusters
   std::vector<SpacePoint> mSpacePoints;
   std::vector<std::vector<const SpacePoint*>> mSpacePointsPerLayer;
-
   // Seeds
   std::vector<SeedACTS> mSeeds;
+  // Avoid accepting seeds which reuse a cluster already assigned to a track.
+  std::unordered_set<uint64_t> mAcceptedClusters;
+  // Layer-local indices in mUnsortedClusters, in the same order as getTracks().
+  // Keep them separate from the external indices stored in TrackITSExt.
+  std::vector<std::array<int, nLayers>> mAcceptedTrackClusterIndices;
 
   // Tracking state
   float mBz{0.5f}; ///< Magnetic field in Tesla
   unsigned int mTimeFrameCounter{0};
   double mTotalTime{0.};
-
+  const std::array<std::vector<int>, nLayers>* mSensorIDs = nullptr;
   // Tracking states for logging
   enum State {
     SpacePointBuilding = 0,
@@ -169,7 +185,6 @@ class TrackerACTS
     "ACTS seeding",
     "Track finding"};
 };
-
 template <int nLayers>
 template <typename Func>
 float TrackerACTS<nLayers>::evaluateTask(Func&& task, std::string_view taskName)
@@ -179,11 +194,9 @@ float TrackerACTS<nLayers>::evaluateTask(Func&& task, std::string_view taskName)
   task();
   const auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double, std::milli> diff{end - start};
-
   LOG(debug) << " - " << taskName << " completed in: " << std::fixed << std::setprecision(2) << diff.count() << " ms";
   return static_cast<float>(diff.count());
 }
 
 } // namespace o2::trk
-
 #endif /* ALICE3_GLOBALRECONSTRUCTION_INCLUDE_TRACKERACTS_H_ */
