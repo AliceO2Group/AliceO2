@@ -12,6 +12,8 @@
 /// \file CheckClusters.C
 /// \brief Macro to check TRK clusters and compare cluster positions to MC hit positions
 
+#define ENABLE_UPGRADES
+
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <TCanvas.h>
 #include <TFile.h>
@@ -45,8 +47,6 @@
 #include "Framework/Logger.h"
 #include <string>
 #endif
-
-#define ENABLE_UPGRADES
 
 void CheckClusters(const std::string& clusfile = "o2clus_trk.root",
                    const std::string& hitfile = "o2sim_HitsTRK.root",
