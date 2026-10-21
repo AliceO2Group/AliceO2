@@ -121,7 +121,7 @@ class TRKMLLayer : public TRKSegmentedLayer
   TGeoVolume* createEndOfStaveCard(); // A-side (+z) end-of-stave card, in front of the conn disk
 
   float mStaggerOffset;
-  int mRInnRow = 0; // staggered layers: staves with iStave % 2 == mRInnRow sit at rInn, the others are shifted by the stagger offset
+  int mRInnRow = 0;       // staggered layers: staves with iStave % 2 == mRInnRow sit at rInn, the others are shifted by the stagger offset
   float mPhiOffset = 0.f; // deg, rotation of all the staves of the layer about the beam axis (counterclockwise, as phi)
 
   static constexpr double sStaveWidth = constants::ML::width;
