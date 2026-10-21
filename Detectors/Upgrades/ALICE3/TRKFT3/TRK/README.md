@@ -68,8 +68,9 @@ Both layouts use the same configuration-file syntax (only the OT geometry implem
 
 **Middle Layers (ML) - Indices 0 to 4**
 The first 5 valid lines are parsed as `TRKMLLayer` objects. These layers **require** a 6th parameter for the staggering offset (`stagOffset`).
-* **Format:** `rInn` \t `thick` \t `tiltAngle` \t `nStaves` \t `nMods` \t `stagOffset` \t `[optional_mode]` \t `[optional_rInnRow]`
+* **Format:** `rInn` \t `thick` \t `tiltAngle` \t `nStaves` \t `nMods` \t `stagOffset` \t `[optional_mode]` \t `[optional_rInnRow]` \t `[optional_phiOffset]`
 * Layers 3 and 4 are staggered: one stave out of two sits at `rInn`, the others are shifted by `stagOffset`. By default the even staves (stave 0 at phi = 0) are at `rInn`; `rInnRow` = 1 puts the odd staves there instead, i.e. stave 0 in the shifted row. In the flipped layer 3 the `rInn` row is the outer one and the shift points inwards, so there `rInnRow` = 1 puts stave 0 in the inner row; in layer 4 in the outer row. To give `rInnRow`, the mode column must be written too.
+* Stave `s` of a layer with `nStaves` = N is centred at phi = 360° · s / N (+ half a pitch if N is a multiple of 4), with stave 0 at phi = 0. `phiOffset` (degrees, counterclockwise as phi, default 0) rotates the whole layer about the beam axis: every stave is moved to phi + `phiOffset` and keeps its tilt with respect to its own radial direction. To give `phiOffset`, the mode and `rInnRow` columns must be written too.
 
 **Outer Layers (OT) - Indices 5 and above**
 From the 6th valid line onwards, lines are parsed as OT layer objects (`TRKOTLayer` for `kSegmented`, `TRKOTLayerRealistic` for `kSimplifiedRealistic`). These layers do **not** have a staggering offset. The optional mode parameter shifts to the 6th column.
