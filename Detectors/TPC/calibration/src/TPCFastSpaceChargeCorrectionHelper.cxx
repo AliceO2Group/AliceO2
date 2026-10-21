@@ -1059,7 +1059,8 @@ void TPCFastSpaceChargeCorrectionHelper::addCorrections(
         constexpr int nKnotPar3d = nKnotPar1d * 3;
 
         { // scale the main correction
-          double parscale[4] = {secMainScale, secMainScale, secMainScale, secMainScale * secMainScale};
+          // a spline is linear in its parameters: scaling the function scales all of them, the mixed derivative included
+          double parscale[4] = {secMainScale, secMainScale, secMainScale, secMainScale};
           for (int iknot = 0, ind = 0; iknot < spline.getNumberOfKnots(); iknot++) {
             for (int ipar = 0; ipar < nKnotPar1d; ++ipar) {
               for (int idim = 0; idim < 3; idim++, ind++) {
@@ -1116,7 +1117,7 @@ void TPCFastSpaceChargeCorrectionHelper::addCorrections(
                 float lu, lv, ls;
                 corr.convLocalToGrid(sector, row, y, z, lu, lv, ls);
                 ls *= scale;
-                double parscale[4] = {ls, ls * scaleU, ls * scaleV, ls * ls * scaleU * scaleV};
+                double parscale[4] = {ls, ls * scaleU, ls * scaleV, ls * scaleU * scaleV};
                 const auto& spl = corr.getSplineForRow(row);
                 spl.interpolateParametersAtU(corr.getCorrectionData(sector, row), lu, lv, P);
                 for (int ipar = 0, ind = 0; ipar < nKnotPar1d; ++ipar) {
@@ -1132,7 +1133,7 @@ void TPCFastSpaceChargeCorrectionHelper::addCorrections(
               float lu, lv, ls;
               corr.convRealLocalToGrid(sector, row, y, z, lu, lv, ls);
               ls *= scale;
-              double parscale[4] = {ls, ls * scaleRealU, ls * scaleRealV, ls * ls * scaleRealU * scaleRealV};
+              double parscale[4] = {ls, ls * scaleRealU, ls * scaleRealV, ls * scaleRealU * scaleRealV};
 
               { // inverse X correction
                 corr.getSplineInvXforRow(row).interpolateParametersAtU(corr.getCorrectionDataInvX(sector, row), lu, lv, P);
