@@ -11,6 +11,7 @@
 
 #include "IOTOFSimulation/Layer.h"
 #include "IOTOFBase/GeometryTGeo.h"
+#include "IOTOFSimulation/TF3Chip.h"
 
 #include "Framework/Logger.h"
 
@@ -185,31 +186,34 @@ void ITOFLayer::createLayer(TGeoVolume* motherVolume)
       setLayerStyle(layerVol);
 
       // Now we create the volume for a single stave
-      TGeoBBox* stave = new TGeoBBox(staveSizeX * 0.5, staveSizeY * 0.5, staveSizeZ * 0.5);
-      TGeoVolume* staveVol = new TGeoVolume(staveName, stave, medAir);
+      TGeoBBox* stave = new TGeoBBox(staveSizeX * 0.5, staveSizeY * 0.5 - 0.5 * 300.e-4, staveSizeZ * 0.5);
+      TGeoVolume* staveVol = new TGeoVolume(staveName, stave, medSi);
       setStaveStyle(staveVol);
+
+      // Now we create the volume for a single chip (chip + sensor)
+//      TGeoVolume* chipVol1 = o2::iotof::TF3Chip::createChip(0.5 * 300.e-4, mSensorThickness, chipName, sensName);
+
 
       // Now we create the volume for a single module (sensor + chip)
       const int modulesPerStaveX = 1;                           // we assume that each stave is divided in 1 modules along the x direction
-      const double moduleSizeX = staveSizeX / modulesPerStaveX; // cm
+      const double moduleSizeX = 5.22; //staveSizeX / modulesPerStaveX; // cm
       const double moduleSizeY = staveSizeY;                    // cm
-      const double moduleSizeZ = staveSizeZ / mModulesPerStave; // cm
-      TGeoBBox* module = new TGeoBBox(moduleSizeX * 0.5, moduleSizeY * 0.5, moduleSizeZ * 0.5);
+      const double moduleSizeZ = 18.1; //staveSizeZ / mModulesPerStave; // cm
+      TGeoBBox* module = new TGeoBBox(0.5 * moduleSizeX, 300.e-4 * 0.5, moduleSizeZ * 0.5);
       TGeoVolume* moduleVol = new TGeoVolume(moduleName, module, medAir);
       setModuleStyle(moduleVol);
 
       // Now we create the volume of the chip, which is the same for all modules
       const int chipsPerModuleX = 2;                          // we assume that each module is divided in 2 chips along the x direction
-      const int chipsPerModuleZ = 4;                          // we assume that each module is divided in 2 chips along the z direction
+      const int chipsPerModuleZ = 6;                          // we assume that each module is divided in 2 chips along the z direction
       const double chipSizeX = moduleSizeX / chipsPerModuleX; // cm
       const double chipSizeY = moduleSizeY;                   // cm
       const double chipSizeZ = moduleSizeZ / chipsPerModuleZ; // cm
-      TGeoBBox* chip = new TGeoBBox(chipSizeX * 0.5, chipSizeY * 0.5, chipSizeZ * 0.5);
-      TGeoVolume* chipVol = new TGeoVolume(chipName, chip, medSi);
-      setChipStyle(chipVol);
+//      TGeoBBox* chip = new TGeoBBox(chipSizeX * 0.5, chipSizeY * 0.5, chipSizeZ * 0.5);
+      TGeoVolume* chipVol = o2::iotof::TF3Chip::createChip(300.e-4, mSensorThickness, chipName, sensName); // new TGeoVolume(chipName, chip, medSi);
 
       // Finally we create the volume of the sensor, which is the same for all chips
-      const int sensorsPerChipX = 1;                          // we assume that each chip is divided in 2 sensors along the x direction
+/*      const int sensorsPerChipX = 1;                          // we assume that each chip is divided in 2 sensors along the x direction
       const int sensorsPerChipZ = 1;                          // we assume that each chip is divided in 2 sensors along the z direction
       const double sensorSizeX = chipSizeX / sensorsPerChipX; // cm
       const double sensorSizeY = mSensorThickness;            // cm
@@ -217,10 +221,10 @@ void ITOFLayer::createLayer(TGeoVolume* motherVolume)
       TGeoBBox* sensor = new TGeoBBox(sensorSizeX * 0.5, sensorSizeY * 0.5, sensorSizeZ * 0.5);
       TGeoVolume* sensVol = new TGeoVolume(sensName, sensor, medSi);
       setSensorStyle(sensVol);
-      ITOFLayer::mRegister.push_back(sensVol->GetName());
+*/      ITOFLayer::mRegister.push_back(sensName);
 
       // Now we build a chip from sensors
-      for (int i = 0; i < sensorsPerChipX; ++i) {
+/*      for (int i = 0; i < sensorsPerChipX; ++i) {
         for (int j = 0; j < sensorsPerChipZ; ++j) {
           LOGP(info, "iTOF: Creating sensor {}/{} for chip {}/{}", i + 1, sensorsPerChipX, j + 1, sensorsPerChipZ);
           auto* translation = new TGeoTranslation((i + 0.5) * sensorSizeX - 0.5 * chipSizeX,
@@ -229,12 +233,14 @@ void ITOFLayer::createLayer(TGeoVolume* motherVolume)
           chipVol->AddNode(sensVol, 1 + i * sensorsPerChipZ + j, translation);
         }
       }
-
+*/
       // Now we build a module from chips
       for (int i = 0; i < chipsPerModuleX; ++i) {
         for (int j = 0; j < chipsPerModuleZ; ++j) {
           LOGP(info, "iTOF: Creating chip {}/{} for module {}/{}", i + 1, chipsPerModuleX, j + 1, chipsPerModuleZ);
-          auto* translation = new TGeoTranslation((i + 0.5) * chipSizeX - 0.5 * moduleSizeX, 0, (j + 0.5) * chipSizeZ - 0.5 * moduleSizeZ);
+          auto* translation = new TGeoTranslation((i - 0.5) * (2.6 + 0.02), 0, (j + 0.5) * 3 + j * 0.02 - 0.5 * moduleSizeZ);
+          auto* rotation = new TGeoRotation(Form("segmentRotChip%d", i + 1), 0., 0. /*i == 0 ? 0. : 180.*/, 0.);
+    //      auto* transformation = new TGeoCombiTrans(*translation, *rotation);
           moduleVol->AddNode(chipVol, 1 + i * chipsPerModuleZ + j, translation);
         }
       }
@@ -243,7 +249,7 @@ void ITOFLayer::createLayer(TGeoVolume* motherVolume)
       for (int i = 0; i < modulesPerStaveX; ++i) {
         for (int j = 0; j < mModulesPerStave; ++j) {
           LOGP(info, "iTOF: Creating module {}/{} for stave {}/{}", i + 1, modulesPerStaveX, j + 1, mModulesPerStave);
-          auto* translation = new TGeoTranslation((i + 0.5) * moduleSizeX - 0.5 * staveSizeX, 0, (j + 0.5) * moduleSizeZ - 0.5 * staveSizeZ);
+          auto* translation = new TGeoTranslation(0., staveSizeY * 0.5, (j + 0.5) * (moduleSizeZ) + j * 0.02  - 0.5 * staveSizeZ);
           staveVol->AddNode(moduleVol, 1 + i * mModulesPerStave + j, translation);
         }
       }

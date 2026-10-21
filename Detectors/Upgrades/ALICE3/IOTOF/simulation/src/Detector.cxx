@@ -61,8 +61,9 @@ void Detector::configLayers(bool itof, bool otof, bool ftof, bool btof, std::str
                             const float x2x0, const float sensorThickness)
 {
 
-  std::pair<float, float> dInnerTof = {21.f, 129.f};       // Radius and length
-  std::pair<float, float> dOuterTof = {92.f, 680.f};       // Radius and length
+  auto& iotofPars = IOTOFBaseParam::Instance();
+  std::pair<float, float> dInnerTof = {iotofPars.itofRadius, iotofPars.itofLength}; // Radius and length
+  std::pair<float, float> dOuterTof = {iotofPars.otofRadius, iotofPars.otofLength}; // Radius and length
   std::pair<float, float> radiusRangeDiskTof = {15.f, 100.f};
   float zForwardTof = 370.f;
   LOG(info) << "Configuring IOTOF layers with '" << pattern << "' pattern";
@@ -121,22 +122,23 @@ void Detector::configLayers(bool itof, bool otof, bool ftof, bool btof, std::str
   } else {
     LOG(fatal) << "IOTOF layer pattern " << pattern << " not recognized, exiting";
   }
+
   if (itof) { // iTOF
     const std::string name = GeometryTGeo::getITOFLayerPattern();
-    const int nStaves = itofSegmented ? 24 : 0;              // number of staves in segmented case
-    const double staveWidth = itofSegmented ? 5.42 : 0.0;    // cm
-    const double staveTiltAngle = itofSegmented ? 3.0 : 0.0; // degrees
-    const int modulesPerStave = itofSegmented ? 10 : 0;      // number of modules per stave in segmented case
+    const int nStaves = itofSegmented ? iotofPars.itofNStaves : 0;               // number of staves in segmented case
+    const double staveWidth = itofSegmented ? 5.42 : 0.0;                        // cm
+    const double staveTiltAngle = itofSegmented ? iotofPars.itofStaveTilt : 0.0; // degrees
+    const int modulesPerStave = itofSegmented ? 7 : 0;                          // number of modules per stave in segmented case
     mITOFLayer = ITOFLayer(name,
                            dInnerTof.first, 0.f, dInnerTof.second, 0.f, x2x0, itofSegmented ? ITOFLayer::kBarrelSegmented : ITOFLayer::kBarrel,
                            nStaves, staveWidth, staveTiltAngle, modulesPerStave, itofSegmented ? sensorThickness : 0.0f);
   }
   if (otof) { // oTOF
     const std::string name = GeometryTGeo::getOTOFLayerPattern();
-    const int nStaves = otofSegmented ? 62 : 0;              // number of staves in segmented case
-    const double staveWidth = otofSegmented ? 9.74 : 0.0;    // cm
-    const double staveTiltAngle = otofSegmented ? 5.0 : 0.0; // degrees
-    const int modulesPerStave = otofSegmented ? 54 : 0;      // number of modules per stave in segmented case
+    const int nStaves = otofSegmented ? iotofPars.otofNStaves : 0;               // number of staves in segmented case
+    const double staveWidth = otofSegmented ? 9.74 : 0.0;                        // cm
+    const double staveTiltAngle = otofSegmented ? iotofPars.otofStaveTilt : 0.0; // degrees
+    const int modulesPerStave = otofSegmented ? 54 : 0;                          // number of modules per stave in segmented case
     mOTOFLayer = OTOFLayer(name,
                            dOuterTof.first, 0.f, dOuterTof.second, 0.f, x2x0, otofSegmented ? OTOFLayer::kBarrelSegmented : OTOFLayer::kBarrel,
                            nStaves, staveWidth, staveTiltAngle, modulesPerStave, otofSegmented ? sensorThickness : 0.0f);

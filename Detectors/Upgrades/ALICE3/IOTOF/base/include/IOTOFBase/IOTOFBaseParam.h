@@ -55,6 +55,19 @@ struct IOTOFBaseParam : public o2::conf::ConfigurableParamHelper<IOTOFBaseParam>
   float x2x0 = 0.02f;               // thickness expressed in radiation length, for all layers for the moment
   float sensorThickness = 0.0050f;  // thickness of the sensor in cm, for all layers for the moment, the default is set to 50 microns
 
+  // ITOF segmentation parameters
+  float itofRadius = 21.f;          // ITOF radius (cm)
+  float itofLength = 126.82f;       // ITOF length (cm)
+  int itofNStaves = 24;             // ITOF number of staves
+  float itofStaveTilt = 3;          // ITOF stave tilt angle (deg)
+
+  // OTOF segmentation parameters
+  float otofRadius = 92.f;          // OTOF radius (cm)
+  float otofLength = 680.f;         // OTOF length (cm)
+  int otofNStaves = 62;             // OTOF number of staves
+  float otofStaveTilt = 5;          // OTOF stave tilt angle (deg)
+
+
   O2ParamDef(IOTOFBaseParam, "IOTOFBase");
 };
 
