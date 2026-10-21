@@ -1098,10 +1098,11 @@ void TPCFastSpaceChargeCorrectionHelper::addCorrections(
 
           auto& linfo = corr.getRowInfo(row);
 
-          double scaleU = rowInfo.gridMeasured.getYscale() / linfo.gridMeasured.getYscale();
-          double scaleV = rowInfo.gridMeasured.getZscale() / linfo.gridMeasured.getZscale();
-          double scaleRealU = rowInfo.gridReal.getYscale() / linfo.gridReal.getYscale();
-          double scaleRealV = rowInfo.gridReal.getZscale() / linfo.gridReal.getZscale();
+          // chain rule for the derivatives: u = (y - y0) * yScale, v = (z - z0) * zScale => d/du_main = (du_corr / du_main) d/du_corr
+          double scaleU = linfo.gridMeasured.getYscale() / rowInfo.gridMeasured.getYscale();
+          double scaleV = linfo.gridMeasured.getZscale() / rowInfo.gridMeasured.getZscale();
+          double scaleRealU = linfo.gridReal.getYscale() / rowInfo.gridReal.getYscale();
+          double scaleRealV = linfo.gridReal.getZscale() / rowInfo.gridReal.getZscale();
 
           for (int iu = 0; iu < gridU.getNumberOfKnots(); iu++) {
             double u = gridU.getKnot(iu).u;
@@ -1117,7 +1118,8 @@ void TPCFastSpaceChargeCorrectionHelper::addCorrections(
                 float lu, lv, ls;
                 corr.convLocalToGrid(sector, row, y, z, lu, lv, ls);
                 ls *= scale;
-                double parscale[4] = {ls, ls * scaleU, ls * scaleV, ls * scaleU * scaleV};
+                // knot parameters: {S, dS/dv, dS/du, d2S/dudv}
+                double parscale[4] = {ls, ls * scaleV, ls * scaleU, ls * scaleU * scaleV};
                 const auto& spl = corr.getSplineForRow(row);
                 spl.interpolateParametersAtU(corr.getCorrectionData(sector, row), lu, lv, P);
                 for (int ipar = 0, ind = 0; ipar < nKnotPar1d; ++ipar) {
@@ -1133,7 +1135,7 @@ void TPCFastSpaceChargeCorrectionHelper::addCorrections(
               float lu, lv, ls;
               corr.convRealLocalToGrid(sector, row, y, z, lu, lv, ls);
               ls *= scale;
-              double parscale[4] = {ls, ls * scaleRealU, ls * scaleRealV, ls * scaleRealU * scaleRealV};
+              double parscale[4] = {ls, ls * scaleRealV, ls * scaleRealU, ls * scaleRealU * scaleRealV};
 
               { // inverse X correction
                 corr.getSplineInvXforRow(row).interpolateParametersAtU(corr.getCorrectionDataInvX(sector, row), lu, lv, P);
