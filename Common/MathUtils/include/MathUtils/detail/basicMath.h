@@ -91,6 +91,12 @@ GPUdi() T log(T x)
   return o2::gpu::GPUCommonMath::Log(x);
 };
 
+template <class T>
+GPUdi() T exp(T x)
+{
+  return o2::gpu::GPUCommonMath::Exp(x);
+};
+
 #if !defined(GPUCA_GPUCODE_DEVICE) || defined(__CUDACC__) || defined(__HIPCC__) // Double specialisations, not for OpenCL and Metal
 template <>
 GPUhdi() double copysign(double x, double y)
@@ -106,6 +112,11 @@ template <>
 GPUdi() double log(double x)
 {
   return o2::gpu::GPUCommonMath::Logd(x);
+};
+template <>
+GPUdi() double exp(double x)
+{
+  return o2::gpu::GPUCommonMath::Expd(x);
 };
 #endif
 
