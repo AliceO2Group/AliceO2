@@ -653,6 +653,16 @@ void Stack::addHit(int iDet)
   mCurrentParticle.SetBit(ParticleStatus::kHasHits, 1);
   mHitCounter++;
 }
+void Stack::modifiesHit(int iDet)
+{
+  // flag only; hit mask, kHasHits and hit counter stay untouched
+  if (mIndexOfCurrentTrack < mNumberOfPrimaryParticles) {
+    mTracks->at(mIndexOfCurrentTrack).setContributesToAHit();
+  } else {
+    Int_t iTrack = mTrackIDtoParticlesEntry[mIndexOfCurrentTrack];
+    mParticles[iTrack].setContributesToAHit();
+  }
+}
 void Stack::addHit(int iDet, Int_t iTrack)
 {
   mHitCounter++;

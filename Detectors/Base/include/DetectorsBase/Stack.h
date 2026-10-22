@@ -172,6 +172,9 @@ class Stack : public FairGenericStack
   /// Increment number of hits for the current track in a given detector
   /// \param iDet  Detector unique identifier
   void addHit(int iDet);
+  /// Mark the current track as contributing to a hit created by another track
+  /// \param iDet  Detector unique identifier
+  void modifiesHit(int iDet);
 
   TClonesArray* GetListOfParticles() override;
 

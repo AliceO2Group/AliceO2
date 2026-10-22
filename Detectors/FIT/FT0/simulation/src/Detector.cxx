@@ -1180,9 +1180,12 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 o2::ft0::HitType* Detector::AddHit(float x, float y, float z, float time, float energy, Int_t trackId, Int_t detId)
 {
   mHits->emplace_back(x, y, z, time, energy, trackId, detId);
+  auto stack = (o2::data::Stack*)fMC->GetStack();
   if (energy == 10) {
-    auto stack = (o2::data::Stack*)fMC->GetStack();
     stack->addHit(GetDetId());
+  } else {
+    // optical photon contributing to a hit recorded for its parent
+    stack->modifiesHit(GetDetId());
   }
   return &(mHits->back());
 }
