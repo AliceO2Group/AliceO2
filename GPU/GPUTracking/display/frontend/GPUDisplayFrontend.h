@@ -138,7 +138,14 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   void focusLost();                                     // Release all keys and mouse buttons when the window loses focus, since the release events go to another window
   void applyInitialWindowState();                       // Switch to fullscreen / maximize at startup according to the settings
  private:
+  struct configRTTIInfo;
+  struct configRTTIExt;
+  struct configKey;
+  std::unique_ptr<configRTTIInfo, void (*)(configRTTIInfo*)> mConfigRTTI{nullptr, nullptr}; // Deleter set in GPUDisplayFrontendConfig.cxx, the only place where configRTTIInfo is defined
+
   bool HandleExternalGUIKeys(); // Returns whether keys were handled, config changes are not handled
+  template <typename... Args>
+  void add_key_binding(Args&&... args); // KEY_LAMBDA(key, ...) entries, the help text, and optionally the keys to show in the help text, only used in GPUDisplayFrontendConfig.cxx
 };
 } // namespace o2::gpu
 
