@@ -2343,6 +2343,15 @@ void staticMapCreatorCPM(std::string fileInput = "files.txt",
   userInfo->Add(new TNamed("maxTracks", std::to_string(maxTracks)));
   userInfo->Add(new TNamed("minTracks", std::to_string(minTracks)));
   userInfo->Add(new TNamed("nTracksProcessed", std::to_string(nTracksProcessed_final)));
+  // run number and time range of the selected data
+  userInfo->Add(new TNamed("runNumber", std::to_string(runNumber)));
+  userInfo->Add(new TNamed("firstTFTime", std::to_string(firstTFTime)));
+  userInfo->Add(new TNamed("lastTFTime", std::to_string(lastTFTime)));
+  if (!timeMSsel.empty()) {
+    const auto [minTimeMSIt, maxTimeMSIt] = std::minmax_element(timeMSsel.begin(), timeMSsel.end());
+    userInfo->Add(new TNamed("minTimeMS", std::to_string(*minTimeMSIt)));
+    userInfo->Add(new TNamed("maxTimeMS", std::to_string(*maxTimeMSIt)));
+  }
   if (isBadCalib) {
     userInfo->Add(new TNamed("badCalib", "1"));
   }

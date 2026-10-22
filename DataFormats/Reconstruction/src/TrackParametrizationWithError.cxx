@@ -59,11 +59,11 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, valu
   if ((gpu::CAMath::Abs(f1) > constants::math::Almost1) || (gpu::CAMath::Abs(f2) > constants::math::Almost1)) {
     return false;
   }
-  value_t r1 = gpu::CAMath::Sqrt((1.f - f1) * (1.f + f1));
+  value_t r1 = math_utils::detail::sqrt<value_t>((1.f - f1) * (1.f + f1));
   if (gpu::CAMath::Abs(r1) < constants::math::Almost0) {
     return false;
   }
-  value_t r2 = gpu::CAMath::Sqrt((1.f - f2) * (1.f + f2));
+  value_t r2 = math_utils::detail::sqrt<value_t>((1.f - f2) * (1.f + f2));
   if (gpu::CAMath::Abs(r2) < constants::math::Almost0) {
     return false;
   }
@@ -85,7 +85,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, valu
     if (gpu::CAMath::Abs(arg) > constants::math::Almost1) {
       return false;
     }
-    value_t rot = gpu::CAMath::ASin(arg);           // more economic version from Yura.
+    value_t rot = math_utils::detail::asin<value_t>(arg); // more economic version from Yura.
     if (f1 * f1 + f2 * f2 > 1.f && f1 * f2 < 0.f) { // special cases of large rotations or large abs angles
       if (f2 > 0.f) {
         rot = constants::math::PI - rot; //
@@ -180,8 +180,8 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, Trac
   }
   value_t kb = bz * constants::math::B2C;
   // evaluate in double prec.
-  double snpRef0 = linRef0.getSnp(), cspRef0 = gpu::CAMath::Sqrt((1 - snpRef0) * (1 + snpRef0));
-  double snpRef1 = linRef1.getSnp(), cspRef1 = gpu::CAMath::Sqrt((1 - snpRef1) * (1 + snpRef1));
+  double snpRef0 = linRef0.getSnp(), cspRef0 = math_utils::detail::sqrt<value_t>((1 - snpRef0) * (1 + snpRef0));
+  double snpRef1 = linRef1.getSnp(), cspRef1 = math_utils::detail::sqrt<value_t>((1 - snpRef1) * (1 + snpRef1));
   double cspRef0Inv = 1 / cspRef0, cspRef1Inv = 1 / cspRef1, cc = cspRef0 + cspRef1, ccInv = 1 / cc, dy2dx = (snpRef0 + snpRef1) * ccInv;
   double dxccInv = dx * ccInv, hh = dxccInv * cspRef1Inv * (1 + cspRef0 * cspRef1 + snpRef0 * snpRef1), jj = dx * (dy2dx - snpRef1 * cspRef1Inv);
 
@@ -272,7 +272,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::rotate(value_t alpha)
   //
   value_t ca = 0, sa = 0;
   math_utils::detail::sincos(alpha - this->getAlpha(), sa, ca);
-  value_t snp = this->getSnp(), csp = gpu::CAMath::Sqrt((1.f - snp) * (1.f + snp)); // Improve precision
+  value_t snp = this->getSnp(), csp = math_utils::detail::sqrt<value_t>((1.f - snp) * (1.f + snp)); // Improve precision
   // RS: check if rotation does no invalidate track model (cos(local_phi)>=0, i.e. particle
   // direction in local frame is along the X axis
   if ((csp * ca + snp * sa) < 0) {
@@ -339,7 +339,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::rotate(value_t alpha, TrackP
   }
 
   // now rotate the current track
-  value_t snp = this->getSnp(), csp = gpu::CAMath::Sqrt((1.f - snp) * (1.f + snp)), updSnp = snp * ca - csp * sa;
+  value_t snp = this->getSnp(), csp = math_utils::detail::sqrt<value_t>((1.f - snp) * (1.f + snp)), updSnp = snp * ca - csp * sa;
   if ((csp * ca + snp * sa) < 0 || gpu::CAMath::Abs(updSnp) > constants::math::Almost1) {
     // LOGP(warning,"Rotation failed: local cos(phi) would become {:.2f}", csp * ca + snp * sa);
     return false;
@@ -350,7 +350,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::rotate(value_t alpha, TrackP
   this->setAlpha(alpha);
 
   // rotate covariance, accounting for the extra error from the rotated X
-  value_t snpRef0 = linRef0.getSnp(), cspRef0 = gpu::CAMath::Sqrt((value_t(1) - snpRef0) * (value_t(1) + snpRef0)); // original reference
+  value_t snpRef0 = linRef0.getSnp(), cspRef0 = math_utils::detail::sqrt<value_t>((value_t(1) - snpRef0) * (value_t(1) + snpRef0)); // original reference
   value_t snpRef1 = linRef1.getSnp(), cspRef1 = ca * cspRef0 + sa * snpRef0;                                        // rotated reference
   value_t rr = cspRef1 / cspRef0;                                                                                   // cos1_ref / cos0_ref
 
@@ -415,7 +415,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateToDCA(const o2::dat
   // propagate track to DCA to the vertex
   value_t sn, cs, alp = this->getAlpha();
   o2::math_utils::detail::sincos(alp, sn, cs);
-  value_t x = this->getX(), y = this->getY(), snp = this->getSnp(), csp = gpu::CAMath::Sqrt((1.f - snp) * (1.f + snp));
+  value_t x = this->getX(), y = this->getY(), snp = this->getSnp(), csp = math_utils::detail::sqrt<value_t>((1.f - snp) * (1.f + snp));
   value_t xv = vtx.getX() * cs + vtx.getY() * sn, yv = -vtx.getX() * sn + vtx.getY() * cs, zv = vtx.getZ();
   x -= xv;
   y -= yv;
@@ -430,8 +430,8 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateToDCA(const o2::dat
   }
   value_t crv = this->getCurvature(b);
   value_t tgfv = -(crv * x - snp) / (crv * y + csp);
-  sn = tgfv / gpu::CAMath::Sqrt(1.f + tgfv * tgfv);
-  cs = gpu::CAMath::Sqrt((1.f - sn) * (1.f + sn));
+  sn = tgfv / math_utils::detail::sqrt<value_t>(1.f + tgfv * tgfv);
+  cs = math_utils::detail::sqrt<value_t>((1.f - sn) * (1.f + sn));
   cs = (gpu::CAMath::Abs(tgfv) > constants::math::Almost0) ? sn / tgfv : constants::math::Almost1;
 
   x = xv * cs + yv * sn;
@@ -439,7 +439,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateToDCA(const o2::dat
   xv = x;
 
   auto tmpT(*this); // operate on the copy to recover after the failure
-  alp += gpu::CAMath::ASin(sn);
+  alp += math_utils::detail::asin<value_t>(sn);
   if (!tmpT.rotate(alp) || !tmpT.propagateTo(xv, b)) {
 #if !defined(GPUCA_ALIGPUCODE)
     LOG(debug) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx << " | Track is: " << tmpT.asString();
@@ -485,9 +485,9 @@ GPUd() void TrackParametrizationWithError<value_T>::set(const dim3_t& xyz, const
   value_t radPos2 = xyz[0] * xyz[0] + xyz[1] * xyz[1];
   value_t alp = 0;
   if (sectorAlpha || radPos2 < 1) {
-    alp = gpu::CAMath::ATan2(pxpypz[1], pxpypz[0]);
+    alp = math_utils::detail::atan2<value_t>(pxpypz[1], pxpypz[0]);
   } else {
-    alp = gpu::CAMath::ATan2(xyz[1], xyz[0]);
+    alp = math_utils::detail::atan2<value_t>(xyz[1], xyz[0]);
   }
   if (sectorAlpha) {
     alp = math_utils::detail::angle2Alpha<value_t>(alp);
@@ -498,7 +498,7 @@ GPUd() void TrackParametrizationWithError<value_T>::set(const dim3_t& xyz, const
   // protection against cosp<0
   if (cs * pxpypz[0] + sn * pxpypz[1] < 0) {
     LOG(debug) << "alpha from phiPos() will invalidate this track parameters, overriding to alpha from phi()";
-    alp = gpu::CAMath::ATan2(pxpypz[1], pxpypz[0]);
+    alp = math_utils::detail::atan2<value_t>(pxpypz[1], pxpypz[0]);
     if (sectorAlpha) {
       alp = math_utils::detail::angle2Alpha<value_t>(alp);
     }
@@ -529,7 +529,7 @@ GPUd() void TrackParametrizationWithError<value_T>::set(const dim3_t& xyz, const
   math_utils::detail::rotateZ<value_t>(mom, -alp);
   //
   const value_t pt2 = mom[0] * mom[0] + mom[1] * mom[1];
-  const value_t pt = gpu::CAMath::Sqrt(pt2);
+  const value_t pt = math_utils::detail::sqrt<value_t>(pt2);
   const value_t ptI = 1.f / pt;
   this->setX(ver[0]);
   this->setAlpha(alp);
@@ -628,19 +628,19 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, cons
   if ((gpu::CAMath::Abs(f1) > constants::math::Almost1) || (gpu::CAMath::Abs(f2) > constants::math::Almost1)) {
     return false;
   }
-  value_t r1 = gpu::CAMath::Sqrt((1.f - f1) * (1.f + f1));
+  value_t r1 = math_utils::detail::sqrt<value_t>((1.f - f1) * (1.f + f1));
   if (gpu::CAMath::Abs(r1) < constants::math::Almost0) {
     return false;
   }
-  value_t r2 = gpu::CAMath::Sqrt((1.f - f2) * (1.f + f2));
+  value_t r2 = math_utils::detail::sqrt<value_t>((1.f - f2) * (1.f + f2));
   if (gpu::CAMath::Abs(r2) < constants::math::Almost0) {
     return false;
   }
   double r1pr2Inv = 1. / (r1 + r2), r2inv = 1. / r2, r1inv = 1. / r1;
   double dy2dx = (f1 + f2) * r1pr2Inv, dx2r1pr2 = dx * r1pr2Inv;
-  value_t step = (gpu::CAMath::Abs(x2r) < 0.05f) ? value_t(dx * gpu::CAMath::Abs(r2 + f2 * dy2dx))                                          // chord
-                                                 : 2.f * gpu::CAMath::ASin(0.5f * dx * gpu::CAMath::Sqrt(1.f + dy2dx * dy2dx) * crv) / crv; // arc
-  step *= gpu::CAMath::Sqrt(1.f + this->getTgl() * this->getTgl());
+  value_t step = (gpu::CAMath::Abs(x2r) < 0.05f) ? value_t(dx * gpu::CAMath::Abs(r2 + f2 * dy2dx))                                                                          // chord
+                                                 : 2.f * math_utils::detail::asin<value_t>(0.5f * dx * math_utils::detail::sqrt<value_t>(1.f + dy2dx * dy2dx) * crv) / crv; // arc
+  step *= math_utils::detail::sqrt<value_t>(1.f + this->getTgl() * this->getTgl());
   //
   // get the track x,y,z,px/p,py/p,pz/p,p,sinAlpha,cosAlpha in the Global System
   std::array<value_t, 9> vecLab{0.f};
@@ -699,13 +699,13 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, cons
 
   // Rotate to the system where Bx=By=0.
   value_t bxy2 = b[0] * b[0] + b[1] * b[1];
-  value_t bt = gpu::CAMath::Sqrt(bxy2);
+  value_t bt = math_utils::detail::sqrt<value_t>(bxy2);
   value_t cosphi = 1.f, sinphi = 0.f;
   if (bt > constants::math::Almost0) {
     cosphi = b[0] / bt;
     sinphi = b[1] / bt;
   }
-  value_t bb = gpu::CAMath::Sqrt(bxy2 + b[2] * b[2]);
+  value_t bb = math_utils::detail::sqrt<value_t>(bxy2 + b[2] * b[2]);
   value_t costet = 1., sintet = 0.;
   if (bb > constants::math::Almost0) {
     costet = b[2] / bb;
@@ -754,7 +754,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, cons
   }
 
   // Calculate the track parameters
-  t = 1.f / gpu::CAMath::Sqrt(vecLab[3] * vecLab[3] + vecLab[4] * vecLab[4]);
+  t = 1.f / math_utils::detail::sqrt<value_t>(vecLab[3] * vecLab[3] + vecLab[4] * vecLab[4]);
   this->setX(xk);
   this->setY(y);
   this->setZ(z);
@@ -802,13 +802,13 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, Trac
   if ((gpu::CAMath::Abs(snpRef0) > constants::math::Almost1) || (gpu::CAMath::Abs(snpRef1) > constants::math::Almost1)) {
     return false;
   }
-  value_t cspRef0 = gpu::CAMath::Sqrt((1 - snpRef0) * (1 + snpRef0)), cspRef1 = gpu::CAMath::Sqrt((1 - snpRef1) * (1 + snpRef1));
+  value_t cspRef0 = math_utils::detail::sqrt<value_t>((1 - snpRef0) * (1 + snpRef0)), cspRef1 = math_utils::detail::sqrt<value_t>((1 - snpRef1) * (1 + snpRef1));
   if (gpu::CAMath::Abs(cspRef0) < constants::math::Almost0 || gpu::CAMath::Abs(cspRef1) < constants::math::Almost0) {
     return false;
   }
   value_t cspRef0Inv = value_t(1) / cspRef0, cspRef1Inv = value_t(1) / cspRef1, cc = cspRef0 + cspRef1, ccInv = value_t(1) / cc, dy2dx = (snpRef0 + snpRef1) * ccInv;
-  value_t step = (gpu::CAMath::Abs(crv * dx) < 0.05f) ? dx * (cspRef1 + snpRef1 * dy2dx) : 2. * gpu::CAMath::ASin(0.5 * dx * gpu::CAMath::Sqrt(1.f + dy2dx * dy2dx) * crv) / crv; // arc
-  step *= gpu::CAMath::Sqrt(1.f + linRef0.getTgl() * linRef0.getTgl());
+  value_t step = (gpu::CAMath::Abs(crv * dx) < 0.05f) ? dx * (cspRef1 + snpRef1 * dy2dx) : 2. * math_utils::detail::asin<value_t>(0.5 * dx * math_utils::detail::sqrt<value_t>(1.f + dy2dx * dy2dx) * crv) / crv; // arc
+  step *= math_utils::detail::sqrt<value_t>(1.f + linRef0.getTgl() * linRef0.getTgl());
 
   //
   // get the track x,y,z,px/p,py/p,pz/p,p,sinAlpha,cosAlpha in the Global System
@@ -819,13 +819,13 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, Trac
   //
   // Rotate to the system where Bx=By=0.
   value_t bxy2 = b[0] * b[0] + b[1] * b[1];
-  value_t bt = gpu::CAMath::Sqrt(bxy2);
+  value_t bt = math_utils::detail::sqrt<value_t>(bxy2);
   value_t cosphi = 1.f, sinphi = 0.f;
   if (bt > constants::math::Almost0) {
     cosphi = b[0] / bt;
     sinphi = b[1] / bt;
   }
-  value_t bb = gpu::CAMath::Sqrt(bxy2 + b[2] * b[2]);
+  value_t bb = math_utils::detail::sqrt<value_t>(bxy2 + b[2] * b[2]);
   value_t costet = 1., sintet = 0.;
   if (bb > constants::math::Almost0) {
     costet = b[2] / bb;
@@ -875,7 +875,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, Trac
 
   // Calculate the track parameters
   auto linRef1 = linRef0;
-  t = 1.f / gpu::CAMath::Sqrt(vecLab[3] * vecLab[3] + vecLab[4] * vecLab[4]);
+  t = 1.f / math_utils::detail::sqrt<value_t>(vecLab[3] * vecLab[3] + vecLab[4] * vecLab[4]);
   linRef1.setX(xk);
   linRef1.setY(y);
   linRef1.setZ(z);
@@ -884,7 +884,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, Trac
   linRef1.setQ2Pt(q * t / vecLab[6]);
 
   // recalculate parameters of the transported ref track needed for transport of this:
-  cspRef1 = gpu::CAMath::Sqrt((1 - snpRef1) * (1 + snpRef1));
+  cspRef1 = math_utils::detail::sqrt<value_t>((1 - snpRef1) * (1 + snpRef1));
   cspRef1Inv = value_t(1) / cspRef1;
   cc = cspRef0 + cspRef1;
   ccInv = value_t(1) / cc;
@@ -968,7 +968,7 @@ GPUd() void TrackParametrizationWithError<value_T>::checkCorrelations()
       auto sig2 = mC[DiagMap[i]] * mC[DiagMap[j]];
       auto& cov = mC[CovarMap[i][j]];
       if (cov * cov >= MaxCorr * sig2) { // constrain correlation
-        cov = gpu::CAMath::Sqrt(sig2) * (cov > 0. ? MaxCorr : -MaxCorr);
+        cov = math_utils::detail::sqrt<value_t>(sig2) * (cov > 0. ? MaxCorr : -MaxCorr);
       }
     }
   }
@@ -984,7 +984,7 @@ GPUd() void TrackParametrizationWithError<value_T>::checkCovariance()
 
   mC[kSigY2] = gpu::CAMath::Abs(mC[kSigY2]);
   if (mC[kSigY2] > kCY2max) {
-    value_t scl = gpu::CAMath::Sqrt(kCY2max / mC[kSigY2]);
+    value_t scl = math_utils::detail::sqrt<value_t>(kCY2max / mC[kSigY2]);
     mC[kSigY2] = kCY2max;
     mC[kSigZY] *= scl;
     mC[kSigSnpY] *= scl;
@@ -993,7 +993,7 @@ GPUd() void TrackParametrizationWithError<value_T>::checkCovariance()
   }
   mC[kSigZ2] = gpu::CAMath::Abs(mC[kSigZ2]);
   if (mC[kSigZ2] > kCZ2max) {
-    value_t scl = gpu::CAMath::Sqrt(kCZ2max / mC[kSigZ2]);
+    value_t scl = math_utils::detail::sqrt<value_t>(kCZ2max / mC[kSigZ2]);
     mC[kSigZ2] = kCZ2max;
     mC[kSigZY] *= scl;
     mC[kSigSnpZ] *= scl;
@@ -1002,7 +1002,7 @@ GPUd() void TrackParametrizationWithError<value_T>::checkCovariance()
   }
   mC[kSigSnp2] = gpu::CAMath::Abs(mC[kSigSnp2]);
   if (mC[kSigSnp2] > kCSnp2max) {
-    value_t scl = gpu::CAMath::Sqrt(kCSnp2max / mC[kSigSnp2]);
+    value_t scl = math_utils::detail::sqrt<value_t>(kCSnp2max / mC[kSigSnp2]);
     mC[kSigSnp2] = kCSnp2max;
     mC[kSigSnpY] *= scl;
     mC[kSigSnpZ] *= scl;
@@ -1011,7 +1011,7 @@ GPUd() void TrackParametrizationWithError<value_T>::checkCovariance()
   }
   mC[kSigTgl2] = gpu::CAMath::Abs(mC[kSigTgl2]);
   if (mC[kSigTgl2] > kCTgl2max) {
-    value_t scl = gpu::CAMath::Sqrt(kCTgl2max / mC[kSigTgl2]);
+    value_t scl = math_utils::detail::sqrt<value_t>(kCTgl2max / mC[kSigTgl2]);
     mC[kSigTgl2] = kCTgl2max;
     mC[kSigTglY] *= scl;
     mC[kSigTglZ] *= scl;
@@ -1020,7 +1020,7 @@ GPUd() void TrackParametrizationWithError<value_T>::checkCovariance()
   }
   mC[kSigQ2Pt2] = gpu::CAMath::Abs(mC[kSigQ2Pt2]);
   if (mC[kSigQ2Pt2] > kC1Pt2max) {
-    value_t scl = gpu::CAMath::Sqrt(kC1Pt2max / mC[kSigQ2Pt2]);
+    value_t scl = math_utils::detail::sqrt<value_t>(kC1Pt2max / mC[kSigQ2Pt2]);
     mC[kSigQ2Pt2] = kC1Pt2max;
     mC[kSigQ2PtY] *= scl;
     mC[kSigQ2PtZ] *= scl;
@@ -1421,14 +1421,14 @@ GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(value_t x
   value_t csp2 = (1.f - this->getSnp()) * (1.f + this->getSnp()); // cos(phi)^2
   value_t cst2I = (1.f + this->getTgl() * this->getTgl());        // 1/cos(lambda)^2
   if (anglecorr) {                                                // Apply angle correction, if requested
-    value_t angle = gpu::CAMath::Sqrt(cst2I / csp2);
+    value_t angle = math_utils::detail::sqrt<value_t>(cst2I / csp2);
     x2x0 *= angle;
     xrho *= angle;
   }
   auto m = this->getPID().getMass();
   int charge2 = this->getAbsCharge() * this->getAbsCharge();
   value_t p = this->getP(), p0 = p, p02 = p * p, e2 = p02 + this->getPID().getMass2(), massInv = 1.f / m, bg = p * massInv, dETot = 0.f;
-  value_t e = gpu::CAMath::Sqrt(e2), e0 = e;
+  value_t e = math_utils::detail::sqrt<value_t>(e2), e0 = e;
   if (m > 0 && xrho != 0.f) {
     value_t ekin = e - m, dedx = this->getdEdxBBOpt(bg);
 #ifdef _BB_NONCONST_CORR_
@@ -1455,13 +1455,13 @@ GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(value_t x
         if (xrho < 0) {
           dedxDer = -dedxDer; // E.loss ( -> positive derivative)
         }
-        auto corrC = (gpu::CAMath::Exp(dedxDer) - 1.f) / dedxDer;
+        auto corrC = (math_utils::detail::exp<value_t>(dedxDer) - 1.f) / dedxDer;
         dE *= corrC;
       }
 #endif
       e += dE;
       if (e > m) { // stopped
-        p = gpu::CAMath::Sqrt(e * e - this->getPID().getMass2());
+        p = math_utils::detail::sqrt<value_t>(e * e - this->getPID().getMass2());
       } else {
         return false;
       }
@@ -1518,7 +1518,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(value_t x
 
   // the energy loss correction contribution to cov.matrix: approximate energy loss fluctuation (M.Ivanov)
   constexpr value_t knst = 0.0007f; // To be tuned.
-  value_t sigmadE = knst * gpu::CAMath::Sqrt(gpu::CAMath::Abs(dETot)) * e0 / p02 * this->getCharge2Pt();
+  value_t sigmadE = knst * math_utils::detail::sqrt<value_t>(gpu::CAMath::Abs(dETot)) * e0 / p02 * this->getCharge2Pt();
   cC44 += sigmadE * sigmadE;
 
   // Applying the corrections*****************************
@@ -1552,7 +1552,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(TrackPara
   value_t csp2 = (1.f - linRef.getSnp()) * (1.f + linRef.getSnp()); // cos(phi)^2
   value_t cst2I = (1.f + linRef.getTgl() * linRef.getTgl());        // 1/cos(lambda)^2
   if (anglecorr) {                                                  // Apply angle correction, if requested
-    value_t angle = gpu::CAMath::Sqrt(cst2I / csp2);
+    value_t angle = math_utils::detail::sqrt<value_t>(cst2I / csp2);
     x2x0 *= angle;
     xrho *= angle;
   }
@@ -1560,7 +1560,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(TrackPara
   auto m = pid.getMass();
   int charge2 = linRef.getAbsCharge() * linRef.getAbsCharge();
   value_t p = linRef.getP(), p0 = p, p02 = p * p, e2 = p02 + pid.getMass2(), massInv = 1.f / m, bg = p * massInv, dETot = 0.f;
-  value_t e = gpu::CAMath::Sqrt(e2), e0 = e;
+  value_t e = math_utils::detail::sqrt<value_t>(e2), e0 = e;
   if (m > 0 && xrho != 0.f) {
     value_t ekin = e - m, dedx = this->getdEdxBBOpt(bg);
 #ifdef _BB_NONCONST_CORR_
@@ -1587,13 +1587,13 @@ GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(TrackPara
         if (xrho < 0) {
           dedxDer = -dedxDer; // E.loss ( -> positive derivative)
         }
-        auto corrC = (gpu::CAMath::Exp(dedxDer) - 1.f) / dedxDer;
+        auto corrC = (math_utils::detail::exp<value_t>(dedxDer) - 1.f) / dedxDer;
         dE *= corrC;
       }
 #endif
       e += dE;
       if (e > m) { // stopped
-        p = gpu::CAMath::Sqrt(e * e - pid.getMass2());
+        p = math_utils::detail::sqrt<value_t>(e * e - pid.getMass2());
       } else {
         return false;
       }
@@ -1650,7 +1650,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(TrackPara
 
   // the energy loss correction contribution to cov.matrix: approximate energy loss fluctuation (M.Ivanov)
   constexpr value_t knst = 0.0007f; // To be tuned.
-  value_t sigmadE = knst * gpu::CAMath::Sqrt(gpu::CAMath::Abs(dETot)) * e0 / p02 * linRef.getCharge2Pt();
+  value_t sigmadE = knst * math_utils::detail::sqrt<value_t>(gpu::CAMath::Abs(dETot)) * e0 / p02 * linRef.getCharge2Pt();
   cC44 += sigmadE * sigmadE;
 
   // Applying the corrections*****************************
@@ -1695,7 +1695,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::getCovXYZPxPyPzGlo(std::arra
   value_t sn = 0.f, cs = 0.f;
   o2::math_utils::detail::sincos(this->getAlpha(), sn, cs);
   const value_t snp = this->getSnp();
-  const value_t csp = gpu::CAMath::Sqrt((1.f - snp) * (1.f + snp));
+  const value_t csp = math_utils::detail::sqrt<value_t>((1.f - snp) * (1.f + snp));
   const value_t pXLoc = pt * csp;
   const value_t pYLoc = pt * snp;
   const value_t pZ = pt * this->getTgl();
@@ -1818,7 +1818,7 @@ bool TrackParametrizationWithError<value_T>::toFwdTrackParCov(TrackParCovFwd& t)
       gpu::CAMath::Abs(this->getTgl()) <= o2::constants::math::Almost0) {
     return false;
   }
-  value_T csa, sna, csP, snP, csp = gpu::CAMath::Sqrt((1. - this->getSnp()) * (1. + this->getSnp()));
+  value_T csa, sna, csP, snP, csp = math_utils::detail::sqrt<value_t>((1. - this->getSnp()) * (1. + this->getSnp()));
   math_utils::detail::sincos(value_T(this->getAlpha()), sna, csa);
   math_utils::detail::sincos(value_T(t.getPhi()), snP, csP);
   /*

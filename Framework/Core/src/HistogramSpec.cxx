@@ -15,6 +15,58 @@
 namespace o2::framework
 {
 
+// Out of line: see the comment on the declarations in HistogramSpec.h.
+AxisSpec::AxisSpec(std::vector<double> binEdges_, std::optional<std::string> title_, std::optional<std::string> name_)
+  : nBins(std::nullopt),
+    binEdges(std::move(binEdges_)),
+    title(std::move(title_)),
+    name(std::move(name_))
+{
+}
+
+AxisSpec::AxisSpec(int nBins_, double binMin_, double binMax_, std::optional<std::string> title_, std::optional<std::string> name_)
+  : nBins(nBins_),
+    binEdges({binMin_, binMax_}),
+    title(std::move(title_)),
+    name(std::move(name_))
+{
+  if (binMin_ > binMax_) {
+    LOG(fatal) << "Defined ill-defined axis";
+  }
+}
+
+AxisSpec::AxisSpec(ConfigurableAxis binEdges_, std::optional<std::string> title_, std::optional<std::string> name_)
+  : nBins(std::nullopt),
+    binEdges(std::vector<double>(binEdges_)),
+    title(std::move(title_)),
+    name(std::move(name_))
+{
+  if (binEdges.empty()) {
+    return;
+  }
+  if (binEdges[0] != VARIABLE_WIDTH) {
+    nBins = static_cast<int>(binEdges[0]);
+    binEdges.resize(3); // nBins, lowerBound, upperBound, disregard whatever else is stored in vecotr
+  }
+  binEdges.erase(binEdges.begin()); // remove first entry that we assume to be number of bins
+}
+
+HistogramConfigSpec::HistogramConfigSpec(HistType type_, std::vector<AxisSpec> axes_, uint8_t nSteps_)
+  : type(type_),
+    axes(std::move(axes_)),
+    nSteps(nSteps_)
+{
+}
+
+// Out of line: see the comments on the declarations in HistogramSpec.h.
+AxisSpec::~AxisSpec() = default;
+AxisSpec::AxisSpec(AxisSpec const&) = default;
+AxisSpec::AxisSpec(AxisSpec&&) noexcept = default;
+AxisSpec& AxisSpec::operator=(AxisSpec const&) = default;
+AxisSpec& AxisSpec::operator=(AxisSpec&&) noexcept = default;
+
+HistogramConfigSpec::~HistogramConfigSpec() = default;
+
 void AxisSpec::makeLogarithmic()
 {
   if (binEdges.size() > 2) {

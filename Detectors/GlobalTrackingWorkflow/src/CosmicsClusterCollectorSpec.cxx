@@ -166,6 +166,8 @@ class CosmicsClusterCollectorSpec : public Task
   };
 
   void updateTimeDependentParams(ProcessingContext& pc);
+  void fillTPCOccupancy(gsl::span<const unsigned int> occupancyMap);
+  float tpcOccupancy(float timeTB, bool after) const;
   void buildUsedMap(const RecoContainer& data, std::vector<std::pair<float, float>>& time0Windows);
   void addTPCAttached(const RecoContainer& data, const o2::tpc::TrackTPC& trk, std::vector<o2::dataformats::CosmicTPCCluster>& out, std::unordered_set<uint32_t>& taken) const;
   /// time frame of a TPC road: the leg's z is shifted by dz and its clusters are transformed with vertexTime
@@ -221,6 +223,10 @@ class CosmicsClusterCollectorSpec : public Task
   float mRoadITS = 1.5f;                                       ///< road half-width in the ITS [cm]
   std::vector<o2::math_utils::Point3D<float>> mITSChipCentres; ///< global positions of the ITS chip centres (aligned geometry)
   float mTPCTBinMUS = 0.2f;                                    ///< TPC time bin [mus]
+  std::vector<uint64_t> mTPCOccCumul;                          ///< TPC occupancy map of the TF summed up: [i] = clusters in the bins before bin i
+  float mTPCOccBinTB = 16.f;                                   ///< time bins per bin of the TPC occupancy map
+  int mTPCOccBinsPerOrbit = 1;                                 ///< bins of the TPC occupancy map per orbit
+  float mTPCOccTF = -1.f;                                      ///< TPC clusters per orbit, average of the TF (< 0: no occupancy map)
   float mBz = 0.f;
   bool mUseMC = false;
   mutable bool mStaggeredWarned = false;
@@ -305,6 +311,8 @@ void CosmicsClusterCollectorSpec::run(ProcessingContext& pc)
   o2::dataformats::CosmicsTFInfo tfInfo;
   tfInfo.vDrift = mCorrMap->getVDrift();
   tfInfo.t0 = mCorrMap->getT0();
+  fillTPCOccupancy(recoData.occupancyMapTPC);
+  tfInfo.tpcOcc = mTPCOccTF;
 
   std::vector<o2::dataformats::TrackCosmicsExtended> cosmicsOut;
   const auto cosmics = recoData.getCosmicTracks();
@@ -391,6 +399,8 @@ void CosmicsClusterCollectorSpec::run(ProcessingContext& pc)
       roadTime.known = true;
     }
     mDbgTauC = roadTime.tb;
+    out.tpcOccBef = tpcOccupancy(roadTime.tb, false);
+    out.tpcOccAft = tpcOccupancy(roadTime.tb, true);
     std::unordered_set<uint32_t> taken;
     for (int leg = 0; leg < 2; leg++) { // attached clusters of both legs first, so that a road never takes the other leg's clusters
       if (tpcLegs[leg]) {
@@ -486,6 +496,40 @@ void CosmicsClusterCollectorSpec::buildUsedMap(const RecoContainer& data, std::v
       mUsed[clusters.clusterOffset[sector][row] + clIdx] = true;
     }
   }
+}
+
+void CosmicsClusterCollectorSpec::fillTPCOccupancy(gsl::span<const unsigned int> occupancyMap)
+{
+  // TPC occupancy map (GPUChainTrackingSectorTracker): [0] clusters per orbit (average of the TF), [1] time bins per bin << 16 | averaging,
+  // [2...] clusters per bin (all clusters, by their time)
+  mTPCOccCumul.clear();
+  mTPCOccTF = occupancyMap.empty() ? -1.f : occupancyMap[0];
+  if (occupancyMap.size() < 3 || (occupancyMap[1] >> 16) == 0) { // no time bins in the map
+    return;
+  }
+  mTPCOccBinTB = occupancyMap[1] >> 16;
+  mTPCOccBinsPerOrbit = std::max(1, static_cast<int>(o2::constants::lhc::LHCMaxBunches / 8 / mTPCOccBinTB));
+  mTPCOccCumul.resize(occupancyMap.size() - 1, 0);
+  for (size_t bin = 2; bin < occupancyMap.size(); bin++) {
+    mTPCOccCumul[bin - 1] = mTPCOccCumul[bin - 2] + occupancyMap[bin];
+  }
+}
+
+float CosmicsClusterCollectorSpec::tpcOccupancy(float timeTB, bool after) const
+{
+  // TPC clusters in the map bins of one orbit before the bin of timeTB (after: from the bin of timeTB on); -1 if the window is not
+  // fully inside the TF, where the map would understate the occupancy
+  if (mTPCOccCumul.empty()) {
+    return -1.f;
+  }
+  const int nBins = static_cast<int>(mTPCOccCumul.size()) - 1;
+  const int bin = static_cast<int>(std::floor(timeTB / mTPCOccBinTB));
+  const int first = after ? bin : bin - mTPCOccBinsPerOrbit;
+  const int last = after ? bin + mTPCOccBinsPerOrbit : bin;
+  if (first < 0 || last > nBins) {
+    return -1.f;
+  }
+  return static_cast<float>(mTPCOccCumul[last] - mTPCOccCumul[first]);
 }
 
 void CosmicsClusterCollectorSpec::addTPCAttached(const RecoContainer& data, const o2::tpc::TrackTPC& trk, std::vector<o2::dataformats::CosmicTPCCluster>& out, std::unordered_set<uint32_t>& taken) const

@@ -12,13 +12,11 @@
 /// \file GPUDisplayFrontendWayland.cxx
 /// \author David Rohr
 
-// Now the other headers
 #include "GPUDisplayFrontendWayland.h"
 #include "backend/GPUDisplayBackend.h"
-#include "GPUDisplayGUIWrapper.h"
+#include "GPUDisplayGUIWrapper.h" // Destructor of the GUI wrapper unique_ptr member
 #include "GPUDisplay.h"
 #include "GPULogging.h"
-#include "GPUParam.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -32,7 +30,6 @@
 #include <vulkan/vulkan_wayland.h>
 
 #include <unistd.h>
-#include <fcntl.h>
 #include <poll.h>
 #include <sys/mman.h>
 #include <wayland-client.h>
@@ -229,15 +226,26 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
 #pragma GCC diagnostic pop
   auto keyboard_keymap = [](void* data, wl_keyboard* wl_keyboard, uint32_t format, int32_t fd, uint32_t size) {
     GPUDisplayFrontendWayland* me = (GPUDisplayFrontendWayland*)data;
+    char* keymap_string = format == WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1 ? (char*)mmap(nullptr, size, PROT_READ, MAP_PRIVATE, fd, 0) : (char*)MAP_FAILED; // MAP_PRIVATE required since wl_seat version 7
+    close(fd);
+    if (keymap_string == MAP_FAILED) {
+      GPUError("Cannot read Wayland keymap");
+      return;
+    }
+    xkb_keymap* keymap = xkb_keymap_new_from_string(me->mXKBcontext, keymap_string, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
+    munmap(keymap_string, size);
+    xkb_state* state = keymap ? xkb_state_new(keymap) : nullptr;
+    if (!state) { // Keep the previous keymap
+      GPUError("Cannot compile Wayland keymap");
+      xkb_keymap_unref(keymap);
+      return;
+    }
     if (me->mXKBkeymap) {
       xkb_state_unref(me->mXKBstate);
       xkb_keymap_unref(me->mXKBkeymap);
     }
-    char* keymap_string = (char*)mmap(nullptr, size, PROT_READ, MAP_SHARED, fd, 0);
-    me->mXKBkeymap = xkb_keymap_new_from_string(me->mXKBcontext, keymap_string, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
-    me->mXKBstate = xkb_state_new(me->mXKBkeymap);
-    munmap(keymap_string, size);
-    close(fd);
+    me->mXKBkeymap = keymap;
+    me->mXKBstate = state;
   };
   auto keyboard_enter = [](void* data, wl_keyboard* wl_keyboard, uint32_t serial, wl_surface* surface, wl_array* keys) {};
   auto keyboard_leave = [](void* data, wl_keyboard* wl_keyboard, uint32_t serial, wl_surface* surface) {
@@ -270,7 +278,7 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
     GPUDisplayFrontendWayland* me = (GPUDisplayFrontendWayland*)data;
     xkb_state_update_mask(me->mXKBstate, mods_depressed, mods_latched, mods_locked, 0, 0, group);
   };
-  auto keyboard_repat = [](void* data, wl_keyboard* wl_keyboard, int32_t rate, int32_t delay) {
+  auto keyboard_repeat = [](void* data, wl_keyboard* wl_keyboard, int32_t rate, int32_t delay) {
     GPUDisplayFrontendWayland* me = (GPUDisplayFrontendWayland*)data;
     me->mRepeatRate = rate;
     me->mRepeatDelay = delay;
@@ -278,7 +286,7 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
       me->mRepeatKeyCode = -1;
     }
   };
-  mKeyboardListener = wl_keyboard_listener{.keymap = keyboard_keymap, .enter = keyboard_enter, .leave = keyboard_leave, .key = keyboard_key, .modifiers = keyboard_modifiers, .repeat_info = keyboard_repat};
+  mKeyboardListener = wl_keyboard_listener{.keymap = keyboard_keymap, .enter = keyboard_enter, .leave = keyboard_leave, .key = keyboard_key, .modifiers = keyboard_modifiers, .repeat_info = keyboard_repeat};
 
   auto xdg_wm_base_ping = [](void* data, struct xdg_wm_base* xdg_wm_base, uint32_t serial) {
     xdg_wm_base_pong(xdg_wm_base, serial);
@@ -309,7 +317,12 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
   };
 
   auto output_geometry = [](void* data, wl_output* output, int32_t x, int32_t y, int32_t physical_width, int32_t physical_height, int32_t subpixel, const char* make, const char* model, int32_t transform) {};
-  auto output_mode = [](void* data, wl_output* output, uint32_t flags, int32_t width, int32_t height, int32_t refresh) {};
+  auto output_mode = [](void* data, wl_output* output, uint32_t flags, int32_t width, int32_t height, int32_t refresh) {
+    GPUDisplayFrontendWayland* me = (GPUDisplayFrontendWayland*)data;
+    if (auto* o = me->findOutput(output); o && (flags & WL_OUTPUT_MODE_CURRENT)) {
+      o->refresh = refresh;
+    }
+  };
   auto output_done = [](void* data, wl_output* output) {};
   auto output_scale = [](void* data, wl_output* output, int32_t factor) {
     GPUDisplayFrontendWayland* me = (GPUDisplayFrontendWayland*)data;
@@ -540,19 +553,27 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
   xdg_toplevel_set_title(mXdgToplevel, DISPLAY_WINDOW_NAME);
   xdg_toplevel_set_min_size(mXdgToplevel, MIN_WIDTH, MIN_HEIGHT); // Logical size, avoids degenerate swapchains / projections
   xdg_toplevel_set_app_id(mXdgToplevel, "o2-gpu-event-display");  // Used by the compositor for window grouping, window rules, and matching a .desktop file
-  applyInitialWindowState();                                      // Must be requested before the first commit
 
   if (mDecManager) { // Must be requested before the first commit. Without the protocol (e.g. GNOME), the window has no decorations
     mXdgDecoration = zxdg_decoration_manager_v1_get_toplevel_decoration(mDecManager, mXdgToplevel);
     zxdg_toplevel_decoration_v1_set_mode(mXdgDecoration, ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
-  } else if (mDisplay->GetProcessingSettings().debugLevel >= 0) {
+  } else if (mDisplay->GetProcessingSettings().debugLevel >= 2) {
     GPUInfo("Wayland compositor does not support server-side decorations");
   }
 
-  wl_surface_commit(mSurface); // Initial commit without buffer, the compositor answers with the first configure
+  const bool initialFullScreen = mDisplay->cfgR().fullScreen, initialMaximized = mDisplay->cfgR().maximized; // Read before the configure, which syncs the settings to the (windowed) state
+  wl_surface_commit(mSurface);                                                                               // Initial commit without buffer, the compositor answers with the first configure
   if (wl_display_roundtrip(mWayland) == -1) {
     reportError("initial roundtrip");
     throw std::runtime_error("Wayland initialization failed");
+  }
+  if (initialFullScreen || initialMaximized) { // Only after the windowed initial configure, so that the compositor has a normal (un-maximized) placement, then wait for the new configure before creating the swapchain
+    setWindowState(initialFullScreen, initialMaximized);
+    applyInitialWindowState();
+    if (wl_display_roundtrip(mWayland) == -1) {
+      reportError("initial window state roundtrip");
+      throw std::runtime_error("Wayland initialization failed");
+    }
   }
 
   if (InitDisplay()) {
@@ -575,7 +596,7 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
     }
     wl_display_flush(mWayland);
     pollfd pfd = {wl_display_get_fd(mWayland), POLLIN, 0};
-    if (poll(&pfd, 1, 0) > 0) {
+    if (poll(&pfd, 1, mSuspended ? 100 : 0) > 0) { // Block while suspended (no rendering), otherwise the loop spins at full CPU
       if (wl_display_read_events(mWayland) == -1) {
         reportError("reading events");
         break;
@@ -590,8 +611,8 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
     if (mDisplayControl == 2) {
       break;
     }
-    HandleSendKeys();
     handleKeyRepeat();
+    HandleExternalGUISignals();
     if (!mSuspended) { // Window not visible, compositor would not release swapchain images
       DrawGLScene();
     }
@@ -702,6 +723,12 @@ void GPUDisplayFrontendWayland::ToggleMaximized(bool set)
   }
 }
 
+float GPUDisplayFrontendWayland::getRefreshRate()
+{
+  auto* o = mSurfaceOutputs.size() ? findOutput(mSurfaceOutputs.back()) : nullptr;
+  return o ? o->refresh / 1000.f : 0.f;
+}
+
 GPUDisplayFrontendWayland::OutputInfo* GPUDisplayFrontendWayland::findOutput(wl_output* output)
 {
   auto it = std::find_if(mOutputs.begin(), mOutputs.end(), [output](const auto& o) { return o.output == output; });
@@ -770,9 +797,13 @@ void GPUDisplayFrontendWayland::handleKeyRepeat()
     return;
   }
   const auto now = std::chrono::steady_clock::now();
+  const auto period = std::chrono::microseconds(1000000 / mRepeatRate);
+  if (now >= mRepeatNext + period) { // More than one repeat behind (long frame), no burst of repeats
+    mRepeatNext = now;
+  }
   while (now >= mRepeatNext && mRepeatKeyCode >= 0) {
     HandleKey(mRepeatSymbol);
-    mRepeatNext += std::chrono::microseconds(1000000 / mRepeatRate);
+    mRepeatNext += period;
   }
 }
 

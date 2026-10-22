@@ -35,6 +35,7 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   ~GPUDisplayBackendOpenGL() override = default;
   int32_t ExtInit() override;
   bool CoreProfile() override;
+  bool canLimitToVSync() const override; // Buffer swap blocks with VSync, if the frontend can set the swap interval
   uint32_t DepthBits() override;
 
  protected:
@@ -56,7 +57,7 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   static int32_t checkProgramStatus(uint32_t program);
   void clearScreen(bool alphaOnly = false);
   void loadDataToGPU(size_t totalVertizes) override;
-  void prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot, bool toMixBuffer, float includeMixImage) override;
+  bool prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot, bool toMixBuffer, float includeMixImage) override;
   void resizeScene(uint32_t width, uint32_t height) override;
   void updateRenderer(bool withScreenshot);
   void ClearOffscreenBuffers();
@@ -65,6 +66,7 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   void prepareText() override;
   void finishText() override;
   void mixImages(float mixSlaveImage);
+  void drawDownsample(uint32_t srcTexture, uint32_t dstFramebuffer, uint32_t width, uint32_t height, int32_t factor); // Exact box filter (fragmentDownsample.frag) for FSAA factors other than 2
   void pointSizeFactor(float factor) override;
   void lineWidthFactor(float factor) override;
   size_t needMultiVBO() override { return 0x100000000ll; }
@@ -95,14 +97,17 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   uint32_t mVertexShaderPassthrough;
   uint32_t mFragmentShaderTexture;
   uint32_t mFragmentShaderText;
+  uint32_t mVertexShaderFullscreen;
+  uint32_t mFragmentShaderDownsample;
   uint32_t mGeometryShader;
   uint32_t mShaderProgram;
-  uint32_t mShaderProgramSmoothPoint; // Points with fragmentSmoothPoint.frag, for smoothPoints in the core profile (no GL_POINT_SMOOTH)
+  uint32_t mShaderProgramSmoothPoint; // Points with fragmentSmoothPoint.frag, for smoothPoints with the shader path (not rendererCompatSmoothing / GL_POINT_SMOOTH)
   bool mUseSmoothPointShader = false;
-  uint32_t mShaderProgramSmoothLine; // Lines with vertexSmoothLine.vert / fragmentSmoothLine.frag, for smoothLines in the core profile (no GL_LINE_SMOOTH)
+  uint32_t mShaderProgramSmoothLine; // Lines with vertexSmoothLine.vert / fragmentSmoothLine.frag, for smoothLines with the shader path (not rendererCompatSmoothing / GL_LINE_SMOOTH)
   bool mUseSmoothLineShader = false;
   uint32_t mShaderProgramText;
   uint32_t mShaderProgramTexture;
+  uint32_t mShaderProgramDownsample;
   uint32_t mShaderProgramField;
   uint32_t mVertexArray;
 

@@ -81,7 +81,7 @@
   #define GPUdDefault()
   #define GPUhdDefault()
   #define GPUdi() inline
-  #define GPUdii() __attribute__((always_inline)) inline
+  #define GPUdii() GPUdi() GPUAlwaysInline()
   #define GPUdni()
   #define GPUdnii()
   #define GPUh() INVALID_TRIGGER_ERROR_NO_HOST_CODE
@@ -149,7 +149,7 @@
   #define GPUd()
   #define GPUhdDefault()
   #define GPUdi() inline
-  #define GPUdii() inline
+  #define GPUdii() GPUdi() GPUAlwaysInline()
   #define GPUdni()
   #define GPUdnii()
   #define GPUh() inline
@@ -179,7 +179,7 @@
   #define GPUdDefault() __device__
   #define GPUhdDefault() __host__ __device__
   #define GPUdi() __device__ inline
-  #define GPUdii() __device__ __forceinline__
+  #define GPUdii() GPUdi() GPUAlwaysInline()
   #define GPUdni() __device__ __attribute__((noinline))
   #define GPUdnii() __device__ __attribute__((noinline))
   #define GPUh() __host__ inline
@@ -214,7 +214,7 @@
   #define GPUdDefault()
   #define GPUhdDefault()
   #define GPUdi() __device__ inline
-  #define GPUdii() __device__ inline
+  #define GPUdii() GPUdi() GPUAlwaysInline()
   #define GPUdni() __device__ __attribute__((noinline))
   #define GPUdnii() __device__ __attribute__((noinline))
   #define GPUh() __host__ inline
@@ -233,6 +233,8 @@
   #define GPUbarrierWarp() __syncwarp()
   #define GPUAtomic(type) type
 #endif
+
+#define GPUAlwaysInline() __attribute__((always_inline)) // Forced inlining on host and device
 
 #ifndef GPUdic // Takes different parameter for inlining: 0 = never, 1 = always, 2 = compiler-decision
 #define GPUdic(...) GPUd()

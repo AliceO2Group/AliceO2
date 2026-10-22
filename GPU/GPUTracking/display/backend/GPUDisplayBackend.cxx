@@ -119,7 +119,8 @@ void GPUDisplayBackend::loadFont()
     return;
   }
   if (FT_New_Face(ft, fontName.c_str(), 0, &face)) {
-    GPUError("Error loading freetypoe font");
+    GPUError("Error loading freetype font");
+    FT_Done_FreeType(ft);
     return;
   }
 
@@ -134,6 +135,8 @@ void GPUDisplayBackend::loadFont()
   for (uint32_t i = 0; i < 128; i++) {
     if (FT_Load_Char(face, i, FT_LOAD_RENDER)) {
       GPUError("Error loading freetype symbol");
+      FT_Done_Face(face);
+      FT_Done_FreeType(ft);
       return;
     }
     const auto& glyph = face->glyph;
@@ -169,6 +172,15 @@ void GPUDisplayBackend::fillIndirectCmdBuffer()
       mCmdBuffer.emplace_back(mDisplay->vertexBufferCount()[iSector][k], 1, mDisplay->vertexBufferStart()[iSector][k], 0);
     }
   }
+}
+
+int32_t GPUDisplayBackend::fpsLimitMode() const
+{
+  const auto& cfg = mDisplay->cfgR();
+  if (cfg.fpsLimit == FPS_LIMIT_VSYNC) {
+    return !cfg.drawQualityVSync ? FPS_LIMIT_NONE : (canLimitToVSync() ? FPS_LIMIT_VSYNC : FPS_LIMIT_RATE);
+  }
+  return cfg.fpsLimit;
 }
 
 float GPUDisplayBackend::getDownsampleFactor(bool screenshot)

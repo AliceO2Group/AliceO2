@@ -12,9 +12,9 @@
 #ifndef O2_TRK_CLUSTERERDPL
 #define O2_TRK_CLUSTERERDPL
 
+#include "DetectorsCommonDataFormats/DetID.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
-#include "TRKBase/AlmiraParam.h"
 #include "TRKReconstruction/Clusterer.h"
 #ifdef O2_WITH_ACTS
 #include "TRKReconstruction/ClustererACTS.h"
@@ -23,6 +23,8 @@
 namespace o2::trk
 {
 
+/// Clusterises the digits of TRK or FT3, layer by layer.
+template <int DetID>
 class ClustererDPL : public o2::framework::Task
 {
  public:
@@ -31,17 +33,19 @@ class ClustererDPL : public o2::framework::Task
   void run(o2::framework::ProcessingContext& pc) final;
 
  private:
-  static constexpr int mLayers = o2::trk::AlmiraParam::kNLayers;
   bool mUseMC = true;
   int mNThreads = 1;
-  o2::trk::TRKClusterer mClusterer;
+  Clusterer<DetID> mClusterer;
 #ifdef O2_WITH_ACTS
-  bool mUseACTS = false;
+  bool mUseACTS = false; // TRK only
   o2::trk::ClustererACTS mClustererACTS;
 #endif
 };
 
+/// The clusterer of TRK's digits.
 o2::framework::DataProcessorSpec getClustererSpec(bool useMC);
+/// The clusterer of FT3's digits.
+o2::framework::DataProcessorSpec getFT3ClustererSpec(bool useMC);
 
 } // namespace o2::trk
 

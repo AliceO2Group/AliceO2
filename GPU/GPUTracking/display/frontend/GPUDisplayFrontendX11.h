@@ -52,6 +52,7 @@ class GPUDisplayFrontendX11 : public GPUDisplayFrontend
 
   PFNGLXSWAPINTERVALEXTPROC mGlXSwapIntervalEXT = nullptr;
   bool vsync_supported = false;
+  bool canSetVSync() override { return vsync_supported && mGlXSwapIntervalEXT; }
 };
 } // namespace o2::gpu
 

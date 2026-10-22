@@ -21,6 +21,10 @@
 #include <cstring>
 #include <GL/freeglut.h>
 #include <unistd.h>
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_X11
+#include <GL/glx.h>
+#include <GL/glxext.h>
+#endif
 
 #include <pthread.h>
 using namespace o2::gpu;
@@ -41,7 +45,7 @@ void GPUDisplayFrontendGlut::displayFunc() // TODO: Functions should be lambdas,
 
 void GPUDisplayFrontendGlut::glutLoopFunc()
 {
-  me->HandleSendKeys();
+  me->HandleExternalGUISignals();
   displayFunc();
 }
 
@@ -264,6 +268,7 @@ int32_t GPUDisplayFrontendGlut::FrontendMain()
   glutPassiveMotionFunc(mouseMoveFunc);
   glutMouseWheelFunc(mMouseWheelFunc);
   applyInitialWindowState();
+  SetVSync(vsyncEnabled());
 
   {
     std::lock_guard lock(mExitStateMutex);
@@ -308,4 +313,20 @@ void GPUDisplayFrontendGlut::SwitchFullscreen(bool set)
 }
 
 void GPUDisplayFrontendGlut::ToggleMaximized(bool set) {}
-void GPUDisplayFrontendGlut::SetVSync(bool enable) {}
+void GPUDisplayFrontendGlut::SetVSync(bool enable) // GLUT has no swap interval API, set it via GLX directly (no-op if freeglut does not use GLX)
+{
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_X11
+  if (canSetVSync()) {
+    ((PFNGLXSWAPINTERVALEXTPROC)glXGetProcAddressARB((const GLubyte*)"glXSwapIntervalEXT"))(glXGetCurrentDisplay(), glXGetCurrentDrawable(), enable);
+  }
+#endif
+}
+
+bool GPUDisplayFrontendGlut::canSetVSync()
+{
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_X11
+  return glXGetProcAddressARB((const GLubyte*)"glXSwapIntervalEXT") && glXGetCurrentDisplay();
+#else
+  return false;
+#endif
+}

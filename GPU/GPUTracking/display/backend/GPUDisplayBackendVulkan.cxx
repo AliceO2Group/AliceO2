@@ -96,19 +96,26 @@ static vk::SurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<vk::Surfac
   return availableFormats[0];
 }
 
-static vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR>& availablePresentModes, vk::PresentModeKHR desiredMode = vk::PresentModeKHR::eMailbox)
+vk::PresentModeKHR GPUDisplayBackendVulkan::chooseSwapPresentMode()
 {
-  for (const auto& availablePresentMode : availablePresentModes) {
-    if (availablePresentMode == desiredMode) {
-      return availablePresentMode;
+  // Lowest latency first. VSync: no tearing, MAILBOX, then FIFO_LATEST_READY (shows the newest ready image at each vblank). No VSync: IMMEDIATE, else the same (often no IMMEDIATE on Wayland). FIFO is always supported.
+  mPresentModeForVSyncLimit = fpsLimitMode() == FPS_LIMIT_VSYNC;
+  if (mPresentModeForVSyncLimit) {
+    return vk::PresentModeKHR::eFifo; // Refresh rate limit: one frame per refresh, queue depth limited by present wait
+  }
+  const bool vsync = mDisplay->cfgR().drawQualityVSync;
+  const auto& available = mSwapChainDetails.presentModes;
+  for (vk::PresentModeKHR mode : {vk::PresentModeKHR::eImmediate, vk::PresentModeKHR::eMailbox, vk::PresentModeKHR::eFifoLatestReady, vk::PresentModeKHR::eFifo}) {
+    if ((mode == vk::PresentModeKHR::eImmediate && vsync) || (mode == vk::PresentModeKHR::eFifoLatestReady && !mFifoLatestReadySupported) || std::find(available.begin(), available.end(), mode) == available.end()) {
+      continue;
     }
+    if (mode != (vsync ? vk::PresentModeKHR::eMailbox : vk::PresentModeKHR::eImmediate) && !mPresentModeErrorShown) {
+      mPresentModeErrorShown = true;
+      GPUError("VULKAN ERROR: Desired present mode %s not available, using %s", vsync ? "MAILBOX" : "IMMEDIATE", vk::to_string(mode).c_str());
+    }
+    return mode;
   }
-  static bool errorShown = false;
-  if (!errorShown) {
-    errorShown = true;
-    GPUError("VULKAN ERROR: Desired present mode not available, using FIFO mode");
-  }
-  return vk::PresentModeKHR::eFifo;
+  return vk::PresentModeKHR::eFifo; // Unreachable, FIFO is always supported
 }
 
 vk::Extent2D GPUDisplayBackendVulkan::chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities)
@@ -308,6 +315,25 @@ template <class... T>
 static void clearFeatures(vk::StructureChain<T...>& chain) // Zero all feature flags including padding, which the member-wise comparison in hasFeatures reads
 {
   ((memset(reinterpret_cast<char*>(&chain.template get<T>()) + sizeof(VkBaseOutStructure), 0, sizeof(T) - sizeof(VkBaseOutStructure))), ...);
+}
+
+template <class T> // Enable the first available of the extensions (aliases) if the device supports the feature, chaining the feature struct in front of chain
+static bool enableOptionalFeature(vk::PhysicalDevice device, const std::vector<vk::ExtensionProperties>& available, std::initializer_list<const char*> extensions, vk::Bool32 T::* feature, T& featureStruct, std::vector<const char*>& enabledExtensions, void*& chain)
+{
+  for (const char* ext : extensions) {
+    if (std::none_of(available.begin(), available.end(), [ext](const auto& e) { return strcmp(ext, e.extensionName) == 0; })) {
+      continue;
+    }
+    if (!(device.getFeatures2<vk::PhysicalDeviceFeatures2, T>().template get<T>().*feature)) {
+      return false;
+    }
+    enabledExtensions.emplace_back(ext);
+    featureStruct.*feature = VK_TRUE;
+    featureStruct.pNext = chain;
+    chain = &featureStruct;
+    return true;
+  }
+  return false;
 }
 
 template <class... T>
@@ -532,6 +558,11 @@ void GPUDisplayBackendVulkan::createDevice()
   }
   mSmoothLinesSupported = getFeatures(mPhysicalDevice, reqDeviceFeatures).get<vk::PhysicalDeviceVulkan14Features>().smoothLines;
   reqDeviceFeatures.get<vk::PhysicalDeviceVulkan14Features>().smoothLines = mSmoothLinesSupported;
+  std::vector<const char*> deviceExtensions = reqDeviceExtensions;
+  void* featureChain = &reqDeviceFeatures.get<vk::PhysicalDeviceFeatures2>();
+  const std::vector<vk::ExtensionProperties> availableDeviceExtensions = mPhysicalDevice.enumerateDeviceExtensionProperties(nullptr);
+  vk::PhysicalDevicePresentModeFifoLatestReadyFeaturesKHR fifoLatestReadyFeatures{};
+  mFifoLatestReadySupported = enableOptionalFeature(mPhysicalDevice, availableDeviceExtensions, {VK_KHR_PRESENT_MODE_FIFO_LATEST_READY_EXTENSION_NAME, VK_EXT_PRESENT_MODE_FIFO_LATEST_READY_EXTENSION_NAME}, &vk::PhysicalDevicePresentModeFifoLatestReadyFeaturesKHR::presentModeFifoLatestReady, fifoLatestReadyFeatures, deviceExtensions, featureChain);
 
   updateSwapChainDetails(mPhysicalDevice);
   vk::PhysicalDeviceProperties deviceProperties = mPhysicalDevice.getProperties();
@@ -540,11 +571,14 @@ void GPUDisplayBackendVulkan::createDevice()
   GPUInfo("Using physical Vulkan device %s", &deviceProperties.deviceName[0]);
   mMaxMSAAsupported = getMaxUsableSampleCount(deviceProperties);
   mStrictLines = deviceProperties.limits.strictLines;
+  mMaxLineWidth = deviceProperties.limits.lineWidthRange[1];
+  mMaxPointSize = deviceProperties.limits.pointSizeRange[1];
+  mMaxRenderSize = std::min({deviceProperties.limits.maxImageDimension2D, deviceProperties.limits.maxFramebufferWidth, deviceProperties.limits.maxFramebufferHeight});
   mZSupported = (bool)(depth32FormatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment);
   mStencilSupported = (bool)(depth64FormatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment);
   bool mailboxSupported = std::find(mSwapChainDetails.presentModes.begin(), mSwapChainDetails.presentModes.end(), vk::PresentModeKHR::eMailbox) != mSwapChainDetails.presentModes.end();
   if (mDisplay->GetProcessingSettings().debugLevel >= 2) {
-    GPUInfo("Max MSAA: %d, 32 bit Z buffer %d, 32 bit Z buffer + stencil buffer %d, Mailbox present mode %d, smooth lines %d\n", (int32_t)mMaxMSAAsupported, (int32_t)mZSupported, (int32_t)mStencilSupported, (int32_t)mailboxSupported, (int32_t)mSmoothLinesSupported);
+    GPUInfo("Max MSAA: %d, 32 bit Z buffer %d, 32 bit Z buffer + stencil buffer %d, Mailbox present mode %d, FIFO latest ready present mode %d, smooth lines %d\n", (int32_t)mMaxMSAAsupported, (int32_t)mZSupported, (int32_t)mStencilSupported, (int32_t)mailboxSupported, (int32_t)mFifoLatestReadySupported, (int32_t)mSmoothLinesSupported);
   }
 
   vk::DeviceQueueCreateInfo queueCreateInfo{};
@@ -555,10 +589,10 @@ void GPUDisplayBackendVulkan::createDevice()
   vk::DeviceCreateInfo deviceCreateInfo{};
   deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
   deviceCreateInfo.queueCreateInfoCount = 1;
-  deviceCreateInfo.pNext = &reqDeviceFeatures.get<vk::PhysicalDeviceFeatures2>();
+  deviceCreateInfo.pNext = featureChain;
   deviceCreateInfo.pEnabledFeatures = nullptr;
-  deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(reqDeviceExtensions.size());
-  deviceCreateInfo.ppEnabledExtensionNames = reqDeviceExtensions.data();
+  deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
+  deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
   mDevice = mPhysicalDevice.createDevice(deviceCreateInfo, nullptr);
   VULKAN_HPP_DEFAULT_DISPATCHER.init(mDevice);
   mGraphicsQueue = mDevice.getQueue(mGraphicsFamily, 0);
@@ -589,7 +623,7 @@ void GPUDisplayBackendVulkan::createCommandBuffers()
   allocInfo.commandPool = mCommandPool;
   allocInfo.level = vk::CommandBufferLevel::ePrimary;
   allocInfo.commandBufferCount = mImageCount;
-  mCommandBufferUpToDate.resize(mImageCount, false);
+  mCommandBufferUpToDate.assign(mImageCount, false);
   mCommandBuffers = mDevice.allocateCommandBuffers(allocInfo);
   mCommandBuffersText = mDevice.allocateCommandBuffers(allocInfo);
   mCommandBuffersTexture = mDevice.allocateCommandBuffers(allocInfo);
@@ -627,6 +661,19 @@ void GPUDisplayBackendVulkan::createSemaphores()
   mTimelineValue = 0;
   mFrameTimelineValue.assign(mFramesInFlight, 0);
   mImageTimelineValue.assign(mImageCount, 0);
+  for (uint32_t i = 0; i < mImageCount; i++) {
+    mPresentFences.emplace_back(mDevice.createFence(vk::FenceCreateInfo{vk::FenceCreateFlagBits::eSignaled}, nullptr));
+  }
+}
+
+void GPUDisplayBackendVulkan::waitPresentFences()
+{
+  if (mPresentFences.size()) { // Timeout in case a failed present did not signal its fence
+    vk::Result retVal = mDevice.waitForFences(mPresentFences.size(), mPresentFences.data(), true, 1'000'000'000);
+    if (retVal != vk::Result::eTimeout) {
+      CHKERR(retVal);
+    }
+  }
 }
 
 void GPUDisplayBackendVulkan::clearSemaphores()
@@ -634,6 +681,7 @@ void GPUDisplayBackendVulkan::clearSemaphores()
   clearVector(mImageAvailableSemaphore, [&](auto& x) { mDevice.destroySemaphore(x, nullptr); });
   clearVector(mPresentSemaphore, [&](auto& x) { mDevice.destroySemaphore(x, nullptr); });
   mDevice.destroySemaphore(mTimelineSemaphore, nullptr);
+  clearVector(mPresentFences, [&](auto& x) { mDevice.destroyFence(x, nullptr); });
 }
 
 // ---------------------------- VULKAN UNIFORM LAYOUTS AND BUFFERS  ----------------------------
@@ -719,7 +767,10 @@ void GPUDisplayBackendVulkan::createSwapChain(vk::SwapchainKHR oldSwapChain)
 {
   updateSwapChainDetails(mPhysicalDevice);
   mSurfaceFormat = chooseSwapSurfaceFormat(mSwapChainDetails.formats);
-  mPresentMode = chooseSwapPresentMode(mSwapChainDetails.presentModes, mDisplay->cfgR().drawQualityVSync ? vk::PresentModeKHR::eMailbox : vk::PresentModeKHR::eImmediate);
+  mPresentMode = chooseSwapPresentMode();
+  if (mDisplay->GetProcessingSettings().debugLevel >= 2) {
+    GPUInfo("Vulkan present mode %s (VSync %d)", vk::to_string(mPresentMode).c_str(), (int32_t)mDisplay->cfgR().drawQualityVSync);
+  }
   vk::Extent2D extent = chooseSwapExtent(mSwapChainDetails.capabilities);
 
   uint32_t imageCount = std::max<uint32_t>(mSwapChainDetails.capabilities.minImageCount + 1, mDisplay->cfg().vulkan.nFramesInFlight + 1);
@@ -746,8 +797,23 @@ void GPUDisplayBackendVulkan::createSwapChain(vk::SwapchainKHR oldSwapChain)
   swapCreateInfo.presentMode = mPresentMode;
   swapCreateInfo.clipped = true;
   swapCreateInfo.oldSwapchain = oldSwapChain;
+  vk::SwapchainPresentScalingCreateInfoKHR scalingInfo{};
+  { // Let the compositor scale the last image while resizing, until the new swapchain is presented
+    const vk::SurfacePresentModeKHR surfacePresentMode{mPresentMode};
+    const auto caps = mPhysicalDevice.getSurfaceCapabilities2KHR<vk::SurfaceCapabilities2KHR, vk::SurfacePresentScalingCapabilitiesKHR>(vk::PhysicalDeviceSurfaceInfo2KHR{mSurface, &surfacePresentMode}).get<vk::SurfacePresentScalingCapabilitiesKHR>();
+    auto gravity = [](vk::PresentGravityFlagsKHR f) { return (f & vk::PresentGravityFlagBitsKHR::eCentered) ? vk::PresentGravityFlagBitsKHR::eCentered : (f & vk::PresentGravityFlagBitsKHR::eMin) ? vk::PresentGravityFlagBitsKHR::eMin
+                                                                                                                                                                                                   : vk::PresentGravityFlagsKHR(f & vk::PresentGravityFlagBitsKHR::eMax); };
+    scalingInfo.scalingBehavior = (caps.supportedPresentScaling & vk::PresentScalingFlagBitsKHR::eAspectRatioStretch) ? vk::PresentScalingFlagBitsKHR::eAspectRatioStretch : vk::PresentScalingFlagsKHR(caps.supportedPresentScaling & vk::PresentScalingFlagBitsKHR::eStretch);
+    scalingInfo.presentGravityX = gravity(caps.supportedPresentGravityX);
+    scalingInfo.presentGravityY = gravity(caps.supportedPresentGravityY);
+    if (scalingInfo.scalingBehavior && scalingInfo.presentGravityX && scalingInfo.presentGravityY) {
+      swapCreateInfo.pNext = &scalingInfo;
+    }
+  }
   mSwapChain = mDevice.createSwapchainKHR(swapCreateInfo, nullptr);
+  mLastPresentId = 0; // Present IDs are per swapchain
   if (oldSwapChain) {
+    waitPresentFences(); // Presentation engine done with the old swapchain
     mDevice.destroySwapchainKHR(oldSwapChain, nullptr);
   }
 
@@ -785,6 +851,7 @@ void GPUDisplayBackendVulkan::clearSwapChain(bool keepSwapChain)
 {
   clearVector(mSwapChainImageViews, [&](auto& x) { mDevice.destroyImageView(x, nullptr); });
   if (!keepSwapChain) {
+    waitPresentFences();
     mDevice.destroySwapchainKHR(mSwapChain, nullptr);
   }
 }
@@ -853,7 +920,13 @@ void GPUDisplayBackendVulkan::createOffscreenBuffers(bool forScreenshot, bool fo
       mMixImages[i - mImageCount].view = createImageViewI(mDevice, mMixImages[i - mImageCount].image, mSurfaceFormat.format, vk::ImageAspectFlagBits::eColor, 1);
     }
     if (mDownsampleFSAA) {
-      vk::ImageUsageFlags usage = vk::ImageUsageFlagBits::eColorAttachment | (i >= mImageCount ? vk::ImageUsageFlagBits::eSampled : vk::ImageUsageFlagBits::eTransferSrc);
+      vk::ImageUsageFlags usage = vk::ImageUsageFlagBits::eColorAttachment;
+      if (i >= mImageCount || mDownsampleFactor != 2) {
+        usage |= vk::ImageUsageFlagBits::eSampled; // Mixing, shader downsampling
+      }
+      if (i < mImageCount && (mDownsampleFactor == 2 || forScreenshot)) {
+        usage |= vk::ImageUsageFlagBits::eTransferSrc; // Blit downsampling, scaled screenshots (blit or copy for screenshot factor <= 2)
+      }
       createImageI(mDevice, mPhysicalDevice, mDownsampleImages[i].image, mDownsampleImages[i].memory, mRenderWidth, mRenderHeight, mSurfaceFormat.format, usage, vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageTiling::eOptimal);
       mDownsampleImages[i].view = createImageViewI(mDevice, mDownsampleImages[i].image, mSurfaceFormat.format, vk::ImageAspectFlagBits::eColor, 1);
       mRenderTargetView[i] = &mDownsampleImages[i].view;
@@ -1027,10 +1100,23 @@ void GPUDisplayBackendVulkan::createPipeline()
   vk::PipelineRasterizationLineStateCreateInfo smoothLineState{};
   smoothLineState.lineRasterizationMode = vk::LineRasterizationMode::eRectangularSmooth; // Coverage goes to alpha, blending is enabled
 
-  mPipelines.resize(8); // 0 points, 1 lines, 2 line strip (drawType index), 3 text, 4 texture, 5-7 smooth (shader-based) points, lines, line strip
+  mPipelines.resize(9); // 0 points, 1 lines, 2 line strip (drawType index), 3 text, 4 texture, 5-7 smooth (shader-based) points, lines, line strip, 8 FSAA downsampling
   static constexpr vk::PrimitiveTopology types[3] = {vk::PrimitiveTopology::ePointList, vk::PrimitiveTopology::eLineList, vk::PrimitiveTopology::eLineStrip};
   for (uint32_t i = 0; i < mPipelines.size(); i++) {
-    if (i == 4) { // Texture rendering
+    if (i == 8) { // FSAA downsampling, full-screen triangle without vertex input (last pipeline, the changed states are not reset)
+      rasterizer.pNext = nullptr;
+      rasterizer.cullMode = vk::CullModeFlagBits::eNone;
+      vertexInputInfo.vertexBindingDescriptionCount = vertexInputInfo.vertexAttributeDescriptionCount = 0;
+      inputAssembly.topology = vk::PrimitiveTopology::eTriangleList;
+      vertShaderStageInfo.pNext = &mShaders.at("vertexFullscreen");
+      fragShaderStageInfo.pNext = &mShaders.at("fragmentDownsample");
+      dynamicState.dynamicStateCount = 2;
+      pipelineInfo.layout = mPipelineLayoutTexture;
+      renderingInfo.depthAttachmentFormat = vk::Format::eUndefined;
+      pipelineInfo.pDepthStencilState = nullptr;
+      colorBlendAttachment.blendEnable = false;
+      multisampling.rasterizationSamples = vk::SampleCountFlagBits::e1;
+    } else if (i == 4) { // Texture rendering
       rasterizer.pNext = nullptr;
       bindingDescription.stride = 4 * sizeof(float);
       attributeDescriptions.format = vk::Format::eR32G32B32A32Sfloat;
@@ -1112,7 +1198,9 @@ void GPUDisplayBackendVulkan::startFillCommandBuffer(vk::CommandBuffer& commandB
   cmdBeginRendering(commandBuffer, mRenderWidth, mRenderHeight, colorAttachment, mZActive ? &depthAttachment : nullptr);
 
   vk::DeviceSize offsets[] = {0};
-  commandBuffer.bindVertexBuffers(0, 1, &mVBO.buffer, offsets);
+  if (mVBO.size) {
+    commandBuffer.bindVertexBuffers(0, 1, &mVBO.buffer, offsets);
+  }
   cmdPushDescriptors(commandBuffer, mPipelineLayout, mUniformBuffersMat[0][imageIndex]);
   const float viewport[2] = {(float)mRenderWidth, (float)mRenderHeight};
   commandBuffer.pushConstants(mPipelineLayout, vk::ShaderStageFlagBits::eVertex, 6 * sizeof(float), sizeof(viewport), viewport);
@@ -1148,6 +1236,8 @@ void GPUDisplayBackendVulkan::loadShaders()
   LOAD_SHADER(vertexTexture, vert);
   LOAD_SHADER(fragmentTexture, frag);
   LOAD_SHADER(fragmentText, frag);
+  LOAD_SHADER(vertexFullscreen, vert);
+  LOAD_SHADER(fragmentDownsample, frag);
 }
 
 // ---------------------------- VULKAN BUFFERS ----------------------------
@@ -1313,6 +1403,11 @@ void GPUDisplayBackendVulkan::ExitBackendA()
   }
   clearTextureSampler();
   clearDevice();
+  mCommandInfrastructureCreated = false;
+  mImageCount = 0;
+  mLastPresentId = 0;
+  mSwapChainSuboptimal = 0;
+  mFrameSkipped = false;
 }
 
 // ---------------------------- USER CODE ----------------------------
@@ -1333,10 +1428,14 @@ void GPUDisplayBackendVulkan::loadDataToGPU(size_t totalVertizes)
 {
   mDevice.waitIdle();
   clearVertexBuffers();
-  mVBO = createBuffer(totalVertizes * sizeof(mDisplay->vertexBuffer()[0][0]), mDisplay->vertexBuffer()[0].data(), vk::BufferUsageFlagBits::eVertexBuffer, 1);
+  if (totalVertizes) { // Zero-size buffers are invalid (empty event)
+    mVBO = createBuffer(totalVertizes * sizeof(mDisplay->vertexBuffer()[0][0]), mDisplay->vertexBuffer()[0].data(), vk::BufferUsageFlagBits::eVertexBuffer, 1);
+  }
   if (mDisplay->cfgR().useGLIndirectDraw) {
     fillIndirectCmdBuffer();
-    mIndirectCommandBuffer = createBuffer(mCmdBuffer.size() * sizeof(mCmdBuffer[0]), mCmdBuffer.data(), vk::BufferUsageFlagBits::eIndirectBuffer, 1);
+    if (mCmdBuffer.size()) {
+      mIndirectCommandBuffer = createBuffer(mCmdBuffer.size() * sizeof(mCmdBuffer[0]), mCmdBuffer.data(), vk::BufferUsageFlagBits::eIndirectBuffer, 1);
+    }
     mCmdBuffer.clear();
   }
   needRecordCommandBuffers();
@@ -1370,20 +1469,33 @@ uint32_t GPUDisplayBackendVulkan::drawVertices(const vboList& v, const drawType 
   return count;
 }
 
-void GPUDisplayBackendVulkan::prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot, bool toMixBuffer, float includeMixImage)
+bool GPUDisplayBackendVulkan::prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot, bool toMixBuffer, float includeMixImage)
 {
-  if (mDisplay->updateDrawCommands() || toMixBuffer || includeMixImage > 0) {
+  if (mDisplay->updateDrawCommands()) { // Main and mix command buffers stay cached while mixing, only the blend pass with the alpha value is recorded per frame
     needRecordCommandBuffers();
   }
 
+  if (includeMixImage > 0.f && mFrameSkipped) {
+    return false; // The render to the mix buffer of this frame did not get an image
+  }
   if (includeMixImage == 0.f) {
     mCurrentFrame = (mCurrentFrame + 1) % mFramesInFlight;
     waitTimeline(mFrameTimelineValue[mCurrentFrame]);
-    auto getImage = [&]() {
-      return mDevice.acquireNextImageKHR(mSwapChain, UINT64_MAX, mImageAvailableSemaphore[mCurrentFrame], VkFence(VK_NULL_HANDLE), &mCurrentImageIndex);
+    if (mLastPresentId > 1 && fpsLimitMode() == FPS_LIMIT_VSYNC) { // Refresh rate limit (FIFO): at most one frame queued (wait for the second-last present), keeps the rate if a frame misses the deadline, timeout in case the window is hidden
+      const vk::Result retVal = (vk::Result)VULKAN_HPP_DEFAULT_DISPATCHER.vkWaitForPresentKHR(static_cast<VkDevice>(mDevice), static_cast<VkSwapchainKHR>(mSwapChain), mLastPresentId - 1, 100'000'000);
+      handleSwapChainResult(retVal, 1);
+      if (retVal != vk::Result::eTimeout && retVal != vk::Result::eErrorOutOfDateKHR) {
+        CHKERR(retVal);
+      }
+    }
+    auto getImage = [&]() { // Timeout so that a hidden window cannot block the thread (which may also dispatch the window system events) forever
+      return mDevice.acquireNextImageKHR(mSwapChain, 100'000'000, mImageAvailableSemaphore[mCurrentFrame], VkFence(VK_NULL_HANDLE), &mCurrentImageIndex);
     };
 
     vk::Result retVal = vk::Result::eSuccess;
+    if (mPresentModeForVSyncLimit != (fpsLimitMode() == FPS_LIMIT_VSYNC)) { // Present mode depends on the FPS limit mode
+      mMustUpdateSwapChain = true;
+    }
     bool mustUpdateSwapChain = mMustUpdateSwapChain || mDisplay->updateRenderPipeline() || (toMixBuffer && !mMixingSupported) || mDownsampleFactor != getDownsampleFactor(requestScreenshot) || mSmoothLines != useNativeSmoothLines();
     if (!mustUpdateSwapChain) {
       retVal = getImage();
@@ -1394,10 +1506,19 @@ void GPUDisplayBackendVulkan::prepareDraw(const hmm_mat4& proj, const hmm_mat4& 
     if (mustUpdateSwapChain) {
       recreateRendering(requestScreenshot, toMixBuffer);
       retVal = getImage();
+      mMustUpdateSwapChain = false;
     }
-    mMustUpdateSwapChain = retVal == vk::Result::eSuboptimalKHR;
+    handleSwapChainResult(retVal, 2);
+    mFrameSkipped = retVal == vk::Result::eTimeout || retVal == vk::Result::eNotReady || retVal == vk::Result::eErrorOutOfDateKHR;
+    if (mFrameSkipped) {
+      return false;
+    }
     CHKERR(retVal);
-    waitTimeline(mImageTimelineValue[mCurrentImageIndex]); // Previous frame using this image's resources (command buffers, uniform buffer, ...) finished
+    waitTimeline(mImageTimelineValue[mCurrentImageIndex]);                                        // Previous frame using this image's resources (command buffers, uniform buffer, ...) finished
+    if (mPresentFences.size()) {                                                                  // Previous present of this image done, its present semaphore can be signaled again
+      CHKERR(mDevice.waitForFences(1, &mPresentFences[mCurrentImageIndex], true, 1'000'000'000)); // Timeout (positive result, not an error) in case a failed present did not signal it
+      CHKERR(mDevice.resetFences(1, &mPresentFences[mCurrentImageIndex]));
+    }
 
     mHasDrawnText = false;
     mFrameCommandBuffers.clear();
@@ -1418,13 +1539,27 @@ void GPUDisplayBackendVulkan::prepareDraw(const hmm_mat4& proj, const hmm_mat4& 
   if (!mCommandBufferUpToDate[mCurrentImageIndex]) {
     startFillCommandBuffer(mCurrentCommandBuffer, mCurrentImageIndex, toMixBuffer);
   }
+  return true;
+}
+
+void GPUDisplayBackendVulkan::handleSwapChainResult(vk::Result retVal, uint8_t suboptimalBit)
+{
+  if (retVal == vk::Result::eErrorOutOfDateKHR || (retVal == vk::Result::eSuboptimalKHR && !(mSwapChainSuboptimal & suboptimalBit))) {
+    mMustUpdateSwapChain = true;
+    if (retVal == vk::Result::eSuboptimalKHR) {
+      mSwapChainSuboptimal |= suboptimalBit;
+    }
+  }
+  if (retVal == vk::Result::eSuccess && !mMustUpdateSwapChain) {
+    mSwapChainSuboptimal &= ~suboptimalBit;
+  }
 }
 
 void GPUDisplayBackendVulkan::finishDraw(bool doScreenshot, bool toMixBuffer, float includeMixImage)
 {
   if (!mCommandBufferUpToDate[mCurrentImageIndex]) {
     endFillCommandBuffer(mCurrentCommandBuffer);
-    if (!toMixBuffer && includeMixImage == 0.f) {
+    if (!toMixBuffer) { // The mix pass is recorded before the main pass of the same frame, both are valid only after the latter
       mCommandBufferUpToDate[mCurrentImageIndex] = true;
     }
   }
@@ -1451,9 +1586,9 @@ void GPUDisplayBackendVulkan::finishFrame(bool doScreenshot, bool toMixBuffer, f
       queueSubmit(nullptr, 1, &submitInfo, VkFence(VK_NULL_HANDLE));
       mDevice.waitIdle();
       if (mDisplay->cfgR().screenshotScaleFactor != 1) {
-        readImageToPixels(mDownsampleImages[mCurrentImageIndex].image, vk::ImageLayout::eTransferSrcOptimal, mScreenshotPixels);
+        readImageToPixels(mDownsampleImages[mCurrentImageIndex].image, mDownsampleImages[mCurrentImageIndex].view, mDownsampleFactor == 2 ? vk::ImageLayout::eTransferSrcOptimal : vk::ImageLayout::eShaderReadOnlyOptimal, mScreenshotPixels);
       } else {
-        readImageToPixels(mSwapChainImages[mCurrentImageIndex], vk::ImageLayout::eColorAttachmentOptimal, mScreenshotPixels);
+        readImageToPixels(mSwapChainImages[mCurrentImageIndex], mSwapChainImageViews[mCurrentImageIndex], vk::ImageLayout::eColorAttachmentOptimal, mScreenshotPixels);
       }
       mFrameCommandBuffers.clear();
       submitInfo.waitSemaphoreInfoCount = 0;
@@ -1476,10 +1611,24 @@ void GPUDisplayBackendVulkan::finishFrame(bool doScreenshot, bool toMixBuffer, f
     presentInfo.pSwapchains = &mSwapChain;
     presentInfo.pImageIndices = &mCurrentImageIndex;
     presentInfo.pResults = nullptr;
-    vk::Result retVal = mGraphicsQueue.presentKHR(&presentInfo);
-    if (retVal == vk::Result::eErrorOutOfDateKHR || retVal == vk::Result::eSuboptimalKHR) {
-      mMustUpdateSwapChain = true;
-    } else {
+    const uint64_t presentId = mLastPresentId + 1;
+    vk::PresentIdKHR presentIdInfo{1, &presentId};
+    if (fpsLimitMode() == FPS_LIMIT_VSYNC) { // Present wait only for the refresh rate limit, the fpsRate limit (frontend timer) must not be capped at the refresh rate
+      presentInfo.pNext = &presentIdInfo;
+      mLastPresentId = presentId;
+    }
+    vk::SwapchainPresentFenceInfoKHR presentFenceInfo{};
+    if (mPresentFences.size()) {
+      presentFenceInfo = vk::SwapchainPresentFenceInfoKHR{1, &mPresentFences[mCurrentImageIndex], presentInfo.pNext};
+      presentInfo.pNext = &presentFenceInfo;
+    }
+    vk::Result retVal;
+    {
+      std::lock_guard<std::mutex> guard(mQueueMutex);
+      retVal = mGraphicsQueue.presentKHR(&presentInfo);
+    }
+    handleSwapChainResult(retVal, 4);
+    if (retVal != vk::Result::eErrorOutOfDateKHR) {
       CHKERR(retVal);
     }
   }
@@ -1492,6 +1641,13 @@ void GPUDisplayBackendVulkan::downsampleToFramebuffer(vk::CommandBuffer& command
   beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
   commandBuffer.begin(beginInfo);
 
+  if (mDownsampleFactor != 2) {                                                                                                                                                                                                                                                                                                        // Exact box filter by shader, the linear blit below is only exact for factor 2
+    cmdImageMemoryBarrier(commandBuffer, mSwapChainImages[mCurrentImageIndex], vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::AccessFlagBits2::eNone, vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::AccessFlagBits2::eColorAttachmentWrite, vk::ImageLayout::eUndefined, vk::ImageLayout::eColorAttachmentOptimal); // Src stage chains with the acquire semaphore wait
+    cmdImageMemoryBarrier(commandBuffer, mDownsampleImages[mCurrentImageIndex].image, vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::AccessFlagBits2::eColorAttachmentWrite, vk::PipelineStageFlagBits2::eFragmentShader, vk::AccessFlagBits2::eShaderSampledRead, vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
+    cmdDownsample(commandBuffer, mDownsampleImages[mCurrentImageIndex].view, mSwapChainImageViews[mCurrentImageIndex], mScreenWidth, mScreenHeight, mDownsampleFactor);
+    commandBuffer.end();
+    return;
+  }
   cmdImageMemoryBarrier(commandBuffer, mSwapChainImages[mCurrentImageIndex], vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eNone, vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferWrite, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal); // Src stage chains with the acquire semaphore wait
   cmdImageMemoryBarrier(commandBuffer, mDownsampleImages[mCurrentImageIndex].image, vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::AccessFlagBits2::eColorAttachmentWrite, vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferRead, vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eTransferSrcOptimal);
 
@@ -1515,6 +1671,18 @@ void GPUDisplayBackendVulkan::downsampleToFramebuffer(vk::CommandBuffer& command
   cmdImageMemoryBarrier(commandBuffer, mSwapChainImages[mCurrentImageIndex], vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferWrite, vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::AccessFlagBits2::eColorAttachmentRead | vk::AccessFlagBits2::eColorAttachmentWrite, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eColorAttachmentOptimal); // Next: text pass and / or present transition
 
   commandBuffer.end();
+}
+
+void GPUDisplayBackendVulkan::cmdDownsample(vk::CommandBuffer commandBuffer, vk::ImageView src, vk::ImageView dst, uint32_t width, uint32_t height, int32_t factor)
+{
+  vk::RenderingAttachmentInfo colorAttachment{dst, vk::ImageLayout::eColorAttachmentOptimal};
+  colorAttachment.loadOp = vk::AttachmentLoadOp::eDontCare; // Fully overwritten
+  cmdBeginRendering(commandBuffer, width, height, colorAttachment);
+  commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, mPipelines[8]);
+  cmdPushDescriptors(commandBuffer, mPipelineLayoutTexture, mUniformBuffersMat[2][mCurrentImageIndex], src); // The UBO is not used by the shader
+  commandBuffer.pushConstants(mPipelineLayoutTexture, vk::ShaderStageFlagBits::eFragment, 0, sizeof(factor), &factor);
+  commandBuffer.draw(3, 1, 0, 0);
+  commandBuffer.endRendering();
 }
 
 void GPUDisplayBackendVulkan::prepareText()
@@ -1609,7 +1777,7 @@ void GPUDisplayBackendVulkan::pointSizeFactor(float factor)
   if (mCommandBufferUpToDate[mCurrentImageIndex]) {
     return;
   }
-  float size = mDisplay->cfgL().pointSize * mDownsampleFactor * factor + (mDisplay->cfgL().smoothPoints ? SMOOTH_POINT_EXTRA_SIZE : 0.f);
+  float size = std::min(mDisplay->cfgL().pointSize * mDownsampleFactor * factor + (mDisplay->cfgL().smoothPoints ? SMOOTH_POINT_EXTRA_SIZE : 0.f), mMaxPointSize);
   mCurrentCommandBuffer.pushConstants(mPipelineLayout, vk::ShaderStageFlagBits::eVertex, sizeof(std::array<float, 4>), sizeof(size), &size);
 }
 
@@ -1630,11 +1798,12 @@ void GPUDisplayBackendVulkan::lineWidthFactor(float factor)
   }
   float width = mDisplay->cfgL().lineWidth * mDownsampleFactor * factor;
   if (useSmoothLineShader()) {
-    width += SMOOTH_LINE_EXTRA_WIDTH;
+    const float expand = mStrictLines ? 1.f : 1.4143f;                         // Non-strict wide lines may be parallelograms, widen so that the perpendicular width is covered
+    width = std::min(width + SMOOTH_LINE_EXTRA_WIDTH, mMaxLineWidth / expand); // The shader must see the width that is actually rasterized
     mCurrentCommandBuffer.pushConstants(mPipelineLayout, vk::ShaderStageFlagBits::eVertex, 5 * sizeof(float), sizeof(width), &width);
-    width *= mStrictLines ? 1.f : 1.4143f; // Non-strict wide lines may be parallelograms, widen so that the perpendicular width is covered
+    width *= expand;
   }
-  mCurrentCommandBuffer.setLineWidth(width);
+  mCurrentCommandBuffer.setLineWidth(std::min(width, mMaxLineWidth));
 }
 
 void GPUDisplayBackendVulkan::needRecordCommandBuffers()
@@ -1773,7 +1942,7 @@ void GPUDisplayBackendVulkan::OpenGLPrint(const char* s, float x, float y, float
   }
 }
 
-void GPUDisplayBackendVulkan::readImageToPixels(vk::Image image, vk::ImageLayout layout, std::vector<char>& pixels)
+void GPUDisplayBackendVulkan::readImageToPixels(vk::Image image, vk::ImageView view, vk::ImageLayout layout, std::vector<char>& pixels)
 {
   const vk::Format format = mSurfaceFormat.format;
   if (format != vk::Format::eB8G8R8A8Unorm && format != vk::Format::eB8G8R8A8Srgb && format != vk::Format::eR8G8B8A8Unorm && format != vk::Format::eR8G8B8A8Srgb) {
@@ -1787,11 +1956,24 @@ void GPUDisplayBackendVulkan::readImageToPixels(vk::Image image, vk::ImageLayout
   pixels.resize(width * height * bytesPerPixel);
 
   vk::Image dstImage, src;
+  vk::ImageView dstView;
   vk::DeviceMemory dstImageMemory;
+  const bool scaled = mDisplay->cfgR().screenshotScaleFactor != 1;
+  const int32_t factor = mRenderWidth / width;                        // FSAA factor between the rendered image and the screenshot
+  const bool shaderDownsample = scaled && factor != 1 && factor != 2; // Exact box filter, the linear blit is only exact for factor 2
+  const vk::ImageLayout srcLayout = shaderDownsample ? vk::ImageLayout::eShaderReadOnlyOptimal : vk::ImageLayout::eTransferSrcOptimal;
+  const vk::PipelineStageFlags2 srcStage = shaderDownsample ? vk::PipelineStageFlagBits2::eFragmentShader : vk::PipelineStageFlagBits2::eTransfer;
   VulkanBuffer readBuffer = createBuffer(width * height * bytesPerPixel, nullptr, vk::BufferUsageFlagBits::eTransferDst, 0);
   vk::CommandBuffer cmdBuffer = getSingleTimeCommandBuffer();
-  cmdImageMemoryBarrier(cmdBuffer, image, vk::PipelineStageFlagBits2::eColorAttachmentOutput | vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eColorAttachmentWrite | vk::AccessFlagBits2::eTransferWrite, vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferRead, layout, vk::ImageLayout::eTransferSrcOptimal);
-  if (mDisplay->cfgR().screenshotScaleFactor != 1) {
+  cmdImageMemoryBarrier(cmdBuffer, image, vk::PipelineStageFlagBits2::eColorAttachmentOutput | vk::PipelineStageFlagBits2::eTransfer | vk::PipelineStageFlagBits2::eFragmentShader, vk::AccessFlagBits2::eColorAttachmentWrite | vk::AccessFlagBits2::eTransferWrite, srcStage, shaderDownsample ? vk::AccessFlagBits2::eShaderSampledRead : vk::AccessFlagBits2::eTransferRead, layout, srcLayout);
+  if (shaderDownsample) {
+    createImageI(mDevice, mPhysicalDevice, dstImage, dstImageMemory, width, height, mSurfaceFormat.format, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageTiling::eOptimal);
+    dstView = createImageViewI(mDevice, dstImage, mSurfaceFormat.format);
+    cmdImageMemoryBarrier(cmdBuffer, dstImage, vk::PipelineStageFlagBits2::eNone, vk::AccessFlagBits2::eNone, vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::AccessFlagBits2::eColorAttachmentWrite, vk::ImageLayout::eUndefined, vk::ImageLayout::eColorAttachmentOptimal);
+    cmdDownsample(cmdBuffer, view, dstView, width, height, factor);
+    cmdImageMemoryBarrier(cmdBuffer, dstImage, vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::AccessFlagBits2::eColorAttachmentWrite, vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferRead, vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eTransferSrcOptimal);
+    src = dstImage;
+  } else if (scaled) {
     createImageI(mDevice, mPhysicalDevice, dstImage, dstImageMemory, width, height, mSurfaceFormat.format, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageTiling::eOptimal);
     cmdImageMemoryBarrier(cmdBuffer, dstImage, vk::PipelineStageFlagBits2::eNone, vk::AccessFlagBits2::eNone, vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferWrite, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
     vk::Offset3D blitSizeSrc = {(int32_t)mRenderWidth, (int32_t)mRenderHeight, 1};
@@ -1818,7 +2000,7 @@ void GPUDisplayBackendVulkan::readImageToPixels(vk::Image image, vk::ImageLayout
 
   vk::BufferMemoryBarrier2 hostBarrier{vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferWrite, vk::PipelineStageFlagBits2::eHost, vk::AccessFlagBits2::eHostRead, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, readBuffer.buffer, 0, VK_WHOLE_SIZE};
   cmdBuffer.pipelineBarrier2(vk::DependencyInfo{{}, 0, nullptr, 1, &hostBarrier, 0, nullptr});
-  cmdImageMemoryBarrier(cmdBuffer, image, vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eNone, vk::PipelineStageFlagBits2::eColorAttachmentOutput | vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eNone, vk::ImageLayout::eTransferSrcOptimal, layout); // Back to the layout the following passes expect
+  cmdImageMemoryBarrier(cmdBuffer, image, srcStage, vk::AccessFlagBits2::eNone, vk::PipelineStageFlagBits2::eColorAttachmentOutput | vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eNone, srcLayout, layout); // Back to the layout the following passes expect
   submitSingleTimeCommandBuffer(cmdBuffer);
 
   const bool swapRB = format == vk::Format::eR8G8B8A8Unorm || format == vk::Format::eR8G8B8A8Srgb; // Raw copy in swapchain format, the BMP needs BGRA
@@ -1833,7 +2015,10 @@ void GPUDisplayBackendVulkan::readImageToPixels(vk::Image image, vk::ImageLayout
     }
   }
   clearBuffer(readBuffer);
-  if (mDisplay->cfgR().screenshotScaleFactor != 1) {
+  if (scaled) {
+    if (dstView) {
+      mDevice.destroyImageView(dstView, nullptr);
+    }
     mDevice.freeMemory(dstImageMemory, nullptr);
     mDevice.destroyImage(dstImage, nullptr);
   }

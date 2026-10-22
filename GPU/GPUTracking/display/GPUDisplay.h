@@ -58,11 +58,12 @@ class GPUDisplay : public GPUDisplayInterface
   void UpdateCalib(const GPUCalibObjectsConst* calib) override { mCalib = calib; }
   void UpdateParam(const GPUParam* param) override { mParam = param; }
 
-  void HandleKey(uint8_t key);
+  void HandleKey(uint8_t key, bool doNotHandleConfigChanges = false); // With doNotHandleConfigChanges, the caller must call checkAndApplyConfigChanges
   int32_t DrawGLScene();
-  void HandleSendKey(int32_t key);
+  void HandleExternalGUIKey(int32_t key); // Does not handle config changes, see HandleKey
   int32_t InitDisplay(bool initFailure = false);
   void ResizeScene(int32_t width, int32_t height, bool init = false);
+  void checkAndApplyConfigChanges(const GPUSettingsDisplayHeavy& oldCfgH, const GPUSettingsDisplayLight& oldCfgL, const GPUSettingsDisplayRenderer& oldCfgR); // Set update flags / apply the settings that changed compared to the old copies
 
   const GPUSettingsDisplayRenderer& cfgR() const { return mCfgR; }
   const GPUSettingsDisplayLight& cfgL() const { return mCfgL; }
@@ -297,6 +298,7 @@ class GPUDisplay : public GPUDisplayInterface
   HighResTimer mAnimationTimer;
   int32_t mAnimationFrame = 0;
   int32_t mAnimationLastBase = 0;
+  int32_t mAnimationMixBase = -1; // Target keyframe of the current config blend (mixing), -1 = none
   int32_t mAnimateScreenshot = 0;
   int32_t mAnimationExport = 0;
   bool mAnimationChangeConfig = true;

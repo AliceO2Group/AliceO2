@@ -187,21 +187,35 @@ void TPCFastTransformInitCPM(const char* fileName = "debugVoxRes.root",
 void createFastTransform(std::string outFileName, TTree* voxResTree, o2::tpc::TrackResiduals& trackResiduals, bool useSmoothed, bool invertSigns, float meanIDC, float meanCTP, int debug, int useCTPLumi)
 {
   LOGP(info, "create fast transformation ... ");
-  std::regex reg(".*FT_voxRes\\.residuals\\.([0-9]{6})_([0-9]{13})_([0-9]{13})_([0-9]+)_([0-9]+).*\\.root");
-  std::smatch base_match;
-  int run = -1;
-  long validFrom = -1;
-  long validUntil = -1;
+  // run and validity range from the input UserInfo (written by staticMapCreatorCPM.C). The output file
+  // name is only parsed for older inputs without them and for the TF range of the old naming scheme.
+  auto getLongFromUserInfo = [voxResTree](const char* name) {
+    const auto obj = voxResTree->GetUserInfo()->FindObject(name);
+    return obj ? std::atol(obj->GetTitle()) : -1L;
+  };
+  int run = static_cast<int>(getLongFromUserInfo("runNumber"));
+  // requested time window if one was set, otherwise the time span of the selected TFs
+  const long firstTFTime = getLongFromUserInfo("firstTFTime");
+  const long lastTFTime = getLongFromUserInfo("lastTFTime");
+  long validFrom = (firstTFTime > 0) ? firstTFTime : getLongFromUserInfo("minTimeMS");
+  long validUntil = (lastTFTime > 0) ? lastTFTime : getLongFromUserInfo("maxTimeMS");
   int firstTF = -1;
   int lastTF = -1;
+  std::regex reg(".*FT_voxRes\\.residuals\\.([0-9]{6})_([0-9]{13})_([0-9]{13})_([0-9]+)_([0-9]+).*\\.root");
+  std::smatch base_match;
   if (std::regex_match(outFileName, base_match, reg)) {
-    run = std::stoi(base_match[1].str());
-    validFrom = std::stol(base_match[2].str());
-    validUntil = std::stol(base_match[3].str());
+    if (run < 0) {
+      run = std::stoi(base_match[1].str());
+      validFrom = std::stol(base_match[2].str());
+      validUntil = std::stol(base_match[3].str());
+    }
     firstTF = std::stol(base_match[4].str());
     lastTF = std::stol(base_match[5].str());
-    LOGP(info, "Found run {}, validFrom {}, validUntil {}, firstTF {}, lastTF {}", run, validFrom, validUntil, firstTF, lastTF);
   }
+  if (run < 0) {
+    LOGP(warning, "Run number neither in the input UserInfo nor in the output file name {}", outFileName);
+  }
+  LOGP(info, "Found run {}, validFrom {}, validUntil {}, firstTF {}, lastTF {}", run, validFrom, validUntil, firstTF, lastTF);
 
   auto* helper = o2::tpc::TPCFastTransformHelperO2::instance();
 

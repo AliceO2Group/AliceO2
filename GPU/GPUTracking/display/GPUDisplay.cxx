@@ -629,6 +629,14 @@ void GPUDisplay::DrawGLScene_drawCommands()
 
 void GPUDisplay::DrawGLScene_internal(float animateTime, bool renderToMixBuffer) // negative time = no mixing
 {
+  if (mRequestScreenshot || mAnimateScreenshot) {
+    const uint32_t factor = std::max(1, mCfgR.drawQualityDownsampleFSAA) * std::max(1, mCfgR.screenshotScaleFactor);
+    if (std::max(mBackend->mScreenWidth, mBackend->mScreenHeight) * factor > mBackend->mMaxRenderSize) {
+      GPUError("Screenshot not taken: requested render size %u x %u (window x FSAA x screenshot scale) exceeds the maximum size %u x %u", mBackend->mScreenWidth * factor, mBackend->mScreenHeight * factor, mBackend->mMaxRenderSize, mBackend->mMaxRenderSize);
+      mRequestScreenshot = false;
+      mAnimateScreenshot = 0;
+    }
+  }
   bool doScreenshot = (mRequestScreenshot || mAnimateScreenshot) && animateTime < 0;
 
   updateOptions();
@@ -666,7 +674,9 @@ void GPUDisplay::DrawGLScene_internal(float animateTime, bool renderToMixBuffer)
   nextViewMatrix = nextViewMatrix * *mModelMatrix;
   const float zFar = ((mParam->par.continuousTracking ? (mMaxClusterZ * GL_SCALE_FACTOR) : 8.f) + 50.f) * 2.f;
   const hmm_mat4 proj = HMM_Perspective(mCfgR.fov, (float)mBackend->mRenderWidth / (float)mBackend->mRenderHeight, 0.1f, zFar);
-  mBackend->prepareDraw(proj, nextViewMatrix, doScreenshot || mRequestScreenshot, renderToMixBuffer, mixSlaveImage);
+  if (!mBackend->prepareDraw(proj, nextViewMatrix, doScreenshot || mRequestScreenshot, renderToMixBuffer, mixSlaveImage)) {
+    return; // No image available (e.g. hidden window), retry with the next frame
+  }
   mBackend->pointSizeFactor(1);
   mBackend->lineWidthFactor(1);
 

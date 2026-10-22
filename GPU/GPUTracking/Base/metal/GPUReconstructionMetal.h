@@ -57,6 +57,9 @@ class GPUReconstructionMetal : public GPUReconstructionProcessing::KernelInterfa
 
   int32_t GetMetalPrograms();
 
+  void CommitStream(int32_t stream);
+  void DrainStream(int32_t stream);
+
  private:
   int32_t AddKernels();
 };

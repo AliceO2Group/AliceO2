@@ -15,6 +15,7 @@ o2_add_library(TRKWorkflow
                        src/DigitWriterSpec.cxx
                        src/ClustererSpec.cxx
                        src/ClusterWriterSpec.cxx
+                       src/ClusterReaderSpec.cxx
                        src/RecoWorkflow.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::GPUWorkflow

@@ -20,6 +20,7 @@
 
 namespace o2::gpu
 {
+struct GPUDisplayGUIChannel;
 namespace internal
 {
 struct GPUDisplayGUIWrapperObjects;
@@ -28,16 +29,16 @@ struct GPUDisplayGUIWrapperObjects;
 class GPUDisplayGUIWrapper
 {
  public:
-  GPUDisplayGUIWrapper();
+  explicit GPUDisplayGUIWrapper(GPUDisplayGUIChannel& channel); // Starts the GUI thread, which owns the QApplication
   ~GPUDisplayGUIWrapper();
   bool isRunning() const;
-  void UpdateTimer();
 
   int32_t start();
   int32_t stop();
-  int32_t focus();
+  int32_t focus(); // Bring the GUI window to the front
 
  private:
+  GPUDisplayGUIChannel& mChannel;
   std::unique_ptr<internal::GPUDisplayGUIWrapperObjects> mO;
 
   void guiThread();

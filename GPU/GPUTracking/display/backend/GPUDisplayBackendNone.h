@@ -33,7 +33,7 @@ class GPUDisplayBackendNone : public GPUDisplayBackend
   int32_t InitBackendA() override;
   void ExitBackendA() override {}
   void loadDataToGPU(size_t totalVertizes) override {}
-  void prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot, bool toMixBuffer, float includeMixImage) override {}
+  bool prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot, bool toMixBuffer, float includeMixImage) override { return true; }
   void finishDraw(bool doScreenshot, bool toMixBuffer, float includeMixImage) override {}
   void finishFrame(bool doScreenshot, bool toMixBuffer, float includeMixImage) override {}
   void prepareText() override {}
