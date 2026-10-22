@@ -23,6 +23,7 @@ namespace eventgen
 
 /// Settings of the EventDecayer, which decays generator particles with Pythia8 before transport
 struct EventDecayerParam : public o2::conf::ConfigurableParamHelper<EventDecayerParam> {
+  bool enable = false;                                                               // decay step in Generator::ReadEvent
   std::string config[8] = {"", "", "", "", "", "", "", ""};                          // Pythia8 config files, an empty slot takes DecayerPythia8.config
   double tau0Max = 10.;                                                              // species with a larger tau0 in mm/c stay undecayed (<= 0 switches it off)
   std::string skipPdg = "115 225 335 10221 10331 20223 20333 102132 102134 9010221"; // PDG codes never decayed, matched on |pdg|
