@@ -673,7 +673,8 @@ void GPUDisplay::DrawGLScene_internal(float animateTime, bool renderToMixBuffer)
   // Draw Event
   nextViewMatrix = nextViewMatrix * *mModelMatrix;
   const float zFar = ((mParam->par.continuousTracking ? (mMaxClusterZ * GL_SCALE_FACTOR) : 8.f) + 50.f) * 2.f;
-  const hmm_mat4 proj = HMM_Perspective(mCfgR.fov, (float)mBackend->mRenderWidth / (float)mBackend->mRenderHeight, 0.1f, zFar);
+  const float aspect = mBackend->mRenderHeight ? (float)mBackend->mRenderWidth / (float)mBackend->mRenderHeight : 1.f; // No render size with the None backend
+  const hmm_mat4 proj = HMM_Perspective(mCfgR.fov, aspect, 0.1f, zFar);
   if (!mBackend->prepareDraw(proj, nextViewMatrix, doScreenshot || mRequestScreenshot, renderToMixBuffer, mixSlaveImage)) {
     return; // No image available (e.g. hidden window), retry with the next frame
   }
