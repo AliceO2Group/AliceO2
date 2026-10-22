@@ -295,6 +295,7 @@ int32_t GPUDisplayFrontend::StartDisplay()
     return (1);
   }
 #endif
+  mDisplay->buildConfig();
   return (0);
 }
 
