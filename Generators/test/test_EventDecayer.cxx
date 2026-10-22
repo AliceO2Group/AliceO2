@@ -504,18 +504,34 @@ BOOST_AUTO_TEST_CASE(seeding)
   setParams();
 }
 
-BOOST_AUTO_TEST_CASE(partonic_decay_fails)
+// quarks, gluon, diquarks and the Pythia8 pseudo-particles 81-99
+bool isPartonic(int pdg)
 {
-  // Xic+ -> s uu_1 with meMode 91, which Pythia8 leaves as partons
+  int a = std::abs(pdg);
+  bool diquark = a > 1100 && a < 5600 && a / 1000 < 6 && (a / 10) % 10 == 0 && (a / 100) % 10 <= a / 1000 && (a / 100) % 10 > 0 && (a % 10) % 2 == 1;
+  return (a >= 1 && a <= 8) || a == 21 || (a >= 81 && a <= 99) || diquark;
+}
+
+BOOST_AUTO_TEST_CASE(partonic_decay_never_transports_partons)
+{
+  // Xic+ -> s uu_1 with meMode 91; whether Pythia8 hadronises the partons depends on its version (8.318 does, 8.315 does not)
   setParams("", writeCfg("4232:oneChannel = 1 1.0 91 3 2203\n"));
   EventDecayer decayer;
   BOOST_REQUIRE(decayer.init());
   std::vector<TParticle> particles{makeParticle(4232, 5., true)};
   auto before = particles;
   auto report = decayer.decay(particles);
-  checkUnchanged(particles, before);
-  BOOST_CHECK_EQUAL(report.failed[4232], 1);
-  BOOST_CHECK(report.decayed.empty());
+  for (auto const& p : particles) {
+    BOOST_CHECK(!(toBeDone(p) && isPartonic(p.GetPdgCode())));
+  }
+  if (report.failed[4232] == 1) {
+    checkUnchanged(particles, before);
+    BOOST_CHECK(report.decayed.empty());
+  } else {
+    BOOST_CHECK_EQUAL(report.decayed[4232], 1);
+    BOOST_CHECK(!toBeDone(particles[0]));
+    BOOST_CHECK(particles.size() > 1);
+  }
 }
 
 BOOST_AUTO_TEST_CASE(failed_intermediate_decay_fails)
