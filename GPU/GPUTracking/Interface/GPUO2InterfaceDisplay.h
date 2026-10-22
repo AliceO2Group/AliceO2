@@ -37,9 +37,9 @@ class GPUO2InterfaceDisplay
 
   void UpdateCalib(const GPUCalibObjectsConst* calib);
   void UpdateGRP(const GPUSettingsGRP* grp);
-  int32_t startDisplay();
+  int32_t StartUnmanagedDisplay();
   int32_t show(const GPUTrackingInOutPointers* ptrs);
-  int32_t endDisplay();
+  int32_t StopUnmanagedDisplay();
 
  private:
   std::unique_ptr<GPUDisplayInterface> mDisplay;

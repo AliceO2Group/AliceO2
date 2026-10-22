@@ -36,12 +36,13 @@ class O2DatabasePDG
  public:
   static TDatabasePDG* Instance()
   {
-    static bool initialized = false; // initialize this --> adds particles to TDatabasePDG;
-    auto db = TDatabasePDG::Instance();
-    if (!initialized) {
+    // adds the ALICE particles to TDatabasePDG on first use.
+    // Initialisation is done through a local static database to make the Instance() function thread-safe
+    static TDatabasePDG* db = [] {
+      auto db = TDatabasePDG::Instance();
       addALICEParticles(db);
-      initialized = true;
-    }
+      return db;
+    }();
     return db;
   }
 
@@ -52,8 +53,14 @@ class O2DatabasePDG
   //         A possible fix would be to stop deriving the masses from the compiled-in table,
   //         or a better solution should be found in the future
   static void addALICEParticles(TDatabasePDG* db = TDatabasePDG::Instance(),
-                                double monopoleMass = o2::sim::MonopoleMassDefaultGeV);
+                                double monopoleMass = getMonopoleMass());
   static void addParticlesFromExternalFile(TDatabasePDG* db);
+
+  // mass of all monopole species in GeV used when they get registered; since TDatabasePDG
+  // keeps the first registration of a PDG code, it has to be set before the first
+  // Instance() or addALICEParticles() call, which hasMonopoleMass() can verify
+  static double getMonopoleMass() { return sMonopoleMass; }
+  static void setMonopoleMass(double monopoleMass) { sMonopoleMass = monopoleMass; }
 
   // true if all monopole species are registered with the given mass in GeV; TDatabasePDG
   // keeps the first registration, so an earlier call with another mass makes this false
@@ -99,6 +106,7 @@ class O2DatabasePDG
   O2DatabasePDG() = delete;
 
  private:
+  inline static double sMonopoleMass = o2::sim::MonopoleMassDefaultGeV;
   static constexpr int IONBASELOW{1000000000};
   static constexpr int IONBASEHIGH{1099999999};
 };

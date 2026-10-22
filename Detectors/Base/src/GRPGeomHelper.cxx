@@ -39,14 +39,14 @@ namespace o2d = o2::dataformats;
 GRPGeomRequest::GRPGeomRequest(bool orbitResetTime, bool GRPECS, bool GRPLHCIF, bool GRPMagField, bool askMatLUT, GeomRequest geom, std::vector<o2::framework::InputSpec>& inputs, bool askOnce, bool needPropD, std::string detMaskString)
   : askGRPECS(GRPECS), askGRPLHCIF(GRPLHCIF), askGRPMagField(GRPMagField), askMatLUT(askMatLUT), askTime(orbitResetTime), askOnceAllButField(askOnce), needPropagatorD(needPropD)
 {
-  if (geom == Aligned) {
+  if (geom == Aligned || geom == AlignmentsAndAligned) {
     askGeomAlign = true;
     addInput({"geomAlg", "GLO", "GEOMALIGN", 0, Lifetime::Condition, ccdbParamSpec("GLO/Config/GeometryAligned")}, inputs);
   } else if (geom == Ideal || geom == Alignments) {
     askGeomIdeal = true;
     addInput({"geomIdeal", "GLO", "GEOMIDEAL", 0, Lifetime::Condition, ccdbParamSpec("GLO/Config/Geometry")}, inputs);
   }
-  if (geom == Alignments) {
+  if (geom == Alignments || geom == AlignmentsAndAligned) {
     askAlignments = true;
     o2::detectors::DetID::mask_t algDetMask = DetID::getMask(detMaskString);
     for (auto id = DetID::First; id <= DetID::Last; id++) {

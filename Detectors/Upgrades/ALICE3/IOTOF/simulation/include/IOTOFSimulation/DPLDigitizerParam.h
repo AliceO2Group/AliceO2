@@ -26,17 +26,28 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
   bool continuous = true;                   ///< flag for continuous simulation
   float noisePerPixel = DEFNoisePerPixel(); ///< ALPIDE Noise per channel
 
-  double timeOffset = 0.;                 ///< time offset (in seconds!) to calculate ROFrame from hit time
-  float timeResolution = 0.020f;          ///< time resolution sigma in ns (20 ps default)
-  float tdcBin = 0.010f;                  ///< TDC time bin (10 ps default)
-  float efficiency = 0.98f;               ///< detection efficiency
-  std::string efficiencyFilePath{};       ///< optional efficiency map file path.
-                                          ///< The efficiency map is currently available at /alice/cern.ch/user/g/glucia/ALICE3/IOTOF/pixelEfficiency/PixelEfficiencyMap_TH2.root. FIXME to be removed once switch to CCDBFetcher
+  double timeOffset = 0.;        ///< time offset (in seconds!) to calculate ROFrame from hit time
+  float timeResolution = 0.020f; ///< time resolution sigma in ns (20 ps default)
+  float tdcBin = 0.010f;         ///< TDC time bin (10 ps default)
+  float efficiency = 0.98f;      ///< detection efficiency
+
+  // Optional map paths. Prefix with "ccdb://" to fetch from CCDB, otherwise the path is opened with TFile::Open
+  // (local file, alien://, root://, ...). An empty path disables the map.
+  std::string efficiencyMapPath{};    ///< optional efficiency map path.
+                                      ///< e.g. ccdb://Users/g/glucia/tmp/ALICE3/IOTOF/pixelEfficiency
+                                      ///< or alien:///alice/cern.ch/user/g/glucia/ALICE3/IOTOF/pixelEfficiency/PixelEfficiencyMap_TH2.root
+  std::string resolutionMapPath{};    ///< optional resolution map path.
+                                      ///< e.g. alien:///alice/cern.ch/user/g/glucia/ALICE3/IOTOF/pixelEfficiency/PixelResolutionMap_TH2.root
+  std::string timeOfArrivalMapPath{}; ///< optional time of arrival map path.
+
   int chargeThreshold = 100;              ///< charge threshold in Nelectrons
   int minChargeToAccount = 7;             ///< minimum charge contribution to account
   int nSimSteps = 10;                     ///< number of steps in response simulation
   float energyToNElectrons = 1. / 3.6e-9; // conversion of eloss to Nelectrons
   int responseMatrixSize = 1;             ///< size of the response matrix (odd number)
+
+  int nColsPerGroup = 4;      ///< number of pixel columns grouped into a readout column
+  double tdcBusyTime = 3000.; ///< tdc pair bsuy time (default 3 us)
 
   std::string noiseFilePath{}; ///< optional noise masks file path. FIXME to be removed once switch to CCDBFetcher
 

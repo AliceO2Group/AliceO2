@@ -37,18 +37,19 @@ using namespace o2::tpc::constants;
 // ===========================================================================
 
 template <>
-GPUdii() void GPUTPCCFDecodeZS::Thread<GPUTPCCFDecodeZS::decodeZS>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer, int32_t firstHBF, int32_t tpcTimeBinCut)
+GPUdii() void GPUTPCCFDecodeZS::Thread<GPUTPCCFDecodeZS::decodeZS>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& clusterer, int32_t firstHBF, int32_t tpcTimeBinCut)
 {
   GPUTPCCFDecodeZS::decode(clusterer, smem, nBlocks, nThreads, iBlock, iThread, firstHBF, tpcTimeBinCut);
 }
 
-GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUSharedMemory& s, int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t firstHBF, int32_t tpcTimeBinCut)
+GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUsharedref() GPUSharedMemory& s, int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t firstHBF, int32_t tpcTimeBinCut)
 {
   const uint32_t sector = clusterer.mISector;
 #ifdef GPUCA_GPUCODE
   const uint32_t endpoint = clusterer.mPzsOffsets[iBlock].endpoint;
 #else
-  const uint32_t endpoint = iBlock;
+  const bool deviceLayout = clusterer.IsDeviceProcessor(); // Host-compiled kernel running with threading as on a device
+  const uint32_t endpoint = deviceLayout ? clusterer.mPzsOffsets[iBlock].endpoint : iBlock;
 #endif
   const GPUTrackingInOutZS::GPUTrackingInOutZSSector& zs = clusterer.GetConstantMem()->ioPtrs.tpcZS->sector[sector];
   if (zs.count[endpoint] == 0) {
@@ -74,9 +75,11 @@ GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUShared
   {
     {
 #else
-  for (uint32_t i = clusterer.mMinMaxCN[endpoint].zsPtrFirst; i < clusterer.mMinMaxCN[endpoint].zsPtrLast; i++) {
-    const uint32_t minJ = (i == clusterer.mMinMaxCN[endpoint].zsPtrFirst) ? clusterer.mMinMaxCN[endpoint].zsPageFirst : 0;
-    const uint32_t maxJ = (i + 1 == clusterer.mMinMaxCN[endpoint].zsPtrLast) ? clusterer.mMinMaxCN[endpoint].zsPageLast : zs.nZSPtr[endpoint][i];
+  const uint32_t iFirst = deviceLayout ? 0 : clusterer.mMinMaxCN[endpoint].zsPtrFirst;
+  const uint32_t iLast = deviceLayout ? 1 : clusterer.mMinMaxCN[endpoint].zsPtrLast;
+  for (uint32_t i = iFirst; i < iLast; i++) {
+    const uint32_t minJ = deviceLayout ? clusterer.mPzsOffsets[iBlock].num : ((i == iFirst) ? clusterer.mMinMaxCN[endpoint].zsPageFirst : 0);
+    const uint32_t maxJ = deviceLayout ? (minJ + 1) : ((i + 1 == iLast) ? clusterer.mMinMaxCN[endpoint].zsPageLast : zs.nZSPtr[endpoint][i]);
     for (uint32_t j = minJ; j < maxJ; j++) {
 #endif
       const uint32_t* pageSrc = (const uint32_t*)(((const uint8_t*)zs.zsPtr[endpoint][i]) + j * TPCZSHDR::TPC_ZS_PAGE_SIZE);
@@ -172,13 +175,13 @@ GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUShared
                     seqLen = rowData[(nSeq + 1) * 2] - rowData[nSeq * 2];
                     pad = rowData[nSeq++ * 2 + 1];
                   }
-                  const CfFragment& fragment = clusterer.mPmemory->fragment;
+                  const CfFragment& frag = clusterer.mPmemory->frag;
                   TPCTime globalTime = timeBin + l;
-                  bool discardTimeBin = not fragment.contains(globalTime);
+                  bool discardTimeBin = not frag.contains(globalTime);
                   discardTimeBin |= (tpcTimeBinCut > 0 && globalTime > tpcTimeBinCut);
 
                   Row row = rowOffset + m;
-                  CfChargePos pos(row, Pad(pad), discardTimeBin ? INVALID_TIME_BIN : fragment.toLocal(globalTime));
+                  CfChargePos pos(row, Pad(pad), discardTimeBin ? INVALID_TIME_BIN : frag.toLocal(globalTime));
                   positions[nDigitsTmp++] = pos;
 
                   if (!discardTimeBin) {
@@ -219,7 +222,7 @@ GPUdii() void GPUTPCCFDecodeZSLink::Thread<0>(int32_t nBlocks, int32_t nThreads,
 
 GPUd() size_t GPUTPCCFDecodeZSLink::DecodePage(GPUSharedMemory& smem, DecodeCtx& ctx)
 {
-  const CfFragment& fragment = ctx.clusterer.mPmemory->fragment;
+  const CfFragment& frag = ctx.clusterer.mPmemory->frag;
 
   const auto* rdHdr = ConsumeHeader<header::RAWDataHeader>(ctx.page);
 
@@ -246,7 +249,7 @@ GPUd() size_t GPUTPCCFDecodeZSLink::DecodePage(GPUSharedMemory& smem, DecodeCtx&
 
     nDecoded += nAdc;
 
-    bool discardTimeBin = not fragment.contains(timeBin);
+    bool discardTimeBin = not frag.contains(timeBin);
     discardTimeBin |= (ctx.tpcTimeBinCut > 0 && timeBin > ctx.tpcTimeBinCut);
 
     if (discardTimeBin) {
@@ -331,9 +334,9 @@ GPUd() void GPUTPCCFDecodeZSLink::DecodeTB(
     }
 
     o2::tpc::PadPos padAndRow = GetPadAndRowFromFEC(ctx.clusterer, cru, rawFECChannel, fecInPartition);
-    const CfFragment& fragment = ctx.clusterer.mPmemory->fragment;
+    const CfFragment& frag = ctx.clusterer.mPmemory->frag;
     float charge = ADCToFloat(adc, DECODE_MASK, DECODE_BITS_FACTOR);
-    WriteCharge(ctx.clusterer, charge, padAndRow, fragment.toLocal(timeBin), ctx.pageDigitOffset + myOffset);
+    WriteCharge(ctx.clusterer, charge, padAndRow, frag.toLocal(timeBin), ctx.pageDigitOffset + myOffset);
 
   } // for (uint8_t i = iThread; blockOffset < nAdc; i += NThreads)
 }
@@ -370,7 +373,8 @@ GPUd() void GPUTPCCFDecodeZSLinkBase::Decode(int32_t nBlocks, int32_t nThreads, 
 #ifdef GPUCA_GPUCODE
   const uint32_t endpoint = clusterer.mPzsOffsets[iBlock].endpoint;
 #else // CPU
-  const uint32_t endpoint = iBlock;
+  const bool deviceLayout = clusterer.IsDeviceProcessor(); // Host-compiled kernel running as device kernel (CPUDevice backend): GPU work distribution, one block per page
+  const uint32_t endpoint = deviceLayout ? clusterer.mPzsOffsets[iBlock].endpoint : iBlock;
 #endif
 
   const GPUTrackingInOutZS::GPUTrackingInOutZSSector& zs = clusterer.GetConstantMem()->ioPtrs.tpcZS->sector[sector];
@@ -386,9 +390,11 @@ GPUd() void GPUTPCCFDecodeZSLinkBase::Decode(int32_t nBlocks, int32_t nThreads, 
   {
     {
 #else // CPU
-  for (uint32_t i = clusterer.mMinMaxCN[endpoint].zsPtrFirst; i < clusterer.mMinMaxCN[endpoint].zsPtrLast; i++) {
-    const uint32_t minJ = (i == clusterer.mMinMaxCN[endpoint].zsPtrFirst) ? clusterer.mMinMaxCN[endpoint].zsPageFirst : 0;
-    const uint32_t maxJ = (i + 1 == clusterer.mMinMaxCN[endpoint].zsPtrLast) ? clusterer.mMinMaxCN[endpoint].zsPageLast : zs.nZSPtr[endpoint][i];
+  const uint32_t iFirst = deviceLayout ? 0 : clusterer.mMinMaxCN[endpoint].zsPtrFirst;
+  const uint32_t iLast = deviceLayout ? 1 : clusterer.mMinMaxCN[endpoint].zsPtrLast;
+  for (uint32_t i = iFirst; i < iLast; i++) {
+    const uint32_t minJ = deviceLayout ? clusterer.mPzsOffsets[iBlock].num : ((i == iFirst) ? clusterer.mMinMaxCN[endpoint].zsPageFirst : 0);
+    const uint32_t maxJ = deviceLayout ? (minJ + 1) : ((i + 1 == iLast) ? clusterer.mMinMaxCN[endpoint].zsPageLast : zs.nZSPtr[endpoint][i]);
     for (uint32_t j = minJ; j < maxJ; j++) {
 #endif
       const uint32_t* pageSrc = (const uint32_t*)(((const uint8_t*)zs.zsPtr[endpoint][i]) + j * TPCZSHDR::TPC_ZS_PAGE_SIZE);
@@ -651,7 +657,7 @@ GPUd() int16_t GPUTPCCFDecodeZSDenseLink::DecodeTB(
   constexpr int32_t NTHREADS = GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFDecodeZSDenseLink);
   static_assert(NTHREADS == GPUCA_WARP_SIZE, "Decoding TB Headers in parallel assumes block size is a single warp.");
 
-  const CfFragment& fragment = ctx.clusterer.mPmemory->fragment;
+  const CfFragment& frag = ctx.clusterer.mPmemory->frag;
 
   // Read timebin block header
   uint16_t tbbHdr = ConsumeByte(ctx.page);
@@ -721,7 +727,7 @@ GPUd() int16_t GPUTPCCFDecodeZSDenseLink::DecodeTB(
   const uint8_t* adcData = ConsumeBytes(ctx.page, (nSamplesInTB * DECODE_BITS + 7) / 8);
   MAYBE_PAGE_OVERFLOW(ctx.page);
 
-  bool discardTimeBin = not fragment.contains(timeBin);
+  bool discardTimeBin = not frag.contains(timeBin);
   discardTimeBin |= (ctx.tpcTimeBinCut > 0 && timeBin > ctx.tpcTimeBinCut);
 
   if (discardTimeBin) {
@@ -754,7 +760,7 @@ GPUd() int16_t GPUTPCCFDecodeZSDenseLink::DecodeTB(
     o2::tpc::PadPos padAndRow = GetPadAndRowFromFEC(ctx.clusterer, cru, rawFECChannelLink, smem.linkIds[iLink]);
 
     float charge = ADCToFloat(adc, DECODE_MASK, DECODE_BITS_FACTOR);
-    WriteCharge(ctx.clusterer, charge, padAndRow, fragment.toLocal(timeBin), ctx.pageDigitOffset + sample);
+    WriteCharge(ctx.clusterer, charge, padAndRow, frag.toLocal(timeBin), ctx.pageDigitOffset + sample);
 
   } // for (uint16_t sample = iThread; sample < nSamplesInTB; sample += NTHREADS)
 

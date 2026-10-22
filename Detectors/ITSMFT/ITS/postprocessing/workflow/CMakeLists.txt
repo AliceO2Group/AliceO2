@@ -11,5 +11,6 @@
 
 o2_add_executable(postprocessing-workflow
                   COMPONENT_NAME its-standalone
+                  TARGETVARNAME postprocessingWorkflowTarget
                   SOURCES standalone-postprocessing-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::ITSPostprocessing)

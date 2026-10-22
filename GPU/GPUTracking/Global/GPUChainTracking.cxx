@@ -61,14 +61,19 @@ using namespace o2::gpu;
 using namespace o2::tpc;
 using namespace o2::trd;
 
-GPUChainTracking::GPUChainTracking(GPUReconstruction* rec, uint32_t maxTPCHits, uint32_t maxTRDTracklets) : GPUChain(rec), mIOPtrs(processors()->ioPtrs), mInputsHost(new GPUTrackingInputProvider), mInputsShadow(new GPUTrackingInputProvider), mClusterNativeAccess(new ClusterNativeAccess), mTriggerBuffer(new GPUTriggerOutputs), mMaxTPCHits(maxTPCHits), mMaxTRDTracklets(maxTRDTracklets), mDebugFile(new std::ofstream)
+GPUChainTracking::GPUChainTracking(GPUReconstruction* rec, uint32_t maxTPCHits, uint32_t maxTRDTracklets) : GPUChain(rec), mIOPtrs(processors()->ioPtrs), mInputsHost(new GPUTrackingInputProvider), mInputsShadow(new GPUTrackingInputProvider), mClusterNativeAccess(new ClusterNativeAccess), mTriggerBuffer(new GPUTriggerOutputs), mMaxTPCHits(maxTPCHits), mMaxTRDTracklets(maxTRDTracklets), mDebugFile(new std::ostream(nullptr))
 {
   ClearIOPointers();
   mFlatObjectsShadow.mChainTracking = this;
   mFlatObjectsDevice.mChainTracking = this;
 }
 
-GPUChainTracking::~GPUChainTracking() = default;
+GPUChainTracking::~GPUChainTracking()
+{
+  if (mDisplayRunning) {
+    GetProcessingSettings().eventDisplay->StopDisplay();
+  }
+}
 
 void GPUChainTracking::RegisterPermanentMemoryAndProcessors()
 {
@@ -386,7 +391,17 @@ int32_t GPUChainTracking::Init()
 
   if (GetProcessingSettings().debugLevel >= 6) {
     std::string filename = std::string(mRec->IsGPU() ? "GPU" : "CPU") + (mRec->slaveId() != -1 ? (std::string("_slave") + std::to_string(mRec->slaveId())) : std::string(mRec->slavesExist() ? "_master" : "")) + GetProcessingSettings().debugLogSuffix + ".out";
-    mDebugFile->open(filename.c_str());
+
+    bool hashOnly = GetProcessingSettings().debugDumpChecksum;
+
+    std::streambuf* backing = nullptr;
+    if (!hashOnly) {
+      mDebugFileBuffer.open(filename.c_str(), std::ios::out);
+      backing = &mDebugFileBuffer;
+    }
+
+    mDebugFileStream = HashStreamBuf(hashOnly, backing);
+    mDebugFile->rdbuf(&mDebugFileStream);
     if (GetProcessingSettings().debugFileHexFloat >= 1 || (GetProcessingSettings().debugFileHexFloat == -1 && GetProcessingSettings().deterministicGPUReconstruction)) {
       *mDebugFile << std::hexfloat;
     }
@@ -475,7 +490,12 @@ int32_t GPUChainTracking::Finalize()
     GetQA()->DrawQAHistograms();
   }
   if (GetProcessingSettings().debugLevel >= 6) {
-    mDebugFile->close();
+    mDebugFile->flush();
+    mDebugFileBuffer.close();
+
+    if (GetProcessingSettings().debugDumpChecksum) {
+      GPUInfo("Debug hash: %s", mDebugFileStream.hash().c_str());
+    }
   }
   if (mCompressionStatistics) {
     mCompressionStatistics->Finish();
@@ -829,33 +849,29 @@ int32_t GPUChainTracking::RunChainFinalize()
 
     mEventDisplay->WaitTillEventShown();
 
-    if (GetProcessingSettings().eventDisplay->EnableSendKey()) {
+    if (GetProcessingSettings().runsStandalone) {
       while (kbhit()) {
         getch();
       }
       GPUInfo("Press key for next event!");
     }
-
     int32_t iKey;
     do {
       usleep(10000);
-      if (GetProcessingSettings().eventDisplay->EnableSendKey()) {
+      if (GetProcessingSettings().runsStandalone) {
         iKey = kbhit() ? getch() : 0;
         if (iKey == 27) {
           GetProcessingSettings().eventDisplay->setDisplayControl(2);
         } else if (iKey == 'n') {
           break;
         } else if (iKey) {
-          while (GetProcessingSettings().eventDisplay->getSendKey() != 0) {
-            usleep(1000);
-          }
-          GetProcessingSettings().eventDisplay->setSendKey(iKey);
+          GetProcessingSettings().eventDisplay->sendExternalGUIKey(iKey);
         }
       }
     } while (GetProcessingSettings().eventDisplay->getDisplayControl() == 0);
     if (GetProcessingSettings().eventDisplay->getDisplayControl() == 2) {
       mDisplayRunning = false;
-      GetProcessingSettings().eventDisplay->DisplayExit();
+      GetProcessingSettings().eventDisplay->StopDisplay();
       const_cast<GPUSettingsProcessing&>(GetProcessingSettings()).eventDisplay = nullptr; // TODO: fixme - eventDisplay should probably not be put into ProcessingSettings in the first place
       return GPUReconstruction::retValValue::retDoExit;
     }

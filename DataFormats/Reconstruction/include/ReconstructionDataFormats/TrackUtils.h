@@ -76,10 +76,10 @@ GPUd() void g3helx3(value_T qfield, value_T step, std::array<value_T, 7>& vect)
 
   value_T tsint, sintt, sint, cos1t;
   if (gpu::CAMath::Abs(tet) > value_T(0.03)) {
-    sint = gpu::CAMath::Sin(tet);
+    sint = math_utils::detail::sin<value_T>(tet);
     sintt = sint / tet;
     tsint = (tet - sint) / tet;
-    value_T t = gpu::CAMath::Sin(value_T(0.5) * tet);
+    value_T t = math_utils::detail::sin<value_T>(value_T(0.5) * tet);
     cos1t = value_T(2) * t * t / tet;
   } else {
     tsint = tet * tet / value_T(6);
@@ -133,15 +133,15 @@ GPUd() value_T BetheBlochSolid(value_T bg, value_T rho, value_T kp1, value_T kp2
 
   //*** Density effect
   value_T d2 = value_T(0);
-  const value_T x = gpu::CAMath::Log(bg);
-  const value_T lhwI = gpu::CAMath::Log(value_T(28.816e-9) * gpu::CAMath::Sqrt(rho * meanZA) / meanI);
+  const value_T x = math_utils::detail::log<value_T>(bg);
+  const value_T lhwI = math_utils::detail::log<value_T>(value_T(28.816e-9) * math_utils::detail::sqrt<value_T>(rho * meanZA) / meanI);
   if (x > kp2) {
     d2 = lhwI + x - value_T(0.5);
   } else if (x > kp1) {
     double r = (kp2 - x) / (kp2 - kp1);
     d2 = lhwI + x - value_T(0.5) + (value_T(0.5) - lhwI - kp1) * r * r * r;
   }
-  auto dedx = mK * meanZA / beta2 * (value_T(0.5) * gpu::CAMath::Log(value_T(2) * me * bg2 * maxT / (meanI * meanI)) - beta2 - d2);
+  auto dedx = mK * meanZA / beta2 * (value_T(0.5) * math_utils::detail::log<value_T>(value_T(2) * me * bg2 * maxT / (meanI * meanI)) - beta2 - d2);
   return dedx > value_T(0) ? dedx : value_T(0);
 }
 
@@ -177,7 +177,7 @@ GPUd() value_T BetheBlochSolidOpt(value_T bg)
 
   //*** Density effect
   value_T d2 = value_T(0);
-  const value_T x = gpu::CAMath::Log(bg);
+  const value_T x = math_utils::detail::log<value_T>(bg);
   if (x > kp2) {
     d2 = lhwI - value_T(0.5) + x;
   } else if (x > kp1) {

@@ -12,6 +12,7 @@
 #ifndef O2_TRK_RECOWORKFLOW_H
 #define O2_TRK_RECOWORKFLOW_H
 
+#include "DetectorsCommonDataFormats/DetID.h"
 #include "Framework/WorkflowSpec.h"
 
 namespace o2::trk
@@ -19,10 +20,12 @@ namespace o2::trk
 namespace reco_workflow
 {
 
+/// The digit readers, clusterers and cluster writers of \a detectors, TRK and/or FT3.
 o2::framework::WorkflowSpec getWorkflow(bool useMC,
                                         bool upstreamDigits = false,
                                         bool upstreamClusters = false,
-                                        bool disableRootOutput = false);
+                                        bool disableRootOutput = false,
+                                        o2::detectors::DetID::mask_t detectors = o2::detectors::DetID::getMask(o2::detectors::DetID::TRK));
 }
 
 } // namespace o2::trk

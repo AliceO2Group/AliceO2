@@ -541,11 +541,11 @@ static void addIRISServiceModules(TGeoVolume* petalAsm, int nPetals)
     return;
   }
 
-  auto* matAl = new TGeoMaterial("ALUMINUM", 26.9815, 13, 2.70);
-  const TGeoMedium* med = new TGeoMedium("ALUMINUM", 4, matAl);
+  auto& matmgr = o2::base::MaterialManager::Instance();
+  const TGeoMedium* med = matmgr.getTGeoMedium("ALICE3_TRKSERVICES_ALUMINIUM");
 
   if (!med) {
-    LOGP(error, "addIRISServiceModules: ALUMINUM medium not found.");
+    LOGP(error, "addIRISServiceModules: ALICE3_TRKSERVICES_ALUMINIUM medium not found.");
     return;
   }
 
@@ -617,11 +617,11 @@ static void addIRISServiceModulesSegmented(TGeoVolume* petalAsm, int nPetals)
   // --- Petal φ-span (segment)
   const double halfPhi = 0.5 * (360.0 / double(nPetals));
 
-  auto* matAl = new TGeoMaterial("ALUMINUM", 26.9815, 13, 2.70);
-  const TGeoMedium* med = new TGeoMedium("ALUMINUM", 4, matAl);
+  auto& matmgr = o2::base::MaterialManager::Instance();
+  const TGeoMedium* med = matmgr.getTGeoMedium("ALICE3_TRKSERVICES_ALUMINIUM");
 
   if (!med) {
-    LOGP(error, "addIRISServiceModules: ALUMINUM medium not found.");
+    LOGP(error, "addIRISServiceModulesSegmented: ALICE3_TRKSERVICES_ALUMINIUM medium not found.");
     return;
   }
 

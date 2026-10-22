@@ -17,8 +17,10 @@
 
 #include "GPUCommonDef.h"
 
-#if !defined(GPUCA_GPUCODE) // Could also enable custom search on the CPU, but it is not always faster, so we stick to std::sort
+#if !defined(GPUCA_GPUCODE) || defined(__CPUDEVICE__) // Could also enable custom search on the CPU, but it is not always faster, so we stick to std::sort
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <algorithm>
+#endif
 #define GPUCA_ALGORITHM_STD
 #endif
 
@@ -32,46 +34,45 @@ class GPUCommonAlgorithm
   template <class T>
   GPUd() static void sort(T* begin, T* end);
   template <class T>
-  GPUd() static void sortInBlock(T* begin, T* end);
+  GPUd() static void sortInBlock(T* begin, T* end GPUCA_THREAD_INFO_DECL);
   template <class T>
   GPUd() static void sortDeviceDynamic(T* begin, T* end);
   template <class T, class S>
   GPUd() static void sort(T* begin, T* end, const S& comp);
   template <class T, class S>
-  GPUd() static void sortInBlock(T* begin, T* end, const S& comp);
+  GPUd() static void sortInBlock(T* begin, T* end, const S& comp GPUCA_THREAD_INFO_DECL);
   template <class T, class S>
   GPUd() static void sortDeviceDynamic(T* begin, T* end, const S& comp);
-#if __cplusplus >= 202002L // sortOnDevice takes an auto parameter
+#if __cplusplus >= 202002L // FIXME: auto parameter not supported in C++17
   template <class T, class S>
   GPUh() static void sortOnDevice(auto* rec, int32_t stream, T* begin, size_t N, const S& comp);
 #endif
   template <class T>
   GPUd() static void swap(T& a, T& b);
+  template <class I, class P>
+  GPUhd() static I partitionPoint(I first, I count, const P& pred);
 
  private:
-  // Quicksort implementation
   template <typename I>
-  GPUd() static void QuickSort(I f, I l) GPUnoexcept();
+  GPUd() static void QuickSort(I f, I l) GPUnoexcept(); // Quicksort implementation
 
-  // Quicksort implementation
   template <typename I, typename Cmp>
-  GPUd() static void QuickSort(I f, I l, Cmp cmp) GPUnoexcept();
+  GPUd() static void QuickSort(I f, I l, Cmp cmp) GPUnoexcept(); // Quicksort implementation
 
-  // Insertionsort implementation
+  template <typename IndexType, typename I, typename Cmp>
+  GPUd() static void QuickSortImpl(I f, I l, Cmp cmp) GPUnoexcept(); // Quicksort implementation with index type IndexType, which must be able to hold the number of elements
+
   template <typename I, typename Cmp>
-  GPUd() static void InsertionSort(I f, I l, Cmp cmp) GPUnoexcept();
+  GPUd() static void InsertionSort(I f, I l, Cmp cmp) GPUnoexcept(); // Insertionsort implementation
 
-  // Helper for Quicksort implementation
   template <typename I, typename Cmp>
-  GPUd() static I MedianOf3Select(I f, I l, Cmp cmp) GPUnoexcept();
+  GPUd() static I MedianOf3Select(I f, I l, Cmp cmp) GPUnoexcept(); // Helper for Quicksort implementation
 
-  // Helper for Quicksort implementation
   template <typename I, typename T, typename Cmp>
-  GPUd() static I UnguardedPartition(I f, I l, T piv, Cmp cmp) GPUnoexcept();
+  GPUd() static I UnguardedPartition(I f, I l, T piv, Cmp cmp) GPUnoexcept(); // Helper for Quicksort implementation
 
-  // Helper
   template <typename I>
-  GPUd() static void IterSwap(I a, I b) GPUnoexcept();
+  GPUd() static void IterSwap(I a, I b) GPUnoexcept(); // Helper
 };
 
 #ifndef GPUCA_ALGORITHM_STD
@@ -148,10 +149,19 @@ GPUdi() I GPUCommonAlgorithm::UnguardedPartition(I f, I l, T piv, Cmp cmp) GPUno
 template <typename I, typename Cmp>
 GPUdi() void GPUCommonAlgorithm::QuickSort(I f, I l, Cmp cmp) GPUnoexcept()
 {
+  if (l - f <= 0xFFFF) {
+    QuickSortImpl<uint16_t>(f, l, cmp);
+  } else {
+    QuickSortImpl<uint32_t>(f, l, cmp);
+  }
+}
+
+template <typename IndexType, typename I, typename Cmp>
+GPUdi() void GPUCommonAlgorithm::QuickSortImpl(I f, I l, Cmp cmp) GPUnoexcept()
+{
   if (f == l) {
     return;
   }
-  using IndexType = uint16_t;
 
   struct pair {
     IndexType first;
@@ -159,7 +169,7 @@ GPUdi() void GPUCommonAlgorithm::QuickSort(I f, I l, Cmp cmp) GPUnoexcept()
   };
 
   struct Stack {
-    pair data[11];
+    pair data[sizeof(IndexType) * 8 - 4]; // The smaller partition is processed first, so the depth is bounded by log2(n / cutoff) + 1, cutoff = 50 > 2^5
     uint8_t n{0};
 
     GPUd() void emplace(IndexType x, IndexType y)
@@ -268,21 +278,21 @@ GPUdi() void GPUCommonAlgorithm::sort(T* begin, T* end, const S& comp)
 }
 
 template <class T>
-GPUdi() void GPUCommonAlgorithm::sortInBlock(T* begin, T* end)
+GPUdi() void GPUCommonAlgorithm::sortInBlock(T* begin, T* end GPUCA_THREAD_INFO_DECL)
 {
 #ifndef GPUCA_GPUCODE
   GPUCommonAlgorithm::sort(begin, end);
 #else
-  GPUCommonAlgorithm::sortInBlock(begin, end, [](auto&& x, auto&& y) { return x < y; });
+  GPUCommonAlgorithm::sortInBlock(begin, end, [](auto&& x, auto&& y) { return x < y; } GPUCA_THREAD_INFO_PROVIDE);
 #endif
 }
 
 template <class T, class S>
-GPUdi() void GPUCommonAlgorithm::sortInBlock(T* begin, T* end, const S& comp)
+GPUdi() void GPUCommonAlgorithm::sortInBlock(T* begin, T* end, const S& comp GPUCA_THREAD_INFO_DECL)
 {
-#ifndef GPUCA_GPUCODE
+#if !defined(GPUCA_GPUCODE) || defined(GPUCA_DEVICE_SINGLE_THREAD)
   GPUCommonAlgorithm::sort(begin, end, comp);
-#elif defined(GPUCA_DETERMINISTIC_MODE) // Not using GPUCA_DETERMINISTIC_CODE, which is enforced in TPC compression
+#elif defined(GPUCA_DETERMINISTIC_MODE) // Cannot use GPUCA_DETERMINISTIC_CODE macro here, which is enforced in TPC compression
   if (get_local_id(0) == 0) {
     GPUCommonAlgorithm::sort(begin, end, comp);
   }
@@ -321,6 +331,24 @@ GPUdi() void GPUCommonAlgorithm::swap(T& a, T& b)
   std::swap(a, b);
 }
 #endif
+
+// std::partition_point over the indices [first, first + count): the first index for which pred is false, pred being true on a prefix.
+// A lower bound of value in a sorted key(i) is pred(i) = key(i) < value, an upper bound pred(i) = !(value < key(i)).
+template <class I, class P>
+GPUhdi() I GPUCommonAlgorithm::partitionPoint(I first, I count, const P& pred)
+{
+  while (count > 0) {
+    const I step = count / 2;
+    const I middle = first + step;
+    if (pred(middle)) {
+      first = middle + 1;
+      count -= step + 1;
+    } else {
+      count = step;
+    }
+  }
+  return first;
+}
 
 } // namespace o2::gpu
 
@@ -421,6 +449,47 @@ GPUdi() T warp_broadcast_FUNC(T v, int32_t i)
 #endif
 }
 
+template <class T>
+GPUdi() T warp_shuffle_xor(T v, int32_t laneMask)
+{
+#ifdef __CUDACC__
+  return __shfl_xor_sync(0xFFFFFFFF, v, laneMask);
+#else // HIP
+  return __shfl_xor(v, laneMask);
+#endif
+}
+
+// Butterfly all-reduce over groups of Width lanes: every lane gets the result.
+// Width is a power of two and must not exceed the hardware warp size.
+template <int32_t Width, class T>
+GPUdi() T warp_reduce_add(T v)
+{
+  for (int32_t m = Width / 2; m > 0; m >>= 1) {
+    v += warp_shuffle_xor(v, m);
+  }
+  return v;
+}
+
+template <int32_t Width, class T>
+GPUdi() T warp_reduce_min(T v)
+{
+  for (int32_t m = Width / 2; m > 0; m >>= 1) {
+    const T o = warp_shuffle_xor(v, m);
+    v = o < v ? o : v;
+  }
+  return v;
+}
+
+template <int32_t Width, class T>
+GPUdi() T warp_reduce_max(T v)
+{
+  for (int32_t m = Width / 2; m > 0; m >>= 1) {
+    const T o = warp_shuffle_xor(v, m);
+    v = o > v ? o : v;
+  }
+  return v;
+}
+
 [[nodiscard]] GPUdi() bool work_group_any(bool pred)
 {
   return __syncthreads_or(pred);
@@ -460,6 +529,24 @@ GPUdi() T warp_scan_inclusive_add(T v)
 
 template <class T>
 GPUdi() T warp_broadcast(T v, int32_t i)
+{
+  return v;
+}
+
+template <int32_t Width, class T>
+GPUdi() T warp_reduce_add(T v)
+{
+  return v;
+}
+
+template <int32_t Width, class T>
+GPUdi() T warp_reduce_min(T v)
+{
+  return v;
+}
+
+template <int32_t Width, class T>
+GPUdi() T warp_reduce_max(T v)
 {
   return v;
 }

@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file qconfigrtc.h
+/// \file qconfig_rtc.h
 /// \author David Rohr
 
 #ifndef QCONFIG_RTC_H
@@ -33,13 +33,9 @@ static std::string qConfigPrintRtc(const T& tSrc, bool useConstexpr)
   std::stringstream out;
   out << std::hexfloat;
 #define QCONFIG_PRINT_RTC
-#include "qconfig.h"
+#include "qconfig_internal.h"
 #undef QCONFIG_PRINT_RTC
   return out.str();
 }
-
-#define QCONFIG_CONVERT_RTC
-#include "qconfig.h"
-#undef QCONFIG_CONVERT_RTC
 
 #endif

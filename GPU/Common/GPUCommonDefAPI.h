@@ -27,7 +27,7 @@
 //Define macros for GPU keywords. i-version defines inline functions.
 //All host-functions in GPU code are automatically inlined, to avoid duplicate symbols.
 //For non-inline host only functions, use no keyword at all!
-#if !defined(GPUCA_GPUCODE) || defined(__OPENCL_HOST__) || defined(__METAL_HOST__) // For host / ROOT dictionary
+#if !defined(GPUCA_GPUCODE) || defined(__OPENCL_HOST__) || defined(__METAL_HOST__) || defined(__CPUDEVICE__) // For host / ROOT dictionary, and for the CPUDevice backend whose device code runs on the host
   #define GPUd()                                    // device function
   #define GPUdDefault()                             // default (constructor / operator) device function
   #define GPUhdDefault()                            // default (constructor / operator) host device function
@@ -81,7 +81,7 @@
   #define GPUdDefault()
   #define GPUhdDefault()
   #define GPUdi() inline
-  #define GPUdii() __attribute__((always_inline)) inline
+  #define GPUdii() GPUdi() GPUAlwaysInline()
   #define GPUdni()
   #define GPUdnii()
   #define GPUh() INVALID_TRIGGER_ERROR_NO_HOST_CODE
@@ -149,7 +149,7 @@
   #define GPUd()
   #define GPUhdDefault()
   #define GPUdi() inline
-  #define GPUdii() inline
+  #define GPUdii() GPUdi() GPUAlwaysInline()
   #define GPUdni()
   #define GPUdnii()
   #define GPUh() inline
@@ -166,20 +166,20 @@
   #define GPUnoexcept()
   #define GPUprivate() thread
   #define GPUgeneric()
-  #define GPUglobalref() device
+  #define GPUglobalref()
   #define GPUsharedref() threadgroup
   #define GPUprivateref() thread
   #define GPUconstexprref() GPUconstexpr()
   #define GPUdouble() float
   #define GPUbarrier() threadgroup_barrier(mem_flags::mem_device | mem_flags::mem_threadgroup)
   #define GPUbarrierWarp() simdgroup_barrier(mem_flags::mem_device | mem_flags::mem_threadgroup)
-  #define GPUAtomic(type) atomic<type>                      // atomic variable type
+  #define GPUAtomic(type) type                      // atomic variable type
 #elif defined(__HIPCC__) //Defines for HIP
   #define GPUd() __device__
   #define GPUdDefault() __device__
   #define GPUhdDefault() __host__ __device__
   #define GPUdi() __device__ inline
-  #define GPUdii() __device__ __forceinline__
+  #define GPUdii() GPUdi() GPUAlwaysInline()
   #define GPUdni() __device__ __attribute__((noinline))
   #define GPUdnii() __device__ __attribute__((noinline))
   #define GPUh() __host__ inline
@@ -214,7 +214,7 @@
   #define GPUdDefault()
   #define GPUhdDefault()
   #define GPUdi() __device__ inline
-  #define GPUdii() __device__ inline
+  #define GPUdii() GPUdi() GPUAlwaysInline()
   #define GPUdni() __device__ __attribute__((noinline))
   #define GPUdnii() __device__ __attribute__((noinline))
   #define GPUh() __host__ inline
@@ -233,6 +233,8 @@
   #define GPUbarrierWarp() __syncwarp()
   #define GPUAtomic(type) type
 #endif
+
+#define GPUAlwaysInline() __attribute__((always_inline)) // Forced inlining on host and device
 
 #ifndef GPUdic // Takes different parameter for inlining: 0 = never, 1 = always, 2 = compiler-decision
 #define GPUdic(...) GPUd()
@@ -277,6 +279,16 @@
   #define get_group_id(dim) (blockIdx.x)
 #elif defined(__OPENCL__)
   // Using OpenCL defaults
+#elif defined(__METAL__)
+  // MSL has no work-item builtins. They arrive as attributes on the entry point,
+  // named there after the nBlocks / nThreads / iBlock / iThread that Thread()
+  // already takes, so these resolve both there and in every function below it.
+  #define get_global_id(dim) (iBlock * nThreads + iThread)
+  #define get_global_size(dim) (nBlocks * nThreads)
+  #define get_num_groups(dim) (nBlocks)
+  #define get_local_id(dim) (iThread)
+  #define get_local_size(dim) (nThreads)
+  #define get_group_id(dim) (iBlock)
 #else
   #define get_global_id(dim) iBlock
   #define get_global_size(dim) nBlocks
@@ -284,6 +296,17 @@
   #define get_local_id(dim) 0
   #define get_local_size(dim) 1
   #define get_group_id(dim) iBlock
+#endif
+
+// A device function that uses the helpers above but has none of the indices in
+// scope needs them passed in on Metal, where they are ordinary parameters.
+// Both expand to nothing everywhere else, and go last in the parameter list.
+#ifdef __METAL__
+  #define GPUCA_THREAD_INFO_DECL , int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread
+  #define GPUCA_THREAD_INFO_PROVIDE , nBlocks, nThreads, iBlock, iThread
+#else
+  #define GPUCA_THREAD_INFO_DECL
+  #define GPUCA_THREAD_INFO_PROVIDE
 #endif
 
 // clang-format on

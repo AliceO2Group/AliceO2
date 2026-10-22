@@ -122,6 +122,13 @@ GeneratorHybrid::GeneratorHybrid(const std::string& inputgens)
         mGens.push_back(gen);
       } else if (gen.compare("external") == 0) {
         int confextIndex = std::stoi(mConfigs[index].substr(9));
+        // Hybrid configs can clone the same external generator config multiple times so
+        // an external macro that self-seeds from gRandom could sample the same seed.
+        // For this reason the shared RNG state is advanced as a precaution
+        // mirroring what GeneratorPythia8::seedGenerator() does for multiple Pythia8 instances.
+        if (std::count(mGens.begin(), mGens.end(), "external") > 0) {
+          gRandom->Rndm();
+        }
         // we need analyse the ini file to update the config key param
         if (mExternalGenConfigs[confextIndex]->iniFile.size() > 0) {
           LOG(info) << "Setting up external gen using the given INI file";
@@ -452,7 +459,9 @@ bool GeneratorHybrid::importParticles()
   if (mCocktailMode) {
     // in cocktail mode we need to merge the particles from the different generators
     for (auto subIndex : subGenIndex) {
-      LOG(info) << "Importing particles for task " << subIndex;
+      if (!mIsHyperloop) {
+        LOG(info) << "Importing particles for task " << subIndex;
+      }
       auto subParticles = gens[subIndex]->getParticles();
 
       auto time_unit = gens[subIndex]->getTimeUnit();
@@ -481,7 +490,9 @@ bool GeneratorHybrid::importParticles()
       mTasksStarted++;
     }
   } else {
-    LOG(info) << "Importing particles for task " << genIndex;
+    if (!mIsHyperloop) {
+      LOG(info) << "Importing particles for task " << genIndex;
+    }
     // at this moment the mIndex-th generator is ready to be used
     mParticles = gens[genIndex]->getParticles();
 

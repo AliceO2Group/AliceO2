@@ -233,9 +233,12 @@ std::pair<float, float> TRKSegmentedLayer::getBoundingRadii(double staveWidth) c
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-TRKMLLayer::TRKMLLayer(int layerNumber, std::string layerName, float rInn, float staggerOffset, float tiltAngle, int numberOfStaves, int numberOfModules, float thickOrX2X0, MatBudgetParamMode mode)
-  : TRKSegmentedLayer(layerNumber, layerName, rInn, tiltAngle, numberOfStaves, numberOfModules, thickOrX2X0, mode), mStaggerOffset(staggerOffset)
+TRKMLLayer::TRKMLLayer(int layerNumber, std::string layerName, float rInn, float staggerOffset, float tiltAngle, int numberOfStaves, int numberOfModules, float thickOrX2X0, MatBudgetParamMode mode, int rInnRow, float phiOffset)
+  : TRKSegmentedLayer(layerNumber, layerName, rInn, tiltAngle, numberOfStaves, numberOfModules, thickOrX2X0, mode), mStaggerOffset(staggerOffset), mRInnRow(rInnRow), mPhiOffset(phiOffset)
 {
+  if (mPhiOffset != 0.f) {
+    LOGP(info, "Layer {}: staves rotated by {} deg about the beam axis (phiOffset)", mLayerNumber, mPhiOffset);
+  }
   if (mLayerNumber == sFlippedLayerNumber) {
     mOuterRadius = rInn;
     mInnerRadius = rInn - mChipThickness;
@@ -243,14 +246,25 @@ TRKMLLayer::TRKMLLayer(int layerNumber, std::string layerName, float rInn, float
     mStaggerOffset = -staggerOffset;
     LOGP(info, "Layer {} is flipped: sensor and metal stack positions are switched", mLayerNumber);
   }
+  if (mRInnRow != 0 && mRInnRow != 1) {
+    LOGP(fatal, "Layer {}: rInnRow = {}, use 0 (even staves at rInn) or 1 (odd staves at rInn)", mLayerNumber, mRInnRow);
+  }
+  if (mRInnRow != 0) {
+    if (mLayerNumber == 3 || mLayerNumber == 4) {
+      // even staves (stave 0) go to the shifted row: inside the rInn row in the flipped layer, outside
+      // otherwise (stagOffset >= 0; a negative stagOffset is not handled by getBoundingRadii)
+      LOGP(info, "Layer {} (staggered): even staves in the {} row (rInnRow = {})", mLayerNumber, mIsFlipped ? "inner" : "outer", mRInnRow);
+    } else {
+      LOGP(info, "Layer {} is not staggered: rInnRow = {} has no effect", mLayerNumber, mRInnRow);
+    }
+  }
 }
 
 TGeoVolume* TRKMLLayer::createStave()
 {
-  TGeoMedium* medAir = gGeoManager->GetMedium("TRK_AIR$");
+  // Assembly (not a solid box) so the end-of-stave card can extend past the module envelope.
   std::string staveName = GeometryTGeo::getTRKStavePattern() + std::to_string(mLayerNumber);
-  TGeoShape* stave = new TGeoBBox(sStaveWidth / 2, mChipThickness / 2, mLength / 2);
-  TGeoVolume* staveVol = new TGeoVolume(staveName.c_str(), stave, medAir);
+  TGeoVolume* staveVol = new TGeoVolumeAssembly(staveName.c_str());
   staveVol->SetLineColor(kYellow);
 
   for (int iModule = 0; iModule < mNumberOfModules; iModule++) {
@@ -262,7 +276,46 @@ TGeoVolume* TRKMLLayer::createStave()
     staveVol->AddNode(moduleVol, iModule, trans);
   }
 
+  // End-of-stave card on the A-side (+z) only, just past the stave end and in front of the
+  // TRK_MIDBARCONN_DISK. Local frame: x = phi (width), y = radial (thickness), z = length.
+  TGeoCombiTrans* tCard = new TGeoCombiTrans();
+  tCard->SetTranslation(0, 0, mLength / 2 + constants::ML::eosCard::zGap + constants::ML::eosCard::length / 2);
+  staveVol->AddNode(createEndOfStaveCard(), 0, tCard);
+
   return staveVol;
+}
+
+TGeoVolume* TRKMLLayer::createEndOfStaveCard()
+{
+  // FR4 board carrying evenly spaced copper planes; same construction as the OT card, with its
+  // own constants::ML::eosCard dimensions and a configurable copper thickness (TRKBase.mlEosCardCuThickness),
+  // which displaces FR4 inside the fixed envelope and sets the card x/X0.
+  TGeoMedium* medFR4 = gGeoManager->GetMedium("TRK_FR4$");
+  TGeoMedium* medCu = gGeoManager->GetMedium("TRK_COPPER$");
+  const std::string name = GeometryTGeo::getTRKStavePattern() + std::to_string(mLayerNumber) + "_EOSCard";
+
+  TGeoShape* board = new TGeoBBox(constants::ML::eosCard::width / 2, constants::ML::eosCard::thickness / 2, constants::ML::eosCard::length / 2);
+  TGeoVolume* cardVol = new TGeoVolume(name.c_str(), board, medFR4);
+  cardVol->SetLineColor(kGreen + 3);
+
+  const double cuThickness = TRKBaseParam::Instance().mlEosCardCuThickness;
+  const int nPlanes = constants::ML::eosCard::nCopperLayers;
+  if (cuThickness * nPlanes >= constants::ML::eosCard::thickness) {
+    LOGP(fatal, "TRKBase.mlEosCardCuThickness = {} cm x {} planes does not fit in the {} cm ML end-of-stave card",
+         cuThickness, nPlanes, constants::ML::eosCard::thickness);
+  }
+  TGeoShape* plane = new TGeoBBox(constants::ML::eosCard::width / 2, cuThickness / 2, constants::ML::eosCard::length / 2);
+  TGeoVolume* planeVol = new TGeoVolume((name + "_Cu").c_str(), plane, medCu);
+  planeVol->SetLineColor(kOrange + 7);
+
+  // Evenly spaced, the outermost two flush with the board surfaces.
+  const double span = constants::ML::eosCard::thickness - cuThickness;
+  for (int iPlane = 0; iPlane < nPlanes; iPlane++) {
+    const double y = (nPlanes > 1) ? -span / 2 + iPlane * span / (nPlanes - 1) : 0.;
+    cardVol->AddNode(planeVol, iPlane, new TGeoTranslation(0, y, 0));
+  }
+
+  return cardVol;
 }
 
 void TRKMLLayer::createLayer(TGeoVolume* motherVolume)
@@ -272,7 +325,9 @@ void TRKMLLayer::createLayer(TGeoVolume* motherVolume)
 
   TGeoMedium* medAir = gGeoManager->GetMedium("TRK_AIR$");
   // TGeoTube* layer = new TGeoTube(mInnerRadius - 0.333 * sLogicalVolumeThickness, mInnerRadius + 0.667 * sLogicalVolumeThickness, mLength / 2);
-  TGeoTube* layer = new TGeoTube(rMin, rMax, mLength / 2);
+  // Extend the z half-length so the A-side end-of-stave card (past mLength/2) stays inside the layer.
+  const double halfLengthZ = mLength / 2 + constants::ML::eosCard::zGap + constants::ML::eosCard::length;
+  TGeoTube* layer = new TGeoTube(rMin, rMax, halfLengthZ);
   TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
   layerVol->SetLineColor(kYellow);
 
@@ -296,13 +351,14 @@ void TRKMLLayer::createLayer(TGeoVolume* motherVolume)
   for (int iStave = 0; iStave < mNumberOfStaves; iStave++) {
     TGeoVolume* staveVol = createStave();
     TGeoCombiTrans* trans = new TGeoCombiTrans();
-    // If the number of staves is a multiple of 4, rotate by half a stave to avoid having the first one exactly on the x
-    double phi = (mNumberOfStaves % 4 == 0) ? theta * (iStave + 0.5) : theta * iStave;
+    // If the number of staves is a multiple of 4, rotate by half a stave to avoid having the first one exactly on the x;
+    // mPhiOffset rotates the whole layer (position and orientation of every stave) about the beam axis
+    double phi = ((mNumberOfStaves % 4 == 0) ? theta * (iStave + 0.5) : theta * iStave) + mPhiOffset * TMath::DegToRad();
     double phiDeg = phi * TMath::RadToDeg();
     TGeoRotation* rot = new TGeoRotation("rot", phiDeg + 90 + mTiltAngle, 0, 0);
     trans->SetRotation(rot);
     // float trueRadius = (mLayerNumber == 3 || mLayerNumber == 4) ? (iStave % 2 == 0 ? mInnerRadius : mInnerRadius + mStaggerOffset) : mInnerRadius;
-    float trueRadius = (mLayerNumber == 3 || mLayerNumber == 4) ? (iStave % 2 == 0 ? avgRadiusInner : avgRadiusOuter) : avgRadiusInner;
+    float trueRadius = (mLayerNumber == 3 || mLayerNumber == 4) ? (iStave % 2 == mRInnRow ? avgRadiusInner : avgRadiusOuter) : avgRadiusInner;
     trans->SetTranslation(trueRadius * std::cos(phi), trueRadius * std::sin(phi), 0);
     LOGP(debug, "Inserting {} in {} ", staveVol->GetName(), layerVol->GetName());
     layerVol->AddNode(staveVol, iStave, trans);

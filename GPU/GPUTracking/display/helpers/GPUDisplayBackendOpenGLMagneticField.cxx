@@ -22,26 +22,18 @@
 #else
 #define gluErrorString(err) ""
 #endif
-#ifndef GPUCA_NO_FMT
-#include <fmt/printf.h>
-#endif
+#include "HandMadeMath.h"
 
 #include "GPUCommonDef.h"
 #include "GPUDisplayMagneticField.h"
 #include "backend/GPUDisplayBackendOpenGL.h"
-#include "shaders/GPUDisplayShaders.h"
 #include "GPUDisplay.h"
 #include "GPULogging.h"
 
 using namespace o2::gpu;
 
-// Runtime minimum version defined in GPUDisplayFrontend.h, keep in sync!
-#define GPUCA_BUILD_EVENT_DISPLAY_OPENGL
-#if !defined(GL_VERSION_4_5) || GL_VERSION_4_5 != 1
-#undef GPUCA_BUILD_EVENT_DISPLAY_OPENGL
-#endif
-
-#ifdef GPUCA_BUILD_EVENT_DISPLAY_OPENGL
+#define GPUCA_DISPLAY_SHADER_TYPE_OPENGL
+#include "GPUDisplayLoadShaders.h"
 
 #define CHKERR(cmd)                                                                                                 \
   do {                                                                                                              \
@@ -55,40 +47,19 @@ using namespace o2::gpu;
 
 int32_t GPUDisplayBackendOpenGL::InitMagFieldVisualization()
 {
-#ifndef GPUCA_NO_FMT
   mMagneticFieldVisualization = std::make_unique<GPUDisplayMagneticField>();
+  if (!mMagneticFieldVisualization->mValid) {
+    GPUError("Magnetic field data not available, field drawing disabled");
+    mMagneticFieldVisualization.reset();
+    return 1;
+  }
   mMagneticFieldVisualization->generateSeedPoints(mDisplay->cfgL().bFieldLinesCount);
 
-  CHKERR(mVertexShaderPassthrough = glCreateShader(GL_VERTEX_SHADER));
-  CHKERR(mGeometryShader = glCreateShader(GL_GEOMETRY_SHADER));
-
-  CHKERR(glShaderSource(mVertexShaderPassthrough, 1, &GPUDisplayShaders::vertexShaderPassthrough, nullptr));
-  CHKERR(glCompileShader(mVertexShaderPassthrough));
-
-  const auto constantsExpanded = fmt::format(GPUDisplayShaders::fieldModelShaderConstants,
-                                             fmt::arg("dimensions", GPUDisplayMagneticField::DIMENSIONS),
-                                             fmt::arg("solZSegs", GPUDisplayMagneticField::MAX_SOLENOID_Z_SEGMENTS),
-                                             fmt::arg("solPSegs", GPUDisplayMagneticField::MAX_SOLENOID_P_SEGMENTS),
-                                             fmt::arg("solRSegs", GPUDisplayMagneticField::MAX_SOLENOID_R_SEGMENTS),
-                                             fmt::arg("solParams", GPUDisplayMagneticField::MAX_SOLENOID_PARAMETERIZATIONS),
-                                             fmt::arg("solRows", GPUDisplayMagneticField::MAX_SOLENOID_ROWS),
-                                             fmt::arg("solColumns", GPUDisplayMagneticField::MAX_SOLENOID_COLUMNS),
-                                             fmt::arg("solCoeffs", GPUDisplayMagneticField::MAX_SOLENOID_COEFFICIENTS),
-                                             fmt::arg("dipZSegs", GPUDisplayMagneticField::MAX_DIPOLE_Z_SEGMENTS),
-                                             fmt::arg("dipYSegs", GPUDisplayMagneticField::MAX_DIPOLE_Y_SEGMENTS),
-                                             fmt::arg("dipXSegs", GPUDisplayMagneticField::MAX_DIPOLE_X_SEGMENTS),
-                                             fmt::arg("dipParams", GPUDisplayMagneticField::MAX_DIPOLE_PARAMETERIZATIONS),
-                                             fmt::arg("dipRows", GPUDisplayMagneticField::MAX_DIPOLE_ROWS),
-                                             fmt::arg("dipColumns", GPUDisplayMagneticField::MAX_DIPOLE_COLUMNS),
-                                             fmt::arg("dipCoeffs", GPUDisplayMagneticField::MAX_DIPOLE_COEFFICIENTS),
-                                             fmt::arg("maxChebOrder", GPUDisplayMagneticField::MAX_CHEBYSHEV_ORDER));
-
-  std::array geomShaderSource = {GPUDisplayShaders::geometryShaderP1, constantsExpanded.c_str(), GPUDisplayShaders::fieldModelShaderCode, GPUDisplayShaders::geometryShaderP2};
-
-  CHKERR(glShaderSource(mGeometryShader, geomShaderSource.size(), geomShaderSource.data(), nullptr));
-  CHKERR(glCompileShader(mGeometryShader));
+  CHKERR(mVertexShaderPassthrough = loadShader(GL_VERTEX_SHADER, _binary_opengl_vertexPassthrough_vert_spv_start, _binary_opengl_vertexPassthrough_vert_spv_len));
+  CHKERR(mGeometryShader = loadShader(GL_GEOMETRY_SHADER, _binary_opengl_field_geom_spv_start, _binary_opengl_field_geom_spv_len));
 
   if (checkShaderStatus(mVertexShaderPassthrough) || checkShaderStatus(mGeometryShader)) {
+    mMagneticFieldVisualization.reset();
     return 1;
   }
 
@@ -99,6 +70,7 @@ int32_t GPUDisplayBackendOpenGL::InitMagFieldVisualization()
   CHKERR(glLinkProgram(mShaderProgramField));
 
   if (checkProgramStatus(mShaderProgramField)) {
+    mMagneticFieldVisualization.reset();
     return 1;
   }
 
@@ -131,9 +103,6 @@ int32_t GPUDisplayBackendOpenGL::InitMagFieldVisualization()
   CHKERR(glNamedBufferData(mDipoleSegmentsBuffer, sizeof(GPUDisplayMagneticField::DipoleSegmentsUniform), mMagneticFieldVisualization->mDipoleSegments.get(), GL_STREAM_DRAW));
   CHKERR(glCreateBuffers(1, &mDipoleParameterizationBuffer));
   CHKERR(glNamedBufferData(mDipoleParameterizationBuffer, sizeof(GPUDisplayMagneticField::DipoleParameterizationUniform), mMagneticFieldVisualization->mDipoleParameterization.get(), GL_STREAM_DRAW));
-#else
-  throw std::runtime_error("Magnetic field needs fmt");
-#endif
 
   return 0;
 }
@@ -141,7 +110,10 @@ int32_t GPUDisplayBackendOpenGL::InitMagFieldVisualization()
 uint32_t GPUDisplayBackendOpenGL::drawField()
 {
   if (!mMagneticFieldVisualization) {
-    return InitMagFieldVisualization(); // next frame will fill MVP matrix
+    if (!mMagneticFieldFailed && InitMagFieldVisualization()) {
+      mMagneticFieldFailed = true;
+    }
+    return 0; // next frame will fill MVP matrix
   }
 
   if (mMagneticFieldVisualization->mFieldLineSeedPoints.size() != (uint32_t)mDisplay->cfgL().bFieldLinesCount) {
@@ -157,8 +129,7 @@ uint32_t GPUDisplayBackendOpenGL::drawField()
   CHKERR(glUseProgram(mShaderProgramField));
   CHKERR(glBindBufferBase(GL_UNIFORM_BUFFER, 0, mFieldModelViewBuffer));
   const std::array<float, 4> drawColor = {1.f, 0.f, 0.f, 1.f};
-  const auto color = glGetUniformLocation(mShaderProgramField, "color");
-  CHKERR(glUniform4fv(color, 1, drawColor.data()));
+  CHKERR(glUniform4fv(UNIFORM_LOCATION_COLOR, 1, drawColor.data()));
 
   CHKERR(glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, mFieldModelConstantsBuffer));
   CHKERR(glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, mSolenoidSegmentsBuffer));
@@ -188,12 +159,3 @@ void GPUDisplayBackendOpenGL::ExitMagFieldVisualization()
   CHKERR(glDeleteBuffers(1, &VBO_field));
   CHKERR(glDeleteVertexArrays(1, &VAO_field));
 }
-
-#else  // GPUCA_BUILD_EVENT_DISPLAY_OPENGL
-int32_t GPUDisplayBackendOpenGL::InitMagFieldVisualization()
-{
-  return 0;
-}
-uint32_t GPUDisplayBackendOpenGL::drawField() { return 0; }
-void GPUDisplayBackendOpenGL::ExitMagFieldVisualization() {}
-#endif // GPUCA_BUILD_EVENT_DISPLAY_OPENGL

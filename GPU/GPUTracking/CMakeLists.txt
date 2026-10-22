@@ -27,7 +27,7 @@ set(CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE_UPPER} "${CMAKE_CXX_FLAGS_${CMAKE_BUILD_T
 
 include(cmake/helpers.cmake)
 
-if((ALIGPU_BUILD_TYPE STREQUAL "Standalone" AND GPUCA_BUILD_EVENT_DISPLAY) OR (ALIGPU_BUILD_TYPE STREQUAL "O2" AND NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND TARGET AliceO2::DebugGUI AND OPENGL_FOUND AND GLFW_FOUND AND (NOT DEFINED GPUCA_BUILD_EVENT_DISPLAY OR NOT GPUCA_BUILD_EVENT_DISPLAY)))
+if((ALIGPU_BUILD_TYPE STREQUAL "Standalone" AND GPUCA_BUILD_EVENT_DISPLAY) OR (ALIGPU_BUILD_TYPE STREQUAL "O2" AND NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND TARGET AliceO2::DebugGUI AND (NOT DEFINED GPUCA_BUILD_EVENT_DISPLAY OR GPUCA_BUILD_EVENT_DISPLAY)))
   set(GPUCA_EVENT_DISPLAY ON)
 endif()
 if(ROOT_FOUND)
@@ -434,6 +434,10 @@ install(DIRECTORY utils
 
 set(GPUCA_COMPILER_VERSIONS "CUDA ${CMAKE_CUDA_COMPILER_VERSION} HIP ${hip_VERSION} ${CMAKE_HIP_COMPILER_VERSION} ROCM ${CMAKE_HIP_COMPILER_ROCM_ROOT} LLVM ${LLVM_PACKAGE_VERSION}")
 
+if(ENABLE_CPUDEVICE)
+  set(CPUDEVICE_ENABLED ON)
+endif()
+
 # GPUReconstructionLibrary needs to know which GPU backends are enabled for proper error messages
 configure_file(Base/GPUReconstructionAvailableBackends.template.h ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionAvailableBackends.h)
 set_source_files_properties(Base/GPUReconstructionLibrary.cxx
@@ -472,9 +476,11 @@ elseif(CUDA_ENABLED OR OPENCL_ENABLED OR HIP_ENABLED)
     set(PARAMFILE ${CMAKE_CURRENT_BINARY_DIR}/genGPUArch/gpu_const_param_${GPU_ARCH}.par)
     add_custom_command(
       OUTPUT ${PARAMFILE}
+      COMMAND ${CMAKE_COMMAND} -E rm -f ${PARAMFILE}
       COMMAND bash -c
               "echo -e '#define GPUCA_GPUTYPE_${GPU_ARCH}\\n#define PARAMETER_FILE \"GPUDefParametersDefaults.h\"\\ngInterpreter->AddIncludePath(\"${CMAKE_CURRENT_SOURCE_DIR}/Definitions\");\\ngInterpreter->AddIncludePath(\"${ON_THE_FLY_DIR}\");\\n.x ${CMAKE_CURRENT_SOURCE_DIR}/Standalone/tools/dumpGPUDefParam.C(\"${PARAMFILE}\")\\n.q\\n'"
               | root -l -b > /dev/null
+      COMMAND test -f ${PARAMFILE} # root returns 0 also if the macro fails
       VERBATIM
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/genGPUArch
       MAIN_DEPENDENCY Standalone/tools/dumpGPUDefParam.C
@@ -497,6 +503,9 @@ elseif(CUDA_ENABLED OR OPENCL_ENABLED OR HIP_ENABLED)
   if(HIP_ENABLED)
     add_subdirectory(Base/hip)
   endif()
+endif()
+if(CPUDEVICE_ENABLED)
+  add_subdirectory(Base/cpudevice)
 endif()
 
 if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR ALIGPU_BUILD_TYPE STREQUAL "Standalone")

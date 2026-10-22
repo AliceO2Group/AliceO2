@@ -63,7 +63,7 @@ GPUdi() void GPUCommonAlgorithm::sort(T* begin, T* end, const S& comp)
 }
 
 template <class T>
-GPUdi() void GPUCommonAlgorithm::sortInBlock(T* begin, T* end) // TODO: Try cub::BlockMergeSort
+GPUdi() void GPUCommonAlgorithm::sortInBlock(T* begin, T* end GPUCA_THREAD_INFO_DECL) // TODO: Try cub::BlockMergeSort
 {
   if (get_local_id(0) == 0) {
     sortDeviceDynamic(begin, end);
@@ -71,7 +71,7 @@ GPUdi() void GPUCommonAlgorithm::sortInBlock(T* begin, T* end) // TODO: Try cub:
 }
 
 template <class T, class S>
-GPUdi() void GPUCommonAlgorithm::sortInBlock(T* begin, T* end, const S& comp)
+GPUdi() void GPUCommonAlgorithm::sortInBlock(T* begin, T* end, const S& comp GPUCA_THREAD_INFO_DECL)
 {
   if (get_local_id(0) == 0) {
     sortDeviceDynamic(begin, end, comp);

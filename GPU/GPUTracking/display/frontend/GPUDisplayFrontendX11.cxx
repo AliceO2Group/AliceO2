@@ -21,9 +21,10 @@
 #include <cstdlib>
 #include <cstring>
 #include <stdexcept>
-#include <chrono>
 
 #include <unistd.h>
+#include <X11/Xatom.h>
+#include <X11/Xresource.h>
 
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_VULKAN
 #include <vulkan/vulkan.h>
@@ -195,22 +196,37 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
   int32_t eventBase;
 
   // Open a connection to the X server
-  mDisplay = XOpenDisplay(nullptr);
+  mXDisplay = XOpenDisplay(nullptr);
 
-  if (mDisplay == nullptr) {
+  if (mXDisplay == nullptr) {
     GPUError("could not open display");
     return (-1);
   }
 
+  XrmInitialize();
+  if (const char* resources = XResourceManagerString(mXDisplay)) {
+    XrmDatabase db = XrmGetStringDatabase(resources);
+    char* type = nullptr;
+    XrmValue value;
+    if (db && XrmGetResource(db, "Xft.dpi", "Xft.Dpi", &type, &value) && value.addr && atof(value.addr) > 0) {
+      mScale = atof(value.addr) / 96.;
+    }
+    if (db) {
+      XrmDestroyDatabase(db);
+    }
+  }
+
   // Make sure OpenGL's GLX extension supported
-  if (!glXQueryExtension(mDisplay, &errorBase, &eventBase)) {
+  if (!glXQueryExtension(mXDisplay, &errorBase, &eventBase)) {
     GPUError("X server has no OpenGL GLX extension");
     return (-1);
   }
 
-  const char* glxExt = glXQueryExtensionsString(mDisplay, DefaultScreen(mDisplay));
+  const char* glxExt = glXQueryExtensionsString(mXDisplay, DefaultScreen(mXDisplay));
   if (strstr(glxExt, "GLX_EXT_swap_control") == nullptr) {
-    GPUError("No vsync support!");
+    if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
+      GPUError("GLX_EXT_swap_control not available, cannot change VSync");
+    }
     vsync_supported = false;
   } else {
     vsync_supported = true;
@@ -224,14 +240,14 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
 
   GLXFBConfig fbconfig = nullptr;
   int32_t fbcount;
-  GLXFBConfig* fbc = glXChooseFBConfig(mDisplay, DefaultScreen(mDisplay), attribs, &fbcount);
+  GLXFBConfig* fbc = glXChooseFBConfig(mXDisplay, DefaultScreen(mXDisplay), attribs, &fbcount);
   if (fbc == nullptr || fbcount == 0) {
     GPUError("Failed to get MSAA GLXFBConfig");
     return (-1);
   }
   fbconfig = fbc[0];
   XFree(fbc);
-  visualInfo = glXGetVisualFromFBConfig(mDisplay, fbconfig);
+  visualInfo = glXGetVisualFromFBConfig(mXDisplay, fbconfig);
 
   if (visualInfo == nullptr) {
     GPUError("no RGB visual with depth buffer");
@@ -247,9 +263,9 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
         GLX_CONTEXT_MINOR_VERSION_ARB, GL_MIN_VERSION_MINOR,
         GLX_CONTEXT_PROFILE_MASK_ARB, mBackend->CoreProfile() ? GLX_CONTEXT_CORE_PROFILE_BIT_ARB : GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB,
         None};
-      glxContext = glXCreateContextAttribsARB(mDisplay, fbconfig, nullptr, GL_TRUE, context_attribs);
+      glxContext = glXCreateContextAttribsARB(mXDisplay, fbconfig, nullptr, GL_TRUE, context_attribs);
     } else {
-      glxContext = glXCreateContext(mDisplay, visualInfo, nullptr, GL_TRUE);
+      glxContext = glXCreateContext(mXDisplay, visualInfo, nullptr, GL_TRUE);
     }
     if (glxContext == nullptr) {
       GPUError("could not create rendering context");
@@ -257,27 +273,33 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
     }
   }
 
-  Window win = RootWindow(mDisplay, visualInfo->screen);
-  colorMap = XCreateColormap(mDisplay, win, visualInfo->visual, AllocNone);
+  Window win = RootWindow(mXDisplay, visualInfo->screen);
+  colorMap = XCreateColormap(mXDisplay, win, visualInfo->visual, AllocNone);
   windowAttributes.colormap = colorMap;
   windowAttributes.border_pixel = 0;
-  windowAttributes.event_mask = ExposureMask | VisibilityChangeMask | KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask | StructureNotifyMask | SubstructureNotifyMask | FocusChangeMask;
+  windowAttributes.event_mask = ExposureMask | VisibilityChangeMask | KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask | StructureNotifyMask | SubstructureNotifyMask | FocusChangeMask | PropertyChangeMask;
 
   // Create an X window with the selected visual
-  mWindow = XCreateWindow(mDisplay, win, 50, 50, INIT_WIDTH, INIT_HEIGHT, // Position / Width and height of window
+  mWindow = XCreateWindow(mXDisplay, win, 50, 50, INIT_WIDTH * mScale, INIT_HEIGHT * mScale, // Position / Width and height of window
                           0, visualInfo->depth, InputOutput, visualInfo->visual, CWBorderPixel | CWColormap | CWEventMask, &windowAttributes);
-  XSetStandardProperties(mDisplay, mWindow, DISPLAY_WINDOW_NAME, DISPLAY_WINDOW_NAME, None, nullptr, 0, nullptr);
+  XSetStandardProperties(mXDisplay, mWindow, DISPLAY_WINDOW_NAME, DISPLAY_WINDOW_NAME, None, nullptr, 0, nullptr);
+  XSizeHints sizeHints{};
+  sizeHints.flags = PMinSize;
+  sizeHints.min_width = MIN_WIDTH * mScale;
+  sizeHints.min_height = MIN_HEIGHT * mScale;
+  XSetWMNormalHints(mXDisplay, mWindow, &sizeHints);
   if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
-    glXMakeCurrent(mDisplay, mWindow, glxContext);
+    glXMakeCurrent(mXDisplay, mWindow, glxContext);
   }
-  XMapWindow(mDisplay, mWindow);
+  XMapWindow(mXDisplay, mWindow);
 
-  // Maximize window
-  ToggleMaximized(true);
+  XEvent mapEvent; // Maximize only after the window manager placed the window (on the active monitor), so that it restores to this position when un-maximized
+  XPeekIfEvent(mXDisplay, &mapEvent, [](Display*, XEvent* ev, XPointer window) -> Bool { return ev->type == MapNotify && ev->xmap.window == *(Window*)window; }, (XPointer)&mWindow);
+  applyInitialWindowState();
 
   // Receive signal when window closed
-  Atom WM_DELETE_WINDOW = XInternAtom(mDisplay, "WM_DELETE_WINDOW", False);
-  XSetWMProtocols(mDisplay, mWindow, &WM_DELETE_WINDOW, 1);
+  Atom WM_DELETE_WINDOW = XInternAtom(mXDisplay, "WM_DELETE_WINDOW", False);
+  XSetWMProtocols(mXDisplay, mWindow, &WM_DELETE_WINDOW, 1);
 #ifndef GPUCA_DISPLAY_OPENGL_CORE
   XFontStruct* font_info = nullptr;
   if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
@@ -288,7 +310,7 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
       return (-1);
     }
     const char* f = "fixed";
-    font_info = XLoadQueryFont(mDisplay, f);
+    font_info = XLoadQueryFont(mXDisplay, f);
     if (!font_info) {
       GPUError("XLoadQueryFont failed.");
       return (-1);
@@ -309,9 +331,8 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
     return (-1);
   }
 
-  XMapWindow(mDisplay, mWindow);
-  XFlush(mDisplay);
-  int32_t x11_fd = ConnectionNumber(mDisplay);
+  XMapWindow(mXDisplay, mWindow);
+  XFlush(mXDisplay);
 
   // Enable vsync
   if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL && vsync_supported) {
@@ -320,56 +341,27 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
       GPUError("Cannot enable vsync");
       return (-1);
     }
-    mGlXSwapIntervalEXT(mDisplay, glXGetCurrentDrawable(), 1);
+    mGlXSwapIntervalEXT(mXDisplay, glXGetCurrentDrawable(), vsyncEnabled());
   }
 
   if (InitDisplay()) {
     return (1);
   }
 
-  pthread_mutex_lock(&mSemLockExit);
-  mDisplayRunning = true;
-  pthread_mutex_unlock(&mSemLockExit);
+  {
+    std::lock_guard lock(mExitStateMutex);
+    mDisplayRunning = true;
+  }
 
-  std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
   while (1) {
-    int32_t num_ready_fds;
-    struct timeval tv;
-    fd_set in_fds;
-    int32_t waitCount = 0;
-    do {
-      FD_ZERO(&in_fds);
-      FD_SET(x11_fd, &in_fds);
-      tv.tv_usec = 10000;
-      tv.tv_sec = 0;
-      std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
-      bool allowMax = mMaxFPSRate && std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count() < 0.01;
-      t1 = t2;
-      num_ready_fds = allowMax || XPending(mDisplay) || select(x11_fd + 1, &in_fds, nullptr, nullptr, &tv);
-      if (num_ready_fds < 0) {
-        GPUError("Error (num_ready_fds)");
-      }
-      if (mDisplayControl == 2) {
-        break;
-      }
-      if (mSendKey) {
-        mNeedUpdate = 1;
-      }
-      if (waitCount++ != 100) {
-        mNeedUpdate = 1;
-      }
-    } while (!(num_ready_fds || mNeedUpdate));
-    mNeedUpdate = 0;
-
     do {
       if (mDisplayControl == 2) {
         break;
       }
-      HandleSendKey();
-      if (!XPending(mDisplay)) {
+      if (!XPending(mXDisplay)) {
         event.type = Expose;
       } else {
-        XNextEvent(mDisplay, &event);
+        XNextEvent(mXDisplay, &event);
       }
       switch (event.type) {
         case ButtonPress: {
@@ -380,6 +372,8 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
           } else {
             if (event.xbutton.button == 1) {
               mMouseDn = true;
+            } else if (event.xbutton.button == 2) {
+              mMouseDnM = true;
             } else {
               mMouseDnR = true;
             }
@@ -393,6 +387,8 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
           if (event.xbutton.button != 4 && event.xbutton.button != 5) {
             if (event.xbutton.button == 1) {
               mMouseDn = false;
+            } else if (event.xbutton.button == 2) {
+              mMouseDnM = false;
             } else {
               mMouseDnR = false;
             }
@@ -423,6 +419,18 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
           break;
         }
 
+        case FocusOut: {
+          focusLost();
+          break;
+        }
+
+        case PropertyNotify: {
+          if (event.xproperty.atom == XInternAtom(mXDisplay, "_NET_WM_STATE", False)) {
+            updateWindowState();
+          }
+          break;
+        }
+
         case Expose: {
           break;
         }
@@ -433,56 +441,68 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
         }
 
         case ClientMessage: {
-          if (event.xclient.message_type == XInternAtom(mDisplay, "_NET_WM_STATE", False)) {
-            XFlush(mDisplay);
+          if (event.xclient.message_type == XInternAtom(mXDisplay, "_NET_WM_STATE", False)) {
+            XFlush(mXDisplay);
           } else {
             mDisplayControl = 2;
           }
           break;
         }
       }
-    } while (XPending(mDisplay)); // Loop to compress events
+    } while (XPending(mXDisplay)); // Loop to compress events
     if (mDisplayControl == 2) {
       break;
     }
 
+    HandleExternalGUISignals();
     DrawGLScene();
     if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
-      glXSwapBuffers(mDisplay, mWindow);
+      glXSwapBuffers(mXDisplay, mWindow);
     }
+    waitForFPSLimit();
   }
 
 #ifndef GPUCA_DISPLAY_OPENGL_CORE
   if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
     glDeleteLists(mFontBase, 256);
-    XUnloadFont(mDisplay, font_info->fid);
+    XUnloadFont(mXDisplay, font_info->fid);
   }
 #endif
   ExitDisplay();
   if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
-    glXDestroyContext(mDisplay, glxContext);
+    glXDestroyContext(mXDisplay, glxContext);
   }
   XFree(visualInfo);
-  XDestroyWindow(mDisplay, mWindow);
-  XCloseDisplay(mDisplay);
+  XDestroyWindow(mXDisplay, mWindow);
+  XCloseDisplay(mXDisplay);
 
-  pthread_mutex_lock(&mSemLockExit);
-  mDisplayRunning = false;
-  pthread_mutex_unlock(&mSemLockExit);
+  {
+    std::lock_guard lock(mExitStateMutex);
+    mDisplayRunning = false;
+  }
 
   return (0);
 }
 
-void GPUDisplayFrontendX11::DisplayExit()
+void GPUDisplayFrontendX11::updateWindowState()
 {
-  pthread_mutex_lock(&mSemLockExit);
-  if (mDisplayRunning) {
-    mDisplayControl = 2;
+  Atom type;
+  int32_t format;
+  unsigned long nItems, bytesAfter;
+  unsigned char* data = nullptr;
+  if (XGetWindowProperty(mXDisplay, mWindow, XInternAtom(mXDisplay, "_NET_WM_STATE", False), 0, 1024, False, XA_ATOM, &type, &format, &nItems, &bytesAfter, &data) != Success || data == nullptr) {
+    return;
   }
-  pthread_mutex_unlock(&mSemLockExit);
-  while (mDisplayRunning) {
-    usleep(10000);
+  const Atom fullScreen = XInternAtom(mXDisplay, "_NET_WM_STATE_FULLSCREEN", False), maxHorz = XInternAtom(mXDisplay, "_NET_WM_STATE_MAXIMIZED_HORZ", False), maxVert = XInternAtom(mXDisplay, "_NET_WM_STATE_MAXIMIZED_VERT", False);
+  bool isFullScreen = false, isMaxHorz = false, isMaxVert = false;
+  for (unsigned long i = 0; i < nItems; i++) {
+    const Atom a = ((Atom*)data)[i];
+    isFullScreen |= a == fullScreen;
+    isMaxHorz |= a == maxHorz;
+    isMaxVert |= a == maxVert;
   }
+  XFree(data);
+  setWindowState(isFullScreen, isMaxHorz && isMaxVert);
 }
 
 void GPUDisplayFrontendX11::SwitchFullscreen(bool set)
@@ -491,12 +511,12 @@ void GPUDisplayFrontendX11::SwitchFullscreen(bool set)
   memset(&xev, 0, sizeof(xev));
   xev.type = ClientMessage;
   xev.xclient.window = mWindow;
-  xev.xclient.message_type = XInternAtom(mDisplay, "_NET_WM_STATE", False);
+  xev.xclient.message_type = XInternAtom(mXDisplay, "_NET_WM_STATE", False);
   xev.xclient.format = 32;
   xev.xclient.data.l[0] = 2; // _NET_WM_STATE_TOGGLE
-  xev.xclient.data.l[1] = XInternAtom(mDisplay, "_NET_WM_STATE_FULLSCREEN", True);
+  xev.xclient.data.l[1] = XInternAtom(mXDisplay, "_NET_WM_STATE_FULLSCREEN", True);
   xev.xclient.data.l[2] = 0;
-  XSendEvent(mDisplay, DefaultRootWindow(mDisplay), False, SubstructureNotifyMask, &xev);
+  XSendEvent(mXDisplay, DefaultRootWindow(mXDisplay), False, SubstructureNotifyMask, &xev);
 }
 
 void GPUDisplayFrontendX11::ToggleMaximized(bool set)
@@ -505,18 +525,18 @@ void GPUDisplayFrontendX11::ToggleMaximized(bool set)
   memset(&xev, 0, sizeof(xev));
   xev.type = ClientMessage;
   xev.xclient.window = mWindow;
-  xev.xclient.message_type = XInternAtom(mDisplay, "_NET_WM_STATE", False);
+  xev.xclient.message_type = XInternAtom(mXDisplay, "_NET_WM_STATE", False);
   xev.xclient.format = 32;
-  xev.xclient.data.l[0] = set ? 1 : 2; //_NET_WM_STATE_ADD
-  xev.xclient.data.l[1] = XInternAtom(mDisplay, "_NET_WM_STATE_MAXIMIZED_HORZ", False);
-  xev.xclient.data.l[2] = XInternAtom(mDisplay, "_NET_WM_STATE_MAXIMIZED_VERT", False);
-  XSendEvent(mDisplay, DefaultRootWindow(mDisplay), False, SubstructureNotifyMask, &xev);
+  xev.xclient.data.l[0] = set ? 1 : 0; // _NET_WM_STATE_ADD / _NET_WM_STATE_REMOVE
+  xev.xclient.data.l[1] = XInternAtom(mXDisplay, "_NET_WM_STATE_MAXIMIZED_HORZ", False);
+  xev.xclient.data.l[2] = XInternAtom(mXDisplay, "_NET_WM_STATE_MAXIMIZED_VERT", False);
+  XSendEvent(mXDisplay, DefaultRootWindow(mXDisplay), False, SubstructureNotifyMask, &xev);
 }
 
 void GPUDisplayFrontendX11::SetVSync(bool enable)
 {
   if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL && vsync_supported) {
-    mGlXSwapIntervalEXT(mDisplay, glXGetCurrentDrawable(), (int32_t)enable);
+    mGlXSwapIntervalEXT(mXDisplay, glXGetCurrentDrawable(), (int32_t)enable);
   }
 }
 
@@ -525,7 +545,7 @@ void GPUDisplayFrontendX11::getSize(int32_t& width, int32_t& height)
   Window root_return;
   int32_t x_return, y_return;
   uint32_t width_return, height_return, border_width_return, depth_return;
-  if (XGetGeometry(mDisplay, mWindow, &root_return, &x_return, &y_return, &width_return, &height_return, &border_width_return, &depth_return) == 0) {
+  if (XGetGeometry(mXDisplay, mWindow, &root_return, &x_return, &y_return, &width_return, &height_return, &border_width_return, &depth_return) == 0) {
     throw std::runtime_error("Cannot query X11 window geometry");
   }
   width = width_return;
@@ -538,7 +558,7 @@ int32_t GPUDisplayFrontendX11::getVulkanSurface(void* instance, void* surface)
   VkXlibSurfaceCreateInfoKHR info{};
   info.sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR;
   info.flags = 0;
-  info.dpy = mDisplay;
+  info.dpy = mXDisplay;
   info.window = mWindow;
   return vkCreateXlibSurfaceKHR(*(VkInstance*)instance, &info, nullptr, (VkSurfaceKHR*)surface) != VK_SUCCESS;
 #else

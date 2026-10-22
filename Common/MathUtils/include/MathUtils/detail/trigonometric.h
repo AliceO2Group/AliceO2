@@ -48,7 +48,7 @@ GPUhdi() T to02Pi(T phi)
 template <typename T>
 GPUhdi() void bringTo02Pi(T& phi)
 {
-  phi = to02Pi<T>(phi);
+  phi = to02Pi(phi);
 }
 
 template <typename T>
@@ -68,7 +68,7 @@ inline T to02PiGen(T phi)
 template <typename T>
 inline void bringTo02PiGen(T& phi)
 {
-  phi = to02PiGen<T>(phi);
+  phi = to02PiGen(phi);
 }
 
 template <typename T>
@@ -87,7 +87,7 @@ GPUhdi() T toPMPi(T phi)
 template <typename T>
 GPUhdi() void bringToPMPi(T& phi)
 {
-  phi = toPMPi<T>(phi);
+  phi = toPMPi(phi);
 }
 
 template <typename T>
@@ -107,10 +107,10 @@ inline T toPMPiGen(T phi)
 template <typename T>
 inline void bringToPMPiGen(T& phi)
 {
-  phi = toPMPiGen<T>(phi);
+  phi = toPMPiGen(phi);
 }
 
-#ifdef __OPENCL__ // TODO: get rid of that stupid workaround for OpenCL template address spaces
+#if defined(__OPENCL__) || defined(__METAL__) // TODO: get rid of that stupid workaround for OpenCL template address spaces
 template <typename T, typename S, typename U>
 GPUhdi() void sincos(T ang, S& s, U& c)
 {
@@ -275,12 +275,11 @@ GPUhdi() constexpr T fastATan2(T y, T x)
   // Average inaccuracy: 0.00048
   // Max inaccuracy: 0.00084
   // Speed: 6.2 times faster than atan2f()
-  constexpr T Pi = 3.1415926535897932384626433832795;
-
   auto atan = [](T a) -> T {
     // returns the arctan for the angular range [-Pi/4, Pi/4]
     // the polynomial coefficients are taken from:
     // https://stackoverflow.com/questions/42537957/fast-accurate-atan-arctan-approximation-algorithm
+    constexpr T Pi = 3.1415926535897932384626433832795;
     constexpr T A = 0.0776509570923569;
     constexpr T B = -0.287434475393028;
     constexpr T C = ((Pi / 4) - A - B);
@@ -290,6 +289,7 @@ GPUhdi() constexpr T fastATan2(T y, T x)
 
   auto atan2P = [atan](T yy, T xx) -> T {
     // fast atan2(yy,xx) for the angular range [0,+Pi]
+    constexpr T Pi = 3.1415926535897932384626433832795;
     constexpr T Pi025 = 1 * Pi / 4;
     constexpr T Pi075 = 3 * Pi / 4;
     const T x1 = xx + yy; //  point p1 (x1,y1) = (xx,yy) - Pi/4
@@ -299,7 +299,7 @@ GPUhdi() constexpr T fastATan2(T y, T x)
     if (xx < 0) { // p1 is in the range [Pi/4, 3*Pi/4]
       phi0 = Pi075;
       tan = y1 > T(0) ? -x1 / y1 : T(0); // yy is always >=0, hence y1>=0
-    } else { // p1 is in the range [-Pi/4, Pi/4]
+    } else {                             // p1 is in the range [-Pi/4, Pi/4]
       phi0 = Pi025;
       tan = x1 > T(0) ? y1 / x1 : T(0);
     }
@@ -376,41 +376,41 @@ GPUdi() double pi()
   return o2::constants::math::PI;
 }
 
-#ifndef GPUCA_GPUCODE_DEVICE
+#if !defined(GPUCA_GPUCODE_DEVICE) || defined(__CUDACC__) || defined(__HIPCC__) // Double specialisations, not for OpenCL and Metal
 template <>
 GPUdi() double tan(double x)
 {
-  return std::tan(x);
+  return o2::gpu::GPUCommonMath::Tand(x);
 };
 template <>
 GPUdi() double sin(double x)
 {
-  return std::sin(x);
+  return o2::gpu::GPUCommonMath::Sind(x);
 };
 template <>
 GPUdi() double atan2(double y, double x)
 {
-  return std::atan2(y, x);
+  return o2::gpu::GPUCommonMath::ATan2d(y, x);
 };
 template <>
 GPUdi() double atan(double x)
 {
-  return std::atan(x);
+  return o2::gpu::GPUCommonMath::ATand(x);
 };
 template <>
 GPUdi() double asin(double x)
 {
-  return std::asin(x);
+  return o2::gpu::GPUCommonMath::ASind(x);
 };
 template <>
 GPUdi() double acos(double x)
 {
-  return std::acos(x);
+  return o2::gpu::GPUCommonMath::ACosd(x);
 };
 template <>
 GPUdi() double cos(double x)
 {
-  return std::cos(x);
+  return o2::gpu::GPUCommonMath::Cosd(x);
 };
 #endif
 

@@ -640,6 +640,7 @@ GPUd() void GPUTPCGMMerger::UnpackSectorGlobal(int32_t nBlocks, int32_t nThreads
     SetTrackClusterT(track, iSector, sectorTr);
     track.Set(this, sectorTr, alpha, iSector);
     track.SetGlobalSectorTrackCov();
+    track.SetX2(0.f);
     track.SetPrevNeighbour(-1);
     track.SetNextNeighbour(-1);
     track.SetNextSegmentNeighbour(-1);
@@ -1158,6 +1159,31 @@ GPUd() void GPUTPCGMMerger::ResolveMergeSectors(GPUResolveSharedMemory& smem, in
   int32_t start, end;
   setBlockRange(SectorTrackInfoLocalTotal(), nBlocks, iBlock, start, end);
 
+  // Walk a segment chain to its end, dir 0 towards the head and 1 towards the
+  // tail, reporting whether target was met on the way.
+  auto walkSegmentChain = [tracks = mSectorTrackInfos](GPUTPCGMSectorTrack*& track, const GPUTPCGMSectorTrack* target, int32_t dir) {
+    while (track->SegmentNeighbour(dir) >= 0) {
+      track = &tracks[track->SegmentNeighbour(dir)];
+      if (track == target) {
+        return true;
+      }
+    }
+    return false;
+  };
+  // Report whether target sits on either neighbour chain starting at from.
+  auto neighbourChainReaches = [tracks = mSectorTrackInfos](const GPUTPCGMSectorTrack* from, const GPUTPCGMSectorTrack* target) {
+    for (int32_t k = 0; k < 2; k++) {
+      const GPUTPCGMSectorTrack* tmp = from;
+      while (tmp->Neighbour(k) >= 0) {
+        tmp = &tracks[tmp->Neighbour(k)];
+        if (tmp == target) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+
   for (int32_t baseIdx = 0; baseIdx < SectorTrackInfoLocalTotal(); baseIdx += nThreads) {
     int32_t itr = baseIdx + iThread;
     bool inRange = itr < SectorTrackInfoLocalTotal();
@@ -1201,52 +1227,29 @@ GPUd() void GPUTPCGMMerger::ResolveMergeSectors(GPUResolveSharedMemory& smem, in
       // PrintMergeGraph(track1, std::cout);
       // PrintMergeGraph(track2, std::cout);
 
-      while (track2->PrevSegmentNeighbour() >= 0) {
-        track2 = &mSectorTrackInfos[track2->PrevSegmentNeighbour()];
-      }
+      walkSegmentChain(track2, nullptr, 0);
       if (sameSegment) {
         if (track1 == track2) {
           continue;
         }
-        while (track1->PrevSegmentNeighbour() >= 0) {
-          track1 = &mSectorTrackInfos[track1->PrevSegmentNeighbour()];
-          if (track1 == track2) {
-            goto NextTrack;
-          }
+        if (walkSegmentChain(track1, track2, 0)) {
+          continue;
         }
         GPUCommonAlgorithm::swap(track1, track1Base);
-        for (int32_t k = 0; k < 2; k++) {
-          GPUTPCGMSectorTrack* tmp = track1Base;
-          while (tmp->Neighbour(k) >= 0) {
-            tmp = &mSectorTrackInfos[tmp->Neighbour(k)];
-            if (tmp == track2) {
-              goto NextTrack;
-            }
-          }
+        if (neighbourChainReaches(track1Base, track2)) {
+          continue;
         }
-
-        while (track1->NextSegmentNeighbour() >= 0) {
-          track1 = &mSectorTrackInfos[track1->NextSegmentNeighbour()];
-          if (track1 == track2) {
-            goto NextTrack;
-          }
+        if (walkSegmentChain(track1, track2, 1)) {
+          continue;
         }
       } else {
-        while (track1->PrevSegmentNeighbour() >= 0) {
-          track1 = &mSectorTrackInfos[track1->PrevSegmentNeighbour()];
-        }
+        walkSegmentChain(track1, nullptr, 0);
 
         if (track1 == track2) {
           continue;
         }
-        for (int32_t k = 0; k < 2; k++) {
-          GPUTPCGMSectorTrack* tmp = track1;
-          while (tmp->Neighbour(k) >= 0) {
-            tmp = &mSectorTrackInfos[tmp->Neighbour(k)];
-            if (tmp == track2) {
-              goto NextTrack;
-            }
-          }
+        if (neighbourChainReaches(track1, track2)) {
+          continue;
         }
 
         float z1min, z1max, z2min, z2max;
@@ -1283,9 +1286,7 @@ GPUd() void GPUTPCGMMerger::ResolveMergeSectors(GPUResolveSharedMemory& smem, in
 
       track2Base = track2;
       if (!sameSegment) {
-        while (track1->NextSegmentNeighbour() >= 0) {
-          track1 = &mSectorTrackInfos[track1->NextSegmentNeighbour()];
-        }
+        walkSegmentChain(track1, nullptr, 1);
       }
       track1->SetNextSegmentNeighbour(track2 - mSectorTrackInfos);
       track2->SetPrevSegmentNeighbour(track1 - mSectorTrackInfos);
@@ -1301,9 +1302,7 @@ GPUd() void GPUTPCGMMerger::ResolveMergeSectors(GPUResolveSharedMemory& smem, in
             track2->SetNeighbor(-1, k);
             track2new->SetNeighbor(-1, k ^ 1);
             track1 = track1new;
-            while (track1->NextSegmentNeighbour() >= 0) {
-              track1 = &mSectorTrackInfos[track1->NextSegmentNeighbour()];
-            }
+            walkSegmentChain(track1, nullptr, 1);
             track1->SetNextSegmentNeighbour(track2new - mSectorTrackInfos);
             track2new->SetPrevSegmentNeighbour(track1 - mSectorTrackInfos);
             track1 = track1new;
@@ -1318,7 +1317,6 @@ GPUd() void GPUTPCGMMerger::ResolveMergeSectors(GPUResolveSharedMemory& smem, in
       }
       // GPUInfo("Result");
       // PrintMergeGraph(track1, std::cout);
-    NextTrack:;
     }
   }
 }
@@ -1627,7 +1625,10 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int32_t nBlocks, int32_t nThread
 
       // unpack and sort clusters
       if (nParts > 1 && (!revertInSegment ^ (leg & 1))) {
+#pragma GCC diagnostic push // TODO: Fixme, needed for bug in GCC 16
+#pragma GCC diagnostic ignored "-Warray-bounds"
         GPUCommonAlgorithm::sort(trackParts, trackParts + nParts, [](const GPUTPCGMSectorTrack* a, const GPUTPCGMSectorTrack* b) {
+#pragma GCC diagnostic pop
           GPUCA_DETERMINISTIC_CODE( // clang-format off
             if (a->X() != b->X()) {
               return (a->X() > b->X());

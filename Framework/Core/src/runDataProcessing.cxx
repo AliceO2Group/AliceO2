@@ -1254,6 +1254,7 @@ std::vector<std::regex> getDumpableMetrics()
   dumpableMetrics.emplace_back("^aod-file-read-info$");
   dumpableMetrics.emplace_back("^aod-largest-object-written$");
   dumpableMetrics.emplace_back("^aod-invalid-read-skipped-timeframes$");
+  dumpableMetrics.emplace_back("^aod-file-open-skipped-files$");
   dumpableMetrics.emplace_back("^table-bytes-.*");
   dumpableMetrics.emplace_back("^total-timeframes.*");
   dumpableMetrics.emplace_back("^device_state.*");

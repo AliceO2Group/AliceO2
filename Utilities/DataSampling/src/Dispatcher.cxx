@@ -75,7 +75,7 @@ void Dispatcher::init(InitContext& ctx)
   }
 
   auto& spec = ctx.services().get<const DeviceSpec>();
-  mDeviceID.runtimeInit(spec.id.substr(0, DataSamplingHeader::deviceIDTypeSize).c_str());
+  mDeviceID.runtimeInit(std::string_view{spec.id.c_str(), DataSamplingHeader::deviceIDTypeSize});
 }
 
 header::Stack extractAdditionalHeaders(const char* inputHeaderStack)
@@ -236,7 +236,7 @@ Inputs Dispatcher::getInputSpecs()
 
   // add timer input
   header::DataDescription timerDescription;
-  timerDescription.runtimeInit(("TIMER-" + mName).substr(0, 16).c_str());
+  timerDescription.runtimeInit(std::string_view{("TIMER-" + mName).c_str(), 16});
   declaredInputs.emplace_back(InputSpec{"timer-stats", "DS", timerDescription, 0, Lifetime::Timer});
 
   return declaredInputs;
