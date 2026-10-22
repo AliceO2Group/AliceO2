@@ -87,6 +87,8 @@ class GPUDisplay : public GPUDisplayInterface
   int32_t& drawTextFontSize() { return mDrawTextFontSize; }
 
  private:
+  void buildConfig(); // Key bindings / config RTTI of the frontend, in GPUDisplayFrontendConfig.cxx
+
   static constexpr int32_t NSECTORS = o2::tpc::constants::MAXSECTOR;
   static constexpr float GL_SCALE_FACTOR = (1.f / 100.f);
 
