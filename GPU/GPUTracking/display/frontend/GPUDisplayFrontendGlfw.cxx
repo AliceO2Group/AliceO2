@@ -307,14 +307,7 @@ int32_t GPUDisplayFrontendGlfw::FrontendMain()
   glfwGetWindowSize(mWindow, &windowWidth, &windowHeight);
   mPixelRatio = windowWidth ? (double)fbWidth / windowWidth : 1.; // Updated in resize_callback, which must not be called before InitDisplay
   applyInitialWindowState();
-  if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
-    glfwSwapInterval(1);
-  }
-
-  {
-    std::lock_guard lock(mExitStateMutex);
-    mDisplayRunning = true;
-  }
+  SetVSync(vsyncEnabled());
 
   if (mBackend->ExtInit()) {
     fprintf(stderr, "Error initializing GL extension wrapper\n");
@@ -326,11 +319,18 @@ int32_t GPUDisplayFrontendGlfw::FrontendMain()
     return (1);
   }
 
+  {
+    std::lock_guard lock(mExitStateMutex);
+    mDisplayRunning = true; // Only after successful initialization, StopDisplay waits for it to become false again
+  }
+
+  int32_t retVal = 0;
   while (!glfwWindowShouldClose(mWindow)) {
-    HandleSendKeys();
+    HandleExternalGUISignals();
     if (DrawGLScene()) {
       fprintf(stderr, "Error drawing GL scene\n");
-      return (1);
+      retVal = 1;
+      break; // Cleanup below
     }
     if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
       glfwSwapBuffers(mWindow);
@@ -354,7 +354,7 @@ int32_t GPUDisplayFrontendGlfw::FrontendMain()
     mDisplayRunning = false;
   }
 
-  return 0;
+  return retVal;
 }
 
 void GPUDisplayFrontendGlfw::StopDisplayA()
@@ -389,11 +389,20 @@ void GPUDisplayFrontendGlfw::ToggleMaximized(bool set)
   }
 }
 
-void GPUDisplayFrontendGlfw::SetVSync(bool enable) { glfwSwapInterval(enable); }
-
-bool GPUDisplayFrontendGlfw::EnableSendKey()
+void GPUDisplayFrontendGlfw::SetVSync(bool enable)
 {
-  return true;
+  if (canSetVSync()) { // No GL context with Vulkan
+    glfwSwapInterval(enable);
+  }
+}
+
+bool GPUDisplayFrontendGlfw::canSetVSync() { return backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL; }
+
+float GPUDisplayFrontendGlfw::getRefreshRate()
+{
+  GLFWmonitor* monitor = glfwGetWindowMonitor(mWindow) ? glfwGetWindowMonitor(mWindow) : glfwGetPrimaryMonitor(); // Monitor of a windowed window is not known, use the primary one
+  const GLFWvidmode* mode = monitor ? glfwGetVideoMode(monitor) : nullptr;
+  return mode ? mode->refreshRate : 0.f;
 }
 
 void GPUDisplayFrontendGlfw::getSize(int32_t& width, int32_t& height)

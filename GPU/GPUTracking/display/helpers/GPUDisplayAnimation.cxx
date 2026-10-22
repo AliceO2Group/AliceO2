@@ -102,6 +102,7 @@ void GPUDisplay::startAnimation()
   mAnimationFrame = 0;
   mAnimate = 1;
   mAnimationLastBase = 0;
+  mAnimationMixBase = -1;
 }
 
 int32_t GPUDisplay::animateCamera(float& animateTime, float& mixSlaveImage, hmm_mat4& nextViewMatrix)
@@ -141,7 +142,12 @@ int32_t GPUDisplay::animateCamera(float& animateTime, float& mixSlaveImage, hmm_
       mAnimationLastBase = base - 1;
     }
 
-    if (base != mAnimationLastBase && mAnimateVectors[0][mAnimationLastBase] != mAnimateVectors[0][base] && memcmp(&mAnimateConfig[base], &mAnimateConfig[mAnimationLastBase], sizeof(mAnimateConfig[base]))) {
+    const bool mixing = base != mAnimationLastBase && mAnimateVectors[0][mAnimationLastBase] != mAnimateVectors[0][base] && memcmp(&mAnimateConfig[base], &mAnimateConfig[mAnimationLastBase], sizeof(mAnimateConfig[base]));
+    if ((mixing ? base : -1) != mAnimationMixBase) { // Blended configs changed: cached (Vulkan) command buffers must be re-recorded, otherwise they are kept while mixing
+      mAnimationMixBase = mixing ? base : -1;
+      mUpdateDrawCommands = true;
+    }
+    if (mixing) {
       mixSlaveImage = 1.f - (time - mAnimateVectors[0][mAnimationLastBase]) / (mAnimateVectors[0][base] - mAnimateVectors[0][mAnimationLastBase]);
       if (mixSlaveImage > 0) {
         mCfgL = mAnimateConfig[mAnimationLastBase];

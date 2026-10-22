@@ -33,10 +33,19 @@ class Monitoring;
 namespace o2::framework
 {
 
-class InvalidAODReadError : public std::runtime_error
+class AODReadError : public std::runtime_error
 {
  public:
-  using std::runtime_error::runtime_error;
+  enum class Kind {
+    InvalidTimeframe, // skip the timeframe
+    FileOpen,         // skip the file, its timeframes are unknown
+  };
+
+  AODReadError(Kind kind, std::string const& what) : std::runtime_error(what), mKind(kind) {}
+  Kind getKind() const { return mKind; }
+
+ private:
+  Kind mKind;
 };
 
 struct FileNameHolder {

@@ -24,7 +24,7 @@ const char* HelpText[] = {
   "[l] / [k] / [J]               Draw single sector (next  / previous sector), draw related sectors (same plane in phi)",
   "[;] / [:]                     Show splitting of TPC in sectors by extruding volume, [:] resets",
   "[#]                           Invert colors",
-  "[y] / [Y] / [X] / [M]         Start Animation, Add / remove Animation point, Reset Points, Cycle animation camera mode (resets)",
+  "[y] / [Y] / ['] / [X] / [M]   Start Animation, Add / remove Animation point, Reset Points, Cycle animation camera mode (resets)",
   "[>] / [<]                     Toggle config interpolation during Animation / change Animation interval (via movement)",
   "[g]                           Draw Grid",
   "[i]                           Project onto XY-plane",
@@ -43,7 +43,7 @@ const char* HelpText[] = {
   "[Z]                           Change screenshot resolution (scaling factor)",
   "[S] / [A] / [D]               Enable or disable smoothing of points / smoothing of lines / depth buffer",
   "[W] / [U] / [V]               Toggle anti-aliasing (MSAA at raster level / change downsampling FSAA factor) / toggle VSync",
-  "[F] / [_] / [R]               Switch mFullScreen / Maximized window / FPS rate limiter",
+  "[F] / [_] / [R]               Switch mFullScreen / Maximized window / FPS limit (none, refresh rate, fpsRate)",
   "[I]                           Enable / disable GL indirect draw",
   "[o] / [p] / [O] / [P]         Save / restore current camera position / Animation path",
   "[h]                           Print Help",
@@ -54,7 +54,7 @@ const char* HelpText[] = {
   "[e] / [f]                     Rotate left / right",
   "[+] / [-]                     Increase / decrease point size (Hold SHIFT for lines)",
   "[b]                           Change FOV (field of view)",
-  "[']                           Switch between core / compat renderer path (OpenGL profile, Vulkan smooth lines)",
+  "[m]                           Switch between core / compat renderer path (OpenGL profile, Vulkan smooth lines)",
   "[MOUSE 1]                     Look around",
   "[MOUSE 2]                     Strafe camera",
   "[MOUSE 1+2]                   Zoom / Rotate",
@@ -65,7 +65,7 @@ const char* HelpText[] = {
   "[F1] / [F2] / [F3] / [F4]     Enable / disable drawing of TPC / TRD / TOF / ITS",
   "[SHIFT] + [F1] to [F4]        Enable / disable track detector filter",
   "[SHIFT] + [F12]               Switch track detector filter between AND and OR mode"
-  // FREE: [m] [SPACE] [Q]
+  // FREE: [SPACE] [Q]
   // Test setting: ^
 };
 
@@ -77,11 +77,11 @@ void GPUDisplay::PrintHelp()
   }
 }
 
-void GPUDisplay::HandleKey(uint8_t key)
+void GPUDisplay::HandleKey(uint8_t key, bool doNotHandleConfigChanges)
 {
-  GPUSettingsDisplayHeavy oldCfgH = mCfgH;
-  GPUSettingsDisplayLight oldCfgL = mCfgL;
-  GPUSettingsDisplayRenderer oldCfgR = mCfgR;
+  const GPUSettingsDisplayHeavy oldCfgH = mCfgH;
+  const GPUSettingsDisplayLight oldCfgL = mCfgL;
+  const GPUSettingsDisplayRenderer oldCfgR = mCfgR;
   if (key == 'n') {
     mFrontend->mDisplayControl = 1;
     SetInfo("Showing next event", 1);
@@ -158,8 +158,25 @@ void GPUDisplay::HandleKey(uint8_t key)
     mCfgR.maximized ^= 1;
     SetInfo("Toggling Maximized window (%d)", (int32_t)mCfgR.maximized);
   } else if (key == 'R') {
-    mCfgR.maxFPSRate = !mCfgR.maxFPSRate;
-    SetInfo("FPS rate %s", mCfgR.maxFPSRate ? "not limited" : "limited");
+    mCfgR.fpsLimit = (mCfgR.fpsLimit + 1) % 3;
+    if (mCfgR.fpsLimit == GPUDisplayBackend::FPS_LIMIT_RATE) {
+      SetInfo("FPS limit: %d FPS", mCfgR.fpsRate);
+    } else if (mCfgR.fpsLimit == GPUDisplayBackend::FPS_LIMIT_VSYNC) {
+      char rate[32] = "unknown rate";
+      if (mFrontend->getRefreshRate() > 0.f) {
+        snprintf(rate, sizeof(rate), "%.1f Hz", mFrontend->getRefreshRate());
+      }
+      const int32_t mode = mBackend->fpsLimitMode();
+      if (mode == GPUDisplayBackend::FPS_LIMIT_NONE) {
+        SetInfo("FPS limit: refresh rate (%s) - VSync disabled, no limit", rate);
+      } else if (mode == GPUDisplayBackend::FPS_LIMIT_RATE) {
+        SetInfo("FPS limit: refresh rate (%s) - not supported by the backend, fallback to %d FPS", rate, mCfgR.fpsRate);
+      } else {
+        SetInfo("FPS limit: refresh rate (%s)", rate);
+      }
+    } else {
+      SetInfo("FPS limit: none");
+    }
   } else if (key == 'H') {
     mPrintInfoText += 1;
     mPrintInfoText &= 3;
@@ -188,7 +205,7 @@ void GPUDisplay::HandleKey(uint8_t key)
       mCfgR.fov = 5;
     }
     SetInfo("Set FOV to %f", mCfgR.fov);
-  } else if (key == 39) { // character = "'"
+  } else if (key == 'm') {
 #ifdef GPUCA_DISPLAY_OPENGL_CORE
     if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
       SetInfo("OpenGL compat profile not available, using core profile", 1);
@@ -489,6 +506,13 @@ void GPUDisplay::HandleKey(uint8_t key)
   }
   */
 
+  if (!doNotHandleConfigChanges) {
+    checkAndApplyConfigChanges(oldCfgH, oldCfgL, oldCfgR);
+  }
+}
+
+void GPUDisplay::checkAndApplyConfigChanges(const GPUSettingsDisplayHeavy& oldCfgH, const GPUSettingsDisplayLight& oldCfgL, const GPUSettingsDisplayRenderer& oldCfgR)
+{
   if (memcmp((void*)&oldCfgH, (void*)&mCfgH, sizeof(mCfgH)) != 0) {
     mUpdateEventData = true;
   }
@@ -517,7 +541,7 @@ void GPUDisplay::HandleKey(uint8_t key)
   }
 }
 
-void GPUDisplay::HandleSendKey(int32_t key)
+void GPUDisplay::HandleExternalGUIKey(int32_t key)
 {
   // GPUError("key %d '%c'", key, (char) key);
 
@@ -528,7 +552,7 @@ void GPUDisplay::HandleSendKey(int32_t key)
   }
   bool oldShift = mFrontend->mKeysShift[press];
   mFrontend->mKeysShift[press] = shifted;
-  HandleKey(key);
+  HandleKey(key, true);
   mFrontend->mKeysShift[press] = oldShift;
 }
 

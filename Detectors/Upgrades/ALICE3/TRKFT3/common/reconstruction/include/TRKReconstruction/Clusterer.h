@@ -34,7 +34,13 @@
 #include <array>
 #include <memory>
 #include <cstring>
+#include <type_traits>
 #include <utility>
+
+namespace o2::ft3
+{
+class GeometryTGeo;
+}
 
 namespace o2::trk
 {
@@ -56,6 +62,8 @@ class Clusterer
   using ClusterTruth = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
   using ConstDigitTruth = o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>;
   using Label = o2::MCCompLabel;
+  /// The geometry that gives a chip's sub-detector and layer.
+  using GeometryTGeo = std::conditional_t<DetID == o2::detectors::DetID::TRK, o2::trk::GeometryTGeo, o2::ft3::GeometryTGeo>;
 
   //----------------------------------------------
   struct BBox {

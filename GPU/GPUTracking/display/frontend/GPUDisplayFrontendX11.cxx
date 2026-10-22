@@ -224,7 +224,9 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
 
   const char* glxExt = glXQueryExtensionsString(mXDisplay, DefaultScreen(mXDisplay));
   if (strstr(glxExt, "GLX_EXT_swap_control") == nullptr) {
-    GPUError("No vsync support!");
+    if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
+      GPUError("GLX_EXT_swap_control not available, cannot change VSync");
+    }
     vsync_supported = false;
   } else {
     vsync_supported = true;
@@ -291,6 +293,8 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
   }
   XMapWindow(mXDisplay, mWindow);
 
+  XEvent mapEvent; // Maximize only after the window manager placed the window (on the active monitor), so that it restores to this position when un-maximized
+  XPeekIfEvent(mXDisplay, &mapEvent, [](Display*, XEvent* ev, XPointer window) -> Bool { return ev->type == MapNotify && ev->xmap.window == *(Window*)window; }, (XPointer)&mWindow);
   applyInitialWindowState();
 
   // Receive signal when window closed
@@ -337,7 +341,7 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
       GPUError("Cannot enable vsync");
       return (-1);
     }
-    mGlXSwapIntervalEXT(mXDisplay, glXGetCurrentDrawable(), 1);
+    mGlXSwapIntervalEXT(mXDisplay, glXGetCurrentDrawable(), vsyncEnabled());
   }
 
   if (InitDisplay()) {
@@ -354,7 +358,6 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
       if (mDisplayControl == 2) {
         break;
       }
-      HandleSendKeys();
       if (!XPending(mXDisplay)) {
         event.type = Expose;
       } else {
@@ -451,6 +454,7 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
       break;
     }
 
+    HandleExternalGUISignals();
     DrawGLScene();
     if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
       glXSwapBuffers(mXDisplay, mWindow);
@@ -523,7 +527,7 @@ void GPUDisplayFrontendX11::ToggleMaximized(bool set)
   xev.xclient.window = mWindow;
   xev.xclient.message_type = XInternAtom(mXDisplay, "_NET_WM_STATE", False);
   xev.xclient.format = 32;
-  xev.xclient.data.l[0] = set ? 1 : 2; //_NET_WM_STATE_ADD
+  xev.xclient.data.l[0] = set ? 1 : 0; // _NET_WM_STATE_ADD / _NET_WM_STATE_REMOVE
   xev.xclient.data.l[1] = XInternAtom(mXDisplay, "_NET_WM_STATE_MAXIMIZED_HORZ", False);
   xev.xclient.data.l[2] = XInternAtom(mXDisplay, "_NET_WM_STATE_MAXIMIZED_VERT", False);
   XSendEvent(mXDisplay, DefaultRootWindow(mXDisplay), False, SubstructureNotifyMask, &xev);

@@ -61,6 +61,11 @@ int32_t GPUDisplayBackendOpenGL::ExtInit()
 #endif
 }
 
+bool GPUDisplayBackendOpenGL::canLimitToVSync() const
+{
+  return mDisplay->frontend()->canSetVSync();
+}
+
 bool GPUDisplayBackendOpenGL::CoreProfile()
 {
 #ifdef GPUCA_DISPLAY_OPENGL_CORE
@@ -310,6 +315,11 @@ int32_t GPUDisplayBackendOpenGL::InitBackendA()
     GPUError("Unsupported OpenGL runtime %d.%d < %d.%d", glVersion[0], glVersion[1], GPUDisplayFrontend::GL_MIN_VERSION_MAJOR, GPUDisplayFrontend::GL_MIN_VERSION_MINOR);
     return (1);
   }
+  for (GLenum limit : {GL_MAX_TEXTURE_SIZE, GL_MAX_RENDERBUFFER_SIZE, GL_MAX_FRAMEBUFFER_WIDTH, GL_MAX_FRAMEBUFFER_HEIGHT}) {
+    GLint value = 0;
+    glGetIntegerv(limit, &value);
+    mMaxRenderSize = std::min<uint32_t>(mMaxRenderSize, value);
+  }
   mVBOId.resize(GPUTPCGeometry::NSECTORS);
   CHKERR(glCreateBuffers(mVBOId.size(), mVBOId.data()));
   CHKERR(glBindBuffer(GL_ARRAY_BUFFER, mVBOId[0]));
@@ -325,11 +335,13 @@ int32_t GPUDisplayBackendOpenGL::InitBackendA()
   CHKERR(mVertexShaderTexture = loadShader(GL_VERTEX_SHADER, _binary_opengl_vertexTexture_vert_spv_start, _binary_opengl_vertexTexture_vert_spv_len));
   CHKERR(mFragmentShaderTexture = loadShader(GL_FRAGMENT_SHADER, _binary_opengl_fragmentTexture_frag_spv_start, _binary_opengl_fragmentTexture_frag_spv_len));
   CHKERR(mFragmentShaderText = loadShader(GL_FRAGMENT_SHADER, _binary_opengl_fragmentText_frag_spv_start, _binary_opengl_fragmentText_frag_spv_len));
+  CHKERR(mVertexShaderFullscreen = loadShader(GL_VERTEX_SHADER, _binary_opengl_vertexFullscreen_vert_spv_start, _binary_opengl_vertexFullscreen_vert_spv_len));
+  CHKERR(mFragmentShaderDownsample = loadShader(GL_FRAGMENT_SHADER, _binary_opengl_fragmentDownsample_frag_spv_start, _binary_opengl_fragmentDownsample_frag_spv_len));
   CHKERR(mVertexShaderSmoothPoint = loadShader(GL_VERTEX_SHADER, _binary_opengl_vertexSmoothPoint_vert_spv_start, _binary_opengl_vertexSmoothPoint_vert_spv_len));
   CHKERR(mFragmentShaderSmoothPoint = loadShader(GL_FRAGMENT_SHADER, _binary_opengl_fragmentSmoothPoint_frag_spv_start, _binary_opengl_fragmentSmoothPoint_frag_spv_len));
   CHKERR(mVertexShaderSmoothLine = loadShader(GL_VERTEX_SHADER, _binary_opengl_vertexSmoothLine_vert_spv_start, _binary_opengl_vertexSmoothLine_vert_spv_len));
   CHKERR(mFragmentShaderSmoothLine = loadShader(GL_FRAGMENT_SHADER, _binary_opengl_fragmentSmoothLine_frag_spv_start, _binary_opengl_fragmentSmoothLine_frag_spv_len));
-  if (checkShaderStatus(mVertexShader) || checkShaderStatus(mFragmentShader) || checkShaderStatus(mVertexShaderSmoothPoint) || checkShaderStatus(mFragmentShaderSmoothPoint) || checkShaderStatus(mVertexShaderSmoothLine) || checkShaderStatus(mFragmentShaderSmoothLine) || checkShaderStatus(mVertexShaderTexture) || checkShaderStatus(mFragmentShaderTexture) || checkShaderStatus(mFragmentShaderText)) {
+  if (checkShaderStatus(mVertexShader) || checkShaderStatus(mFragmentShader) || checkShaderStatus(mVertexShaderSmoothPoint) || checkShaderStatus(mFragmentShaderSmoothPoint) || checkShaderStatus(mVertexShaderSmoothLine) || checkShaderStatus(mFragmentShaderSmoothLine) || checkShaderStatus(mVertexShaderTexture) || checkShaderStatus(mFragmentShaderTexture) || checkShaderStatus(mFragmentShaderText) || checkShaderStatus(mVertexShaderFullscreen) || checkShaderStatus(mFragmentShaderDownsample)) {
     return 1;
   }
   CHKERR(mShaderProgram = glCreateProgram());
@@ -367,6 +379,13 @@ int32_t GPUDisplayBackendOpenGL::InitBackendA()
   if (checkProgramStatus(mShaderProgramTexture)) {
     return 1;
   }
+  CHKERR(mShaderProgramDownsample = glCreateProgram());
+  CHKERR(glAttachShader(mShaderProgramDownsample, mVertexShaderFullscreen));
+  CHKERR(glAttachShader(mShaderProgramDownsample, mFragmentShaderDownsample));
+  CHKERR(glLinkProgram(mShaderProgramDownsample));
+  if (checkProgramStatus(mShaderProgramDownsample)) {
+    return 1;
+  }
   CHKERR(glGenVertexArrays(1, &mVertexArray));
 
   CHKERR(glGenVertexArrays(1, &VAO_texture));
@@ -399,6 +418,9 @@ void GPUDisplayBackendOpenGL::ExitBackendA()
   CHKERR(glDeleteProgram(mShaderProgramText));
   CHKERR(glDeleteShader(mFragmentShaderText));
   CHKERR(glDeleteProgram(mShaderProgramTexture));
+  CHKERR(glDeleteProgram(mShaderProgramDownsample));
+  CHKERR(glDeleteShader(mVertexShaderFullscreen));
+  CHKERR(glDeleteShader(mFragmentShaderDownsample));
   CHKERR(glDeleteShader(mVertexShaderTexture));
   CHKERR(glDeleteShader(mFragmentShaderTexture));
 
@@ -454,10 +476,13 @@ void GPUDisplayBackendOpenGL::loadDataToGPU(size_t totalVertizes)
   }
 }
 
-void GPUDisplayBackendOpenGL::prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot, bool toMixBuffer, float includeMixImage)
+bool GPUDisplayBackendOpenGL::prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot, bool toMixBuffer, float includeMixImage)
 {
   if (mDisplay->updateRenderPipeline() || mDownsampleFactor != getDownsampleFactor(requestScreenshot)) {
     updateRenderer(requestScreenshot);
+  }
+  if (toMixBuffer && !mMixBuffer.created) { // Only allocated when mixing is used, freed with the other offscreen buffers
+    createFB(mMixBuffer, true, true, false, mRenderWidth, mRenderHeight);
   }
   if (mOffscreenBufferMSAA.created) {
     setFrameBuffer(mOffscreenBufferMSAA.fb_id);
@@ -526,6 +551,7 @@ void GPUDisplayBackendOpenGL::prepareDraw(const hmm_mat4& proj, const hmm_mat4& 
       CHKERR(glNamedBufferSubData(mFieldModelViewBuffer, 0, sizeof(modelViewProj), &modelViewProj));
     }
   }
+  return true;
 }
 
 void GPUDisplayBackendOpenGL::finishDraw(bool doScreenshot, bool toMixBuffer, float includeMixImage)
@@ -540,7 +566,7 @@ void GPUDisplayBackendOpenGL::finishDraw(bool doScreenshot, bool toMixBuffer, fl
     CHKERR(glUseProgram(0));
   }
 
-  if (mDisplay->cfgR().drawQualityMSAA) {
+  if (mOffscreenBufferMSAA.created) {
     uint32_t dstId = toMixBuffer ? mMixBuffer.fb_id : (mDownsampleFactor != 1 ? mOffscreenBuffer.fb_id : 0);
     CHKERR(glBlitNamedFramebuffer(mOffscreenBufferMSAA.fb_id, dstId, 0, 0, mRenderWidth, mRenderHeight, 0, 0, mRenderWidth, mRenderHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR));
   }
@@ -548,8 +574,10 @@ void GPUDisplayBackendOpenGL::finishDraw(bool doScreenshot, bool toMixBuffer, fl
     setFrameBuffer(mDownsampleFactor != 1 ? mOffscreenBuffer.fb_id : 0);
     mixImages(includeMixImage);
   }
-  if (mDownsampleFactor != 1 && !toMixBuffer) {
+  if (mDownsampleFactor == 2 && !toMixBuffer) { // The linear blit is only exact for factor 2
     CHKERR(glBlitNamedFramebuffer(mOffscreenBuffer.fb_id, 0, 0, 0, mRenderWidth, mRenderHeight, 0, 0, mScreenWidth, mScreenHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR));
+  } else if (mDownsampleFactor != 1 && !toMixBuffer) {
+    drawDownsample(mOffscreenBuffer.fbCol_id, 0, mScreenWidth, mScreenHeight, mDownsampleFactor);
   }
 
   if (doScreenshot && !toMixBuffer) {
@@ -565,7 +593,12 @@ void GPUDisplayBackendOpenGL::readImageToPixels()
   GLfb tmpBuffer;
   if (mDisplay->cfgR().drawQualityDownsampleFSAA && mDisplay->cfgR().screenshotScaleFactor != 1) {
     createFB(tmpBuffer, false, true, false, width, height);
-    CHKERR(glBlitNamedFramebuffer(mOffscreenBuffer.fb_id, tmpBuffer.fb_id, 0, 0, mRenderWidth, mRenderHeight, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_LINEAR));
+    const int32_t factor = mRenderWidth / width;
+    if (factor > 2) {
+      drawDownsample(mOffscreenBuffer.fbCol_id, tmpBuffer.fb_id, width, height, factor);
+    } else {
+      CHKERR(glBlitNamedFramebuffer(mOffscreenBuffer.fb_id, tmpBuffer.fb_id, 0, 0, mRenderWidth, mRenderHeight, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_LINEAR));
+    }
   }
   setFrameBuffer(tmpBuffer.created ? tmpBuffer.fb_id : (scaleFactor != 1 ? mOffscreenBuffer.fb_id : 0));
   CHKERR(glPixelStorei(GL_PACK_ALIGNMENT, 1));
@@ -609,6 +642,25 @@ void GPUDisplayBackendOpenGL::finishText()
     CHKERR(glBindTexture(GL_TEXTURE_2D, 0));
     CHKERR(glUseProgram(0));
   }
+}
+
+void GPUDisplayBackendOpenGL::drawDownsample(uint32_t srcTexture, uint32_t dstFramebuffer, uint32_t width, uint32_t height, int32_t factor)
+{
+  setFrameBuffer(dstFramebuffer);
+  CHKERR(glViewport(0, 0, width, height));
+  CHKERR(glDisable(GL_DEPTH_TEST));
+  CHKERR(glDisable(GL_BLEND));
+  CHKERR(glUseProgram(mShaderProgramDownsample));
+  CHKERR(glUniform1i(UNIFORM_LOCATION_COLOR, factor));
+  CHKERR(glActiveTexture(GL_TEXTURE0));
+  CHKERR(glBindTexture(GL_TEXTURE_2D, srcTexture));
+  CHKERR(glBindVertexArray(VAO_texture)); // Any VAO, the full-screen triangle has no vertex input
+  CHKERR(glDrawArrays(GL_TRIANGLES, 0, 3));
+  CHKERR(glBindVertexArray(0));
+  CHKERR(glBindTexture(GL_TEXTURE_2D, 0));
+  CHKERR(glUseProgram(0));
+  CHKERR(glEnable(GL_BLEND));
+  setDepthBuffer();
 }
 
 void GPUDisplayBackendOpenGL::mixImages(float mixSlaveImage)
@@ -745,8 +797,8 @@ void GPUDisplayBackendOpenGL::OpenGLPrint(const char* s, float x, float y, float
   if (smoothFont()) {
     scale *= 0.25f; // Font size is 48 to have nice bitmap, scale to size 12
   }
-  for (const char* c = s; *c; c++) {
-    if ((int32_t)*c > (int32_t)mFontSymbols.size()) {
+  for (const unsigned char* c = (const unsigned char*)s; *c; c++) {
+    if ((int32_t)*c >= (int32_t)mFontSymbols.size()) {
       GPUError("Trying to draw unsupported symbol: %d > %d\n", (int32_t)*c, (int32_t)mFontSymbols.size());
       continue;
     }
@@ -795,20 +847,6 @@ void GPUDisplayBackendOpenGL::resizeScene(uint32_t width, uint32_t height)
   mScreenHeight = height;
 
   updateRenderer(false);
-
-  float vertices[6][4] = {
-    {0, (float)mRenderHeight, 0.0f, 1.0f},
-    {0, 0, 0.0f, 0.0f},
-    {(float)mRenderWidth, 0, 1.0f, 0.0f},
-    {0, (float)mRenderHeight, 0.0f, 1.0f},
-    {(float)mRenderWidth, 0, 1.0f, 0.0f},
-    {(float)mRenderWidth, (float)mRenderHeight, 1.0f, 1.0f}};
-  CHKERR(glBindBuffer(GL_ARRAY_BUFFER, VBO_texture));
-  CHKERR(glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices));
-  CHKERR(glBindBuffer(GL_ARRAY_BUFFER, 0));
-  if (!mDisplay->useMultiVBO()) {
-    CHKERR(glBindBuffer(GL_ARRAY_BUFFER, mVBOId[0])); // If we don't use multiple buffers, we keep the default buffer bound
-  }
 }
 
 void GPUDisplayBackendOpenGL::updateRenderer(bool withScreenshot)
@@ -821,8 +859,18 @@ void GPUDisplayBackendOpenGL::updateRenderer(bool withScreenshot)
     createFB(mOffscreenBufferMSAA, false, true, true, mRenderWidth, mRenderHeight);
   }
   if (mDownsampleFactor != 1) {
-    createFB(mOffscreenBuffer, false, true, false, mRenderWidth, mRenderHeight);
+    createFB(mOffscreenBuffer, mDownsampleFactor != 2, true, false, mRenderWidth, mRenderHeight); // Texture for shader downsampling (factor != 2), screenshot downsampling uses the shader only if this factor is != 2 as well
   }
-  createFB(mMixBuffer, true, true, false, mRenderWidth, mRenderHeight);
   setQuality();
+
+  float vertices[6][4] = {// Mix quad at render size
+                          {0, (float)mRenderHeight, 0.0f, 1.0f},
+                          {0, 0, 0.0f, 0.0f},
+                          {(float)mRenderWidth, 0, 1.0f, 0.0f},
+                          {0, (float)mRenderHeight, 0.0f, 1.0f},
+                          {(float)mRenderWidth, 0, 1.0f, 0.0f},
+                          {(float)mRenderWidth, (float)mRenderHeight, 1.0f, 1.0f}};
+  CHKERR(glBindBuffer(GL_ARRAY_BUFFER, VBO_texture));
+  CHKERR(glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices));
+  CHKERR(glBindBuffer(GL_ARRAY_BUFFER, mDisplay->useMultiVBO() ? 0 : mVBOId[0])); // If we don't use multiple buffers, we keep the default buffer bound (also called from prepareDraw before the vertex pointers are set)
 }

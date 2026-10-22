@@ -86,7 +86,7 @@ else()
 endif()
 
 if(GPUCA_BUILD_EVENT_DISPLAY)
-  find_package(GLFW NAMES glfw3 CONFIG REQUIRED)
+  find_package(GLFW 3.4 NAMES glfw3 CONFIG REQUIRED)
   find_package(GLEW REQUIRED)
   find_package(GLUT REQUIRED)
   find_package(OpenGL REQUIRED)
