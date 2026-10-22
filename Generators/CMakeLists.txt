@@ -157,6 +157,13 @@ if(doBuildSimulation)
                 ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
                 LABELS generator
                 PUBLIC_LINK_LIBRARIES O2::Generators)
+
+    o2_add_test(GeneratorEventDecayer NAME test_Generator_test_GeneratorEventDecayer
+                SOURCES test/test_GeneratorEventDecayer.cxx
+                COMPONENT_NAME Generator
+                ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
+                LABELS generator
+                PUBLIC_LINK_LIBRARIES O2::Generators)
   endif()
 
   # o2_add_test(GeneratorPythia8Param NAME test_Generator_test_GeneratorPythia8Param
