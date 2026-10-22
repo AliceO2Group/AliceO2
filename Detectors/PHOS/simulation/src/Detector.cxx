@@ -169,6 +169,9 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   if (lostenergy < DBL_EPSILON && !isNewPartile) {
     return false; // do not create hits with zero energy deposition
   }
+  if (!isNewPartile) { // track deposits into a hit of its super-parent
+    stack->modifiesHit(GetDetId());
+  }
 
   Int_t moduleNumber;
   fMC->CurrentVolOffID(

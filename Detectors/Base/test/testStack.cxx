@@ -180,3 +180,42 @@ BOOST_AUTO_TEST_CASE(Offsetting_keeps_an_invalid_index_invalid)
   BOOST_CHECK_EQUAL(o2::base::Detector::offsetTrackIndex(7, nprimaries, primaryOffset, secondaryOffset), 107);
   BOOST_CHECK_EQUAL(o2::base::Detector::offsetTrackIndex(-1, nprimaries, primaryOffset, secondaryOffset), -1);
 }
+
+// modifiesHit flags the current track without touching hit mask or pruning
+BOOST_AUTO_TEST_CASE(Stack_modifiesHit_test)
+{
+  const int iDet = o2::detectors::DetID::EMC;
+  for (bool prune : {false, true}) {
+    o2::data::Stack st;
+    st.pruneKinematics(prune);
+    const auto prim = pushTrack(st, -1, kPPrimary);
+    st.SetCurrentTrack(prim);
+    // use grandchildren, since direct daughters of primaries are always kept
+    const auto sec = pushTrack(st, prim, kPHadronic);
+    const auto flagged = pushTrack(st, sec, kPHadronic);
+    const auto other = pushTrack(st, sec, kPHadronic);
+
+    st.modifiesHit(iDet);
+    st.SetCurrentTrack(flagged);
+    st.modifiesHit(iDet);
+    BOOST_CHECK(!st.currentTrackLeftHit());
+    st.SetCurrentTrack(other);
+    st.FinishPrimary();
+
+    auto const& tracks = *st.getMCTracks();
+    if (prune) {
+      // a flagged track without hits is still pruned
+      BOOST_CHECK_EQUAL(tracks.size(), 2);
+    } else {
+      BOOST_REQUIRE_EQUAL(tracks.size(), 4);
+      BOOST_CHECK(!tracks[sec].getContributesToAHit());
+      BOOST_CHECK(tracks[flagged].getContributesToAHit());
+      BOOST_CHECK(!tracks[other].getContributesToAHit());
+    }
+    BOOST_CHECK(tracks[prim].getContributesToAHit());
+    for (auto const& t : tracks) {
+      BOOST_CHECK_EQUAL(t.getHitMask(), 0);
+      BOOST_CHECK(!t.hasHits());
+    }
+  }
+}
