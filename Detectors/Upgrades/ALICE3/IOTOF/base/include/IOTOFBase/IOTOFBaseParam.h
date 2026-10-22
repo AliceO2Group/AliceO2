@@ -21,11 +21,11 @@ namespace iotof
 {
 
 struct ChipSpecifics {
-  int NCols = 129;
-  int NRows = 271;
+  int NCols = 120;
+  int NRows = 240;
   float PitchCol = 250.00e-4;
   float PitchRow = 100.00e-4;
-  float PassiveEdgeReadOut = 0.;
+  float PassiveEdgeReadOut = 0.2;
   float PassiveEdgeTop = 0.;
   float PassiveEdgeSide = 0.;
   float PixelPassiveEdgeX = 0.;
@@ -63,10 +63,9 @@ struct IOTOFBaseParam : public o2::conf::ConfigurableParamHelper<IOTOFBaseParam>
 
   // OTOF segmentation parameters
   float otofRadius = 92.f;          // OTOF radius (cm)
-  float otofLength = 680.f;         // OTOF length (cm)
+  float otofLength = 688.54f;       // OTOF length (cm)
   int otofNStaves = 62;             // OTOF number of staves
   float otofStaveTilt = 5;          // OTOF stave tilt angle (deg)
-
 
   O2ParamDef(IOTOFBaseParam, "IOTOFBase");
 };

@@ -20,7 +20,14 @@
 #include "TGeoMatrix.h"  // for TGeoMatrix
 #include <fairlogger/Logger.h> // for LOG
 
-using namespace o2::iotof;
+namespace o2
+{
+
+namespace iotof
+{
+
+const double TF3Chip::sChipSizeX = 2.6; // cm
+const double TF3Chip::sChipSizeZ = 3.0; // cm
 
 //________________________________________________________________________
 TGeoVolume* TF3Chip::createChip(const Double_t ychip,
@@ -34,8 +41,8 @@ TGeoVolume* TF3Chip::createChip(const Double_t ychip,
   Double_t xchip, zchip;
   Double_t ylen, ypos;
 
-  xchip = 0.5 * chipSizeX;
-  zchip = 0.5 * chipSizeZ;
+  xchip = 0.5 * sChipSizeX;
+  zchip = 0.5 * sChipSizeZ;
 
   // First create all needed shapes
   ylen = ysens;
@@ -76,14 +83,14 @@ TGeoVolume* TF3Chip::createChip(const Double_t ychip,
   chipVol->SetLineColor(kOrange);
   chipVol->SetFillColor(kOrange - 9);
   chipVol->SetLineWidth(3);
-  chipVol->SetFillStyle(15);
+  chipVol->SetTransparency(20);
 
   TGeoVolume* sensVol = new TGeoVolume(sensName, sensor, medChip);
   sensVol->SetVisibility(kTRUE);
   sensVol->SetLineColor(kRed);
   sensVol->SetLineWidth(3);
   sensVol->SetFillColor(kRed - 9);
-  sensVol->SetFillStyle(5); // 0% transparent
+  sensVol->SetFillStyle(4000); // 0% transparent
 
   // Now build up the chip
   ypos = chip->GetDY() - sensor->GetDY();
@@ -133,3 +140,6 @@ void TF3Chip::createMaterials(Int_t id, Int_t ifield, Float_t fieldm)
     mgr.Medium("TF3CHIP", id, "SI$", id, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
   }
 }
+
+} // namespace iofof
+} // namespace o2

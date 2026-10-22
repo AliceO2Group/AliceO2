@@ -45,9 +45,11 @@ class TF3Chip
 
   static void createMaterials(Int_t id, Int_t fieldType, Float_t maxField);
 
- private:
-  static constexpr double chipSizeX = 2.6; // cm
-  static constexpr double chipSizeZ = 3; // cm (TODO: will be decreased to 3 cm)
+  static const double getChipSizeX() { return sChipSizeX; };
+  static const double getChipSizeY() { return sChipSizeZ; };
+
+  static const double sChipSizeX;
+  static const double sChipSizeZ;
 
   ClassDefNV(TF3Chip, 0); // TF3Chip geometry
 };

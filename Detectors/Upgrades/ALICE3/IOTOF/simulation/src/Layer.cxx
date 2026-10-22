@@ -28,6 +28,16 @@ namespace o2
 {
 namespace iotof
 {
+
+const int Layer::sChipsPerRow = 2;
+const int Layer::sChipsPerCol = 6;
+const double Layer::sChipGap = 200.e-4;       // cm
+const double Layer::sModuleGap = 200.e-4;     // cm
+const double Layer::sChipThickness = 300.e-4; // cm
+
+const double OTOFLayer::sSubStavesDistanceY = 0.3; // cm
+const double OTOFLayer::sSubStavesOverlapX = 1.1;  // cm
+
 Layer::Layer(std::string layerName, float rInn, float rOut, float zLength, float zOffset, float layerX2X0,
              int layout, int nStaves, float staveSize, double staveTiltAngle, int modulesPerStave, float sensorThickness)
   : mLayerName(layerName),
@@ -43,18 +53,18 @@ Layer::Layer(std::string layerName, float rInn, float rOut, float zLength, float
     mTiltAngle(staveTiltAngle)
 {
   const float Si_X0 = 9.5f; // cm, radiation length of silicon
-  mChipThickness = mX2X0 * Si_X0;
+  mLayerThickness = mX2X0 * Si_X0;
   std::string name = "";
   switch (layout) {
     case kBarrel:
     case kBarrelSegmented:
       name = "barrel";
-      mOuterRadius = mInnerRadius + mChipThickness;
+      mOuterRadius = mInnerRadius + mLayerThickness;
       break;
     case kDisk:
     case kDiskSegmented:
       name = "forward";
-      mZLength = mChipThickness;
+      mZLength = mLayerThickness;
       break;
     default:
       LOG(fatal) << "Invalid layout " << layout;
@@ -78,8 +88,8 @@ Layer::Layer(std::string layerName, float rInn, float rOut, float zLength, float
   if ((mTiltAngle < 0.0 || mTiltAngle > 90.0) && (layout == kBarrelSegmented || layout == kDiskSegmented)) {
     LOG(fatal) << "Invalid configuration: tilt angle " << mTiltAngle << " is too large, it must be between 0 and 90 degrees";
   }
-  if (mSensorThickness < 0.0f || mSensorThickness > mChipThickness) {
-    LOG(fatal) << "Invalid configuration: sensor thickness " << mSensorThickness << " cm is out of range (0, " << mChipThickness << ") cm";
+  if (mSensorThickness < 0.0f || mSensorThickness > mLayerThickness) {
+    LOG(fatal) << "Invalid configuration: sensor thickness " << mSensorThickness << " cm is out of range (0, " << mLayerThickness << ") cm";
   }
   if (sensorThickness > 0.0f && (layout == kBarrel || layout == kDisk)) {
     LOG(fatal) << "Invalid configuration: sensor thickness " << mSensorThickness << " cm is set for non-segmented layout, it should be 0";
@@ -100,7 +110,14 @@ void setStaveStyle(TGeoVolume* obj)
   obj->SetLineColor(kRed - 5);
   obj->SetFillColor(kRed - 9);
   obj->SetLineWidth(2);
-  obj->SetTransparency(45);
+  obj->SetTransparency(5);
+}
+void setOTOFStaveStyle(TGeoVolume* obj)
+{
+  obj->SetLineColor(kRed - 5);
+  obj->SetFillColor(kRed - 9);
+  obj->SetLineWidth(2);
+  obj->SetTransparency(50);
 }
 void setModuleStyle(TGeoVolume* obj)
 {
@@ -163,9 +180,9 @@ void ITOFLayer::createLayer(TGeoVolume* motherVolume)
     case kBarrelSegmented: {
       // First we create the volume for the whole layer, which will be used as mother volume for the segments
       const double avgRadius = 0.5 * (mInnerRadius + mOuterRadius);
-      const double staveSizeX = mStaves.second;                                                                                                                    // cm
-      const double staveSizeY = mOuterRadius - mInnerRadius;                                                                                                       // cm
-      const double staveSizeZ = mZLength;                                                                                                                          // cm
+      const double staveSizeX = mStaves.second;               // cm
+      const double staveSizeY = mOuterRadius - mInnerRadius;  // cm
+      const double staveSizeZ = mZLength;                     // cm
 
       // Build the mother layer tube from the exact inscribed/outscribed radii of a tilted stave rectangle.
       const double alpha = mTiltAngle * TMath::DegToRad();
@@ -185,73 +202,39 @@ void ITOFLayer::createLayer(TGeoVolume* motherVolume)
       TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
       setLayerStyle(layerVol);
 
-      // Now we create the volume for a single stave
-      TGeoBBox* stave = new TGeoBBox(staveSizeX * 0.5, staveSizeY * 0.5 - 0.5 * 300.e-4, staveSizeZ * 0.5);
-      TGeoVolume* staveVol = new TGeoVolume(staveName, stave, medSi);
-      setStaveStyle(staveVol);
-
       // Now we create the volume for a single chip (chip + sensor)
-//      TGeoVolume* chipVol1 = o2::iotof::TF3Chip::createChip(0.5 * 300.e-4, mSensorThickness, chipName, sensName);
+      TGeoVolume* chipVol = TF3Chip::createChip(sChipThickness, mSensorThickness, chipName, sensName);
+      ITOFLayer::mRegister.push_back(sensName);
 
-
-      // Now we create the volume for a single module (sensor + chip)
-      const int modulesPerStaveX = 1;                           // we assume that each stave is divided in 1 modules along the x direction
-      const double moduleSizeX = 5.22; //staveSizeX / modulesPerStaveX; // cm
-      const double moduleSizeY = staveSizeY;                    // cm
-      const double moduleSizeZ = 18.1; //staveSizeZ / mModulesPerStave; // cm
-      TGeoBBox* module = new TGeoBBox(0.5 * moduleSizeX, 300.e-4 * 0.5, moduleSizeZ * 0.5);
+      // Now we create the volume for a single module
+      const double moduleSizeX = sChipsPerRow * TF3Chip::sChipSizeX + (sChipsPerRow - 1) * sChipGap; // cm
+      const double moduleSizeY = sChipThickness;                                                     // cm
+      const double moduleSizeZ = sChipsPerCol * TF3Chip::sChipSizeZ + (sChipsPerCol - 1) * sChipGap; // cm
+      TGeoBBox* module = new TGeoBBox(0.5 * moduleSizeX, moduleSizeY * 0.5, moduleSizeZ * 0.5);
       TGeoVolume* moduleVol = new TGeoVolume(moduleName, module, medAir);
       setModuleStyle(moduleVol);
 
-      // Now we create the volume of the chip, which is the same for all modules
-      const int chipsPerModuleX = 2;                          // we assume that each module is divided in 2 chips along the x direction
-      const int chipsPerModuleZ = 6;                          // we assume that each module is divided in 2 chips along the z direction
-      const double chipSizeX = moduleSizeX / chipsPerModuleX; // cm
-      const double chipSizeY = moduleSizeY;                   // cm
-      const double chipSizeZ = moduleSizeZ / chipsPerModuleZ; // cm
-//      TGeoBBox* chip = new TGeoBBox(chipSizeX * 0.5, chipSizeY * 0.5, chipSizeZ * 0.5);
-      TGeoVolume* chipVol = o2::iotof::TF3Chip::createChip(300.e-4, mSensorThickness, chipName, sensName); // new TGeoVolume(chipName, chip, medSi);
+      // Now we create the volume for a single stave
+      TGeoBBox* stave = new TGeoBBox(staveSizeX * 0.5, staveSizeY * 0.5 - 0.5 * moduleSizeY, staveSizeZ * 0.5);
+      TGeoVolume* staveVol = new TGeoVolume(staveName, stave, medSi);
+      setStaveStyle(staveVol);
 
-      // Finally we create the volume of the sensor, which is the same for all chips
-/*      const int sensorsPerChipX = 1;                          // we assume that each chip is divided in 2 sensors along the x direction
-      const int sensorsPerChipZ = 1;                          // we assume that each chip is divided in 2 sensors along the z direction
-      const double sensorSizeX = chipSizeX / sensorsPerChipX; // cm
-      const double sensorSizeY = mSensorThickness;            // cm
-      const double sensorSizeZ = chipSizeZ / sensorsPerChipZ; // cm
-      TGeoBBox* sensor = new TGeoBBox(sensorSizeX * 0.5, sensorSizeY * 0.5, sensorSizeZ * 0.5);
-      TGeoVolume* sensVol = new TGeoVolume(sensName, sensor, medSi);
-      setSensorStyle(sensVol);
-*/      ITOFLayer::mRegister.push_back(sensName);
-
-      // Now we build a chip from sensors
-/*      for (int i = 0; i < sensorsPerChipX; ++i) {
-        for (int j = 0; j < sensorsPerChipZ; ++j) {
-          LOGP(info, "iTOF: Creating sensor {}/{} for chip {}/{}", i + 1, sensorsPerChipX, j + 1, sensorsPerChipZ);
-          auto* translation = new TGeoTranslation((i + 0.5) * sensorSizeX - 0.5 * chipSizeX,
-                                                  0.5 * chipSizeY - 0.5 * sensorSizeY,
-                                                  (j + 0.5) * sensorSizeZ - 0.5 * chipSizeZ);
-          chipVol->AddNode(sensVol, 1 + i * sensorsPerChipZ + j, translation);
-        }
-      }
-*/
       // Now we build a module from chips
-      for (int i = 0; i < chipsPerModuleX; ++i) {
-        for (int j = 0; j < chipsPerModuleZ; ++j) {
-          LOGP(info, "iTOF: Creating chip {}/{} for module {}/{}", i + 1, chipsPerModuleX, j + 1, chipsPerModuleZ);
-          auto* translation = new TGeoTranslation((i - 0.5) * (2.6 + 0.02), 0, (j + 0.5) * 3 + j * 0.02 - 0.5 * moduleSizeZ);
-          auto* rotation = new TGeoRotation(Form("segmentRotChip%d", i + 1), 0., 0. /*i == 0 ? 0. : 180.*/, 0.);
-    //      auto* transformation = new TGeoCombiTrans(*translation, *rotation);
-          moduleVol->AddNode(chipVol, 1 + i * chipsPerModuleZ + j, translation);
+      for (int i = 0; i < sChipsPerRow; ++i) {
+        for (int j = 0; j < sChipsPerCol; ++j) {
+          LOGP(info, "iTOF: Creating chip {}/{} for module {}/{}", i + 1, sChipsPerRow, j + 1, sChipsPerCol);
+          auto* translation = new TGeoTranslation(Form("segmentTransChip%d", i + 1), (i - 0.5) * (TF3Chip::sChipSizeX + sChipGap), 0, (j + 0.5) * TF3Chip::sChipSizeZ + j * sChipGap - 0.5 * moduleSizeZ);
+          auto* rotation = new TGeoRotation(Form("segmentRotChip%d", i + 1), 0., i == 0 ? 0. : 180., 0.);
+          auto* transformation = new TGeoCombiTrans(*translation, *rotation);
+          moduleVol->AddNode(chipVol, 1 + i * sChipsPerCol + j, translation);
         }
       }
 
       // Now we build a stave from modules
-      for (int i = 0; i < modulesPerStaveX; ++i) {
-        for (int j = 0; j < mModulesPerStave; ++j) {
-          LOGP(info, "iTOF: Creating module {}/{} for stave {}/{}", i + 1, modulesPerStaveX, j + 1, mModulesPerStave);
-          auto* translation = new TGeoTranslation(0., staveSizeY * 0.5, (j + 0.5) * (moduleSizeZ) + j * 0.02  - 0.5 * staveSizeZ);
-          staveVol->AddNode(moduleVol, 1 + i * mModulesPerStave + j, translation);
-        }
+      for (int j = 0; j < mModulesPerStave; ++j) {
+        LOGP(info, "iTOF: Creating module for stave {}/{}", j + 1, mModulesPerStave);
+        auto* translation = new TGeoTranslation(0., staveSizeY * 0.5, (j + 0.5) * moduleSizeZ + j * 0.02  - 0.5 * staveSizeZ);
+        staveVol->AddNode(moduleVol, 1 + j, translation);
       }
 
       // We finally put all the staves in the layer
@@ -313,18 +296,15 @@ void OTOFLayer::createLayer(TGeoVolume* motherVolume)
       return;
     }
     case kBarrelSegmented: {
-      // Additional geometry parameters
-      const double subStavesDistanceY = 0.3; // cm
-      const double subStavesOverlapX = 1.1;  // cm
 
       // First we create the volume for the whole layer, which will be used as mother volume for the segments
       const double avgRadius = 0.5 * (mInnerRadius + mOuterRadius);
-      const double staveSizeX = mStaves.second;                                    // cm, tangential stave size
-      const double staveSizeY = mOuterRadius - mInnerRadius + subStavesDistanceY;  // cm, radial stave size
-      const double staveSizeZ = mZLength;                                          // cm
-      const double subStaveSizeX = 0.5 * mStaves.second + 0.5 * subStavesOverlapX; // cm, tangential substave size
-      const double subStaveSizeY = mOuterRadius - mInnerRadius;                    // cm, radial substave size
-      const double subStaveSizeZ = mZLength;                                       // cm
+      const double staveSizeX = mStaves.second;                                     // cm, tangential stave size
+      const double staveSizeY = mOuterRadius - mInnerRadius + sSubStavesDistanceY;  // cm, radial stave size
+      const double staveSizeZ = mZLength;                                           // cm
+      const double subStaveSizeX = 0.5 * mStaves.second + 0.5 * sSubStavesOverlapX; // cm, tangential substave size
+      const double subStaveSizeY = mOuterRadius - mInnerRadius;                     // cm, radial substave size
+      const double subStaveSizeZ = mZLength;                                        // cm
 
       // Build the mother layer tube from the exact inscribed/outscribed radii of a tilted stave rectangle.
       const double alpha = mTiltAngle * TMath::DegToRad();
@@ -344,89 +324,53 @@ void OTOFLayer::createLayer(TGeoVolume* motherVolume)
       TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
       setLayerStyle(layerVol);
 
-      // Now we create the volume for a single stave
-      TGeoBBox* stave = new TGeoBBox(staveSizeX * 0.5, staveSizeY * 0.5, staveSizeZ * 0.5);
-      TGeoVolume* staveVol = new TGeoVolume(staveName, stave, medAir);
-      setStaveStyle(staveVol);
+      // Now we create the volume for a single chip (chip + sensor)
+      TGeoVolume* chipVol = TF3Chip::createChip(sChipThickness, mSensorThickness, chipName, sensName);
+      OTOFLayer::mRegister.push_back(sensName);
 
-      // Now we create the volume for a single stave
-      TGeoBBox* subStave = new TGeoBBox(subStaveSizeX * 0.5, subStaveSizeY * 0.5, subStaveSizeZ * 0.5);
-      TGeoVolume* subStaveVol = new TGeoVolume(subStaveName, subStave, medAir);
-      setStaveStyle(subStaveVol);
-
-      // Now we create the volume for a single module (sensor + chip)
-      // oTOF V2 is a 2xN matrix.
-      const int modulesPerSubStave = mModulesPerStave;
-      const int modulesPerSubStaveX = 1;
-      if (modulesPerSubStave % modulesPerSubStaveX != 0) {
-        LOG(fatal) << "Invalid oTOF module layout: total modules per stave " << modulesPerSubStave
-                   << " is not divisible by modulesPerStaveX=" << modulesPerSubStaveX;
-      }
-      const int modulesPerSubStaveZ = modulesPerSubStave / modulesPerSubStaveX;
-      const double moduleSizeX = subStaveSizeX / modulesPerSubStaveX;
-      const double moduleSizeY = subStaveSizeY;
-      const double moduleSizeZ = subStaveSizeZ / modulesPerSubStaveZ;
-      TGeoBBox* module = new TGeoBBox(moduleSizeX * 0.5, moduleSizeY * 0.5, moduleSizeZ * 0.5);
+      // Now we create the volume for a single module
+      const double moduleSizeX = sChipsPerRow * TF3Chip::sChipSizeX + (sChipsPerRow - 1) * sChipGap; // cm
+      const double moduleSizeY = sChipThickness;                                                     // cm
+      const double moduleSizeZ = sChipsPerCol * TF3Chip::sChipSizeZ + (sChipsPerCol - 1) * sChipGap; // cm
+      TGeoBBox* module = new TGeoBBox(0.5 * moduleSizeX, moduleSizeY * 0.5, moduleSizeZ * 0.5);
       TGeoVolume* moduleVol = new TGeoVolume(moduleName, module, medAir);
       setModuleStyle(moduleVol);
 
-      // Now we create the volume of the chip, which is the same for all modules
-      const int chipsPerModuleX = 2;                          // we assume that each module is divided in 2 chips along the x direction
-      const int chipsPerModuleZ = 4;                          // we assume that each module is divided in 2 chips along the z direction
-      const double chipSizeX = moduleSizeX / chipsPerModuleX; // cm
-      const double chipSizeY = moduleSizeY;                   // cm
-      const double chipSizeZ = moduleSizeZ / chipsPerModuleZ; // cm
-      TGeoBBox* chip = new TGeoBBox(chipSizeX * 0.5, chipSizeY * 0.5, chipSizeZ * 0.5);
-      TGeoVolume* chipVol = new TGeoVolume(chipName, chip, medSi);
-      setChipStyle(chipVol);
+      // Now we create the volume for a single stave
+      TGeoBBox* stave = new TGeoBBox(staveSizeX * 0.5, staveSizeY * 0.5, staveSizeZ * 0.5);
+      TGeoVolume* staveVol = new TGeoVolume(staveName, stave, medAir);
+      setOTOFStaveStyle(staveVol);
 
-      // Finally we create the volume of the sensor, which is the same for all chips
-      const int sensorsPerChipX = 1;                          // we assume that each chip is divided in 2 sensors along the x direction
-      const int sensorsPerChipZ = 1;                          // we assume that each chip is divided in 2 sensors along the z direction
-      const double sensorSizeX = chipSizeX / sensorsPerChipX; // cm
-      const double sensorSizeY = mSensorThickness;            // cm
-      const double sensorSizeZ = chipSizeZ / sensorsPerChipZ; // cm
-      TGeoBBox* sensor = new TGeoBBox(sensorSizeX * 0.5, sensorSizeY * 0.5, sensorSizeZ * 0.5);
-      TGeoVolume* sensVol = new TGeoVolume(sensName, sensor, medSi);
-      setSensorStyle(sensVol);
-      OTOFLayer::mRegister.push_back(sensVol->GetName());
-
-      // Now we build a chip from sensors
-      for (int i = 0; i < sensorsPerChipX; ++i) {
-        for (int j = 0; j < sensorsPerChipZ; ++j) {
-          LOGP(info, "oTOF: Creating sensor {}/{} for chip {}/{}", i + 1, sensorsPerChipX, j + 1, sensorsPerChipZ);
-          auto* translation = new TGeoTranslation((i + 0.5) * sensorSizeX - 0.5 * chipSizeX,
-                                                  0.5 * chipSizeY - 0.5 * sensorSizeY,
-                                                  (j + 0.5) * sensorSizeZ - 0.5 * chipSizeZ);
-          chipVol->AddNode(sensVol, 1 + i * sensorsPerChipZ + j, translation);
-        }
-      }
+      // Now we create the volume for a single stave
+      const int modulesPerSubStave = mModulesPerStave;
+      TGeoBBox* subStave = new TGeoBBox(subStaveSizeX * 0.5, subStaveSizeY * 0.5 - 0.5 * moduleSizeY, subStaveSizeZ * 0.5);
+      TGeoVolume* subStaveVol = new TGeoVolume(subStaveName, subStave, medSi);
+      setStaveStyle(subStaveVol);
 
       // Now we build a module from chips
-      for (int i = 0; i < chipsPerModuleX; ++i) {
-        for (int j = 0; j < chipsPerModuleZ; ++j) {
-          LOGP(info, "oTOF: Creating chip {}/{} for module {}/{}", i + 1, chipsPerModuleX, j + 1, chipsPerModuleZ);
-          auto* translation = new TGeoTranslation((i + 0.5) * chipSizeX - 0.5 * moduleSizeX, 0, (j + 0.5) * chipSizeZ - 0.5 * moduleSizeZ);
-          moduleVol->AddNode(chipVol, 1 + i * chipsPerModuleZ + j, translation);
+      for (int i = 0; i < sChipsPerRow; ++i) {
+        for (int j = 0; j < sChipsPerCol; ++j) {
+          LOGP(info, "oTOF: Creating chip {}/{} for module {}/{}", i + 1, sChipsPerRow, j + 1, sChipsPerCol);
+          auto* translation = new TGeoTranslation(Form("segmentTransChip%d", i + 1), (i - 0.5) * (TF3Chip::sChipSizeX + sChipGap), 0, (j + 0.5) * TF3Chip::sChipSizeZ + j * sChipGap - 0.5 * moduleSizeZ);
+          auto* rotation = new TGeoRotation(Form("segmentRotChip%d", i + 1), 0., i == 0 ? 0. : 180., 0.);
+          auto* transformation = new TGeoCombiTrans(*translation, *rotation);
+          moduleVol->AddNode(chipVol, 1 + i * sChipsPerCol + j, translation);
         }
       }
 
-      // Now we build a sub-stave from modules
-      for (int i = 0; i < modulesPerSubStaveX; ++i) {
-        for (int j = 0; j < modulesPerSubStaveZ; ++j) {
-          LOGP(info, "oTOF: Creating module {}/{} for substave {}/{}", i + 1, modulesPerSubStaveX, j + 1, modulesPerSubStaveZ);
-          const double tx = (i + 0.5) * moduleSizeX - 0.5 * subStaveSizeX;
-          const double tz = -0.5 * subStaveSizeZ + (j + 0.5) * moduleSizeZ;
-          auto* translation = new TGeoTranslation(tx, 0, tz);
-          subStaveVol->AddNode(moduleVol, 1 + i * modulesPerSubStaveZ + j, translation);
-        }
+      // Now we build a substave from modules
+      for (int j = 0; j < modulesPerSubStave; ++j) {
+        LOGP(info, "oTOF: Creating module for substave {}/{}", j + 1, modulesPerSubStave);
+        auto* translation = new TGeoTranslation(0., subStaveSizeY * 0.5, (j + 0.5) * moduleSizeZ + j * 0.02  - 0.5 * subStaveSizeZ);
+        subStaveVol->AddNode(moduleVol, 1 + j, translation);
       }
+
 
       // Now we build a stave from two substave
       for (int i = 0; i < 2; ++i) {
         LOGP(info, "oTOF: Creating substave {}/{} for stave {}/{}", i + 1, 2, 1, 1);
         int sign = i > 0 ? 1 : -1;
-        auto* translation2 = new TGeoTranslation(sign * 0.5 * (subStaveSizeX)-sign * 0.5 * subStavesOverlapX, -sign * 0.5 * subStavesDistanceY, 0);
+        auto* translation2 = new TGeoTranslation(sign * 0.5 * subStaveSizeX - sign * 0.5 * sSubStavesOverlapX, -sign * 0.5 * sSubStavesDistanceY - 0.5 * moduleSizeY, 0);
         staveVol->AddNode(subStaveVol, i + 1, translation2);
       }
 
