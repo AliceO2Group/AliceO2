@@ -215,7 +215,7 @@ void ITOFLayer::createLayer(TGeoVolume* motherVolume)
       setModuleStyle(moduleVol);
 
       // Now we create the volume for a single stave
-      TGeoBBox* stave = new TGeoBBox(staveSizeX * 0.5, staveSizeY * 0.5 - 0.5 * moduleSizeY, staveSizeZ * 0.5);
+      TGeoBBox* stave = new TGeoBBox(staveSizeX * 0.5, staveSizeY * 0.5, staveSizeZ * 0.5);
       TGeoVolume* staveVol = new TGeoVolume(staveName, stave, medSi);
       setStaveStyle(staveVol);
 
@@ -224,9 +224,14 @@ void ITOFLayer::createLayer(TGeoVolume* motherVolume)
         for (int j = 0; j < sChipsPerCol; ++j) {
           LOGP(info, "iTOF: Creating chip {}/{} for module {}/{}", i + 1, sChipsPerRow, j + 1, sChipsPerCol);
           auto* translation = new TGeoTranslation(Form("segmentTransChip%d", i + 1), (i - 0.5) * (TF3Chip::sChipSizeX + sChipGap), 0, (j + 0.5) * TF3Chip::sChipSizeZ + j * sChipGap - 0.5 * moduleSizeZ);
-          auto* rotation = new TGeoRotation(Form("segmentRotChip%d", i + 1), 0., i == 0 ? 0. : 180., 0.);
+          TGeoRotation* rotation = nullptr;
+          if (i == 1) {
+            rotation = new TGeoRotation(Form("segmentRotChip%d", i + 1), 90, 180, 90, 90, 180, 0);
+          } else {
+            rotation = new TGeoRotation(Form("segmentRotChip%d", i + 1), 0, 0, 0);
+          }
           auto* transformation = new TGeoCombiTrans(*translation, *rotation);
-          moduleVol->AddNode(chipVol, 1 + i * sChipsPerCol + j, translation);
+          moduleVol->AddNode(chipVol, 1 + i * sChipsPerCol + j, transformation);
         }
       }
 
@@ -341,9 +346,9 @@ void OTOFLayer::createLayer(TGeoVolume* motherVolume)
       TGeoVolume* staveVol = new TGeoVolume(staveName, stave, medAir);
       setOTOFStaveStyle(staveVol);
 
-      // Now we create the volume for a single stave
+      // Now we create the volume for a single substave
       const int modulesPerSubStave = mModulesPerStave;
-      TGeoBBox* subStave = new TGeoBBox(subStaveSizeX * 0.5, subStaveSizeY * 0.5 - 0.5 * moduleSizeY, subStaveSizeZ * 0.5);
+      TGeoBBox* subStave = new TGeoBBox(subStaveSizeX * 0.5, subStaveSizeY * 0.5, subStaveSizeZ * 0.5);
       TGeoVolume* subStaveVol = new TGeoVolume(subStaveName, subStave, medSi);
       setStaveStyle(subStaveVol);
 
@@ -352,9 +357,14 @@ void OTOFLayer::createLayer(TGeoVolume* motherVolume)
         for (int j = 0; j < sChipsPerCol; ++j) {
           LOGP(info, "oTOF: Creating chip {}/{} for module {}/{}", i + 1, sChipsPerRow, j + 1, sChipsPerCol);
           auto* translation = new TGeoTranslation(Form("segmentTransChip%d", i + 1), (i - 0.5) * (TF3Chip::sChipSizeX + sChipGap), 0, (j + 0.5) * TF3Chip::sChipSizeZ + j * sChipGap - 0.5 * moduleSizeZ);
-          auto* rotation = new TGeoRotation(Form("segmentRotChip%d", i + 1), 0., i == 0 ? 0. : 180., 0.);
+          TGeoRotation* rotation = nullptr;
+          if (i == 1) {
+            rotation = new TGeoRotation(Form("segmentRotChip%d", i + 1), 90, 180, 90, 90, 180, 0);
+          } else {
+            rotation = new TGeoRotation(Form("segmentRotChip%d", i + 1), 0, 0, 0);
+          }
           auto* transformation = new TGeoCombiTrans(*translation, *rotation);
-          moduleVol->AddNode(chipVol, 1 + i * sChipsPerCol + j, translation);
+          moduleVol->AddNode(chipVol, 1 + i * sChipsPerCol + j, transformation);
         }
       }
 
