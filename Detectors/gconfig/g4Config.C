@@ -61,6 +61,7 @@ R__LOAD_LIBRARY(libgeant4vmc)
 #include "TG4RunConfiguration.h"
 #include "SimConfig/G4Params.h"
 #include "SimConfig/FluenceWeightCalculator.h"
+#include "SimSetup/O2MonopolePhysics.h"
 #include "SimConfig/G4ScoringMerger.h"
 #include "G4ScoringManager.hh"
 #include "G4VScoringMesh.hh"
@@ -124,11 +125,21 @@ void Config()
     LOG(fatal) << "Unsupported geometry navigation mode";
   }
 
-  // o2::g4config::G4RunConfiguration adds the fast-simulation hook and the local
-  // magnetic fields; with neither configured it behaves like TG4RunConfiguration.
-  auto runConfiguration = new o2::g4config::G4RunConfiguration(geomNavStr, physicsSetup,
-                                                               "stepLimiter+specialCuts",
-                                                               specialStacking, mtMode);
+  TG4RunConfiguration* runConfiguration = nullptr;
+  if (g4Params.monopole) {
+    // Reference physics list + magnetic-monopole ionisation attached
+    // The reference physics is unchanged.
+    std::cout << "Monopole ionisation physics requested (G4.monopole=1)\n";
+    runConfiguration = o2::g4config::createMonopoleRunConfiguration(
+      geomNavStr, physicsSetup, "stepLimiter+specialCuts", specialStacking, mtMode,
+      g4Params.monopoleMagneticCharge);
+  } else {
+    // o2::g4config::G4RunConfiguration adds the fast-simulation hook and the local
+    // magnetic fields; with neither configured it behaves like TG4RunConfiguration.
+    runConfiguration = new o2::g4config::G4RunConfiguration(geomNavStr, physicsSetup,
+                                                            "stepLimiter+specialCuts",
+                                                            specialStacking, mtMode);
+  }
   if (g4Params.g4scoring) {
     runConfiguration->SetUseOfG4Scoring();
     if (g4Params.g4fluenceweight) {
