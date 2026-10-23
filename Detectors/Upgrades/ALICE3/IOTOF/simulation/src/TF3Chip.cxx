@@ -14,10 +14,10 @@
 #include "DetectorsBase/MaterialManager.h"
 #include "DetectorsBase/Detector.h"
 
-#include <TGeoBBox.h>    // for TGeoBBox
-#include <TGeoManager.h> // for gGeoManager, TGeoManager
-#include "TGeoVolume.h"  // for TGeoVolume
-#include "TGeoMatrix.h"  // for TGeoMatrix
+#include <TGeoBBox.h>          // for TGeoBBox
+#include <TGeoManager.h>       // for gGeoManager, TGeoManager
+#include "TGeoVolume.h"        // for TGeoVolume
+#include "TGeoMatrix.h"        // for TGeoMatrix
 #include <fairlogger/Logger.h> // for LOG
 
 namespace o2
@@ -31,11 +31,11 @@ const double TF3Chip::sChipSizeZ = 3.0; // cm
 
 //________________________________________________________________________
 TGeoVolume* TF3Chip::createChip(const Double_t ychip,
-                                   const Double_t ysens,
-                                   const char* chipName,
-                                   const char* sensName,
-                                   const Bool_t dummy,
-                                   const TGeoManager* mgr)
+                                const Double_t ysens,
+                                const char* chipName,
+                                const char* sensName,
+                                const Bool_t dummy,
+                                const TGeoManager* mgr)
 {
 
   Double_t xchip, zchip;
@@ -141,5 +141,5 @@ void TF3Chip::createMaterials(Int_t id, Int_t ifield, Float_t fieldm)
   }
 }
 
-} // namespace iofof
+} // namespace iotof
 } // namespace o2

@@ -180,9 +180,9 @@ void ITOFLayer::createLayer(TGeoVolume* motherVolume)
     case kBarrelSegmented: {
       // First we create the volume for the whole layer, which will be used as mother volume for the segments
       const double avgRadius = 0.5 * (mInnerRadius + mOuterRadius);
-      const double staveSizeX = mStaves.second;               // cm
-      const double staveSizeY = mOuterRadius - mInnerRadius;  // cm
-      const double staveSizeZ = mZLength;                     // cm
+      const double staveSizeX = mStaves.second;              // cm
+      const double staveSizeY = mOuterRadius - mInnerRadius; // cm
+      const double staveSizeZ = mZLength;                    // cm
 
       // Build the mother layer tube from the exact inscribed/outscribed radii of a tilted stave rectangle.
       const double alpha = mTiltAngle * TMath::DegToRad();
@@ -238,7 +238,7 @@ void ITOFLayer::createLayer(TGeoVolume* motherVolume)
       // Now we build a stave from modules
       for (int j = 0; j < mModulesPerStave; ++j) {
         LOGP(info, "iTOF: Creating module for stave {}/{}", j + 1, mModulesPerStave);
-        auto* translation = new TGeoTranslation(0., staveSizeY * 0.5, (j + 0.5) * moduleSizeZ + j * 0.02  - 0.5 * staveSizeZ);
+        auto* translation = new TGeoTranslation(0., staveSizeY * 0.5, (j + 0.5) * moduleSizeZ + j * 0.02 - 0.5 * staveSizeZ);
         staveVol->AddNode(moduleVol, 1 + j, translation);
       }
 
@@ -371,10 +371,9 @@ void OTOFLayer::createLayer(TGeoVolume* motherVolume)
       // Now we build a substave from modules
       for (int j = 0; j < modulesPerSubStave; ++j) {
         LOGP(info, "oTOF: Creating module for substave {}/{}", j + 1, modulesPerSubStave);
-        auto* translation = new TGeoTranslation(0., subStaveSizeY * 0.5, (j + 0.5) * moduleSizeZ + j * 0.02  - 0.5 * subStaveSizeZ);
+        auto* translation = new TGeoTranslation(0., subStaveSizeY * 0.5, (j + 0.5) * moduleSizeZ + j * 0.02 - 0.5 * subStaveSizeZ);
         subStaveVol->AddNode(moduleVol, 1 + j, translation);
       }
-
 
       // Now we build a stave from two substave
       for (int i = 0; i < 2; ++i) {
