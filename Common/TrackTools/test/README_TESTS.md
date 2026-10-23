@@ -8,7 +8,7 @@ Run from `O2/Common/TrackTools` after configuring the O2 environment:
 python -m pytest -q -ra test/python
 ```
 
-If the source header is elsewhere, set `TRACKTOOLS_INCLUDE` to the directory containing the actual O2 header. The test fixture **fails** if ROOT or the header cannot be loaded; no environment failure is counted as PASS.
+If the source header is elsewhere, set `TRACKTOOLS_INCLUDE` to the include-root directory containing `TrackTools/TrackGeometry.h`. The test fixture **fails** if ROOT or the header cannot be loaded; no environment failure is counted as PASS.
 
 Current cases:
 
@@ -20,8 +20,8 @@ Current cases:
 
 ## Outstanding—not certified by Step 0
 
-- Full 5D **TPC H/L/K** row/sector-edge API for displaced secondary tracks (not implemented in the reviewed source). This requires scalar, batch and Python/ADF tests in Step 1.
+- Extended full-5D **TPC H/L/K** row/sector-edge tests for displaced secondary tracks are not present in this portable O2 test subset. Add and validate the separate full-state tests before claiming complete coverage.
 - K field-map / high-curvature regressions (six previous red cases); do not widen tolerances or convert them to PASS.
-- Full 152-row Mapper pad-centre oracle, native C++ unit test, O2 CMake/CTest registration, real-data parity.
+- Full 152-row Mapper pad-centre oracle, native C++ unit test, O2 CTest registration, real-data parity.
 
 **Never claim that these tests alone validate production secondary-track TPC geometry or all K propagation.** Record the current header SHA256, O2 commit, ROOT/O2 environment and full pytest transcript for the PR.
