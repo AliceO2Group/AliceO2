@@ -23,9 +23,11 @@ struct Point {
   float sig2z = 0.f;
   float phi = 0.f;
   float z = 0.f;
+  float snp = 0.f;
+  int16_t clSize = 0;
   int16_t sens = -1;
   int8_t lr = -1; // -1 = vtx
-  ClassDefNV(Point, 1)
+  ClassDefNV(Point, 2)
 };
 
 struct Track {

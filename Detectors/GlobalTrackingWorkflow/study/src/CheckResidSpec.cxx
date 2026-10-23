@@ -114,6 +114,7 @@ class CheckResidSpec final : public Task
   float mITSROFrameLengthMUS = 0.f;
   o2::dataformats::MeanVertexObject mMeanVtx{};
   ITSClusters mITSClustersArray;                            ///< ITS clusters from compact clusters, by composed ID
+  std::vector<int16_t> mITSClusterSizes;                    ///< number of pixels per converted cluster
   const o2::itsmft::TopologyDictionary* mITSDict = nullptr; ///< cluster patterns dictionary
   o2::vertexing::PVertexer mVertexer;
   std::shared_ptr<DataRequest> mDataRequest;
@@ -255,11 +256,25 @@ void CheckResidSpec::process()
   const auto& params = o2::checkresid::CheckResidConfig::Instance();
   int nLr = mDataRequest->getITSPerLayer() ? o2::globaltracking::MaxITSLayers : 1;
   mITSClustersArray.init(nLr);
+  mITSClusterSizes.clear();
   for (int lr = 0; lr < nLr; lr++) { // with a single (monolithic) input all clusters are in the layer slot 0
     mITSClustersArray.beginLayer(lr);
     const auto clusITS = mRecoData->getITSClusters(lr);
     auto pattIt = mRecoData->getITSClustersPatterns(lr).begin();
-    mITSClustersArray.getClusters().reserve(mITSClustersArray.size() + clusITS.size());
+    {
+      auto sizePattIt = mRecoData->getITSClustersPatterns(lr).begin();
+      mITSClustersArray.getClusters().reserve(mITSClustersArray.size() + clusITS.size());
+      mITSClusterSizes.reserve(mITSClusterSizes.size() + clusITS.size());
+      for (const auto& clu : clusITS) {
+        const auto pattID = clu.getPatternID();
+        if (pattID == o2::itsmft::CompCluster::InvalidPatternID || mITSDict->isGroup(pattID)) {
+          o2::itsmft::ClusterPattern patt(sizePattIt);
+          mITSClusterSizes.emplace_back(patt.getNPixels());
+        } else {
+          mITSClusterSizes.emplace_back(mITSDict->getNpixels(pattID));
+        }
+      }
+    }
     o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray.getClusters(), mITSDict);
   }
   mITSClustersArray.finalize();
@@ -405,6 +420,7 @@ bool CheckResidSpec::processITSTrack(const o2::its::TrackITS& iTrack, const o2::
   float pvAlpha = 0;
   float bz = prop->getNominalBz();
   std::array<const o2::BaseCluster<float>*, 8> clArr{};
+  std::array<int16_t, 8> clSizeArr{};
   const auto& params = CheckResidConfig::Instance();
   std::array<o2::track::TrackParCov, 8> extrapOut, extrapInw; // 2-way Kalman extrapolations, vertex + 7 layers
 
@@ -465,6 +481,7 @@ bool CheckResidSpec::processITSTrack(const o2::its::TrackITS& iTrack, const o2::
       LOGP(error, "Cluster at lr {} was already assigned, old sens {}, new sens {}", llr, clArr[1 + llr]->getSensorID(), curClu.getSensorID());
     }
     clArr[1 + geom->getLayer(curClu.getSensorID())] = &curClu;
+    clSizeArr[1 + geom->getLayer(curClu.getSensorID())] = mITSClusterSizes[itsClRefs[iTrack.getClusterEntry(i)]];
   }
   o2::track::TrackPar refLinInw0, refLinOut0, *refLinOut = nullptr, *refLinInw = nullptr;
   o2::track::TrackPar refLinIBOut0, refLinOBInw0, *refLinOBInw = nullptr, *refLinIBOut = nullptr;
@@ -526,7 +543,7 @@ bool CheckResidSpec::processITSTrack(const o2::its::TrackITS& iTrack, const o2::
         // posCl.push_back(clArr[i]->getXYZGlo(*o2::its::GeometryTGeo::Instance()));
         auto phi = i == 0 ? tInw.getPhi() : tInw.getPhiPos();
         o2::math_utils::bringTo02Pi(phi);
-        resTrack.points.emplace_back(clArr[i]->getY() - yw, clArr[i]->getZ() - zw, cTot[0] + clArr[i]->getSigmaY2(), cTot[1] + clArr[i]->getSigmaZ2(), phi, clArr[i]->getZ(), clArr[i]->getSensorID(), i - 1);
+        resTrack.points.emplace_back(clArr[i]->getY() - yw, clArr[i]->getZ() - zw, cTot[0] + clArr[i]->getSigmaY2(), cTot[1] + clArr[i]->getSigmaZ2(), phi, clArr[i]->getZ(), 0.5 * (tInw.getSnp() + tOut.getSnp()), clSizeArr[i], clArr[i]->getSensorID(), i - 1);
         if (!innerDone) {
           resTrack.track = tInw;
           innerDone = true;
@@ -1151,7 +1168,7 @@ void CheckResidSpec::drawHistos()
           const float yRange = iyz == 0 ? params.resMMLrY[il] : params.resMMLrZ[il];
           bool drawn = false;
           const int id = 15000 + iyz * 10 + (2 * il + ib) * 100 + 1 + iv;
-          auto [minV, maxV, absMax] = getHMinMax(id, 0.15, (iv == 0 ? 2 : 4) * yRange, 10);
+          auto [minV, maxV, absMax] = getHMinMax(id, 0.15, (iv == 0 ? 2 : 8) * yRange, 10);
           TH1* firstAuto = nullptr;
           float maxAuto = 0.f;
           for (int j = 0; j < nh; j++) {
