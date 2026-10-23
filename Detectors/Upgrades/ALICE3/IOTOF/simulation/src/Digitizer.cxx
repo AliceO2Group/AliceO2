@@ -70,7 +70,7 @@ void Digitizer::init()
     }
     // initialize the vector of mask states
     mChips[i].resizeMaskStates(nReadOutCols);
-    for (auto& maskStates: mChips[i].getMaskStates()) {
+    for (auto& maskStates : mChips[i].getMaskStates()) {
       maskStates = -o2::constants::math::VeryBig;
     }
   }
