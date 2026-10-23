@@ -1123,6 +1123,13 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 
   Int_t copy;
   Int_t volID = fMC->CurrentVolID(copy);
+  if (fMC->IsTrackEntering() && !fMC->IsNewTrack() && fMC->TrackCharge() != 0 && volID == mTOPVolID) { // one reference per charged particle, first entry from outside
+    auto o2stack = static_cast<o2::data::Stack*>(fMC->GetStack());
+    if (o2stack->GetCurrentTrackNumber() != mTrackRefLastTrackID) {
+      mTrackRefLastTrackID = o2stack->GetCurrentTrackNumber();
+      o2stack->addTrackReference(o2::TrackReference(*fMC, GetDetId()));
+    }
+  }
 
   TVirtualMCStack* stack = fMC->GetStack();
   Int_t quadrant, mcp;
@@ -1206,6 +1213,7 @@ void Detector::Reset()
   if (!o2::utils::ShmManager::Instance().isOperational()) {
     mHits->clear();
   }
+  mTrackRefLastTrackID = -1;
 }
 
 void Detector::CreateMaterials()

@@ -157,6 +157,7 @@ class Detector : public o2::base::DetImpl<Detector>
 
   // Simulation
   std::vector<Hit>* mHits = nullptr; //! Collection of CPV hits
+  int mTrackRefLastTrackID = -1;     //! last track that received a TrackReference in the current event
 
   template <typename Det>
   friend class o2::base::DetImpl;
