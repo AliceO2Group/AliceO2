@@ -1,4 +1,16 @@
-#pragma once
+// Copyright 2026-2026 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+#ifndef ALICEO2_TRACKTOOLS_TRACKGEOMETRY_H_
+#define ALICEO2_TRACKTOOLS_TRACKGEOMETRY_H_
 
 /**
  * @file TrackGeometry.h
@@ -70,7 +82,6 @@
 #include "ReconstructionDataFormats/Track.h"
 #include "TPCBase/Mapper.h"
 #include "DetectorsBase/Propagator.h"
-
 
 namespace o2::recohelpers
 {
@@ -216,7 +227,7 @@ inline bool directionMatches(o2::track::DirType dir, float drds)
  * @return Global state and status at the requested radius.
  */
 inline TrackParametersAtRadius getParametersAtRadiusH(const o2::track::TrackPar& track, float radius, float bzKG,
-                                                       o2::track::DirType dir = o2::track::DirType::DirOutward)
+                                                      o2::track::DirType dir = o2::track::DirType::DirOutward)
 {
   TrackParametersAtRadius out;
   if (!(radius > 0.f) || !std::isfinite(radius) || !std::isfinite(bzKG) || !track.isValid()) {
@@ -328,10 +339,8 @@ inline TrackParametersAtRadius getParametersAtRadiusH(const o2::track::TrackPar&
     const double bx = a * xc / d, by = a * yc / d;
     const double ox = -yc * h / d, oy = xc * h / d;
 
-    const std::array<std::array<double, 2>, 2> intersections{{
-        {{bx + ox, by + oy}},
-        {{bx - ox, by - oy}}
-    }};
+    const std::array<std::array<double, 2>, 2> intersections{{{{bx + ox, by + oy}},
+                                                              {{bx - ox, by - oy}}}};
     for (const auto& xy : intersections) {
       const double x = xy[0], y = xy[1];
       double sinPhi = curv * (x - xc);
@@ -386,7 +395,7 @@ inline TrackParametersAtRadius getParametersAtRadiusH(const o2::track::TrackPar&
  * @return Global state and status at the requested radius.
  */
 inline TrackParametersAtRadius getParametersAtRadiusK0(const o2::track::TrackPar& track, float radius, float bzKG,
-                                                        o2::track::DirType dir = o2::track::DirType::DirOutward)
+                                                       o2::track::DirType dir = o2::track::DirType::DirOutward)
 {
   TrackParametersAtRadius out;
   if (!(radius > 0.f) || !std::isfinite(radius) || !std::isfinite(bzKG) || !track.isValid()) {
@@ -440,7 +449,7 @@ inline float phiAtRadius(const o2::track::TrackPar& track, float radius, float b
 
 /** @brief Backward-compatible scalar wrapper returning only the propagated fractional sector coordinate using K0. */
 inline float dSectorAtRadius(const o2::track::TrackPar& track, float radius, float bzKG, int nSectors = 18,
-                            o2::track::DirType dir = o2::track::DirType::DirOutward, float sectorPhaseRad = 0.f)
+                             o2::track::DirType dir = o2::track::DirType::DirOutward, float sectorPhaseRad = 0.f)
 {
   return stateDSector(getParametersAtRadiusK0(track, radius, bzKG, dir), nSectors, sectorPhaseRad);
 }
@@ -474,16 +483,27 @@ struct TrackParametersAtRadiusBatchResult {
 
   void resize(std::size_t n)
   {
-    gx.resize(n); gy.resize(n); gz.resize(n);
-    px.resize(n); py.resize(n); pz.resize(n);
-    phiPos.resize(n); phiMom.resize(n); tgl.resize(n); dSector.resize(n);
+    gx.resize(n);
+    gy.resize(n);
+    gz.resize(n);
+    px.resize(n);
+    py.resize(n);
+    pz.resize(n);
+    phiPos.resize(n);
+    phiMom.resize(n);
+    tgl.resize(n);
+    dSector.resize(n);
     status.resize(n);
   }
 
   void set(std::size_t i, const TrackParametersAtRadius& state, int nSectors, float sectorPhaseRad)
   {
-    gx[i] = state.gx; gy[i] = state.gy; gz[i] = state.gz;
-    px[i] = state.px; py[i] = state.py; pz[i] = state.pz;
+    gx[i] = state.gx;
+    gy[i] = state.gy;
+    gz[i] = state.gz;
+    px[i] = state.px;
+    py[i] = state.py;
+    pz[i] = state.pz;
     phiPos[i] = statePhiPos(state);
     phiMom[i] = statePhiMom(state);
     tgl[i] = stateTgl(state);
@@ -494,9 +514,9 @@ struct TrackParametersAtRadiusBatchResult {
 
 template <typename Evaluator>
 inline TrackParametersAtRadiusBatchResult primaryTrackParametersAtRadiusBatch(
-    const float* phi, const float* tgl, const float* qpt,
-    const float* vx, const float* vy, const float* vz,
-    std::size_t n, float radius, float bzKG, int nSectors, float sectorPhaseRad, Evaluator&& evaluate)
+  const float* phi, const float* tgl, const float* qpt,
+  const float* vx, const float* vy, const float* vz,
+  std::size_t n, float radius, float bzKG, int nSectors, float sectorPhaseRad, Evaluator&& evaluate)
 {
   TrackParametersAtRadiusBatchResult out;
   out.resize(n);
@@ -508,9 +528,9 @@ inline TrackParametersAtRadiusBatchResult primaryTrackParametersAtRadiusBatch(
       continue;
     }
     const auto track = makeTrackParFromPrimaryApproximation(phi[i], tgl[i], qpt[i],
-                                                             vx ? vx[i] : 0.f,
-                                                             vy ? vy[i] : 0.f,
-                                                             vz ? vz[i] : 0.f);
+                                                            vx ? vx[i] : 0.f,
+                                                            vy ? vy[i] : 0.f,
+                                                            vz ? vz[i] : 0.f);
     out.set(i, evaluate(track, radius, bzKG), nSectors, sectorPhaseRad);
   }
   return out;
@@ -518,28 +538,28 @@ inline TrackParametersAtRadiusBatchResult primaryTrackParametersAtRadiusBatch(
 
 /** @brief Batch H transport for reduced primary-like inputs. */
 inline TrackParametersAtRadiusBatchResult primaryTrackParametersAtRadiusHBatch(
-    const float* phi, const float* tgl, const float* qpt,
-    const float* vx, const float* vy, const float* vz,
-    std::size_t n, float radius, float bzKG, int nSectors = 18, float sectorPhaseRad = 0.f)
+  const float* phi, const float* tgl, const float* qpt,
+  const float* vx, const float* vy, const float* vz,
+  std::size_t n, float radius, float bzKG, int nSectors = 18, float sectorPhaseRad = 0.f)
 {
   return primaryTrackParametersAtRadiusBatch(
-      phi, tgl, qpt, vx, vy, vz, n, radius, bzKG, nSectors, sectorPhaseRad,
-      [](const o2::track::TrackPar& track, float r, float bz) {
-        return getParametersAtRadiusH(track, r, bz, o2::track::DirType::DirOutward);
-      });
+    phi, tgl, qpt, vx, vy, vz, n, radius, bzKG, nSectors, sectorPhaseRad,
+    [](const o2::track::TrackPar& track, float r, float bz) {
+      return getParametersAtRadiusH(track, r, bz, o2::track::DirType::DirOutward);
+    });
 }
 
 /** @brief Batch K0 transport for reduced primary-like inputs. */
 inline TrackParametersAtRadiusBatchResult primaryTrackParametersAtRadiusK0Batch(
-    const float* phi, const float* tgl, const float* qpt,
-    const float* vx, const float* vy, const float* vz,
-    std::size_t n, float radius, float bzKG, int nSectors = 18, float sectorPhaseRad = 0.f)
+  const float* phi, const float* tgl, const float* qpt,
+  const float* vx, const float* vy, const float* vz,
+  std::size_t n, float radius, float bzKG, int nSectors = 18, float sectorPhaseRad = 0.f)
 {
   return primaryTrackParametersAtRadiusBatch(
-      phi, tgl, qpt, vx, vy, vz, n, radius, bzKG, nSectors, sectorPhaseRad,
-      [](const o2::track::TrackPar& track, float r, float bz) {
-        return getParametersAtRadiusK0(track, r, bz, o2::track::DirType::DirOutward);
-      });
+    phi, tgl, qpt, vx, vy, vz, n, radius, bzKG, nSectors, sectorPhaseRad,
+    [](const o2::track::TrackPar& track, float r, float bz) {
+      return getParametersAtRadiusK0(track, r, bz, o2::track::DirType::DirOutward);
+    });
 }
 
 /** @brief Build an O2 `TrackPar` from the standard local O2 track parameterization. */
@@ -552,9 +572,9 @@ inline o2::track::TrackPar makeTrackParFromLocalParameters(float x, float alpha,
 
 template <typename Evaluator>
 inline TrackParametersAtRadiusBatchResult localTrackParametersAtRadiusBatch(
-    const float* x, const float* alpha, const float* y, const float* z,
-    const float* snp, const float* tgl, const float* qpt,
-    std::size_t n, float radius, float bzKG, int nSectors, float sectorPhaseRad, Evaluator&& evaluate)
+  const float* x, const float* alpha, const float* y, const float* z,
+  const float* snp, const float* tgl, const float* qpt,
+  std::size_t n, float radius, float bzKG, int nSectors, float sectorPhaseRad, Evaluator&& evaluate)
 {
   TrackParametersAtRadiusBatchResult out;
   out.resize(n);
@@ -573,28 +593,28 @@ inline TrackParametersAtRadiusBatchResult localTrackParametersAtRadiusBatch(
 
 /** @brief Batch H transport for tracks supplied in local O2 parameterization. */
 inline TrackParametersAtRadiusBatchResult localTrackParametersAtRadiusHBatch(
-    const float* x, const float* alpha, const float* y, const float* z,
-    const float* snp, const float* tgl, const float* qpt,
-    std::size_t n, float radius, float bzKG, int nSectors = 18, float sectorPhaseRad = 0.f)
+  const float* x, const float* alpha, const float* y, const float* z,
+  const float* snp, const float* tgl, const float* qpt,
+  std::size_t n, float radius, float bzKG, int nSectors = 18, float sectorPhaseRad = 0.f)
 {
   return localTrackParametersAtRadiusBatch(
-      x, alpha, y, z, snp, tgl, qpt, n, radius, bzKG, nSectors, sectorPhaseRad,
-      [](const o2::track::TrackPar& track, float r, float bz) {
-        return getParametersAtRadiusH(track, r, bz, o2::track::DirType::DirOutward);
-      });
+    x, alpha, y, z, snp, tgl, qpt, n, radius, bzKG, nSectors, sectorPhaseRad,
+    [](const o2::track::TrackPar& track, float r, float bz) {
+      return getParametersAtRadiusH(track, r, bz, o2::track::DirType::DirOutward);
+    });
 }
 
 /** @brief Batch K0 transport for tracks supplied in local O2 parameterization. */
 inline TrackParametersAtRadiusBatchResult localTrackParametersAtRadiusK0Batch(
-    const float* x, const float* alpha, const float* y, const float* z,
-    const float* snp, const float* tgl, const float* qpt,
-    std::size_t n, float radius, float bzKG, int nSectors = 18, float sectorPhaseRad = 0.f)
+  const float* x, const float* alpha, const float* y, const float* z,
+  const float* snp, const float* tgl, const float* qpt,
+  std::size_t n, float radius, float bzKG, int nSectors = 18, float sectorPhaseRad = 0.f)
 {
   return localTrackParametersAtRadiusBatch(
-      x, alpha, y, z, snp, tgl, qpt, n, radius, bzKG, nSectors, sectorPhaseRad,
-      [](const o2::track::TrackPar& track, float r, float bz) {
-        return getParametersAtRadiusK0(track, r, bz, o2::track::DirType::DirOutward);
-      });
+    x, alpha, y, z, snp, tgl, qpt, n, radius, bzKG, nSectors, sectorPhaseRad,
+    [](const o2::track::TrackPar& track, float r, float bz) {
+      return getParametersAtRadiusK0(track, r, bz, o2::track::DirType::DirOutward);
+    });
 }
 
 /// Backward-compatible batch wrappers retained for existing commissioning notebooks/tests.
@@ -610,7 +630,7 @@ inline std::vector<float> primaryDSectorAtRadiusBatch(const float* phi, const fl
                                                       float sectorPhaseRad = 0.f)
 {
   auto batch = primaryTrackParametersAtRadiusK0Batch(phi, tgl, qpt, nullptr, nullptr, vz, n, radius, bzKG,
-                                                      nSectors, sectorPhaseRad);
+                                                     nSectors, sectorPhaseRad);
   return std::move(batch.dSector);
 }
 
@@ -621,11 +641,11 @@ struct PrimaryTrackGeometryBatchResult {
 };
 
 inline PrimaryTrackGeometryBatchResult primaryTrackGeometryAtRadiusBatch(
-    const float* phi, const float* tgl, const float* qpt, const float* vz,
-    std::size_t n, float radius, float bzKG, int nSectors = 18, float sectorPhaseRad = 0.f)
+  const float* phi, const float* tgl, const float* qpt, const float* vz,
+  std::size_t n, float radius, float bzKG, int nSectors = 18, float sectorPhaseRad = 0.f)
 {
   auto batch = primaryTrackParametersAtRadiusK0Batch(phi, tgl, qpt, nullptr, nullptr, vz, n, radius, bzKG,
-                                                      nSectors, sectorPhaseRad);
+                                                     nSectors, sectorPhaseRad);
   return {std::move(batch.phiPos), std::move(batch.dSector)};
 }
 
@@ -656,10 +676,10 @@ enum class SectorEdgeStatus : int32_t {
  * The seed assumes x=y=0 at the primary vertex. Bz follows the O2 kG convention.
  */
 struct TPCPrimaryTrackSeed {
-  float phi = 0.f;       // momentum azimuth at the primary vertex [rad]
-  float tgl = 0.f;       // tan(lambda)
-  float qpt = 0.f;       // signed q/pT [(GeV/c)^-1]
-  float vz = 0.f;        // primary vertex z [cm]
+  float phi = 0.f;                                      // momentum azimuth at the primary vertex [rad]
+  float tgl = 0.f;                                      // tan(lambda)
+  float qpt = 0.f;                                      // signed q/pT [(GeV/c)^-1]
+  float vz = 0.f;                                       // primary vertex z [cm]
   float bzKG = std::numeric_limits<float>::quiet_NaN(); // signed O2 field convention [kG]; must be supplied
 };
 
@@ -687,10 +707,10 @@ struct TPCPrimaryTrackSeed {
  * local-y sides respectively. They are not measured from the nominal 20-degree sector boundary.
  */
 struct TPCSectorEdgeConfig {
-  float guardLowerCm = 0.f;  // active-side exclusion adjacent to negative local-y edge
-  float guardUpperCm = 0.f;  // active-side exclusion adjacent to positive local-y edge
-  float zMaxCm = 250.f;      // symmetric TPC longitudinal acceptance |z| <= zMaxCm
-  float maxSnp = 0.9f;       // radial-frame |sin(phiMom-phiPos)| < maxSnp; not O2 TrackPar::getSnp()
+  float guardLowerCm = 0.f; // active-side exclusion adjacent to negative local-y edge
+  float guardUpperCm = 0.f; // active-side exclusion adjacent to positive local-y edge
+  float zMaxCm = 250.f;     // symmetric TPC longitudinal acceptance |z| <= zMaxCm
+  float maxSnp = 0.9f;      // radial-frame |sin(phiMom-phiPos)| < maxSnp; not O2 TrackPar::getSnp()
 };
 
 /** @brief Result of one TPC row/sector-edge evaluation.
@@ -725,7 +745,6 @@ struct TPCSectorEdgeResult {
   int16_t lastDeadRow = -1;
   SectorEdgeStatus status = SectorEdgeStatus::OK;
 };
-
 
 /** @brief Structure-of-arrays batch result for the TPC row/sector-edge evaluators.
  *
@@ -901,7 +920,7 @@ inline TrajectoryPoint helixAtRadius(const o2::track::TrackPar& track, float rad
     return p;
   }
   const auto state = o2::recohelpers::getParametersAtRadiusH(
-      track, radius, bzKG, o2::track::DirType::DirOutward);
+    track, radius, bzKG, o2::track::DirType::DirOutward);
   if (!state.valid()) {
     return p;
   }
@@ -925,7 +944,8 @@ inline TrajectoryPoint primaryHelixAtRadius(const TPCPrimaryTrackSeed& seed, flo
     return {};
   }
   return helixAtRadius(o2::recohelpers::makeTrackParFromPrimaryApproximation(
-      seed.phi, seed.tgl, seed.qpt, 0.f, 0.f, seed.vz), radius, seed.bzKG);
+                         seed.phi, seed.tgl, seed.qpt, 0.f, 0.f, seed.vz),
+                       radius, seed.bzKG);
 }
 
 /** @brief Apply acceptance and classify one crossed row as Dead, Excluded, or Available.
@@ -981,7 +1001,7 @@ inline void accumulateRow(const o2::tpc::Mapper& mapper, int row, const Trajecto
  * The result uses the common Crossed/Dead/Excluded/Available classification in `accumulateRow()`.
  */
 inline TPCSectorEdgeResult sectorEdgeHelixRows(const o2::track::TrackPar& track, float bzKG, const TPCSectorEdgeConfig& cfg = {},
-                                                     std::vector<o2::recohelpers::TrackParametersAtRadius>* trajectory = nullptr)
+                                               std::vector<o2::recohelpers::TrackParametersAtRadius>* trajectory = nullptr)
 {
   TPCSectorEdgeResult out;
   if (trajectory) {
@@ -998,9 +1018,9 @@ inline TPCSectorEdgeResult sectorEdgeHelixRows(const o2::track::TrackPar& track,
     const float r = rowRadius(mapper, row);
     if (r + 1.e-4f < startRadius) {
       if (trajectory) {
-        trajectory->emplace_back();  // Preserve trajectory[row] indexing for skipped rows.
+        trajectory->emplace_back(); // Preserve trajectory[row] indexing for skipped rows.
       }
-      continue;  // A full track can start inside the TPC; do not count earlier rows.
+      continue; // A full track can start inside the TPC; do not count earlier rows.
     }
     const auto p = helixAtRadius(track, r, bzKG);
     if (!p.valid) {
@@ -1023,7 +1043,7 @@ inline TPCSectorEdgeResult sectorEdgeHelixRows(const o2::track::TrackPar& track,
 
 /** @brief Reduced-primary compatibility adapter: construct TrackPar and call the full H evaluator. */
 inline TPCSectorEdgeResult sectorEdgeHelixRows(const TPCPrimaryTrackSeed& seed, const TPCSectorEdgeConfig& cfg = {},
-                                                std::vector<o2::recohelpers::TrackParametersAtRadius>* trajectory = nullptr)
+                                               std::vector<o2::recohelpers::TrackParametersAtRadius>* trajectory = nullptr)
 {
   if (!std::isfinite(seed.phi) || !std::isfinite(seed.tgl) || !std::isfinite(seed.qpt) ||
       !std::isfinite(seed.bzKG) || std::abs(seed.qpt) < 1.e-12f) {
@@ -1032,7 +1052,8 @@ inline TPCSectorEdgeResult sectorEdgeHelixRows(const TPCPrimaryTrackSeed& seed, 
     return r;
   }
   return sectorEdgeHelixRows(o2::recohelpers::makeTrackParFromPrimaryApproximation(
-      seed.phi, seed.tgl, seed.qpt, 0.f, 0.f, seed.vz), seed.bzKG, cfg, trajectory);
+                               seed.phi, seed.tgl, seed.qpt, 0.f, 0.f, seed.vz),
+                             seed.bzKG, cfg, trajectory);
 }
 
 /** @brief Conservative path-continuity guard against a later outward orbit.
@@ -1063,8 +1084,8 @@ inline bool plausibleFirstOutwardStep(float dr, float ds, float tgl, float maxSn
  * The O2 magnetic field must already be initialized; otherwise `FieldNotInitialized` is returned.
  */
 inline TPCSectorEdgeResult sectorEdgeO2PropagatorRows(const o2::track::TrackPar& inputTrack, float bzKG,
-                                                       const TPCSectorEdgeConfig& cfg = {},
-                                                       std::vector<o2::recohelpers::TrackParametersAtRadius>* trajectory = nullptr)
+                                                      const TPCSectorEdgeConfig& cfg = {},
+                                                      std::vector<o2::recohelpers::TrackParametersAtRadius>* trajectory = nullptr)
 {
   TPCSectorEdgeResult out;
   if (trajectory) {
@@ -1094,7 +1115,7 @@ inline TPCSectorEdgeResult sectorEdgeO2PropagatorRows(const o2::track::TrackPar&
   }
   const float r0 = rowRadius(mapper, firstRow);
   if (trajectory) {
-    trajectory->resize(firstRow);  // Keep diagnostic trace indexed by global TPC row.
+    trajectory->resize(firstRow); // Keep diagnostic trace indexed by global TPC row.
   }
   // Preserve the reviewed K first-row seeding convention, but use the complete
   // original track rather than reconstructing a primary vertex. K field-map
@@ -1181,8 +1202,8 @@ inline TPCSectorEdgeResult sectorEdgeO2PropagatorRows(const o2::track::TrackPar&
 
 /** @brief Reduced-primary compatibility adapter to complete-state K row evaluation. */
 inline TPCSectorEdgeResult sectorEdgeO2PropagatorRows(const TPCPrimaryTrackSeed& seed,
-                                                       const TPCSectorEdgeConfig& cfg = {},
-                                                       std::vector<o2::recohelpers::TrackParametersAtRadius>* trajectory = nullptr)
+                                                      const TPCSectorEdgeConfig& cfg = {},
+                                                      std::vector<o2::recohelpers::TrackParametersAtRadius>* trajectory = nullptr)
 {
   if (!std::isfinite(seed.phi) || !std::isfinite(seed.tgl) || !std::isfinite(seed.qpt) ||
       !std::isfinite(seed.bzKG) || std::abs(seed.qpt) < 1.e-12f) {
@@ -1191,7 +1212,8 @@ inline TPCSectorEdgeResult sectorEdgeO2PropagatorRows(const TPCPrimaryTrackSeed&
     return r;
   }
   return sectorEdgeO2PropagatorRows(o2::recohelpers::makeTrackParFromPrimaryApproximation(
-      seed.phi, seed.tgl, seed.qpt, 0.f, 0.f, seed.vz), seed.bzKG, cfg, trajectory);
+                                      seed.phi, seed.tgl, seed.qpt, 0.f, 0.f, seed.vz),
+                                    seed.bzKG, cfg, trajectory);
 }
 
 /** @brief L row evaluator: stack-local linear approximation to the analytic helix.
@@ -1202,7 +1224,7 @@ inline TPCSectorEdgeResult sectorEdgeO2PropagatorRows(const TPCPrimaryTrackSeed&
  * Row position, momentum direction, and ds/dr are then evaluated from the local approximation before classification.
  */
 inline TPCSectorEdgeResult sectorEdgeStackLinear(const o2::track::TrackPar& track, float bzKG, const TPCSectorEdgeConfig& cfg = {},
-                                                       std::vector<o2::recohelpers::TrackParametersAtRadius>* trajectory = nullptr)
+                                                 std::vector<o2::recohelpers::TrackParametersAtRadius>* trajectory = nullptr)
 {
   TPCSectorEdgeResult out;
   if (trajectory) {
@@ -1225,9 +1247,9 @@ inline TPCSectorEdgeResult sectorEdgeStackLinear(const o2::track::TrackPar& trac
 
     if (rowRadius(mapper, first) + 1.e-4f < startRadius) {
       if (trajectory) {
-        trajectory->emplace_back();  // Preserve global row indexing.
+        trajectory->emplace_back(); // Preserve global row indexing.
       }
-      ++first;  // Ignore rows inside the complete track's reference radius.
+      ++first; // Ignore rows inside the complete track's reference radius.
       continue;
     }
     const float r0 = rowRadius(mapper, first);
@@ -1299,7 +1321,7 @@ inline TPCSectorEdgeResult sectorEdgeStackLinear(const o2::track::TrackPar& trac
 
 /** @brief Reduced-primary compatibility adapter to complete-state L row evaluation. */
 inline TPCSectorEdgeResult sectorEdgeStackLinear(const TPCPrimaryTrackSeed& seed, const TPCSectorEdgeConfig& cfg = {},
-                                                  std::vector<o2::recohelpers::TrackParametersAtRadius>* trajectory = nullptr)
+                                                 std::vector<o2::recohelpers::TrackParametersAtRadius>* trajectory = nullptr)
 {
   if (!std::isfinite(seed.phi) || !std::isfinite(seed.tgl) || !std::isfinite(seed.qpt) ||
       !std::isfinite(seed.bzKG) || std::abs(seed.qpt) < 1.e-12f) {
@@ -1308,7 +1330,8 @@ inline TPCSectorEdgeResult sectorEdgeStackLinear(const TPCPrimaryTrackSeed& seed
     return r;
   }
   return sectorEdgeStackLinear(o2::recohelpers::makeTrackParFromPrimaryApproximation(
-      seed.phi, seed.tgl, seed.qpt, 0.f, 0.f, seed.vz), seed.bzKG, cfg, trajectory);
+                                 seed.phi, seed.tgl, seed.qpt, 0.f, 0.f, seed.vz),
+                               seed.bzKG, cfg, trajectory);
 }
 
 template <typename Evaluator>
@@ -1349,7 +1372,7 @@ inline TPCSectorEdgeBatchResult sectorEdgeHelixRowsBatch(const float* phi, const
 
 /** @brief Batch wrapper for the stack-linear L TPC row evaluator. */
 inline TPCSectorEdgeBatchResult sectorEdgeStackLinearBatch(const float* phi, const float* tgl, const float* qpt, const float* vz,
-                                                          std::size_t n, float bzKG, const TPCSectorEdgeConfig& cfg = {})
+                                                           std::size_t n, float bzKG, const TPCSectorEdgeConfig& cfg = {})
 {
   return sectorEdgeBatch(phi, tgl, qpt, vz, n, bzKG, cfg,
                          [](const TPCPrimaryTrackSeed& seed, const TPCSectorEdgeConfig& c) { return sectorEdgeStackLinear(seed, c); });
@@ -1357,7 +1380,7 @@ inline TPCSectorEdgeBatchResult sectorEdgeStackLinearBatch(const float* phi, con
 
 /** @brief Batch wrapper for the O2 Propagator K TPC row evaluator, without material correction. */
 inline TPCSectorEdgeBatchResult sectorEdgeO2PropagatorRowsBatch(const float* phi, const float* tgl, const float* qpt, const float* vz,
-                                                               std::size_t n, float bzKG, const TPCSectorEdgeConfig& cfg = {})
+                                                                std::size_t n, float bzKG, const TPCSectorEdgeConfig& cfg = {})
 {
   return sectorEdgeBatch(phi, tgl, qpt, vz, n, bzKG, cfg,
                          [](const TPCPrimaryTrackSeed& seed, const TPCSectorEdgeConfig& c) {
@@ -1372,9 +1395,9 @@ inline TPCSectorEdgeBatchResult sectorEdgeO2PropagatorRowsBatch(const float* phi
  */
 template <typename Evaluator>
 inline TPCSectorEdgeBatchResult localSectorEdgeBatch(
-    const float* x, const float* alpha, const float* y, const float* z,
-    const float* snp, const float* tgl, const float* qpt,
-    std::size_t n, float bzKG, const TPCSectorEdgeConfig& cfg, Evaluator&& evaluate)
+  const float* x, const float* alpha, const float* y, const float* z,
+  const float* snp, const float* tgl, const float* qpt,
+  std::size_t n, float bzKG, const TPCSectorEdgeConfig& cfg, Evaluator&& evaluate)
 {
   TPCSectorEdgeBatchResult out;
   out.resize(n);
@@ -1389,16 +1412,16 @@ inline TPCSectorEdgeBatchResult localSectorEdgeBatch(
       continue;
     }
     const auto track = o2::recohelpers::makeTrackParFromLocalParameters(
-        x[i], alpha[i], y[i], z[i], snp[i], tgl[i], qpt[i]);
+      x[i], alpha[i], y[i], z[i], snp[i], tgl[i], qpt[i]);
     out.set(i, evaluate(track, bzKG, cfg));
   }
   return out;
 }
 
 inline TPCSectorEdgeBatchResult localSectorEdgeHelixRowsBatch(
-    const float* x, const float* alpha, const float* y, const float* z,
-    const float* snp, const float* tgl, const float* qpt,
-    std::size_t n, float bzKG, const TPCSectorEdgeConfig& cfg = {})
+  const float* x, const float* alpha, const float* y, const float* z,
+  const float* snp, const float* tgl, const float* qpt,
+  std::size_t n, float bzKG, const TPCSectorEdgeConfig& cfg = {})
 {
   return localSectorEdgeBatch(x, alpha, y, z, snp, tgl, qpt, n, bzKG, cfg,
                               [](const o2::track::TrackPar& t, float bz, const TPCSectorEdgeConfig& c) {
@@ -1407,9 +1430,9 @@ inline TPCSectorEdgeBatchResult localSectorEdgeHelixRowsBatch(
 }
 
 inline TPCSectorEdgeBatchResult localSectorEdgeStackLinearBatch(
-    const float* x, const float* alpha, const float* y, const float* z,
-    const float* snp, const float* tgl, const float* qpt,
-    std::size_t n, float bzKG, const TPCSectorEdgeConfig& cfg = {})
+  const float* x, const float* alpha, const float* y, const float* z,
+  const float* snp, const float* tgl, const float* qpt,
+  std::size_t n, float bzKG, const TPCSectorEdgeConfig& cfg = {})
 {
   return localSectorEdgeBatch(x, alpha, y, z, snp, tgl, qpt, n, bzKG, cfg,
                               [](const o2::track::TrackPar& t, float bz, const TPCSectorEdgeConfig& c) {
@@ -1418,9 +1441,9 @@ inline TPCSectorEdgeBatchResult localSectorEdgeStackLinearBatch(
 }
 
 inline TPCSectorEdgeBatchResult localSectorEdgeO2PropagatorRowsBatch(
-    const float* x, const float* alpha, const float* y, const float* z,
-    const float* snp, const float* tgl, const float* qpt,
-    std::size_t n, float bzKG, const TPCSectorEdgeConfig& cfg = {})
+  const float* x, const float* alpha, const float* y, const float* z,
+  const float* snp, const float* tgl, const float* qpt,
+  std::size_t n, float bzKG, const TPCSectorEdgeConfig& cfg = {})
 {
   return localSectorEdgeBatch(x, alpha, y, z, snp, tgl, qpt, n, bzKG, cfg,
                               [](const o2::track::TrackPar& t, float bz, const TPCSectorEdgeConfig& c) {
@@ -1431,3 +1454,5 @@ inline TPCSectorEdgeBatchResult localSectorEdgeO2PropagatorRowsBatch(
 ///@}
 
 } // namespace o2::tpc::recohelpers
+
+#endif // ALICEO2_TRACKTOOLS_TRACKGEOMETRY_H_

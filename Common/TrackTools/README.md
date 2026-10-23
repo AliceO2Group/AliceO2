@@ -33,7 +33,7 @@ The preferred input is an existing full `o2::track::TrackPar`: local fitted para
 Include the single component header in a configured O2 environment:
 
 ```cpp
-#include "TrackGeometry.h"
+#include "TrackTools/TrackGeometry.h"
 ```
 
 | Capability | Current C++ interface |
@@ -68,7 +68,7 @@ The partition is `Crossed = Dead + Excluded + Available` for row membership and 
 This is a typical use inside an O2 or O2Physics track loop. `track` is the actual fitted `o2::track::TrackPar`; `signedBzKG`, both guard widths and the cut threshold come from the **run/analysis configuration**. The two output counters are kept separately. Using **two configurations** on the same track makes it possible to compare selections across reconstruction passes or systematic variations.
 
 ```cpp
-#include "TrackGeometry.h"
+#include "TrackTools/TrackGeometry.h"
 
 // Call this in an O2/O2Physics track loop. The run configuration supplies
 // signedBzKG, both guard widths and minAvailableRows.
@@ -119,18 +119,18 @@ Changing the guard changes **Excluded/Available**, not the physical Mapper **Dea
 
 This is a **real, user-executed ROOT/Cling session** using the full-5D candidate header, not pseudocode or a compiled macro. It shows the workflow that can then be moved almost unchanged into an O2Physics track loop: start with one track, inspect `dSector`, vary the active-pad-edge guard, read out the available rows and lengths, apply two cuts, and compare L with H.
 
-Start a **fresh ROOT session** in the O2 environment, pointing to the header that implements the full-`TrackPar` overloads. Do not use the old `#include "include/TrackGeometry.h"` from an unsynchronized O2 checkout; that earlier file exposed only the reduced-primary TPC-row signatures.
+Start a **fresh ROOT session** in the O2 environment from the O2 repository root. Use the public `include/TrackTools/` layout; the same `#include "TrackTools/TrackGeometry.h"` works in compiled O2 applications.
 
 ```bash
-ROOT_INCLUDE_PATH="$dEdxAI_CODE/o2reco/cpp${ROOT_INCLUDE_PATH:+:$ROOT_INCLUDE_PATH}" root -l
+ROOT_INCLUDE_PATH="$PWD/Common/TrackTools/include${ROOT_INCLUDE_PATH:+:$ROOT_INCLUDE_PATH}" root -l
 ```
 
-For an installed O2 component, use the corresponding configured O2 header include directory instead. The following expressions are entered **one line at a time** at the ROOT prompt; no multiline `std::cout` statement is required.
+The header-only `O2::TrackTools` CMake target installs the public header under `TrackTools/`. The following expressions are entered **one line at a time** at the ROOT prompt; no multiline `std::cout` statement is required.
 
 ### 1. Construct a complete local O2 track and query the 85 cm surface
 
 ```cpp
-#include "TrackGeometry.h"
+#include "TrackTools/TrackGeometry.h"
 #include <iostream>
 namespace geo = o2::recohelpers;
 namespace tpc = o2::tpc::recohelpers;
@@ -303,4 +303,4 @@ To investigate those comparisons in Python, keep the same `adfSynthetic` sample 
 
 ---
 
-**Component status.** `TrackGeometry.h` is the implemented component covered above. Some field/curvature and physical pad-row-centre validation remains under technical review, as does the O2 build/install integration. For the exact current revision, test logs and identified follow-up work, consult the associated PR/CRR rather than treating this user manual as a debugging report.
+**Component status.** `TrackGeometry.h` is the implemented component covered above. Some field/curvature and physical pad-row-centre validation remains under technical review, while O2 build/CI validation remains under technical review. For the exact current revision, test logs and identified follow-up work, consult the associated PR/CRR rather than treating this user manual as a debugging report.

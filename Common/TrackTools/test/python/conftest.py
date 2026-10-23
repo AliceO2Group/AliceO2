@@ -14,11 +14,11 @@ def cpp():
         pytest.fail("PyROOT is required: run within an O2/ROOT environment", pytrace=False)
 
     include = Path(os.environ.get("TRACKTOOLS_INCLUDE", Path(__file__).resolve().parents[2] / "include"))
-    if not (include / "TrackGeometry.h").is_file():
+    if not (include / "TrackTools" / "TrackGeometry.h").is_file():
         pytest.fail(f"Missing TrackGeometry.h under {include}", pytrace=False)
     ROOT.gInterpreter.AddIncludePath(str(include))
     try:
-        ok = ROOT.gInterpreter.Declare('#include "TrackGeometry.h"')
+        ok = ROOT.gInterpreter.Declare('#include "TrackTools/TrackGeometry.h"')
     except Exception as exc:
         pytest.fail(f"Cannot compile TrackGeometry.h with current O2 environment: {exc}", pytrace=False)
     if not ok:
