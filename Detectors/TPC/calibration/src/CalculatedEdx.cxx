@@ -23,12 +23,17 @@
 #include "CCDB/BasicCCDBManager.h"
 #include "TPCBaseRecSim/CDBInterface.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
+#include "TPCCalibration/TPCFastSpaceChargeCorrectionHelper.h"
+#include "TPCCalibration/TPCScaler.h"
+#include "TTree.h"
 #include "CalibdEdxTrackTopologyPol.h"
 #include "DataFormatsParameters/GRPMagField.h"
 #include "GPUO2InterfaceUtils.h"
 #include "GPUTPCGMMergedTrackHit.h"
 
+#include <algorithm>
 #include <cstdlib>
+#include <cstring>
 #include <limits>
 
 using namespace o2::tpc;
@@ -100,7 +105,7 @@ void CalculatedEdx::rebuildTPCCorrMapPOD()
   mTPCCorrMap = mTPCCorrMapBuffer.get();
 }
 
-void CalculatedEdx::setTPCCorrMap(const o2::gpu::TPCFastTransform& corrMap)
+void CalculatedEdx::setTPCCorrMap(const o2::gpu::TPCFastTransform& corrMap, const o2::gpu::TPCFastTransform* corrMapRef, float lumiScale)
 {
   if (mRefit) {
     // the existing refitter holds a pointer into the correction map buffer we are about to replace; drop it
@@ -109,7 +114,14 @@ void CalculatedEdx::setTPCCorrMap(const o2::gpu::TPCFastTransform& corrMap)
     LOGP(warning, "CalculatedEdx::setTPCCorrMap() called after setRefit(); invalidating the existing refitter, call setRefit() again before using it.");
     mRefit.reset();
   }
+  mRefitExt.reset();
   mTPCCorrMapFull = TPCFastTransformHelperO2::instance()->create(0, corrMap.getCorrection());
+  if (corrMapRef && lumiScale >= 0) {
+    // linear lumi scaling as in the reconstruction (TPCScalerSpec): (mean - ref) * lumiScale + ref
+    auto& correction = mTPCCorrMapFull->getCorrection();
+    TPCFastSpaceChargeCorrectionHelper::instance()->addCorrections(correction, 1., {{&corrMapRef->getCorrection(), -1.}});
+    TPCFastSpaceChargeCorrectionHelper::instance()->addCorrections(correction, lumiScale, {{&corrMapRef->getCorrection(), 1.}});
+  }
   rebuildTPCCorrMapPOD();
 }
 
@@ -120,6 +132,7 @@ void CalculatedEdx::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
     LOGP(warning, "CalculatedEdx::setTPCVDrift() called after setRefit(); invalidating the existing refitter, call setRefit() again before using it.");
     mRefit.reset();
   }
+  mRefitExt.reset();
   TPCFastTransformHelperO2::instance()->updateCalibration(*mTPCCorrMapFull, 0, v.corrFact, v.refVDrift, v.getTimeOffset());
   rebuildTPCCorrMapPOD();
 }
@@ -133,10 +146,19 @@ void CalculatedEdx::setMembers(std::vector<o2::tpc::TPCClRefElem>* tpcTrackClIdx
 
 void CalculatedEdx::setRefit(const unsigned int nHbfPerTf)
 {
-  mTPCRefitterShMap.resize(mClusterIndex->nClustersTotal);
+  mUseRefit = true;
+  mNHbfPerTf = nHbfPerTf;
+  mWarnedMissingRefit = false;
+  mRefitExt.reset();
   auto sizeOcc = o2::gpu::GPUO2InterfaceRefit::fillOccupancyMapGetSize(nHbfPerTf, nullptr);
   mTPCRefitterOccMap.resize(sizeOcc);
   std::fill(mTPCRefitterOccMap.begin(), mTPCRefitterOccMap.end(), 0);
+  if (!mClusterIndex || !mTracks || !mTPCTrackClIdxVecInput) {
+    mRefit.reset();
+    mTPCRefitterShMap.clear();
+    return;
+  }
+  mTPCRefitterShMap.resize(mClusterIndex->nClustersTotal);
   o2::gpu::GPUO2InterfaceRefit::fillSharedClustersAndOccupancyMap(mClusterIndex, *mTracks, mTPCTrackClIdxVecInput->data(), mTPCRefitterShMap.data(), mTPCRefitterOccMap.data(), nHbfPerTf);
   mRefit = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mClusterIndex, mTPCCorrMap, mFieldNominalGPUBz, mTPCTrackClIdxVecInput->data(), nHbfPerTf, mTPCRefitterShMap.data(), mTPCRefitterOccMap.data(), mTPCRefitterOccMap.size());
 }
@@ -175,8 +197,6 @@ void CalculatedEdx::handleSameRowClusters(o2::tpc::TrackTPC& track, std::vector<
 
   // group clusters by (sector, row)
   for (int iCl = 0; iCl < nClusters; iCl++) {
-    const o2::tpc::ClusterNative& cl = track.getCluster(*mTPCTrackClIdxVecInput, iCl, *mClusterIndex);
-
     unsigned char sectorIndex = 0;
     unsigned char rowIndex = 0;
     unsigned int clusterIndexNumb = 0;
@@ -260,6 +280,10 @@ void CalculatedEdx::handleSameRowClusters(const std::vector<o2::tpc::ClusterNati
 void CalculatedEdx::gatherRowClusterData(o2::tpc::TrackTPC& track, std::vector<RowClusterData>& rowData, AverageOccupancy& averageOcc)
 {
   rowData.clear();
+  averageOcc = AverageOccupancy{};
+  if (mDebug) {
+    ++mDebugTrackIndex;
+  }
 
   const bool refitFailed = refitTrack(track);
 
@@ -299,6 +323,7 @@ void CalculatedEdx::gatherRowClusterData(o2::tpc::TrackTPC& track, std::vector<R
 
     const bool mergeable = mergeableRows.count(rowKey) > 0;
     gatherRowClusterDataForRow(track, fragmentClusters, fragmentIsShared, sectorIndex, rowIndex, mergeable, rowIndexOld, sectorIndexOld, occupancyROC, rowData, refitFailed);
+    rowData.back().inputClusterIndices = clusterIndices;
     rowIndexOld = rowIndex;
     sectorIndexOld = sectorIndex;
   }
@@ -322,8 +347,15 @@ void CalculatedEdx::gatherRowClusterData(o2::tpc::TrackTPC& track, std::vector<R
 
 bool CalculatedEdx::refitTrack(o2::tpc::TrackTPC& track)
 {
-  if (!mRefit) {
+  if (!mUseRefit) {
     return false;
+  }
+  if (!mRefit) {
+    if (!mWarnedMissingRefit) {
+      LOGP(error, "CalculatedEdx: setRefit() is set but there is no refitter for the track's cluster references (setMembers() missing, or the refitter was dropped by setTPCCorrMap()/setTPCVDrift()), propagating the original tracks instead");
+      mWarnedMissingRefit = true;
+    }
+    return true;
   }
   // RefitTrackAsGPU() refits the whole track from its clusters (not just up to the current row) and may write into the track even if it fails, so keep the original state to fall back from
   const o2::track::TrackParCov trackBeforeRefit = track;
@@ -331,6 +363,66 @@ bool CalculatedEdx::refitTrack(o2::tpc::TrackTPC& track)
   const bool failed = (mRefit->RefitTrackAsGPU(track, true, true) < 0) || std::isnan(track.getParam(1));
   if (failed) {
     static_cast<o2::track::TrackParCov&>(track) = trackBeforeRefit;
+  }
+  return failed;
+}
+
+bool CalculatedEdx::refitTrack(o2::tpc::TrackTPC& track, const std::vector<o2::tpc::ClusterNative>& clusters, const ClInfoVec& clusterInfos)
+{
+  if (!mUseRefit) {
+    return false;
+  }
+  const size_t nCl = clusters.size();
+  if (nCl == 0 || nCl != clusterInfos.size() || nCl > std::numeric_limits<uint16_t>::max()) {
+    return true;
+  }
+
+  if (!mExtClusterAccess) {
+    mExtClusterAccess = std::make_unique<o2::tpc::ClusterNativeAccess>();
+  }
+  auto& access = *mExtClusterAccess;
+  std::memset(access.nClusters, 0, sizeof(access.nClusters));
+  for (const auto& info : clusterInfos) {
+    if (info.sectorIndex >= constants::MAXSECTOR || info.rowIndex >= constants::MAXGLOBALPADROW) {
+      return true;
+    }
+    ++access.nClusters[info.sectorIndex][info.rowIndex];
+  }
+  const auto* refsBefore = mExtClusterRefs.data();
+  const auto* shMapBefore = mExtShMap.data();
+  mExtClusters.resize(nCl);
+  mExtClusterRefs.assign(nCl + (2 * nCl + sizeof(o2::tpc::TPCClRefElem) - 1) / sizeof(o2::tpc::TPCClRefElem), 0);
+  mExtShMap.assign(nCl, 0);
+  access.clustersLinear = mExtClusters.data();
+  access.clustersMCTruth = nullptr;
+  access.setOffsetPtrs();
+
+  std::map<std::pair<unsigned char, unsigned char>, unsigned int> nPlaced;
+  auto* sectorRowIndices = reinterpret_cast<uint8_t*>(mExtClusterRefs.data() + nCl);
+  for (size_t iCl = 0; iCl < nCl; ++iCl) {
+    const auto& info = clusterInfos[iCl];
+    const unsigned int indexInRow = nPlaced[{info.sectorIndex, info.rowIndex}]++;
+    const unsigned int linearIndex = access.clusterOffset[info.sectorIndex][info.rowIndex] + indexInRow;
+    mExtClusters[linearIndex] = clusters[iCl];
+    mExtShMap[linearIndex] = info.isShared ? o2::gpu::GPUTPCGMMergedTrackHit::flagShared : 0;
+    mExtClusterRefs[iCl] = indexInRow;
+    sectorRowIndices[iCl] = info.sectorIndex;
+    sectorRowIndices[iCl + nCl] = info.rowIndex;
+  }
+
+  // the refitter keeps raw pointers to the buffers, so recreate it when they moved
+  if (!mRefitExt || refsBefore != mExtClusterRefs.data() || shMapBefore != mExtShMap.data()) {
+    mRefitExt = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mExtClusterAccess.get(), mTPCCorrMap, mFieldNominalGPUBz, mExtClusterRefs.data(), mNHbfPerTf, mExtShMap.data(), mTPCRefitterOccMap.data(), mTPCRefitterOccMap.size());
+  }
+
+  const o2::track::TrackParCov trackBeforeRefit = track;
+  float chi2 = 0.f;
+  const o2::tpc::TrackTPCClusRef clusRef(0, static_cast<uint16_t>(nCl));
+  const bool failed = (mRefitExt->RefitTrackAsGPU(static_cast<o2::track::TrackParCov&>(track), clusRef, track.getTime0(), &chi2, true, true) < 0) || std::isnan(track.getParam(1));
+  if (failed) {
+    static_cast<o2::track::TrackParCov&>(track) = trackBeforeRefit;
+  } else {
+    track.setChi2(chi2);
   }
   return failed;
 }
@@ -381,7 +473,7 @@ void CalculatedEdx::gatherRowClusterDataForRow(o2::tpc::TrackTPC& track, const s
   row.stackID = stackID;
   row.stackNumber = stackNumber;
 
-  // per-fragment quantities: pad depends on the individual cluster's own pad, so threshold/gain/gainResidual/occupancy/isDeadRegion
+  // per-fragment quantities: pad depends on the individual cluster's own pad, so threshold/gain/gainResidual/occupancy
   // all looked up by pad, are computed once per fragment here
   row.fragments.reserve(fragmentClusters.size());
   for (size_t iFrag = 0; iFrag < fragmentClusters.size(); ++iFrag) {
@@ -394,7 +486,6 @@ void CalculatedEdx::gatherRowClusterDataForRow(o2::tpc::TrackTPC& track, const s
     frag.threshold = mCalibCont.getZeroSupressionThreshold(sectorIndex, rowIndex, frag.pad);
     frag.gain = mCalibCont.getGain(sectorIndex, rowIndex, frag.pad);
     frag.gainResidual = mCalibCont.getResidualGain(sectorIndex, rowIndex, frag.pad);
-    frag.isDeadRegion = mCalibCont.isDead(static_cast<unsigned int>(sectorIndex), static_cast<gpu::tpccf::Row>(rowIndex), static_cast<gpu::tpccf::Pad>(frag.pad));
 
     row.fragments.emplace_back(std::move(frag));
   }
@@ -407,7 +498,6 @@ void CalculatedEdx::gatherRowClusterDataForRow(o2::tpc::TrackTPC& track, const s
     row.mergedFragment.threshold = mCalibCont.getZeroSupressionThreshold(sectorIndex, rowIndex, row.mergedFragment.pad);
     row.mergedFragment.gain = mCalibCont.getGain(sectorIndex, rowIndex, row.mergedFragment.pad);
     row.mergedFragment.gainResidual = mCalibCont.getResidualGain(sectorIndex, rowIndex, row.mergedFragment.pad);
-    row.mergedFragment.isDeadRegion = mCalibCont.isDead(static_cast<unsigned int>(sectorIndex), static_cast<gpu::tpccf::Row>(rowIndex), static_cast<gpu::tpccf::Pad>(row.mergedFragment.pad));
     row.mergedFragment.isShared = row.fragments[0].isShared; // preserves the historical "first fragment's isShared" choice for a merged sample
   }
 
@@ -430,14 +520,26 @@ void CalculatedEdx::gatherRowClusterDataForRow(o2::tpc::TrackTPC& track, const s
     }
   }
 
-  // get the x position of the track
-  const float xPosition = Mapper::instance().getPadCentre(PadPos(rowIndex, 0)).X();
+  // get the x position of the track: the corrected cluster x (charge-weighted for several clusters in the row
+  float xPosition = Mapper::instance().getPadCentre(PadPos(rowIndex, 0)).X();
+  if (mPropagateToClusterX) {
+    float sumX = 0.f, sumQ = 0.f;
+    for (const auto& cl : fragmentClusters) {
+      float x, y, z;
+      mTPCCorrMap->Transform(sectorIndex, rowIndex, cl.getPad(), cl.getTime(), x, y, z, track.getTime0());
+      sumX += x * cl.getQtot();
+      sumQ += cl.getQtot();
+    }
+    if (sumQ > 0.f) {
+      xPosition = sumX / sumQ;
+    }
+  }
   bool check = true;
-  if (mRefit || mPropagateTrack) {
-    // mRefit: the track was refit once in gatherRowClusterData() and is only propagated from row to row here, if that refit failed, the propagation starts from the track's original state
-    // mPropagateTrack: propagate this track to the plane X=xk (cm) in the field "b" (kG)
+  if (mUseRefit || mPropagateTrack || !mPropagateParams) {
+    // mUseRefit: the track was refit once in gatherRowClusterData() and is only propagated from row to row here, if that refit failed, the propagation starts from the track's original state
+    // otherwise: propagate this track to the plane X=xk (cm) in the field "b" (kG)
     check = propagateTrackToX(track, xPosition, sectorIndex);
-  } else if (mPropagateParams) {
+  } else {
     // propagate the params of the track instead of full propagation; same rollback rationale as mPropagateTrack above
     const o2::track::TrackParCov trackBackup = track;
     check = track.rotateParam(o2::math_utils::detail::sector2Angle<float>(sectorIndex));
@@ -450,7 +552,7 @@ void CalculatedEdx::gatherRowClusterDataForRow(o2::tpc::TrackTPC& track, const s
   }
 
   row.propagationFailed = (!check || std::isnan(track.getParam(1)));
-  row.refitFellBack = mRefit && refitFailed && !row.propagationFailed;
+  row.refitFellBack = mUseRefit && refitFailed && !row.propagationFailed;
   ++mNRowsProcessed;
   if (row.propagationFailed) {
     ++mNPropagationFailed;
@@ -473,11 +575,24 @@ void CalculatedEdx::gatherRowClusterDataForRow(o2::tpc::TrackTPC& track, const s
     // bracket the gap by its lower/upper real row, independent of the rowOrder direction
     const int rowLo = std::min<int>(rowIndex, rowIndexOld);
     const int rowHi = std::max<int>(rowIndex, rowIndexOld);
-    const float padLo = (rowLo == static_cast<int>(rowIndexOld)) ? prevRow.fragments[0].cl.getPad() : row.fragments[0].cl.getPad();
-    const float padHi = (rowHi == static_cast<int>(rowIndexOld)) ? prevRow.fragments[0].cl.getPad() : row.fragments[0].cl.getPad();
-    const float yLo = gpuGeom.LinearPad2Y(sectorIndex, rowLo, padLo);
-    const float yHi = gpuGeom.LinearPad2Y(sectorIndex, rowHi, padHi);
-    for (int k = 1; k <= row.missingClusters; ++k) {
+    // count every missing row in its own stack
+    for (int missingRow = rowLo + 1; missingRow < rowHi; ++missingRow) {
+      ++row.missingClustersStack[static_cast<int>(CRU(Sector(sectorIndex), Mapper::REGION[missingRow]).gemStack())];
+    }
+    // rotate the previous cluster into this row's sector frame
+    const float yPrevOwn = gpuGeom.LinearPad2Y(sectorIndexOld, rowIndexOld, prevRow.fragments[0].cl.getPad());
+    float yPrev = yPrevOwn;
+    if (sectorIndexOld != sectorIndex) {
+      if ((sectorIndexOld < Sector::MAXSECTOR / 2) != (sectorIndex < Sector::MAXSECTOR / 2)) {
+        row.missingClusterGapDeadOrEdge = true;
+      }
+      const float dAlpha = o2::math_utils::detail::sector2Angle<float>(sectorIndexOld) - o2::math_utils::detail::sector2Angle<float>(sectorIndex);
+      yPrev = gpuGeom.Row2X(rowIndexOld) * std::sin(dAlpha) + yPrevOwn * std::cos(dAlpha);
+    }
+    const float yCur = gpuGeom.LinearPad2Y(sectorIndex, rowIndex, row.fragments[0].cl.getPad());
+    const float yLo = (rowLo == static_cast<int>(rowIndexOld)) ? yPrev : yCur;
+    const float yHi = (rowHi == static_cast<int>(rowIndexOld)) ? yPrev : yCur;
+    for (int k = 1; k <= row.missingClusters && !row.missingClusterGapDeadOrEdge; ++k) {
       const unsigned char missingRow = static_cast<unsigned char>(rowLo + k);
       const float frac = static_cast<float>(k) / (row.missingClusters + 1);
       const float missingPad = gpuGeom.LinearY2Pad(sectorIndex, missingRow, yLo + (yHi - yLo) * frac);
@@ -500,8 +615,12 @@ void CalculatedEdx::gatherRowClusterDataForRow(o2::tpc::TrackTPC& track, const s
 void CalculatedEdx::gatherRowClusterData(o2::tpc::TrackTPC& track, const std::vector<o2::tpc::ClusterNative>& clusters, const ClInfoVec& clusterInfos, std::vector<RowClusterData>& rowData, AverageOccupancy& averageOcc)
 {
   rowData.clear();
+  averageOcc = AverageOccupancy{};
+  if (mDebug) {
+    ++mDebugTrackIndex;
+  }
 
-  const bool refitFailed = refitTrack(track);
+  const bool refitFailed = refitTrack(track, clusters, clusterInfos);
 
   // handle same (sector, row) clusters
   std::vector<std::pair<unsigned char, unsigned char>> rowOrder;
@@ -588,7 +707,6 @@ void CalculatedEdx::calculatedEdxFromRowData(const std::vector<RowClusterData>& 
   if (mDebug) {
     setStreamer(settings.debugRootFile.c_str());
     debugStreamer = mStreamers.at(settings.debugRootFile).get();
-    ++mDebugTrackIndex;
     occupancyVector.reserve(rowData.size());
   }
 
@@ -619,39 +737,13 @@ void CalculatedEdx::calculatedEdxFromRowData(const std::vector<RowClusterData>& 
 
     // find missing clusters
     const int missingClusters = row.missingClusters;
-    if ((missingClusters > 0) && (missingClusters <= mMaxMissingCl) && !row.missingClusterGapDeadOrEdge && (static_cast<int>(iRowData) >= edgeRowCut)) {
-      if ((settings.clusterMask & ClusterFlags::ExcludeSectorBoundaries) == ClusterFlags::ExcludeSectorBoundaries) {
-        if (row.sameSectorAsPrevRow) {
-          if (row.stack == GEMstack::IROCgem) {
-            nClsSubThreshROC[0] += missingClusters;
-            nClsROC[0] += missingClusters;
-          } else if (row.stack == GEMstack::OROC1gem) {
-            nClsSubThreshROC[1] += missingClusters;
-            nClsROC[1] += missingClusters;
-          } else if (row.stack == GEMstack::OROC2gem) {
-            nClsSubThreshROC[2] += missingClusters;
-            nClsROC[2] += missingClusters;
-          } else if (row.stack == GEMstack::OROC3gem) {
-            nClsSubThreshROC[3] += missingClusters;
-            nClsROC[3] += missingClusters;
-          }
-        }
-      } else {
-        if (row.stack == GEMstack::IROCgem) {
-          nClsSubThreshROC[0] += missingClusters;
-          nClsROC[0] += missingClusters;
-        } else if (row.stack == GEMstack::OROC1gem) {
-          nClsSubThreshROC[1] += missingClusters;
-          nClsROC[1] += missingClusters;
-        } else if (row.stack == GEMstack::OROC2gem) {
-          nClsSubThreshROC[2] += missingClusters;
-          nClsROC[2] += missingClusters;
-        } else if (row.stack == GEMstack::OROC3gem) {
-          nClsSubThreshROC[3] += missingClusters;
-          nClsROC[3] += missingClusters;
-        }
+    const bool excludeSectorBoundary = ((settings.clusterMask & ClusterFlags::ExcludeSectorBoundaries) == ClusterFlags::ExcludeSectorBoundaries) && !row.sameSectorAsPrevRow;
+    if ((missingClusters > 0) && (missingClusters <= mMaxMissingCl) && !row.missingClusterGapDeadOrEdge && (static_cast<int>(iRowData) >= edgeRowCut) && !excludeSectorBoundary) {
+      for (int roc = 0; roc < 4; roc++) {
+        nClsSubThreshROC[roc] += row.missingClustersStack[roc];
+        nClsROC[roc] += row.missingClustersStack[roc];
       }
-    };
+    }
 
     for (const auto& sample : samples) {
       if (mDebug) {
@@ -697,9 +789,6 @@ void CalculatedEdx::calculatedEdxFromRowData(const std::vector<RowClusterData>& 
       }
       if ((settings.stackBoundaryMethod == 1 || settings.stackBoundaryMethod == 2) && isInStackBoundaries(row.stackNumber, row.rowIndex, settings.stackBoundaryMethod)) {
         excludeCl += 0b010000000; // 128 for stack boundary cluster
-      }
-      if (sample->isDeadRegion) {
-        excludeCl += 0b0100000000; // 256 for dead region
       }
       if (row.propagationFailed) {
         excludeCl += 0b01000000000; // 512 for failure of track propagation or refit
@@ -798,6 +887,7 @@ void CalculatedEdx::calculatedEdxFromRowData(const std::vector<RowClusterData>& 
                          << "topologyCorrTot=" << effectiveLengthTot
                          << "topologyCorrMax=" << effectiveLengthMax
                          << "gain=" << gain
+                         << "fullGain=" << sample->gain
                          << "gainResidual=" << gainResidual
                          << "residualCorrTot=" << corrTot
                          << "residualCorrMax=" << corrMax
@@ -812,7 +902,7 @@ void CalculatedEdx::calculatedEdxFromRowData(const std::vector<RowClusterData>& 
       }
 
       // set the region's min charge, only from clusters actually included in the dEdx calculation,
-      // so excluded clusters (dead region, edge, failed propagation, ...) don't bias the virtual charge used for subthreshold filling
+      // so excluded clusters (edge, failed propagation, ...) don't bias the virtual charge used for subthreshold filling
       if (chargeTot < minChargeTotROC[row.stackNumber]) {
         minChargeTotROC[row.stackNumber] = chargeTot;
       };
@@ -1107,7 +1197,7 @@ bool CalculatedEdx::isInStackBoundaries(int stackNumber, unsigned char rowIndex,
   return false;
 }
 
-void CalculatedEdx::loadCalibsFromCCDB(long runNumberOrTimeStamp, const bool isMC, const bool loadSCCorrMap, const bool loadSCCorrMapForRefit, const bool loadVDriftForRefit)
+void CalculatedEdx::loadCalibsFromCCDB(long runNumberOrTimeStamp, const bool isMC, const bool loadSCCorrMap, const bool useSCCorrMap, const bool useVDrift, const float corrMapLumiScale)
 {
   // setup CCDB manager
   auto& cm = o2::ccdb::BasicCCDBManager::instance();
@@ -1158,37 +1248,66 @@ void CalculatedEdx::loadCalibsFromCCDB(long runNumberOrTimeStamp, const bool isM
   const o2::base::MatLayerCylSet* matLut = o2::base::MatLayerCylSet::rectifyPtrFromFile(cm.get<o2::base::MatLayerCylSet>("GLO/Param/MatLUT"));
   propagator->setMatLUT(matLut);
 
-  // load the space-charge correction maps
-  if (loadSCCorrMap || loadSCCorrMapForRefit) {
-    auto avgMap = isMC ? cm.getForTimeStamp<o2::gpu::TPCFastTransform>(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalCorrMapMC), tRun) : cm.getForTimeStamp<o2::gpu::TPCFastTransform>(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalCorrMap), tRun);
-    avgMap->rectifyAfterReadingFromFile();
+  // the space-charge and drift corrections are optional: a missing object leaves the default (no space-charge correction, nominal drift velocity and t0)
+  const bool prevFatalWhenNull = cm.getFatalWhenNull();
+  cm.setFatalWhenNull(false);
 
-    if (loadSCCorrMap) {
-      auto derMap = isMC ? cm.getForTimeStamp<o2::gpu::TPCFastTransform>(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalCorrDerivMapMC), tRun) : cm.getForTimeStamp<o2::gpu::TPCFastTransform>(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalCorrDerivMap), tRun);
+  // load the space-charge correction maps
+  const auto avgMapType = isMC ? o2::tpc::CDBType::CalCorrMapMC : o2::tpc::CDBType::CalCorrMap;
+  o2::gpu::TPCFastTransform* avgMap = nullptr;
+  if (loadSCCorrMap || useSCCorrMap) {
+    avgMap = cm.getForTimeStamp<o2::gpu::TPCFastTransform>(o2::tpc::CDBTypeMap.at(avgMapType), tRun);
+    if (avgMap) {
+      avgMap->rectifyAfterReadingFromFile();
+    } else {
+      LOGP(warning, "no {} at {}: no space-charge correction", o2::tpc::CDBTypeMap.at(avgMapType), tRun);
+    }
+  }
+
+  if (loadSCCorrMap && avgMap) {
+    const auto derMapType = isMC ? o2::tpc::CDBType::CalCorrDerivMapMC : o2::tpc::CDBType::CalCorrDerivMap;
+    if (auto* derMap = cm.getForTimeStamp<o2::gpu::TPCFastTransform>(o2::tpc::CDBTypeMap.at(derMapType), tRun)) {
       derMap->rectifyAfterReadingFromFile();
       mSCdEdxCorrection.setCorrectionMaps(avgMap, derMap);
-    }
-
-    if (loadSCCorrMapForRefit) {
-      // feed the space-charge-corrected map into the refit transform
-      setTPCCorrMap(*avgMap);
-      LOGP(info, "refit transform: using CCDB space-charge correction map {}",
-           o2::tpc::CDBTypeMap.at(isMC ? o2::tpc::CDBType::CalCorrMapMC : o2::tpc::CDBType::CalCorrMap));
+    } else {
+      LOGP(warning, "no {} at {}: the dE/dx space-charge correction is not available", o2::tpc::CDBTypeMap.at(derMapType), tRun);
     }
   }
 
-  // apply the calibrated drift velocity + time offset to the refit transform
-  if (loadVDriftForRefit) {
-    const bool prevFatalWhenNull = cm.getFatalWhenNull();
-    cm.setFatalWhenNull(false);
+  // cluster transform used by the refit and for the cluster x: the space-charge map, for data scaled to the luminosity with the reference map as in the reconstruction
+  if (useSCCorrMap && avgMap) {
+    const o2::gpu::TPCFastTransform* refMap = nullptr;
+    float lumiScale = corrMapLumiScale;
+    if (!isMC) {
+      if (auto* ref = cm.getForTimeStamp<o2::gpu::TPCFastTransform>(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalCorrMapRef), tRun)) {
+        ref->rectifyAfterReadingFromFile();
+        refMap = ref;
+        if (lumiScale < 0) {
+          lumiScale = getTPCScalerLumiScale(tRun, avgMap->getIDC());
+        }
+      } else {
+        LOGP(warning, "no {} at {}: the space-charge map is not scaled to the luminosity", o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalCorrMapRef), tRun);
+      }
+    }
+    setTPCCorrMap(*avgMap, refMap, lumiScale);
+    LOGP(info, "cluster transform: using CCDB space-charge correction map {}, lumi scale {}", o2::tpc::CDBTypeMap.at(avgMapType), (refMap && lumiScale >= 0) ? fmt::format("{}", lumiScale) : "none");
+  } else {
+    setTPCCorrMap(*TPCFastTransformHelperO2::instance()->create(0));
+    LOGP(info, "cluster transform: no space-charge correction");
+  }
+
+  // drift velocity and time offset of the cluster transform
+  if (useVDrift) {
     if (auto* vd = cm.getForTimeStamp<o2::tpc::VDriftCorrFact>(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalVDriftTgl), tRun)) {
       setTPCVDrift(*vd);
-      LOGP(info, "refit transform vDrift calib: corrFact={:.5f} refVDrift={:.5f} timeOffset={:.4f}us", vd->corrFact, vd->refVDrift, vd->getTimeOffset());
+      LOGP(info, "cluster transform vDrift calib: corrFact={:.5f} refVDrift={:.5f} timeOffset={:.4f}us", vd->corrFact, vd->refVDrift, vd->getTimeOffset());
     } else {
-      LOGP(warning, "no TPC/Calib/VDriftTgl at ts {} -- refit transform stays at nominal vDrift/t0", tRun);
+      LOGP(warning, "no {} at {}: cluster transform at nominal vDrift/t0", o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalVDriftTgl), tRun);
     }
-    cm.setFatalWhenNull(prevFatalWhenNull);
+  } else {
+    LOGP(info, "cluster transform: nominal vDrift/t0");
   }
+  cm.setFatalWhenNull(prevFatalWhenNull);
 
   // set the dead channel map
   o2::tpc::DeadChannelMapCreator deadCMCreator;
@@ -1198,7 +1317,41 @@ void CalculatedEdx::loadCalibsFromCCDB(long runNumberOrTimeStamp, const bool isM
   mCalibCont.setDeadChannelMap(deadMap);
 }
 
-void CalculatedEdx::loadCalibsFromLocalCCDBFolder(const char* localCCDBFolder)
+float CalculatedEdx::getTPCScalerLumiScale(long timeStamp, float meanIDC) const
+{
+  // mean scaler of both sides (weighted over the ion drift time) over the map's mean IDC
+  auto& cm = o2::ccdb::BasicCCDBManager::instance();
+  const bool prevFatalWhenNull = cm.getFatalWhenNull();
+  cm.setFatalWhenNull(false);
+  auto* scalerTree = cm.getForTimeStamp<TTree>(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalScaler), timeStamp);
+  auto* weights = cm.getForTimeStamp<o2::tpc::TPCScalerWeights>(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalScalerWeights), timeStamp);
+  cm.setFatalWhenNull(prevFatalWhenNull);
+  if (!scalerTree || meanIDC <= 0) {
+    LOGP(warning, "no TPC scaler or mean IDC of the map ({}) at {}, the space-charge map is not scaled", meanIDC, timeStamp);
+    return -1.f;
+  }
+  o2::tpc::TPCScaler scaler;
+  scaler.setFromTree(*scalerTree);
+  if (weights && weights->isValid()) {
+    scaler.setScalerWeights(*weights);
+    scaler.useWeights(true);
+    const float integrationTimeMS = std::min(std::abs(weights->mFirstTimeStampMS), 500.f);
+    if (integrationTimeMS > 0) {
+      scaler.setIonDriftTimeMS(integrationTimeMS);
+    }
+    // the weights are only defined for a full window before the timestamp, otherwise use the unweighted mean of the closest window
+    const double endMS = std::min(scaler.getEndTimeStampMS(o2::tpc::Side::A), scaler.getEndTimeStampMS(o2::tpc::Side::C));
+    if (static_cast<double>(timeStamp) - scaler.getIonDriftTimeMS() < scaler.getStartTimeStampMS() || timeStamp > endMS) {
+      LOGP(warning, "time stamp {} not covered by the TPC scaler window [{}, {}] ms, using the unweighted mean scaler", timeStamp, scaler.getStartTimeStampMS() + scaler.getIonDriftTimeMS(), endMS);
+      scaler.useWeights(false);
+    }
+  }
+  const float instIDC = (scaler.getMeanScaler(timeStamp, o2::tpc::Side::A) + scaler.getMeanScaler(timeStamp, o2::tpc::Side::C)) / 2;
+  LOGP(info, "TPC scaler at {}: {}, map mean IDC: {}", timeStamp, instIDC, meanIDC);
+  return instIDC > 0 ? instIDC / meanIDC : -1.f;
+}
+
+void CalculatedEdx::loadCalibsFromLocalCCDBFolder(const char* localCCDBFolder, const bool useSCCorrMap, const bool useVDrift)
 {
   setTrackTopologyCorrectionFromFile(localCCDBFolder, "/TPC/Calib/TopologyGainPiecewise/snapshot.root", "ccdb_object");
   setGainMapFromFile(localCCDBFolder, "/TPC/Calib/PadGainFull/snapshot.root", "ccdb_object");
@@ -1207,19 +1360,41 @@ void CalculatedEdx::loadCalibsFromLocalCCDBFolder(const char* localCCDBFolder)
   setZeroSuppressionThresholdFromFile(localCCDBFolder, "/TPC/Config/FEEPad/snapshot.root", "ccdb_object");
   setMagneticFieldFromFile(localCCDBFolder, "/GLO/Config/GRPMagField/snapshot.root", "ccdb_object");
   setPropagatorFromFile(localCCDBFolder, "/GLO/Param/MatLUT/snapshot.root", "ccdb_object");
-  setVDriftFromFile(localCCDBFolder, "/TPC/Calib/VDriftTgl/snapshot.root", "ccdb_object"); // optional: skipped if absent
+  // optional, a missing file leaves the default (no space-charge correction, nominal vDrift/t0)
+  if (useSCCorrMap) {
+    setTPCCorrMapFromFile(localCCDBFolder, "/TPC/Calib/CorrectionMapV2/snapshot.root", "ccdb_object");
+  } else {
+    setTPCCorrMap(*TPCFastTransformHelperO2::instance()->create(0));
+  }
+  if (useVDrift) {
+    setVDriftFromFile(localCCDBFolder, "/TPC/Calib/VDriftTgl/snapshot.root", "ccdb_object");
+  }
+}
+
+void CalculatedEdx::setTPCCorrMapFromFile(const char* folder, const char* file, const char* object)
+{
+  std::unique_ptr<TFile> corrMapFile(TFile::Open(fmt::format("{}{}", folder, file).data()));
+  auto* corrMap = (corrMapFile && !corrMapFile->IsZombie()) ? (o2::gpu::TPCFastTransform*)corrMapFile->Get(object) : nullptr;
+  if (!corrMap) {
+    LOGP(warning, "no {} in {}{}: no space-charge correction", object, folder, file);
+    setTPCCorrMap(*TPCFastTransformHelperO2::instance()->create(0));
+    return;
+  }
+  corrMap->rectifyAfterReadingFromFile();
+  setTPCCorrMap(*corrMap);
+  LOGP(info, "cluster transform: using space-charge correction map from {}", corrMapFile->GetName());
 }
 
 void CalculatedEdx::setVDriftFromFile(const char* folder, const char* file, const char* object)
 {
   std::unique_ptr<TFile> vdFile(TFile::Open(fmt::format("{}{}", folder, file).data()));
   if (!vdFile || vdFile->IsZombie()) {
-    LOGP(warning, "no {}{} -- refit transform stays at nominal vDrift/t0", folder, file);
+    LOGP(warning, "no {}{}: cluster transform at nominal vDrift/t0", folder, file);
     return;
   }
   if (auto* vd = (o2::tpc::VDriftCorrFact*)vdFile->Get(object)) {
     setTPCVDrift(*vd);
-    LOGP(info, "refit transform vDrift calib from {}: corrFact={:.5f} refVDrift={:.5f} timeOffset={:.4f}us", vdFile->GetName(), vd->corrFact, vd->refVDrift, vd->getTimeOffset());
+    LOGP(info, "cluster transform vDrift calib from {}: corrFact={:.5f} refVDrift={:.5f} timeOffset={:.4f}us", vdFile->GetName(), vd->corrFact, vd->refVDrift, vd->getTimeOffset());
   }
 }
 

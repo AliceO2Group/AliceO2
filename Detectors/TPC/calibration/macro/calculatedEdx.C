@@ -79,8 +79,8 @@ std::pair<std::unique_ptr<TFile>, std::unique_ptr<TTree>> openTreeOrNull(const s
 std::vector<dEdxSettings> defaultSettingsList()
 {
   dEdxSettings s;
-  s.low = 0.015f;
-  s.high = 0.6f;
+  s.low = 2.f / 128.f;
+  s.high = 77.f / 128.f;
   s.correctionMask = CorrectionFlags::TopologyPol | CorrectionFlags::dEdxResidual;
   s.clusterMask = ClusterFlags::ExcludeEdgeCl;
   s.subthresholdMethod = 0;
@@ -108,8 +108,8 @@ std::vector<dEdxSettings> defaultSettingsList()
 /// \param itsTracksFileName name of the file with the ITS tracks; only used if isMatchedToITS is true
 /// \param matchFileName name of the file with the TPC-ITS match information; only used if isMatchedToITS is true
 /// \param maxEvents if >= 0, process at most this many events, instead of all available ones, default -1 processes all events
-/// \param applySCToRefitTransform put the space-charge-corrected cluster map into the refit transform; only used if useRefit is true
-/// \param applyVDriftToRefitTransform apply the calibrated drift velocity/t0 to the refit transform; only used if useRefit is true
+/// \param applySCCorrMap apply the space-charge correction map in the cluster transform (refit and cluster x); off, or without the map, no space-charge correction
+/// \param applyVDrift apply the calibrated drift velocity/t0 to the cluster transform; off, or without the object, nominal vDrift/t0
 void calculatedEdx(const std::string dir = ".",
                    const long runNumberOrTimeStamp = 0,
                    const std::string outFile = "dEdxCalc.root",
@@ -127,8 +127,8 @@ void calculatedEdx(const std::string dir = ".",
                    const std::string itsTracksFileName = "o2trac_its.root",
                    const std::string matchFileName = "o2match_itstpc.root",
                    const long long maxEvents = -1,
-                   const bool applySCToRefitTransform = false,
-                   const bool applyVDriftToRefitTransform = true)
+                   const bool applySCCorrMap = true,
+                   const bool applyVDrift = true)
 {
   if (settingsList.empty()) {
     LOGP(error, "settingsList must not be empty");
@@ -280,9 +280,9 @@ void calculatedEdx(const std::string dir = ".",
       for (const auto& s : settingsList) {
         loadSCCorrMap |= (s.correctionMask & CorrectionFlags::dEdxSC) == CorrectionFlags::dEdxSC;
       }
-      calcdEdx.loadCalibsFromCCDB(timeStamp, isMC, loadSCCorrMap, applySCToRefitTransform && useRefit, applyVDriftToRefitTransform && useRefit);
+      calcdEdx.loadCalibsFromCCDB(timeStamp, isMC, loadSCCorrMap, applySCCorrMap, applyVDrift);
     } else {
-      calcdEdx.loadCalibsFromLocalCCDBFolder(localCCDBFolder.data());
+      calcdEdx.loadCalibsFromLocalCCDBFolder(localCCDBFolder.data(), applySCCorrMap, applyVDrift);
     }
     if (useRefit) {
       calcdEdx.setRefit();
