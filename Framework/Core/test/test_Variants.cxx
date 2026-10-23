@@ -387,7 +387,11 @@ TEST_CASE("LabeledArrayTest")
       REQUIRE(las.get(i, xl[j].c_str()) == las.get(i, j));
       REQUIRE(las.get(yl[i].c_str(), j) == las.get(i, j));
     }
+    REQUIRE(laf.getRow(yl[i].c_str()) == laf.getRow(i));
+    REQUIRE(las.getRow(yl[i].c_str()) == las.getRow(i));
   }
+  REQUIRE(laf.getRow("r4") == nullptr);
+  REQUIRE(las.getRow("r4") == nullptr);
 }
 
 TEST_CASE("VariantTreeConversionsTest")
@@ -573,4 +577,48 @@ TEST_CASE("VariantFromVectorTest")
   for (auto i = 0U; i < vd.size(); ++i) {
     REQUIRE(read.get<double*>()[i] == vd[i]);
   }
+}
+
+namespace
+{
+template <VariantType V, typename T>
+void checkLabeledArrayStringRoundTrip(LabeledArray<T> const& la)
+{
+  Variant v(la);
+  auto str = v.asString();
+  REQUIRE(str.find("undefined") == std::string::npos);
+  std::stringstream is(str);
+  auto vr = VariantJSONHelpers::read<V>(is);
+  REQUIRE(vr.type() == V);
+  auto lar = vr.template get<LabeledArray<T>>();
+  REQUIRE(lar.rows() == la.rows());
+  REQUIRE(lar.cols() == la.cols());
+  REQUIRE(lar.getLabelsRows() == la.getLabelsRows());
+  REQUIRE(lar.getLabelsCols() == la.getLabelsCols());
+  for (auto i = 0U; i < la.rows(); ++i) {
+    for (auto j = 0U; j < la.cols(); ++j) {
+      REQUIRE(lar.get(i, j) == la.get(i, j));
+    }
+  }
+}
+} // namespace
+
+TEST_CASE("LabeledArrayAsStringTest")
+{
+  int mi[2][2] = {{1, 2}, {3, 4}};
+  float mf[2][3] = {{0.5, 0.25, 0.125}, {1, 2, 3}};
+  double md[1][2] = {{1e-3, 1e10}};
+  std::string ms[2][1] = {{"a"}, {"b c"}};
+
+  checkLabeledArrayStringRoundTrip<VariantType::LabeledArrayInt>(LabeledArray<int>{&mi[0][0], 2, 2, {"r1", "r2"}, {"c1", "c2"}});
+  checkLabeledArrayStringRoundTrip<VariantType::LabeledArrayFloat>(LabeledArray<float>{&mf[0][0], 2, 3, {"r1", "r2"}, {"c1", "c2", "c3"}});
+  checkLabeledArrayStringRoundTrip<VariantType::LabeledArrayDouble>(LabeledArray<double>{&md[0][0], 1, 2, {"r1"}, {"c1", "c2"}});
+  checkLabeledArrayStringRoundTrip<VariantType::LabeledArrayString>(LabeledArray<std::string>{&ms[0][0], 2, 1, {"r1", "r2"}, {"c1"}});
+  // without labels
+  checkLabeledArrayStringRoundTrip<VariantType::LabeledArrayInt>(LabeledArray<int>{&mi[0][0], 2, 2});
+  // labels which need escaping in JSON
+  checkLabeledArrayStringRoundTrip<VariantType::LabeledArrayFloat>(LabeledArray<float>{&mf[0][0], 2, 3, {"row \"one\"", "row\\two"}, {"c 1", "c,2", "c:3"}});
+
+  Variant v(LabeledArray<int>{&mi[0][0], 2, 2, {"r1", "r2"}, {"c1", "c2"}});
+  REQUIRE(v.asString() == R"({"labels_rows":["r1","r2"],"labels_cols":["c1","c2"],"values":[[1,2],[3,4]]})");
 }
