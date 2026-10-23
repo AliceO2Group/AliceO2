@@ -60,10 +60,10 @@ class Layer
   int mModulesPerStave{0};                // Number of modules along a stave
   double mTiltAngle{0.0};                 // Tilt angle in degrees to be applied as a rotation around the local center of the stave
 
-  static const int sChipsPerRow;  // number of chips per row in module
-  static const int sChipsPerCol;  // number of chips per col in module
-  static const double sChipGap;   // gap between chips in module
-  static const double sModuleGap; // gap between modules in stave
+  static const int sChipsPerRow;      // number of chips per row in module
+  static const int sChipsPerCol;      // number of chips per col in module
+  static const double sChipGap;       // gap between chips in module
+  static const double sModuleGap;     // gap between modules in stave
   static const double sChipThickness; // full thickness of the chip
 };
 
