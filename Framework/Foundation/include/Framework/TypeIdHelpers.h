@@ -81,6 +81,23 @@ struct TypeIdHelpers {
   }
 };
 
+template <typename T>
+consteval static std::string_view namespace_prefix()
+{
+  constexpr auto name = o2::framework::type_name<T>();
+  const auto pos = name.rfind(std::string_view{":"});
+  return name.substr(0, pos + 1);
+}
+
+template <typename T>
+consteval static std::string_view with_namespace_prefix()
+{
+  constexpr auto name = o2::framework::type_name<T>();
+  const auto pos1 = name.rfind(std::string_view{"::"});
+  const auto pos2 = name.substr(0, pos1).rfind(std::string_view{"::"});
+  return name.substr(pos2 + 2, name.size());
+}
+
 } // namespace o2::framework
 
 #endif // O2_FRAMEWORK_TYPEIDHELPERS_H_
