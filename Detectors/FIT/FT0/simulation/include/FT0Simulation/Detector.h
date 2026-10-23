@@ -149,8 +149,8 @@ class Detector : public o2::base::DetImpl<Detector>
   std::vector<Double_t> mRindexFrontWindow;
 
   // Define the aluminium frame for the detector
-  TGeoVolume* constructFrameAGeometry(); // A-side
-  TGeoVolume* constructFrameCGeometry(); // C-side
+  TGeoVolume* constructFrameAGeometry(); //A-side
+  TGeoVolume* constructFrameCGeometry(); //C-side
   std::string cPlateShapeString();
 
   // BEGIN: Support structure constants

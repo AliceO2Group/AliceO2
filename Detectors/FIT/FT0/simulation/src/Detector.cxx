@@ -134,7 +134,7 @@ void Detector::ConstructGeometry()
   TGeoCombiTrans* comCable[nCellsC];
   TString nameCom;
 
-  // Additional elements for the C-side frame
+  //Additional elements for the C-side frame
   TGeoCombiTrans* plateCom[nCellsC];
   TGeoMedium* Al = gGeoManager->GetMedium("FT0_Aluminium$");
   TGeoCompositeShape* plateCompositeShape = new TGeoCompositeShape("plateCompositeShape", cPlateShapeString().c_str());
@@ -161,26 +161,26 @@ void Detector::ConstructGeometry()
     TGeoVolume* cables = SetCablesSize(itr);
     LOG(debug) << " C " << mPosModuleCx[ic] << " " << mPosModuleCy[ic];
     //    cables->Print();
-    // Additional shift (+0.1) introduced to cable planes so they don't overlap the C-side frame
+    //Additional shift (+0.1) introduced to cable planes so they don't overlap the C-side frame
     comCable[ic] = new TGeoCombiTrans(mPosModuleCx[ic], mPosModuleCy[ic], mPosModuleCz[ic] + mInStart[2] + 0.2 + 0.1, rot[ic]);
     TGeoHMatrix hmCable = *comCable[ic];
     TGeoHMatrix* phCable = new TGeoHMatrix(hmCable);
     stlinC->AddNode(cables, itr, comCable[ic]);
 
-    // C-side frame elements - module plates
+    //C-side frame elements - module plates
     plateCom[ic] = new TGeoCombiTrans(mPosModuleCx[ic], mPosModuleCy[ic], (mPosModuleCz[ic] - 3), rot[ic]);
     TGeoHMatrix hmPlate = *plateCom[ic];
     TGeoHMatrix* phPlate = new TGeoHMatrix(hmPlate);
     stlinC->AddNode(plateVol, itr, phPlate);
   }
-  // Add C-side frame
+  //Add C-side frame
   stlinC->AddNode(constructFrameCGeometry(), nCellsA + nCellsC + 1);
 
   TGeoVolume* alice = gGeoManager->GetVolume("barrel");
-  // Add A-side detector
-  alice->AddNode(stlinA, 1, new TGeoTranslation(0, 30., zdetA + 0.63)); // offset to avoid overlap with FV0
+  //Add A-side detector
+  alice->AddNode(stlinA, 1, new TGeoTranslation(0, 30., zdetA + 0.63)); //offset to avoid overlap with FV0
 
-  // Add C-side detector
+  //Add C-side detector
   TGeoRotation* rotC = new TGeoRotation("rotC", 90., 0., 90., 90., 180., 0.);
   alice->AddNode(stlinC, 1, new TGeoCombiTrans(0., 30., -zdetC, rotC));
 
@@ -214,7 +214,7 @@ void Detector::SetOneMCP(TGeoVolume* ins)
   const double kWrapClearance = 1.e-4; // cm
   Float_t ptopref[3] = {static_cast<Float_t>(ptop[0] + 2 * prfv[0] + kWrapClearance),
                         static_cast<Float_t>(ptop[1] + 2 * prfh[1] + kWrapClearance), 1.};
-  Float_t pmcp[3] = {2.949, 2.949, 0.66}; // MCP
+  Float_t pmcp[3] = {2.949, 2.949, 0.66};    // MCP
   Float_t pmcpinner[3] = {2.749, 2.749, 0.1};
   Float_t pmcpbase[3] = {2.949, 2.949, 0.675};
   Float_t pmcpside[3] = {0.15, 2.949, 0.65};
@@ -431,18 +431,18 @@ void Detector::addAlignableVolumes() const
   }
 }
 
-// Construction of FT0-A support structure
-// The frame is constructed by first building a block of Aluminum as a mother volume from which details can
-// be subtracted. First, 6 boxe shapes are subtracted from around the edges and 2 from the center of the frame
-// to create the fin shapes at the edges of the detector and the cross shape at the center of the detector.
-// These boxe shapes are then subtracted again but from positions reflected in both x and y which is
-// reflects the symmetry of the frame. Then a loop is used to subtract out the PMT sockets which are also
-// box shapes from the positions given in the Geometry.cxx file. In the loop, after a socket is subtracted,
-// either an inner or an outer plate group is placed inside of it. Inner and outer plate groups are
-// both composed of a cover plate and a cable plate with fiber heads subtracted from the cable plate.
-// The orientation of these holes differs between the inner and outer plates making them distinct.
-// Contributors: Joe Crowley (2019-20), Jason Pruitt (2020-21), Sam Christensen (2021-22),
-// and Jennifer Klay (2019-22) from Cal Poly SLO.
+//Construction of FT0-A support structure
+//The frame is constructed by first building a block of Aluminum as a mother volume from which details can
+//be subtracted. First, 6 boxe shapes are subtracted from around the edges and 2 from the center of the frame
+//to create the fin shapes at the edges of the detector and the cross shape at the center of the detector.
+//These boxe shapes are then subtracted again but from positions reflected in both x and y which is
+//reflects the symmetry of the frame. Then a loop is used to subtract out the PMT sockets which are also
+//box shapes from the positions given in the Geometry.cxx file. In the loop, after a socket is subtracted,
+//either an inner or an outer plate group is placed inside of it. Inner and outer plate groups are
+//both composed of a cover plate and a cable plate with fiber heads subtracted from the cable plate.
+//The orientation of these holes differs between the inner and outer plates making them distinct.
+//Contributors: Joe Crowley (2019-20), Jason Pruitt (2020-21), Sam Christensen (2021-22),
+//and Jennifer Klay (2019-22) from Cal Poly SLO.
 TGeoVolume* Detector::constructFrameAGeometry()
 {
   // define the media
@@ -452,20 +452,20 @@ TGeoVolume* Detector::constructFrameAGeometry()
   // make a volume assembly for the frame
   TGeoVolumeAssembly* FT0_Frame = new TGeoVolumeAssembly("FT0_Frame");
 
-  // Define the block of aluminum that forms the frame
-  Double_t blockdX = 37.1;  // slightly larger in x
-  Double_t blockdY = 36.85; // than y
-  Double_t blockdZ = 6.95;  // thickness of frame and back plates
+  //Define the block of aluminum that forms the frame
+  Double_t blockdX = 37.1;  //slightly larger in x
+  Double_t blockdY = 36.85; //than y
+  Double_t blockdZ = 6.95;  //thickness of frame and back plates
   TGeoBBox* block = new TGeoBBox("block", blockdX / 2, blockdY / 2, blockdZ / 2);
 
-  // To form the outer frame shape with fins that bolt it to the FV0, remove
-  // aluminum in six chunks (boxes) from two sides, then reflect these to remove
-  // from the other sides.  As viewed from the back side of the detector, count
-  // clockwise from bottom left for numbering.
-  Double_t box1dX = 1.57;                          // narrower
-  Double_t box1dY = 6.55;                          // than it is tall
-  Double_t box1PosX = -(blockdX / 2 - box1dX / 2); // placement on the frame block
-  Double_t box1PosY = 0;                           // starts at the middle
+  //To form the outer frame shape with fins that bolt it to the FV0, remove
+  //aluminum in six chunks (boxes) from two sides, then reflect these to remove
+  //from the other sides.  As viewed from the back side of the detector, count
+  //clockwise from bottom left for numbering.
+  Double_t box1dX = 1.57;                          //narrower
+  Double_t box1dY = 6.55;                          //than it is tall
+  Double_t box1PosX = -(blockdX / 2 - box1dX / 2); //placement on the frame block
+  Double_t box1PosY = 0;                           //starts at the middle
   TGeoBBox* box1 = new TGeoBBox("box1", box1dX / 2, box1dY / 2, blockdZ / 2);
   TGeoTranslation* box1Tr1 = new TGeoTranslation("box1Tr1", box1PosX, box1PosY, 0);
   box1Tr1->RegisterYourself();
@@ -482,14 +482,14 @@ TGeoVolume* Detector::constructFrameAGeometry()
   TGeoTranslation* box2Tr2 = new TGeoTranslation("box2Tr2", -box2PosX, -box2PosY, 0);
   box2Tr2->RegisterYourself();
 
-  // Box 3 is shallower than the others to preserve the aluminum fin where the
-  // FT0 is bolted to the FV0
+  //Box 3 is shallower than the others to preserve the aluminum fin where the
+  //FT0 is bolted to the FV0
   Double_t box3dX = 12.7;
   Double_t box3dY = 3;
   Double_t box3dZ = 5.45;
   Double_t box3PosX = -(blockdX / 2 - box2dX - box3dZ / 2);
   Double_t box3PosY = blockdY / 2 - box3dY / 2;
-  Double_t box3PosZ = blockdZ / 2 - box3dZ / 2; // subtract from the back, leaving fin on the front
+  Double_t box3PosZ = blockdZ / 2 - box3dZ / 2; //subtract from the back, leaving fin on the front
   TGeoBBox* box3 = new TGeoBBox("box3", box3dX / 2, box3dY / 2, box3dZ / 2);
   TGeoTranslation* box3Tr1 = new TGeoTranslation("box3Tr1", box3PosX, box3PosY, box3PosZ);
   box3Tr1->RegisterYourself();
@@ -516,25 +516,25 @@ TGeoVolume* Detector::constructFrameAGeometry()
   TGeoTranslation* box5Tr2 = new TGeoTranslation("box5Tr2", -box5PosX, -box5PosY, 0);
   box5Tr2->RegisterYourself();
 
-  // Similar to box 3, box 6 is shallower in z to leave aluminum for the fin that
-  // bolts FT0 to FV0
+  //Similar to box 3, box 6 is shallower in z to leave aluminum for the fin that
+  //bolts FT0 to FV0
   Double_t box6dX = 2.9;
   Double_t box6dY = 12.2;
   Double_t box6dZ = 5.45;
   Double_t box6PosX = blockdX / 2 - box6dX / 2;
   Double_t box6PosY = blockdY / 2 - box5dY - box6dY / 2;
-  Double_t box6PosZ = blockdZ / 2 - box6dZ / 2; // subtract from the back, leaving fin at the front
+  Double_t box6PosZ = blockdZ / 2 - box6dZ / 2; //subtract from the back, leaving fin at the front
   TGeoBBox* box6 = new TGeoBBox("box6", box6dX / 2, box6dY / 2, box6dZ / 2);
   TGeoTranslation* box6Tr1 = new TGeoTranslation("box6Tr1", box6PosX, box6PosY, box6PosZ);
   box6Tr1->RegisterYourself();
   TGeoTranslation* box6Tr2 = new TGeoTranslation("box6Tr2", -box6PosX, -box6PosY, box6PosZ);
   box6Tr2->RegisterYourself();
 
-  // The central hole that accommodates the beam pipe is not the same on all four sides
-  // so we define two rectangular boxes - one vertical and one horizontal - and copy/rotate them
-  // to remove the aluminum in a "+" shape at the center
-  //  cbox is a central rectangle
-  Double_t cbox1dX = 7.175; // horizontal center box
+  //The central hole that accommodates the beam pipe is not the same on all four sides
+  //so we define two rectangular boxes - one vertical and one horizontal - and copy/rotate them
+  //to remove the aluminum in a "+" shape at the center
+  // cbox is a central rectangle
+  Double_t cbox1dX = 7.175; //horizontal center box
   Double_t cbox1dY = 5.5;
   Double_t cbox1Xoffset = 14.425;
   Double_t cbox1PosX = -(blockdX / 2 - cbox1Xoffset - cbox1dX / 2);
@@ -545,7 +545,7 @@ TGeoVolume* Detector::constructFrameAGeometry()
   TGeoTranslation* cbox1Tr2 = new TGeoTranslation("cbox1Tr2", -cbox1PosX, -cbox1PosY, 0);
   cbox1Tr2->RegisterYourself();
 
-  Double_t cbox2dX = 5.75; // vertical center box
+  Double_t cbox2dX = 5.75; //vertical center box
 
   Double_t cbox2dY = 6.575;
   Double_t cbox2Yoffset = 14.425;
@@ -557,11 +557,11 @@ TGeoVolume* Detector::constructFrameAGeometry()
   TGeoTranslation* cbox2Tr2 = new TGeoTranslation("cbox2Tr2", -cbox2PosX, -cbox2PosY, 0);
   cbox2Tr2->RegisterYourself();
 
-  // The two L-shaped pieces that form the frame have a small 1mm gap between them,
-  // where they come together.  As viewed from the back, the gaps are on the upper
-  // left and lower right, so that for the center column of modules, the upper two
-  // are shifted slightly to the right (as viewed from the back) and the lower two
-  // are shifted slightly to the left (as viewed from the back)
+  //The two L-shaped pieces that form the frame have a small 1mm gap between them,
+  //where they come together.  As viewed from the back, the gaps are on the upper
+  //left and lower right, so that for the center column of modules, the upper two
+  //are shifted slightly to the right (as viewed from the back) and the lower two
+  //are shifted slightly to the left (as viewed from the back)
   Double_t gapBoxdX = 0.1;
   Double_t gapBoxdY = blockdY / 2;
   Double_t gapPosX = -(sPmtSide / 2 + sEps + gapBoxdX / 2);
@@ -572,8 +572,8 @@ TGeoVolume* Detector::constructFrameAGeometry()
   TGeoTranslation* gapBoxTr2 = new TGeoTranslation("gapBoxTr2", -gapPosX, -gapPosY, 0);
   gapBoxTr2->RegisterYourself();
 
-  // Create a string to define the complete frame object shape
-  // Start from the aluminum block then subtract the boxes
+  //Create a string to define the complete frame object shape
+  //Start from the aluminum block then subtract the boxes
   std::string frameACompositeString = "block ";
   frameACompositeString += "- box1:box1Tr1 - box1:box1Tr2 ";
   frameACompositeString += "- box2:box2Tr1 - box2:box2Tr2 ";
@@ -585,33 +585,33 @@ TGeoVolume* Detector::constructFrameAGeometry()
   frameACompositeString += "- cbox2:cbox2Tr1 - cbox2:cbox2Tr2 ";
   frameACompositeString += "- gapBox:gapBoxTr1 - gapBox:gapBoxTr2";
 
-  // The next section defines the objects that form the sockets in the
-  // frame for the sensitive elements and the individual cover plates
-  // at the front of the detector which include the optical fiber
-  // heads that permit the LED pulser light to reach the quartz radiator
-  // surfaces of each module
+  //The next section defines the objects that form the sockets in the
+  //frame for the sensitive elements and the individual cover plates
+  //at the front of the detector which include the optical fiber
+  //heads that permit the LED pulser light to reach the quartz radiator
+  //surfaces of each module
 
-  // There are two fiber head configurations, called "inner" and "outer"
-  // with different locations and angles of the fiber heads.
-  Double_t coverPlatedZ = 0.2; // top cover thickness
-  Double_t fiberPlatedZ = 0.5; // fiberhead plate is underneath
+  //There are two fiber head configurations, called "inner" and "outer"
+  //with different locations and angles of the fiber heads.
+  Double_t coverPlatedZ = 0.2; //top cover thickness
+  Double_t fiberPlatedZ = 0.5; //fiberhead plate is underneath
 
-  // Each fiber is guided to a small rectangular opening in the plate
-  Double_t opticalFiberHeaddY = 0.52;  // narrow side
-  Double_t opticalFiberHeaddX = 1.142; // long side
+  //Each fiber is guided to a small rectangular opening in the plate
+  Double_t opticalFiberHeaddY = 0.52;  //narrow side
+  Double_t opticalFiberHeaddX = 1.142; //long side
 
-  // The "top" two fiber heads are positioned at slightly different
-  // locations than the bottom two, which are also rotated
+  //The "top" two fiber heads are positioned at slightly different
+  //locations than the bottom two, which are also rotated
 
   //"Outer" fiberhead placements
   Double_t fh1TopPosX = -1.6;
   Double_t fh1TopPosY = 1.325;
   Double_t fh1BotPosX = 1.555;
   Double_t fh1BotPosY = 1.249;
-  Double_t fh1BotAngle = 16; // degrees
+  Double_t fh1BotAngle = 16; //degrees
 
   //"Inner" fiberhead placements
-  // All of these are placed at an angle
+  //All of these are placed at an angle
   Double_t fh2TopPosX = -1.563;
   Double_t fh2TopPosY = 1.4625;
   Double_t fh2TopAngle = 60;
@@ -645,7 +645,7 @@ TGeoVolume* Detector::constructFrameAGeometry()
   TGeoCombiTrans* fh2BotTr2 = new TGeoCombiTrans("fh2BotTr2", fh2BotPosX, -fh2BotPosY, 0, new TGeoRotation("fh2BotRot2", fh2BotAngle, 0, 0));
   fh2BotTr2->RegisterYourself();
 
-  // Create a string that defines the plate group for the outer plates
+  //Create a string that defines the plate group for the outer plates
   std::string outerPlateGroupString = "fiberPlate ";
   outerPlateGroupString += "- opticalFiberHead:fh1TopTr1 ";
   outerPlateGroupString += "- opticalFiberHead:fh1TopTr2 ";
@@ -653,10 +653,10 @@ TGeoVolume* Detector::constructFrameAGeometry()
   outerPlateGroupString += "- opticalFiberHead:fh1BotTr2 ";
   outerPlateGroupString += "+ coverPlate:coverPlateTr";
 
-  // Create the composite shape for the outer plates
+  //Create the composite shape for the outer plates
   TGeoCompositeShape* outerPlateGroup = new TGeoCompositeShape("outerPlateGroup", outerPlateGroupString.c_str());
 
-  // Create a string that defines the plate group for the inner plates
+  //Create a string that defines the plate group for the inner plates
   std::string innerPlateGroupString = "fiberPlate ";
   innerPlateGroupString += "- opticalFiberHead:fh2TopTr1 ";
   innerPlateGroupString += "- opticalFiberHead:fh2TopTr2 ";
@@ -664,38 +664,38 @@ TGeoVolume* Detector::constructFrameAGeometry()
   innerPlateGroupString += "- opticalFiberHead:fh2BotTr2 ";
   innerPlateGroupString += "+ coverPlate:coverPlateTr";
 
-  // Create the composite shape for the inner plates
+  //Create the composite shape for the inner plates
   TGeoCompositeShape* innerPlateGroup = new TGeoCompositeShape("innerPlateGroup", innerPlateGroupString.c_str());
 
-  // The sockets that are cut out of the aluminum block for the senitive elements
-  // to fit into are offset slightly in z to leave a thin plate of aluminum at the
-  // back - the back plate covers
+  //The sockets that are cut out of the aluminum block for the senitive elements
+  //to fit into are offset slightly in z to leave a thin plate of aluminum at the
+  //back - the back plate covers
   Double_t backPlanedZ = 0.25;
   Double_t socketdZ = blockdZ - backPlanedZ;
 
-  // Define the socket volume as a box of vacuum
+  //Define the socket volume as a box of vacuum
   TGeoVolume* socket = gGeoManager->MakeBox("Socket", Vacuum, sPmtSide / 2 + sEps, sPmtSide / 2 + sEps, socketdZ / 2);
 
-  // Define the orientation angles of the plate groups that will cover
-  // the sockets holding the sensitive elements
+  //Define the orientation angles of the plate groups that will cover
+  //the sockets holding the sensitive elements
   Double_t rotAngle[Geometry::NCellsA] = {0, 0, -90, -90, -90, 0, 0, -90, -90, -90, 0, 0, 180, 180, 90, 90, 90, 180, 180, 90, 90, 90, 180, 180};
-  // Define the socket and plate group translations
+  //Define the socket and plate group translations
   TGeoTranslation* trSocket[Geometry::NCellsA];
   TString nameTrSocket;
   TGeoCombiTrans* trPlateGroup[Geometry::NCellsA];
   TString nameTrPlateGroup;
   TString namePGRot;
 
-  // Loop over the number of modules, subtracting the sockets and adding back in the
-  // plate groups at the position of each module
+  //Loop over the number of modules, subtracting the sockets and adding back in the
+  //plate groups at the position of each module
   for (Int_t itr = 0; itr < Geometry::NCellsA; itr++) {
 
     nameTrSocket = Form("trSocket%i", itr + 1);
     float z = -backPlanedZ / 4.0;
     trSocket[itr] = new TGeoTranslation(nameTrSocket.Data(), mPosModuleAx[itr], mPosModuleAy[itr], z);
     trSocket[itr]->RegisterYourself();
-    frameACompositeString += "- Socket:";         // subtract it from the aluminum block
-    frameACompositeString += nameTrSocket.Data(); // at its corresponding location
+    frameACompositeString += "- Socket:";         //subtract it from the aluminum block
+    frameACompositeString += nameTrSocket.Data(); //at its corresponding location
 
     nameTrPlateGroup = Form("trPlateGroup%i", itr + 1);
     namePGRot = Form("pgRot%i", itr + 1);
@@ -704,29 +704,29 @@ TGeoVolume* Detector::constructFrameAGeometry()
     trPlateGroup[itr]->RegisterYourself();
 
     if (itr == 0 || itr == 2 || itr == 3 || itr == 4 || itr == 5 || itr == 10 || itr == 13 || itr == 18 || itr == 19 || itr == 20 || itr == 21 || itr == 23) {
-      frameACompositeString += " + outerPlateGroup:"; // add the outer plate group back on to these modules
+      frameACompositeString += " + outerPlateGroup:"; //add the outer plate group back on to these modules
       frameACompositeString += nameTrPlateGroup.Data();
       frameACompositeString += " ";
     } else {
-      frameACompositeString += " + innerPlateGroup:"; // or add the inner plate group back on to all other modules
+      frameACompositeString += " + innerPlateGroup:"; //or add the inner plate group back on to all other modules
       frameACompositeString += nameTrPlateGroup.Data();
       frameACompositeString += " ";
     }
   }
 
-  // Finally, define the A side frame object from the complete composite shape defined above
+  //Finally, define the A side frame object from the complete composite shape defined above
   TGeoVolume* frameA = new TGeoVolume("frameA", new TGeoCompositeShape("frameA", frameACompositeString.c_str()), Al);
 
-  // Add the frame object to the mother volume
+  //Add the frame object to the mother volume
   FT0_Frame->AddNode(frameA, 1);
 
   return FT0_Frame;
 }
 
-// C-side Support Structure
-// This code was written by Jason Pruitt and Sam Christensen of Cal Poly in 2021
-// They followed a similar method as for the A-side frame but had to account for the
-// spherical geometry of the C-side.
+//C-side Support Structure
+//This code was written by Jason Pruitt and Sam Christensen of Cal Poly in 2021
+//They followed a similar method as for the A-side frame but had to account for the
+//spherical geometry of the C-side.
 TGeoVolume* Detector::constructFrameCGeometry()
 {
 
@@ -842,7 +842,7 @@ TGeoVolume* Detector::constructFrameCGeometry()
   TGeoCombiTrans* comCorners2 = new TGeoCombiTrans("comCorners2", xCorn2, yCorn2, zCorn2, rotCorners);
   comCorners2->RegisterYourself();
 
-  // Create a string that defines the composite shape
+  //Create a string that defines the composite shape
   std::string shellString = "";
   shellString += "sphere1";                      // start with spherical shell - this will be reflected
   shellString += "- sphere2:rotTr1";             // copy and combitrans a subtraction
@@ -852,7 +852,7 @@ TGeoVolume* Detector::constructFrameCGeometry()
   shellString += "- framecornerBox:comCorners";  // subtract corners
   shellString += "- framecornerBox:comCorners2"; //
 
-  // Create string that defines the back plate composite shape
+  //Create string that defines the back plate composite shape
   std::string backPlateString = "";
   backPlateString += "sphere3";
   backPlateString += "- sphere4:rotTr1";
@@ -862,8 +862,8 @@ TGeoVolume* Detector::constructFrameCGeometry()
   backPlateString += "- framecornerBox:comCorners";
   backPlateString += "- framecornerBox:comCorners2";
 
-  // These could be set up to use the values in the geometry file after some
-  // investigation of subtle differences...
+  //These could be set up to use the values in the geometry file after some
+  //investigation of subtle differences...
   static constexpr Double_t xi[NCellsC] = {-15.038271418735729, 15.038271418735729, -15.003757581112167, 15.003757581112167, -9.02690018974363, 9.02690018974363, -9.026897413747076, 9.026897413747076, -9.026896531935773, 9.026896531935773, -3.0004568618531313, 3.0004568618531313, -3.0270795197907225, 3.0270795197907225, 3.0003978432927543, -3.0003978432927543, 3.0270569670429572, -3.0270569670429572, 9.026750365564254, -9.026750365564254, 9.026837450695885, -9.026837450695885, 9.026849243816981, -9.026849243816981, 15.038129472387304, -15.038129472387304, 15.003621961057961, -15.003621961057961};
   static constexpr Double_t yi[NCellsC] = {3.1599494336464455, -3.1599494336464455, 9.165191680982874, -9.165191680982874, 3.1383331772537426, -3.1383331772537426, 9.165226363918643, -9.165226363918643, 15.141616002932361, -15.141616002932361, 9.16517861649866, -9.16517861649866, 15.188854859073416, -15.188854859073416, 9.165053319552113, -9.165053319552113, 15.188703787345304, -15.188703787345304, 3.138263189805292, -3.138263189805292, 9.165104089644917, -9.165104089644917, 15.141494417823818, -15.141494417823818, 3.1599158563428644, -3.1599158563428644, 9.165116302773846, -9.165116302773846};
 
@@ -1027,31 +1027,31 @@ TGeoVolume* Detector::constructFrameCGeometry()
 
 std::string Detector::cPlateShapeString()
 {
-  Double_t prismHeight = 0.3895; // height of vertical edge of square prism part of base
-  Double_t prismSide = 5.9;      // width and length of square prism part of base
-  Double_t radCurve = 81.9469;   // radius of curvature of top part of base
+  Double_t prismHeight = 0.3895; //height of vertical edge of square prism part of base
+  Double_t prismSide = 5.9;      //width and length of square prism part of base
+  Double_t radCurve = 81.9469;   //radius of curvature of top part of base
   Double_t delHeight = radCurve * (1.0 - TMath::Sqrt(1.0 - 0.5 * TMath::Power(prismSide / radCurve, 2.0)));
-  // height from top of square prism to center of curved top surface of base
+  //height from top of square prism to center of curved top surface of base
 
-  Double_t heightBase = prismHeight + delHeight; // from center of bottom to center of top
-  Double_t sliceSide = 5.3;                      // side lengths of slice's flat top
+  Double_t heightBase = prismHeight + delHeight; //from center of bottom to center of top
+  Double_t sliceSide = 5.3;                      //side lengths of slice's flat top
   Double_t heightBaseBox = 2 * heightBase;
   Double_t totalHeight = 0.5;
   Double_t sliceHeight = 0.5 - heightBase;
 
-  // cable dimensions and distances
+  //cable dimensions and distances
   Double_t cableHoleWidth = 0.3503;
   Double_t cableHoleLength = 0.9003;
-  Double_t cableHoleDepth = 1; // really big just to punch a hole
+  Double_t cableHoleDepth = 1; //really big just to punch a hole
 
-  // sholes denotes "straight holes" and rholes denote "rotated holes"
-  // all distances measured from edges of slice
-  // up and down sholes
+  //sholes denotes "straight holes" and rholes denote "rotated holes"
+  //all distances measured from edges of slice
+  //up and down sholes
   Double_t sHolesBottomEdge = 1.585;
   Double_t sHolesTopEdge = 0.515;
   Double_t sHolesAvgTopBottom = (sHolesBottomEdge + sHolesTopEdge) / 2.0;
-  Double_t sHolesUpFromCenter = ((sliceSide / 2.0) - sHolesAvgTopBottom); // amount up in x the sholes need to move
-  // left and right sholes
+  Double_t sHolesUpFromCenter = ((sliceSide / 2.0) - sHolesAvgTopBottom); //amount up in x the sholes need to move
+  //left and right sholes
   Double_t sHolesFarEdge = 1.585;
   Double_t sHolesNearEdge = 1.065;
   Double_t sHolesAvgNearFar = (sHolesFarEdge + sHolesNearEdge) / 2.0;
@@ -1115,7 +1115,7 @@ std::string Detector::cPlateShapeString()
 
   return plateString;
 }
-// End Support structure code
+//End Support structure code
 ////////////////////////////////////////////
 
 Bool_t Detector::ProcessHits(FairVolume* v)
