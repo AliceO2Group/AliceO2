@@ -236,7 +236,7 @@ struct HTTPParserHelpers {
   static std::string calculateAccept(const char* nonce);
 };
 
-void parse_http_request(char* start, size_t size, HTTPParser* parser);
+void parse_http_request(char const* start, size_t size, HTTPParser* parser);
 
 std::pair<std::string, unsigned short> parse_websocket_url(const char* s);
 } // namespace o2::framework
