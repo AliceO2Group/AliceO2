@@ -520,7 +520,7 @@ void Digitizer::fillOutputContainer()
       }
 
       int available = -1;
-      for (int iT{0}; iT < 4; ++iT) {
+      for (int iT = 0; iT < 4; ++iT) {
         if (digitTime - tdcStates[colInGroup][iT] > digitizerParams.tdcBusyTime) {
           available = iT;
           break;
