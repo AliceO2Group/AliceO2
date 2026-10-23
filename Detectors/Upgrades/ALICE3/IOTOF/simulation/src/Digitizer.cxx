@@ -358,25 +358,6 @@ int Digitizer::energyToCharge(float energyLoss) const
 }
 
 //_______________________________________________________________________
-
-void Digitizer::loadEfficiencyMap(const TH2D* map)
-{
-  mEfficiencyMap = dynamic_cast<TH2D*>(map->Clone());
-  mEfficiencyMap->SetDirectory(nullptr);
-}
-
-void Digitizer::loadResolutionMap(const TH2D* map)
-{
-  mResolutionMap = dynamic_cast<TH2D*>(map->Clone());
-  mResolutionMap->SetDirectory(nullptr);
-}
-
-void Digitizer::loadTimeOfArrivalMap(const TH2D* map)
-{
-  mTimeOfArrivalMap = dynamic_cast<TH2D*>(map->Clone());
-  mTimeOfArrivalMap->SetDirectory(nullptr);
-}
-
 void Digitizer::prepareScaledResolutionMap()
 {
   if (!mResolutionMap) {

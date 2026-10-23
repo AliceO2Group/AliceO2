@@ -75,11 +75,9 @@ class Digitizer : public TObject
   // Provide the common iotof::GeometryTGeo to access matrices and segmentation
   void setGeometry(const o2::iotof::GeometryTGeo* gm) { mGeometry = gm; }
 
-  void loadEfficiencyMap(const TH2D* map);
-
-  void loadResolutionMap(const TH2D* map);
-
-  void loadTimeOfArrivalMap(const TH2D* map);
+  void loadEfficiencyMap(TH2D* map) { mEfficiencyMap = map; }
+  void loadResolutionMap(TH2D* map) { mResolutionMap = map; }
+  void loadTimeOfArrivalMap(TH2D* map) { mTimeOfArrivalMap = map; }
 
   void prepareScaledResolutionMap();
 

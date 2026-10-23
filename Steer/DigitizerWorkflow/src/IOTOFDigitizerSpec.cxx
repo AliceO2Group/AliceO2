@@ -73,6 +73,13 @@ class IOTOFDPLDigitizerTask : o2::base::BaseDPLDigitizer
     if (mFinished) {
       return;
     }
+
+    if (mEnableResponseFiles) {
+      pc.inputs().get<TH2D*>("madpixeff");
+      pc.inputs().get<TH2D*>("madpixreso");
+      pc.inputs().get<TH2D*>("madpixtoa");
+    }
+
     mFirstOrbitTF = pc.services().get<o2::framework::TimingInfo>().firstTForbit;
     const o2::InteractionRecord firstIR(0, mFirstOrbitTF);
 
@@ -169,20 +176,45 @@ class IOTOFDPLDigitizerTask : o2::base::BaseDPLDigitizer
 
   void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   {
-    if (!mEnableResponseFiles) {
-      return;
-    }
     if (matcher == ConcreteDataMatcher(mOrigin, "MADPIXEFF", 0)) {
       if (mLocalEfficiencyFile.empty()) {
         LOG(info) << "Using CCDB/MADPIX efficiency file";
-        mDigitizer.loadEfficiencyMap((const TH2D*)obj);
+        mDigitizer.loadEfficiencyMap((TH2D*)obj);
       } else {
         LOG(info) << "Response function will be loaded from local file: " << mLocalEfficiencyFile;
         std::unique_ptr<TFile> file(TFile::Open(mLocalEfficiencyFile.data(), "READ"));
         if (!file) {
           LOG(fatal) << "Cannot open response file " << mLocalEfficiencyFile.data();
         }
-        mDigitizer.loadEfficiencyMap((const TH2D*)file->Get("hEfficiencyMap"));
+        mDigitizer.loadEfficiencyMap((TH2D*)file->Get("hEfficiencyMap"));
+      }
+      return;
+    }
+    if (matcher == ConcreteDataMatcher(mOrigin, "MADPIXRESO", 0)) {
+      if (mLocalTimeResoFile.empty()) {
+        LOG(info) << "Using CCDB/MADPIX time resolution file";
+        mDigitizer.loadResolutionMap((TH2D*)obj);
+      } else {
+        LOG(info) << "Response function will be loaded from local file: " << mLocalTimeResoFile;
+        std::unique_ptr<TFile> file(TFile::Open(mLocalTimeResoFile.data(), "READ"));
+        if (!file) {
+          LOG(fatal) << "Cannot open response file " << mLocalTimeResoFile.data();
+        }
+        mDigitizer.loadResolutionMap((TH2D*)file->Get("hSigmaPixel"));
+      }
+      return;
+    }
+    if (matcher == ConcreteDataMatcher(mOrigin, "MADPIXTOA", 0)) {
+      if (mLocalToAFile.empty()) {
+        LOG(info) << "Using CCDB/MADPIX time-of-arrival file";
+        mDigitizer.loadTimeOfArrivalMap((TH2D*)obj);
+      } else {
+        LOG(info) << "Response function will be loaded from local file: " << mLocalToAFile;
+        std::unique_ptr<TFile> file(TFile::Open(mLocalToAFile.data(), "READ"));
+        if (!file) {
+          LOG(fatal) << "Cannot open response file " << mLocalToAFile.data();
+        }
+        mDigitizer.loadTimeOfArrivalMap((TH2D*)file->Get("toa_pixel"));
       }
     }
   }
