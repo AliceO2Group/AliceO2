@@ -161,6 +161,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     .name = "internal-dpl-ccdb-backend",
     .outputs = {},
     .options = {{"condition-backend", VariantType::String, defaultConditionBackend(), {"URL for CCDB"}},
+                {"condition-timestamp", VariantType::Int64, 0ll, {"Force timestamp for CCDB lookup"}},
                 {"condition-not-before", VariantType::Int64, 0ll, {"do not fetch from CCDB objects created before provide timestamp"}},
                 {"condition-not-after", VariantType::Int64, 3385078236000ll, {"do not fetch from CCDB objects created after the timestamp"}},
                 {"condition-remap", VariantType::String, "", {"remap condition path in CCDB based on the provided string."}},

@@ -404,6 +404,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
   return adaptStateful([](CallbackService& callbacks, ConfigParamRegistry const& options, DeviceSpec const& spec) {
       std::shared_ptr<CCDBFetcherHelper> helper = std::make_shared<CCDBFetcherHelper>();
       initialiseHelper(*helper, options, spec.outputs);
+      auto forcedTimestamp = options.get<int64_t>("condition-timestamp");
       /// Add a callback on stop which dumps the statistics for the caching per
       /// path
       callbacks.set<CallbackService::Id::Stop>([helper]() {
@@ -413,7 +414,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
         }
       });
 
-      return adaptStateless([helper](DataTakingContext& dtc, DataAllocator& allocator, TimingInfo& timingInfo, DataProcessingStats& stats) {
+      return adaptStateless([helper, forcedTimestamp](DataTakingContext& dtc, DataAllocator& allocator, TimingInfo& timingInfo, DataProcessingStats& stats) {
         auto sid = _o2_signpost_id_t{(int64_t)timingInfo.timeslice};
         O2_SIGNPOST_START(ccdb, sid, "fetchFromCCDB", "Fetching CCDB objects for timeslice %" PRIu64, (uint64_t)timingInfo.timeslice);
         static Long64_t orbitResetTime = -1;
@@ -423,6 +424,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
           timingInfo.creation = lastTimeUsed;
         }
         lastTimeUsed = timingInfo.creation;
+        auto lookupTimestamp = forcedTimestamp > 0 ? forcedTimestamp : static_cast<int64_t>(timingInfo.creation);
         // Fetch the CCDB object for the CTP
         {
           const std::string path = "CTP/Calib/OrbitReset";
@@ -445,9 +447,9 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
           const auto& api = helper->getAPI(path);
           if (checkValidity && (!api.isSnapshotMode() || etag.empty())) { // in the snapshot mode the object needs to be fetched only once
             helper->lastCheckedTFCounterOrbReset = counter;
-            api.loadFileToMemory(v, path, metadata, timingInfo.creation, &headers, etag, helper->createdNotAfter, helper->createdNotBefore);
+            api.loadFileToMemory(v, path, metadata, lookupTimestamp, &headers, etag, helper->createdNotAfter, helper->createdNotBefore);
             if ((headers.count("Error") != 0) || (etag.empty() && v.empty())) {
-              LOGP(fatal, "Unable to find CCDB object {}/{}", path, timingInfo.creation);
+              LOGP(fatal, "Unable to find CCDB object {}/{}", path, lookupTimestamp);
               // FIXME: I should send a dummy message.
               return;
             }
@@ -503,6 +505,9 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
             dtc.orbitResetTimeMUS = 1000 * timingInfo.creation - timingInfo.firstTForbit * o2::constants::lhc::LHCOrbitNS / 1000;
           }
           timestamp = timingInfo.creation;
+        }
+        if (forcedTimestamp > 0) {
+          timestamp = forcedTimestamp;
         }
         // Fetch the rest of the objects.
         O2_SIGNPOST_EVENT_EMIT(ccdb, sid, "fetchFromCCDB", "Fetching objects. Run %{public}s. OrbitResetTime %lld. Creation %lld. Timestamp %lld. firstTForbit %" PRIu32,
