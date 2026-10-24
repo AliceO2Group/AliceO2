@@ -186,7 +186,7 @@ class IOTOFDPLDigitizerTask : o2::base::BaseDPLDigitizer
         if (!file) {
           LOG(fatal) << "Cannot open response file " << mLocalEfficiencyFile.data();
         }
-        mDigitizer.loadEfficiencyMap((TH2D*)file->Get("hEfficiencyMap"));
+        mDigitizer.loadEfficiencyMap((TH2D*)file->Get("efficiency_pixel"));
       }
       return;
     }
@@ -200,7 +200,7 @@ class IOTOFDPLDigitizerTask : o2::base::BaseDPLDigitizer
         if (!file) {
           LOG(fatal) << "Cannot open response file " << mLocalTimeResoFile.data();
         }
-        mDigitizer.loadResolutionMap((TH2D*)file->Get("hSigmaPixel"));
+        mDigitizer.loadResolutionMap((TH2D*)file->Get("sigma_pixel"));
       }
       return;
     }
