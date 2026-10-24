@@ -10,15 +10,18 @@
 # or submit itself to any jurisdiction.
 
 if(Acts_FOUND)
+  set(actsSources src/TrackerACTS.cxx)
   set(actsTarget
         Acts::Core
         O2::ACTSInterface
-        O2::ALICE3ACTS)
+        O2::ALICE3ACTS
+        ROOT::Tree
+        ROOT::RIO)
 endif()
 
 o2_add_library(ALICE3GlobalReconstruction
                TARGETVARNAME targetName
-               SOURCES src/TimeFrame.cxx
+               SOURCES src/TimeFrame.cxx ${actsSources}
                PUBLIC_LINK_LIBRARIES
                        O2::ITStracking
                        O2::GPUCommon
@@ -41,6 +44,5 @@ o2_add_library(ALICE3GlobalReconstruction
                        TBB::tbb)
 
 if(Acts_FOUND)
-  target_sources(${targetName} PRIVATE src/TrackerACTS.cxx)
   target_compile_definitions(${targetName} PUBLIC O2_WITH_ACTS)
 endif()
