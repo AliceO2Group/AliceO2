@@ -305,7 +305,7 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
       rotPitch += rotatescalefactor * mouseScale * ((float)mFrontend->mMouseMvY - (float)mFrontend->mMouseDnY);
     }
 
-    if (mFrontend->mKeys[(uint8_t)'<'] && !mFrontend->mKeysShift[(uint8_t)'<']) {
+    if (mFrontend->mKeys[(uint8_t)'<']) {
       mAnimationDelay += moveX;
       if (mAnimationDelay < 0.05f) {
         mAnimationDelay = 0.05f;
@@ -395,7 +395,7 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
 
     // Graphichs Options
     float minSize = 0.4f / (mCfgR.drawQualityDownsampleFSAA > 1 ? mCfgR.drawQualityDownsampleFSAA : 1);
-    int32_t deltaLine = mFrontend->mKeys[(uint8_t)'+'] * mFrontend->mKeysShift[(uint8_t)'+'] - mFrontend->mKeys[(uint8_t)'-'] * mFrontend->mKeysShift[(uint8_t)'-'];
+    int32_t deltaLine = (mFrontend->mKeys[(uint8_t)'+'] - mFrontend->mKeys[(uint8_t)'-']) * mFrontend->mKeys[mFrontend->KEY_SHIFT];
     mCfgL.lineWidth += (float)deltaLine * mFPSScale * 0.02f * mCfgL.lineWidth;
     if (mCfgL.lineWidth < minSize) {
       mCfgL.lineWidth = minSize;
@@ -405,7 +405,7 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
       mUpdateDrawCommands = true;
     }
     minSize *= 2;
-    int32_t deltaPoint = mFrontend->mKeys[(uint8_t)'+'] * (!mFrontend->mKeysShift[(uint8_t)'+']) - mFrontend->mKeys[(uint8_t)'-'] * (!mFrontend->mKeysShift[(uint8_t)'-']);
+    int32_t deltaPoint = (mFrontend->mKeys[(uint8_t)'+'] - mFrontend->mKeys[(uint8_t)'-']) * !mFrontend->mKeys[mFrontend->KEY_SHIFT];
     mCfgL.pointSize += (float)deltaPoint * mFPSScale * 0.02f * mCfgL.pointSize;
     if (mCfgL.pointSize < minSize) {
       mCfgL.pointSize = minSize;

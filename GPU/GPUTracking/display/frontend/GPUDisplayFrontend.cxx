@@ -257,7 +257,6 @@ void GPUDisplayFrontend::setWindowState(bool fullScreen, bool maximized)
 void GPUDisplayFrontend::focusLost()
 {
   std::fill(std::begin(mKeys), std::end(mKeys), false);
-  std::fill(std::begin(mKeysShift), std::end(mKeysShift), false);
   mMouseDn = mMouseDnR = mMouseDnM = false;
 }
 
