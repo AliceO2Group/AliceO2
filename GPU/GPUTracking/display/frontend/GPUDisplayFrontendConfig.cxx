@@ -14,6 +14,7 @@
 
 #include "GPUDisplayFrontend.h"
 #include "GPUDisplay.h"
+#include "GPULogging.h"
 #include "utils/qconfig_rtti.h"
 #include "utils/qconfig_internal_helpers.h"
 
@@ -123,6 +124,9 @@ void GPUDisplay::checkAndApplyConfigChanges(const GPUSettingsDisplayHeavy& oldCf
   if (oldCfgR.useGLIndirectDraw != mCfgR.useGLIndirectDraw) {
     mUpdateEventData = true;
   }
+  if (oldCfgL.animationMode != mCfgL.animationMode) {
+    resetAnimation();
+  }
 }
 
 void GPUDisplay::HandleExternalGUIKey(int32_t key)
@@ -130,14 +134,10 @@ void GPUDisplay::HandleExternalGUIKey(int32_t key)
   // GPUError("key %d '%c'", key, (char) key);
 
   bool shifted = key >= 'A' && key <= 'Z';
-  int32_t press = key;
-  if (press >= 'a' && press <= 'z') {
-    press += 'A' - 'a';
-  }
-  bool oldShift = mFrontend->mKeysShift[press];
-  mFrontend->mKeysShift[press] = shifted;
+  bool oldShift = mFrontend->mKeys[mFrontend->KEY_SHIFT];
+  mFrontend->mKeys[mFrontend->KEY_SHIFT] = shifted;
   HandleKey(key, true);
-  mFrontend->mKeysShift[press] = oldShift;
+  mFrontend->mKeys[mFrontend->KEY_SHIFT] = oldShift;
 }
 
 bool GPUDisplayFrontend::HasExternalGUISignals() const

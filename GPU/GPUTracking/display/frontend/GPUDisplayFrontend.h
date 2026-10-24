@@ -108,7 +108,6 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   float mMouseMvX, mMouseMvY;     // Current mouse pointer position
   int32_t mMouseWheel = 0;        // Incremental value of mouse wheel, ca +/- 100 per wheel tick
   bool mKeys[256] = {false};      // Array of mKeys currently pressed
-  bool mKeysShift[256] = {false}; // Array whether shift was held during key-press
   int32_t mDisplayHeight = INIT_HEIGHT;
   int32_t mDisplayWidth = INIT_WIDTH;
   int32_t mCanDrawText = 0; // 1 = in compat mode, 2 = with shader
