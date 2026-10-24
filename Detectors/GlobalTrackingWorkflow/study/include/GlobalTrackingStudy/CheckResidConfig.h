@@ -28,6 +28,7 @@ struct CheckResidConfig : o2::conf::ConfigurableParamHelper<CheckResidConfig> {
   bool addPVAsCluster = true;
   bool useStableRef = true;
   bool doIBOB = true;
+  bool doIBOBresiduals = true; ///< fill residuals of OB(IB) points wrt extrapolation of the IB(OB) sub-track, w/o intermediate updates
   bool doResid = true;
   bool useITSGloContributors = false;
 
@@ -48,6 +49,7 @@ struct CheckResidConfig : o2::conf::ConfigurableParamHelper<CheckResidConfig> {
   float zranges[8] = {10.f, 15.f, 15.f, 15.f, 40.f, 40.f, 74.f, 74.f};
   float maxDYZ[8] = {0.03, 0.015, 0.01, 0.01, 0.08, 0.08, 0.12, 0.1};
   float maxDPar[5] = {0.15, 0.15, 0.015, 0.015, 1.};
+  float IOBScaleFactor = 5.f; ///< multiplier applied to maxDYZ, resMMLrY, resMMLrZ when booking/drawing the (larger range) IOB residuals
   float maxHPVXY = 0.5;
   float maxHPVZ = 20.;
   float maxHPVN = 200.;
