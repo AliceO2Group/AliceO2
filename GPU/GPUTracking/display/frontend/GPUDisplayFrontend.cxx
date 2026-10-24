@@ -297,6 +297,9 @@ int32_t GPUDisplayFrontend::StartDisplay()
   }
 #endif
   mDisplay->buildConfig();
+  if (mDisplay->cfg().listFrontendOptionHandling) {
+    listConfig();
+  }
   return (0);
 }
 
