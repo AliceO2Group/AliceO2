@@ -116,6 +116,7 @@ int32_t ReadConfiguration(int argc, char** argv)
   setlocale(LC_ALL, "en_US.utf-8");
   setlocale(LC_NUMERIC, "en_US.utf-8");
   if (configStandalone.cpuAffinity != -1) {
+#ifdef __linux__
     cpu_set_t mask;
     CPU_ZERO(&mask);
     CPU_SET(configStandalone.cpuAffinity, &mask);
@@ -125,8 +126,13 @@ int32_t ReadConfiguration(int argc, char** argv)
       printf("Error setting CPU affinity\n");
       return 1;
     }
+#else
+    printf("CPU affinity not supported on this platform\n");
+    return 1;
+#endif
   }
   if (configStandalone.fifoScheduler) {
+#ifdef __linux__
     printf("Setting FIFO scheduler\n");
     sched_param param;
     sched_getparam(0, &param);
@@ -135,13 +141,21 @@ int32_t ReadConfiguration(int argc, char** argv)
       printf("Error setting scheduler\n");
       return 1;
     }
+#else
+    printf("FIFO scheduler not supported on this platform\n");
+    return 1;
+#endif
   }
 #ifdef __FAST_MATH__
   if (configStandalone.fpe == 1) {
 #else
   if (configStandalone.fpe) {
 #endif
+#ifdef __linux__
     feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);
+#else
+    printf("Trapping floating point exceptions not supported on this platform\n");
+#endif
   }
   bool detMode = false, noFTZMode = false;
 #ifdef GPUCA_DETERMINISTIC_MODE
@@ -1001,7 +1015,9 @@ breakrun:
 
 #ifndef _WIN32
   if (configStandalone.proc.runQA && configStandalone.fpe) {
+#ifdef __linux__
     fedisableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);
+#endif
   }
 #endif
 
