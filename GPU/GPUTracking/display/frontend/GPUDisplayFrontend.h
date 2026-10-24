@@ -92,6 +92,9 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
 #define GPUDisplayFrontendAddKey(code, key) static constexpr int32_t KEY_##key = code
 #include "GPUDisplayFrontendKeys.h"
 #undef GPUDisplayFrontendAddKey
+  static constexpr uint32_t N_SPECIAL_KEYS = 32;
+  static constexpr uint32_t SPECIAL_KEYS_SHIFTED = 255;
+  static constexpr uint32_t N_TOTAL_KEYS = 256 + N_SPECIAL_KEYS;
 
   std::mutex mExternalGUIKeyMutex;
   std::vector<int32_t> mExternalGUIKeys; // Keys sent by external entity (usually console), may be ignored by backend.
@@ -125,6 +128,7 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   int32_t DrawGLScene();                           // Callback to draw the GL scene
   void HandleExternalGUISignals();                 // Callback to handle signals from external GUIs
   bool HasExternalGUISignals() const;              // Returns whether there are currently pending signals from external GUIs to be handled
+  bool processKeyLambda(uint32_t key);             // Process key lambda callback
   void ResizeScene(int32_t width, int32_t height); // Callback when GL window is resized
   int32_t InitDisplay(bool initFailure = false);   // Callback to initialize the GL Display (to be called in StartDisplay)
   void ExitDisplay();                              // Callback to clean up the GL Display
