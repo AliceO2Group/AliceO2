@@ -18,3 +18,13 @@ o2_add_header_only_library(
     O2::ReconstructionDataFormats
     O2::TPCBase
     O2::DetectorsBase)
+
+# Keep the portable PyROOT/pytest validation available from the installed O2 module.
+set(TRACKTOOLS_TEST_INSTALL_DIR share/test/TrackTools)
+install(FILES
+  test/python/conftest.py
+  test/python/test_full_state_radius.py
+  test/python/test_sector_rows_primary_baseline.py
+  DESTINATION ${TRACKTOOLS_TEST_INSTALL_DIR}/python)
+install(FILES test/README_TESTS.md
+  DESTINATION ${TRACKTOOLS_TEST_INSTALL_DIR})
