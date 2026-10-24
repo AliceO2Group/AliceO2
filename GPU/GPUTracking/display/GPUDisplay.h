@@ -99,7 +99,8 @@ class GPUDisplay : public GPUDisplayInterface
   } mCfgC;
 
  private:
-  void buildConfig(); // Key bindings / config RTTI of the frontend, in GPUDisplayFrontendConfig.cxx
+  void buildConfig();
+  void buildConfigKeys();
 
   static constexpr int32_t NSECTORS = o2::tpc::constants::MAXSECTOR;
   static constexpr float GL_SCALE_FACTOR = (1.f / 100.f);
