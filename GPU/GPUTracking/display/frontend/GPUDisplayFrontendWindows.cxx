@@ -260,13 +260,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     case WM_KEYDOWN: // Is A Key Being Held Down?
       wParam = GetKey(wParam);
       mKeys[wParam] = TRUE;
-      mKeysShift[wParam] = mKeys[KEY_SHIFT];
       HandleKey(wParam);
       return 0;
 
     case WM_KEYUP:
       wParam = GetKey(wParam);
-      mKeysShift[wParam] = false;
       mKeys[wParam] = false;
       GPUInfo("Key: %d", wParam);
       return 0;

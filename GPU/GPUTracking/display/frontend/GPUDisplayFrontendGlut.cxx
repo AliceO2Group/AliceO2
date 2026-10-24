@@ -149,7 +149,6 @@ void GPUDisplayFrontendGlut::keyboardDownFunc(uint8_t key, int32_t x, int32_t y)
 {
   int32_t handleKey = 0, keyPress = 0;
   GetKey(key, handleKey, keyPress, false);
-  me->mKeysShift[keyPress] = glutGetModifiers() & GLUT_ACTIVE_SHIFT;
   me->mKeys[keyPress] = true;
   me->HandleKey(handleKey);
 }
@@ -159,14 +158,12 @@ void GPUDisplayFrontendGlut::keyboardUpFunc(uint8_t key, int32_t x, int32_t y)
   int32_t handleKey = 0, keyPress = 0;
   GetKey(key, handleKey, keyPress, false);
   me->mKeys[keyPress] = false;
-  me->mKeysShift[keyPress] = false;
 }
 
 void GPUDisplayFrontendGlut::specialDownFunc(int32_t key, int32_t x, int32_t y)
 {
   int32_t handleKey = 0, keyPress = 0;
   GetKey(key, handleKey, keyPress, true);
-  me->mKeysShift[keyPress] = glutGetModifiers() & GLUT_ACTIVE_SHIFT;
   me->mKeys[keyPress] = true;
   me->HandleKey(handleKey);
 }
@@ -176,7 +173,6 @@ void GPUDisplayFrontendGlut::specialUpFunc(int32_t key, int32_t x, int32_t y)
   int32_t handleKey = 0, keyPress = 0;
   GetKey(key, handleKey, keyPress, true);
   me->mKeys[keyPress] = false;
-  me->mKeysShift[keyPress] = false;
 }
 
 void GPUDisplayFrontendGlut::ResizeSceneWrapper(int32_t width, int32_t height)

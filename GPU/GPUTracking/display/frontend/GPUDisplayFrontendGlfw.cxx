@@ -163,11 +163,9 @@ void GPUDisplayFrontendGlfw::key_callback(GLFWwindow* window, int32_t key, int32
   if (handleKey < 32) {
     if (action == GLFW_PRESS) {
       me->mKeys[keyPress] = true;
-      me->mKeysShift[keyPress] = mods & GLFW_MOD_SHIFT;
       me->HandleKey(handleKey);
     } else if (action == GLFW_RELEASE) {
       me->mKeys[keyPress] = false;
-      me->mKeysShift[keyPress] = false;
     }
   } else if (handleKey < 256) {
     if (action == GLFW_PRESS) {
@@ -175,7 +173,6 @@ void GPUDisplayFrontendGlfw::key_callback(GLFWwindow* window, int32_t key, int32
     } else if (action == GLFW_RELEASE) {
       keyPress = (uint8_t)me->mKeyDownMap[handleKey];
       me->mKeys[keyPress] = false;
-      me->mKeysShift[keyPress] = false;
     }
   }
 }
@@ -190,7 +187,6 @@ void GPUDisplayFrontendGlfw::char_callback(GLFWwindow* window, uint32_t codepoin
     }
     me->mKeyDownMap[me->mLastKeyDown] = keyPress;
     me->mKeys[keyPress] = true;
-    me->mKeysShift[keyPress] = me->mKeys[KEY_SHIFT];
     me->HandleKey(codepoint);
   }
 }

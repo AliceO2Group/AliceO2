@@ -85,17 +85,17 @@ void GPUDisplay::HandleKey(uint8_t key, bool doNotHandleConfigChanges)
   if (key == 'n') {
     mFrontend->mDisplayControl = 1;
     SetInfo("Showing next event", 1);
-  } else if (key == 27 || key == mFrontend->KEY_ESCAPE) {
+  } else if (key == mFrontend->KEY_ESCAPE) {
     mFrontend->mDisplayControl = 2;
     SetInfo("Exiting", 1);
   } else if (key == 'r') {
     mResetScene = true;
     SetInfo("View reset", 1);
-  } else if (key == mFrontend->KEY_ALT && mFrontend->mKeysShift[mFrontend->KEY_ALT]) {
+  } else if (key == mFrontend->KEY_ALT && mFrontend->mKeys[mFrontend->KEY_SHIFT]) {
     mCfgR.camLookOrigin ^= 1;
     mCfgR.cameraMode = mCfgR.camLookOrigin + 2 * mCfgR.camYUp;
     SetInfo("Camera locked on origin: %s", mCfgR.camLookOrigin ? "enabled" : "disabled");
-  } else if (key == mFrontend->KEY_CTRL && mFrontend->mKeysShift[mFrontend->KEY_CTRL]) {
+  } else if (key == mFrontend->KEY_CTRL && mFrontend->mKeys[mFrontend->KEY_SHIFT]) {
     mCfgR.camYUp ^= 1;
     mCfgR.cameraMode = mCfgR.camLookOrigin + 2 * mCfgR.camYUp;
     SetInfo("Camera locked on y-axis facing upwards: %s", mCfgR.camYUp ? "enabled" : "disabled");
@@ -330,39 +330,31 @@ void GPUDisplay::HandleKey(uint8_t key, bool doNotHandleConfigChanges)
     mCfgL.drawExtrapolatedTracks ^= 1;
   } else if (key == '8') {
     mCfgL.drawFinal ^= 1;
-  } else if (key == mFrontend->KEY_F1) {
-    if (mFrontend->mKeysShift[mFrontend->KEY_F1]) {
-      mCfgH.drawTPCTracks ^= 1;
-      SetInfo("Track Filter Mask: TPC:%d TRD:%d TOF:%d ITS:%d", (int32_t)mCfgH.drawTPCTracks, (int32_t)mCfgH.drawTRDTracks, (int32_t)mCfgH.drawTOFTracks, (int32_t)mCfgH.drawITSTracks);
-    } else {
-      mCfgL.drawTPC ^= 1;
-      SetInfo("Showing TPC Clusters: %d", (int32_t)mCfgL.drawTPC);
-    }
-  } else if (key == mFrontend->KEY_F2) {
-    if (mFrontend->mKeysShift[mFrontend->KEY_F2]) {
-      mCfgH.drawTRDTracks ^= 1;
-      SetInfo("Track Filter Mask: TPC:%d TRD:%d TOF:%d ITS:%d", (int32_t)mCfgH.drawTPCTracks, (int32_t)mCfgH.drawTRDTracks, (int32_t)mCfgH.drawTOFTracks, (int32_t)mCfgH.drawITSTracks);
-    } else {
-      mCfgL.drawTRD ^= 1;
-      SetInfo("Showing TRD Tracklets: %d", (int32_t)mCfgL.drawTRD);
-    }
-  } else if (key == mFrontend->KEY_F3) {
-    if (mFrontend->mKeysShift[mFrontend->KEY_F3]) {
-      mCfgH.drawTOFTracks ^= 1;
-      SetInfo("Track Filter Mask: TPC:%d TRD:%d TOF:%d ITS:%d", (int32_t)mCfgH.drawTPCTracks, (int32_t)mCfgH.drawTRDTracks, (int32_t)mCfgH.drawTOFTracks, (int32_t)mCfgH.drawITSTracks);
-    } else {
-      mCfgL.drawTOF ^= 1;
-      SetInfo("Showing TOF Hits: %d", (int32_t)mCfgL.drawTOF);
-    }
-  } else if (key == mFrontend->KEY_F4) {
-    if (mFrontend->mKeysShift[mFrontend->KEY_F4]) {
-      mCfgH.drawITSTracks ^= 1;
-      SetInfo("Track Filter Mask: TPC:%d TRD:%d TOF:%d ITS:%d", (int32_t)mCfgH.drawTPCTracks, (int32_t)mCfgH.drawTRDTracks, (int32_t)mCfgH.drawTOFTracks, (int32_t)mCfgH.drawITSTracks);
-    } else {
-      mCfgL.drawITS ^= 1;
-      SetInfo("Showing ITS Clusters: %d", (int32_t)mCfgL.drawITS);
-    }
-  } else if (key == mFrontend->KEY_F12 && mFrontend->mKeysShift[mFrontend->KEY_F12]) {
+  } else if (key == mFrontend->KEY_F1 && mFrontend->mKeys[mFrontend->KEY_SHIFT]) {
+    mCfgH.drawTPCTracks ^= 1;
+    SetInfo("Track Filter Mask: TPC:%d TRD:%d TOF:%d ITS:%d", (int32_t)mCfgH.drawTPCTracks, (int32_t)mCfgH.drawTRDTracks, (int32_t)mCfgH.drawTOFTracks, (int32_t)mCfgH.drawITSTracks);
+  } else if (key == mFrontend->KEY_F1 && !mFrontend->mKeys[mFrontend->KEY_SHIFT]) {
+    mCfgL.drawTPC ^= 1;
+    SetInfo("Showing TPC Clusters: %d", (int32_t)mCfgL.drawTPC);
+  } else if (key == mFrontend->KEY_F2 && mFrontend->mKeys[mFrontend->KEY_SHIFT]) {
+    mCfgH.drawTRDTracks ^= 1;
+    SetInfo("Track Filter Mask: TPC:%d TRD:%d TOF:%d ITS:%d", (int32_t)mCfgH.drawTPCTracks, (int32_t)mCfgH.drawTRDTracks, (int32_t)mCfgH.drawTOFTracks, (int32_t)mCfgH.drawITSTracks);
+  } else if (key == mFrontend->KEY_F2 && !mFrontend->mKeys[mFrontend->KEY_SHIFT]) {
+    mCfgL.drawTRD ^= 1;
+    SetInfo("Showing TRD Tracklets: %d", (int32_t)mCfgL.drawTRD);
+  } else if (key == mFrontend->KEY_F3 && mFrontend->mKeys[mFrontend->KEY_SHIFT]) {
+    mCfgH.drawTOFTracks ^= 1;
+    SetInfo("Track Filter Mask: TPC:%d TRD:%d TOF:%d ITS:%d", (int32_t)mCfgH.drawTPCTracks, (int32_t)mCfgH.drawTRDTracks, (int32_t)mCfgH.drawTOFTracks, (int32_t)mCfgH.drawITSTracks);
+  } else if (key == mFrontend->KEY_F3 && !mFrontend->mKeys[mFrontend->KEY_SHIFT]) {
+    mCfgL.drawTOF ^= 1;
+    SetInfo("Showing TOF Hits: %d", (int32_t)mCfgL.drawTOF);
+  } else if (key == mFrontend->KEY_F4 && mFrontend->mKeys[mFrontend->KEY_SHIFT]) {
+    mCfgH.drawITSTracks ^= 1;
+    SetInfo("Track Filter Mask: TPC:%d TRD:%d TOF:%d ITS:%d", (int32_t)mCfgH.drawTPCTracks, (int32_t)mCfgH.drawTRDTracks, (int32_t)mCfgH.drawTOFTracks, (int32_t)mCfgH.drawITSTracks);
+  } else if (key == mFrontend->KEY_F4 && mFrontend->mKeys[mFrontend->KEY_SHIFT]) {
+    mCfgL.drawITS ^= 1;
+    SetInfo("Showing ITS Clusters: %d", (int32_t)mCfgL.drawITS);
+  } else if (key == mFrontend->KEY_F12 && mFrontend->mKeys[mFrontend->KEY_SHIFT]) {
     mCfgH.drawTracksAndFilter ^= 1;
     SetInfo("Track filter: %s", mCfgH.drawTracksAndFilter ? "AND" : "OR");
   } else if (key == 't') {
@@ -378,7 +370,10 @@ void GPUDisplay::HandleKey(uint8_t key, bool doNotHandleConfigChanges)
       mCfgR.screenshotScaleFactor = 1;
     }
     SetInfo("Screenshot scaling factor set to %d", mCfgR.screenshotScaleFactor);
-  } else if (key == 'y' || key == 'T') {
+  } else if (key == 'T') {
+    mAnimateScreenshot ^= 1;
+    SetInfo("Writing screenshots from animation set to %d", (int32_t)mAnimateScreenshot);
+  } else if (key == 'y') {
     if (mAnimateVectors[0].size() > 1) {
       if ((mAnimateScreenshot = (key == 'T'))) {
         mAnimationExport++;
@@ -405,7 +400,6 @@ void GPUDisplay::HandleKey(uint8_t key, bool doNotHandleConfigChanges)
     if (mCfgL.animationMode == 7) {
       mCfgL.animationMode = 0;
     }
-    resetAnimation();
     if (mCfgL.animationMode == 6) {
       SetInfo("Animation mode %d - Centered on origin", mCfgL.animationMode);
     } else {

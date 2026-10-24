@@ -95,7 +95,7 @@ int32_t GPUDisplayFrontendWayland::GetKey(uint32_t key, uint32_t state)
       return (KEY_HOME);
     } else if (sym == XKB_KEY_Insert) {
       return (KEY_INSERT);
-    } else if (sym == XKB_KEY_F1) {
+    } else if (sym == XKB_KEY_F1) { // TODO: Fix F* keys not working
       return (KEY_F1);
     } else if (sym == XKB_KEY_F2) {
       return (KEY_F2);
@@ -259,7 +259,6 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
     int32_t keyPress = (symbol >= 'a' && symbol <= 'z') ? symbol + 'A' - 'a' : symbol;
     if (state == WL_KEYBOARD_KEY_STATE_PRESSED) {
       me->mKeys[keyPress] = true;
-      me->mKeysShift[keyPress] = me->mKeys[KEY_SHIFT];
       me->HandleKey(symbol);
       if (symbol && me->mRepeatRate > 0 && me->mXKBkeymap && xkb_keymap_key_repeats(me->mXKBkeymap, key + 8)) { // Wayland compositors do not repeat keys, the client must do it
         me->mRepeatKeyCode = key;
@@ -268,7 +267,6 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
       }
     } else {
       me->mKeys[keyPress] = false;
-      me->mKeysShift[keyPress] = false;
       if ((int64_t)key == me->mRepeatKeyCode) {
         me->mRepeatKeyCode = -1;
       }
