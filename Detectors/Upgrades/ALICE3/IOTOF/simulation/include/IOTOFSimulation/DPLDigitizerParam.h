@@ -31,15 +31,6 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
   float tdcBin = 0.010f;         ///< TDC time bin (10 ps default)
   float efficiency = 0.98f;      ///< detection efficiency
 
-  // Optional map paths. Prefix with "ccdb://" to fetch from CCDB, otherwise the path is opened with TFile::Open
-  // (local file, alien://, root://, ...). An empty path disables the map.
-  std::string efficiencyMapPath{};    ///< optional efficiency map path.
-                                      ///< e.g. ccdb://Users/g/glucia/tmp/ALICE3/IOTOF/pixelEfficiency
-                                      ///< or alien:///alice/cern.ch/user/g/glucia/ALICE3/IOTOF/pixelEfficiency/PixelEfficiencyMap_TH2.root
-  std::string resolutionMapPath{};    ///< optional resolution map path.
-                                      ///< e.g. alien:///alice/cern.ch/user/g/glucia/ALICE3/IOTOF/pixelEfficiency/PixelResolutionMap_TH2.root
-  std::string timeOfArrivalMapPath{}; ///< optional time of arrival map path.
-
   int chargeThreshold = 100;              ///< charge threshold in Nelectrons
   int minChargeToAccount = 7;             ///< minimum charge contribution to account
   int nSimSteps = 10;                     ///< number of steps in response simulation
