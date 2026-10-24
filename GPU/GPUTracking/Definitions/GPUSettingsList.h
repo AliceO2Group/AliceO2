@@ -534,6 +534,7 @@ AddOption(displayFrontend, std::string, "auto", "displayFrontend", 0, "Frontend 
 AddOptionVec(filterMacros, std::string, "", 0, "ROOT macros used as track filter")
 AddOption(guiReplyTimeout, uint32_t, 100, "", 0, "Time in ms the Qt GUI waits at most for the display to process its update")
 AddOption(guiMaxUpdatesAhead, uint32_t, 3, "", 0, "Number of updates the Qt GUI may send ahead of the last one the display has processed, before it waits for the display")
+AddOption(listFrontendOptionHandling, bool, false, "", 0, "List all assigned keys in frontend, Configurable settings in Qt GUI, and missing configuration options")
 AddSubConfig(GPUSettingsDisplayLight, light)
 AddSubConfig(GPUSettingsDisplayHeavy, heavy)
 AddSubConfig(GPUSettingsDisplayRenderer, renderer)
