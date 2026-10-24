@@ -399,7 +399,6 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
         case KeyPress: {
           int32_t handleKey = 0, keyPress = 0;
           GetKey(event, handleKey, keyPress);
-          mKeysShift[keyPress] = mKeys[KEY_SHIFT];
           mKeys[keyPress] = true;
           HandleKey(handleKey);
           break;
@@ -409,7 +408,6 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
           int32_t handleKey = 0, keyPress = 0;
           GetKey(event, handleKey, keyPress);
           mKeys[keyPress] = false;
-          mKeysShift[keyPress] = false;
           break;
         }
 
