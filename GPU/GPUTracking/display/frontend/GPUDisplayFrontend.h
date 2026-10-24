@@ -142,6 +142,7 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   bool HandleExternalGUIKeys(); // Returns whether keys were handled, config changes are not handled
   template <typename... Args>
   void add_key_binding(Args&&... args); // KEY_LAMBDA(key, ...) entries, the help text, and optionally the keys to show in the help text, only used in GPUDisplayFrontendConfig.cxx
+  void listConfig();
 };
 } // namespace o2::gpu
 
