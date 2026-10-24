@@ -89,35 +89,9 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   static constexpr int32_t MIN_WIDTH = 200, MIN_HEIGHT = 150;                           // Minimum window size
   static constexpr const char* DISPLAY_WINDOW_NAME = "GPU CA Standalone Event Display"; // Title of event display set by backend
   // Constant key codes for special mKeys (to unify different treatment in X11 / Windows / GLUT / etc.)
-  static constexpr int32_t KEY_UP = 1;
-  static constexpr int32_t KEY_DOWN = 2;
-  static constexpr int32_t KEY_LEFT = 3;
-  static constexpr int32_t KEY_RIGHT = 4;
-  static constexpr int32_t KEY_PAGEUP = 5;
-  static constexpr int32_t KEY_PAGEDOWN = 6;
-  static constexpr int32_t KEY_SHIFT = 8;
-  static constexpr int32_t KEY_ALT = 9;
-  static constexpr int32_t KEY_RALT = 10;
-  static constexpr int32_t KEY_CTRL = 11;
-  static constexpr int32_t KEY_RCTRL = 12;
-  static constexpr int32_t KEY_ENTER = 13; // fixed at 13
-  static constexpr int32_t KEY_F1 = 14;
-  static constexpr int32_t KEY_F2 = 15;
-  static constexpr int32_t KEY_F3 = 16;
-  static constexpr int32_t KEY_F4 = 17;
-  static constexpr int32_t KEY_F5 = 18;
-  static constexpr int32_t KEY_F6 = 19;
-  static constexpr int32_t KEY_F7 = 20;
-  static constexpr int32_t KEY_F8 = 21;
-  static constexpr int32_t KEY_F9 = 22;
-  static constexpr int32_t KEY_F10 = 23;
-  static constexpr int32_t KEY_F11 = 24;
-  static constexpr int32_t KEY_F12 = 25;
-  static constexpr int32_t KEY_INSERT = 26;
-  static constexpr int32_t KEY_ESCAPE = 27; // fixed at 27
-  static constexpr int32_t KEY_HOME = 28;
-  static constexpr int32_t KEY_END = 29;
-  static constexpr int32_t KEY_SPACE = 32; // fixed at 32
+#define GPUDisplayFrontendAddKey(code, key) static constexpr int32_t KEY_##key = code
+#include "GPUDisplayFrontendKeys.h"
+#undef GPUDisplayFrontendAddKey
 
   // volatile variables to exchange control informations between display and backend
   volatile int32_t mDisplayControl = 0; // Control for next event (=1) or quit (=2)
