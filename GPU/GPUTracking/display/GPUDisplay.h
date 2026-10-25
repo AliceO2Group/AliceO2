@@ -21,6 +21,7 @@
 #include "GPUSettings.h"
 #include "DataFormatsTPC/Constants.h"
 
+#include <atomic>
 #include <array>
 #include <mutex>
 #include <condition_variable>
@@ -85,6 +86,17 @@ class GPUDisplay : public GPUDisplayInterface
   GPUDisplayFrontend* frontend() { return mFrontend; }
   bool drawTextInCompatMode() const { return mDrawTextInCompatMode; }
   int32_t& drawTextFontSize() { return mDrawTextFontSize; }
+
+  struct control {
+    std::atomic<int32_t> mDisplayControl = 0; // Control for next event (=1) or quit (=2)
+    std::atomic<bool> mResetScene = false;
+    int32_t mPrintInfoText = 1;
+    bool mPrintInfoTextAlways = false;
+    bool mRequestScreenshot = false;
+    int32_t mAnimateScreenshot = 0;
+    bool mAnimationChangeConfig = true;
+    bool dummy = false; // dummy value to reference for keys that do not change variables
+  } mCfgC;
 
  private:
   void buildConfig(); // Key bindings / config RTTI of the frontend, in GPUDisplayFrontendConfig.cxx
@@ -292,7 +304,6 @@ class GPUDisplay : public GPUDisplayInterface
   volatile bool mUpdateEventData = false;
   volatile bool mUpdateDrawCommands = true;
   volatile bool mUpdateRenderPipeline = false;
-  volatile bool mResetScene = false;
   volatile bool mLoadAndShowEvent = false;
   bool mTracksArePropagated = false;
 
@@ -301,16 +312,12 @@ class GPUDisplay : public GPUDisplayInterface
   int32_t mAnimationFrame = 0;
   int32_t mAnimationLastBase = 0;
   int32_t mAnimationMixBase = -1; // Target keyframe of the current config blend (mixing), -1 = none
-  int32_t mAnimateScreenshot = 0;
   int32_t mAnimationExport = 0;
-  bool mAnimationChangeConfig = true;
   float mAnimationDelay = 2.f;
   vecpod<float> mAnimateVectors[9];
   vecpod<GPUSettingsDisplayLight> mAnimateConfig;
   opengl_spline mAnimationSplines[8];
 
-  int32_t mPrintInfoText = 1;
-  bool mPrintInfoTextAlways = 0;
   char mInfoText2[1024];
   HighResTimer mInfoText2Timer, mInfoHelpTimer;
 
@@ -328,7 +335,6 @@ class GPUDisplay : public GPUDisplayInterface
   vboList mGlDLGrid[NSECTORS];
   vboList mGlDLGridTRD[NSECTORS / 2];
 
-  bool mRequestScreenshot = false;
   std::string mScreenshotFile;
 
   float mYFactor = 1.0f;

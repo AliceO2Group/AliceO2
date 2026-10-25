@@ -83,13 +83,13 @@ void GPUDisplay::HandleKey(uint8_t key, bool doNotHandleConfigChanges)
   const GPUSettingsDisplayLight oldCfgL = mCfgL;
   const GPUSettingsDisplayRenderer oldCfgR = mCfgR;
   if (key == 'n') {
-    mFrontend->mDisplayControl = 1;
+    mCfgC.mDisplayControl.store(1);
     SetInfo("Showing next event", 1);
   } else if (key == mFrontend->KEY_ESCAPE) {
-    mFrontend->mDisplayControl = 2;
+    mCfgC.mDisplayControl.store(2);
     SetInfo("Exiting", 1);
   } else if (key == 'r') {
-    mResetScene = true;
+    mCfgC.mResetScene.store(true);
     SetInfo("View reset", 1);
   } else if (key == mFrontend->KEY_ALT && mFrontend->mKeys[mFrontend->KEY_SHIFT]) {
     mCfgR.camLookOrigin ^= 1;
@@ -178,9 +178,9 @@ void GPUDisplay::HandleKey(uint8_t key, bool doNotHandleConfigChanges)
       SetInfo("FPS limit: none");
     }
   } else if (key == 'H') {
-    mPrintInfoText += 1;
-    mPrintInfoText &= 3;
-    SetInfo("Info text display - console: %s, onscreen %s", (mPrintInfoText & 2) ? "enabled" : "disabled", (mPrintInfoText & 1) ? "enabled" : "disabled");
+    mCfgC.mPrintInfoText += 1;
+    mCfgC.mPrintInfoText &= 3;
+    SetInfo("Info text display - console: %s, onscreen %s", (mCfgC.mPrintInfoText & 2) ? "enabled" : "disabled", (mCfgC.mPrintInfoText & 1) ? "enabled" : "disabled");
   } else if (key == 'j') {
     if (mCfgH.separateExtrapolatedTracks) {
       mCfgH.splitCETracks ^= 1;
@@ -361,7 +361,7 @@ void GPUDisplay::HandleKey(uint8_t key, bool doNotHandleConfigChanges)
     static int32_t nScreenshot = 1;
     char fname[32];
     snprintf(fname, 32, "screenshot%d.bmp", nScreenshot++);
-    mRequestScreenshot = true;
+    mCfgC.mRequestScreenshot = true;
     mScreenshotFile = fname;
     SetInfo("Taking screenshot (%s)", fname);
   } else if (key == 'Z') {
@@ -371,11 +371,11 @@ void GPUDisplay::HandleKey(uint8_t key, bool doNotHandleConfigChanges)
     }
     SetInfo("Screenshot scaling factor set to %d", mCfgR.screenshotScaleFactor);
   } else if (key == 'T') {
-    mAnimateScreenshot ^= 1;
-    SetInfo("Writing screenshots from animation set to %d", (int32_t)mAnimateScreenshot);
+    mCfgC.mAnimateScreenshot ^= 1;
+    SetInfo("Writing screenshots from animation set to %d", mCfgC.mAnimateScreenshot);
   } else if (key == 'y') {
     if (mAnimateVectors[0].size() > 1) {
-      if ((mAnimateScreenshot = (key == 'T'))) {
+      if (mCfgC.mAnimateScreenshot) {
         mAnimationExport++;
       }
       startAnimation();
@@ -384,8 +384,8 @@ void GPUDisplay::HandleKey(uint8_t key, bool doNotHandleConfigChanges)
       SetInfo("Insufficient Animation points to start Animation", 1);
     }
   } else if (key == '>') {
-    mAnimationChangeConfig ^= 1;
-    SetInfo("Interpolating visualization settings during Animation %s", mAnimationChangeConfig ? "enabled" : "disabled");
+    mCfgC.mAnimationChangeConfig ^= 1;
+    SetInfo("Interpolating visualization settings during Animation %s", mCfgC.mAnimationChangeConfig ? "enabled" : "disabled");
   } else if (key == 'Y') {
     setAnimationPoint();
     SetInfo("Added Animation point (%d points, %6.2f seconds)", (int32_t)mAnimateVectors[0].size(), mAnimateVectors[0].back());
@@ -407,7 +407,6 @@ void GPUDisplay::HandleKey(uint8_t key, bool doNotHandleConfigChanges)
     }
   } else if (key == 'u') {
     mCfgH.trackFilter = (mCfgH.trackFilter + 1) % (mConfig.filterMacros.size() + 1);
-    mUpdateTrackFilter = true;
     SetInfo("Track filter: %s", mCfgH.trackFilter == 0 ? "None" : mConfig.filterMacros[mCfgH.trackFilter - 1].c_str());
   } else if (key == 'o') {
     FILE* ftmp = fopen("glpos.tmp", "w+b");
@@ -472,11 +471,11 @@ void GPUDisplay::HandleKey(uint8_t key, bool doNotHandleConfigChanges)
     }
     SetInfo("Animation path loaded from file %s", "glanimation.tmp");
   } else if (key == 'h') {
-    if (mPrintInfoTextAlways) {
-      mPrintInfoTextAlways = false;
+    if (mCfgC.mPrintInfoTextAlways) {
+      mCfgC.mPrintInfoTextAlways = false;
       SetInfo("Showing help text disabled", 1);
     } else if (mInfoHelpTimer.IsRunning()) {
-      mPrintInfoTextAlways = true;
+      mCfgC.mPrintInfoTextAlways = true;
       mInfoHelpTimer.Reset();
       SetInfo("Showing help text until disabled", 1);
     } else {

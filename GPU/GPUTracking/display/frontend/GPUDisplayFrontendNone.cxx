@@ -31,6 +31,6 @@ int32_t GPUDisplayFrontendNone::FrontendMain()
     HandleExternalGUISignals();
     DrawGLScene();
     waitForFPSLimit();
-  } while (mDisplayControl != 2);
+  } while (getDisplayControl() != 2);
   return 0;
 }

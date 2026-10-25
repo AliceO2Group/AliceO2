@@ -148,7 +148,7 @@ void GPUDisplay::ResizeScene(int32_t width, int32_t height, bool init)
   mBackend->resizeScene(width, height);
 
   if (init) {
-    mResetScene = true;
+    mCfgC.mResetScene.store(true);
     *mViewMatrix = MY_HMM_IDENTITY;
     *mModelMatrix = MY_HMM_IDENTITY;
   }
@@ -268,7 +268,7 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
 
   if (animateCamera(animateTime, mixSlaveImage, nextViewMatrix)) {
     // Do nothing else
-  } else if (mResetScene) {
+  } else if (mCfgC.mResetScene.load()) {
     const float initialZpos = mCfgH.projectXY ? 16 : (mParam->par.continuousTracking ? (mMaxClusterZ * GL_SCALE_FACTOR + 8) : 8);
     nextViewMatrix = nextViewMatrix * HMM_Translate({{0, 0, -initialZpos}});
     *mViewMatrix = MY_HMM_IDENTITY;
@@ -284,7 +284,7 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
     mCfgR.fov = 45.f;
     mUpdateDrawCommands = true;
 
-    mResetScene = false;
+    mCfgC.mResetScene.store(false);
   } else {
     float moveZ = scalefactor * ((float)mMouseWheelTmp / 150 + (float)(mFrontend->mKeys[(uint8_t)'W'] - mFrontend->mKeys[(uint8_t)'S']) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]) * 0.2f * mFPSScale);
     float moveY = scalefactor * ((float)(mFrontend->mKeys[mFrontend->KEY_PAGEDOWN] - mFrontend->mKeys[mFrontend->KEY_PAGEUP]) * 0.2f * mFPSScale);
@@ -629,18 +629,18 @@ void GPUDisplay::DrawGLScene_drawCommands()
 
 void GPUDisplay::DrawGLScene_internal(float animateTime, bool renderToMixBuffer) // negative time = no mixing
 {
-  if (mRequestScreenshot || mAnimateScreenshot) {
+  if (mCfgC.mRequestScreenshot || mCfgC.mAnimateScreenshot) {
     const uint32_t factor = std::max(1, mCfgR.drawQualityDownsampleFSAA) * std::max(1, mCfgR.screenshotScaleFactor);
     if (std::max(mBackend->mScreenWidth, mBackend->mScreenHeight) * factor > mBackend->mMaxRenderSize) {
       GPUError("Screenshot not taken: requested render size %u x %u (window x FSAA x screenshot scale) exceeds the maximum size %u x %u", mBackend->mScreenWidth * factor, mBackend->mScreenHeight * factor, mBackend->mMaxRenderSize, mBackend->mMaxRenderSize);
-      mRequestScreenshot = false;
-      mAnimateScreenshot = 0;
+      mCfgC.mRequestScreenshot = false;
+      mCfgC.mAnimateScreenshot = 0;
     }
   }
-  bool doScreenshot = (mRequestScreenshot || mAnimateScreenshot) && animateTime < 0;
+  bool doScreenshot = (mCfgC.mRequestScreenshot || mCfgC.mAnimateScreenshot) && animateTime < 0;
 
   updateOptions();
-  if (animateTime < 0 && (mUpdateEventData || mResetScene || mUpdateVertexLists) && mIOPtrs) {
+  if (animateTime < 0 && (mUpdateEventData || mCfgC.mResetScene.load() || mUpdateVertexLists) && mIOPtrs) {
     disableUnsupportedOptions();
   }
   if (mUpdateEventData || mUpdateVertexLists) {
@@ -648,7 +648,7 @@ void GPUDisplay::DrawGLScene_internal(float animateTime, bool renderToMixBuffer)
   }
 
   HighResTimer timerDraw(mUpdateVertexLists);
-  if (animateTime < 0 && (mUpdateEventData || mResetScene) && mIOPtrs) {
+  if (animateTime < 0 && (mUpdateEventData || mCfgC.mResetScene.load()) && mIOPtrs) {
     timerDraw.ResetStart();
     DrawGLScene_updateEventData();
     mTimerFPS.ResetStart();
@@ -675,7 +675,7 @@ void GPUDisplay::DrawGLScene_internal(float animateTime, bool renderToMixBuffer)
   const float zFar = ((mParam->par.continuousTracking ? (mMaxClusterZ * GL_SCALE_FACTOR) : 8.f) + 50.f) * 2.f;
   const float aspect = mBackend->mRenderHeight ? (float)mBackend->mRenderWidth / (float)mBackend->mRenderHeight : 1.f; // No render size with the None backend
   const hmm_mat4 proj = HMM_Perspective(mCfgR.fov, aspect, 0.1f, zFar);
-  if (!mBackend->prepareDraw(proj, nextViewMatrix, doScreenshot || mRequestScreenshot, renderToMixBuffer, mixSlaveImage)) {
+  if (!mBackend->prepareDraw(proj, nextViewMatrix, doScreenshot || mCfgC.mRequestScreenshot, renderToMixBuffer, mixSlaveImage)) {
     return; // No image available (e.g. hidden window), retry with the next frame
   }
   mBackend->pointSizeFactor(1);
@@ -706,7 +706,7 @@ void GPUDisplay::DrawGLScene_internal(float animateTime, bool renderToMixBuffer)
              fps, mCfgL.drawSector, mCfgL.drawClusters, mCfgL.drawInitLinks, mCfgL.drawLinks, mCfgL.drawSeeds, mCfgL.drawTracklets, mCfgL.drawTracks, mCfgL.drawExtrapolatedTracks, mCfgL.drawFinal, mFramesDone, mNDrawCalls, mXYZ[0], mXYZ[1], mXYZ[2], mRPhiTheta[0], mRPhiTheta[1] * 180 / CAMath::Pi(),
              mRPhiTheta[2] * 180 / CAMath::Pi(), mAngle[1] * 180 / CAMath::Pi(), mAngle[0] * 180 / CAMath::Pi(), mAngle[2] * 180 / CAMath::Pi());
     if (fpstime > 1.) {
-      if (mPrintInfoText & 2) {
+      if (mCfgC.mPrintInfoText & 2) {
         GPUInfo("%s", info);
       }
       if (mFPSScaleadjust++) {
@@ -716,20 +716,20 @@ void GPUDisplay::DrawGLScene_internal(float animateTime, bool renderToMixBuffer)
       mFramesDoneFPS = 0;
     }
 
-    if (mPrintInfoText & 1) {
+    if (mCfgC.mPrintInfoText & 1) {
       showInfo(info);
     }
   }
 
-  mBackend->finishFrame(mRequestScreenshot, renderToMixBuffer, mixSlaveImage);
+  mBackend->finishFrame(mCfgC.mRequestScreenshot, renderToMixBuffer, mixSlaveImage);
   if (doScreenshot) {
-    mRequestScreenshot = false;
+    mCfgC.mRequestScreenshot = false;
     std::vector<char> pixels = mBackend->getPixels();
     char tmpFileName[48];
-    if (mAnimateScreenshot) {
+    if (mCfgC.mAnimateScreenshot) {
       snprintf(tmpFileName, 48, "mAnimation%d_%05d.bmp", mAnimationExport, mAnimationFrame);
     }
-    DoScreenshot(mAnimateScreenshot ? tmpFileName : mScreenshotFile.c_str(), pixels);
+    DoScreenshot(mCfgC.mAnimateScreenshot ? tmpFileName : mScreenshotFile.c_str(), pixels);
   }
 }
 
@@ -739,9 +739,8 @@ void GPUDisplay::ShowNextEvent(const GPUTrackingInOutPointers* ptrs)
     mIOPtrs = ptrs;
   }
   if (mMaxClusterZ <= 0) {
-    mResetScene = true;
+    mCfgC.mResetScene.store(true);
   }
-  mFrontend->mNeedUpdate = 1;
   mUpdateEventData = true;
   mLoadAndShowEvent = true;
   mSemLockDisplay.Unlock();

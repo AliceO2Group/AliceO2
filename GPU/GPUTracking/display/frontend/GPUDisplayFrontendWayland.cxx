@@ -509,7 +509,7 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
   };
 
   auto xdg_toplevel_handle_close = [](void* data, xdg_toplevel* toplevel) {
-    ((GPUDisplayFrontendWayland*)data)->mDisplayControl = 2;
+    ((GPUDisplayFrontendWayland*)data)->mDisplay->mCfgC.mDisplayControl.store(2);
   };
 #ifdef XDG_TOPLEVEL_CONFIGURE_BOUNDS_SINCE_VERSION
   auto xdg_toplevel_handle_configure_bounds = [](void* data, xdg_toplevel* toplevel, int32_t width, int32_t height) {
@@ -583,7 +583,7 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
     mDisplayRunning = true;
   }
 
-  while (mDisplayControl != 2) {
+  while (mDisplay->mCfgC.mDisplayControl.load() != 2) {
     bool error = false;
     while (!error && wl_display_prepare_read(mWayland) != 0) {
       error = wl_display_dispatch_pending(mWayland) == -1;
@@ -606,7 +606,7 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
       reportError("dispatching events");
       break;
     }
-    if (mDisplayControl == 2) {
+    if (mDisplay->mCfgC.mDisplayControl.load() == 2) {
       break;
     }
     handleKeyRepeat();

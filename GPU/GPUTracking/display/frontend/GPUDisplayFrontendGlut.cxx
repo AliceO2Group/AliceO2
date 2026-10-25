@@ -273,7 +273,7 @@ int32_t GPUDisplayFrontendGlut::FrontendMain()
   glutMainLoop();
   {
     std::lock_guard lock(mExitStateMutex);
-    mDisplayControl = 2;
+    setDisplayControl(2);
     mDisplayRunning = false;
   }
 

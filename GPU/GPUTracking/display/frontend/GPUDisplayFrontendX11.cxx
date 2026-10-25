@@ -355,7 +355,7 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
 
   while (1) {
     do {
-      if (mDisplayControl == 2) {
+      if (getDisplayControl() == 2) {
         break;
       }
       if (!XPending(mXDisplay)) {
@@ -442,13 +442,13 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
           if (event.xclient.message_type == XInternAtom(mXDisplay, "_NET_WM_STATE", False)) {
             XFlush(mXDisplay);
           } else {
-            mDisplayControl = 2;
+            setDisplayControl(2);
           }
           break;
         }
       }
     } while (XPending(mXDisplay)); // Loop to compress events
-    if (mDisplayControl == 2) {
+    if (getDisplayControl() == 2) {
       break;
     }
 
