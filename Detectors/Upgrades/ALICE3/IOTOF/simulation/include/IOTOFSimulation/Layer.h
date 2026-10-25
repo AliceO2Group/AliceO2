@@ -42,6 +42,7 @@ class Layer
   static constexpr int kDisk = 1;
   static constexpr int kBarrelSegmented = 2;
   static constexpr int kDiskSegmented = 3;
+  static constexpr int kBarrelStaggered = 4;
 
   virtual void createLayer(TGeoVolume* motherVolume) {};
 
@@ -73,6 +74,8 @@ class ITOFLayer : public Layer
   using Layer::Layer;
   virtual void createLayer(TGeoVolume* motherVolume) override;
   static std::vector<std::string> mRegister;
+
+  static const double sStaggerRadialShift;
 
  private:
 };

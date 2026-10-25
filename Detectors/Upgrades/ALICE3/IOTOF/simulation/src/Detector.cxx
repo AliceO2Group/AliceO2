@@ -130,7 +130,7 @@ void Detector::configLayers(bool itof, bool otof, bool ftof, bool btof, std::str
     const double staveTiltAngle = itofSegmented ? iotofPars.itofStaveTilt : 0.0; // degrees
     const int modulesPerStave = itofSegmented ? 7 : 0;                           // number of modules per stave in segmented case
     mITOFLayer = ITOFLayer(name,
-                           dInnerTof.first, 0.f, dInnerTof.second, 0.f, x2x0, itofSegmented ? ITOFLayer::kBarrelSegmented : ITOFLayer::kBarrel,
+                           dInnerTof.first, 0.f, dInnerTof.second, 0.f, x2x0, itofSegmented ? (iotofPars.itofTurbo ? ITOFLayer::kBarrelSegmented : ITOFLayer::kBarrelStaggered) : ITOFLayer::kBarrel,
                            nStaves, staveWidth, staveTiltAngle, modulesPerStave, itofSegmented ? sensorThickness : 0.0f);
   }
   if (otof) { // oTOF
