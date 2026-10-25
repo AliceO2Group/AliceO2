@@ -25,11 +25,13 @@ enum class GroupedSlicePolicy { IncludeEmpty,
                                 SkipEmpty };
 
 template <typename T>
-struct SupportsEmptyAssociatedGate : std::false_type {};
+struct SupportsEmptyAssociatedGate : std::false_type {
+};
 
 template <aod::is_aod_hash L, aod::is_aod_hash D, aod::is_origin_hash O, typename... C>
 struct SupportsEmptyAssociatedGate<soa::Table<L, D, O, C...>>
-  : std::bool_constant<O::hash != "JOIN"_h && O::hash != "CONC"_h> {};
+  : std::bool_constant<O::hash != "JOIN"_h && O::hash != "CONC"_h> {
+};
 
 // Create an instance of a tuple interleaved from given tuples
 template <typename... T1s, typename... T2s, std::size_t... Is>

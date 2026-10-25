@@ -7,7 +7,7 @@
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
-// and does not submit itself to any jurisdiction.
+// or submit itself to any jurisdiction.
 
 #include "Framework/ASoA.h"
 #include "Framework/AnalysisDataModel.h"
