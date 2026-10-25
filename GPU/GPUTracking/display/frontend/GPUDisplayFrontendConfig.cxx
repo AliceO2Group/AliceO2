@@ -71,8 +71,12 @@ struct GPUDisplayFrontend::configRTTIInfo {
   template <class T, class M>
   uint32_t getRTTIIndex(GPUDisplay& display, M T::* member) // RTTI index of a direct member of a config struct
   {
-    const T& obj = configStruct<T>(display);
-    return rttiReverseId[configStructIndex<T>()][(const char*)&(obj.*member) - (const char*)&obj];
+    if constexpr (std::is_same_v<T, GPUDisplay::control>) {
+      return INVALID_INDEX;
+    } else {
+      const T& obj = configStruct<T>(display);
+      return rttiReverseId[configStructIndex<T>()][(const char*)&(obj.*member) - (const char*)&obj];
+    }
   }
   void buildHelpText() // Keys left-aligned, the ':' aligned after the longest keys
   {
@@ -126,6 +130,9 @@ void GPUDisplay::checkAndApplyConfigChanges(const GPUSettingsDisplayHeavy& oldCf
   }
   if (oldCfgL.animationMode != mCfgL.animationMode) {
     resetAnimation();
+  }
+  if (oldCfgH.trackFilter != mCfgH.trackFilter) {
+    mUpdateTrackFilter = true;
   }
 }
 

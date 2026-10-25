@@ -68,8 +68,8 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   virtual int32_t getVulkanSurface(void* instance, void* surface) { return 1; }
   virtual uint32_t getReqVulkanExtensions(const char**& p) { return 0; };
 
-  int32_t getDisplayControl() const override { return mDisplayControl; }
-  void setDisplayControl(int32_t v) override { mDisplayControl = v; }
+  int32_t getDisplayControl() const override;
+  void setDisplayControl(int32_t v) override;
   void sendExternalGUIKey(int32_t v) override;
 
   frontendTypes frontendType() const { return mFrontendType; }
@@ -93,9 +93,6 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
 #include "GPUDisplayFrontendKeys.h"
 #undef GPUDisplayFrontendAddKey
 
-  // volatile variables to exchange control informations between display and backend
-  volatile int32_t mDisplayControl = 0; // Control for next event (=1) or quit (=2)
-  volatile int32_t mNeedUpdate = 0;     // flag that backend shall update the GL window, and call DrawGLScene
   std::mutex mExternalGUIKeyMutex;
   std::vector<int32_t> mExternalGUIKeys; // Keys sent by external entity (usually console), may be ignored by backend.
   std::mutex mExitStateMutex;
