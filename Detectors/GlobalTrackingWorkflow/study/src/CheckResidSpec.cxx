@@ -204,6 +204,13 @@ void CheckResidSpec::run(ProcessingContext& pc)
     quit = true;
   }
   if (quit) {
+    if (mPostProcOnly && o2::checkresid::CheckResidConfig::Instance().savePostprocessed) {
+      for (const auto& hm : mHManV) {
+        if (hm) {
+          hm->write();
+        }
+      }
+    }
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     return;
@@ -874,6 +881,9 @@ void CheckResidSpec::postProcessHistos()
   TObjArray arr;
   for (int ihm = 0; ihm < maxH; ihm++) {
     auto* histm = mHManV[ihm].get();
+    if (!histm) {
+      continue;
+    }
     auto fitSlices = [&](int id) {
       auto h2 = histm->getHisto2F(id);
       if (!h2 || h2->GetEntries() < params.minHistoStat2Fit) {
@@ -927,7 +937,7 @@ void CheckResidSpec::postProcessHistos()
 void CheckResidSpec::drawHistos()
 {
   // gROOT->SetBatch(true);
-  gStyle->SetTitleX(0.2);
+  gStyle->SetTitleX(0.3);
   gStyle->SetTitleY(0.88);
   gStyle->SetTitleW(0.25);
   gStyle->SetOptStat(0);
@@ -1191,9 +1201,12 @@ void CheckResidSpec::drawHistos()
   czlpar.Print(mainPdf.c_str());
 
   auto getHMinMax = [this](int id, float marginFrac, float maxDev, int roundToMicrons) -> std::tuple<float, float, float> {
-    float maxV = std::numeric_limits<float>::min(), minV = std::numeric_limits<float>::max();
+    float maxV = std::numeric_limits<float>::lowest(), minV = std::numeric_limits<float>::max();
     const int nh = this->mHManV.size();
     for (int j = 0; j < nh; j++) {
+      if (!this->mHManV[j]) {
+        continue;
+      }
       if (auto histo = this->mHManV[j]->getHisto(id); histo != nullptr) {
         const int nb = histo->GetNbinsX();
         for (int ib = 1; ib <= nb; ib++) {
@@ -1229,54 +1242,92 @@ void CheckResidSpec::drawHistos()
     hout->SetMarkerStyle(hin->GetMarkerStyle());
   };
   int nh = this->mHManV.size();
-  // draws the per-chip dy/dz mean+sigma pages (standard idOffset=0, or IOB idOffset=100000) into pdfName
+  // Draw per-chip residual/pull means and sigmas, and their half-barrel and full-layer spreads.
   auto drawChipPages = [&](const std::string& pdfName, int idOffset) {
     for (int il = 1; il < 8; ++il) {
-      for (int ib = 0; ib < 2; ib++) {
-        cchip.Clear();
-        cchip.Divide(1, 4);
-        for (int iyz = 0; iyz < 2; iyz++) {
-          for (int iv = 0; iv < 2; iv++) { // mean or sigma
-            const float yRange = (iyz == 0 ? params.resMMLrY[il] : params.resMMLrZ[il]) * (idOffset ? params.IOBScaleFactor : 1.f);
-            bool drawn = false;
-            const int id = idOffset + 15000 + iyz * 10 + (2 * il + ib) * 100 + 1 + iv;
-            auto [minV, maxV, absMax] = getHMinMax(id, 0.15, (iv == 0 ? 2 : 8) * yRange, 10);
-            TH1* firstAuto = nullptr;
-            float maxAuto = 0.f;
-            for (int j = 0; j < nh; j++) {
-              auto hman = this->mHManV[j].get();
-              auto histo = hman->getHisto(id);
-              if (histo) {
-                histo->SetMaximum(absMax);
-                histo->SetMinimum(iv ? 0 : -absMax);
-                if (il > 3) {
-                  histo->SetMarkerSize(0.3);
-                  histo->SetLineStyle(3);
+      for (int iht = 0; iht < 2; iht++) { // residual or pull
+        for (int ib = 0; ib < 3; ib++) {  // two half-barrels, then the full layer
+          if (iht == 1 && ib < 2) {
+            continue; // Draw pulls only for the full layer.
+          }
+          for (int iyz = 0; iyz < 2; iyz++) {
+            cchip.Clear();
+            cchip.Divide(1, ib == 2 ? 2 : 4);
+            bool havePage = false;
+            for (int iv = 0; iv < 2; iv++) { // mean or sigma
+              const float yRange = (iyz == 0 ? params.resMMLrY[il] : params.resMMLrZ[il]) * (idOffset ? params.IOBScaleFactor : 1.f);
+              const int baseID = idOffset + 15000 + iyz * 10 + 2 * il * 100 + iht * 5 + 1 + iv;
+              // Use common spread axes for both half-barrels and their full-layer sum.
+              auto [minV, maxV, absMax] = getHMinMax(baseID, 0.15, (iv == 0 ? 2 : 8) * yRange, 10);
+              auto [minV1, maxV1, absMax1] = getHMinMax(baseID + 100, 0.15, (iv == 0 ? 2 : 8) * yRange, 10);
+              minV = std::min(minV, minV1);
+              maxV = std::max(maxV, maxV1);
+              absMax = std::max(absMax, absMax1);
+              if (iht == 1) {
+                minV = iv ? 0.f : -params.maxPull;
+                maxV = absMax = params.maxPull;
+              }
+              bool drawn = false;
+              TH1* firstAuto = nullptr;
+              float maxAuto = 0.f;
+              for (int j = 0; j < nh; j++) {
+                auto hman = this->mHManV[j].get();
+                if (!hman) {
+                  continue;
                 }
-                cchip.cd(2 * iv + 1);
-                histo->Draw(drawn ? "same" : "");
-                if (!drawn) {
-                  gPad->SetGrid();
+                TH1* hmeans = nullptr;
+                for (int hb = ib == 2 ? 0 : ib; hb < (ib == 2 ? 2 : ib + 1); hb++) {
+                  const int id = baseID + hb * 100;
+                  auto histo = hman->getHisto(id);
+                  if (!histo) {
+                    continue;
+                  }
+                  if (!hmeans) {
+                    if (ib == 2) {
+                      hmeans = new TH1F(Form("%s_layer_spread", histo->GetName()), Form("Lr%d %s %s spread", il - 1, chipTitles[2 * iyz + iht], iv ? "sigma" : "mean"), params.nBinsRes, iv == 0 ? minV : std::max(0.f, minV), maxV);
+                      hman->addHisto(hmeans, idOffset + 25000 + il * 100 + iyz * 10 + iht * 5 + iv);
+                    } else {
+                      hmeans = new TH1F(Form("%s_spread", histo->GetName()), Form("%s spread;#<Delta>", histo->GetTitle()), params.nBinsRes, iv == 0 ? minV : std::max(0.f, minV), maxV);
+                      hman->addHisto(hmeans, id + 2);
+                    }
+                  }
+                  if (iht == 0) {
+                    hmeans->SetXTitle(iv ? "<#sigma>, cm" : "<#Delta>, cm");
+                  }
+                  collectSpread(histo, hmeans);
+                  if (ib < 2) {
+                    histo->SetMaximum(absMax);
+                    histo->SetMinimum(iv ? 0 : -absMax);
+                    if (il > 3) {
+                      histo->SetMarkerSize(0.3);
+                      histo->SetLineStyle(3);
+                    }
+                    cchip.cd(2 * iv + 1);
+                    histo->Draw(drawn ? "same" : "");
+                    gPad->SetGrid();
+                  }
                 }
-                auto hmeans = new TH1F(Form("%s_spread", histo->GetName()), Form("%s spread", histo->GetTitle()), params.nBinsRes, iv == 0 ? minV : std::max(0.f, minV), maxV);
-                collectSpread(histo, hmeans);
-                hman->addHisto(hmeans, id + 2);
-                cchip.cd(2 * iv + 2);
+                if (!hmeans) {
+                  continue;
+                }
+                cchip.cd(ib == 2 ? iv + 1 : 2 * iv + 2);
                 if (!drawn) {
                   firstAuto = hmeans;
                 }
                 maxAuto = std::max(maxAuto, (float)hmeans->GetMaximum());
                 hmeans->Draw(drawn ? "same" : "");
-                drawn = true;
+                drawn = havePage = true;
+              }
+              if (firstAuto) {
+                firstAuto->SetMaximum(maxAuto * 1.25);
+                gPad->SetGrid();
+                gPad->Modified();
               }
             }
-            if (firstAuto) {
-              firstAuto->SetMaximum(maxAuto * 1.25);
-              gPad->SetGrid();
-              gPad->Modified();
+            if (havePage) {
+              cchip.Print(pdfName.c_str());
             }
           }
-          cchip.Print(pdfName.c_str());
         }
       }
     }
@@ -1310,7 +1361,7 @@ void CheckResidSpec::endOfStream(EndOfStreamContext& ec)
   if (mDraw) {
     drawHistos();
   }
-  if (auto nh = mHManV.size(); nh > 0) {
+  if (auto nh = mHManV.size(); nh > 0 && !mPostProcOnly) {
     for (int ihm = 0; ihm < nh; ihm++) {
       if (mHManV[ihm]) {
         mHManV[ihm].get()->write();
