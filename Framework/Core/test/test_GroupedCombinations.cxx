@@ -214,8 +214,6 @@ TEST_CASE("Grouped combinations preserve default stream and skip empty slices on
     }
   }
 
-  // The seven-event data frame has two populated categories and one outsider.
-  // No combination may cross the category boundary or include the outsider.
   UpperPair upper{fixture.binning, 2, -1, fixture.events, associated, &fixture.cache};
   const auto upperEligible = readPair(upper, true);
   REQUIRE(upperEligible == (std::vector<std::string>{"0:1:200:301", "0:2:200:302", "2:2:202:302", "3:3:203:303", "3:5:203:305", "4:5:204:305"}));
@@ -293,8 +291,6 @@ TEST_CASE("Grouped combinations handle empty and singleton strict-upper tables")
                            GroupedSlicePolicy::SkipEmpty};
   REQUIRE(singletonSkip.begin() == singletonSkip.end());
 
-  // A generator that saw an empty data frame must initialize a fresh stream
-  // when setTables supplies populated input later.
   StrictPair reused{fixture.binning, 2, -1, empty, associated, &fixture.cache};
   REQUIRE(reused.begin() == reused.end());
   reused.setTables(fixture.events, associated);

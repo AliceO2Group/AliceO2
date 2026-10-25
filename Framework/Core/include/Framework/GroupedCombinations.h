@@ -21,15 +21,6 @@
 namespace o2::framework
 {
 
-/// Select which tuples of the original grouping policy are yielded.
-/// IncludeEmpty preserves the existing stream, including empty associated slices.
-/// SkipEmpty omits tuples with any empty association. Use it only when omitting
-/// those tuples has no observable effect on the consumer, including counters,
-/// normalization, window bookkeeping, random-number streams and diagnostics.
-/// Window flags and neighbour counts retain their original-policy meaning: they
-/// are not recomputed for surviving tuples, and a window may yield no tuple.
-/// The grouping policy must terminate and advance without observable side effects;
-/// an entirely empty association can end iteration without visiting every step.
 enum class GroupedSlicePolicy { IncludeEmpty,
                                 SkipEmpty };
 
@@ -221,13 +212,10 @@ struct GroupedCombinationsGenerator {
     {
       if constexpr ((SupportsEmptyAssociatedGate<As>::value && ...)) {
         if (mSlicePolicy == GroupedSlicePolicy::SkipEmpty && !this->mIsEnd) {
-          // A globally empty association makes every original pair ineligible.
           if (std::apply([](auto const&... tables) { return ((tables.size() == 0) || ...); }, *mAssociated)) {
             GroupingPolicy::moveToEnd();
             return;
           }
-          // Advance the unchanged policy. Never remove grouping rows or refill
-          // a window with a more distant partner after rejecting an empty pair.
           while (!this->mIsEnd && !allAssociatedHaveRows(std::index_sequence_for<As...>{})) {
             this->addOne();
           }
@@ -278,15 +266,6 @@ struct GroupedCombinationsGenerator {
   {
     setTables(grouping, associated);
   }
-  /// Opt in to the tuple filter described by GroupedSlicePolicy.
-  /// The type constraint accepts raw associated tables and excludes Join, Concat
-  /// and filtered associations. It does not validate sorting or cache contents.
-  /// As with sliceByCached, each matching association index must be sorted and
-  /// have an initialized sorted SliceCache entry for the current table/dataframe.
-  /// Grouping iterator indices must use the same coordinates as the cache keys.
-  /// The cache and bound tables must remain valid and unchanged during iteration.
-  /// Invalid/missing cache entries are not validated by this filter, and skipped
-  /// typed-slice construction need not reproduce diagnostics for invalid inputs.
   template <typename... T2s>
   GroupedCombinationsGenerator(const BP& binningPolicy, int catNeighbours, const T1& outsider, const G& grouping, const std::tuple<T2s...>& associated, SliceCache* cache, GroupedSlicePolicy slicePolicy)
     requires((SupportsEmptyAssociatedGate<As>::value && ...))
