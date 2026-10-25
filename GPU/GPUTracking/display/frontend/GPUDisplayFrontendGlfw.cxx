@@ -344,7 +344,7 @@ int32_t GPUDisplayFrontendGlfw::FrontendMain()
   ExitDisplay();
   {
     std::lock_guard lock(mExitStateMutex);
-    mDisplayControl = 2;
+    setDisplayControl(2);
     glfwDestroyWindow(mWindow);
     glfwTerminate();
     mDisplayRunning = false;

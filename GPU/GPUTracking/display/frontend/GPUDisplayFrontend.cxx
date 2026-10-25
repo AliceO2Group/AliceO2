@@ -81,7 +81,6 @@ void* GPUDisplayFrontend::FrontendThreadWrapper(void* ptr)
 
 void GPUDisplayFrontend::waitForFPSLimit()
 {
-  mNeedUpdate = 0;
   const auto now = std::chrono::steady_clock::now();
   const auto& cfg = mDisplay->cfgR();
   if (mBackend->fpsLimitMode() != GPUDisplayBackend::FPS_LIMIT_RATE || cfg.fpsRate <= 0) {
@@ -142,6 +141,9 @@ void GPUDisplayFrontend::sendExternalGUIKey(int32_t v)
   std::lock_guard lock(mExternalGUIKeyMutex);
   mExternalGUIKeys.emplace_back(v);
 }
+
+int32_t GPUDisplayFrontend::getDisplayControl() const { return mDisplay->mCfgC.mDisplayControl.load(); }
+void GPUDisplayFrontend::setDisplayControl(int32_t v) { mDisplay->mCfgC.mDisplayControl.store(v); }
 
 void GPUDisplayFrontend::HandleKey(uint8_t key) { mDisplay->HandleKey(key); }
 int32_t GPUDisplayFrontend::DrawGLScene() { return mDisplay->DrawGLScene(); }
@@ -303,7 +305,7 @@ void GPUDisplayFrontend::StopDisplay()
   {
     std::lock_guard lock(mExitStateMutex);
     if (mDisplayRunning) {
-      mDisplayControl = 2;
+      mDisplay->mCfgC.mDisplayControl.store(2);
       StopDisplayA();
       mDisplay->UnblockDisplay();
     }
