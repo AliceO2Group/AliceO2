@@ -116,14 +116,14 @@ void setLayerStyle(TGeoVolume* obj)
   obj->SetLineWidth(1);
   obj->SetTransparency(70);
 }
-void setStaveStyle(TGeoVolume* obj)
+void setStaveServiceStyle(TGeoVolume* obj)
 {
   obj->SetLineColor(kRed - 5);
   obj->SetFillColor(kRed - 9);
   obj->SetLineWidth(2);
   obj->SetTransparency(5);
 }
-void setOTOFStaveStyle(TGeoVolume* obj)
+void setStaveAssemblyStyle(TGeoVolume* obj)
 {
   obj->SetLineColor(kRed - 5);
   obj->SetFillColor(kRed - 9);
@@ -197,9 +197,9 @@ void ITOFLayer::createLayer(TGeoVolume* motherVolume)
 
       // First we create the volume for the whole layer, which will be used as mother volume for the segments
       const double avgRadius = 0.5 * (mInnerRadius + mOuterRadius);
-      const double staveSizeX = mStaves.second;              // cm
-      const double staveSizeY = mOuterRadius - mInnerRadius; // cm
-      const double staveSizeZ = mZLength;                    // cm
+      const double staveSizeX = mStaves.second;                               // cm
+      const double staveSizeY = mOuterRadius - mInnerRadius + sChipThickness; // cm
+      const double staveSizeZ = mZLength;                                     // cm
 
       // Build the mother layer tube from the exact inscribed/circumscribed radii of the tilted stave rectangle.
       // For the staggered layout both the inner and the outer stave radii are taken into account.
@@ -211,8 +211,8 @@ void ITOFLayer::createLayer(TGeoVolume* motherVolume)
       for (const int s : {-1, 1}) {
         const double rStave = avgRadius + s * halfShift;
         const double u0 = -rStave * std::cos(alpha);
-        const double v0 = rStave * std::sin(alpha);
-        const double uClamped = std::max(-0.5 * staveSizeY, std::min(0.5 * staveSizeY, u0));
+        const double v0 = -rStave * std::sin(alpha);
+        const double uClamped = -0.5 * staveSizeY;
         const double vClamped = std::max(-0.5 * staveSizeX, std::min(0.5 * staveSizeX, v0));
         radiusMin = std::min(radiusMin, std::hypot(uClamped - u0, vClamped - v0));
         for (int i = 0; i < 4; ++i) {
@@ -220,6 +220,7 @@ void ITOFLayer::createLayer(TGeoVolume* motherVolume)
         }
       }
       TGeoTube* layer = new TGeoTube(radiusMin, radiusMax, mZLength / 2); // cm, encapsulates all staves
+      LOGP(info, "iTOF: min. layer radius = {}, max. ayer radius = {}", radiusMin, radiusMax);
       TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
       setLayerStyle(layerVol);
 
@@ -236,9 +237,12 @@ void ITOFLayer::createLayer(TGeoVolume* motherVolume)
       setModuleStyle(moduleVol);
 
       // Now we create the volume for a single stave
-      TGeoBBox* stave = new TGeoBBox(staveSizeX * 0.5, staveSizeY * 0.5, staveSizeZ * 0.5);
-      TGeoVolume* staveVol = new TGeoVolume(staveName, stave, medSi);
-      setStaveStyle(staveVol);
+      TGeoVolume* staveVol = new TGeoVolumeAssembly(staveName);
+      setStaveAssemblyStyle(staveVol);
+
+      TGeoBBox* staveService = new TGeoBBox(staveSizeX * 0.5, (staveSizeY - moduleSizeY) * 0.5, staveSizeZ * 0.5);
+      TGeoVolume* staveServiceVol = new TGeoVolume("service", staveService, medSi);
+      setStaveServiceStyle(staveServiceVol);
 
       // Now we build a module from chips
       for (int i = 0; i < sChipsPerRow; ++i) {
@@ -259,9 +263,11 @@ void ITOFLayer::createLayer(TGeoVolume* motherVolume)
       // Now we build a stave from modules
       for (int j = 0; j < mModulesPerStave; ++j) {
         LOGP(info, "iTOF: Creating module for stave {}/{}", j + 1, mModulesPerStave);
-        auto* translation = new TGeoTranslation(0., staveSizeY * 0.5, (j + 0.5) * moduleSizeZ + j * 0.02 - 0.5 * staveSizeZ);
+        auto* translation = new TGeoTranslation(0., (staveSizeY - moduleSizeY) * 0.5, (j + 0.5) * moduleSizeZ + j * sModuleGap - 0.5 * staveSizeZ);
         staveVol->AddNode(moduleVol, 1 + j, translation);
       }
+      auto* translation = new TGeoTranslation(0., -0.5 * moduleSizeY, 0.);
+      staveVol->AddNode(staveServiceVol, 1, translation);
 
       // We finally put all the staves in the layer
       for (int i = 0; i < mStaves.first; ++i) {
@@ -327,28 +333,38 @@ void OTOFLayer::createLayer(TGeoVolume* motherVolume)
 
       // First we create the volume for the whole layer, which will be used as mother volume for the segments
       const double avgRadius = 0.5 * (mInnerRadius + mOuterRadius);
-      const double staveSizeX = mStaves.second;                                     // cm, tangential stave size
-      const double staveSizeY = mOuterRadius - mInnerRadius + sSubStavesDistanceY;  // cm, radial stave size
-      const double staveSizeZ = mZLength;                                           // cm
-      const double subStaveSizeX = 0.5 * mStaves.second + 0.5 * sSubStavesOverlapX; // cm, tangential substave size
-      const double subStaveSizeY = mOuterRadius - mInnerRadius;                     // cm, radial substave size
-      const double subStaveSizeZ = mZLength;                                        // cm
+      const double staveSizeX = mStaves.second;                                                      // cm, tangential stave size
+      const double staveSizeY = mOuterRadius - mInnerRadius + sSubStavesDistanceY + sChipThickness;  // cm, radial stave size
+      const double staveSizeZ = mZLength;                                                            // cm
+      const double subStaveSizeX = 0.5 * mStaves.second + 0.5 * sSubStavesOverlapX;                  // cm, tangential substave size
+      const double subStaveSizeY = mOuterRadius - mInnerRadius + sChipThickness;                     // cm, radial substave size
+      const double subStaveSizeZ = mZLength;                                                         // cm
 
       // Build the mother layer tube from the exact inscribed/outscribed radii of a tilted stave rectangle.
       const double alpha = mTiltAngle * TMath::DegToRad();
+      double radiusMin = 1.e10;
+      double radiusMax = 0;
       const double u0 = -avgRadius * std::cos(alpha);
-      const double v0 = avgRadius * std::sin(alpha);
-      const double uClamped = std::max(-0.5 * staveSizeY, std::min(0.5 * staveSizeY, u0));
-      const double vClamped = std::max(-0.5 * staveSizeX, std::min(0.5 * staveSizeX, v0));
-      const double radiusMin = std::hypot(uClamped - u0, vClamped - v0);
+      const double v0 = -avgRadius * std::sin(alpha);
+      for (const int s : {-1, 1}) {
+        const double uMin = 0.5 * (-subStaveSizeY - s * sSubStavesDistanceY);
+        const double uMax = 0.5 * (subStaveSizeY - s * sSubStavesDistanceY);
+        const double vMin = 0.5 * (-subStaveSizeX + s * (subStaveSizeX - sSubStavesOverlapX));
+        const double vMax = 0.5 * (subStaveSizeX + s * (subStaveSizeX - sSubStavesOverlapX));
 
-      const double uCorners[4] = {-0.5 * staveSizeY, 0.5 * staveSizeY, 0.5 * staveSizeY, -0.5 * staveSizeY};
-      const double vCorners[4] = {-0.5 * staveSizeX, -0.5 * staveSizeX, 0.5 * staveSizeX, 0.5 * staveSizeX};
-      double radiusMax = 0.0;
-      for (int i = 0; i < 4; ++i) {
-        radiusMax = std::max(radiusMax, std::hypot(uCorners[i] - u0, vCorners[i] - v0));
+        const double uClosest = std::clamp(u0, uMin, uMax);
+        const double vClosest = std::clamp(v0, vMin, vMax);
+
+        radiusMin = std::min(radiusMin, std::hypot(uClosest - u0, vClosest - v0));
+
+        const double uCorners[4] = {uMin, uMax, uMax, uMin};
+        const double vCorners[4] = {vMin, vMin, vMax, vMax};
+        for (int i = 0; i < 4; ++i) {
+          radiusMax = std::max(radiusMax, std::hypot(uCorners[i] - u0, vCorners[i] - v0));
+        }
       }
       TGeoTube* layer = new TGeoTube(radiusMin, radiusMax, mZLength / 2);
+      LOGP(info, "oTOF: min. layer radius = {}, max. ayer radius = {}", radiusMin, radiusMax);
       TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
       setLayerStyle(layerVol);
 
@@ -365,15 +381,18 @@ void OTOFLayer::createLayer(TGeoVolume* motherVolume)
       setModuleStyle(moduleVol);
 
       // Now we create the volume for a single stave
-      TGeoBBox* stave = new TGeoBBox(staveSizeX * 0.5, staveSizeY * 0.5, staveSizeZ * 0.5);
-      TGeoVolume* staveVol = new TGeoVolume(staveName, stave, medAir);
-      setOTOFStaveStyle(staveVol);
+      TGeoVolume* staveVol = new TGeoVolumeAssembly(staveName);
+      setStaveAssemblyStyle(staveVol);
 
       // Now we create the volume for a single substave
       const int modulesPerSubStave = mModulesPerStave;
       TGeoBBox* subStave = new TGeoBBox(subStaveSizeX * 0.5, subStaveSizeY * 0.5, subStaveSizeZ * 0.5);
-      TGeoVolume* subStaveVol = new TGeoVolume(subStaveName, subStave, medSi);
-      setStaveStyle(subStaveVol);
+      TGeoVolume* subStaveVol = new TGeoVolume(subStaveName, subStave, medAir);
+      setStaveAssemblyStyle(subStaveVol);
+
+      TGeoBBox* staveService = new TGeoBBox(subStaveSizeX * 0.5, (subStaveSizeY - moduleSizeY) * 0.5, subStaveSizeZ * 0.5);
+      TGeoVolume* staveServiceVol = new TGeoVolume("service", staveService, medSi);
+      setStaveServiceStyle(staveServiceVol);
 
       // Now we build a module from chips
       for (int i = 0; i < sChipsPerRow; ++i) {
@@ -394,15 +413,17 @@ void OTOFLayer::createLayer(TGeoVolume* motherVolume)
       // Now we build a substave from modules
       for (int j = 0; j < modulesPerSubStave; ++j) {
         LOGP(info, "oTOF: Creating module for substave {}/{}", j + 1, modulesPerSubStave);
-        auto* translation = new TGeoTranslation(0., subStaveSizeY * 0.5, (j + 0.5) * moduleSizeZ + j * 0.02 - 0.5 * subStaveSizeZ);
+        auto* translation = new TGeoTranslation(0., (subStaveSizeY - moduleSizeY) * 0.5, (j + 0.5) * moduleSizeZ + j * sModuleGap - 0.5 * subStaveSizeZ);
         subStaveVol->AddNode(moduleVol, 1 + j, translation);
       }
+      auto* translation = new TGeoTranslation(0., -0.5 * moduleSizeY, 0.);
+      subStaveVol->AddNode(staveServiceVol, 1, translation);
 
       // Now we build a stave from two substave
       for (int i = 0; i < 2; ++i) {
         LOGP(info, "oTOF: Creating substave {}/{} for stave {}/{}", i + 1, 2, 1, 1);
         int sign = i > 0 ? 1 : -1;
-        auto* translation2 = new TGeoTranslation(sign * 0.5 * subStaveSizeX - sign * 0.5 * sSubStavesOverlapX, -sign * 0.5 * sSubStavesDistanceY - 0.5 * moduleSizeY, 0);
+        auto* translation2 = new TGeoTranslation(sign * 0.5 * subStaveSizeX - sign * 0.5 * sSubStavesOverlapX, -sign * 0.5 * sSubStavesDistanceY, 0);
         staveVol->AddNode(subStaveVol, i + 1, translation2);
       }
 
