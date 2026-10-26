@@ -2249,6 +2249,97 @@ inline std::vector<Vec2> sampleCurveWireByU(const CurveWire& wire, int segmentsP
   return samples;
 }
 
+/// Ear-clipping of a simple parametric wire that clips the ear with the shortest 3D diagonal first, so a strip is not fanned.
+inline std::vector<std::array<int, 3>> triangulateWireByShortestChord(const SurfaceWire& wire,
+                                                                      const std::vector<Vec3>& points)
+{
+  std::vector<int> remainingIndices;
+  remainingIndices.reserve(wire.vertices.size());
+  if (wire.signedArea() >= 0.) {
+    for (size_t vertexIndex = 0; vertexIndex < wire.vertices.size(); ++vertexIndex) {
+      remainingIndices.push_back(static_cast<int>(vertexIndex));
+    }
+  } else {
+    for (size_t reverseIndex = wire.vertices.size(); reverseIndex > 0; --reverseIndex) {
+      remainingIndices.push_back(static_cast<int>(reverseIndex - 1));
+    }
+  }
+
+  // the 3D diagonal of the ear at a position, or infinity when it is not an ear (same tests as triangulateSimpleWire)
+  const double notAnEar = std::numeric_limits<double>::infinity();
+  auto earChord = [&](size_t indexPosition) {
+    const int previousIndex = remainingIndices[(indexPosition + remainingIndices.size() - 1) % remainingIndices.size()];
+    const int currentIndex = remainingIndices[indexPosition];
+    const int nextIndex = remainingIndices[(indexPosition + 1) % remainingIndices.size()];
+    const auto& previousVertex = wire.vertices[previousIndex];
+    const auto& currentVertex = wire.vertices[currentIndex];
+    const auto& nextVertex = wire.vertices[nextIndex];
+    if (cross2D(currentVertex - previousVertex, nextVertex - currentVertex) <= kTolerance) {
+      return notAnEar;
+    }
+    for (int candidateIndex : remainingIndices) {
+      if (candidateIndex == previousIndex || candidateIndex == currentIndex || candidateIndex == nextIndex) {
+        continue;
+      }
+      if (pointInTriangle(wire.vertices[candidateIndex], previousVertex, currentVertex, nextVertex)) {
+        return notAnEar;
+      }
+    }
+    return norm(points[nextIndex] - points[previousIndex]);
+  };
+
+  std::vector<double> chords(remainingIndices.size());
+  for (size_t indexPosition = 0; indexPosition < remainingIndices.size(); ++indexPosition) {
+    chords[indexPosition] = earChord(indexPosition);
+  }
+
+  std::vector<std::array<int, 3>> triangles;
+  while (remainingIndices.size() > 3) {
+    // the shortest diagonal wins; ties go to the lowest position
+    size_t bestPosition = remainingIndices.size();
+    double bestChord = notAnEar;
+    for (size_t indexPosition = 0; indexPosition < remainingIndices.size(); ++indexPosition) {
+      if (chords[indexPosition] < bestChord) {
+        bestChord = chords[indexPosition];
+        bestPosition = indexPosition;
+      }
+    }
+    if (bestPosition == remainingIndices.size()) {
+      return triangulateSimpleWire(wire); // near-collinear runs can block every ear in this order
+    }
+
+    const size_t count = remainingIndices.size();
+    const int previousIndex = remainingIndices[(bestPosition + count - 1) % count];
+    const int clippedIndex = remainingIndices[bestPosition];
+    const int nextIndex = remainingIndices[(bestPosition + 1) % count];
+    triangles.push_back({previousIndex, clippedIndex, nextIndex});
+    remainingIndices.erase(remainingIndices.begin() + bestPosition);
+    chords.erase(chords.begin() + bestPosition);
+
+    // the two neighbours change shape; any other non-ear can only change if the clipped vertex lay in its triangle
+    const size_t newCount = remainingIndices.size();
+    const size_t beforePosition = (bestPosition + newCount - 1) % newCount;
+    const size_t afterPosition = bestPosition % newCount;
+    for (size_t indexPosition = 0; indexPosition < newCount; ++indexPosition) {
+      if (indexPosition == beforePosition || indexPosition == afterPosition) {
+        chords[indexPosition] = earChord(indexPosition);
+      } else if (chords[indexPosition] == notAnEar) {
+        const auto& previousVertex = wire.vertices[remainingIndices[(indexPosition + newCount - 1) % newCount]];
+        const auto& currentVertex = wire.vertices[remainingIndices[indexPosition]];
+        const auto& nextVertex = wire.vertices[remainingIndices[(indexPosition + 1) % newCount]];
+        if (pointInTriangle(wire.vertices[clippedIndex], previousVertex, currentVertex, nextVertex)) {
+          chords[indexPosition] = earChord(indexPosition);
+        }
+      }
+    }
+  }
+
+  if (remainingIndices.size() == 3) {
+    triangles.push_back({remainingIndices[0], remainingIndices[1], remainingIndices[2]});
+  }
+  return triangles;
+}
+
 /// Append the display triangulation of a wire-trimmed quadric patch: the sampled outer loop, ear-clipped; holes are omitted.
 template <typename MapUV>
 void appendCurveTrimMesh(const CurveWire& outerWire, const MapUV& mapUV, std::vector<Vec3>& vertices,
@@ -2263,7 +2354,8 @@ void appendCurveTrimMesh(const CurveWire& outerWire, const MapUV& mapUV, std::ve
   for (const auto& sample : sampledWire.vertices) {
     vertices.push_back(mapUV(sample.uCoord, sample.vCoord));
   }
-  for (const auto& triangle : triangulateSimpleWire(sampledWire)) {
+  const std::vector<Vec3> points(vertices.begin() + firstVertexIndex, vertices.end());
+  for (const auto& triangle : triangulateWireByShortestChord(sampledWire, points)) {
     triangles.push_back(
       {firstVertexIndex + triangle[0], firstVertexIndex + triangle[1], firstVertexIndex + triangle[2]});
   }

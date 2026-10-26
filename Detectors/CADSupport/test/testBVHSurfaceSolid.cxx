@@ -2186,6 +2186,64 @@ BOOST_AUTO_TEST_CASE(WireTrimmedConeMatchesCone)
   checkClose(solid.Capacity(), reference.Capacity(), 1.e-9);
 }
 
+namespace
+{
+// Check that a patch's display mesh keeps its vertex count and stays within the chord sag of radius on the patch;
+// boundarySag adds the sag of a trim side that the wire sampling leaves as one chord.
+void checkDisplayMeshFollowsPatch(const surf::BoundedSurface& patch, double radius, size_t expectedVertices,
+                                  double boundarySag = 0.)
+{
+  std::vector<surf::Vec3> vertices;
+  std::vector<std::array<int, 3>> triangles;
+  patch.appendDisplayMesh(vertices, triangles);
+  BOOST_CHECK_EQUAL(vertices.size(), expectedVertices);
+  BOOST_CHECK_EQUAL(triangles.size(), expectedVertices - 2);
+  const double maxSag = 1.05 * (radius * (1. - std::cos(surf::kPi / surf::kArcSamples)) + boundarySag);
+  double worstSag = 0.;
+  for (const auto& triangle : triangles) {
+    const surf::Vec3& first = vertices[triangle[0]];
+    const surf::Vec3& second = vertices[triangle[1]];
+    const surf::Vec3& third = vertices[triangle[2]];
+    const double longestSq = std::max({normSq(second - first), normSq(third - second), normSq(first - third)});
+    BOOST_CHECK_GT(norm(cross(second - first, third - first)), 1.e-6 * longestSq);
+    for (const surf::Vec3& probe : {(first + second + third) * (1. / 3.), (first + second) * 0.5,
+                                    (second + third) * 0.5, (third + first) * 0.5}) {
+      worstSag = std::max(worstSag, std::sqrt(patch.distanceSqToPatch(probe)));
+    }
+  }
+  BOOST_CHECK_LE(worstSag, maxSag);
+}
+} // namespace
+
+// The display triangles of a wire-trimmed quadric follow the patch instead of fanning across it (O2-7284).
+BOOST_AUTO_TEST_CASE(WireTrimmedDisplayMeshFollowsPatch)
+{
+  std::string error;
+  constexpr double phiMin = 1.6;
+  constexpr double phiMax = 4.683;
+
+  // half-cylinder of the ALICE 3 tracker shell: 12 chords on each long side plus the two corners
+  surf::CylindricalBoundedSurface halfCylinder;
+  BOOST_REQUIRE(halfCylinder.initialize({0., 0., 0.}, {0., 0., 1.}, {1., 0., 0.}, 10., -20., 20., phiMin,
+                                        phiMax - phiMin, false, paramRectWireCurves(phiMin, phiMax, -20., 20.), {},
+                                        error));
+  checkDisplayMeshFollowsPatch(halfCylinder, 10., 26);
+
+  // quarter-torus: 6 chords on each ring side; each tube side is sampled as a single chord
+  surf::TorusBoundedSurface quarterTorus;
+  BOOST_REQUIRE(quarterTorus.initialize({0., 0., 0.}, {0., 0., 1.}, {1., 0., 0.}, 10., 0.3, 0., surf::kHalfPi, 0.,
+                                        surf::kPi / 3., false,
+                                        paramRectWireCurves(0., surf::kHalfPi, 0., surf::kPi / 3.), {}, error));
+  checkDisplayMeshFollowsPatch(quarterTorus, 10.3, 14, 0.3 * (1. - std::cos(surf::kPi / 6.)));
+
+  // half-cone
+  surf::ConicalBoundedSurface halfCone;
+  BOOST_REQUIRE(halfCone.initialize({0., 0., 0.}, {0., 0., 1.}, {1., 0., 0.}, 8., 12., -10., 10., phiMin,
+                                    phiMax - phiMin, false, paramRectWireCurves(phiMin, phiMax, -10., 10.), {},
+                                    error));
+  checkDisplayMeshFollowsPatch(halfCone, 12., 26);
+}
+
 // Green's theorem for wire-trimmed quadrics.
 //
 // The integrand does not depend on the second parameter for a cylinder, and depends on the first
