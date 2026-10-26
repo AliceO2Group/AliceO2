@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Generators/GeneratorHybrid.h"
+#include <chrono>
 #include <fairlogger/Logger.h>
 #include <algorithm>
 #include <tbb/concurrent_queue.h>
@@ -191,7 +192,24 @@ GeneratorHybrid::GeneratorHybrid(const std::string& inputgens)
 GeneratorHybrid::~GeneratorHybrid()
 {
   LOG(info) << "Destructor of generator hybrid called";
+  // stop() is the designated shutdown hook (called via GeneratorService::stopGenerators), 
+  // normally running end-of-stream, in which case this is a no-op. It is not reached on every exit path, e.g. when the
+  // driver quits before the event budget or the TTL is up, so it is repeated here.
+  stop();
+}
+
+void GeneratorHybrid::stop()
+{
   mStopFlag = true;
+  // The worker lambdas reference mInputTaskQueue, mResultQueue and mTaskArena, which are
+  // destroyed together with this object, so they must not be left running.
+  // We wait for the thread to finish, which will happen once the worker lambdas notice mStopFlag.
+  if (mTBBTaskPoolRunner.joinable()) {
+    auto t0 = std::chrono::steady_clock::now();
+    mTBBTaskPoolRunner.join();
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - t0).count();
+    LOG(info) << "HybridGen: stop() joined TBB task pool after " << ms << " ms";
+  }
 }
 
 Bool_t GeneratorHybrid::Init()
@@ -320,7 +338,7 @@ Bool_t GeneratorHybrid::Init()
       // }
     }
     bool isTriggered = false;
-    while (!isTriggered) {
+    while (!isTriggered && !mStopFlag) {
       generator->clearParticles();
       generator->generateEvent();
       generator->importParticles();
@@ -355,8 +373,8 @@ Bool_t GeneratorHybrid::Init()
 
   // let the TBB task system run in it's own thread
   mTBBTaskPoolRunner = std::thread([this, worker_function]() { mTaskArena.execute([&]() { tbb::parallel_for(0, mTaskArena.max_concurrency(), [&](int) { worker_function(); }); }); });
-  mTBBTaskPoolRunner.detach(); // detaching because we don't like to wait on the thread to finish
-                               // some of the generators might still be generating when we are done
+  // NOTE: thread deliberately NOT detached. We never wait for it during the run, but the
+  // pool must be joined in the destructor before the queues and the arena are destroyed.
 
   // let's also push initial generation tasks for each event generator
   for (size_t genindex = 0; genindex < gens.size(); ++genindex) {
