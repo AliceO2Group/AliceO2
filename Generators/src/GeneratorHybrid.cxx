@@ -192,7 +192,7 @@ GeneratorHybrid::GeneratorHybrid(const std::string& inputgens)
 GeneratorHybrid::~GeneratorHybrid()
 {
   LOG(info) << "Destructor of generator hybrid called";
-  // stop() is the designated shutdown hook (called via GeneratorService::stopGenerators), 
+  // stop() is the designated shutdown hook (called via GeneratorService::stopGenerators),
   // normally running end-of-stream, in which case this is a no-op. It is not reached on every exit path, e.g. when the
   // driver quits before the event budget or the TTL is up, so it is repeated here.
   stop();
