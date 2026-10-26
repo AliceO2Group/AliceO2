@@ -20,6 +20,7 @@
 #include "IOTOFSimulation/DPLDigitizerParam.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "CCDB/BasicCCDBManager.h"
+#include "CommonConstants/MathConstants.h"
 
 #include <TCollection.h>
 #include <TFile.h>
@@ -63,8 +64,14 @@ void Digitizer::init()
     // initialize the vector of TDC states
     mChips[i].resizeTDCStates(nReadOutCols);
     for (auto& tdcStates : mChips[i].getTDCStates()) {
-      tdcStates[0] = -999.f;
-      tdcStates[1] = -999.f;
+      for (int iT = 0; iT < 4; ++iT) {
+        tdcStates[iT] = -o2::constants::math::VeryBig;
+      }
+    }
+    // initialize the vector of mask states
+    mChips[i].resizeMaskStates(nReadOutCols);
+    for (auto& maskStates : mChips[i].getMaskStates()) {
+      maskStates = -o2::constants::math::VeryBig;
     }
   }
 
@@ -426,6 +433,7 @@ void Digitizer::fillOutputContainer()
 
     auto& chipDigits = chip.getDigits();
     auto& tdcStates = chip.getTDCStates();
+    auto& maskStates = chip.getMaskStates();
 
     for (const auto& [key, digit] : chipDigits) {
 
@@ -435,14 +443,25 @@ void Digitizer::fillOutputContainer()
 
       const int colInGroup = digit.getColumn() / digitizerParams.nColsPerGroup;
       const double digitTime = digit.getTime();
-      if (digitTime - tdcStates[colInGroup][0] < digitizerParams.tdcBusyTime && digitTime - tdcStates[colInGroup][1] < digitizerParams.tdcBusyTime) {
-        // TODO: improve labels treatment if multiple hits cross the same pixel during
-        continue; // both tdc pairs are busy
-      } else if (digitTime - tdcStates[colInGroup][0] > digitizerParams.tdcBusyTime) {
-        tdcStates[colInGroup][0] = digitTime;
-      } else if (digitTime - tdcStates[colInGroup][1] > digitizerParams.tdcBusyTime) {
-        tdcStates[colInGroup][1] = digitTime;
+
+      if (digitTime - maskStates[colInGroup] < digitizerParams.maskWindow) {
+        continue; // the RO column is still masked
       }
+
+      int available = -1;
+      for (int iT = 0; iT < 4; ++iT) {
+        if (digitTime - tdcStates[colInGroup][iT] > digitizerParams.tdcBusyTime) {
+          available = iT;
+          break;
+        }
+      }
+
+      if (available == -1) {
+        continue; // all tdc pairs are busy
+      }
+
+      tdcStates[colInGroup][available] = digitTime;
+      maskStates[colInGroup] = digitTime;
 
       int digitID = mDigits->size();
       mDigits->emplace_back(digit.getChipIndex(), digit.getRow(), digit.getColumn(), digit.getCharge(), digit.getTime(), digit.getBc(), digit.getTdc());

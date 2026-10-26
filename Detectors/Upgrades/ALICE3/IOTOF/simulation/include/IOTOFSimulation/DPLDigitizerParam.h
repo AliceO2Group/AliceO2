@@ -38,7 +38,8 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
   int responseMatrixSize = 1;             ///< size of the response matrix (odd number)
 
   int nColsPerGroup = 4;      ///< number of pixel columns grouped into a readout column
-  double tdcBusyTime = 3000.; ///< tdc pair bsuy time (default 3 us)
+  double tdcBusyTime = 3300.; ///< tdc pair bsuy time (default 3.3 us)
+  double maskWindow = 100.;   ///< RO column masking time (default 100 ns)
 
   std::string noiseFilePath{}; ///< optional noise masks file path. FIXME to be removed once switch to CCDBFetcher
 
