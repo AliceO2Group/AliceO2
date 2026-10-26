@@ -404,6 +404,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
   // fire the pixels assuming Poisson(n_response_electrons)
   o2::MCCompLabel lbl(hit.GetTrackID(), evID, srcID, false);
   auto roFrameAbs = mNewROFrame + roFrameRel;
+  auto timeInROFAbs = timeInROF - roFrameRel * mParams.getROFrameLengthInv(lay); // account for hit migration to next ROF with roFrameRel>0
   for (int irow = rowSpan; irow--;) {
     uint16_t rowIS = irow + rowS;
     for (int icol = colSpan; icol--;) {
@@ -424,7 +425,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
         continue;
       }
       //
-      registerDigits(chip, roFrameAbs, timeInROF, nFrames, rowIS, colIS, nEle, lbl, lay);
+      registerDigits(chip, roFrameAbs, timeInROFAbs, nFrames, rowIS, colIS, nEle, lbl, lay);
     }
   }
 }
