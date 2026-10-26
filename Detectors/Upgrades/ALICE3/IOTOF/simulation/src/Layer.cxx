@@ -333,12 +333,12 @@ void OTOFLayer::createLayer(TGeoVolume* motherVolume)
 
       // First we create the volume for the whole layer, which will be used as mother volume for the segments
       const double avgRadius = 0.5 * (mInnerRadius + mOuterRadius);
-      const double staveSizeX = mStaves.second;                                                      // cm, tangential stave size
-      const double staveSizeY = mOuterRadius - mInnerRadius + sSubStavesDistanceY + sChipThickness;  // cm, radial stave size
-      const double staveSizeZ = mZLength;                                                            // cm
-      const double subStaveSizeX = 0.5 * mStaves.second + 0.5 * sSubStavesOverlapX;                  // cm, tangential substave size
-      const double subStaveSizeY = mOuterRadius - mInnerRadius + sChipThickness;                     // cm, radial substave size
-      const double subStaveSizeZ = mZLength;                                                         // cm
+      const double staveSizeX = mStaves.second;                                                     // cm, tangential stave size
+      const double staveSizeY = mOuterRadius - mInnerRadius + sSubStavesDistanceY + sChipThickness; // cm, radial stave size
+      const double staveSizeZ = mZLength;                                                           // cm
+      const double subStaveSizeX = 0.5 * mStaves.second + 0.5 * sSubStavesOverlapX;                 // cm, tangential substave size
+      const double subStaveSizeY = mOuterRadius - mInnerRadius + sChipThickness;                    // cm, radial substave size
+      const double subStaveSizeZ = mZLength;                                                        // cm
 
       // Build the mother layer tube from the exact inscribed/outscribed radii of a tilted stave rectangle.
       const double alpha = mTiltAngle * TMath::DegToRad();
