@@ -14,7 +14,6 @@
 
 #include "TRDSimulation/Detector.h"
 
-#include "TRDBase/Calibrations.h"
 #include "TRDBase/PadResponse.h"
 #include "TRDSimulation/DiffAndTimeStructEstimator.h"
 #include "TRDSimulation/PileupTool.h"
@@ -24,6 +23,7 @@
 #include "DataFormatsTRD/Constants.h"
 #include "DataFormatsTRD/CalVdriftExB.h"
 #include "DataFormatsTRD/CalGain.h"
+#include "TRDBase/PadCalibrationsAliases.h"
 
 #include "MathUtils/RandomRing.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -63,15 +63,17 @@ class Digitizer
   void setTriggerTime(double t) { mCurrentTriggerTime = t; }
   void setEventID(int entryID) { mEventID = entryID; }
   void setSrcID(int sourceID) { mSrcID = sourceID; }
-  void setCalibrations(Calibrations* calibrations) { mCalib = calibrations; }
   void setCalVdriftExB(const CalVdriftExB* calVdriftExB) { mCalVdriftExB = calVdriftExB; }
   void setFedChamberStatus(int det, int value)
   {
-    if (det >= constants::MAXCHAMBER)
+    if (det >= constants::MAXCHAMBER) {
       return;
+    }
     mFedChamberStatus[det] = value;
   }
   void setCalGain(const CalGain* calGain) { mCalGain = calGain; }
+  void setLocalGainFactor(const LocalGainFactor* localGain) { mLocalGainFactor = localGain; }
+  void setPadStatus(const PadStatus* padStatus) { mPadStatus = padStatus; }
   void setCreateSharedDigits(bool flag) { mCreateSharedDigits = flag; }
   int getEventTime() const { return mTime; }
   int getEventID() const { return mEventID; }
@@ -79,8 +81,9 @@ class Digitizer
   bool getCreateSharedDigits() const { return mCreateSharedDigits; }
   int getFedChamberStatus(int det)
   {
-    if (det >= constants::MAXCHAMBER)
+    if (det >= constants::MAXCHAMBER) {
       return -1.;
+    }
     return mFedChamberStatus[det];
   }
   std::string dumpFlaggedChambers() const;
@@ -89,9 +92,10 @@ class Digitizer
   Geometry* mGeo = nullptr;                                   // access to Geometry
   PadResponse mPRF{};                                         // access to PadResponse
   SimParam mSimParam{};                                       // simulation parameters
-  Calibrations* mCalib = nullptr;                             // access to Calibrations in CCDB
   const CalVdriftExB* mCalVdriftExB = nullptr;                // access to time-dependent calibrations CalVdriftExB in CCDB
   const CalGain* mCalGain = nullptr;                          // access to time-dependent calibrations CalGain in CCDB
+  const PadStatus* mPadStatus = nullptr;                      // access to time-dependent calibrations PadStatus in CCDB
+  const LocalGainFactor* mLocalGainFactor = nullptr;          // access to time-dependent calibrations LocalGainFactor in CCDB
   std::array<int, constants::MAXCHAMBER> mFedChamberStatus{}; // access to time-dependent FED chamber status in CCDB
   PileupTool pileupTool;
 

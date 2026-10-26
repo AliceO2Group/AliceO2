@@ -65,14 +65,11 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
     bool mctruth = pc.outputs().isAllowed({"TRD", "LABELS", 0});
 
-    Calibrations simcal;
-    // the timestamp can be extracted from the DPL header (it is set in SimReader)
-    auto creationTime = pc.services().get<o2::framework::TimingInfo>().creation;
-    simcal.getCCDBObjects(creationTime);
-    mDigitizer.setCalibrations(&simcal);
     pc.inputs().get<o2::trd::CalVdriftExB*>("calvdexb");
     pc.inputs().get<o2::trd::CalGain*>("calgain");
     pc.inputs().get<std::array<int, constants::MAXCHAMBER>*>("fedchamberstatus");
+    pc.inputs().get<o2::trd::PadStatus*>("padstatus");
+    pc.inputs().get<o2::trd::LocalGainFactor*>("localgainfactor");
 
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
@@ -231,6 +228,16 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
       }
       return;
     }
+    if (matcher == ConcreteDataMatcher("TRD", "PADSTATUS", 0)) {
+      LOG(info) << "PadStatus object has been updated";
+      mDigitizer.setPadStatus((const o2::trd::PadStatus*)obj);
+      return;
+    }
+    if (matcher == ConcreteDataMatcher("TRD", "LOCALGAINFACTOR", 0)) {
+      LOG(info) << "LocalGainFactor object has been updated";
+      mDigitizer.setLocalGainFactor((const o2::trd::LocalGainFactor*)obj);
+      return;
+    }
   }
 
  private:
@@ -261,6 +268,8 @@ o2::framework::DataProcessorSpec getTRDDigitizerSpec(int channel, bool mctruth)
   inputs.emplace_back("calvdexb", "TRD", "CALVDRIFTEXB", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/CalVdriftExB"));
   inputs.emplace_back("calgain", "TRD", "CALGAIN", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/CalGain"));
   inputs.emplace_back("fedchamberstatus", "TRD", "FEDCHAMBERSTATUS", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/DCSDPsFedChamberStatus"));
+  inputs.emplace_back("padstatus", "TRD", "PADSTATUS", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/PadStatus"));
+  inputs.emplace_back("localgainfactor", "TRD", "LOCALGAINFACTOR", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/LocalGainFactor"));
 
   return DataProcessorSpec{
     "TRDDigitizer",
