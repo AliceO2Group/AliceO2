@@ -34,7 +34,7 @@ class Layer
   auto getZLength() const { return mZLength; }
   auto getZOffset() const { return mZOffset; }
   auto getx2X0() const { return mX2X0; }
-  auto getChipThickness() const { return mChipThickness; }
+  auto getChipThickness() const { return mLayerThickness; }
   auto getName() const { return mLayerName; }
   auto getLayout() const { return mLayout; }
   auto getSegments() const { return mStaves; }
@@ -42,6 +42,7 @@ class Layer
   static constexpr int kDisk = 1;
   static constexpr int kBarrelSegmented = 2;
   static constexpr int kDiskSegmented = 3;
+  static constexpr int kBarrelStaggered = 4;
 
   virtual void createLayer(TGeoVolume* motherVolume) {};
 
@@ -52,13 +53,19 @@ class Layer
   float mZLength;
   float mZOffset{0.f}; // Of use when fwd layers
   float mX2X0;
-  float mChipThickness;   // Thickness of the chip in cm, derived from mX2X0 and the radiation length of silicon
+  float mLayerThickness;  // Thickness of the layer in cm, derived from mX2X0 and the radiation length of silicon
   float mSensorThickness; // Thickness of the sensor in cm, to be subtracted from the chip thickness to get the total module thickness
   int mLayout{kBarrel};   // Identifier of the type of layer layout (barrel, disk, barrel segmented, disk segmented)
   // To be used only in case of the segmented layout, to define the number of staves in phi (for barrel) or in r (for disk)
   std::pair<int, float> mStaves{0, 0.0f}; // Number and size of staves in phi (for barrel) or in r (for disk) in case of segmented layout
   int mModulesPerStave{0};                // Number of modules along a stave
   double mTiltAngle{0.0};                 // Tilt angle in degrees to be applied as a rotation around the local center of the stave
+
+  static const int sChipsPerRow;      // number of chips per row in module
+  static const int sChipsPerCol;      // number of chips per col in module
+  static const double sChipGap;       // gap between chips in module
+  static const double sModuleGap;     // gap between modules in stave
+  static const double sChipThickness; // full thickness of the chip
 };
 
 class ITOFLayer : public Layer
@@ -67,6 +74,10 @@ class ITOFLayer : public Layer
   using Layer::Layer;
   virtual void createLayer(TGeoVolume* motherVolume) override;
   static std::vector<std::string> mRegister;
+
+  static const double sStaggerRadialShift;
+
+ private:
 };
 
 class OTOFLayer : public Layer
@@ -75,6 +86,9 @@ class OTOFLayer : public Layer
   using Layer::Layer;
   virtual void createLayer(TGeoVolume* motherVolume) override;
   static std::vector<std::string> mRegister;
+
+  static const double sSubStavesDistanceY;
+  static const double sSubStavesOverlapX;
 };
 
 class FTOFLayer : public Layer
