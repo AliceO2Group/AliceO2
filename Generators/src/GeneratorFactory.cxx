@@ -17,6 +17,7 @@
 #include <Generators/BoxGenerator.h>
 #include <fairlogger/Logger.h>
 #include <SimConfig/SimConfig.h>
+#include <SimConfig/G4Params.h>
 #include <Generators/GeneratorFromFile.h>
 #include <Generators/GeneratorTParticle.h>
 #include <Generators/GeneratorTParticleParam.h>
@@ -140,7 +141,13 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
 
   /** generators **/
 
-  o2::O2DatabasePDG::Instance(); //--> ALICE particles are added once in this call
+  // Monopole configurable mass, set before the particles get registered
+  const double monopoleMass = o2::conf::G4Params::Instance().monopoleMass;
+  o2::O2DatabasePDG::setMonopoleMass(monopoleMass);
+  auto* pdgDB = o2::O2DatabasePDG::Instance(); //--> ALICE particles are added once in this call
+  if (!o2::O2DatabasePDG::hasMonopoleMass(pdgDB, monopoleMass)) {
+    LOG(fatal) << "Monopoles were registered in TDatabasePDG with a mass other than G4.monopoleMass = " << monopoleMass << " GeV";
+  }
   auto genconfig = conf.getGenerator();
 #if defined(GENERATORS_WITH_PYTHIA8) && defined(GENERATORS_WITH_HEPMC3)
   std::string hyperloopExtHybridConfigFile; // set when IS_HYPERLOOP is defined
