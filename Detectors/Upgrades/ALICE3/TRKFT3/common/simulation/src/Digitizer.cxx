@@ -496,23 +496,23 @@ void Digitizer<DetID>::processHit(const o2::trkft3::Hit& hit, uint32_t& maxFr, i
       if (mDeadChanMap && mDeadChanMap->isNoisy(chipID, rowIS, colIS)) {
         continue;
       }
-      registerDigits(chip, roFrameAbs, timeInROF, nFrames, rowIS, colIS, nEle, lbl, rofLayer, toaInROF);
+      registerDigits(chip, roFrameAbs, toaInROF, nFrames, rowIS, colIS, nEle, lbl, rofLayer);
     }
   }
 }
 
 //________________________________________________________________________________
 template <int DetID>
-void Digitizer<DetID>::registerDigits(o2::trkft3::ChipDigitsContainer& chip, uint32_t roFrame, float tInROF, int nROF,
-                                      uint16_t row, uint16_t col, int nEle, o2::MCCompLabel& lbl, int layer, float toaInROF)
+void Digitizer<DetID>::registerDigits(o2::trkft3::ChipDigitsContainer& chip, uint32_t roFrame, float toaInROF, int nROF,
+                                      uint16_t row, uint16_t col, int nEle, o2::MCCompLabel& lbl, int layer)
 {
   // Register digits for given pixel, accounting for the possible signal contribution to
-  // multiple ROFrame. The signal starts at time tInROF wrt the start of provided roFrame
+  // multiple ROFrame. The signal starts at time toaInROF wrt the start of provided roFrame
   // In every ROFrame we check the collected signal during strobe
   LOG(debug) << "Registering digits for chip " << chip.getChipIndex() << " at ROFrame " << roFrame
              << " row " << row << " col " << col << " nEle " << nEle << " label " << lbl << " layer " << layer << " toa " << toaInROF;
-  float tStrobe = mParams.getStrobeDelay(layer) - tInROF; // strobe start wrt signal start
-  for (int i = 0; i < nROF; i++) {                        // loop on all the ROFs occupied by the same signal to calculate the charge accumulated in that ROF
+  float tStrobe = mParams.getStrobeDelay(layer) - toaInROF; // strobe start wrt signal start
+  for (int i = 0; i < nROF; i++) {                          // loop on all the ROFs occupied by the same signal to calculate the charge accumulated in that ROF
     uint32_t roFr = roFrame + i;
     float toaROF = toaInROF - i * mParams.getROFrameLength(layer); // ToA w.r.t. start of ROF
     int nEleROF = mParams.getSignalShape().getCollectedCharge(nEle, tStrobe, tStrobe + mParams.getStrobeLength(layer));

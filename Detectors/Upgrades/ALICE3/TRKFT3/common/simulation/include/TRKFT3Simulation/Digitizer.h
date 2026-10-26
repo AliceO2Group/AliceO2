@@ -94,8 +94,8 @@ class Digitizer
 
  private:
   void processHit(const o2::trkft3::Hit& hit, uint32_t& maxFr, int evID, int srcID, int rofLayer);
-  void registerDigits(o2::trkft3::ChipDigitsContainer& chip, uint32_t roFrame, float tInROF, int nROF,
-                      uint16_t row, uint16_t col, int nEle, o2::MCCompLabel& lbl, int layer, float toa);
+  void registerDigits(o2::trkft3::ChipDigitsContainer& chip, uint32_t roFrame, float toaInROF, int nROF,
+                      uint16_t row, uint16_t col, int nEle, o2::MCCompLabel& lbl, int layer);
 
   ExtraDig* getExtraDigBuffer(uint32_t roFrame)
   {
