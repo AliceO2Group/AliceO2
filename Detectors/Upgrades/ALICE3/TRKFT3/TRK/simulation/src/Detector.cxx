@@ -132,14 +132,12 @@ void Detector::configMLOT()
       const std::vector<int> nMods{11, 11, 11, 11, 11, 22, 22, 22};
       const std::vector<float> stagOffsets{0.f, 0.f, 0.f, 1.17f, 0.89f};
 
-      // OT radii chosen at the top of a stave-count band, where the paving closes with
-      // ~1.5-1.9 mm of neighbour overlap; the outermost also clears TRKServices::sOTShellRMin.
+      // OT: L9/L10 radii from the mechanical CAD, L8 at 442 mm; staves per ring (15/21/28 per quarter barrel)
       std::vector<float> rInnReal = rInn;
-      rInnReal[constants::ML::nLayers + 0] = 44.0f;
-      rInnReal[constants::ML::nLayers + 1] = 61.5f;
-      rInnReal[constants::ML::nLayers + 2] = 79.3f;
-      // OT counts are informational: TRKOTLayerRealistic derives its own from the radius.
-      const std::vector<int> nStaves{10, 14, 18, 26, 38, 30, 42, 54};
+      rInnReal[constants::ML::nLayers + 0] = 44.2f;
+      rInnReal[constants::ML::nLayers + 1] = 62.0f;
+      rInnReal[constants::ML::nLayers + 2] = 82.0f;
+      const std::vector<int> nStaves{10, 14, 18, 26, 38, 30, 42, 56};
 
       LOGP(warning, "Loading simplified-realistic configuration for ALICE3 TRK");
       for (int i{0}; i < constants::ML::nLayers + constants::OT::nLayers; ++i) {

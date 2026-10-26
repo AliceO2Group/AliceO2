@@ -739,7 +739,7 @@ TGeoVolume* TRKOTLayerRealistic::createStave()
   // Two rows overlapping in phi and staggered in r. They straddle the stave origin, so the
   // stave is tangent to the barrel circle at its centre and every row-to-row radial step,
   // within a stave and between neighbours, is rowRadialStagger.
-  const double edgeDead = constants::moduleMLOT::gaps::outerEdgeLongSide + constants::moduleMLOT::chip::passiveEdgeReadOut;
+  const double edgeDead = constants::OT::fpc::wireBondMargin + constants::moduleMLOT::chip::passiveEdgeReadOut;
   const double inStaveOverlap = 2 * edgeDead + constants::OT::rowActiveOverlap;
   const double rowOffset = constants::OT::fpc::width - inStaveOverlap;
 
@@ -765,7 +765,7 @@ TGeoVolume* TRKOTLayerRealistic::createStave()
 
 void TRKOTLayerRealistic::createLayer(TGeoVolume* motherVolume)
 {
-  const double edgeDead = constants::moduleMLOT::gaps::outerEdgeLongSide + constants::moduleMLOT::chip::passiveEdgeReadOut;
+  const double edgeDead = constants::OT::fpc::wireBondMargin + constants::moduleMLOT::chip::passiveEdgeReadOut;
   const double inStaveOverlap = 2 * edgeDead + constants::OT::rowActiveOverlap;
   const double staveWidth = 2 * constants::OT::fpc::width - inStaveOverlap;
 
@@ -812,12 +812,18 @@ void TRKOTLayerRealistic::createLayer(TGeoVolume* motherVolume)
   const double accGap = std::max(constants::OT::halfBarrelChipGap + 2 * constants::moduleMLOT::chip::passiveEdgeReadOut,
                                  2 * (wallThickness / 2 + constants::OT::barrelWallClearance + edgeDead));
 
-  // Smallest even count still leaving rowActiveOverlap between neighbours: the two boundary
-  // staves take activeStaveWidth + accGap each, so only nStaves - 2 junctions share the rest.
+  // Staves per ring: configured, or else the smallest even count leaving rowActiveOverlap between
+  // neighbours (the two boundary staves take activeStaveWidth + accGap, nStaves - 2 junctions share the rest).
   const double activeStaveWidth = staveWidth - 2 * edgeDead;
-  int nStavesHalfBarrel = (int)std::ceil(2. + (avgRadius * 2 * TMath::Pi() - 2 * (activeStaveWidth + accGap)) /
-                                                (activeStaveWidth - constants::OT::rowActiveOverlap));
-  nStavesHalfBarrel += nStavesHalfBarrel % 2;
+  int nStavesHalfBarrel = mNumberOfStaves;
+  if (nStavesHalfBarrel <= 0) {
+    nStavesHalfBarrel = (int)std::ceil(2. + (avgRadius * 2 * TMath::Pi() - 2 * (activeStaveWidth + accGap)) /
+                                              (activeStaveWidth - constants::OT::rowActiveOverlap));
+    nStavesHalfBarrel += nStavesHalfBarrel % 2;
+  }
+  if (nStavesHalfBarrel % 2) {
+    LOGP(fatal, "OT layer {}: {} staves per ring, must be even (two azimuthal halves)", mLayerNumber, nStavesHalfBarrel);
+  }
 
   const int nHalf = nStavesHalfBarrel / 2;
   const double thetaGap = (activeStaveWidth + accGap) / avgRadius;
@@ -825,6 +831,10 @@ void TRKOTLayerRealistic::createLayer(TGeoVolume* motherVolume)
   const double overlap = activeStaveWidth - avgRadius * thetaInt;
   LOGP(info, "Creating realistic OT layer {}: {} staves/half-barrel, internal overlap {} mm, boundary gap {} mm, flipped={}",
        mLayerNumber, nStavesHalfBarrel, overlap * 10, accGap * 10, mIsFlipped);
+  if (overlap < constants::OT::rowActiveOverlap) {
+    LOGP(warning, "OT layer {}: active neighbour overlap {} mm is below the required {} mm",
+         mLayerNumber, overlap * 10, constants::OT::rowActiveOverlap * 10);
+  }
 
   const int nStaves = nStavesHalfBarrel * 2;
 
