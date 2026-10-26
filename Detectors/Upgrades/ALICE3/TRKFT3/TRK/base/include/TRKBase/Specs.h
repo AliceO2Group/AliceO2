@@ -139,11 +139,13 @@ constexpr int nModulesPerRow{11};                                         // mod
 constexpr double interModuleGap{0.2 * mm};                                // z-gap between module FPCs
 
 // Component dimensions of the simplified-realistic OT stave
+constexpr double interChipGap{0.2 * mm}; // gap between chips within a module
 namespace fpc
 {
-constexpr double length{116.8 * mm};    // z-extent
-constexpr double width{52.2 * mm};      // phi-extent
-constexpr double thickness{0.200 * mm}; // r-extent, Kapton+Cu stack
+constexpr double wireBondMargin{2.1 * mm};                                               // FPC beyond the chips on each long side, for wire bonding
+constexpr double length{116.8 * mm};                                                     // z-extent
+constexpr double width{2 * moduleMLOT::chip::width + interChipGap + 2 * wireBondMargin}; // phi-extent
+constexpr double thickness{0.200 * mm};                                                  // r-extent, Kapton+Cu stack
 } // namespace fpc
 namespace coldPlate
 {
@@ -195,7 +197,6 @@ constexpr double zClearance{1.0 * mm};  // z-clearance to the nearest wall and t
 } // namespace supportRing
 
 constexpr double sensorThickness{moduleMLOT::silicon::thickness}; // pure-silicon chip (no metal stack)
-constexpr double interChipGap{0.2 * mm};                          // gap between chips within a module
 constexpr double rowActiveOverlap{1.0 * mm};                      // active overlap between the two rows of a stave
 constexpr double rowRadialStagger{2.0 * mm};                      // radial step between any two overlapping rows
 constexpr double halfBarrelChipGap{1.0 * mm};                     // gap between the two azimuthal half-barrels
