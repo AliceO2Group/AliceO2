@@ -20,6 +20,7 @@
 #include "IOTOFSimulation/DPLDigitizerParam.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "CCDB/BasicCCDBManager.h"
+#include "CommonConstants/MathConstants.h"
 
 #include <TCollection.h>
 #include <TFile.h>
@@ -63,8 +64,14 @@ void Digitizer::init()
     // initialize the vector of TDC states
     mChips[i].resizeTDCStates(nReadOutCols);
     for (auto& tdcStates : mChips[i].getTDCStates()) {
-      tdcStates[0] = -999.f;
-      tdcStates[1] = -999.f;
+      for (int iT = 0; iT < 4; ++iT) {
+        tdcStates[iT] = -o2::constants::math::VeryBig;
+      }
+    }
+    // initialize the vector of mask states
+    mChips[i].resizeMaskStates(nReadOutCols);
+    for (auto& maskStates : mChips[i].getMaskStates()) {
+      maskStates = -o2::constants::math::VeryBig;
     }
   }
 
@@ -72,22 +79,6 @@ void Digitizer::init()
   LOG(info) << "  Time resolution: " << digitizerParams.timeResolution * 1e3 << " ps";
   LOG(info) << "  Charge threshold: " << digitizerParams.chargeThreshold << " electrons";
   LOG(info) << "  Continuous mode: " << (mContinuous ? "ON" : "OFF");
-
-  loadMap(mEfficiencyMap, digitizerParams.efficiencyMapPath, "hEfficiencyMap");
-  if (!mEfficiencyMap) {
-    LOG(info) << "No efficiency map loaded, using uniform efficiency: " << digitizerParams.efficiency * 100 << " %";
-  }
-
-  loadMap(mResolutionMap, digitizerParams.resolutionMapPath, "hSigmaPixel");
-  prepareScaledResolutionMap();
-  if (!mResolutionMap) {
-    LOG(info) << "No resolution map loaded, using uniform time resolution: " << digitizerParams.timeResolution * 1e3 << " ps";
-  }
-
-  loadMap(mTimeOfArrivalMap, digitizerParams.timeOfArrivalMapPath, "toa_pixel");
-  if (!mTimeOfArrivalMap) {
-    LOG(info) << "No time of arrival map loaded";
-  }
 
   sSegmentation = o2::iotof::Segmentation::Instance();
 }
@@ -374,61 +365,6 @@ int Digitizer::energyToCharge(float energyLoss) const
 }
 
 //_______________________________________________________________________
-
-void Digitizer::loadMap(TH2D*& map, const std::string& path, const char* mapName)
-{
-  // Load a map either from CCDB (path prefixed with "ccdb://") or from a ROOT file
-  // (anything TFile::Open understands: local path, alien://, root://, http://, ...)
-  static constexpr std::string_view ccdbPrefix = "ccdb://";
-
-  if (path.empty()) {
-    return;
-  }
-
-  TH2D* rawMap = nullptr;
-  TFile* file = nullptr;
-
-  if (path.rfind(ccdbPrefix, 0) == 0) {
-    const std::string ccdbPath = path.substr(ccdbPrefix.size());
-    LOG(info) << "Loading " << mapName << " from CCDB: " << ccdbPath;
-    rawMap = o2::ccdb::BasicCCDBManager::instance().get<TH2D>(ccdbPath); // owned by the CCDB manager
-    if (!rawMap) {
-      LOG(error) << "Failed to retrieve " << mapName << " from CCDB path: " << ccdbPath;
-      return;
-    }
-  } else {
-    LOG(info) << "Loading " << mapName << " from file: " << path;
-    file = TFile::Open(path.c_str());
-    if (!file || !file->IsOpen()) {
-      LOG(error) << "Failed to open file: " << path;
-      delete file;
-      return;
-    }
-    rawMap = dynamic_cast<TH2D*>(file->Get(mapName));
-    if (!rawMap) {
-      LOG(error) << "Failed to retrieve " << mapName << " from file: " << path;
-      LOG(error) << "Available keys in the file:";
-      TIter next(file->GetListOfKeys());
-      TKey* key;
-      while ((key = dynamic_cast<TKey*>(next()))) {
-        LOG(error) << "  " << key->GetName() << " (" << key->GetClassName() << ")";
-      }
-      file->Close();
-      delete file;
-      return;
-    }
-  }
-
-  map = dynamic_cast<TH2D*>(rawMap->Clone());
-  map->SetDirectory(nullptr); // Detach from file to avoid deletion when file is closed
-  LOG(info) << "Loaded " << mapName << " (" << map->GetNbinsX() << " x " << map->GetNbinsY() << " bins)";
-
-  if (file) {
-    file->Close();
-    delete file;
-  }
-}
-
 void Digitizer::prepareScaledResolutionMap()
 {
   if (!mResolutionMap) {
@@ -497,6 +433,7 @@ void Digitizer::fillOutputContainer()
 
     auto& chipDigits = chip.getDigits();
     auto& tdcStates = chip.getTDCStates();
+    auto& maskStates = chip.getMaskStates();
 
     for (const auto& [key, digit] : chipDigits) {
 
@@ -506,14 +443,25 @@ void Digitizer::fillOutputContainer()
 
       const int colInGroup = digit.getColumn() / digitizerParams.nColsPerGroup;
       const double digitTime = digit.getTime();
-      if (digitTime - tdcStates[colInGroup][0] < digitizerParams.tdcBusyTime && digitTime - tdcStates[colInGroup][1] < digitizerParams.tdcBusyTime) {
-        // TODO: improve labels treatment if multiple hits cross the same pixel during
-        continue; // both tdc pairs are busy
-      } else if (digitTime - tdcStates[colInGroup][0] > digitizerParams.tdcBusyTime) {
-        tdcStates[colInGroup][0] = digitTime;
-      } else if (digitTime - tdcStates[colInGroup][1] > digitizerParams.tdcBusyTime) {
-        tdcStates[colInGroup][1] = digitTime;
+
+      if (digitTime - maskStates[colInGroup] < digitizerParams.maskWindow) {
+        continue; // the RO column is still masked
       }
+
+      int available = -1;
+      for (int iT = 0; iT < 4; ++iT) {
+        if (digitTime - tdcStates[colInGroup][iT] > digitizerParams.tdcBusyTime) {
+          available = iT;
+          break;
+        }
+      }
+
+      if (available == -1) {
+        continue; // all tdc pairs are busy
+      }
+
+      tdcStates[colInGroup][available] = digitTime;
+      maskStates[colInGroup] = digitTime;
 
       int digitID = mDigits->size();
       mDigits->emplace_back(digit.getChipIndex(), digit.getRow(), digit.getColumn(), digit.getCharge(), digit.getTime(), digit.getBc(), digit.getTdc());

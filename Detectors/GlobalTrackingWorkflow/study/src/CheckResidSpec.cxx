@@ -114,6 +114,7 @@ class CheckResidSpec final : public Task
   float mITSROFrameLengthMUS = 0.f;
   o2::dataformats::MeanVertexObject mMeanVtx{};
   ITSClusters mITSClustersArray;                            ///< ITS clusters from compact clusters, by composed ID
+  std::vector<int16_t> mITSClusterSizes;                    ///< number of pixels per converted cluster
   const o2::itsmft::TopologyDictionary* mITSDict = nullptr; ///< cluster patterns dictionary
   o2::vertexing::PVertexer mVertexer;
   std::shared_ptr<DataRequest> mDataRequest;
@@ -203,6 +204,13 @@ void CheckResidSpec::run(ProcessingContext& pc)
     quit = true;
   }
   if (quit) {
+    if (mPostProcOnly && o2::checkresid::CheckResidConfig::Instance().savePostprocessed) {
+      for (const auto& hm : mHManV) {
+        if (hm) {
+          hm->write();
+        }
+      }
+    }
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     return;
@@ -255,11 +263,25 @@ void CheckResidSpec::process()
   const auto& params = o2::checkresid::CheckResidConfig::Instance();
   int nLr = mDataRequest->getITSPerLayer() ? o2::globaltracking::MaxITSLayers : 1;
   mITSClustersArray.init(nLr);
+  mITSClusterSizes.clear();
   for (int lr = 0; lr < nLr; lr++) { // with a single (monolithic) input all clusters are in the layer slot 0
     mITSClustersArray.beginLayer(lr);
     const auto clusITS = mRecoData->getITSClusters(lr);
     auto pattIt = mRecoData->getITSClustersPatterns(lr).begin();
-    mITSClustersArray.getClusters().reserve(mITSClustersArray.size() + clusITS.size());
+    {
+      auto sizePattIt = mRecoData->getITSClustersPatterns(lr).begin();
+      mITSClustersArray.getClusters().reserve(mITSClustersArray.size() + clusITS.size());
+      mITSClusterSizes.reserve(mITSClusterSizes.size() + clusITS.size());
+      for (const auto& clu : clusITS) {
+        const auto pattID = clu.getPatternID();
+        if (pattID == o2::itsmft::CompCluster::InvalidPatternID || mITSDict->isGroup(pattID)) {
+          o2::itsmft::ClusterPattern patt(sizePattIt);
+          mITSClusterSizes.emplace_back(patt.getNPixels());
+        } else {
+          mITSClusterSizes.emplace_back(mITSDict->getNpixels(pattID));
+        }
+      }
+    }
     o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray.getClusters(), mITSDict);
   }
   mITSClustersArray.finalize();
@@ -405,8 +427,10 @@ bool CheckResidSpec::processITSTrack(const o2::its::TrackITS& iTrack, const o2::
   float pvAlpha = 0;
   float bz = prop->getNominalBz();
   std::array<const o2::BaseCluster<float>*, 8> clArr{};
+  std::array<int16_t, 8> clSizeArr{};
   const auto& params = CheckResidConfig::Instance();
   std::array<o2::track::TrackParCov, 8> extrapOut, extrapInw; // 2-way Kalman extrapolations, vertex + 7 layers
+  o2::track::TrackParCov trIBOutForIOB, trOBInwForIOB;        // IB/OB sub-tracks (pre-R12 state) used for IOB residuals
 
   auto rotateTrack = [bz](o2::track::TrackParCov& tr, float alpha, o2::track::TrackPar* refLin) {
     return refLin ? tr.rotate(alpha, *refLin, bz) : tr.rotate(alpha);
@@ -465,6 +489,7 @@ bool CheckResidSpec::processITSTrack(const o2::its::TrackITS& iTrack, const o2::
       LOGP(error, "Cluster at lr {} was already assigned, old sens {}, new sens {}", llr, clArr[1 + llr]->getSensorID(), curClu.getSensorID());
     }
     clArr[1 + geom->getLayer(curClu.getSensorID())] = &curClu;
+    clSizeArr[1 + geom->getLayer(curClu.getSensorID())] = mITSClusterSizes[itsClRefs[iTrack.getClusterEntry(i)]];
   }
   o2::track::TrackPar refLinInw0, refLinOut0, *refLinOut = nullptr, *refLinInw = nullptr;
   o2::track::TrackPar refLinIBOut0, refLinOBInw0, *refLinOBInw = nullptr, *refLinIBOut = nullptr;
@@ -486,7 +511,11 @@ bool CheckResidSpec::processITSTrack(const o2::its::TrackITS& iTrack, const o2::
     // at layer 3, find the IB track (trIBOut) and the OB track (trOBInw)
     // propagate both trcaks to a common radius, RCompIBOB (12cm), and rotates
     // them to the same reference frame for comparison
-    if (i == 3 && resOut == 1 && resInw == 1 && params.doIBOB && nCl == 7) {
+    if (i == 3 && resOut == 1 && resInw == 1 && (params.doIBOB || params.doIBOBresiduals) && nCl == 7) {
+      if (params.doIBOBresiduals) { // keep the un-rotated IB/OB sub-tracks for the per-layer IOB residuals below
+        trIBOutForIOB = trFitOut;
+        trOBInwForIOB = trFitInw;
+      }
       resTrack.trIBOut = trFitOut; // outward track updated at outermost IB layer
       resTrack.trOBInw = trFitInw; // inward track updated at innermost OB layer
       o2::track::TrackPar refLinIBOut0, refLinIBIn0;
@@ -505,6 +534,17 @@ bool CheckResidSpec::processITSTrack(const o2::its::TrackITS& iTrack, const o2::
       }
     }
   }
+
+  // extrapolate the IB(OB) sub-track, w/o intermediate updates, to the cluster (or PV pseudo-cluster) of an OB(IB) layer, for the IOB residuals
+  auto extrapIOB = [&](const o2::track::TrackParCov& srcTr, int i) -> std::array<float, 4> { // {dy, dz, sig2y, sig2z}, sig2y<=0 : invalid
+    o2::track::TrackParCov tr = srcTr;
+    auto alpha = i == 0 ? pvAlpha : geom->getSensorRefAlpha(clArr[i]->getSensorID());
+    if (!rotateTrack(tr, alpha, nullptr) || !prop->propagateTo(tr, nullptr, clArr[i]->getX(), true)) {
+      return {0.f, 0.f, 0.f, 0.f};
+    }
+    return {clArr[i]->getY() - tr.getY(), clArr[i]->getZ() - tr.getZ(), tr.getSigmaY2() + clArr[i]->getSigmaY2(), tr.getSigmaZ2() + clArr[i]->getSigmaZ2()};
+  };
+  bool haveIOBTracks = params.doIBOBresiduals && nCl == 7 && trIBOutForIOB.getX() > 1 && trOBInwForIOB.getX() > 1;
 
   bool innerDone = false;
   if (params.doResid) {
@@ -526,7 +566,17 @@ bool CheckResidSpec::processITSTrack(const o2::its::TrackITS& iTrack, const o2::
         // posCl.push_back(clArr[i]->getXYZGlo(*o2::its::GeometryTGeo::Instance()));
         auto phi = i == 0 ? tInw.getPhi() : tInw.getPhiPos();
         o2::math_utils::bringTo02Pi(phi);
-        resTrack.points.emplace_back(clArr[i]->getY() - yw, clArr[i]->getZ() - zw, cTot[0] + clArr[i]->getSigmaY2(), cTot[1] + clArr[i]->getSigmaZ2(), phi, clArr[i]->getZ(), clArr[i]->getSensorID(), i - 1);
+        std::array<float, 4> iob{0.f, 0.f, 0.f, 0.f};
+        if (haveIOBTracks) {
+          int lr = i - 1; // -1 = vertex
+          if (lr <= 2) {  // vertex or IB layer: extrapolate the OB sub-track to it (the vertex constrains the IB outward fit)
+            iob = extrapIOB(trOBInwForIOB, i);
+          } else { // OB layer: extrapolate the IB sub-track to it
+            iob = extrapIOB(trIBOutForIOB, i);
+          }
+        }
+        resTrack.points.emplace_back(clArr[i]->getY() - yw, clArr[i]->getZ() - zw, cTot[0] + clArr[i]->getSigmaY2(), cTot[1] + clArr[i]->getSigmaZ2(),
+                                     iob[0], iob[1], iob[2], iob[3], phi, clArr[i]->getZ(), 0.5 * (tInw.getSnp() + tOut.getSnp()), clSizeArr[i], clArr[i]->getSensorID(), i - 1);
         if (!innerDone) {
           resTrack.track = tInw;
           innerDone = true;
@@ -640,44 +690,62 @@ void CheckResidSpec::fillHistos(const o2::checkresid::Track& trc)
   if (pt < params.minPt || pt > params.maxPt) {
     return;
   }
+  auto tgl = trc.track.getTgl();
+  // fills, for a given id offset, the dy/dz (+pull) vs phi/Z/pT/tgl histos of layer slot il
+  auto fillLayerResid = [&](int idOffset, int il, float phi, float z, float dy, float dz, float sig2y, float sig2z) {
+    mHMan->getHisto2F(idOffset + il * 10 + 0 * 100)->Fill(phi, dy);
+    mHMan->getHisto2F(idOffset + il * 10 + 0 * 100 + 1000)->Fill(z, dy);
+    mHMan->getHisto2F(idOffset + il * 10 + 0 * 100 + 2000)->Fill(pt, dy);
+    mHMan->getHisto2F(idOffset + il * 10 + 0 * 100 + 3000)->Fill(tgl, dy);
+    if (sig2y > 0) {
+      auto pull = dy / std::sqrt(sig2y);
+      mHMan->getHisto2F(idOffset + il * 10 + 0 * 100 + 5)->Fill(phi, pull);
+      mHMan->getHisto2F(idOffset + il * 10 + 0 * 100 + 5 + 1000)->Fill(z, pull);
+      mHMan->getHisto2F(idOffset + il * 10 + 0 * 100 + 5 + 2000)->Fill(pt, pull);
+      mHMan->getHisto2F(idOffset + il * 10 + 0 * 100 + 5 + 3000)->Fill(tgl, pull);
+    }
+    mHMan->getHisto2F(idOffset + il * 10 + 1 * 100)->Fill(phi, dz);
+    mHMan->getHisto2F(idOffset + il * 10 + 1 * 100 + 1000)->Fill(z, dz);
+    mHMan->getHisto2F(idOffset + il * 10 + 1 * 100 + 2000)->Fill(pt, dz);
+    mHMan->getHisto2F(idOffset + il * 10 + 1 * 100 + 3000)->Fill(tgl, dz);
+    if (sig2z > 0) {
+      auto pull = dz / std::sqrt(sig2z);
+      mHMan->getHisto2F(idOffset + il * 10 + 1 * 100 + 5)->Fill(phi, pull);
+      mHMan->getHisto2F(idOffset + il * 10 + 1 * 100 + 5 + 1000)->Fill(z, pull);
+      mHMan->getHisto2F(idOffset + il * 10 + 1 * 100 + 5 + 2000)->Fill(pt, pull);
+      mHMan->getHisto2F(idOffset + il * 10 + 1 * 100 + 5 + 3000)->Fill(tgl, pull);
+    }
+  };
+  // fills, for a given id offset, the per-chip dy/dz (+pull) histo of a layer point on sensor sens
+  auto fillChipResid = [&](int idOffset, int il, int lr, int sens, float dy, float dz, float sig2y, float sig2z) {
+    if (sens >= 0 && geom->getLayer(sens) == lr) {
+      const int halfBarrel = geom->getHalfBarrel(sens);
+      const int chip = geom->getFirstChipIndex(lr) + geom->getChipIdInLayer(sens);
+      const int chipHistoID = idOffset + (2 * il + halfBarrel) * 100 + 15000;
+      if (halfBarrel >= 0 && halfBarrel < 2) {
+        mHMan->getHisto2F(chipHistoID)->Fill(chip, dy);
+        mHMan->getHisto2F(chipHistoID + 10)->Fill(chip, dz);
+        if (sig2y > 0) {
+          mHMan->getHisto2F(chipHistoID + 5)->Fill(chip, dy / std::sqrt(sig2y));
+        }
+        if (sig2z > 0) {
+          mHMan->getHisto2F(chipHistoID + 15)->Fill(chip, dz / std::sqrt(sig2z));
+        }
+      }
+    }
+  };
+
   for (int ip = 0; ip < np; ip++) {
     const auto& pnt = trc.points[ip];
     int il = pnt.lr >= 0 ? pnt.lr + 1 : 0;
-    mHMan->getHisto2F(il * 10 + 0 * 100)->Fill(pnt.phi, pnt.dy);
-    mHMan->getHisto2F(il * 10 + 0 * 100 + 1000)->Fill(pnt.z, pnt.dy);
-    mHMan->getHisto2F(il * 10 + 0 * 100 + 2000)->Fill(pt, pnt.dy);
-    mHMan->getHisto2F(il * 10 + 0 * 100 + 3000)->Fill(trc.track.getTgl(), pnt.dy);
-    if (pnt.sig2y > 0) {
-      auto pull = pnt.dy / std::sqrt(pnt.sig2y);
-      mHMan->getHisto2F(il * 10 + 0 * 100 + 5)->Fill(pnt.phi, pull);
-      mHMan->getHisto2F(il * 10 + 0 * 100 + 5 + 1000)->Fill(pnt.z, pull);
-      mHMan->getHisto2F(il * 10 + 0 * 100 + 5 + 2000)->Fill(pt, pull);
-      mHMan->getHisto2F(il * 10 + 0 * 100 + 5 + 3000)->Fill(trc.track.getTgl(), pull);
+    fillLayerResid(0, il, pnt.phi, pnt.z, pnt.dy, pnt.dz, pnt.sig2y, pnt.sig2z);
+    if (pnt.lr >= 0) {
+      fillChipResid(0, il, pnt.lr, pnt.sens, pnt.dy, pnt.dz, pnt.sig2y, pnt.sig2z);
     }
-    mHMan->getHisto2F(il * 10 + 1 * 100)->Fill(pnt.phi, pnt.dz);
-    mHMan->getHisto2F(il * 10 + 1 * 100 + 1000)->Fill(pnt.z, pnt.dz);
-    mHMan->getHisto2F(il * 10 + 1 * 100 + 2000)->Fill(pt, pnt.dz);
-    mHMan->getHisto2F(il * 10 + 1 * 100 + 3000)->Fill(trc.track.getTgl(), pnt.dz);
-    if (pnt.sig2z > 0) {
-      auto pull = pnt.dz / std::sqrt(pnt.sig2z);
-      mHMan->getHisto2F(il * 10 + 1 * 100 + 5)->Fill(pnt.phi, pull);
-      mHMan->getHisto2F(il * 10 + 1 * 100 + 5 + 1000)->Fill(pnt.z, pull);
-      mHMan->getHisto2F(il * 10 + 1 * 100 + 5 + 2000)->Fill(pt, pull);
-      mHMan->getHisto2F(il * 10 + 1 * 100 + 5 + 3000)->Fill(trc.track.getTgl(), pull);
-    }
-    if (pnt.lr >= 0 && pnt.sens >= 0 && geom->getLayer(pnt.sens) == pnt.lr) {
-      const int halfBarrel = geom->getHalfBarrel(pnt.sens);
-      const int chip = geom->getFirstChipIndex(pnt.lr) + geom->getChipIdInLayer(pnt.sens);
-      const int chipHistoID = (2 * il + halfBarrel) * 100 + 15000;
-      if (halfBarrel >= 0 && halfBarrel < 2) {
-        mHMan->getHisto2F(chipHistoID)->Fill(chip, pnt.dy);
-        mHMan->getHisto2F(chipHistoID + 10)->Fill(chip, pnt.dz);
-        if (pnt.sig2y > 0) {
-          mHMan->getHisto2F(chipHistoID + 5)->Fill(chip, pnt.dy / std::sqrt(pnt.sig2y));
-        }
-        if (pnt.sig2z > 0) {
-          mHMan->getHisto2F(chipHistoID + 15)->Fill(chip, pnt.dz / std::sqrt(pnt.sig2z));
-        }
+    if (pnt.sig2yIOB > 0) { // IOB residual was computed for this point
+      fillLayerResid(100000, il, pnt.phi, pnt.z, pnt.dyIOB, pnt.dzIOB, pnt.sig2yIOB, pnt.sig2zIOB);
+      if (pnt.lr >= 0) {
+        fillChipResid(100000, il, pnt.lr, pnt.sens, pnt.dyIOB, pnt.dzIOB, pnt.sig2yIOB, pnt.sig2zIOB);
       }
     }
   }
@@ -721,42 +789,52 @@ void CheckResidSpec::bookHistos()
   float minPt = std::max(0.1f, params.minPt), maxPt = std::min(50.f, params.maxPt);
   auto ptax = defLogAxis(minPt, maxPt, params.nBinsPt);
 
-  for (int il = 0; il < 8; il++) {
-    std::string lrName = il == 0 ? "Vtx" : fmt::format("Lr{}", il - 1);
-    for (int iyz = 0; iyz < 2; iyz++) {
-      std::string dname = iyz == 0 ? "dy" : "dz", dtit = iyz == 0 ? "#DeltaY" : "#DeltaZ";
-      auto h2 = new TH2F(fmt::format("{}_{}_{}", dname, lrName, "phi").c_str(), fmt::format("{}_{{{}}} vs {};#phi;{}", dtit, lrName, "#phi", dtit).c_str(), params.nBinsPhi, 0, TMath::Pi() * 2, params.nBinsRes, -params.maxDYZ[il], params.maxDYZ[il]);
-      mHMan->addHisto(h2, il * 10 + iyz * 100);
-      auto h2p = new TH2F(fmt::format("{}_{}_{}_pull", dname, lrName, "phi").c_str(), fmt::format("pull {}_{{{}}} vs {};#phi; pull{}", dtit, lrName, "phi", dtit).c_str(), params.nBinsPhi, 0, TMath::Pi() * 2, params.nBinsRes, -params.maxPull, params.maxPull);
-      mHMan->addHisto(h2p, il * 10 + iyz * 100 + 5);
+  // books, for a given id offset (0 for the standard layer residuals, 100000 for the IOB ones) and name/title suffix,
+  // the dy/dz (+pull) vs phi/Z/pT/tgl histos and the per-chip histos; bookVtx controls whether the vtx (il=0) slot is booked
+  auto bookLayerResidHistos = [&](int idOffset, const std::string& suf, bool bookVtx) {
+    const float dyzScale = idOffset ? params.IOBScaleFactor : 1.f; // IOB residuals have a much larger range than the standard ones
+    for (int il = bookVtx ? 0 : 1; il < 8; il++) {
+      std::string lrName = il == 0 ? "Vtx" : fmt::format("Lr{}", il - 1);
+      const float maxDYZ = params.maxDYZ[il] * dyzScale;
+      for (int iyz = 0; iyz < 2; iyz++) {
+        std::string dname = fmt::format("{}{}", iyz == 0 ? "dy" : "dz", suf), dtit = fmt::format("{}{}", iyz == 0 ? "#DeltaY" : "#DeltaZ", suf.empty() ? "" : ("_" + suf));
+        auto h2 = new TH2F(fmt::format("{}_{}_{}", dname, lrName, "phi").c_str(), fmt::format("{}_{{{}}} vs {};#phi;{}", dtit, lrName, "#phi", dtit).c_str(), params.nBinsPhi, 0, TMath::Pi() * 2, params.nBinsRes, -maxDYZ, maxDYZ);
+        mHMan->addHisto(h2, idOffset + il * 10 + iyz * 100);
+        auto h2p = new TH2F(fmt::format("{}_{}_{}_pull", dname, lrName, "phi").c_str(), fmt::format("pull {}_{{{}}} vs {};#phi; pull{}", dtit, lrName, "phi", dtit).c_str(), params.nBinsPhi, 0, TMath::Pi() * 2, params.nBinsRes, -params.maxPull, params.maxPull);
+        mHMan->addHisto(h2p, idOffset + il * 10 + iyz * 100 + 5);
 
-      auto hz2 = new TH2F(fmt::format("{}_{}_{}", dname, lrName, "Z").c_str(), fmt::format("{}_{{{}}} vs {};Z;{}", dtit, lrName, "Z", dtit).c_str(), params.nBinsZ, -params.zranges[il], params.zranges[il], params.nBinsRes, -params.maxDYZ[il], params.maxDYZ[il]);
-      mHMan->addHisto(hz2, il * 10 + iyz * 100 + 1000);
-      auto hz2p = new TH2F(fmt::format("{}_{}_{}_pull", dname, lrName, "Z").c_str(), fmt::format("pull {}_{{{}}} vs {};Z; pull{}", dtit, lrName, "Z", dtit).c_str(), params.nBinsZ, -params.zranges[il], params.zranges[il], params.nBinsRes, -params.maxPull, params.maxPull);
-      mHMan->addHisto(hz2p, il * 10 + iyz * 100 + 5 + 1000);
+        auto hz2 = new TH2F(fmt::format("{}_{}_{}", dname, lrName, "Z").c_str(), fmt::format("{}_{{{}}} vs {};Z;{}", dtit, lrName, "Z", dtit).c_str(), params.nBinsZ, -params.zranges[il], params.zranges[il], params.nBinsRes, -maxDYZ, maxDYZ);
+        mHMan->addHisto(hz2, idOffset + il * 10 + iyz * 100 + 1000);
+        auto hz2p = new TH2F(fmt::format("{}_{}_{}_pull", dname, lrName, "Z").c_str(), fmt::format("pull {}_{{{}}} vs {};Z; pull{}", dtit, lrName, "Z", dtit).c_str(), params.nBinsZ, -params.zranges[il], params.zranges[il], params.nBinsRes, -params.maxPull, params.maxPull);
+        mHMan->addHisto(hz2p, idOffset + il * 10 + iyz * 100 + 5 + 1000);
 
-      auto hpt2 = new TH2F(fmt::format("{}_{}_{}", dname, lrName, "Pt").c_str(), fmt::format("{}_{{{}}} vs {};p_{{T}};{}", dtit, lrName, "p_{T}", dtit).c_str(), params.nBinsPt, ptax.data(), params.nBinsRes, -params.maxDYZ[il], params.maxDYZ[il]);
-      mHMan->addHisto(hpt2, il * 10 + iyz * 100 + 2000);
-      auto hpt2p = new TH2F(fmt::format("{}_{}_{}_pull", dname, lrName, "Pt").c_str(), fmt::format("pull {}_{{{}}} vs {};p_{{T}}; pull{}", dtit, lrName, "p_{T}", dtit).c_str(), params.nBinsPt, ptax.data(), params.nBinsRes, -params.maxPull, params.maxPull);
-      mHMan->addHisto(hpt2p, il * 10 + iyz * 100 + 5 + 2000);
+        auto hpt2 = new TH2F(fmt::format("{}_{}_{}", dname, lrName, "Pt").c_str(), fmt::format("{}_{{{}}} vs {};p_{{T}};{}", dtit, lrName, "p_{T}", dtit).c_str(), params.nBinsPt, ptax.data(), params.nBinsRes, -maxDYZ, maxDYZ);
+        mHMan->addHisto(hpt2, idOffset + il * 10 + iyz * 100 + 2000);
+        auto hpt2p = new TH2F(fmt::format("{}_{}_{}_pull", dname, lrName, "Pt").c_str(), fmt::format("pull {}_{{{}}} vs {};p_{{T}}; pull{}", dtit, lrName, "p_{T}", dtit).c_str(), params.nBinsPt, ptax.data(), params.nBinsRes, -params.maxPull, params.maxPull);
+        mHMan->addHisto(hpt2p, idOffset + il * 10 + iyz * 100 + 5 + 2000);
 
-      auto htgl2 = new TH2F(fmt::format("{}_{}_{}", dname, lrName, "tgl").c_str(), fmt::format("{}_{{{}}} vs {};tg#lambda;{}", dtit, lrName, "tg#lambda", dtit).c_str(), params.nBinsTgl, -params.maxTgl, params.maxTgl, params.nBinsRes, -params.maxDYZ[il], params.maxDYZ[il]);
-      mHMan->addHisto(htgl2, il * 10 + iyz * 100 + 3000);
-      auto htgl2p = new TH2F(fmt::format("{}_{}_{}_pull", dname, lrName, "tgl").c_str(), fmt::format("pull {}_{{{}}} vs {};tg#lambda; pull{}", dtit, lrName, "tg#lambda", dtit).c_str(), params.nBinsTgl, -params.maxTgl, params.maxTgl, params.nBinsRes, -params.maxPull, params.maxPull);
-      mHMan->addHisto(htgl2p, il * 10 + iyz * 100 + 5 + 3000);
+        auto htgl2 = new TH2F(fmt::format("{}_{}_{}", dname, lrName, "tgl").c_str(), fmt::format("{}_{{{}}} vs {};tg#lambda;{}", dtit, lrName, "tg#lambda", dtit).c_str(), params.nBinsTgl, -params.maxTgl, params.maxTgl, params.nBinsRes, -maxDYZ, maxDYZ);
+        mHMan->addHisto(htgl2, idOffset + il * 10 + iyz * 100 + 3000);
+        auto htgl2p = new TH2F(fmt::format("{}_{}_{}_pull", dname, lrName, "tgl").c_str(), fmt::format("pull {}_{{{}}} vs {};tg#lambda; pull{}", dtit, lrName, "tg#lambda", dtit).c_str(), params.nBinsTgl, -params.maxTgl, params.maxTgl, params.nBinsRes, -params.maxPull, params.maxPull);
+        mHMan->addHisto(htgl2p, idOffset + il * 10 + iyz * 100 + 5 + 3000);
 
-      if (il > 0) {
-        const int ilr = il - 1;
-        const int nChips = mChipMap.getNChipsOnLayer(ilr) / 2;
-        for (int ib = 0; ib < 2; ++ib) { // chips per halfbarrel
-          const int startChip = ib * nChips + mChipMap.getFirstChipsOnLayer(ilr);
-          auto h2 = new TH2F(fmt::format("{}_{}_{}", dname, lrName, ib).c_str(), fmt::format("{} Lr{} HB{};chip;{}", dname, lrName, ib, dtit).c_str(), nChips, startChip - 0.5, startChip - 0.5 + nChips, params.nBinsRes, -params.maxDYZ[il], params.maxDYZ[il]);
-          mHMan->addHisto(h2, (2 * il + ib) * 100 + iyz * 10 + 15000);
-          auto h2p = new TH2F(fmt::format("{}_{}_{}_pull", dname, lrName, ib).c_str(), fmt::format("{} Lr{} HB{} pull;chip;pull{}", dname, lrName, ib, dtit).c_str(), nChips, startChip - 0.5, startChip - 0.5 + nChips, params.nBinsRes, -params.maxPull, params.maxPull);
-          mHMan->addHisto(h2p, (2 * il + ib) * 100 + iyz * 10 + 5 + 15000);
+        if (il > 0) {
+          const int ilr = il - 1;
+          const int nChips = mChipMap.getNChipsOnLayer(ilr) / 2;
+          for (int ib = 0; ib < 2; ++ib) { // chips per halfbarrel
+            const int startChip = ib * nChips + mChipMap.getFirstChipsOnLayer(ilr);
+            auto hc2 = new TH2F(fmt::format("{}_{}_{}", dname, lrName, ib).c_str(), fmt::format("{} Lr{} HB{};chip;{}", dname, lrName, ib, dtit).c_str(), nChips, startChip - 0.5, startChip - 0.5 + nChips, params.nBinsRes, -maxDYZ, maxDYZ);
+            mHMan->addHisto(hc2, idOffset + (2 * il + ib) * 100 + iyz * 10 + 15000);
+            auto hc2p = new TH2F(fmt::format("{}_{}_{}_pull", dname, lrName, ib).c_str(), fmt::format("{} Lr{} HB{} pull;chip;pull{}", dname, lrName, ib, dtit).c_str(), nChips, startChip - 0.5, startChip - 0.5 + nChips, params.nBinsRes, -params.maxPull, params.maxPull);
+            mHMan->addHisto(hc2p, idOffset + (2 * il + ib) * 100 + iyz * 10 + 5 + 15000);
+          }
         }
       }
     }
+  };
+  bookLayerResidHistos(0, "", true);
+  if (params.doIBOBresiduals) { // the vtx slot is included: the PV constrains the IB outward fit, so it gets an OB-extrapolated IOB residual too
+    bookLayerResidHistos(100000, "IOB", true);
   }
 
   for (int ip = 0; ip < 5; ip++) {
@@ -803,6 +881,9 @@ void CheckResidSpec::postProcessHistos()
   TObjArray arr;
   for (int ihm = 0; ihm < maxH; ihm++) {
     auto* histm = mHManV[ihm].get();
+    if (!histm) {
+      continue;
+    }
     auto fitSlices = [&](int id) {
       auto h2 = histm->getHisto2F(id);
       if (!h2 || h2->GetEntries() < params.minHistoStat2Fit) {
@@ -825,9 +906,11 @@ void CheckResidSpec::postProcessHistos()
       int offs = ioffs * 1000;
       for (int iht = 0; iht < 2; iht++) { // resid, pull
         int offsV = iht == 0 ? 0 : 5;
-        for (int il = 0; il < 8; il++) {
-          for (int iyz = 0; iyz < 2; iyz++) {
-            fitSlices(il * 10 + iyz * 100 + offsV + offs);
+        for (int idOffset : {0, 100000}) { // standard and IOB residuals; fitSlices is a no-op if the histo was not booked
+          for (int il = 0; il < 8; il++) {
+            for (int iyz = 0; iyz < 2; iyz++) {
+              fitSlices(idOffset + il * 10 + iyz * 100 + offsV + offs);
+            }
           }
         }
         for (int ip = 0; ip < 5; ip++) {
@@ -835,12 +918,14 @@ void CheckResidSpec::postProcessHistos()
         }
       }
     }
-    for (int il = 1; il < 8; il++) {
-      for (int ib = 0; ib < 2; ib++) {
-        for (int iyz = 0; iyz < 2; iyz++) {
-          for (int iht = 0; iht < 2; iht++) {
-            const int offsV = iht == 0 ? 0 : 5;
-            fitSlices((2 * il + ib) * 100 + iyz * 10 + offsV + 15000);
+    for (int idOffset : {0, 100000}) {
+      for (int il = 1; il < 8; il++) {
+        for (int ib = 0; ib < 2; ib++) {
+          for (int iyz = 0; iyz < 2; iyz++) {
+            for (int iht = 0; iht < 2; iht++) {
+              const int offsV = iht == 0 ? 0 : 5;
+              fitSlices(idOffset + (2 * il + ib) * 100 + iyz * 10 + offsV + 15000);
+            }
           }
         }
       }
@@ -852,7 +937,7 @@ void CheckResidSpec::postProcessHistos()
 void CheckResidSpec::drawHistos()
 {
   // gROOT->SetBatch(true);
-  gStyle->SetTitleX(0.2);
+  gStyle->SetTitleX(0.3);
   gStyle->SetTitleY(0.88);
   gStyle->SetTitleW(0.25);
   gStyle->SetOptStat(0);
@@ -1030,83 +1115,98 @@ void CheckResidSpec::drawHistos()
     }
   };
 
-  cly.Print(Form("%s_hman.pdf[", params.outname.c_str()));
-  drawResLr(cly, 1, params.resMMLrY, false);
-  cly.cd(2);
-  lg->Draw();
-  AddLabel("Y residuals", 0.1, 0.95);
-  cly.Print(Form("%s_hman.pdf", params.outname.c_str()));
+  // draws the 8 dy/dz-vs-phi/Z/pT/tgl pages (standard idOffset=0, or IOB idOffset=100000) into pdfName
+  auto drawLrResidPages = [&](const std::string& pdfName, int idOffset) {
+    const float dyzScale = idOffset ? params.IOBScaleFactor : 1.f; // IOB residuals have a much larger range than the standard ones
+    std::array<float, 8> resMMY, resMMZ;
+    for (int i = 0; i < 8; i++) {
+      resMMY[i] = params.resMMLrY[i] * dyzScale;
+      resMMZ[i] = params.resMMLrZ[i] * dyzScale;
+    }
+    drawResLr(cly, idOffset + 1, resMMY.data(), false);
+    cly.cd(2);
+    lg->Draw();
+    AddLabel("Y residuals", 0.1, 0.95);
+    cly.Print(pdfName.c_str());
 
-  drawResLr(clz, 101, params.resMMLrZ, false);
-  clz.cd(2);
-  lg->Draw();
-  AddLabel("Z residuals", 0.1, 0.95);
-  clz.Print(Form("%s_hman.pdf", params.outname.c_str()));
+    drawResLr(clz, idOffset + 101, resMMZ.data(), false);
+    clz.cd(2);
+    lg->Draw();
+    AddLabel("Z residuals", 0.1, 0.95);
+    clz.Print(pdfName.c_str());
 
-  drawResLr(czly, 1001, params.resMMLrY, false);
-  czly.cd(2);
-  lg->Draw();
-  AddLabel("Y residuals", 0.1, 0.95);
-  czly.Print(Form("%s_hman.pdf", params.outname.c_str()));
+    drawResLr(czly, idOffset + 1001, resMMY.data(), false);
+    czly.cd(2);
+    lg->Draw();
+    AddLabel("Y residuals", 0.1, 0.95);
+    czly.Print(pdfName.c_str());
 
-  drawResLr(czlz, 1101, params.resMMLrZ, false);
-  czlz.cd(2);
-  lg->Draw();
-  AddLabel("Z residuals", 0.1, 0.95);
-  czlz.Print(Form("%s_hman.pdf", params.outname.c_str()));
+    drawResLr(czlz, idOffset + 1101, resMMZ.data(), false);
+    czlz.cd(2);
+    lg->Draw();
+    AddLabel("Z residuals", 0.1, 0.95);
+    czlz.Print(pdfName.c_str());
 
-  drawResLr(czly, 2001, params.resMMLrY, true);
-  czly.cd(2);
-  lg->Draw();
-  AddLabel("Y residuals", 0.1, 0.95);
-  czly.Print(Form("%s_hman.pdf", params.outname.c_str()));
+    drawResLr(czly, idOffset + 2001, resMMY.data(), true);
+    czly.cd(2);
+    lg->Draw();
+    AddLabel("Y residuals", 0.1, 0.95);
+    czly.Print(pdfName.c_str());
 
-  drawResLr(czlz, 2101, params.resMMLrZ, true);
-  czlz.cd(2);
-  lg->Draw();
-  AddLabel("Z residuals", 0.1, 0.95);
-  czlz.Print(Form("%s_hman.pdf", params.outname.c_str()));
+    drawResLr(czlz, idOffset + 2101, resMMZ.data(), true);
+    czlz.cd(2);
+    lg->Draw();
+    AddLabel("Z residuals", 0.1, 0.95);
+    czlz.Print(pdfName.c_str());
 
-  drawResLr(czly, 3001, params.resMMLrY, false);
-  czly.cd(2);
-  lg->Draw();
-  AddLabel("Y residuals", 0.1, 0.95);
-  czly.Print(Form("%s_hman.pdf", params.outname.c_str()));
+    drawResLr(czly, idOffset + 3001, resMMY.data(), false);
+    czly.cd(2);
+    lg->Draw();
+    AddLabel("Y residuals", 0.1, 0.95);
+    czly.Print(pdfName.c_str());
 
-  drawResLr(czlz, 3101, params.resMMLrZ, false);
-  czlz.cd(2);
-  lg->Draw();
-  AddLabel("Z residuals", 0.1, 0.95);
-  czlz.Print(Form("%s_hman.pdf", params.outname.c_str()));
+    drawResLr(czlz, idOffset + 3101, resMMZ.data(), false);
+    czlz.cd(2);
+    lg->Draw();
+    AddLabel("Z residuals", 0.1, 0.95);
+    czlz.Print(pdfName.c_str());
+  };
+
+  const std::string mainPdf = fmt::format("{}_hman.pdf", params.outname);
+  cly.Print(Form("%s[", mainPdf.c_str()));
+  drawLrResidPages(mainPdf, 0);
 
   drawResPar(clpar, 10001, params.resMMPar, false);
   clpar.cd(6);
   lg->Draw();
   AddLabel("IB-OB tracks params differences at R = 12 cm", 0.2, 0.8);
-  clpar.Print(Form("%s_hman.pdf", params.outname.c_str()));
+  clpar.Print(mainPdf.c_str());
 
   drawResPar(czlpar, 11001, params.resMMPar, false);
   czlpar.cd(6);
   lg->Draw();
   AddLabel("IB-OB tracks params differences at R = 12 cm", 0.2, 0.8);
-  czlpar.Print(Form("%s_hman.pdf", params.outname.c_str()));
+  czlpar.Print(mainPdf.c_str());
 
   drawResPar(czlpar, 12001, params.resMMPar, true);
   czlpar.cd(6);
   lg->Draw();
   AddLabel("IB-OB tracks params differences at R = 12 cm", 0.2, 0.8);
-  czlpar.Print(Form("%s_hman.pdf", params.outname.c_str()));
+  czlpar.Print(mainPdf.c_str());
 
   drawResPar(czlpar, 13001, params.resMMPar, false);
   czlpar.cd(6);
   lg->Draw();
   AddLabel("IB-OB tracks params differences at R = 12 cm", 0.2, 0.8);
-  czlpar.Print(Form("%s_hman.pdf", params.outname.c_str()));
+  czlpar.Print(mainPdf.c_str());
 
   auto getHMinMax = [this](int id, float marginFrac, float maxDev, int roundToMicrons) -> std::tuple<float, float, float> {
-    float maxV = std::numeric_limits<float>::min(), minV = std::numeric_limits<float>::max();
+    float maxV = std::numeric_limits<float>::lowest(), minV = std::numeric_limits<float>::max();
     const int nh = this->mHManV.size();
     for (int j = 0; j < nh; j++) {
+      if (!this->mHManV[j]) {
+        continue;
+      }
       if (auto histo = this->mHManV[j]->getHisto(id); histo != nullptr) {
         const int nb = histo->GetNbinsX();
         for (int ib = 1; ib <= nb; ib++) {
@@ -1142,56 +1242,114 @@ void CheckResidSpec::drawHistos()
     hout->SetMarkerStyle(hin->GetMarkerStyle());
   };
   int nh = this->mHManV.size();
-  for (int il = 1; il < 8; ++il) {
-    for (int ib = 0; ib < 2; ib++) {
-      cchip.Clear();
-      cchip.Divide(1, 4);
-      for (int iyz = 0; iyz < 2; iyz++) {
-        for (int iv = 0; iv < 2; iv++) { // mean or sigma
-          const float yRange = iyz == 0 ? params.resMMLrY[il] : params.resMMLrZ[il];
-          bool drawn = false;
-          const int id = 15000 + iyz * 10 + (2 * il + ib) * 100 + 1 + iv;
-          auto [minV, maxV, absMax] = getHMinMax(id, 0.15, (iv == 0 ? 2 : 4) * yRange, 10);
-          TH1* firstAuto = nullptr;
-          float maxAuto = 0.f;
-          for (int j = 0; j < nh; j++) {
-            auto hman = this->mHManV[j].get();
-            auto histo = hman->getHisto(id);
-            if (histo) {
-              histo->SetMaximum(absMax);
-              histo->SetMinimum(iv ? 0 : -absMax);
-              if (il > 3) {
-                histo->SetMarkerSize(0.3);
-                histo->SetLineStyle(3);
+  // Draw per-chip residual/pull means and sigmas, and their half-barrel and full-layer spreads.
+  auto drawChipPages = [&](const std::string& pdfName, int idOffset) {
+    for (int il = 1; il < 8; ++il) {
+      for (int iht = 0; iht < 2; iht++) { // residual or pull
+        for (int ib = 0; ib < 3; ib++) {  // two half-barrels, then the full layer
+          if (iht == 1 && ib < 2) {
+            continue; // Draw pulls only for the full layer.
+          }
+          for (int iyz = 0; iyz < 2; iyz++) {
+            cchip.Clear();
+            cchip.Divide(1, ib == 2 ? 2 : 4);
+            bool havePage = false;
+            for (int iv = 0; iv < 2; iv++) { // mean or sigma
+              const float yRange = (iyz == 0 ? params.resMMLrY[il] : params.resMMLrZ[il]) * (idOffset ? params.IOBScaleFactor : 1.f);
+              const int baseID = idOffset + 15000 + iyz * 10 + 2 * il * 100 + iht * 5 + 1 + iv;
+              // Use common spread axes for both half-barrels and their full-layer sum.
+              auto [minV, maxV, absMax] = getHMinMax(baseID, 0.15, (iv == 0 ? 2 : 8) * yRange, 10);
+              auto [minV1, maxV1, absMax1] = getHMinMax(baseID + 100, 0.15, (iv == 0 ? 2 : 8) * yRange, 10);
+              minV = std::min(minV, minV1);
+              maxV = std::max(maxV, maxV1);
+              absMax = std::max(absMax, absMax1);
+              if (iht == 1) {
+                minV = iv ? 0.f : -params.maxPull;
+                maxV = absMax = params.maxPull;
               }
-              cchip.cd(2 * iv + 1);
-              histo->Draw(drawn ? "same" : "");
-              if (!drawn) {
+              bool drawn = false;
+              TH1* firstAuto = nullptr;
+              float maxAuto = 0.f;
+              for (int j = 0; j < nh; j++) {
+                auto hman = this->mHManV[j].get();
+                if (!hman) {
+                  continue;
+                }
+                TH1* hmeans = nullptr;
+                for (int hb = ib == 2 ? 0 : ib; hb < (ib == 2 ? 2 : ib + 1); hb++) {
+                  const int id = baseID + hb * 100;
+                  auto histo = hman->getHisto(id);
+                  if (!histo) {
+                    continue;
+                  }
+                  if (!hmeans) {
+                    if (ib == 2) {
+                      hmeans = new TH1F(Form("%s_layer_spread", histo->GetName()), Form("Lr%d %s %s spread", il - 1, chipTitles[2 * iyz + iht], iv ? "sigma" : "mean"), params.nBinsRes, iv == 0 ? minV : std::max(0.f, minV), maxV);
+                      hman->addHisto(hmeans, idOffset + 25000 + il * 100 + iyz * 10 + iht * 5 + iv);
+                    } else {
+                      hmeans = new TH1F(Form("%s_spread", histo->GetName()), Form("%s spread;#<Delta>", histo->GetTitle()), params.nBinsRes, iv == 0 ? minV : std::max(0.f, minV), maxV);
+                      hman->addHisto(hmeans, id + 2);
+                    }
+                  }
+                  if (iht == 0) {
+                    hmeans->SetXTitle(iv ? "<#sigma>, cm" : "<#Delta>, cm");
+                  }
+                  collectSpread(histo, hmeans);
+                  if (ib < 2) {
+                    histo->SetMaximum(absMax);
+                    histo->SetMinimum(iv ? 0 : -absMax);
+                    if (il > 3) {
+                      histo->SetMarkerSize(0.3);
+                      histo->SetLineStyle(3);
+                    }
+                    cchip.cd(2 * iv + 1);
+                    histo->Draw(drawn ? "same" : "");
+                    gPad->SetGrid();
+                  }
+                }
+                if (!hmeans) {
+                  continue;
+                }
+                cchip.cd(ib == 2 ? iv + 1 : 2 * iv + 2);
+                if (!drawn) {
+                  firstAuto = hmeans;
+                }
+                maxAuto = std::max(maxAuto, (float)hmeans->GetMaximum());
+                hmeans->Draw(drawn ? "same" : "");
+                drawn = havePage = true;
+              }
+              if (firstAuto) {
+                firstAuto->SetMaximum(maxAuto * 1.25);
                 gPad->SetGrid();
+                gPad->Modified();
               }
-              auto hmeans = new TH1F(Form("%s_spread", histo->GetName()), Form("%s spread", histo->GetTitle()), params.nBinsRes, iv == 0 ? minV : std::max(0.f, minV), maxV);
-              collectSpread(histo, hmeans);
-              hman->addHisto(hmeans, id + 2);
-              cchip.cd(2 * iv + 2);
-              if (!drawn) {
-                firstAuto = hmeans;
-              }
-              maxAuto = std::max(maxAuto, (float)hmeans->GetMaximum());
-              hmeans->Draw(drawn ? "same" : "");
-              drawn = true;
+            }
+            if (havePage) {
+              cchip.Print(pdfName.c_str());
             }
           }
-          if (firstAuto) {
-            firstAuto->SetMaximum(maxAuto * 1.25);
-            gPad->SetGrid();
-            gPad->Modified();
-          }
         }
-        cchip.Print(Form("%s_hman.pdf", params.outname.c_str()));
       }
     }
+  };
+  drawChipPages(mainPdf, 0);
+  cly.Print(Form("%s]", mainPdf.c_str()));
+
+  // IOB residuals (dyIOB/dzIOB) are optional: only produce the extra PDF if at least one loaded HistoManager actually has them booked
+  bool haveIOB = false;
+  for (const auto& hm : mHManV) {
+    if (hm && hm->getHisto2F(100000 + 1 * 10)) {
+      haveIOB = true;
+      break;
+    }
   }
-  cly.Print(Form("%s_hman.pdf]", params.outname.c_str()));
+  if (haveIOB) {
+    const std::string iobPdf = fmt::format("{}_iob_hman.pdf", params.outname);
+    cly.Print(Form("%s[", iobPdf.c_str()));
+    drawLrResidPages(iobPdf, 100000);
+    drawChipPages(iobPdf, 100000);
+    cly.Print(Form("%s]", iobPdf.c_str()));
+  }
 }
 
 void CheckResidSpec::endOfStream(EndOfStreamContext& ec)
@@ -1203,7 +1361,7 @@ void CheckResidSpec::endOfStream(EndOfStreamContext& ec)
   if (mDraw) {
     drawHistos();
   }
-  if (auto nh = mHManV.size(); nh > 0) {
+  if (auto nh = mHManV.size(); nh > 0 && !mPostProcOnly) {
     for (int ihm = 0; ihm < nh; ihm++) {
       if (mHManV[ihm]) {
         mHManV[ihm].get()->write();

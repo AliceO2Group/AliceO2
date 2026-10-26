@@ -1123,6 +1123,13 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 
   Int_t copy;
   Int_t volID = fMC->CurrentVolID(copy);
+  if (fMC->IsTrackEntering() && !fMC->IsNewTrack() && fMC->TrackCharge() != 0 && volID == mTOPVolID) { // one reference per charged particle, first entry from outside
+    auto o2stack = static_cast<o2::data::Stack*>(fMC->GetStack());
+    if (o2stack->GetCurrentTrackNumber() != mTrackRefLastTrackID) {
+      mTrackRefLastTrackID = o2stack->GetCurrentTrackNumber();
+      o2stack->addTrackReference(o2::TrackReference(*fMC, GetDetId()));
+    }
+  }
 
   TVirtualMCStack* stack = fMC->GetStack();
   Int_t quadrant, mcp;
@@ -1180,9 +1187,12 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 o2::ft0::HitType* Detector::AddHit(float x, float y, float z, float time, float energy, Int_t trackId, Int_t detId)
 {
   mHits->emplace_back(x, y, z, time, energy, trackId, detId);
+  auto stack = (o2::data::Stack*)fMC->GetStack();
   if (energy == 10) {
-    auto stack = (o2::data::Stack*)fMC->GetStack();
     stack->addHit(GetDetId());
+  } else {
+    // optical photon contributing to a hit recorded for its parent
+    stack->modifiesHit(GetDetId());
   }
   return &(mHits->back());
 }
@@ -1203,6 +1213,7 @@ void Detector::Reset()
   if (!o2::utils::ShmManager::Instance().isOperational()) {
     mHits->clear();
   }
+  mTrackRefLastTrackID = -1;
 }
 
 void Detector::CreateMaterials()
