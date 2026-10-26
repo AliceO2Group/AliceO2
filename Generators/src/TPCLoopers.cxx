@@ -15,8 +15,12 @@
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "CCDB/CcdbApi.h"
 #include "DetectorsRaw/HBFUtils.h"
+#include <SimConfig/SimConfig.h>
 #include "TF1.h"
 #include <filesystem>
+#include <algorithm>
+#include <limits>
+#include <memory>
 #include <SimulationDataFormat/ParticleStatus.h>
 #include "SimulationDataFormat/MCGenProperties.h"
 #include <iostream>
@@ -160,6 +164,105 @@ void GenTPCLoopers::setGeomProtection(bool protect)
   }
 }
 
+bool GenTPCLoopers::ownsCollision(const std::vector<o2::steer::EventPart>& parts, int source)
+{
+  // A collision is owned by the source with the lowest ID among the event parts it holds, so that
+  // exactly one of the simulations feeding a collision context (i.e. bkg, sgn) generates its loopers.
+  int lowest = std::numeric_limits<int>::max();
+  for (const auto& part : parts) {
+    lowest = std::min(lowest, part.sourceID);
+  }
+  return lowest == source;
+}
+
+bool GenTPCLoopers::ownsContextCollisions()
+{
+  // Loopers are a detector background which is continuous in time: event by event this generator
+  // covers the time interval between consecutive collisions of the collision context, so a single
+  // simulation tiles the whole timeframe exactly once. When several transport simulations feed the
+  // same context (embedding), each of them would tile that same time axis again and the loopers
+  // would end up in the digits as many times as there are simulations.
+  // Every collision is therefore owned by exactly one source, the one with the lowest source ID
+  // among the event parts present, and only the owner generates loopers for it. Embedding without
+  // replacement ("@" patterns) leaves all collisions to the background, since its event part is
+  // present everywhere; when the signal replaces the background ("r" patterns) the background part
+  // is taken out of the collisions it loses, so each source covers exactly its own share.
+  const auto& simConfig = o2::conf::SimConfig::Instance();
+  const auto contextAndPrefix = simConfig.getCollContextFilenameAndEventPrefix();
+  const std::string contextName = contextAndPrefix.first.empty() ? "collisioncontext.root" : contextAndPrefix.first;
+  const std::string& simPrefix = contextAndPrefix.second;
+  if (!std::filesystem::exists(contextName)) {
+    return true; // no context to share with anybody
+  }
+  std::unique_ptr<o2::steer::DigitizationContext> context(o2::steer::DigitizationContext::loadFromFile(contextName));
+  if (!context) {
+    LOG(warn) << "Could not read the collision context from " << contextName
+              << "; loopers will be generated without checking for other sources";
+    return true;
+  }
+  const auto source = context->findSimPrefix(simPrefix);
+  if (source < 0) {
+    LOG(warn) << "Simulation prefix " << simPrefix << " not found in the collision context " << contextName
+              << "; loopers will be generated without checking for other sources";
+    return true;
+  }
+  // count the collisions this source takes part in and those it owns
+  unsigned int nPresent = 0, nOwned = 0;
+  for (const auto& parts : context->getEventParts()) {
+    if (ownsCollision(parts, source)) {
+      nOwned++;
+    }
+    if (std::find_if(parts.begin(), parts.end(), [source](const auto& part) { return part.sourceID == source; }) != parts.end()) {
+      nPresent++;
+    }
+  }
+  LOG(info) << "Loopers: source " << simPrefix << " owns " << nOwned << " of the " << nPresent
+            << " collisions it takes part in, out of " << context->getEventParts().size() << " in " << contextName;
+  return nOwned > 0;
+}
+
+void GenTPCLoopers::setupContextCoverage()
+{
+  // Work out how much of the time axis every event of this simulation has to cover with loopers.
+  // A collision stands for the time from itself to the next one (the last one to the end of the
+  // frame), and an event covers the time of the collisions it is used at: when it is used at
+  // several of them, as the background of an embedding production is, the loopers it carries are
+  // digitised once per use, so it covers their average. Collisions owned by another source count
+  // as zero. The loopers reaching the digits then add up to the reference number per orbit times
+  // the time this source owns, however its events are spread over the collision context.
+  mEventLooperTime.clear();
+  mSourceID = mCollisionContext ? mCollisionContext->findSimPrefix(o2::conf::SimConfig::Instance().getCollContextFilenameAndEventPrefix().second) : -1;
+  if (mSourceID < 0) {
+    return; // no context information: every event keeps the interval of the collision of same index
+  }
+  const auto& parts = mCollisionContext->getEventParts();
+  std::vector<int> nUses;
+  double ownedTime = 0.;
+  for (size_t c = 0; c < parts.size() && c < mInteractionTimeRecords.size(); ++c) {
+    const double gap = (c + 1 < mInteractionTimeRecords.size())
+                         ? mInteractionTimeRecords[c + 1].bc2ns() - mInteractionTimeRecords[c].bc2ns()
+                         : mTimeEnd - mInteractionTimeRecords[c].bc2ns();
+    const double owned = ownsCollision(parts[c], mSourceID) ? gap : 0.;
+    ownedTime += owned;
+    for (const auto& part : parts[c]) {
+      if (part.sourceID != mSourceID) {
+        continue;
+      }
+      if (part.entryID >= (int)mEventLooperTime.size()) { // entryIDs are dense, see SimConfig
+        mEventLooperTime.resize(part.entryID + 1, 0.);
+        nUses.resize(part.entryID + 1, 0);
+      }
+      mEventLooperTime[part.entryID] += owned;
+      nUses[part.entryID]++;
+    }
+  }
+  for (size_t e = 0; e < mEventLooperTime.size(); ++e) {
+    mEventLooperTime[e] /= std::max(nUses[e], 1);
+  }
+  LOG(info) << "Loopers: the " << mEventLooperTime.size() << " events of this simulation share the "
+            << ownedTime << " ns of the timeframe it owns";
+}
+
 GenTPCLoopers::GenTPCLoopers(std::string model_pairs, std::string model_compton,
                              std::string poisson, std::string gauss, std::string scaler_pair,
                              std::string scaler_compton)
@@ -233,9 +336,12 @@ Bool_t GenTPCLoopers::generateEvent()
   if (mFlatGas) {
     unsigned int nLoopers, nLoopersPairs, nLoopersCompton;
     LOG(debug) << "mCurrentEvent is " << mCurrentEvent;
-    LOG(debug) << "Current event time: " << ((mCurrentEvent < mInteractionTimeRecords.size() - 1) ? std::to_string(mInteractionTimeRecords[mCurrentEvent + 1].bc2ns() - mInteractionTimeRecords[mCurrentEvent].bc2ns()) : std::to_string(mTimeEnd - mInteractionTimeRecords[mCurrentEvent].bc2ns())) << " ns";
-    LOG(debug) << "Current time offset wrt BC: " << mInteractionTimeRecords[mCurrentEvent].getTimeOffsetWrtBC() << " ns";
-    mTimeLimit = (mCurrentEvent < mInteractionTimeRecords.size() - 1) ? mInteractionTimeRecords[mCurrentEvent + 1].bc2ns() - mInteractionTimeRecords[mCurrentEvent].bc2ns() : mTimeEnd - mInteractionTimeRecords[mCurrentEvent].bc2ns();
+    // the share of the timeframe this event has to cover, or, with no collision context to look
+    // at, the interval between the collision of same index and the next one
+    mTimeLimit = (mCurrentEvent < (int)mEventLooperTime.size())
+                   ? mEventLooperTime[mCurrentEvent]
+                   : ((mCurrentEvent < mInteractionTimeRecords.size() - 1) ? mInteractionTimeRecords[mCurrentEvent + 1].bc2ns() - mInteractionTimeRecords[mCurrentEvent].bc2ns() : mTimeEnd - mInteractionTimeRecords[mCurrentEvent].bc2ns());
+    LOG(debug) << "Current event time: " << mTimeLimit << " ns";
     // With flat gas the number of loopers are adapted based on time interval widths
     // The denominator is either the LHC orbit (if mFlatGasOrbit is true) or the mean interaction time record interval
     nLoopers = mFlatGasOrbit ? (mFlatGasNumber * (mTimeLimit / o2::constants::lhc::LHCOrbitNS)) : (mFlatGasNumber * (mTimeLimit / mIntTimeRecMean));
@@ -472,6 +578,7 @@ void GenTPCLoopers::setFlatGas(Bool_t flat, Int_t number, Int_t nloopers_orbit)
         o2::InteractionRecord finalOrbitIR(0, lastIR.orbit + 2); // Final orbit, BC = 0
         mTimeEnd = finalOrbitIR.bc2ns();
         LOG(debug) << "Final orbit start time: " << mTimeEnd << " ns while last interaction record time is " << mInteractionTimeRecords.back().bc2ns() << " ns";
+        setupContextCoverage();
       }
     }
   } else {
