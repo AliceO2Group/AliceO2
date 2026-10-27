@@ -61,7 +61,7 @@ struct GPUDisplayFrontend::configRTTIInfo {
   std::vector<std::string> keyNames;
   std::vector<std::string> keyMapNames;                             // Names of the key down mapping ids (KEY_MAP_*)
   std::vector<std::pair<std::string, std::string>> helpTextEntries; // Keys and text of each add_key_binding call
-  std::string helpText;
+  std::vector<std::string> helpText;
   static constexpr std::string_view possibleKeys = " 0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ#.:;>'^_"; // Bindable keys >= 32 (space), special keys < 32 are those with a name in keyNames
 
   template <class T, size_t I = 0>
@@ -96,7 +96,7 @@ struct GPUDisplayFrontend::configRTTIInfo {
     }
     helpText.clear();
     for (const auto& e : helpTextEntries) {
-      helpText += e.first + std::string(width - e.first.size(), ' ') + ": " + e.second + "\n";
+      helpText.emplace_back(e.first + std::string(width - e.first.size(), ' ') + ": " + e.second);
     }
   }
   std::string getKeyName(uint16_t key) const // Name of a special key (KEY_*), the character otherwise, the code if neither, SHIFT+ for shifted special keys
@@ -208,6 +208,8 @@ void GPUDisplayFrontend::add_key_binding(Args&&... args)
   mConfigRTTI->helpTextEntries.emplace_back(std::move(keys), std::get<nKeys>(argTuple));
 }
 
+const std::vector<std::string>& GPUDisplayFrontend::getHelpText() const { return mConfigRTTI->helpText; }
+
 void GPUDisplayFrontend::listConfig()
 {
   const auto& rtti = *mConfigRTTI;
@@ -245,14 +247,18 @@ void GPUDisplayFrontend::listConfig()
   }
   GPUInfo("Bound keys (key, struct, option):");
   std::vector<std::string> mappedKeys(KEY_MAP_MAX);
+  int32_t keyWidth = 0;
+  for (uint16_t k : boundKeys) {
+    keyWidth = std::max<int32_t>(keyWidth, rtti.getKeyName(k).size() + 2);
+  }
   for (uint16_t k : boundKeys) {
     const uint32_t index = rtti.configKeys[k].configRTTIIndex;
     if (rtti.isKeyMap(index)) {
       mappedKeys[index - configRTTIInfo::KEY_MAP_INDEX] = "[" + rtti.getKeyName(k) + "]";
-      GPUInfo("  %-10s %-28s %s", ("[" + rtti.getKeyName(k) + "]").c_str(), "(key down map)", rtti.keyMapNames[index - configRTTIInfo::KEY_MAP_INDEX].c_str());
+      GPUInfo("  %-*s %-28s %s", keyWidth, ("[" + rtti.getKeyName(k) + "]").c_str(), "(key down map)", rtti.keyMapNames[index - configRTTIInfo::KEY_MAP_INDEX].c_str());
     } else {
       const bool hasRTTI = index != configRTTIInfo::INVALID_INDEX;
-      GPUInfo("  %-10s %-28s %s", ("[" + rtti.getKeyName(k) + "]").c_str(), hasRTTI ? rtti.rttiEntries[index].configStruct.c_str() : "(no config option)", hasRTTI ? rtti.rttiEntries[index].name.c_str() : "");
+      GPUInfo("  %-*s %-28s %s", keyWidth, ("[" + rtti.getKeyName(k) + "]").c_str(), hasRTTI ? rtti.rttiEntries[index].configStruct.c_str() : "(no config option)", hasRTTI ? rtti.rttiEntries[index].name.c_str() : "");
     }
   }
   GPUInfo("Key down mappings (id, name, key):");
@@ -301,4 +307,19 @@ bool GPUDisplayFrontend::processKeyLambda(uint32_t key)
     return true;
   }
   return false;
+}
+
+void GPUDisplay::HandleKey(uint8_t key, bool doNotHandleConfigChanges)
+{
+  const GPUSettingsDisplayHeavy oldCfgH = mCfgH;
+  const GPUSettingsDisplayLight oldCfgL = mCfgL;
+  const GPUSettingsDisplayRenderer oldCfgR = mCfgR;
+  if (key == mFrontend->KEY_ALT) {
+    mFrontend->mKeys[mFrontend->KEY_CTRL] = false; // Release CTRL with alt, to avoid orienting along y automatically!
+  } else if (mFrontend->processKeyLambda(key)) {
+  }
+
+  if (!doNotHandleConfigChanges) {
+    checkAndApplyConfigChanges(oldCfgH, oldCfgL, oldCfgR);
+  }
 }
