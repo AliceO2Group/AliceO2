@@ -52,6 +52,7 @@ static constexpr bool displayOpenGLCore = false;
 struct GPUDisplayFrontend::configRTTIInfo {
   static constexpr std::tuple configStructs{&GPUDisplay::mCfgL, &GPUDisplay::mCfgH, &GPUDisplay::mCfgR}; // Config structs with RTTI, as members of GPUDisplay
   std::vector<configRTTIExt> rttiEntries;
+  std::vector<configKeyCallback> configInfos;       // SetInfo callback for an option, indexed like rttiEntries, called after the callback of a key bound to it
   std::vector<std::vector<uint32_t>> rttiReverseId; // [configStructIndex][offset] -> index in rttiEntries, INVALID_INDEX if no member at that offset
   static constexpr uint32_t INVALID_INDEX = std::numeric_limits<uint32_t>::max();
   static constexpr uint32_t KEY_MAP_INDEX = 0x80000000; // configRTTIIndex of keys mapped to mKeyDownMap[configRTTIIndex - KEY_MAP_INDEX]
@@ -77,6 +78,13 @@ struct GPUDisplayFrontend::configRTTIInfo {
   static T& configStruct(GPUDisplay& display)
   {
     return display.*std::get<configStructIndex<T>()>(configStructs);
+  }
+  static char* configStructPtr(GPUDisplay& display, uint32_t index) // Runtime version of configStruct by index
+  {
+    char* retVal = nullptr;
+    uint32_t i = 0;
+    std::apply([&](auto... s) { ((retVal = i++ == index ? reinterpret_cast<char*>(&(display.*s)) : retVal), ...); }, configStructs);
+    return retVal;
   }
   template <class T, class M>
   uint32_t getRTTIIndex(GPUDisplay& display, M T::* member) // RTTI index of a direct member of a config struct
@@ -274,6 +282,7 @@ void GPUDisplayFrontend::listConfig()
 }
 
 #include "GPUDisplayFrontendConfigKeys.inc"
+#include "GPUDisplayFrontendConfigInfo.inc"
 
 void GPUDisplay::buildConfig()
 {
@@ -294,6 +303,45 @@ void GPUDisplay::buildConfig()
   }
 
   buildConfigKeys();
+
+  rtti->configInfos.resize(rtti->rttiEntries.size());
+  auto messageInfo = [this]<typename T>(const std::string& message, const T* value) { // Info from the qConfig message, value printed with print_type as in qconfig.cxx
+    return configKeyCallback([this, message, value]() {
+      char buffer[256];
+      const int32_t n = snprintf(buffer, sizeof(buffer), message.c_str(), qConfig::print_type(*value).c_str());
+      if (n < 0 || n >= (int32_t)sizeof(buffer)) {
+        GPUError("Info message too long: %s", message.c_str());
+        return;
+      }
+      SetInfo("%s", buffer);
+    });
+  };
+  for (uint32_t i = 0; i < rtti->rttiEntries.size(); i++) {
+    const auto& e = rtti->rttiEntries[i];
+    if (e.message.empty() || e.isVector || e.arraySize) {
+      continue;
+    }
+    const char* ptr = GPUDisplayFrontend::configRTTIInfo::configStructPtr(*this, e.configStructIndex) + e.offset;
+    configKeyCallback info;
+    if (e.type == "bool") {
+      info = messageInfo(e.message, (const bool*)ptr);
+    } else if (e.type == "float") {
+      info = messageInfo(e.message, (const float*)ptr);
+    } else if (e.type == "int8_t") {
+      info = messageInfo(e.message, (const int8_t*)ptr);
+    } else if (e.type == "uint8_t") {
+      info = messageInfo(e.message, (const uint8_t*)ptr);
+    } else if (e.type == "int32_t" || e.type == "int") {
+      info = messageInfo(e.message, (const int32_t*)ptr);
+    } else if (e.type == "uint32_t") {
+      info = messageInfo(e.message, (const uint32_t*)ptr);
+    } else {
+      GPUError("No info message support for type %s of %s", e.type.c_str(), e.name.c_str());
+      continue;
+    }
+    rtti->configInfos[i] = std::move(info);
+  }
+  buildConfigInfo();
   rtti->buildHelpText();
 }
 
@@ -304,6 +352,9 @@ bool GPUDisplayFrontend::processKeyLambda(uint32_t key)
   }
   if (key < mConfigRTTI->configKeys.size() && mConfigRTTI->configKeys[key].callback) {
     mConfigRTTI->configKeys[key].callback();
+    if (const uint32_t index = mConfigRTTI->configKeys[key].configRTTIIndex; index < mConfigRTTI->configInfos.size() && mConfigRTTI->configInfos[index]) {
+      mConfigRTTI->configInfos[index]();
+    }
     return true;
   }
   return false;
