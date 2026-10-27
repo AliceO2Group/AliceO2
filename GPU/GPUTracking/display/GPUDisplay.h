@@ -101,6 +101,7 @@ class GPUDisplay : public GPUDisplayInterface
  private:
   void buildConfig();
   void buildConfigKeys();
+  void buildConfigInfo();
 
   static constexpr int32_t NSECTORS = o2::tpc::constants::MAXSECTOR;
   static constexpr float GL_SCALE_FACTOR = (1.f / 100.f);
