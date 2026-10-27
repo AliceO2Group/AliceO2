@@ -16,14 +16,15 @@ ClassImp(o2::trkft3::Digit);
 
 using namespace o2::trkft3;
 
-Digit::Digit(UShort_t chipindex, UShort_t row, UShort_t col, Int_t charge)
+Digit::Digit(UShort_t chipindex, UShort_t row, UShort_t col, Int_t charge, float toa)
   : mChipIndex(chipindex), mRow(row), mCol(col)
 {
   setCharge(charge);
+  setToA(toa);
 }
 
 std::ostream& Digit::print(std::ostream& output) const
 {
-  output << "TRKFT3Digit chip [" << mChipIndex << "] R:" << mRow << " C:" << mCol << " Q: " << mCharge;
+  output << "TRKFT3Digit chip [" << mChipIndex << "] R:" << mRow << " C:" << mCol << " Q: " << mCharge << " ToA: " << mToA;
   return output;
 }

@@ -44,7 +44,7 @@ class Digitizer
 {
   static_assert(DetID == o2::detectors::DetID::TRK || DetID == o2::detectors::DetID::FT3, "only TRK and FT3 digitizers are supported");
   using GeometryTGeo = std::conditional_t<DetID == o2::detectors::DetID::TRK, o2::trk::GeometryTGeo, o2::ft3::GeometryTGeo>;
-  using ExtraDig = std::vector<itsmft::PreDigitLabelRef>; ///< container for extra contributions to PreDigits
+  using ExtraDig = std::vector<trkft3::PreDigitLabelRef>; ///< container for extra contributions to PreDigits
 
  public:
   void setDigits(std::vector<o2::trkft3::Digit>* dig) { mDigits = dig; }
@@ -94,7 +94,7 @@ class Digitizer
 
  private:
   void processHit(const o2::trkft3::Hit& hit, uint32_t& maxFr, int evID, int srcID, int rofLayer);
-  void registerDigits(o2::trkft3::ChipDigitsContainer& chip, uint32_t roFrame, float tInROF, int nROF,
+  void registerDigits(o2::trkft3::ChipDigitsContainer& chip, uint32_t roFrame, float toaInROF, int nROF,
                       uint16_t row, uint16_t col, int nEle, o2::MCCompLabel& lbl, int layer);
 
   ExtraDig* getExtraDigBuffer(uint32_t roFrame)
