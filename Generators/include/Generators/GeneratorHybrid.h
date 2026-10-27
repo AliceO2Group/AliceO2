@@ -64,6 +64,7 @@ class GeneratorHybrid : public Generator
   Bool_t generateEvent() override;
   Bool_t importParticles() override;
   void updateHeader(o2::dataformats::MCEventHeader* eventHeader) override;
+  void stop() override; // end-of-stream hook that joins the TBB task pool
 
   Bool_t parseJSON(const std::string& path);
   Bool_t confSetter(const auto& gen);
