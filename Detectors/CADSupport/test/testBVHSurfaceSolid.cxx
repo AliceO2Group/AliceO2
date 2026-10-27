@@ -2244,6 +2244,125 @@ BOOST_AUTO_TEST_CASE(WireTrimmedDisplayMeshFollowsPatch)
   checkDisplayMeshFollowsPatch(halfCone, 12., 26);
 }
 
+namespace
+{
+// Whether the ray from \a origin along \a direction crosses the triangle (first, second, third).
+bool rayHitsTriangle(const surf::Vec3& origin, const surf::Vec3& direction, const surf::Vec3& first,
+                     const surf::Vec3& second, const surf::Vec3& third)
+{
+  const surf::Vec3 edgeA = second - first;
+  const surf::Vec3 edgeB = third - first;
+  const surf::Vec3 normalB = cross(direction, edgeB);
+  const double determinant = dot(edgeA, normalB);
+  if (std::abs(determinant) < 1.e-12) {
+    return false;
+  }
+  const surf::Vec3 offset = origin - first;
+  const double firstWeight = dot(offset, normalB) / determinant;
+  const double secondWeight = dot(direction, cross(offset, edgeA)) / determinant;
+  const double distance = dot(edgeB, cross(offset, edgeA)) / determinant;
+  return firstWeight >= 0. && secondWeight >= 0. && firstWeight + secondWeight <= 1. && distance > 0.;
+}
+
+// Check that a patch's display mesh has n + 2h - 2 triangles, that a ray through a hole misses it and, for an
+// \a expectedArea >= 0, that it covers that area.
+void checkDisplayMeshLeavesHolesOpen(const surf::BoundedSurface& patch, int holeCount, double expectedArea,
+                                     const surf::Vec3& rayOrigin, const surf::Vec3& rayDirection)
+{
+  std::vector<surf::Vec3> vertices;
+  std::vector<std::array<int, 3>> triangles;
+  patch.appendDisplayMesh(vertices, triangles);
+  BOOST_CHECK_EQUAL(triangles.size(), vertices.size() + 2 * holeCount - 2);
+  double area = 0.;
+  int trianglesOverHole = 0;
+  for (const auto& triangle : triangles) {
+    const surf::Vec3& first = vertices[triangle[0]];
+    const surf::Vec3& second = vertices[triangle[1]];
+    const surf::Vec3& third = vertices[triangle[2]];
+    area += 0.5 * norm(cross(second - first, third - first));
+    trianglesOverHole += rayHitsTriangle(rayOrigin, rayDirection, first, second, third);
+  }
+  if (expectedArea >= 0.) {
+    checkClose(area, expectedArea);
+  }
+  BOOST_CHECK_EQUAL(trianglesOverHole, 0);
+}
+} // namespace
+
+// The display triangles of a face leave its holes open instead of drawing them filled.
+BOOST_AUTO_TEST_CASE(DisplayMeshLeavesHolesOpen)
+{
+  std::string error;
+  const surf::Vec3 down{0., 0., -1.};
+
+  // a 4 x 4 square with a 2 x 2 square hole
+  surf::PlanarBoundedSurface square;
+  BOOST_REQUIRE(square.initialize({0., 0., 0.}, {1., 0., 0.}, {0., 1., 0.}, {{-2., -2.}, {2., -2.}, {2., 2.}, {-2., 2.}},
+                                  {{{-1., -1.}, {-1., 1.}, {1., 1.}, {1., -1.}}}, error));
+  checkDisplayMeshLeavesHolesOpen(square, 1, 12., {0.013, 0.007, 1.}, down);
+
+  // an annulus between radii 1 and 2, both circles sampled into the same number of chords
+  surf::CurvedPlanarBoundedSurface annulus;
+  BOOST_REQUIRE(annulus.initialize({0., 0., 0.}, {1., 0., 0.}, {0., 1., 0.}, {surf::Curve2D::makeCircle({0., 0.}, 2.)},
+                                   {{surf::Curve2D::makeCircle({0., 0.}, 1., true)}}, error));
+  const double polygonFactor = 0.5 * surf::kArcSamples * std::sin(surf::kTwoPi / surf::kArcSamples);
+  checkDisplayMeshLeavesHolesOpen(annulus, 1, polygonFactor * (4. - 1.), {0.013, 0.007, 1.}, down);
+
+  // a half-cylinder of radius 10 with a window phi in [1, 2], height in [-5, 5]
+  surf::CylindricalBoundedSurface window;
+  BOOST_REQUIRE(window.initialize({0., 0., 0.}, {0., 0., 1.}, {1., 0., 0.}, 10., -20., 20., 0., surf::kPi, false,
+                                  paramRectWireCurves(0., surf::kPi, -20., 20.),
+                                  {paramRectWireCurves(1., 2., -5., 5.)}, error));
+  checkDisplayMeshLeavesHolesOpen(window, 1, -1., {0., 0., 0.013}, {std::cos(1.5), std::sin(1.5), 0.});
+}
+
+namespace
+{
+// The area covered by a patch's display triangles.
+double displayArea(const surf::BoundedSurface& patch)
+{
+  std::vector<surf::Vec3> vertices;
+  std::vector<std::array<int, 3>> triangles;
+  patch.appendDisplayMesh(vertices, triangles);
+  double area = 0.;
+  for (const auto& triangle : triangles) {
+    area += 0.5 * norm(cross(vertices[triangle[1]] - vertices[triangle[0]], vertices[triangle[2]] - vertices[triangle[0]]));
+  }
+  return area;
+}
+} // namespace
+
+// Holes that touch or cross a wire cannot be bridged; the face is then drawn filled, never overlapping or losing area.
+BOOST_AUTO_TEST_CASE(DisplayMeshKeepsUnbridgeableHolesFilled)
+{
+  std::string error;
+  const std::vector<surf::Vec2> outer{{-2., -2.}, {2., -2.}, {2., 2.}, {-2., 2.}};
+
+  surf::PlanarBoundedSurface plain;
+  BOOST_REQUIRE(plain.initialize({0., 0., 0.}, {1., 0., 0.}, {0., 1., 0.}, outer, {}, error));
+
+  // a triangular hole sharing the corner (2, 2) of the outer square
+  surf::PlanarBoundedSurface touching;
+  BOOST_REQUIRE(touching.initialize({0., 0., 0.}, {1., 0., 0.}, {0., 1., 0.}, outer, {{{2., 2.}, {1., 0.}, {0., 1.}}}, error));
+  checkClose(displayArea(touching), displayArea(plain));
+
+  // two square holes sharing the vertex (0, 0)
+  surf::PlanarBoundedSurface sharing;
+  BOOST_REQUIRE(sharing.initialize({0., 0., 0.}, {1., 0., 0.}, {0., 1., 0.}, outer,
+                                   {{{-1., -1.}, {-1., 0.}, {0., 0.}, {0., -1.}}, {{0., 0.}, {0., 1.}, {1., 1.}, {1., 0.}}}, error));
+  checkClose(displayArea(sharing), displayArea(plain));
+
+  // a full cylinder with a window straddling the phi seam
+  surf::CylindricalBoundedSurface fullCylinder;
+  BOOST_REQUIRE(fullCylinder.initialize({0., 0., 0.}, {0., 0., 1.}, {1., 0., 0.}, 10., -20., 20., 0., surf::kTwoPi, false,
+                                        paramRectWireCurves(0., surf::kTwoPi, -20., 20.), {}, error));
+  surf::CylindricalBoundedSurface seamWindow;
+  BOOST_REQUIRE(seamWindow.initialize({0., 0., 0.}, {0., 0., 1.}, {1., 0., 0.}, 10., -20., 20., 0., surf::kTwoPi, false,
+                                      paramRectWireCurves(0., surf::kTwoPi, -20., 20.),
+                                      {paramRectWireCurves(-0.5, 0.5, -5., 5.)}, error));
+  checkClose(displayArea(seamWindow), displayArea(fullCylinder));
+}
+
 // Green's theorem for wire-trimmed quadrics.
 //
 // The integrand does not depend on the second parameter for a cylinder, and depends on the first

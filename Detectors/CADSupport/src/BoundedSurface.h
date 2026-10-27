@@ -25,6 +25,7 @@
 #include <limits>
 #include <map>
 #include <memory>
+#include <numeric>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -638,33 +639,169 @@ inline bool pointInTriangle(const Vec2& point, const Vec2& firstVertex, const Ve
   return firstCross >= -kTolerance && secondCross >= -kTolerance && thirdCross >= -kTolerance;
 }
 
-/// Ear-clipping triangulation of a simple (non-self-intersecting) parametric wire.
-inline std::vector<std::array<int, 3>> triangulateSimpleWire(const SurfaceWire& wire)
+/// Signed area of the ring of indices \a ring into \a points; positive when it winds counter-clockwise.
+inline double ringSignedArea(const std::vector<Vec2>& points, const std::vector<int>& ring)
 {
-  std::vector<int> remainingIndices;
-  remainingIndices.reserve(wire.vertices.size());
-  if (wire.signedArea() >= 0.) {
-    for (size_t vertexIndex = 0; vertexIndex < wire.vertices.size(); ++vertexIndex) {
-      remainingIndices.push_back(static_cast<int>(vertexIndex));
-    }
-  } else {
-    for (size_t reverseIndex = wire.vertices.size(); reverseIndex > 0; --reverseIndex) {
-      remainingIndices.push_back(static_cast<int>(reverseIndex - 1));
+  double area = 0.;
+  for (size_t position = 0; position < ring.size(); ++position) {
+    area += cross2D(points[ring[position]], points[ring[(position + 1) % ring.size()]]);
+  }
+  return 0.5 * area;
+}
+
+/// The indices \a first .. \a first + \a count - 1 as a ring wound as \a counterClockwise asks.
+inline std::vector<int> orientedRing(const std::vector<Vec2>& points, int first, int count, bool counterClockwise)
+{
+  std::vector<int> ring(static_cast<size_t>(count));
+  std::iota(ring.begin(), ring.end(), first);
+  if ((ringSignedArea(points, ring) >= 0.) != counterClockwise) {
+    std::reverse(ring.begin(), ring.end());
+  }
+  return ring;
+}
+
+/// Whether \a direction leaves ring corner \a vertex into the material, which lies left of \a previous -> \a vertex -> \a next.
+inline bool leavesIntoMaterial(const Vec2& previous, const Vec2& vertex, const Vec2& next, const Vec2& direction)
+{
+  const Vec2 toPrevious = previous - vertex;
+  const Vec2 toNext = next - vertex;
+  if (cross2D(vertex - previous, next - vertex) > 0.) {
+    return cross2D(toNext, direction) > 0. && cross2D(direction, toPrevious) > 0.;
+  }
+  return !(cross2D(toPrevious, direction) >= 0. && cross2D(direction, toNext) >= 0.);
+}
+
+/// Whether segments \a firstStart - \a firstEnd and \a secondStart - \a secondEnd cross or touch within kTolerance.
+inline bool segmentsTouch(const Vec2& firstStart, const Vec2& firstEnd, const Vec2& secondStart, const Vec2& secondEnd)
+{
+  const double secondStartSide = cross2D(firstEnd - firstStart, secondStart - firstStart);
+  const double secondEndSide = cross2D(firstEnd - firstStart, secondEnd - firstStart);
+  const double firstStartSide = cross2D(secondEnd - secondStart, firstStart - secondStart);
+  const double firstEndSide = cross2D(secondEnd - secondStart, firstEnd - secondStart);
+  if (secondStartSide * secondEndSide < 0. && firstStartSide * firstEndSide < 0.) {
+    return true;
+  }
+  return pointSegmentDistanceSq(secondStart, firstStart, firstEnd) <= kToleranceSq ||
+         pointSegmentDistanceSq(secondEnd, firstStart, firstEnd) <= kToleranceSq ||
+         pointSegmentDistanceSq(firstStart, secondStart, secondEnd) <= kToleranceSq ||
+         pointSegmentDistanceSq(firstEnd, secondStart, secondEnd) <= kToleranceSq;
+}
+
+/// The ring of \a outer with each hole bridged in at its nearest visible vertex, indexing \a points, which gets all loops.
+inline std::vector<int> bridgeHoles(const std::vector<Vec2>& outer, const std::vector<std::vector<Vec2>>& holeLoops,
+                                    std::vector<Vec2>& points)
+{
+  points = outer;
+  std::vector<int> ring = orientedRing(points, 0, static_cast<int>(outer.size()), true);
+  std::vector<std::vector<int>> holes;
+  for (const auto& loop : holeLoops) {
+    if (loop.size() >= 3) {
+      const int first = static_cast<int>(points.size());
+      points.insert(points.end(), loop.begin(), loop.end());
+      holes.push_back(orientedRing(points, first, static_cast<int>(loop.size()), false));
     }
   }
+  auto maxU = [&](const std::vector<int>& hole) {
+    double largest = -std::numeric_limits<double>::infinity();
+    for (int index : hole) {
+      largest = std::max(largest, points[index].uCoord);
+    }
+    return largest;
+  };
+  // the rightmost hole first, the usual order for bridging holes
+  std::stable_sort(holes.begin(), holes.end(), [&](const auto& first, const auto& second) { return maxU(first) > maxU(second); });
 
+  // whether the bridge from hole index holeVertex to ring index ringVertex crosses an edge of the ring or a pending hole
+  auto bridgeIsClear = [&](int holeVertex, int ringVertex, size_t firstPendingHole) {
+    auto crossesLoop = [&](const std::vector<int>& loop) {
+      for (size_t position = 0; position < loop.size(); ++position) {
+        const int edgeStart = loop[position];
+        const int edgeEnd = loop[(position + 1) % loop.size()];
+        if (edgeStart == holeVertex || edgeEnd == holeVertex || edgeStart == ringVertex || edgeEnd == ringVertex) {
+          continue;
+        }
+        if (segmentsTouch(points[holeVertex], points[ringVertex], points[edgeStart], points[edgeEnd])) {
+          return true;
+        }
+      }
+      return false;
+    };
+    if (crossesLoop(ring)) {
+      return false;
+    }
+    for (size_t holeIndex = firstPendingHole; holeIndex < holes.size(); ++holeIndex) {
+      if (crossesLoop(holes[holeIndex])) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  for (size_t holeIndex = 0; holeIndex < holes.size(); ++holeIndex) {
+    const auto& hole = holes[holeIndex];
+    const size_t holeCount = hole.size();
+    // try the hole's vertices from the rightmost, and for each the ring vertices from the nearest
+    std::vector<size_t> holeOrder(holeCount);
+    std::iota(holeOrder.begin(), holeOrder.end(), size_t{0});
+    std::stable_sort(holeOrder.begin(), holeOrder.end(),
+                     [&](size_t first, size_t second) { return points[hole[first]].uCoord > points[hole[second]].uCoord; });
+    bool bridged = false;
+    for (size_t holePosition : holeOrder) {
+      const int holeVertex = hole[holePosition];
+      const Vec2& holePoint = points[holeVertex];
+      const Vec2& holePrevious = points[hole[(holePosition + holeCount - 1) % holeCount]];
+      const Vec2& holeNext = points[hole[(holePosition + 1) % holeCount]];
+      const size_t ringCount = ring.size();
+      std::vector<size_t> ringOrder(ringCount);
+      std::iota(ringOrder.begin(), ringOrder.end(), size_t{0});
+      std::stable_sort(ringOrder.begin(), ringOrder.end(), [&](size_t first, size_t second) {
+        return distanceSq(points[ring[first]], holePoint) < distanceSq(points[ring[second]], holePoint);
+      });
+      for (size_t ringPosition : ringOrder) {
+        const int ringVertex = ring[ringPosition];
+        const Vec2& ringPoint = points[ringVertex];
+        if (distanceSq(ringPoint, holePoint) <= kToleranceSq ||
+            !leavesIntoMaterial(points[ring[(ringPosition + ringCount - 1) % ringCount]], ringPoint,
+                                points[ring[(ringPosition + 1) % ringCount]], holePoint - ringPoint) ||
+            !leavesIntoMaterial(holePrevious, holePoint, holeNext, ringPoint - holePoint) ||
+            !bridgeIsClear(holeVertex, ringVertex, holeIndex)) {
+          continue;
+        }
+        // ring up to the bridge vertex, the whole hole from the bridge back to it, then the bridge vertex again
+        std::vector<int> splice;
+        splice.reserve(holeCount + 2);
+        for (size_t step = 0; step <= holeCount; ++step) {
+          splice.push_back(hole[(holePosition + step) % holeCount]);
+        }
+        splice.push_back(ringVertex);
+        ring.insert(ring.begin() + static_cast<std::ptrdiff_t>(ringPosition) + 1, splice.begin(), splice.end());
+        bridged = true;
+        break;
+      }
+      if (bridged) {
+        break;
+      }
+    }
+  }
+  return ring;
+}
+
+/// Ear-clipping triangulation of a ring of indices into \a points; an index may repeat, as at the two ends of a hole's bridge.
+inline std::vector<std::array<int, 3>> triangulateRing(const std::vector<Vec2>& points, std::vector<int> remainingIndices)
+{
   std::vector<std::array<int, 3>> triangles;
+  const size_t ringCount = remainingIndices.size();
   size_t guardCounter = 0;
-  while (remainingIndices.size() > 3 && guardCounter++ < wire.vertices.size() * wire.vertices.size()) {
+  while (remainingIndices.size() > 3 && guardCounter++ < ringCount * ringCount) {
     bool clippedEar = false;
     for (size_t indexPosition = 0; indexPosition < remainingIndices.size(); ++indexPosition) {
       const int previousIndex = remainingIndices[(indexPosition + remainingIndices.size() - 1) % remainingIndices.size()];
       const int currentIndex = remainingIndices[indexPosition];
       const int nextIndex = remainingIndices[(indexPosition + 1) % remainingIndices.size()];
 
-      const auto& previousVertex = wire.vertices[previousIndex];
-      const auto& currentVertex = wire.vertices[currentIndex];
-      const auto& nextVertex = wire.vertices[nextIndex];
+      const auto& previousVertex = points[previousIndex];
+      const auto& currentVertex = points[currentIndex];
+      const auto& nextVertex = points[nextIndex];
       if (cross2D(currentVertex - previousVertex, nextVertex - currentVertex) <= kTolerance) {
         continue;
       }
@@ -674,7 +811,7 @@ inline std::vector<std::array<int, 3>> triangulateSimpleWire(const SurfaceWire& 
         if (candidateIndex == previousIndex || candidateIndex == currentIndex || candidateIndex == nextIndex) {
           continue;
         }
-        if (pointInTriangle(wire.vertices[candidateIndex], previousVertex, currentVertex, nextVertex)) {
+        if (pointInTriangle(points[candidateIndex], previousVertex, currentVertex, nextVertex)) {
           containsOtherVertex = true;
           break;
         }
@@ -698,6 +835,17 @@ inline std::vector<std::array<int, 3>> triangulateSimpleWire(const SurfaceWire& 
     triangles.push_back({remainingIndices[0], remainingIndices[1], remainingIndices[2]});
   }
   return triangles;
+}
+
+/// Whether \a triangles cover the area enclosed by \a ring.
+inline bool coversRing(const std::vector<Vec2>& points, const std::vector<int>& ring, const std::vector<std::array<int, 3>>& triangles)
+{
+  double area = 0.;
+  for (const auto& triangle : triangles) {
+    area += 0.5 * cross2D(points[triangle[1]] - points[triangle[0]], points[triangle[2]] - points[triangle[0]]);
+  }
+  const double ringArea = ringSignedArea(points, ring);
+  return std::abs(area - ringArea) <= 1.e-6 * std::abs(ringArea);
 }
 
 /// \name Angular constants for parametric arc curves
@@ -2249,31 +2397,22 @@ inline std::vector<Vec2> sampleCurveWireByU(const CurveWire& wire, int segmentsP
   return samples;
 }
 
-/// Ear-clipping of a simple parametric wire that clips the ear with the shortest 3D diagonal first, so a strip is not fanned.
-inline std::vector<std::array<int, 3>> triangulateWireByShortestChord(const SurfaceWire& wire,
-                                                                      const std::vector<Vec3>& points)
+/// Ear-clipping of a ring into \a uvPoints that clips the ear with the shortest 3D diagonal first, so a strip is not fanned.
+inline std::vector<std::array<int, 3>> triangulateRingByShortestChord(const std::vector<Vec2>& uvPoints,
+                                                                      const std::vector<Vec3>& points,
+                                                                      std::vector<int> remainingIndices)
 {
-  std::vector<int> remainingIndices;
-  remainingIndices.reserve(wire.vertices.size());
-  if (wire.signedArea() >= 0.) {
-    for (size_t vertexIndex = 0; vertexIndex < wire.vertices.size(); ++vertexIndex) {
-      remainingIndices.push_back(static_cast<int>(vertexIndex));
-    }
-  } else {
-    for (size_t reverseIndex = wire.vertices.size(); reverseIndex > 0; --reverseIndex) {
-      remainingIndices.push_back(static_cast<int>(reverseIndex - 1));
-    }
-  }
+  const std::vector<int> ring = remainingIndices;
 
-  // the 3D diagonal of the ear at a position, or infinity when it is not an ear (same tests as triangulateSimpleWire)
+  // the 3D diagonal of the ear at a position, or infinity when it is not an ear (same tests as triangulateRing)
   const double notAnEar = std::numeric_limits<double>::infinity();
   auto earChord = [&](size_t indexPosition) {
     const int previousIndex = remainingIndices[(indexPosition + remainingIndices.size() - 1) % remainingIndices.size()];
     const int currentIndex = remainingIndices[indexPosition];
     const int nextIndex = remainingIndices[(indexPosition + 1) % remainingIndices.size()];
-    const auto& previousVertex = wire.vertices[previousIndex];
-    const auto& currentVertex = wire.vertices[currentIndex];
-    const auto& nextVertex = wire.vertices[nextIndex];
+    const auto& previousVertex = uvPoints[previousIndex];
+    const auto& currentVertex = uvPoints[currentIndex];
+    const auto& nextVertex = uvPoints[nextIndex];
     if (cross2D(currentVertex - previousVertex, nextVertex - currentVertex) <= kTolerance) {
       return notAnEar;
     }
@@ -2281,7 +2420,7 @@ inline std::vector<std::array<int, 3>> triangulateWireByShortestChord(const Surf
       if (candidateIndex == previousIndex || candidateIndex == currentIndex || candidateIndex == nextIndex) {
         continue;
       }
-      if (pointInTriangle(wire.vertices[candidateIndex], previousVertex, currentVertex, nextVertex)) {
+      if (pointInTriangle(uvPoints[candidateIndex], previousVertex, currentVertex, nextVertex)) {
         return notAnEar;
       }
     }
@@ -2305,7 +2444,7 @@ inline std::vector<std::array<int, 3>> triangulateWireByShortestChord(const Surf
       }
     }
     if (bestPosition == remainingIndices.size()) {
-      return triangulateSimpleWire(wire); // near-collinear runs can block every ear in this order
+      return triangulateRing(uvPoints, ring); // near-collinear runs can block every ear in this order
     }
 
     const size_t count = remainingIndices.size();
@@ -2324,10 +2463,10 @@ inline std::vector<std::array<int, 3>> triangulateWireByShortestChord(const Surf
       if (indexPosition == beforePosition || indexPosition == afterPosition) {
         chords[indexPosition] = earChord(indexPosition);
       } else if (chords[indexPosition] == notAnEar) {
-        const auto& previousVertex = wire.vertices[remainingIndices[(indexPosition + newCount - 1) % newCount]];
-        const auto& currentVertex = wire.vertices[remainingIndices[indexPosition]];
-        const auto& nextVertex = wire.vertices[remainingIndices[(indexPosition + 1) % newCount]];
-        if (pointInTriangle(wire.vertices[clippedIndex], previousVertex, currentVertex, nextVertex)) {
+        const auto& previousVertex = uvPoints[remainingIndices[(indexPosition + newCount - 1) % newCount]];
+        const auto& currentVertex = uvPoints[remainingIndices[indexPosition]];
+        const auto& nextVertex = uvPoints[remainingIndices[(indexPosition + 1) % newCount]];
+        if (pointInTriangle(uvPoints[clippedIndex], previousVertex, currentVertex, nextVertex)) {
           chords[indexPosition] = earChord(indexPosition);
         }
       }
@@ -2340,22 +2479,31 @@ inline std::vector<std::array<int, 3>> triangulateWireByShortestChord(const Surf
   return triangles;
 }
 
-/// Append the display triangulation of a wire-trimmed quadric patch: the sampled outer loop, ear-clipped; holes are omitted.
+/// Append the display triangulation of a wire-trimmed quadric patch: the sampled loops with the holes bridged in, ear-clipped.
 template <typename MapUV>
-void appendCurveTrimMesh(const CurveWire& outerWire, const MapUV& mapUV, std::vector<Vec3>& vertices,
-                         std::vector<std::array<int, 3>>& triangles)
+void appendCurveTrimMesh(const CurveWire& outerWire, const std::vector<CurveWire>& innerWires, const MapUV& mapUV,
+                         std::vector<Vec3>& vertices, std::vector<std::array<int, 3>>& triangles)
 {
-  SurfaceWire sampledWire;
-  sampledWire.vertices = sampleCurveWireByU(outerWire);
-  if (sampledWire.vertices.size() < 3) {
+  const auto outerSamples = sampleCurveWireByU(outerWire);
+  if (outerSamples.size() < 3) {
     return;
   }
+  std::vector<std::vector<Vec2>> holes;
+  for (const auto& innerWire : innerWires) {
+    holes.push_back(sampleCurveWireByU(innerWire));
+  }
+  std::vector<Vec2> uvPoints;
+  const auto ring = bridgeHoles(outerSamples, holes, uvPoints);
   const int firstVertexIndex = static_cast<int>(vertices.size());
-  for (const auto& sample : sampledWire.vertices) {
+  for (const auto& sample : uvPoints) {
     vertices.push_back(mapUV(sample.uCoord, sample.vCoord));
   }
   const std::vector<Vec3> points(vertices.begin() + firstVertexIndex, vertices.end());
-  for (const auto& triangle : triangulateWireByShortestChord(sampledWire, points)) {
+  auto localTriangles = triangulateRingByShortestChord(uvPoints, points, ring);
+  if (!coversRing(uvPoints, ring, localTriangles)) { // holes that cross the outer loop or each other stay filled
+    localTriangles = triangulateRingByShortestChord(uvPoints, points, orientedRing(uvPoints, 0, static_cast<int>(outerSamples.size()), true));
+  }
+  for (const auto& triangle : localTriangles) {
     triangles.push_back(
       {firstVertexIndex + triangle[0], firstVertexIndex + triangle[1], firstVertexIndex + triangle[2]});
   }
@@ -2887,12 +3035,21 @@ class PlanarBoundedSurface final : public BoundedSurface
 
   void appendDisplayMesh(std::vector<Vec3>& vertices, std::vector<std::array<int, 3>>& triangles) const override
   {
+    std::vector<std::vector<Vec2>> holes;
+    for (const auto& innerWire : mInnerWires) {
+      holes.push_back(innerWire.vertices);
+    }
+    std::vector<Vec2> localVertices;
+    const auto ring = bridgeHoles(mOuterWire.vertices, holes, localVertices);
     const int firstVertexIndex = static_cast<int>(vertices.size());
-    for (const auto& vertex : mOuterWire.vertices) {
+    for (const auto& vertex : localVertices) {
       vertices.push_back(toGlobal(vertex));
     }
 
-    const auto localTriangles = triangulateSimpleWire(mOuterWire);
+    auto localTriangles = triangulateRing(localVertices, ring);
+    if (!coversRing(localVertices, ring, localTriangles)) { // holes that touch the outer wire or each other stay filled
+      localTriangles = triangulateRing(localVertices, orientedRing(localVertices, 0, mOuterWire.edgeCount(), true));
+    }
     for (const auto& triangle : localTriangles) {
       triangles.push_back(
         {firstVertexIndex + triangle[0], firstVertexIndex + triangle[1], firstVertexIndex + triangle[2]});
@@ -3134,22 +3291,33 @@ class CurvedPlanarBoundedSurface final : public BoundedSurface
 
   void appendDisplayMesh(std::vector<Vec3>& vertices, std::vector<std::array<int, 3>>& triangles) const override
   {
-    // triangulate the sampled outer boundary; holes are ignored in the display mesh (as for the
-    // polygonal planar surface, visualization never influences navigation)
+    // triangulate the sampled outer boundary with the sampled holes bridged in
     auto samples = mOuterWire.sampledBoundary();
     if (samples.size() < 4) {
       return;
     }
     samples.pop_back(); // drop the closing duplicate
 
-    SurfaceWire sampledWire;
-    sampledWire.vertices = std::move(samples);
+    const int outerCount = static_cast<int>(samples.size());
+    std::vector<std::vector<Vec2>> holes;
+    for (const auto& innerWire : mInnerWires) {
+      holes.push_back(innerWire.sampledBoundary());
+      if (!holes.back().empty()) {
+        holes.back().pop_back();
+      }
+    }
+    std::vector<Vec2> localVertices;
+    const auto ring = bridgeHoles(samples, holes, localVertices);
 
     const int firstVertexIndex = static_cast<int>(vertices.size());
-    for (const auto& vertex : sampledWire.vertices) {
+    for (const auto& vertex : localVertices) {
       vertices.push_back(toGlobal(vertex));
     }
-    for (const auto& triangle : triangulateSimpleWire(sampledWire)) {
+    auto localTriangles = triangulateRing(localVertices, ring);
+    if (!coversRing(localVertices, ring, localTriangles)) { // holes that touch the outer wire or each other stay filled
+      localTriangles = triangulateRing(localVertices, orientedRing(localVertices, 0, outerCount, true));
+    }
+    for (const auto& triangle : localTriangles) {
       triangles.push_back(
         {firstVertexIndex + triangle[0], firstVertexIndex + triangle[1], firstVertexIndex + triangle[2]});
     }
@@ -3487,7 +3655,7 @@ class CylindricalBoundedSurface final : public BoundedSurface
   void appendDisplayMesh(std::vector<Vec3>& vertices, std::vector<std::array<int, 3>>& triangles) const override
   {
     if (mHasWireTrim) {
-      appendCurveTrimMesh(mTrimOuter, [this](double phi, double height) { return pointAt(phi, height); }, vertices, triangles);
+      appendCurveTrimMesh(mTrimOuter, mTrimInner, [this](double phi, double height) { return pointAt(phi, height); }, vertices, triangles);
       return;
     }
     const int segments = rimSegments();
@@ -3832,7 +4000,7 @@ class SphericalBoundedSurface final : public BoundedSurface
   void appendDisplayMesh(std::vector<Vec3>& vertices, std::vector<std::array<int, 3>>& triangles) const override
   {
     if (mHasWireTrim) {
-      appendCurveTrimMesh(mTrimOuter, [this](double phi, double theta) { return pointAt(theta, phi); }, vertices, triangles);
+      appendCurveTrimMesh(mTrimOuter, mTrimInner, [this](double phi, double theta) { return pointAt(theta, phi); }, vertices, triangles);
       return;
     }
     const int phiSteps = phiSegments();
@@ -4217,7 +4385,7 @@ class ConicalBoundedSurface final : public BoundedSurface
   void appendDisplayMesh(std::vector<Vec3>& vertices, std::vector<std::array<int, 3>>& triangles) const override
   {
     if (mHasWireTrim) {
-      appendCurveTrimMesh(mTrimOuter, [this](double phi, double height) { return pointAt(phi, height); }, vertices, triangles);
+      appendCurveTrimMesh(mTrimOuter, mTrimInner, [this](double phi, double height) { return pointAt(phi, height); }, vertices, triangles);
       return;
     }
     const int segments = rimSegments();
@@ -4651,7 +4819,7 @@ class TorusBoundedSurface final : public BoundedSurface
   void appendDisplayMesh(std::vector<Vec3>& vertices, std::vector<std::array<int, 3>>& triangles) const override
   {
     if (mHasWireTrim) {
-      appendCurveTrimMesh(mTrimOuter, [this](double phiRing, double phiTube) { return pointAt(phiRing, phiTube); }, vertices, triangles);
+      appendCurveTrimMesh(mTrimOuter, mTrimInner, [this](double phiRing, double phiTube) { return pointAt(phiRing, phiTube); }, vertices, triangles);
       return;
     }
     const int ringSteps = ringSegments();
