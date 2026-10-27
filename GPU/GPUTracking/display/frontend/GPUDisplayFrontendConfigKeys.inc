@@ -15,6 +15,7 @@
 #ifndef GPUDISPLAYFRONTENDCONFIGKEYS_INC
 #define GPUDISPLAYFRONTENDCONFIGKEYS_INC
 
+#define KEY_DOWN_MAP(character, id) std::tuple((uint8_t)(character), (uint8_t)GPUDisplayFrontend::KEY_MAP_##id) // Key queried as held key: GPUDisplay uses mKeys[mKeyDownMap[KEY_MAP_...]]
 #define KEY_LAMBDA(character, obj, value, ...) std::tuple((uint16_t)(character), mFrontend->mConfigRTTI->getRTTIIndex(*this, &std::remove_cvref_t<decltype(obj)>::value), configKeyCallback([this]() { [[maybe_unused]] auto& val = obj.value; __VA_ARGS__ }))
 
 void GPUDisplay::buildConfigKeys()
@@ -409,6 +410,71 @@ void GPUDisplay::buildConfigKeys()
       SetInfo("Info text display - console: %s, onscreen %s", (val & 2) ? "enabled" : "disabled", (val & 1) ? "enabled" : "disabled");
     }), //
     "Print Help / Show info texts");
+
+  mFrontend->add_key_binding(
+    KEY_DOWN_MAP('w', FORWARD),
+    KEY_DOWN_MAP('s', BACKWARD),
+    KEY_DOWN_MAP('a', STRAFE_LEFT),
+    KEY_DOWN_MAP('d', STRAFE_RIGHT), //
+    "Zoom / Strafe Left and Right");
+
+  mFrontend->add_key_binding(
+    KEY_DOWN_MAP(mFrontend->KEY_PAGEUP, STRAFE_UP),
+    KEY_DOWN_MAP(mFrontend->KEY_PAGEDOWN, STRAFE_DOWN), //
+    "Strafe up / down");
+
+  mFrontend->add_key_binding(
+    KEY_DOWN_MAP('e', ROTATE_LEFT),
+    KEY_DOWN_MAP('f', ROTATE_RIGHT), //
+    "Rotate left / right");
+
+  mFrontend->add_key_binding(
+    KEY_DOWN_MAP(mFrontend->KEY_LEFT, ROTATE_YAW_LEFT),
+    KEY_DOWN_MAP(mFrontend->KEY_RIGHT, ROTATE_YAW_RIGHT),
+    KEY_DOWN_MAP(mFrontend->KEY_UP, ROTATE_PITCH_UP),
+    KEY_DOWN_MAP(mFrontend->KEY_DOWN, ROTATE_PITCH_DOWN), //
+    "Turn camera left / right / up / down");
+
+  mFrontend->add_key_binding(
+    KEY_DOWN_MAP('+', INCREASE_WIDTH),
+    KEY_DOWN_MAP('-', DECREASE_WIDTH), //
+    "Increase / decrease point size (Hold SHIFT for lines)");
+
+  mFrontend->add_key_binding(
+    KEY_DOWN_MAP(mFrontend->KEY_ALT, FOCUS_ORIGIN),
+    KEY_DOWN_MAP(mFrontend->KEY_CTRL, FOCUS_ORIENT_UP), //
+    KEY_LAMBDA(mFrontend->KEY_ALT + mFrontend->SPECIAL_KEYS_SHIFTED, mCfgR, camLookOrigin, {
+      val ^= 1;
+      mCfgR.cameraMode = val + 2 * mCfgR.camYUp;
+      SetInfo("Camera locked on origin: %s", val ? "enabled" : "disabled");
+    }),
+    KEY_LAMBDA(mFrontend->KEY_CTRL + mFrontend->SPECIAL_KEYS_SHIFTED, mCfgR, camYUp, {
+      val ^= 1;
+      mCfgR.cameraMode = mCfgR.camLookOrigin + 2 * val;
+      SetInfo("Camera locked on y-axis facing upwards: %s", val ? "enabled" : "disabled");
+    }),
+    KEY_LAMBDA(mFrontend->KEY_ENTER, mCfgR, cameraMode, {
+      val++;
+      if (val == 4) {
+        val = 0;
+      }
+      mCfgR.camLookOrigin = val & 1;
+      mCfgR.camYUp = val & 2;
+      const char* modeText[] = {"Descent (free movement)", "Focus locked on origin (y-axis forced upwards)", "Spectator (y-axis forced upwards)", "Focus locked on origin (with free rotation)"};
+      SetInfo("Camera mode %d: %s", val, modeText[val]);
+    }),
+    "Focus camera on origin / orient y-axis upwards (combine with [SHIFT] to lock) / Cycle through modes", //
+    "[ALT] / [CTRL] / [ENTER]");
+
+  mFrontend->add_key_binding(
+    KEY_DOWN_MAP(mFrontend->KEY_RCTRL, ROTATE_MODEL),
+    KEY_DOWN_MAP(mFrontend->KEY_RALT, ROTATE_AROUND_Z), //
+    "Rotate model instead of camera / rotate TPC around beamline");
+
+  mFrontend->add_key_binding(
+    KEY_LAMBDA('>', mCfgC, mAnimationChangeConfig, val ^= 1; SetInfo("Interpolating visualization settings during Animation %s", mCfgC.mAnimationChangeConfig ? "enabled" : "disabled");),
+    KEY_DOWN_MAP('<', CHANGE_ANIMATION_INTERVAL), //
+    "Toggle config interpolation during Animation / change Animation interval (via movement)");
 }
 
 #endif // GPUDISPLAYFRONTENDCONFIGKEYS_INC
