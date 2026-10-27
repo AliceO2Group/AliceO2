@@ -403,6 +403,7 @@ class Variant
     *this = Variant(value, size);
   }
 
+  /// FIXME: set for vector of strings is not used anywhere, why?
   template <typename T>
   void set(std::vector<T>& values)
     requires(std::is_pod_v<T> || std::is_same_v<T, std::string>)

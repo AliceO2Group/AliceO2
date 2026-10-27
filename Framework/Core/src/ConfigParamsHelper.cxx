@@ -13,6 +13,7 @@
 #include <boost/program_options.hpp>
 
 #include <string>
+#include <string_view>
 #include <vector>
 #include <iostream>
 
@@ -99,9 +100,17 @@ void ConfigParamsHelper::populateBoostProgramOptions(
         addConfigSpecOption<VariantType::Array2DDouble>(spec, options);
         break;
       case VariantType::LabeledArrayInt:
+        addConfigSpecOption<VariantType::LabeledArrayInt>(spec, options);
+        break;
       case VariantType::LabeledArrayFloat:
+        addConfigSpecOption<VariantType::LabeledArrayFloat>(spec, options);
+        break;
       case VariantType::LabeledArrayDouble:
+        addConfigSpecOption<VariantType::LabeledArrayDouble>(spec, options);
+        break;
       case VariantType::LabeledArrayString:
+        addConfigSpecOption<VariantType::LabeledArrayString>(spec, options);
+        break;
       // FIXME: for  Dict we should probably allow parsing stuff
       //        provided on the command line
       case VariantType::Dict:
@@ -110,6 +119,19 @@ void ConfigParamsHelper::populateBoostProgramOptions(
         break;
     };
   }
+}
+
+std::string ConfigParamsHelper::defaultValueForHelp(std::string const& value)
+{
+  constexpr std::string_view ellipsis = "...";
+  if (value.size() <= MaxHelpDefaultLength) {
+    return value;
+  }
+  // Keep more of the beginning, which identifies the value, and the end, which closes it
+  constexpr size_t kept = MaxHelpDefaultLength - ellipsis.size();
+  constexpr size_t tail = kept / 3;
+  constexpr size_t head = kept - tail;
+  return value.substr(0, head) + std::string{ellipsis} + value.substr(value.size() - tail);
 }
 
 /// Check if option is defined
@@ -158,7 +180,7 @@ bool ConfigParamsHelper::dpl2BoostOptions(const std::vector<ConfigParamSpec>& sp
     if (configSpec.type != VariantType::Bool) {
       if (configSpec.defaultValue.type() != VariantType::Empty) {
         options.add_options()(configSpec.name.c_str(),
-                              bpo::value<std::string>()->default_value(defaultValue.str()),
+                              bpo::value<std::string>()->default_value(defaultValue.str(), defaultValueForHelp(defaultValue.str())),
                               configSpec.help.c_str());
       } else {
         options.add_options()(configSpec.name.c_str(),
