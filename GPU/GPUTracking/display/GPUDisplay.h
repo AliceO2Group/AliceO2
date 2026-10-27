@@ -259,8 +259,6 @@ class GPUDisplay : public GPUDisplayInterface
 
   std::array<float, 4> mDrawColor = {1.f, 1.f, 1.f, 1.f};
 
-  int32_t mTestSetting = 0;
-
   float mAngleRollOrigin = -1e9;
   float mMaxClusterZ = -1;
 

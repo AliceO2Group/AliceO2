@@ -20,6 +20,7 @@
 #include <memory>
 #include <chrono>
 #include <mutex>
+#include <string>
 #include <vector>
 
 namespace o2::gpu
@@ -148,6 +149,7 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   template <typename... Args>
   void add_key_binding(Args&&... args); // KEY_LAMBDA(key, ...) entries, the help text, and optionally the keys to show in the help text, only used in GPUDisplayFrontendConfig.cxx
   void listConfig();
+  const std::vector<std::string>& getHelpText() const; // Help text of all key bindings, one line per binding
 };
 } // namespace o2::gpu
 
