@@ -39,7 +39,7 @@ struct GPUDisplayFrontend::configRTTIExt : public qConfig::qConfigRTTIentry {
 using configKeyCallback = std::function<void()>;
 
 struct GPUDisplayFrontend::configKey {
-  uint32_t configRTTIIndex;
+  uint32_t configRTTIIndex = std::numeric_limits<uint32_t>::max(); // Index in rttiEntries, KEY_MAP_INDEX + id for a key down mapping, INVALID_INDEX otherwise
   configKeyCallback callback;
 };
 
@@ -54,14 +54,15 @@ struct GPUDisplayFrontend::configRTTIInfo {
   std::vector<configRTTIExt> rttiEntries;
   std::vector<std::vector<uint32_t>> rttiReverseId; // [configStructIndex][offset] -> index in rttiEntries, INVALID_INDEX if no member at that offset
   static constexpr uint32_t INVALID_INDEX = std::numeric_limits<uint32_t>::max();
+  static constexpr uint32_t KEY_MAP_INDEX = 0x80000000; // configRTTIIndex of keys mapped to mKeyDownMap[configRTTIIndex - KEY_MAP_INDEX]
+  static bool isKeyMap(uint32_t index) { return index >= KEY_MAP_INDEX && index != INVALID_INDEX; }
   std::vector<std::string> configStructNames;
   std::array<configKey, N_TOTAL_KEYS> configKeys; // By key code, special keys with SHIFT at code + SPECIAL_KEYS_SHIFTED
   std::vector<std::string> keyNames;
+  std::vector<std::string> keyMapNames;                             // Names of the key down mapping ids (KEY_MAP_*)
   std::vector<std::pair<std::string, std::string>> helpTextEntries; // Keys and text of each add_key_binding call
   std::string helpText;
   static constexpr std::string_view possibleKeys = " 0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ#.:;>'^_"; // Bindable keys >= 32 (space), special keys < 32 are those with a name in keyNames
-  static constexpr char reservedKeysData[] = {'W', 'A', 'S', 'D', 'E', 'F', 'w', 'a', 's', 'd', 'e', 'f', '+', '-', '<', KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT, KEY_PAGEUP, KEY_PAGEDOWN, KEY_SHIFT, KEY_ALT, KEY_RALT, KEY_CTRL, KEY_RCTRL};
-  static constexpr std::string_view reservedKeys{reservedKeysData, sizeof(reservedKeysData)}; // Keys queried continuously as held keys (camera control, modifiers), not available for bindings
 
   template <class T, size_t I = 0>
   static constexpr uint32_t configStructIndex() // Index of struct T in configStructs, compile-time error if not present
@@ -176,18 +177,28 @@ bool GPUDisplayFrontend::HandleExternalGUIKeys()
 template <typename... Args>
 void GPUDisplayFrontend::add_key_binding(Args&&... args)
 {
-  constexpr size_t nKeys = (0 + ... + std::is_same_v<std::remove_cvref_t<Args>, std::tuple<uint16_t, uint32_t, configKeyCallback>>);
+  constexpr size_t nKeys = (0 + ... + (std::is_same_v<std::remove_cvref_t<Args>, std::tuple<uint16_t, uint32_t, configKeyCallback>> || std::is_same_v<std::remove_cvref_t<Args>, std::tuple<uint8_t, uint8_t>>));
   static_assert(nKeys >= 1 && (sizeof...(Args) == nKeys + 1 || sizeof...(Args) == nKeys + 2), "add_key_binding needs at least one key, the help text, and optionally the keys to show in the help text");
   auto argTuple = std::forward_as_tuple(args...);
   std::string keys;
-  auto addKey = [&](std::tuple<uint16_t, uint32_t, configKeyCallback>& key) {
-    const std::string name = mConfigRTTI->getKeyName(std::get<0>(key));
-    auto& entry = mConfigRTTI->configKeys[std::get<0>(key)];
-    if (entry.callback) {
+  auto addKey = [&](auto& key) {
+    const uint16_t character = std::get<0>(key);
+    const std::string name = mConfigRTTI->getKeyName(character);
+    auto& entry = mConfigRTTI->configKeys[character];
+    if (entry.callback || entry.configRTTIIndex != configRTTIInfo::INVALID_INDEX) {
       throw std::runtime_error("Key [" + name + "] assigned twice in display frontend");
     }
-    entry.configRTTIIndex = std::get<1>(key);
-    entry.callback = std::move(std::get<2>(key));
+    if constexpr (std::is_same_v<std::remove_cvref_t<decltype(key)>, std::tuple<uint8_t, uint8_t>>) {
+      const uint8_t id = std::get<1>(key);
+      if (mKeyDownMap[id]) {
+        throw std::runtime_error("Key down mapping " + mConfigRTTI->keyMapNames[id] + " assigned twice in display frontend");
+      }
+      mKeyDownMap[id] = character >= 'a' && character <= 'z' ? character + 'A' - 'a' : character; // mKeys stores letters in upper case
+      entry.configRTTIIndex = configRTTIInfo::KEY_MAP_INDEX + id;
+    } else {
+      entry.configRTTIIndex = std::get<1>(key);
+      entry.callback = std::move(std::get<2>(key));
+    }
     keys += (keys.empty() ? "[" : " [") + name + "]";
   };
   [&]<size_t... I>(std::index_sequence<I...>) { (addKey(std::get<I>(argTuple)), ...); }(std::make_index_sequence<nKeys>());
@@ -208,11 +219,11 @@ void GPUDisplayFrontend::listConfig()
                                                     k); }; // 0-9, a-z, A-Z, other characters, special keys, special keys with SHIFT
   std::vector<uint16_t> boundKeys, availableKeys;
   for (uint32_t k = 1; k < rtti.configKeys.size(); k++) {
-    const uint32_t base = k >= 256 ? k - SPECIAL_KEYS_SHIFTED : k; // A shifted special key is possible if the special key is
-    const bool possible = (base < N_SPECIAL_KEYS && !rtti.keyNames[base].empty()) || (k < 256 && rtti.possibleKeys.find((char)k) != std::string_view::npos);
-    if (rtti.configKeys[k].callback) {
+    const uint32_t base = k >= 256 ? k - SPECIAL_KEYS_SHIFTED : k; // A shifted special key is possible if the special key is, SHIFT itself is the modifier
+    const bool possible = base != KEY_SHIFT && ((base < N_SPECIAL_KEYS && !rtti.keyNames[base].empty()) || (k < 256 && rtti.possibleKeys.find((char)k) != std::string_view::npos));
+    if (rtti.configKeys[k].callback || rtti.isKeyMap(rtti.configKeys[k].configRTTIIndex)) {
       boundKeys.emplace_back(k);
-    } else if (possible && rtti.reservedKeys.find((char)base) == std::string_view::npos) {
+    } else if (possible) {
       availableKeys.emplace_back(k);
     }
   }
@@ -233,10 +244,20 @@ void GPUDisplayFrontend::listConfig()
     GPUInfo("  %-28s %-32s %-12s %s", e.configStruct.c_str(), e.name.c_str(), e.type.c_str(), keys.c_str());
   }
   GPUInfo("Bound keys (key, struct, option):");
+  std::vector<std::string> mappedKeys(KEY_MAP_MAX);
   for (uint16_t k : boundKeys) {
     const uint32_t index = rtti.configKeys[k].configRTTIIndex;
-    const bool hasRTTI = index != configRTTIInfo::INVALID_INDEX;
-    GPUInfo("  %-10s %-28s %s", ("[" + rtti.getKeyName(k) + "]").c_str(), hasRTTI ? rtti.rttiEntries[index].configStruct.c_str() : "(no config option)", hasRTTI ? rtti.rttiEntries[index].name.c_str() : "");
+    if (rtti.isKeyMap(index)) {
+      mappedKeys[index - configRTTIInfo::KEY_MAP_INDEX] = "[" + rtti.getKeyName(k) + "]";
+      GPUInfo("  %-10s %-28s %s", ("[" + rtti.getKeyName(k) + "]").c_str(), "(key down map)", rtti.keyMapNames[index - configRTTIInfo::KEY_MAP_INDEX].c_str());
+    } else {
+      const bool hasRTTI = index != configRTTIInfo::INVALID_INDEX;
+      GPUInfo("  %-10s %-28s %s", ("[" + rtti.getKeyName(k) + "]").c_str(), hasRTTI ? rtti.rttiEntries[index].configStruct.c_str() : "(no config option)", hasRTTI ? rtti.rttiEntries[index].name.c_str() : "");
+    }
+  }
+  GPUInfo("Key down mappings (id, name, key):");
+  for (uint32_t i = 0; i < KEY_MAP_MAX; i++) {
+    GPUInfo("  %2u %-28s %s", i, rtti.keyMapNames[i].c_str(), mappedKeys[i].c_str());
   }
   std::string available;
   for (uint16_t k : availableKeys) {
@@ -254,9 +275,10 @@ void GPUDisplay::buildConfig()
   rtti = {new GPUDisplayFrontend::configRTTIInfo, [](GPUDisplayFrontend::configRTTIInfo* p) { delete p; }};
 
   rtti->keyNames.resize(rtti->configKeys.size());
+  rtti->keyMapNames.resize(GPUDisplayFrontend::KEY_MAP_MAX + 1); // Including MAX
 #define GPUDisplayFrontendAddKey(code, key) rtti->keyNames[code] = #key
+#define GPUDisplayFrontendKeyDownMap(code, key) rtti->keyMapNames[code] = #key
 #include "frontend/GPUDisplayFrontendKeys.h"
-#undef GPUDisplayFrontendAddKey
 
   std::tie(rtti->rttiEntries, rtti->configStructNames) = std::apply([this](auto... s) { return qConfigGenRTTI<GPUDisplayFrontend::configRTTIExt, std::remove_reference_t<decltype(this->*s)>...>(); }, rtti->configStructs);
   std::apply([&](auto... s) { (rtti->rttiReverseId.emplace_back(sizeof(this->*s), GPUDisplayFrontend::configRTTIInfo::INVALID_INDEX), ...); }, rtti->configStructs);
