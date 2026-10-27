@@ -452,8 +452,7 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
       break;
     }
 
-    HandleExternalGUISignals();
-    DrawGLScene();
+    HandleUpdatesAndDrawGLScene();
     if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
       glXSwapBuffers(mXDisplay, mWindow);
     }

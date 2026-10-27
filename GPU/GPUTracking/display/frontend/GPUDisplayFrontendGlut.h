@@ -51,6 +51,7 @@ class GPUDisplayFrontendGlut : public GPUDisplayFrontend
   int32_t mWidth = INIT_WIDTH;
   int32_t mHeight = INIT_HEIGHT;
   bool mFullScreen = false;
+  bool mRedisplayPending = false; // glutPostRedisplay called in glutLoopFunc, not yet served by displayFunc
 };
 } // namespace o2::gpu
 
