@@ -350,13 +350,11 @@ int32_t GPUDisplayFrontendWindows::FrontendMain()
         DispatchMessage(&msg);  // Dispatch The Message
       }
     } else {
-      HandleExternalGUISignals();
-      if (active) // Program Active?
-      {
-        if (mKeys[VK_ESCAPE]) {
-          done = TRUE;
-        } else {
-          DrawGLScene();    // Draw The Scene
+      if (active && mKeys[VK_ESCAPE]) {
+        done = TRUE;
+      } else {
+        HandleUpdatesAndDrawGLScene(!active); // Only draw if the program is active
+        if (active) {
           SwapBuffers(hDC); // Swap Buffers (Double Buffering)
           waitForFPSLimit();
         }

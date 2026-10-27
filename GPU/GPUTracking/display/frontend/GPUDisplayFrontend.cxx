@@ -146,7 +146,11 @@ int32_t GPUDisplayFrontend::getDisplayControl() const { return mDisplay->mCfgC.m
 void GPUDisplayFrontend::setDisplayControl(int32_t v) { mDisplay->mCfgC.mDisplayControl.store(v); }
 
 void GPUDisplayFrontend::HandleKey(uint8_t key) { mDisplay->HandleKey(key); }
-int32_t GPUDisplayFrontend::DrawGLScene() { return mDisplay->DrawGLScene(); }
+int32_t GPUDisplayFrontend::HandleUpdatesAndDrawGLScene(bool suspended)
+{
+  HandleExternalGUISignals();
+  return mDisplay->DrawGLScene(suspended);
+}
 
 void GPUDisplayFrontend::ResizeScene(int32_t width, int32_t height)
 {

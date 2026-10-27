@@ -38,15 +38,20 @@ GPUDisplayFrontendGlut::GPUDisplayFrontendGlut()
 
 void GPUDisplayFrontendGlut::displayFunc() // TODO: Functions should be lambdas, to get rid of the static me variable!
 {
-  me->DrawGLScene();
+  me->mRedisplayPending = false;
+  me->HandleUpdatesAndDrawGLScene();
   glutSwapBuffers();
   me->waitForFPSLimit();
 }
 
 void GPUDisplayFrontendGlut::glutLoopFunc()
 {
-  me->HandleExternalGUISignals();
-  displayFunc();
+  if (me->mRedisplayPending) { // Last redisplay not served (window not visible): handle updates without drawing
+    me->HandleUpdatesAndDrawGLScene(true);
+    me->waitForFPSLimit();
+  }
+  me->mRedisplayPending = true;
+  glutPostRedisplay(); // Drawing only in displayFunc, so that expose events do not draw twice
 }
 
 int32_t GPUDisplayFrontendGlut::GetKey(int32_t key)

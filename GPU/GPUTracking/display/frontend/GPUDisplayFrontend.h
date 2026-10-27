@@ -126,8 +126,9 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   std::unique_ptr<GPUDisplayGUIChannel> mGUIChannel; // Must outlive mGUI
   std::unique_ptr<GPUDisplayGUIWrapper> mGUI;
 
+  int32_t HandleUpdatesAndDrawGLScene(bool suspended = false); // Handle external GUI signals and config changes, then draw the scene (suspended: only update, no drawing, e.g. for a hidden window)
+
   void HandleKey(uint8_t key);                     // Callback for handling key presses
-  int32_t DrawGLScene();                           // Callback to draw the GL scene
   void HandleExternalGUISignals();                 // Callback to handle signals from external GUIs
   bool HasExternalGUISignals() const;              // Returns whether there are currently pending signals from external GUIs to be handled
   bool processKeyLambda(uint32_t key);             // Process key lambda callback

@@ -60,7 +60,7 @@ class GPUDisplay : public GPUDisplayInterface
   void UpdateParam(const GPUParam* param) override { mParam = param; }
 
   void HandleKey(uint8_t key, bool doNotHandleConfigChanges = false); // With doNotHandleConfigChanges, the caller must call checkAndApplyConfigChanges
-  int32_t DrawGLScene();
+  int32_t DrawGLScene(bool suspended = false);
   void HandleExternalGUIKey(int32_t key); // Does not handle config changes, see HandleKey
   int32_t InitDisplay(bool initFailure = false);
   void ResizeScene(int32_t width, int32_t height, bool init = false);
@@ -170,9 +170,9 @@ class GPUDisplay : public GPUDisplayInterface
   static const GPUSettingsDisplay& GetConfig(GPUChainTracking* chain);
   static const GPUSettingsProcessing& GetProcessingConfig(GPUChainTracking* chain);
 
-  void DrawGLScene_internal(float animateTime = -1.f, bool renderToMixBuffer = false);
+  void DrawGLScene_internal(bool suspended, float animateTime = -1.f, bool renderToMixBuffer = false); // suspended: return before drawing
   void DrawGLScene_updateEventData();
-  void DrawGLScene_cameraAndAnimation(float animateTime, float& mixSlaveImage, hmm_mat4& nextViewMatrix);
+  void DrawGLScene_cameraAndAnimation(bool suspended, float animateTime, float& mixSlaveImage, hmm_mat4& nextViewMatrix);
   size_t DrawGLScene_updateVertexList();
   void DrawGLScene_drawCommands();
   int32_t InitDisplay_internal();
@@ -195,7 +195,7 @@ class GPUDisplay : public GPUDisplayInterface
   void resetAnimation();
   void removeAnimationPoint();
   void startAnimation();
-  int32_t animateCamera(float& animateTime, float& mixSlaveImage, hmm_mat4& nextViewMatrix);
+  int32_t animateCamera(bool suspended, float& animateTime, float& mixSlaveImage, hmm_mat4& nextViewMatrix);
   void showInfo(const char* info);
   void ActivateColor();
   void SetColorTRD();

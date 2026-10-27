@@ -322,8 +322,7 @@ int32_t GPUDisplayFrontendGlfw::FrontendMain()
 
   int32_t retVal = 0;
   while (!glfwWindowShouldClose(mWindow)) {
-    HandleExternalGUISignals();
-    if (DrawGLScene()) {
+    if (HandleUpdatesAndDrawGLScene()) {
       fprintf(stderr, "Error drawing GL scene\n");
       retVal = 1;
       break; // Cleanup below

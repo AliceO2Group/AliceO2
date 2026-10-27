@@ -105,7 +105,7 @@ void GPUDisplay::startAnimation()
   mAnimationMixBase = -1;
 }
 
-int32_t GPUDisplay::animateCamera(float& animateTime, float& mixSlaveImage, hmm_mat4& nextViewMatrix)
+int32_t GPUDisplay::animateCamera(bool suspended, float& animateTime, float& mixSlaveImage, hmm_mat4& nextViewMatrix)
 {
   float time = animateTime;
   if (mAnimate && time < 0) {
@@ -152,7 +152,7 @@ int32_t GPUDisplay::animateCamera(float& animateTime, float& mixSlaveImage, hmm_
       if (mixSlaveImage > 0) {
         mCfgL = mAnimateConfig[mAnimationLastBase];
         updateConfig();
-        DrawGLScene_internal(time, true);
+        DrawGLScene_internal(suspended, time, true);
       }
     }
 

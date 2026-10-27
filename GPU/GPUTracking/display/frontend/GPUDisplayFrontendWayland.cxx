@@ -610,10 +610,7 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
       break;
     }
     handleKeyRepeat();
-    HandleExternalGUISignals();
-    if (!mSuspended) { // Window not visible, compositor would not release swapchain images
-      DrawGLScene();
-    }
+    HandleUpdatesAndDrawGLScene(mSuspended); // Window not visible, compositor would not release swapchain images
     waitForFPSLimit();
   }
 

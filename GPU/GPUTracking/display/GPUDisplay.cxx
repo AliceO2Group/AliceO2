@@ -204,7 +204,7 @@ void GPUDisplay::ExitDisplay()
   mBackend->ExitBackend();
 }
 
-int32_t GPUDisplay::DrawGLScene()
+int32_t GPUDisplay::DrawGLScene(bool suspended)
 {
   // Make sure event gets not overwritten during display
   mSemLockDisplay.Lock();
@@ -220,7 +220,7 @@ int32_t GPUDisplay::DrawGLScene()
     mNCollissions = std::max(1u, mIOPtrs->nMCInfosTPCCol);
   }
   try {
-    DrawGLScene_internal();
+    DrawGLScene_internal(suspended);
   } catch (const std::runtime_error& e) {
     GPUError("Runtime error %s during display", e.what());
     retVal = 1;
@@ -238,7 +238,7 @@ int32_t GPUDisplay::DrawGLScene()
   return retVal;
 }
 
-void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSlaveImage, hmm_mat4& nextViewMatrix)
+void GPUDisplay::DrawGLScene_cameraAndAnimation(bool suspended, float animateTime, float& mixSlaveImage, hmm_mat4& nextViewMatrix)
 {
   HighResTimer timer(mUpdateVertexLists && mChain->GetProcessingSettings().debugLevel >= 2);
   int32_t mMouseWheelTmp = mFrontend->mMouseWheel;
@@ -266,7 +266,7 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
 
   // Perform new rotation / translation / animation
 
-  if (animateCamera(animateTime, mixSlaveImage, nextViewMatrix)) {
+  if (animateCamera(suspended, animateTime, mixSlaveImage, nextViewMatrix)) {
     // Do nothing else
   } else if (mCfgC.mResetScene.load()) {
     const float initialZpos = mCfgH.projectXY ? 16 : (mParam->par.continuousTracking ? (mMaxClusterZ * GL_SCALE_FACTOR + 8) : 8);
@@ -627,7 +627,7 @@ void GPUDisplay::DrawGLScene_drawCommands()
   }
 }
 
-void GPUDisplay::DrawGLScene_internal(float animateTime, bool renderToMixBuffer) // negative time = no mixing
+void GPUDisplay::DrawGLScene_internal(bool suspended, float animateTime, bool renderToMixBuffer) // negative time = no mixing
 {
   if (mCfgC.mRequestScreenshot || mCfgC.mAnimateScreenshot) {
     const uint32_t factor = std::max(1, mCfgR.drawQualityDownsampleFSAA) * std::max(1, mCfgR.screenshotScaleFactor);
@@ -660,7 +660,7 @@ void GPUDisplay::DrawGLScene_internal(float animateTime, bool renderToMixBuffer)
 
   hmm_mat4 nextViewMatrix = MY_HMM_IDENTITY;
   float mixSlaveImage = 0.f;
-  DrawGLScene_cameraAndAnimation(animateTime, mixSlaveImage, nextViewMatrix);
+  DrawGLScene_cameraAndAnimation(suspended, animateTime, mixSlaveImage, nextViewMatrix);
 
   // Prepare Event
   if (mUpdateVertexLists && mIOPtrs) {
@@ -668,6 +668,10 @@ void GPUDisplay::DrawGLScene_internal(float animateTime, bool renderToMixBuffer)
     if (timerDraw.IsRunning()) {
       printf("Event visualization time: %'d us (vertices %'ld / %'ld bytes)\n", (int32_t)(timerDraw.GetCurrentElapsedTime() * 1000000.), (int64_t)totalVertizes, (int64_t)(totalVertizes * sizeof(mVertexBuffer[0][0])));
     }
+  }
+
+  if (suspended) {
+    return;
   }
 
   // Draw Event
