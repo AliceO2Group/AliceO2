@@ -475,6 +475,8 @@ void GPUDisplay::buildConfigKeys()
     KEY_LAMBDA('>', mCfgC, mAnimationChangeConfig, val ^= 1; SetInfo("Interpolating visualization settings during Animation %s", mCfgC.mAnimationChangeConfig ? "enabled" : "disabled");),
     KEY_DOWN_MAP('<', CHANGE_ANIMATION_INTERVAL), //
     "Toggle config interpolation during Animation / change Animation interval (via movement)");
+
+  mFrontend->mConfigRTTI->helpTextEntries.emplace_back("[MOUSE 1] / [MOUSE 2] / [MOUSE 1+2] / [SHIFT]", "Look around / Strafe camera / Zoom / Rotate / Slow Zoom / Move / Rotate");
 }
 
 #endif // GPUDISPLAYFRONTENDCONFIGKEYS_INC
