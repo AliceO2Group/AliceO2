@@ -35,6 +35,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"primary-vertices", VariantType::Bool, false, {"read primary vertices"}},
     {"secondary-vertices", VariantType::Bool, false, {"read secondary vertices"}},
     {"cosmic", VariantType::Bool, false, {"read cosmic tracks"}},
+    {"cosmic-ext", VariantType::Bool, false, {"read extended cosmic tracks with clusters"}},
     {"ir-frames-its", VariantType::Bool, false, {"read ITS IR frames"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable reading root files, essentially making this workflow void, but needed for compatibility"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
@@ -56,9 +57,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   bool pv = cfgc.options().get<bool>("primary-vertices");
   bool sv = cfgc.options().get<bool>("secondary-vertices");
   bool cosm = cfgc.options().get<bool>("cosmic");
+  bool cosmExt = cfgc.options().get<bool>("cosmic-ext");
   bool irits = cfgc.options().get<bool>("ir-frames-its");
 
-  if (!cfgc.helpOnCommandLine() && srcTrk.none() && srcCl.none() && !(pv || sv || cosm || irits)) {
+  if (!cfgc.helpOnCommandLine() && srcTrk.none() && srcCl.none() && !(pv || sv || cosm || cosmExt || irits)) {
     throw std::runtime_error("nothing requested to read");
   }
   auto srcMtc = srcTrk & ~GlobalTrackID::getSourceMask(GlobalTrackID::MFTMCH); // Do not request MFTMCH matches
@@ -71,6 +73,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   }
   if (cosm) {
     InputHelper::addInputSpecsCosmics(cfgc, specs, useMC);
+  }
+  if (cosmExt) {
+    InputHelper::addInputSpecsCosmicsExtended(cfgc, specs);
   }
   if (irits) {
     InputHelper::addInputSpecsIRFramesITS(cfgc, specs);
