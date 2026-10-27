@@ -42,6 +42,7 @@
 /DataFormats/Detectors/TPC                     @davidrohr @wiechula @shahor02
 /DataFormats/Detectors/TRD                     @f3sch @bazinski @wille10
 /DataFormats/Detectors/Upgrades                @mconcas
+/DataFormats/Detectors/Upgrades/ALICE3         @mconcas @njacazio @fcolamar @pbutti
 /DataFormats/Detectors/Upgrades/ITS3           @fgrosa @arossi81
 /DataFormats/Detectors/ZDC                     @coppedis @cortesep
 
