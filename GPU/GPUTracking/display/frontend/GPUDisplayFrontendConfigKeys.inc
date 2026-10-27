@@ -29,7 +29,7 @@ void GPUDisplay::buildConfigKeys()
     KEY_LAMBDA('6', mCfgL, drawTracks, val ^= 1;),
     KEY_LAMBDA('7', mCfgL, drawExtrapolatedTracks, val ^= 1;),
     KEY_LAMBDA('8', mCfgL, drawFinal, val ^= 1;),
-    KEY_LAMBDA('N', mCfgL, colorClusters, val ^= 1; SetInfo("Color coding for seed / trrack attachmend %s", mCfgL.colorClusters ? "enabled" : "disabled");), //
+    KEY_LAMBDA('N', mCfgL, colorClusters, val ^= 1;), //
     "Enable display of clusters, preseeds, seeds, starthits, tracklets, tracks, extrapolated tracks, merged tracks / Show assigned clusters in colors",
     "[1] ... [8] / [N]");
 
@@ -52,10 +52,8 @@ void GPUDisplay::buildConfigKeys()
     KEY_LAMBDA('l', mCfgL, drawSector, {
       if (val >= (mCfgL.drawRelatedSectors ? (NSECTORS / 4 - 1) : (NSECTORS - 1))) {
         val = -1;
-        SetInfo("Showing all sectors", 1);
       } else {
         val++;
-        SetInfo("Showing sector %d", val);
       }
     }),
     KEY_LAMBDA('k', mCfgL, drawSector, {
@@ -64,17 +62,11 @@ void GPUDisplay::buildConfigKeys()
       } else {
         val--;
       }
-      if (val == -1) {
-        SetInfo("Showing all sectors", 1);
-      } else {
-        SetInfo("Showing sector %d", val);
-      }
     }),
-    KEY_LAMBDA('J', mCfgL, drawRelatedSectors, val ^= 1; SetInfo("Drawing of related sectors %s", mCfgL.drawRelatedSectors ? "enabled" : "disabled");), //
+    KEY_LAMBDA('J', mCfgL, drawRelatedSectors, val ^= 1;), //
     KEY_LAMBDA(';', mCfgH, xAdd, {
       mCfgH.xAdd += 60;
       mCfgH.zAdd += 60;
-      SetInfo("TPC sector separation: %f %f", mCfgH.xAdd, mCfgH.zAdd);
     }),
     KEY_LAMBDA(':', mCfgH, xAdd, {
       mCfgH.xAdd -= 60;
@@ -82,7 +74,6 @@ void GPUDisplay::buildConfigKeys()
       if (mCfgH.zAdd < 0 || mCfgH.xAdd < 0) {
         mCfgH.zAdd = mCfgH.xAdd = 0;
       }
-      SetInfo("TPC sector separation: %f %f", mCfgH.xAdd, mCfgH.zAdd);
     }), //
     "Draw single sector (next  / previous sector), draw related sectors (same plane in phi) / Show splitting of TPC in sectors by extruding volume, [:] resets");
 
@@ -106,23 +97,18 @@ void GPUDisplay::buildConfigKeys()
       if (val == 7) {
         val = 0;
       }
-      if (val == 6) {
-        SetInfo("Animation mode %d - Centered on origin", val);
-      } else {
-        SetInfo("Animation mode %d - Position: %s, Direction: %s", val, (val & 2) ? "Spherical (spherical rotation)" : (val & 4) ? "Spherical (Euler angles)" : "Cartesian", (val & 1) ? "Euler angles" : "Quaternion");
-      }
     }), //
     "Start Animation, Add / remove Animation point, Reset Points, Cycle animation camera mode (resets)");
 
   mFrontend->add_key_binding(
     KEY_LAMBDA('#', mCfgL, invertColors, val ^= 1;),
-    KEY_LAMBDA('g', mCfgL, drawGrid, val ^= 1; SetInfo("Fast Cluster Search Grid %s", mCfgL.drawGrid ? "shown" : "hidden");),
-    KEY_LAMBDA('i', mCfgH, projectXY, val ^= 1; SetInfo("Projection onto xy plane %s", mCfgH.projectXY ? "enabled" : "disabled");), //
+    KEY_LAMBDA('g', mCfgL, drawGrid, val ^= 1;),
+    KEY_LAMBDA('i', mCfgH, projectXY, val ^= 1;), //
     "Invert colors / Draw Grid / Project onto XY-plane");
 
   mFrontend->add_key_binding(
-    KEY_LAMBDA('x', mCfgL, excludeClusters, val = (val + 1) % 3; SetInfo(mCfgL.excludeClusters ? "Clusters of selected category are excluded from display (%d)" : "Clusters are shown", mCfgL.excludeClusters);),
-    KEY_LAMBDA('.', mCfgH, hideRejectedTracks, val ^= 1; SetInfo("Rejected tracks are %s", mCfgH.hideRejectedTracks ? "hidden" : "shown");), //
+    KEY_LAMBDA('x', mCfgL, excludeClusters, val = (val + 1) % 3;),
+    KEY_LAMBDA('.', mCfgH, hideRejectedTracks, val ^= 1;), //
     "Exclude Clusters used in the tracking steps enabled for visualization ([1]-[8]) / Exclude rejected tracks");
 
   mFrontend->add_key_binding(
@@ -134,10 +120,8 @@ void GPUDisplay::buildConfigKeys()
       } else {
         val <<= 1;
       }
-      SetInfo("Cluster flag highlight mask set to %d (%s)", val,
-              val == 0 ? "off" : val == 1 ? "split pad" : val == 2 ? "split time" : val == 4 ? "edge" : val == 8 ? "singlePad" : val == 0x10 ? "reject distance" : "reject error");
     }),
-    KEY_LAMBDA('z', mCfgH, markFakeClusters, val ^= 1; SetInfo("Marking fake clusters: %s", mCfgH.markFakeClusters ? "on" : "off");), //
+    KEY_LAMBDA('z', mCfgH, markFakeClusters, val ^= 1;), //
     KEY_LAMBDA('B', mCfgH, markAdjacentClusters, {
       val++;
       if (val == 5) {
@@ -152,13 +136,6 @@ void GPUDisplay::buildConfigKeys()
       if (val == 34) {
         val = 0;
       }
-      if (val == 33) {
-        SetInfo("Marking protected clusters (%d)", val);
-      } else if (val == 32) {
-        SetInfo("Marking removable clusters (%d)", val);
-      } else {
-        SetInfo("Marking adjacent clusters (%d): rejected %s, tube %s, looper leg %s, low Pt %s, high incl %s", val, (val & 1) ? "yes" : " no", (val & 2) ? "yes" : " no", (val & 4) ? "yes" : " no", (val & 8) ? "yes" : " no", (val & 16) ? "yes" : " no");
-      }
     }), //
     "Mark flagged clusters (splitPad = 0x1, splitTime = 0x2, edge = 0x4, singlePad = 0x8, rejectDistance = 0x10, rejectErr = 0x20 / Mark fake attached clusters / Mark clusters attached as adjacent");
 
@@ -166,10 +143,8 @@ void GPUDisplay::buildConfigKeys()
     KEY_LAMBDA('L', mCfgL, showCollision, {
       if (val >= mNCollissions - 1) {
         val = -1;
-        SetInfo("Showing all collisions", 1);
       } else {
         val++;
-        SetInfo("Showing collision %d / %d", val, mNCollissions);
       }
     }),
     KEY_LAMBDA('K', mCfgL, showCollision, {
@@ -178,25 +153,19 @@ void GPUDisplay::buildConfigKeys()
       } else {
         val--;
       }
-      if (val == -1) {
-        SetInfo("Showing all collisions", 1);
-      } else {
-        SetInfo("Showing collision %d / %d", val, mNCollissions);
-      }
     }),
-    KEY_LAMBDA('C', mCfgL, colorCollisions, val ^= 1; SetInfo("Color coding of collisions %s", mCfgL.colorCollisions ? "enabled" : "disabled");), //
+    KEY_LAMBDA('C', mCfgL, colorCollisions, val ^= 1;), //
     "Draw single collisions (next / previous) / Colorcode clusters of different collisions");
 
   mFrontend->add_key_binding(
-    KEY_LAMBDA('v', mCfgH, hideRejectedClusters, val ^= 1; SetInfo("Rejected clusters are %s", mCfgH.hideRejectedClusters ? "hidden" : "shown");), //
+    KEY_LAMBDA('v', mCfgH, hideRejectedClusters, val ^= 1;), //
     KEY_LAMBDA('j', mCfgH, separateExtrapolatedTracks, {
       if (val) {
         mCfgH.splitCETracks ^= 1;
       }
       val ^= 1;
-      SetInfo("Seperated display of tracks propagated to adjacent sectors %s / of CE tracks %s", val ? "enabled" : "disabled", mCfgH.splitCETracks ? "enabled" : "disabled");
     }),
-    KEY_LAMBDA('u', mCfgH, trackFilter, val = (val + 1) % (mConfig.filterMacros.size() + 1); SetInfo("Track filter: %s", mCfgH.trackFilter == 0 ? "None" : mConfig.filterMacros[mCfgH.trackFilter - 1].c_str());), //
+    KEY_LAMBDA('u', mCfgH, trackFilter, val = (val + 1) % (mConfig.filterMacros.size() + 1);), //
     "Hide rejected clusters from tracks / Show tracks segments propagated to adjacent sector in different color / splt CE tracks / Cycle through track filter");
 
   mFrontend->add_key_binding(
@@ -205,10 +174,8 @@ void GPUDisplay::buildConfigKeys()
       if (val == 4) {
         val = 0;
       }
-      const char* infoText[] = {"Hits connected", "Hits connected and propagated to vertex", "Reconstructed track propagated inwards and outwards", "Monte Carlo track"};
-      SetInfo("Display of propagated tracks: %s", infoText[val]);
     }),
-    KEY_LAMBDA('G', mCfgH, propagateLoopers, val ^= 1; SetInfo("Propagation of loopers %s", mCfgH.propagateLoopers ? "enabled" : "disabled");), //
+    KEY_LAMBDA('G', mCfgH, propagateLoopers, val ^= 1;), //
     "Extrapolate tracks / loopers");
 
   mFrontend->add_key_binding(
@@ -226,16 +193,14 @@ void GPUDisplay::buildConfigKeys()
       if (val == 5) {
         val = 1;
       }
-      SetInfo("Screenshot scaling factor set to %d", val);
     }), //
     "Take Screenshot / Record Animation to pictures / Change screenshot resolution (scaling factor)");
 
   mFrontend->add_key_binding(
-    KEY_LAMBDA('S', mCfgL, smoothPoints, val ^= true; SetInfo("Smoothing of points %s", mCfgL.smoothPoints ? "enabled" : "disabled");), //
-    KEY_LAMBDA('A', mCfgL, smoothLines, val ^= true; SetInfo("Smoothing of lines %s", mCfgL.smoothLines ? "enabled" : "disabled");),    //
+    KEY_LAMBDA('S', mCfgL, smoothPoints, val ^= true;), //
+    KEY_LAMBDA('A', mCfgL, smoothLines, val ^= true;),  //
     KEY_LAMBDA('D', mCfgL, depthBuffer, {
       val ^= true;
-      SetInfo("Depth buffer (z-buffer, %u bits) %s", mBackend->DepthBits(), val ? "enabled" : "disabled");
       mBackend->setDepthBuffer();
     }), //
     "Enable or disable smoothing of points / smoothing of lines / depth buffer");
@@ -249,7 +214,6 @@ void GPUDisplay::buildConfigKeys()
       if (val > 16 || val > mBackend->getMaxMSAA()) {
         val = 0;
       }
-      SetInfo("Multisampling anti-aliasing factor set to %d", val);
     }),
     KEY_LAMBDA('U', mCfgR, drawQualityDownsampleFSAA, {
       val++;
@@ -259,50 +223,25 @@ void GPUDisplay::buildConfigKeys()
       if (val == 5) {
         val = 0;
       }
-      SetInfo("Downsampling anti-aliasing factor set to %d", val);
     }),
-    KEY_LAMBDA('V', mCfgR, drawQualityVSync, val ^= true; SetInfo("VSync: %s", mCfgR.drawQualityVSync ? "enabled" : "disabled");), //
-    KEY_LAMBDA('R', mCfgR, fpsLimit, {
-      val = (val + 1) % 3;
-      if (val == GPUDisplayBackend::FPS_LIMIT_RATE) {
-        SetInfo("FPS limit: %d FPS", mCfgR.fpsRate);
-      } else if (val == GPUDisplayBackend::FPS_LIMIT_VSYNC) {
-        char rate[32] = "unknown rate";
-        if (mFrontend->getRefreshRate() > 0.f) {
-          snprintf(rate, sizeof(rate), "%.1f Hz", mFrontend->getRefreshRate());
-        }
-        const int32_t mode = mBackend->fpsLimitMode();
-        if (mode == GPUDisplayBackend::FPS_LIMIT_NONE) {
-          SetInfo("FPS limit: refresh rate (%s) - VSync disabled, no limit", rate);
-        } else if (mode == GPUDisplayBackend::FPS_LIMIT_RATE) {
-          SetInfo("FPS limit: refresh rate (%s) - not supported by the backend, fallback to %d FPS", rate, mCfgR.fpsRate);
-        } else {
-          SetInfo("FPS limit: refresh rate (%s)", rate);
-        }
-      } else {
-        SetInfo("FPS limit: none");
-      }
-    }), //
+    KEY_LAMBDA('V', mCfgR, drawQualityVSync, val ^= true;), //
+    KEY_LAMBDA('R', mCfgR, fpsLimit, val = (val + 1) % 3;), //
     "Toggle anti-aliasing (MSAA at raster level / change downsampling FSAA factor) / toggle VSync / FPS limit (none, refresh rate, fpsRate)");
 
   mFrontend->add_key_binding(
-    KEY_LAMBDA('F', mCfgR, fullScreen, val ^= 1; SetInfo("Toggling full screen (%d)", (int32_t)mCfgR.fullScreen);),    //
-    KEY_LAMBDA('_', mCfgR, maximized, val ^= 1; SetInfo("Toggling Maximized window (%d)", (int32_t)mCfgR.maximized);), //
+    KEY_LAMBDA('F', mCfgR, fullScreen, val ^= 1;), //
+    KEY_LAMBDA('_', mCfgR, maximized, val ^= 1;),  //
     KEY_LAMBDA('b', mCfgR, fov, {
       if ((val += 5) > 175) {
         val = 5;
       }
-      SetInfo("Set FOV to %f", val);
     }),
     KEY_LAMBDA('m', mCfgR, rendererCompatSmoothing, {
-      if (displayOpenGLCore && backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
-        SetInfo("OpenGL compat profile not available, using core profile", 1);
-      } else {
+      if (!displayOpenGLCore || backend()->backendType() != GPUDisplayBackend::TYPE_OPENGL) {
         val ^= 1;
-        SetInfo("Using renderer path for %s profile", val ? "compat" : "core (shader)");
       }
     }),
-    KEY_LAMBDA('I', mCfgR, useGLIndirectDraw, val ^= true; SetInfo("OpenGL Indirect Draw %s", mCfgR.useGLIndirectDraw ? "enabled" : "disabled");), //
+    KEY_LAMBDA('I', mCfgR, useGLIndirectDraw, val ^= true;), //
     "Switch mFullScreen / Maximized window / Change FOV (field of view) / Switch between core / compat renderer path (OpenGL profile, Vulkan smooth lines) / Enable / disable GL indirect draw");
 
   mFrontend->add_key_binding(
@@ -375,18 +314,18 @@ void GPUDisplay::buildConfigKeys()
     "Save / restore current camera position / Animation path");
 
   mFrontend->add_key_binding(
-    KEY_LAMBDA(mFrontend->KEY_F1, mCfgL, drawTPC, val ^= 1; SetInfo("Showing TPC Clusters: %d", (int32_t)mCfgL.drawTPC);),
-    KEY_LAMBDA(mFrontend->KEY_F2, mCfgL, drawTRD, val ^= 1; SetInfo("Showing TRD Tracklets: %d", (int32_t)mCfgL.drawTRD);),
-    KEY_LAMBDA(mFrontend->KEY_F3, mCfgL, drawTOF, val ^= 1; SetInfo("Showing TOF Hits: %d", (int32_t)mCfgL.drawTOF);),
-    KEY_LAMBDA(mFrontend->KEY_F4, mCfgL, drawITS, val ^= 1; SetInfo("Showing ITS Clusters: %d", (int32_t)mCfgL.drawITS);), //
+    KEY_LAMBDA(mFrontend->KEY_F1, mCfgL, drawTPC, val ^= 1;),
+    KEY_LAMBDA(mFrontend->KEY_F2, mCfgL, drawTRD, val ^= 1;),
+    KEY_LAMBDA(mFrontend->KEY_F3, mCfgL, drawTOF, val ^= 1;),
+    KEY_LAMBDA(mFrontend->KEY_F4, mCfgL, drawITS, val ^= 1;), //
     "Enable / disable drawing of TPC / TRD / TOF / ITS");
 
   mFrontend->add_key_binding(
-    KEY_LAMBDA(mFrontend->KEY_F1 + mFrontend->SPECIAL_KEYS_SHIFTED, mCfgH, drawTPCTracks, val ^= 1; SetInfo("Track Filter Mask: TPC:%d TRD:%d TOF:%d ITS:%d", (int32_t)mCfgH.drawTPCTracks, (int32_t)mCfgH.drawTRDTracks, (int32_t)mCfgH.drawTOFTracks, (int32_t)mCfgH.drawITSTracks);),
-    KEY_LAMBDA(mFrontend->KEY_F2 + mFrontend->SPECIAL_KEYS_SHIFTED, mCfgH, drawTRDTracks, val ^= 1; SetInfo("Track Filter Mask: TPC:%d TRD:%d TOF:%d ITS:%d", (int32_t)mCfgH.drawTPCTracks, (int32_t)mCfgH.drawTRDTracks, (int32_t)mCfgH.drawTOFTracks, (int32_t)mCfgH.drawITSTracks);),
-    KEY_LAMBDA(mFrontend->KEY_F3 + mFrontend->SPECIAL_KEYS_SHIFTED, mCfgH, drawTOFTracks, val ^= 1; SetInfo("Track Filter Mask: TPC:%d TRD:%d TOF:%d ITS:%d", (int32_t)mCfgH.drawTPCTracks, (int32_t)mCfgH.drawTRDTracks, (int32_t)mCfgH.drawTOFTracks, (int32_t)mCfgH.drawITSTracks);),
-    KEY_LAMBDA(mFrontend->KEY_F4 + mFrontend->SPECIAL_KEYS_SHIFTED, mCfgH, drawITSTracks, val ^= 1; SetInfo("Track Filter Mask: TPC:%d TRD:%d TOF:%d ITS:%d", (int32_t)mCfgH.drawTPCTracks, (int32_t)mCfgH.drawTRDTracks, (int32_t)mCfgH.drawTOFTracks, (int32_t)mCfgH.drawITSTracks);),
-    KEY_LAMBDA(mFrontend->KEY_F12 + mFrontend->SPECIAL_KEYS_SHIFTED, mCfgH, drawTracksAndFilter, val ^= 1; SetInfo("Track filter: %s", mCfgH.drawTracksAndFilter ? "AND" : "OR");), //
+    KEY_LAMBDA(mFrontend->KEY_F1 + mFrontend->SPECIAL_KEYS_SHIFTED, mCfgH, drawTPCTracks, val ^= 1;),
+    KEY_LAMBDA(mFrontend->KEY_F2 + mFrontend->SPECIAL_KEYS_SHIFTED, mCfgH, drawTRDTracks, val ^= 1;),
+    KEY_LAMBDA(mFrontend->KEY_F3 + mFrontend->SPECIAL_KEYS_SHIFTED, mCfgH, drawTOFTracks, val ^= 1;),
+    KEY_LAMBDA(mFrontend->KEY_F4 + mFrontend->SPECIAL_KEYS_SHIFTED, mCfgH, drawITSTracks, val ^= 1;),
+    KEY_LAMBDA(mFrontend->KEY_F12 + mFrontend->SPECIAL_KEYS_SHIFTED, mCfgH, drawTracksAndFilter, val ^= 1;), //
     "Enable / disable track detector filter / SHIFT F12: Switch track detector filter between AND and OR mode",
     "[SHIFT] + [F1] to [F4] / [F12]");
 
@@ -446,12 +385,10 @@ void GPUDisplay::buildConfigKeys()
     KEY_LAMBDA(mFrontend->KEY_ALT + mFrontend->SPECIAL_KEYS_SHIFTED, mCfgR, camLookOrigin, {
       val ^= 1;
       mCfgR.cameraMode = val + 2 * mCfgR.camYUp;
-      SetInfo("Camera locked on origin: %s", val ? "enabled" : "disabled");
     }),
     KEY_LAMBDA(mFrontend->KEY_CTRL + mFrontend->SPECIAL_KEYS_SHIFTED, mCfgR, camYUp, {
       val ^= 1;
       mCfgR.cameraMode = mCfgR.camLookOrigin + 2 * val;
-      SetInfo("Camera locked on y-axis facing upwards: %s", val ? "enabled" : "disabled");
     }),
     KEY_LAMBDA(mFrontend->KEY_ENTER, mCfgR, cameraMode, {
       val++;
@@ -460,8 +397,6 @@ void GPUDisplay::buildConfigKeys()
       }
       mCfgR.camLookOrigin = val & 1;
       mCfgR.camYUp = val & 2;
-      const char* modeText[] = {"Descent (free movement)", "Focus locked on origin (y-axis forced upwards)", "Spectator (y-axis forced upwards)", "Focus locked on origin (with free rotation)"};
-      SetInfo("Camera mode %d: %s", val, modeText[val]);
     }),
     "Focus camera on origin / orient y-axis upwards (combine with [SHIFT] to lock) / Cycle through modes", //
     "[ALT] / [CTRL] / [ENTER]");
