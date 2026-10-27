@@ -123,8 +123,9 @@ void Digitizer::setEventTime(const o2::InteractionTimeRecord& irt, int layer)
   mCollisionTimeWrtROF = mEventTime.timeInBCNS; // in triggered mode the ROF starts at BC (is there a delay?)
   if (mParams.isContinuous()) {
     auto nbc = mEventTime.differenceInBC(mIRFirstSampledTF);
-    if (mCollisionTimeWrtROF < 0 && nbc > 0) {
-      nbc--;
+    if (mCollisionTimeWrtROF < 0. && nbc > 0) { // move to the ROF it actually belongs to and account
+      nbc--;                                    // this in the time offset wrt updated reference BC
+      mCollisionTimeWrtROF += o2::constants::lhc::LHCBunchSpacingNS;
     }
     // we might get interactions to digitize from before
     // the first sampled IR
