@@ -378,7 +378,7 @@ struct RecoContainer {
   std::unique_ptr<const std::vector<o2::MCCompLabel>> mcMIDTracks;
   o2::ctp::LumiInfo mCTPLumi;
 
-  std::shared_ptr<const void> cosmExtHolder[3];         // owners of the extended cosmics, TF info and TFID objects deserialized from the messages
+  std::shared_ptr<const void> cosmExtHolder[3];   // owners of the extended cosmics, TF info and TFID objects deserialized from the messages
   gsl::span<const unsigned char> clusterShMapTPC; ///< externally set TPC clusters sharing map
   gsl::span<const unsigned int> occupancyMapTPC;  ///< externally set TPC clusters occupancy map
 
