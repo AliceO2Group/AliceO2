@@ -171,7 +171,7 @@ void GPUDisplayFrontendGlfw::key_callback(GLFWwindow* window, int32_t key, int32
     if (action == GLFW_PRESS) {
       me->mLastKeyDown = handleKey;
     } else if (action == GLFW_RELEASE) {
-      keyPress = (uint8_t)me->mKeyDownMap[handleKey];
+      keyPress = (uint8_t)me->mGLFWKeyDownMap[handleKey];
       me->mKeys[keyPress] = false;
     }
   }
@@ -185,7 +185,7 @@ void GPUDisplayFrontendGlfw::char_callback(GLFWwindow* window, uint32_t codepoin
     if (keyPress >= 'a' && keyPress <= 'z') {
       keyPress += 'A' - 'a';
     }
-    me->mKeyDownMap[me->mLastKeyDown] = keyPress;
+    me->mGLFWKeyDownMap[me->mLastKeyDown] = keyPress;
     me->mKeys[keyPress] = true;
     me->HandleKey(codepoint);
   }

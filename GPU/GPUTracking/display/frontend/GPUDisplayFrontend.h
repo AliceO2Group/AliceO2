@@ -90,8 +90,8 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   static constexpr const char* DISPLAY_WINDOW_NAME = "GPU CA Standalone Event Display"; // Title of event display set by backend
   // Constant key codes for special mKeys (to unify different treatment in X11 / Windows / GLUT / etc.)
 #define GPUDisplayFrontendAddKey(code, key) static constexpr int32_t KEY_##key = code
+#define GPUDisplayFrontendKeyDownMap(code, key) static constexpr int32_t KEY_MAP_##key = code
 #include "GPUDisplayFrontendKeys.h"
-#undef GPUDisplayFrontendAddKey
   static constexpr uint32_t N_SPECIAL_KEYS = 32;
   static constexpr uint32_t SPECIAL_KEYS_SHIFTED = 255;
   static constexpr uint32_t N_TOTAL_KEYS = 256 + N_SPECIAL_KEYS;
@@ -99,6 +99,7 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   std::mutex mExternalGUIKeyMutex;
   std::vector<int32_t> mExternalGUIKeys; // Keys sent by external entity (usually console), may be ignored by backend.
   std::mutex mExitStateMutex;
+  std::array<uint8_t, KEY_MAP_MAX> mKeyDownMap = {};
 
   // Keyboard / Mouse actions
   bool mMouseDn = false;          // Mouse button down

@@ -44,3 +44,31 @@ GPUDisplayFrontendAddKey(27, ESCAPE); // fixed at 27
 GPUDisplayFrontendAddKey(28, HOME);
 GPUDisplayFrontendAddKey(29, END);
 GPUDisplayFrontendAddKey(32, SPACE); // fixed at 32
+
+#ifndef GPUDisplayFrontendKeyDownMap
+#define GPUDisplayFrontendKeyDownMap(...)
+#endif
+
+GPUDisplayFrontendKeyDownMap(0, FORWARD);
+GPUDisplayFrontendKeyDownMap(1, BACKWARD);
+GPUDisplayFrontendKeyDownMap(2, STRAFE_LEFT);
+GPUDisplayFrontendKeyDownMap(3, STRAFE_RIGHT);
+GPUDisplayFrontendKeyDownMap(4, STRAFE_UP);
+GPUDisplayFrontendKeyDownMap(5, STRAFE_DOWN);
+GPUDisplayFrontendKeyDownMap(6, ROTATE_LEFT);
+GPUDisplayFrontendKeyDownMap(7, ROTATE_RIGHT);
+GPUDisplayFrontendKeyDownMap(8, INCREASE_WIDTH);
+GPUDisplayFrontendKeyDownMap(9, DECREASE_WIDTH);
+GPUDisplayFrontendKeyDownMap(10, FOCUS_ORIGIN);
+GPUDisplayFrontendKeyDownMap(11, FOCUS_ORIENT_UP);
+GPUDisplayFrontendKeyDownMap(12, ROTATE_MODEL);
+GPUDisplayFrontendKeyDownMap(13, ROTATE_AROUND_Z);
+GPUDisplayFrontendKeyDownMap(14, CHANGE_ANIMATION_INTERVAL);
+GPUDisplayFrontendKeyDownMap(15, ROTATE_YAW_LEFT);
+GPUDisplayFrontendKeyDownMap(16, ROTATE_YAW_RIGHT);
+GPUDisplayFrontendKeyDownMap(17, ROTATE_PITCH_UP);
+GPUDisplayFrontendKeyDownMap(18, ROTATE_PITCH_DOWN);
+GPUDisplayFrontendKeyDownMap(19, MAX); // Must be the maximum value!
+
+#undef GPUDisplayFrontendAddKey
+#undef GPUDisplayFrontendKeyDownMap
