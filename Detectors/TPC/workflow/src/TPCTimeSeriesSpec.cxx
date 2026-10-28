@@ -382,6 +382,7 @@ class TPCTimeSeries : public Task
     // TRD-triggered BCs of this TF: TRD is read out only at these BCs. Built once per TF; per entry only the triggers closest
     // to the collision are stored (trdTrigDBCBefore/After). Records with bc >= LHCMaxBunches are dropped, as in the AOD producer.
     mTRDTrigBCs.clear();
+    mTRDTrigBCsInTF.clear();
     if (mUnbinnedWriter && !mTPCOnly && recoData.inputsTRD) {
       const auto trdTrig = recoData.getTRDTriggerRecords();
       mTRDTrigBCs.reserve(trdTrig.size());
@@ -427,6 +428,12 @@ class TPCTimeSeries : public Task
     if (mUnbinnedWriter) {
       mTPCTrackClIdx = pc.inputs().get<gsl::span<o2::tpc::TPCClRefElem>>("trackTPCClRefs");
       mFirstTFOrbit = processing_helpers::getFirstTForbit(pc);
+      // TRD-triggered BCs as BC numbers from the TF start (orbit mFirstTFOrbit, bc 0), in the order of mTRDTrigBCs (sorted)
+      const o2::InteractionRecord irTFStart(0, mFirstTFOrbit);
+      mTRDTrigBCsInTF.reserve(mTRDTrigBCs.size());
+      for (const auto& ir : mTRDTrigBCs) {
+        mTRDTrigBCsInTF.push_back(static_cast<int>(ir.differenceInBC(irTFStart)));
+      }
     }
 
     // get local multiplicity - count neighbouring tracks
@@ -1237,6 +1244,7 @@ class TPCTimeSeries : public Task
   bool mStoreFullTrackPar{false};                                          ///< experimental: store tpcOut/trdIn/tpcAtVtx as TrackPar (constant per job)
   uint8_t mTRDInReadout{255};                                              ///< TRD in detector readout (GRPECS): 1 yes, 0 no, 255 unknown
   std::vector<o2::InteractionRecord> mTRDTrigBCs;                          ///< TRD-triggered BCs of the current TF, sorted
+  std::vector<int> mTRDTrigBCsInTF;                                        ///< the same BCs as BC numbers from the TF start (orbit mFirstTFOrbit)
   std::vector<int> mNContributorsITS;                                      ///< per vertex ID: ITS-only PV contributors (current TF)
   std::vector<int> mNContributorsITSTPC;                                   ///< per vertex ID: ITS-TPC PV contributors, TRD/TOF-matched included (current TF)
   std::vector<int> mNContributorsTRD;                                      ///< per vertex ID: ITS-TPC-TRD (and -TOF) PV contributors (current TF)
@@ -1585,6 +1593,25 @@ class TPCTimeSeries : public Task
           }
         }
 
+        // BC numbers from the TF start (orbit firstTFOrbit, bc 0), for calibrating the two estimators: BC of the vertex time
+        // (same reference as vertex_time), and the closest TRD-triggered BCs at or before and at or after it (both equal to
+        // vertexBC if a trigger is at that BC). -999999 if no vertex or no such trigger in this TF.
+        int vertexBC = -999999;
+        int trdTrigBCBefore = -999999;
+        int trdTrigBCAfter = -999999;
+        if (vtxID >= 0) {
+          vertexBC = static_cast<int>(std::lround(vertex.getTimeStamp().getTimeStamp() / o2::constants::lhc::LHCBunchSpacingMUS));
+          const auto itBC = std::lower_bound(mTRDTrigBCsInTF.begin(), mTRDTrigBCsInTF.end(), vertexBC); // first trigger at or after vertexBC
+          if (itBC != mTRDTrigBCsInTF.end()) {
+            trdTrigBCAfter = *itBC;
+          }
+          if (itBC != mTRDTrigBCsInTF.end() && *itBC == vertexBC) {
+            trdTrigBCBefore = vertexBC;
+          } else if (itBC != mTRDTrigBCsInTF.begin()) {
+            trdTrigBCBefore = *(itBC - 1);
+          }
+        }
+
         int typeSide = 2; // A- and C-Side cluster
         if (trackFull.hasASideClustersOnly()) {
           typeSide = 0;
@@ -1730,6 +1757,10 @@ class TPCTimeSeries : public Task
                             << "vertex_nContributorsTRD=" << nContribTRD
                             << "trdTrigDBCBefore=" << trdTrigDBCBefore
                             << "trdTrigDBCAfter=" << trdTrigDBCAfter
+                            // BC numbers from the TF start: vertex (from its time) and closest TRD triggers at or before / at or after it
+                            << "vertex_bc=" << vertexBC
+                            << "trdTrigBCBefore=" << trdTrigBCBefore
+                            << "trdTrigBCAfter=" << trdTrigBCAfter
                             << "isNearestVertex=" << isNearestVtx
                             // tpc track properties
                             << "pt=" << trkOrig.getPt()
