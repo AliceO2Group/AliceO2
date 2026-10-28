@@ -97,10 +97,7 @@ void GPUDisplayFrontend::waitForFPSLimit()
 
 void GPUDisplayFrontend::HandleExternalGUISignals()
 {
-  const GPUSettingsDisplayHeavy oldCfgH = mDisplay->mCfgH;
-  const GPUSettingsDisplayLight oldCfgL = mDisplay->mCfgL;
-  const GPUSettingsDisplayRenderer oldCfgR = mDisplay->mCfgR;
-  bool changes = HandleExternalGUIKeys();
+  HandleExternalGUIKeys();
 
   const bool gui = isGUIRunning();
   std::optional<GPUDisplayGUIChannel::Update> update;
@@ -116,12 +113,8 @@ void GPUDisplayFrontend::HandleExternalGUISignals()
     if (update->lineWidth) {
       mDisplay->mCfgL.lineWidth = *update->lineWidth;
     }
-    changes = true;
   }
 
-  if (changes) {
-    mDisplay->checkAndApplyConfigChanges(oldCfgH, oldCfgL, oldCfgR);
-  }
   if (gui) {
     {
       std::lock_guard lock(mGUIChannel->mutex);
@@ -149,7 +142,10 @@ void GPUDisplayFrontend::HandleKey(uint8_t key) { mDisplay->HandleKey(key); }
 int32_t GPUDisplayFrontend::HandleUpdatesAndDrawGLScene(bool suspended)
 {
   HandleExternalGUISignals();
-  return mDisplay->DrawGLScene(suspended);
+  mDisplay->checkAndApplyConfigChanges();
+  const int32_t retVal = mDisplay->DrawGLScene(suspended);
+  mDisplay->mOldCfg = {mDisplay->mCfgH, mDisplay->mCfgL, mDisplay->mCfgR}; // Also includes the changes during drawing (animation, scene reset, ...), which set their update flags themselves
+  return retVal;
 }
 
 void GPUDisplayFrontend::ResizeScene(int32_t width, int32_t height)
