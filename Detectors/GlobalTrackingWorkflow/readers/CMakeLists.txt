@@ -11,6 +11,7 @@
 
 o2_add_library(GlobalTrackingWorkflowReaders
                SOURCES src/TrackCosmicsReaderSpec.cxx
+                       src/TrackCosmicsExtendedReaderSpec.cxx
                        src/SecondaryVertexReaderSpec.cxx
                        src/PrimaryVertexReaderSpec.cxx
                        src/StrangenessTrackingReaderSpec.cxx
@@ -20,6 +21,7 @@ o2_add_library(GlobalTrackingWorkflowReaders
                        src/MatchedMCHMIDReaderSpec.cxx
                        src/IRFrameReaderSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::ReconstructionDataFormats
+                                     O2::DataFormatsGlobalTracking
                                      O2::DataFormatsITSMFT
                                      O2::SimulationDataFormat)
 
