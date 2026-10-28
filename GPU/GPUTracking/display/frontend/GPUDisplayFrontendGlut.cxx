@@ -20,6 +20,7 @@
 #include <cstdio>
 #include <cstring>
 #include <GL/freeglut.h>
+#include <GL/freeglut_ucall.h>
 #include <unistd.h>
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_X11
 #include <GL/glx.h>
@@ -29,7 +30,6 @@
 
 #include <pthread.h>
 using namespace o2::gpu;
-static GPUDisplayFrontendGlut* me = nullptr;
 
 GPUDisplayFrontendGlut::GPUDisplayFrontendGlut()
 {
@@ -37,103 +37,83 @@ GPUDisplayFrontendGlut::GPUDisplayFrontendGlut()
   mFrontendName = "GLUT";
 }
 
-void GPUDisplayFrontendGlut::displayFunc() // TODO: Functions should be lambdas, to get rid of the static me variable!
+void GPUDisplayFrontendGlut::displayFunc()
 {
-  me->mRedisplayPending = false;
-  me->HandleUpdatesAndDrawGLScene();
+  mRedisplayPending = false;
+  HandleUpdatesAndDrawGLScene();
   glutSwapBuffers();
-  me->waitForFPSLimit();
+  waitForFPSLimit();
 }
 
 void GPUDisplayFrontendGlut::glutLoopFunc()
 {
-  if (me->mRedisplayPending) { // Last redisplay not served (window not visible): handle updates without drawing
-    me->HandleUpdatesAndDrawGLScene(true);
-    me->waitForFPSLimit();
+  if (mRedisplayPending) { // Last redisplay not served (window not visible): handle updates without drawing
+    HandleUpdatesAndDrawGLScene(true);
+    waitForFPSLimit();
   }
-  me->mRedisplayPending = true;
+  mRedisplayPending = true;
   glutPostRedisplay(); // Drawing only in displayFunc, so that expose events do not draw twice
 }
 
 int32_t GPUDisplayFrontendGlut::GetKey(int32_t key)
 {
-  if (key == GLUT_KEY_UP) {
-    return KEY_UP;
+  switch (key) {
+    case GLUT_KEY_UP:
+      return KEY_UP;
+    case GLUT_KEY_DOWN:
+      return KEY_DOWN;
+    case GLUT_KEY_LEFT:
+      return KEY_LEFT;
+    case GLUT_KEY_RIGHT:
+      return KEY_RIGHT;
+    case GLUT_KEY_PAGE_UP:
+      return KEY_PAGEUP;
+    case GLUT_KEY_PAGE_DOWN:
+      return KEY_PAGEDOWN;
+    case GLUT_KEY_HOME:
+      return KEY_HOME;
+    case GLUT_KEY_END:
+      return KEY_END;
+    case GLUT_KEY_INSERT:
+      return KEY_INSERT;
+    case GLUT_KEY_F1:
+      return KEY_F1;
+    case GLUT_KEY_F2:
+      return KEY_F2;
+    case GLUT_KEY_F3:
+      return KEY_F3;
+    case GLUT_KEY_F4:
+      return KEY_F4;
+    case GLUT_KEY_F5:
+      return KEY_F5;
+    case GLUT_KEY_F6:
+      return KEY_F6;
+    case GLUT_KEY_F7:
+      return KEY_F7;
+    case GLUT_KEY_F8:
+      return KEY_F8;
+    case GLUT_KEY_F9:
+      return KEY_F9;
+    case GLUT_KEY_F10:
+      return KEY_F10;
+    case GLUT_KEY_F11:
+      return KEY_F11;
+    case GLUT_KEY_F12:
+      return KEY_F12;
+    case GLUT_KEY_SHIFT_L:
+    case GLUT_KEY_SHIFT_R:
+      return KEY_SHIFT;
+    case GLUT_KEY_CTRL_L:
+      return KEY_CTRL;
+    case GLUT_KEY_CTRL_R:
+      return KEY_RCTRL;
+    case GLUT_KEY_ALT_L:
+      return KEY_ALT;
+    case GLUT_KEY_ALT_R:
+      return KEY_RALT;
+    default:
+      return 0;
   }
-  if (key == GLUT_KEY_DOWN) {
-    return KEY_DOWN;
-  }
-  if (key == GLUT_KEY_LEFT) {
-    return KEY_LEFT;
-  }
-  if (key == GLUT_KEY_RIGHT) {
-    return KEY_RIGHT;
-  }
-  if (key == GLUT_KEY_PAGE_UP) {
-    return KEY_PAGEUP;
-  }
-  if (key == GLUT_KEY_PAGE_DOWN) {
-    return KEY_PAGEDOWN;
-  }
-  if (key == GLUT_KEY_HOME) {
-    return KEY_HOME;
-  }
-  if (key == GLUT_KEY_END) {
-    return KEY_END;
-  }
-  if (key == GLUT_KEY_INSERT) {
-    return KEY_INSERT;
-  }
-  if (key == GLUT_KEY_F1) {
-    return KEY_F1;
-  }
-  if (key == GLUT_KEY_F2) {
-    return KEY_F2;
-  }
-  if (key == GLUT_KEY_F3) {
-    return KEY_F3;
-  }
-  if (key == GLUT_KEY_F4) {
-    return KEY_F4;
-  }
-  if (key == GLUT_KEY_F5) {
-    return KEY_F5;
-  }
-  if (key == GLUT_KEY_F6) {
-    return KEY_F6;
-  }
-  if (key == GLUT_KEY_F7) {
-    return KEY_F7;
-  }
-  if (key == GLUT_KEY_F8) {
-    return KEY_F8;
-  }
-  if (key == GLUT_KEY_F9) {
-    return KEY_F9;
-  }
-  if (key == GLUT_KEY_F10) {
-    return KEY_F10;
-  }
-  if (key == GLUT_KEY_F11) {
-    return KEY_F11;
-  }
-  if (key == GLUT_KEY_F12) {
-    return KEY_F12;
-  }
-  if (key == 112 || key == 113) {
-    return KEY_SHIFT;
-  }
-  if (key == 114) {
-    return KEY_CTRL;
-  }
-  if (key == 115) {
-    return KEY_RCTRL;
-  }
-  if (key == 116) {
-    return KEY_ALT;
-  }
-
-  return (0);
 }
 
 void GPUDisplayFrontendGlut::GetKey(int32_t key, int32_t& keyOut, int32_t& keyPressOut, bool special)
@@ -151,43 +131,23 @@ void GPUDisplayFrontendGlut::GetKey(int32_t key, int32_t& keyOut, int32_t& keyPr
   }
 }
 
-void GPUDisplayFrontendGlut::keyboardDownFunc(uint8_t key, int32_t x, int32_t y)
+void GPUDisplayFrontendGlut::keyboardFunc(int32_t key, bool special, bool down)
 {
   int32_t handleKey = 0, keyPress = 0;
-  GetKey(key, handleKey, keyPress, false);
-  me->mKeys[keyPress] = true;
-  me->HandleKey(handleKey);
-}
-
-void GPUDisplayFrontendGlut::keyboardUpFunc(uint8_t key, int32_t x, int32_t y)
-{
-  int32_t handleKey = 0, keyPress = 0;
-  GetKey(key, handleKey, keyPress, false);
-  me->mKeys[keyPress] = false;
-}
-
-void GPUDisplayFrontendGlut::specialDownFunc(int32_t key, int32_t x, int32_t y)
-{
-  int32_t handleKey = 0, keyPress = 0;
-  GetKey(key, handleKey, keyPress, true);
-  me->mKeys[keyPress] = true;
-  me->HandleKey(handleKey);
-}
-
-void GPUDisplayFrontendGlut::specialUpFunc(int32_t key, int32_t x, int32_t y)
-{
-  int32_t handleKey = 0, keyPress = 0;
-  GetKey(key, handleKey, keyPress, true);
-  me->mKeys[keyPress] = false;
+  GetKey(key, handleKey, keyPress, special);
+  mKeys[keyPress] = down;
+  if (down) {
+    HandleKey(handleKey);
+  }
 }
 
 void GPUDisplayFrontendGlut::ResizeSceneWrapper(int32_t width, int32_t height)
 {
-  if (!me->mFullScreen) {
-    me->mWidth = width;
-    me->mHeight = height;
+  if (!mFullScreen) {
+    mWidth = width;
+    mHeight = height;
   }
-  me->ResizeScene(width, height);
+  ResizeScene(width, height);
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_X11
   Display* display = glXGetCurrentDisplay(); // Maximizing / unmaximizing by the window manager changes the size, read the state as freeglut does not report it (fullscreen stays as requested, freeglut tracks it itself)
   Atom type;
@@ -204,44 +164,44 @@ void GPUDisplayFrontendGlut::ResizeSceneWrapper(int32_t width, int32_t height)
     isMaxVert |= ((Atom*)data)[i] == maxVert;
   }
   XFree(data);
-  me->setWindowState(me->mFullScreen, isMaxHorz && isMaxVert);
+  setWindowState(mFullScreen, isMaxHorz && isMaxVert);
 #endif
 }
 
 void GPUDisplayFrontendGlut::mouseFunc(int32_t button, int32_t state, int32_t x, int32_t y)
 {
   if (button == 3) {
-    me->mMouseWheel += 100;
+    mMouseWheel += 100;
   } else if (button == 4) {
-    me->mMouseWheel -= 100;
+    mMouseWheel -= 100;
   } else if (state == GLUT_DOWN) {
     if (button == GLUT_LEFT_BUTTON) {
-      me->mMouseDn = true;
+      mMouseDn = true;
     } else if (button == GLUT_RIGHT_BUTTON) {
-      me->mMouseDnR = true;
+      mMouseDnR = true;
     } else if (button == GLUT_MIDDLE_BUTTON) {
-      me->mMouseDnM = true;
+      mMouseDnM = true;
     }
-    me->mMouseDnX = x;
-    me->mMouseDnY = y;
+    mMouseDnX = x;
+    mMouseDnY = y;
   } else if (state == GLUT_UP) {
     if (button == GLUT_LEFT_BUTTON) {
-      me->mMouseDn = false;
+      mMouseDn = false;
     } else if (button == GLUT_RIGHT_BUTTON) {
-      me->mMouseDnR = false;
+      mMouseDnR = false;
     } else if (button == GLUT_MIDDLE_BUTTON) {
-      me->mMouseDnM = false;
+      mMouseDnM = false;
     }
   }
 }
 
 void GPUDisplayFrontendGlut::mouseMoveFunc(int32_t x, int32_t y)
 {
-  me->mMouseMvX = x;
-  me->mMouseMvY = y;
+  mMouseMvX = x;
+  mMouseMvY = y;
 }
 
-void GPUDisplayFrontendGlut::mMouseWheelFunc(int32_t button, int32_t dir, int32_t x, int32_t y) { me->mMouseWheel += dir; }
+void GPUDisplayFrontendGlut::mMouseWheelFunc(int32_t button, int32_t dir, int32_t x, int32_t y) { mMouseWheel += dir; }
 
 int32_t GPUDisplayFrontendGlut::FrontendMain()
 {
@@ -249,7 +209,6 @@ int32_t GPUDisplayFrontendGlut::FrontendMain()
     fprintf(stderr, "Only OpenGL backend supported\n");
     return 1;
   }
-  me = this;
   mCanDrawText = 1;
   if (drawTextFontSize() == 0) {
     drawTextFontSize() = 12;
@@ -276,17 +235,18 @@ int32_t GPUDisplayFrontendGlut::FrontendMain()
     return (1);
   }
 
-  glutDisplayFunc(displayFunc);
-  glutIdleFunc(glutLoopFunc);
-  glutReshapeFunc(ResizeSceneWrapper);
-  glutKeyboardFunc(keyboardDownFunc);
-  glutKeyboardUpFunc(keyboardUpFunc);
-  glutSpecialFunc(specialDownFunc);
-  glutSpecialUpFunc(specialUpFunc);
-  glutMouseFunc(mouseFunc);
-  glutMotionFunc(mouseMoveFunc);
-  glutPassiveMotionFunc(mouseMoveFunc);
-  glutMouseWheelFunc(mMouseWheelFunc);
+  auto mouseMoveFunc = [](int32_t x, int32_t y, void* p) { self(p)->mouseMoveFunc(x, y); };
+  glutDisplayFuncUcall([](void* p) { self(p)->displayFunc(); }, this); // Callbacks with this as user data, freeglut >= 3.2
+  glutIdleFuncUcall([](void* p) { self(p)->glutLoopFunc(); }, this);
+  glutReshapeFuncUcall([](int32_t width, int32_t height, void* p) { self(p)->ResizeSceneWrapper(width, height); }, this);
+  glutKeyboardFuncUcall([](uint8_t key, int32_t x, int32_t y, void* p) { self(p)->keyboardFunc(key, false, true); }, this);
+  glutKeyboardUpFuncUcall([](uint8_t key, int32_t x, int32_t y, void* p) { self(p)->keyboardFunc(key, false, false); }, this);
+  glutSpecialFuncUcall([](int32_t key, int32_t x, int32_t y, void* p) { self(p)->keyboardFunc(key, true, true); }, this);
+  glutSpecialUpFuncUcall([](int32_t key, int32_t x, int32_t y, void* p) { self(p)->keyboardFunc(key, true, false); }, this);
+  glutMouseFuncUcall([](int32_t button, int32_t state, int32_t x, int32_t y, void* p) { self(p)->mouseFunc(button, state, x, y); }, this);
+  glutMotionFuncUcall(mouseMoveFunc, this);
+  glutPassiveMotionFuncUcall(mouseMoveFunc, this);
+  glutMouseWheelFuncUcall([](int32_t button, int32_t dir, int32_t x, int32_t y, void* p) { self(p)->mMouseWheelFunc(button, dir, x, y); }, this);
   applyInitialWindowState();
   SetVSync(vsyncEnabled());
 
