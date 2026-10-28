@@ -18,22 +18,43 @@
 namespace o2::fdd
 {
 struct FDDRecoConfig : o2::conf::ConfigurableParamHelper<FDDRecoConfig> {
-  float AmplitudeCutOnCollisionTimeWeights = 3;
-  float AmplitudeCollisionTimeCutSideA = 1.0;
-  float AmplitudeCollisionTimeCutSideC = 0.0;
+  int16_t ChannelAmplitudeUpper = 4096;
+  int16_t ChannelAmplitudeLower = 0;
+  int16_t ChannelTimeLower = -2050;
+  int16_t ChannelTimeUpper = 2050;
+
+  uint8_t ChannelValidPmInputFlagMask = 0;
+  uint8_t ChannelValidPmInputFlags = 0;
+  bool isChannelDataGoodForCollisionTime(uint8_t flags) const
+  {
+    return (flags & ChannelValidPmInputFlagMask) == ChannelValidPmInputFlags;
+  }
+
+  uint8_t TriggerBitsValidationMask = 0;
+  uint8_t TriggerBitsValid = 0;
+  bool areTriggerBitsGood(uint8_t flags) const 
+  {
+    return (flags & TriggerBitsValidationMask) == TriggerBitsValid;
+  }
+
+
+  int16_t CollisionTimeAmpltudeUpper = 4096;
+  int16_t CollisionTimeAmplitudeLower = 0;
+  int16_t CollisionTimeTimeLower = -2050;
+  int16_t CollisionTimeTimeUpper = 2050;
+
+  uint8_t CollisionTimeValidPmInputFlagMask = static_cast<uint8_t>(~(1u << ChannelData::kNumberADC));
+  uint8_t CollisionTimeValidPmInputFlags = static_cast<uint8_t>((1u << ChannelData::kIsCFDinADCgate) | (1u << ChannelData::kIsEventInTVDC));
+  bool isChannelDataGoodForCollisionTime(uint8_t flags) const
+  {
+    return (flags & CollisionTimeValidPmInputFlagMask) == CollisionTimeValidPmInputFlags;
+  }
   
   float SwTriggerTimeLowThreshold= -1.25;
   float SwTriggerTimeHighThreshold= 1.25;
   float SwTriggerAmplitudeLowThreshold = 0.0;
   float SwTriggerAmplitudeHighThreshold = 4096.0;
   bool SwTriggerEnabled = false;
-
-  uint8_t ValidPmInputFlagMask = static_cast<uint8_t>(~(1u << ChannelData::kNumberADC));
-  uint8_t ValidPmInputFlags = static_cast<uint8_t>((1u << ChannelData::kIsCFDinADCgate) | (1u << ChannelData::kIsEventInTVDC));
-  bool areChannelDataFlagsGood(uint8_t flags) const
-  {
-    return (flags & mValidPmInputFlagMask) == mValidPmInputFlags;
-  }
 
   O2ParamDef(FDDRecoConfig, "FDDRecoConfig");
   ClassDefNV(FDDRecoConfig, 1);

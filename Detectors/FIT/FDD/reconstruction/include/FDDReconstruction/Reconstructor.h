@@ -18,6 +18,7 @@
 #include "DataFormatsFDD/Digit.h"
 #include "DataFormatsFDD/RecPoint.h"
 #include "DataFormatsFIT/DeadChannelMap.h"
+#include "DataFormatsFDD/FDDRecoConfig.h"
 namespace o2
 {
 namespace fdd
@@ -40,6 +41,10 @@ class Reconstructor
   }
 
  private:
+  bool isInAmplitudeWindow(int16_t amplitude) {
+    return amplitude >= FDDRecoConfig::Instance().ChannelAmplitudeLower && amplitude <= FDDRecoConfig::Instance().ChannelAmplitudeUpper;
+  }
+
   o2::fit::DeadChannelMap const* mDeadChannelMap = nullptr;
   ClassDefNV(Reconstructor, 3);
 };

@@ -38,6 +38,19 @@ void Reconstructor::process(o2::fdd::Digit const& digitBC, gsl::span<const o2::f
   bool atLeastOneVertexChannel = false;
   bool atLeastOneChannelInSwAmplitudeRange = false;
 
+  int64_t timeSideA = 0;
+  int64_t timeSideC = 0;
+  int64_t entriesNumSideA = 0;
+  int64_t entriesNumSideC = 0;
+
+  for (const auto& channelData: inChData) {
+    if (mDeadChannelMap && !mDeadChannelMap->isChannelAlive(channelData.mPMNumber)) {
+      LOG(debug) << "Channel " << channelData.mPMNumber << " is dead - discarding data";
+      continue;
+    }
+    
+  }
+
   for (int ich = 0; ich < nch; ich++) {
     if (mDeadChannelMap && !mDeadChannelMap->isChannelAlive(inChData[ich].mPMNumber)) {
       LOG(debug) << "Channel " << ich << " is dead - discarding data";
