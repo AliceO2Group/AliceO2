@@ -510,8 +510,8 @@ void GPUDisplayFrontendX11::SwitchFullscreen(bool set)
   xev.xclient.window = mWindow;
   xev.xclient.message_type = XInternAtom(mXDisplay, "_NET_WM_STATE", False);
   xev.xclient.format = 32;
-  xev.xclient.data.l[0] = 2; // _NET_WM_STATE_TOGGLE
-  xev.xclient.data.l[1] = XInternAtom(mXDisplay, "_NET_WM_STATE_FULLSCREEN", True);
+  xev.xclient.data.l[0] = set ? 1 : 0; // _NET_WM_STATE_ADD / _NET_WM_STATE_REMOVE
+  xev.xclient.data.l[1] = XInternAtom(mXDisplay, "_NET_WM_STATE_FULLSCREEN", False);
   xev.xclient.data.l[2] = 0;
   XSendEvent(mXDisplay, DefaultRootWindow(mXDisplay), False, SubstructureNotifyMask, &xev);
 }

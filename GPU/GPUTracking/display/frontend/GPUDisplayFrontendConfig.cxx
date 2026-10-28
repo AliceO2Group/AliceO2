@@ -141,10 +141,10 @@ void GPUDisplay::checkAndApplyConfigChanges(const GPUSettingsDisplayHeavy& oldCf
     mBackend->SetVSync(mCfgR.drawQualityVSync);
   }
   if (oldCfgR.fullScreen != mCfgR.fullScreen) {
-    mFrontend->SwitchFullscreen(mCfgR.fullScreen);
+    mFrontend->requestFullScreen(mCfgR.fullScreen);
   }
   if (oldCfgR.maximized != mCfgR.maximized) {
-    mFrontend->ToggleMaximized(mCfgR.maximized);
+    mFrontend->requestMaximized(mCfgR.maximized);
   }
   if (oldCfgR.useGLIndirectDraw != mCfgR.useGLIndirectDraw) {
     mUpdateEventData = true;
