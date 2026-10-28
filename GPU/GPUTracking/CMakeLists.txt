@@ -379,6 +379,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                                        O2::TOFBase
                                        O2::ITSBase
                                        O2::ITStracking
+                                       O2::ITSMFTTracking
                                        O2::TPCFastTransformation
                                        O2::DetectorsRaw
                                        O2::Steer

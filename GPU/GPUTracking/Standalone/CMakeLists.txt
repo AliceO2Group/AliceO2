@@ -188,6 +188,7 @@ target_include_directories(standalone_support PUBLIC
                            ${O2_DIR}/Detectors/Base/include
                            ${O2_DIR}/Detectors/Base/src
                            ${O2_DIR}/Detectors/ITSMFT/common/base/include
+                           ${O2_DIR}/Detectors/ITSMFT/common/tracking/include
                            ${O2_DIR}/Detectors/ITSMFT/ITS/base/include
                            ${O2_DIR}/Detectors/ITSMFT/ITS/tracking/include
                            ${O2_DIR}/Detectors/ITSMFT/ITS/tracking/GPU

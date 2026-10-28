@@ -14,42 +14,43 @@
 
 #include "GPUChainITS.h"
 #include "GPUConstantMem.h"
+#include "GPUDefParametersConstants.h"
 #include "DataFormatsITS/TrackITS.h"
-#include "ITStracking/ExternalAllocator.h"
+#include "ITSMFTTracking/ExternalAllocator.h"
 #include "GPUReconstructionIncludesITS.h"
 
 using namespace o2::gpu;
 
-namespace o2::its
+namespace
 {
-class GPUFrameworkExternalAllocator final : public o2::its::ExternalAllocator
+class GPUFrameworkExternalAllocator final : public o2::itsmft::tracking::ExternalAllocator
 {
  public:
-  void* allocate(size_t size) final
+  explicit GPUFrameworkExternalAllocator(GPUReconstruction* fwr) : mFWReco(fwr) {}
+  void* allocate(size_t size, Type type) final
   {
-    return mFWReco->AllocateDirectMemory(size, mType);
+    return mFWReco->AllocateDirectMemory(size, type);
   }
-  void deallocate(char* ptr, size_t size) final {} // this is a simple no-op
-  void pushTagOnStack(uint64_t tag) final
-  {
-    mFWReco->PushNonPersistentMemory(tag);
-  }
-  void popTagOffStack(uint64_t tag) final
-  {
-    mFWReco->PopNonPersistentMemory(gpudatatypes::RecoStep::ITSTracking, tag);
-  }
-  void setReconstructionFramework(o2::gpu::GPUReconstruction* fwr) { mFWReco = fwr; }
+  void deallocate(char*, size_t) final {}
+  void pushTagOnStack(uint64_t tag) final { mFWReco->PushNonPersistentMemory(tag); }
+  void popTagOffStack(uint64_t tag) final { mFWReco->PopNonPersistentMemory(gpudatatypes::RecoStep::ITSTracking, tag); }
 
  private:
-  o2::gpu::GPUReconstruction* mFWReco;
+  GPUReconstruction* mFWReco;
 };
-} // namespace o2::its
+} // namespace
 
 GPUChainITS::~GPUChainITS() = default;
 
 GPUChainITS::GPUChainITS(GPUReconstruction* rec) : GPUChain(rec) {}
 
 int32_t GPUChainITS::Init() { return 0; }
+
+void GPUChainITS::MemorySize(size_t& gpuMem, size_t& pageLockedHostMem)
+{
+  gpuMem = constants::GPU_DEFAULT_MEMORY_SIZE;
+  pageLockedHostMem = constants::GPU_DEFAULT_HOST_MEMORY_SIZE;
+}
 
 o2::its::TrackerTraits<7>* GPUChainITS::GetITSTrackerTraits()
 {
@@ -74,12 +75,18 @@ o2::its::TimeFrame<7>* GPUChainITS::GetITSTimeframe()
   }
 #if !defined(GPUCA_STANDALONE)
   if (mITSTimeFrame->isGPU()) {
-    mFrameworkAllocator.reset(new o2::its::GPUFrameworkExternalAllocator());
-    mFrameworkAllocator->setReconstructionFramework(rec());
-    mITSTimeFrame->setFrameworkAllocator(mFrameworkAllocator.get());
+    mITSTimeFrame->setFrameworkAllocator(GetITSMFTFrameworkAllocator());
   }
 #endif
   return mITSTimeFrame.get();
+}
+
+o2::itsmft::tracking::ExternalAllocator* GPUChainITS::GetITSMFTFrameworkAllocator()
+{
+  if (mFrameworkAllocator == nullptr && mRec->IsGPU()) {
+    mFrameworkAllocator = std::make_unique<GPUFrameworkExternalAllocator>(rec());
+  }
+  return mFrameworkAllocator.get();
 }
 
 int32_t GPUChainITS::PrepareEvent() { return 0; }

@@ -261,6 +261,11 @@ void GPUO2Interface::setErrorCodeOutput(std::vector<std::array<uint32_t, 4>>* v)
   }
 }
 
+o2::itsmft::tracking::ExternalAllocator* GPUO2Interface::GetITSMFTFrameworkAllocator()
+{
+  return mChainITS->GetITSMFTFrameworkAllocator();
+}
+
 void GPUO2Interface::GetITSTraits(o2::its::TrackerTraits<7>*& trackerTraits, o2::its::VertexerTraits<7>*& vertexerTraits, o2::its::TimeFrame<7>*& timeFrame)
 {
   trackerTraits = mChainITS->GetITSTrackerTraits();

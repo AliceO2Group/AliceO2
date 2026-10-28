@@ -30,7 +30,7 @@ class GPUExternalAllocator final : public o2::its::ExternalAllocator
   GPUExternalAllocator() = default;
   ~GPUExternalAllocator();
 
-  void* allocate(size_t size) override;
+  void* allocate(size_t size, Type type) override;
   void deallocate(char* ptr, size_t size) override;
   void pushTagOnStack(uint64_t tag) override;
   void popTagOffStack(uint64_t tag) override;
