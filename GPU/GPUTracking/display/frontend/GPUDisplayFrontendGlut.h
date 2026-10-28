@@ -35,16 +35,14 @@ class GPUDisplayFrontendGlut : public GPUDisplayFrontend
  private:
   int32_t FrontendMain() override;
 
-  static void displayFunc();
-  static void glutLoopFunc();
-  static void keyboardUpFunc(uint8_t key, int32_t x, int32_t y);
-  static void keyboardDownFunc(uint8_t key, int32_t x, int32_t y);
-  static void specialUpFunc(int32_t key, int32_t x, int32_t y);
-  static void specialDownFunc(int32_t key, int32_t x, int32_t y);
-  static void mouseMoveFunc(int32_t x, int32_t y);
-  static void mMouseWheelFunc(int32_t button, int32_t dir, int32_t x, int32_t y);
-  static void mouseFunc(int32_t button, int32_t state, int32_t x, int32_t y);
-  static void ResizeSceneWrapper(int32_t width, int32_t height);
+  static GPUDisplayFrontendGlut* self(void* p) { return static_cast<GPUDisplayFrontendGlut*>(p); } // GLUT callback user data
+  void displayFunc();
+  void glutLoopFunc();
+  void keyboardFunc(int32_t key, bool special, bool down);
+  void mouseMoveFunc(int32_t x, int32_t y);
+  void mMouseWheelFunc(int32_t button, int32_t dir, int32_t x, int32_t y);
+  void mouseFunc(int32_t button, int32_t state, int32_t x, int32_t y);
+  void ResizeSceneWrapper(int32_t width, int32_t height);
   static int32_t GetKey(int32_t key);
   static void GetKey(int32_t keyin, int32_t& keyOut, int32_t& keyPressOut, bool special);
 
