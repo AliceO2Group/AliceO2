@@ -23,7 +23,7 @@
 #include <GblData.h>
 #include <GblPoint.h>
 #include <GblMeasurement.h>
-#include <MilleBinary.h>
+#include <Mille/MilleFactory.h>
 #include <nlohmann/json.hpp>
 
 #include "Framework/ConfigParamRegistry.h"
@@ -466,7 +466,7 @@ void AlignmentSpec::process()
   LOGP(info, "\t\tGBL LostWeight = {}", lostWeightSum);
   LOGP(info, "Streaming results to output");
   if (mOutOpt[OutputOpt::MilleData]) {
-    gbl::MilleBinary mille(mParams->milleBinFile, true);
+    auto mille = Mille::spawnMilleRecord(mParams->milleBinFile, true);
     for (auto& slot : gblTrajSlots) {
       for (auto& traj : slot) {
         traj.milleOut(mille);
