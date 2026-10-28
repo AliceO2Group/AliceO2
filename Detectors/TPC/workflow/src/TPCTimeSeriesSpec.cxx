@@ -1497,12 +1497,10 @@ class TPCTimeSeries : public Task
         uint8_t trdInOK = 1;        // 0 propagated, 1 not attempted (no TRD match or tpcOutOK != 0), 2 propagation failed; count TRD matches with trdPattern > 0
         float chi2PhiTPCTRD = -1.f; // -1: not computed (trdInOK != 0) or singular covariance
         float chi2ZTPCTRD = -1.f;
-        // TRD - TPC residuals at the common plane (same alpha, same X), parameters 0..4 = Y, Z, Snp, Tgl, Q2Pt; -999 if trdInOK != 0
-        float deltaP0TRDTPC = -999.f;
-        float deltaP1TRDTPC = -999.f;
-        float deltaP2TRDTPC = -999.f;
-        float deltaP3TRDTPC = -999.f;
-        float deltaP4TRDTPC = -999.f;
+        // deltaTRDTPC: TrackPar used as a residual container. mX and mAlpha = the common plane and frame (full precision,
+        // copied from the propagated TPC state); mP[0..4] = TRD - TPC of Y, Z, Snp, Tgl, Q2Pt, truncated to 10 mantissa bits.
+        // Only getX(), getAlpha() and getParam(i) are meaningful (getPt(), getPhi(), ... are not). Default (X = 0) if trdInOK != 0.
+        o2::track::TrackPar deltaTRDTPC;
         // D1: TPC outer → kTPCTRDMiddle
         tpcOutCov = o2::track::TrackParCov(tracksTPC[iTrk].getParamOut());
         {
@@ -1526,11 +1524,10 @@ class TPCTimeSeries : public Task
             trdInOK = 0;
             chi2PhiTPCTRD = chi2Match_Phi(tpcOutCov, trdInCov);
             chi2ZTPCTRD = chi2Match_Z(tpcOutCov, trdInCov);
-            deltaP0TRDTPC = o2::math_utils::truncateFloatFraction(trdInCov.getParam(0) - tpcOutCov.getParam(0), kDeltaTRDTPCMask);
-            deltaP1TRDTPC = o2::math_utils::truncateFloatFraction(trdInCov.getParam(1) - tpcOutCov.getParam(1), kDeltaTRDTPCMask);
-            deltaP2TRDTPC = o2::math_utils::truncateFloatFraction(trdInCov.getParam(2) - tpcOutCov.getParam(2), kDeltaTRDTPCMask);
-            deltaP3TRDTPC = o2::math_utils::truncateFloatFraction(trdInCov.getParam(3) - tpcOutCov.getParam(3), kDeltaTRDTPCMask);
-            deltaP4TRDTPC = o2::math_utils::truncateFloatFraction(trdInCov.getParam(4) - tpcOutCov.getParam(4), kDeltaTRDTPCMask);
+            deltaTRDTPC = tpcOutCov; // mX, mAlpha (and charge, PID) of the common plane
+            for (int iPar = 0; iPar < 5; ++iPar) {
+              deltaTRDTPC.setParam(o2::math_utils::truncateFloatFraction(trdInCov.getParam(iPar) - tpcOutCov.getParam(iPar), kDeltaTRDTPCMask), iPar);
+            }
           } else {
             trdInOK = 2; // propagation failed
           }
@@ -1707,11 +1704,7 @@ class TPCTimeSeries : public Task
                             << "trdInOK=" << trdInOK
                             << "chi2PhiTPCTRD=" << chi2PhiTPCTRD
                             << "chi2ZTPCTRD=" << chi2ZTPCTRD
-                            << "deltaP0TRDTPC=" << deltaP0TRDTPC
-                            << "deltaP1TRDTPC=" << deltaP1TRDTPC
-                            << "deltaP2TRDTPC=" << deltaP2TRDTPC
-                            << "deltaP3TRDTPC=" << deltaP3TRDTPC
-                            << "deltaP4TRDTPC=" << deltaP4TRDTPC
+                            << "deltaTRDTPC=" << deltaTRDTPC
                             // TRD in detector readout for this run (GRPECS): 1 yes, 0 no, 255 unknown
                             << "trdInReadout=" << mTRDInReadout
                             << "chi2match_ITSTPC=" << chi2match_ITSTPC
