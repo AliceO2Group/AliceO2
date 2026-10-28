@@ -57,6 +57,12 @@ list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST
             macro/putCondition.C
             macro/rootlogon.C
             macro/CreateSampleIRFrames.C
+            Detectors/Upgrades/ITS3/macros/align/CheckHitResiduals.C
+            Detectors/Upgrades/ITS3/macros/align/CheckResidualsITS3.C
+            Detectors/Upgrades/ITS3/study/macros/PlotMisalignment.C
+            Detectors/Upgrades/ITS3/study/macros/PlotPulls.C
+            Detectors/Upgrades/ITS3/study/macros/PlotResiduals.C
+            Detectors/Upgrades/ITS3/study/macros/PlotDCA.C
             Detectors/Upgrades/ALICE3/macros/ALICE3Field.C)
 
 if(NOT BUILD_SIMULATION)
