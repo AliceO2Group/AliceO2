@@ -45,6 +45,8 @@
 #include "DataFormatsTRD/TrackTRD.h"
 #include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/CalibratedTracklet.h"
+#include "DataFormatsTRD/TriggerRecord.h"
+#include "CommonConstants/LHCConstants.h"
 #include "TROOT.h"
 #include "ReconstructionDataFormats/MatchInfoTOF.h"
 #include "DataFormatsTOF/Cluster.h"
@@ -376,6 +378,20 @@ class TPCTimeSeries : public Task
     std::unordered_map<unsigned int, TRDTrackletData> tpcToTRDMap;
     auto trdTracklets = (mTPCOnly || !recoData.inputsTRD) ? gsl::span<const o2::trd::Tracklet64>() : recoData.getTRDTracklets();
     auto trdCalibTracklets = (mTPCOnly || !recoData.inputsTRD) ? gsl::span<const o2::trd::CalibratedTracklet>() : recoData.getTRDCalibratedTracklets();
+
+    // TRD-triggered BCs of this TF: TRD is read out only at these BCs. Built once per TF; per entry only the triggers closest
+    // to the collision are stored (trdTrigDBCBefore/After). Records with bc >= LHCMaxBunches are dropped, as in the AOD producer.
+    mTRDTrigBCs.clear();
+    if (mUnbinnedWriter && !mTPCOnly && recoData.inputsTRD) {
+      const auto trdTrig = recoData.getTRDTriggerRecords();
+      mTRDTrigBCs.reserve(trdTrig.size());
+      for (const auto& trg : trdTrig) {
+        if (trg.getBCData().bc < o2::constants::lhc::LHCMaxBunches) {
+          mTRDTrigBCs.push_back(trg.getBCData());
+        }
+      }
+      std::sort(mTRDTrigBCs.begin(), mTRDTrigBCs.end());
+    }
     if (mUnbinnedWriter && !mTPCOnly) {
       // scan ITS-TPC-TRD tracks
       auto itstpctrdTracks = recoData.getITSTPCTRDTracks<o2::trd::TrackTRD>();
@@ -399,9 +415,9 @@ class TPCTimeSeries : public Task
             trdData.trackletIndices[iLay] = trkltId;
           }
         }
-        // outer state of the ITS-TPC-TRD track: outward refit through ITS, TPC and TRD, at the outermost TRD layer (as in
-        // RecoContainer::getTrackParamOut). The base state of TrackTRD is the inward refit, which ends at the innermost ITS cluster.
-        trdData.trdTrackParCov = trdTrack.getOuterParam();
+        // TRD-out: outer state of the ITS-TPC-TRD track (outward refit through ITS, TPC and TRD, at the outermost TRD layer).
+        // The base state of TrackTRD is the inward refit, which ends at the innermost ITS cluster.
+        trdData.trdTrackParCov = recoData.getTrackParamOut(gid);
         trdData.hasTRDTrackPar = true;
         tpcToTRDMap[refTPC] = trdData;
       }
@@ -1220,6 +1236,10 @@ class TPCTimeSeries : public Task
   bool mSampleTsallis{false};                                              ///< perform sampling of unbinned data
   bool mStoreFullTrackPar{false};                                          ///< experimental: store tpcOut/trdIn/tpcAtVtx as TrackPar (constant per job)
   uint8_t mTRDInReadout{255};                                              ///< TRD in detector readout (GRPECS): 1 yes, 0 no, 255 unknown
+  std::vector<o2::InteractionRecord> mTRDTrigBCs;                          ///< TRD-triggered BCs of the current TF, sorted
+  std::vector<int> mNContributorsITS;                                      ///< per vertex ID: ITS-only PV contributors (current TF)
+  std::vector<int> mNContributorsITSTPC;                                   ///< per vertex ID: ITS-TPC PV contributors, TRD/TOF-matched included (current TF)
+  std::vector<int> mNContributorsTRD;                                      ///< per vertex ID: ITS-TPC-TRD (and -TOF) PV contributors (current TF)
   std::vector<std::mt19937> mGenerator;                                    ///< random generator for debug tree sampling
   std::vector<std::unique_ptr<o2::utils::TreeStreamRedirector>> mStreamer; ///< streamer for unbinned data
   float mXOuterMatching{60};                                               ///< reference x where delta track parameters for TPC with ITS-TPC track are stored in skimmed data
@@ -1310,6 +1330,11 @@ class TPCTimeSeries : public Task
 
     // get vertex (check if vertex ID is valid). In case no vertex is assigned return nearest vertex or else default vertex
     const auto vertex = (idxITSTPC.back() != -1) ? vertices[idxITSTPC.back()] : ((mNearestVtxTPC[iTrk] != -1) ? vertices[mNearestVtxTPC[iTrk]] : o2::dataformats::PrimaryVertex{});
+    // index of that vertex (-1: none) and its contributor counts, -1 without vertex
+    const int vtxID = (idxITSTPC.back() != -1) ? idxITSTPC.back() : mNearestVtxTPC[iTrk];
+    const int nContribITS = (vtxID >= 0 && vtxID < static_cast<int>(mNContributorsITS.size())) ? mNContributorsITS[vtxID] : -1;
+    const int nContribITSTPC = (vtxID >= 0 && vtxID < static_cast<int>(mNContributorsITSTPC.size())) ? mNContributorsITSTPC[vtxID] : -1;
+    const int nContribTRD = (vtxID >= 0 && vtxID < static_cast<int>(mNContributorsTRD.size())) ? mNContributorsTRD[vtxID] : -1;
 
     // calculate DCAz: (time TPC track - time vertex) * vDrift + sign_side * vertexZ
     const float signSide = trackFull.hasCSideClustersOnly() ? -1 : 1; // invert sign for C-side
@@ -1537,6 +1562,29 @@ class TPCTimeSeries : public Task
           }
         }
 
+        // TRD read out in the collision of this entry: TRD-triggered BCs closest to the BC range [IRMin, IRMax] of the entry's
+        // vertex. Both 0: a TRD trigger inside the range. Otherwise trdTrigDBCBefore < 0 = BCs from the range start back to the
+        // closest earlier trigger, trdTrigDBCAfter > 0 = BCs from the range end to the closest later trigger. Sentinels -999999 /
+        // 999999: no vertex with a BC range, or no such trigger in this TF.
+        int trdTrigDBCBefore = -999999;
+        int trdTrigDBCAfter = 999999;
+        if (vtxID >= 0 && !vertex.getIRMin().isDummy() && !vertex.getIRMax().isDummy()) {
+          const auto& irMin = vertex.getIRMin();
+          const auto& irMax = vertex.getIRMax();
+          const auto itTrig = std::lower_bound(mTRDTrigBCs.begin(), mTRDTrigBCs.end(), irMin); // first trigger at or after irMin
+          if (itTrig != mTRDTrigBCs.end() && *itTrig <= irMax) {
+            trdTrigDBCBefore = 0;
+            trdTrigDBCAfter = 0;
+          } else {
+            if (itTrig != mTRDTrigBCs.end()) {
+              trdTrigDBCAfter = static_cast<int>(itTrig->differenceInBC(irMax));
+            }
+            if (itTrig != mTRDTrigBCs.begin()) {
+              trdTrigDBCBefore = static_cast<int>((itTrig - 1)->differenceInBC(irMin));
+            }
+          }
+        }
+
         int typeSide = 2; // A- and C-Side cluster
         if (trackFull.hasASideClustersOnly()) {
           typeSide = 0;
@@ -1676,6 +1724,12 @@ class TPCTimeSeries : public Task
                             << "vertex_z=" << vertex.getZ()
                             << "vertex_time=" << vertex.getTimeStamp().getTimeStamp()
                             << "vertex_nContributors=" << vertex.getNContributors()
+                            // contributor counts of the same vertex (-1 without vertex) and TRD triggers closest to its BC range
+                            << "vertex_nContributorsITS=" << nContribITS
+                            << "vertex_nContributorsITSTPC=" << nContribITSTPC
+                            << "vertex_nContributorsTRD=" << nContribTRD
+                            << "trdTrigDBCBefore=" << trdTrigDBCBefore
+                            << "trdTrigDBCAfter=" << trdTrigDBCAfter
                             << "isNearestVertex=" << isNearestVtx
                             // tpc track properties
                             << "pt=" << trkOrig.getPt()
@@ -1934,6 +1988,27 @@ class TPCTimeSeries : public Task
             }
           }
         }
+      }
+    }
+
+    // per-vertex contributor counts, also written per entry of the unbinned tree (vertex_nContributorsITS/ITSTPC/TRD)
+    mNContributorsITS.assign(vertices.size(), 0);
+    mNContributorsITSTPC.assign(vertices.size(), 0);
+    mNContributorsTRD.assign(vertices.size(), 0);
+    const int nVertices = vertices.size();
+    for (const auto& [vID, n] : nContributors_ITS) {
+      if (vID >= 0 && vID < nVertices) {
+        mNContributorsITS[vID] = n;
+      }
+    }
+    for (const auto& [vID, n] : nContributors_ITSTPC) {
+      if (vID >= 0 && vID < nVertices) {
+        mNContributorsITSTPC[vID] = n;
+      }
+    }
+    for (const auto& [vID, n] : nContributors_TRD) {
+      if (vID >= 0 && vID < nVertices) {
+        mNContributorsTRD[vID] = n;
       }
     }
 
