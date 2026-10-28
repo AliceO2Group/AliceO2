@@ -256,8 +256,22 @@ GPUDisplayBackend* GPUDisplayFrontend::backend()
 
 void GPUDisplayFrontend::setWindowState(bool fullScreen, bool maximized)
 {
-  mDisplay->mCfgR.fullScreen = fullScreen;
-  mDisplay->mCfgR.maximized = maximized;
+  mDisplay->mCfgR.fullScreen = mWindowFullScreen = fullScreen;
+  mDisplay->mCfgR.maximized = mWindowMaximized = maximized;
+}
+
+void GPUDisplayFrontend::requestFullScreen(bool set)
+{
+  if (set != std::exchange(mWindowFullScreen, set)) {
+    SwitchFullscreen(set);
+  }
+}
+
+void GPUDisplayFrontend::requestMaximized(bool set)
+{
+  if (set != std::exchange(mWindowMaximized, set)) {
+    ToggleMaximized(set);
+  }
 }
 
 void GPUDisplayFrontend::focusLost()
@@ -269,9 +283,9 @@ void GPUDisplayFrontend::focusLost()
 void GPUDisplayFrontend::applyInitialWindowState()
 {
   if (mDisplay->cfgR().fullScreen) {
-    SwitchFullscreen(true);
+    requestFullScreen(true);
   } else if (mDisplay->cfgR().maximized) {
-    ToggleMaximized(true);
+    requestMaximized(true);
   }
 }
 

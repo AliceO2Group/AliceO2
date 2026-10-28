@@ -140,13 +140,17 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   void setWindowState(bool fullScreen, bool maximized); // Sync the settings if the window manager changed the window state
   void focusLost();                                     // Release all keys and mouse buttons when the window loses focus, since the release events go to another window
   void applyInitialWindowState();                       // Switch to fullscreen / maximize at startup according to the settings
+  void requestFullScreen(bool set);                     // Call SwitchFullscreen / ToggleMaximized only if the state differs from the last requested or reported (setWindowState) one
+  void requestMaximized(bool set);
+
  private:
   struct configRTTIInfo;
   struct configRTTIExt;
   struct configKey;
   std::unique_ptr<configRTTIInfo, void (*)(configRTTIInfo*)> mConfigRTTI{nullptr, nullptr}; // Deleter set in GPUDisplayFrontendConfig.cxx, the only place where configRTTIInfo is defined
 
-  bool HandleExternalGUIKeys(); // Returns whether keys were handled, config changes are not handled
+  void HandleExternalGUIKeys();
+  bool mWindowFullScreen = false, mWindowMaximized = false; // Window state last requested or reported by the window system
   template <typename... Args>
   void add_key_binding(Args&&... args); // KEY_LAMBDA(key, ...) entries, the help text, and optionally the keys to show in the help text, only used in GPUDisplayFrontendConfig.cxx
   void listConfig();
