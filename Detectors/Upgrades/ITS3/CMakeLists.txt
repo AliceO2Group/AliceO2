@@ -13,9 +13,9 @@
 #add_link_options(-fsanitize=address)
 
 add_subdirectory(simulation)
-add_subdirectory(alignment)
+#add_subdirectory(alignment)
 add_subdirectory(base)
 add_subdirectory(workflow)
 add_subdirectory(reconstruction)
 add_subdirectory(macros)
-add_subdirectory(study)
+#add_subdirectory(study)

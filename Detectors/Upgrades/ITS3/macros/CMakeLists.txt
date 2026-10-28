@@ -20,7 +20,7 @@ macro(its3_add_macro file)
       O2::ITSMFTSimulation
       O2::ITS3Reconstruction
       O2::ITS3Simulation
-      O2::ITS3Align
+#     O2::ITS3Align
       O2::MathUtils
       O2::SimulationDataFormat
       O2::DetectorsBase
@@ -31,4 +31,4 @@ endmacro()
 
 add_subdirectory(test)
 add_subdirectory(eve)
-add_subdirectory(align)
+#add_subdirectory(align)
