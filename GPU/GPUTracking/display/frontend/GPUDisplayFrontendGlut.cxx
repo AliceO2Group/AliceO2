@@ -24,6 +24,7 @@
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_X11
 #include <GL/glx.h>
 #include <GL/glxext.h>
+#include <X11/Xatom.h>
 #endif
 
 #include <pthread.h>
@@ -187,6 +188,24 @@ void GPUDisplayFrontendGlut::ResizeSceneWrapper(int32_t width, int32_t height)
     me->mHeight = height;
   }
   me->ResizeScene(width, height);
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_X11
+  Display* display = glXGetCurrentDisplay(); // Maximizing / unmaximizing by the window manager changes the size, read the state as freeglut does not report it (fullscreen stays as requested, freeglut tracks it itself)
+  Atom type;
+  int32_t format;
+  unsigned long nItems, bytesAfter;
+  unsigned char* data = nullptr;
+  if (!display || XGetWindowProperty(display, glXGetCurrentDrawable(), XInternAtom(display, "_NET_WM_STATE", False), 0, 1024, False, XA_ATOM, &type, &format, &nItems, &bytesAfter, &data) != Success || data == nullptr) {
+    return;
+  }
+  const Atom maxHorz = XInternAtom(display, "_NET_WM_STATE_MAXIMIZED_HORZ", False), maxVert = XInternAtom(display, "_NET_WM_STATE_MAXIMIZED_VERT", False);
+  bool isMaxHorz = false, isMaxVert = false;
+  for (unsigned long i = 0; i < nItems; i++) {
+    isMaxHorz |= ((Atom*)data)[i] == maxHorz;
+    isMaxVert |= ((Atom*)data)[i] == maxVert;
+  }
+  XFree(data);
+  me->setWindowState(me->mFullScreen, isMaxHorz && isMaxVert);
+#endif
 }
 
 void GPUDisplayFrontendGlut::mouseFunc(int32_t button, int32_t state, int32_t x, int32_t y)
@@ -313,7 +332,27 @@ void GPUDisplayFrontendGlut::SwitchFullscreen(bool set)
   }
 }
 
-void GPUDisplayFrontendGlut::ToggleMaximized(bool set) {}
+void GPUDisplayFrontendGlut::ToggleMaximized(bool set) // GLUT has no API for maximizing, request it from the window manager via GLX / X11 directly (no-op if freeglut does not use GLX)
+{
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_X11
+  Display* display = glXGetCurrentDisplay();
+  if (!display) {
+    return;
+  }
+  XEvent xev;
+  memset(&xev, 0, sizeof(xev));
+  xev.type = ClientMessage;
+  xev.xclient.window = glXGetCurrentDrawable(); // freeglut renders directly to the X window
+  xev.xclient.message_type = XInternAtom(display, "_NET_WM_STATE", False);
+  xev.xclient.format = 32;
+  xev.xclient.data.l[0] = set ? 1 : 0; // _NET_WM_STATE_ADD / _NET_WM_STATE_REMOVE
+  xev.xclient.data.l[1] = XInternAtom(display, "_NET_WM_STATE_MAXIMIZED_HORZ", False);
+  xev.xclient.data.l[2] = XInternAtom(display, "_NET_WM_STATE_MAXIMIZED_VERT", False);
+  XSendEvent(display, DefaultRootWindow(display), False, SubstructureNotifyMask | SubstructureRedirectMask, &xev);
+  XFlush(display);
+#endif
+}
+
 void GPUDisplayFrontendGlut::SetVSync(bool enable) // GLUT has no swap interval API, set it via GLX directly (no-op if freeglut does not use GLX)
 {
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_X11
