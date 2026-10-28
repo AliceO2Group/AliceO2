@@ -1593,22 +1593,23 @@ class TPCTimeSeries : public Task
           }
         }
 
-        // BC numbers from the TF start (orbit firstTFOrbit, bc 0), for calibrating the two estimators: BC of the vertex time
-        // (same reference as vertex_time), and the closest TRD-triggered BCs at or before and at or after it (both equal to
-        // vertexBC if a trigger is at that BC). -999999 if no vertex or no such trigger in this TF.
+        // For calibrating the two estimators: BC of the vertex time as a BC number from the TF start (orbit firstTFOrbit, bc 0;
+        // same reference as vertex_time), and the closest TRD-triggered BCs at or before / at or after it, as BC differences to
+        // vertex_bc: trdTrigDBCVtxBefore <= 0, trdTrigDBCVtxAfter >= 0 (both 0 if a trigger is at vertex_bc).
+        // Sentinels: vertex_bc -999999 without vertex; -999999 / 999999 without vertex or without such a trigger in this TF.
         int vertexBC = -999999;
-        int trdTrigBCBefore = -999999;
-        int trdTrigBCAfter = -999999;
+        int trdTrigDBCVtxBefore = -999999;
+        int trdTrigDBCVtxAfter = 999999;
         if (vtxID >= 0) {
           vertexBC = static_cast<int>(std::lround(vertex.getTimeStamp().getTimeStamp() / o2::constants::lhc::LHCBunchSpacingMUS));
           const auto itBC = std::lower_bound(mTRDTrigBCsInTF.begin(), mTRDTrigBCsInTF.end(), vertexBC); // first trigger at or after vertexBC
           if (itBC != mTRDTrigBCsInTF.end()) {
-            trdTrigBCAfter = *itBC;
+            trdTrigDBCVtxAfter = *itBC - vertexBC;
           }
           if (itBC != mTRDTrigBCsInTF.end() && *itBC == vertexBC) {
-            trdTrigBCBefore = vertexBC;
+            trdTrigDBCVtxBefore = 0;
           } else if (itBC != mTRDTrigBCsInTF.begin()) {
-            trdTrigBCBefore = *(itBC - 1);
+            trdTrigDBCVtxBefore = *(itBC - 1) - vertexBC;
           }
         }
 
@@ -1757,10 +1758,10 @@ class TPCTimeSeries : public Task
                             << "vertex_nContributorsTRD=" << nContribTRD
                             << "trdTrigDBCBefore=" << trdTrigDBCBefore
                             << "trdTrigDBCAfter=" << trdTrigDBCAfter
-                            // BC numbers from the TF start: vertex (from its time) and closest TRD triggers at or before / at or after it
+                            // vertex BC (from its time, BC number from the TF start) and closest TRD triggers as BC differences to it
                             << "vertex_bc=" << vertexBC
-                            << "trdTrigBCBefore=" << trdTrigBCBefore
-                            << "trdTrigBCAfter=" << trdTrigBCAfter
+                            << "trdTrigDBCVtxBefore=" << trdTrigDBCVtxBefore
+                            << "trdTrigDBCVtxAfter=" << trdTrigDBCVtxAfter
                             << "isNearestVertex=" << isNearestVtx
                             // tpc track properties
                             << "pt=" << trkOrig.getPt()
