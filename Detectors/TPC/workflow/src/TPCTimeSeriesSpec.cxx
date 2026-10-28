@@ -29,6 +29,7 @@
 #include "DetectorsCalibration/IntegratedClusterCalibrator.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "MathUtils/Tsallis.h"
+#include "MathUtils/Utils.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/PrimaryVertex.h"
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
@@ -43,6 +44,8 @@
 #include "DataFormatsTRD/TrackTRD.h"
 #include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/CalibratedTracklet.h"
+#include "DataFormatsTRD/TriggerRecord.h"
+#include "CommonConstants/LHCConstants.h"
 #include "TROOT.h"
 #include "ReconstructionDataFormats/MatchInfoTOF.h"
 #include "DataFormatsTOF/Cluster.h"
@@ -68,7 +71,56 @@ class TPCTimeSeries : public Task
     uint8_t trdPattern = 0;
     uint8_t nTRDTracklets = 0;
     int trackletIndices[6] = {-1, -1, -1, -1, -1, -1};
+    o2::track::TrackParCov trdTrackParCov; // TRD track state for propagation to the common local X = 275 cm plane
+    bool hasTRDTrackPar = false;
   };
+
+  /// Chi2 match in bending plane (Y, Snp, Q2Pt) — 3 DOF
+  /// Both tracks must be at the same X and alpha.
+  /// Returns -1 if covariance matrix is singular.
+  static float chi2Match_Phi(const o2::track::TrackParCov& trk1, const o2::track::TrackParCov& trk2)
+  {
+    float d0 = trk1.getY() - trk2.getY();
+    float d1 = trk1.getSnp() - trk2.getSnp();
+    float d2 = trk1.getQ2Pt() - trk2.getQ2Pt();
+    // Combined covariance C = C1 + C2
+    float c00 = trk1.getSigmaY2() + trk2.getSigmaY2();
+    float c01 = trk1.getSigmaSnpY() + trk2.getSigmaSnpY();
+    float c02 = trk1.getSigma1PtY() + trk2.getSigma1PtY();
+    float c11 = trk1.getSigmaSnp2() + trk2.getSigmaSnp2();
+    float c12 = trk1.getSigma1PtSnp() + trk2.getSigma1PtSnp();
+    float c22 = trk1.getSigma1Pt2() + trk2.getSigma1Pt2();
+    float det = c00 * (c11 * c22 - c12 * c12) - c01 * (c01 * c22 - c12 * c02) + c02 * (c01 * c12 - c11 * c02);
+    if (std::abs(det) < 1e-30f) {
+      return -1.f;
+    }
+    float detInv = 1.f / det;
+    float i00 = (c11 * c22 - c12 * c12) * detInv;
+    float i01 = (c02 * c12 - c01 * c22) * detInv;
+    float i02 = (c01 * c12 - c02 * c11) * detInv;
+    float i11 = (c00 * c22 - c02 * c02) * detInv;
+    float i12 = (c01 * c02 - c00 * c12) * detInv;
+    float i22 = (c00 * c11 - c01 * c01) * detInv;
+    return d0 * (i00 * d0 + i01 * d1 + i02 * d2) + d1 * (i01 * d0 + i11 * d1 + i12 * d2) + d2 * (i02 * d0 + i12 * d1 + i22 * d2);
+  }
+
+  /// Chi2 match in non-bending plane (Z, Tgl) — 2 DOF
+  /// Both tracks must be at the same X and alpha.
+  /// Returns -1 if covariance matrix is singular.
+  static float chi2Match_Z(const o2::track::TrackParCov& trk1, const o2::track::TrackParCov& trk2)
+  {
+    float d0 = trk1.getZ() - trk2.getZ();
+    float d1 = trk1.getTgl() - trk2.getTgl();
+    float c00 = trk1.getSigmaZ2() + trk2.getSigmaZ2();
+    float c01 = trk1.getSigmaTglZ() + trk2.getSigmaTglZ();
+    float c11 = trk1.getSigmaTgl2() + trk2.getSigmaTgl2();
+    float det = c00 * c11 - c01 * c01;
+    if (std::abs(det) < 1e-30f) {
+      return -1.f;
+    }
+    float detInv = 1.f / det;
+    return (d0 * d0 * c11 - 2.f * d0 * d1 * c01 + d1 * d1 * c00) * detInv;
+  }
 
   /// \constructor
   TPCTimeSeries(std::shared_ptr<o2::base::GRPGeomRequest> req, const bool disableWriter, const o2::base::Propagator::MatCorrType matType, const bool enableUnbinnedWriter, const bool tpcOnly, std::shared_ptr<o2::globaltracking::DataRequest> dr) : mCCDBRequest(req), mDisableWriter(disableWriter), mMatType(matType), mUnbinnedWriter(enableUnbinnedWriter), mTPCOnly(tpcOnly), mDataRequest(dr) {};
@@ -109,6 +161,7 @@ class TPCTimeSeries : public Task
     mXOuterMatching = ic.options().get<float>("refX-for-outer-ITS");
     mUseMinBiasTrigger = !ic.options().get<bool>("disable-min-bias-trigger");
     mMaxOccupancyHistBins = ic.options().get<int>("max-occupancy-bins");
+    mStoreFullTrackPar = ic.options().get<bool>("store-full-trackpar");
 
     if (mUnbinnedWriter) {
       for (int iThread = 0; iThread < mNThreads; ++iThread) {
@@ -135,6 +188,13 @@ class TPCTimeSeries : public Task
   void run(ProcessingContext& pc) final
   {
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+    // run-level TRD readout flag from GRPECS (unbinned output only): 1 = TRD in readout, 0 = not in readout,
+    // 255 = unknown (defensive: GRPECS is requested only with the unbinned writer)
+    mTRDInReadout = 255;
+    if (mUnbinnedWriter) {
+      const auto* grpecs = o2::base::GRPGeomHelper::instance().getGRPECS();
+      mTRDInReadout = grpecs ? static_cast<uint8_t>(grpecs->isDetReadOut(DetID::TRD) ? 1 : 0) : static_cast<uint8_t>(255);
+    }
     mTPCVDriftHelper.extractCCDBInputs(pc);
     mPTHelper.extractCCDBInputs(pc);
     if (mTPCVDriftHelper.isUpdated()) {
@@ -313,6 +373,21 @@ class TPCTimeSeries : public Task
     std::unordered_map<unsigned int, TRDTrackletData> tpcToTRDMap;
     auto trdTracklets = (mTPCOnly || !recoData.inputsTRD) ? gsl::span<const o2::trd::Tracklet64>() : recoData.getTRDTracklets();
     auto trdCalibTracklets = (mTPCOnly || !recoData.inputsTRD) ? gsl::span<const o2::trd::CalibratedTracklet>() : recoData.getTRDCalibratedTracklets();
+
+    // TRD-triggered BCs of this TF: TRD is read out only at these BCs. Built once per TF; per entry only the triggers closest
+    // to the collision are stored (trdTrigDBCBefore/After). Records with bc >= LHCMaxBunches are dropped, as in the AOD producer.
+    mTRDTrigBCs.clear();
+    mTRDTrigBCsInTF.clear();
+    if (mUnbinnedWriter && !mTPCOnly && recoData.inputsTRD) {
+      const auto trdTrig = recoData.getTRDTriggerRecords();
+      mTRDTrigBCs.reserve(trdTrig.size());
+      for (const auto& trg : trdTrig) {
+        if (trg.getBCData().bc < o2::constants::lhc::LHCMaxBunches) {
+          mTRDTrigBCs.push_back(trg.getBCData());
+        }
+      }
+      std::sort(mTRDTrigBCs.begin(), mTRDTrigBCs.end());
+    }
     if (mUnbinnedWriter && !mTPCOnly) {
       // scan ITS-TPC-TRD tracks
       auto itstpctrdTracks = recoData.getITSTPCTRDTracks<o2::trd::TrackTRD>();
@@ -336,6 +411,10 @@ class TPCTimeSeries : public Task
             trdData.trackletIndices[iLay] = trkltId;
           }
         }
+        // TRD-out: outer state of the ITS-TPC-TRD track (outward refit through ITS, TPC and TRD, at the outermost TRD layer).
+        // The base state of TrackTRD is the inward refit, which ends at the innermost ITS cluster.
+        trdData.trdTrackParCov = recoData.getTrackParamOut(gid);
+        trdData.hasTRDTrackPar = true;
         tpcToTRDMap[refTPC] = trdData;
       }
     }
@@ -344,6 +423,12 @@ class TPCTimeSeries : public Task
     if (mUnbinnedWriter) {
       mTPCTrackClIdx = pc.inputs().get<gsl::span<o2::tpc::TPCClRefElem>>("trackTPCClRefs");
       mFirstTFOrbit = processing_helpers::getFirstTForbit(pc);
+      // TRD-triggered BCs as BC numbers from the TF start (orbit mFirstTFOrbit, bc 0), in the order of mTRDTrigBCs (sorted)
+      const o2::InteractionRecord irTFStart(0, mFirstTFOrbit);
+      mTRDTrigBCsInTF.reserve(mTRDTrigBCs.size());
+      for (const auto& ir : mTRDTrigBCs) {
+        mTRDTrigBCsInTF.push_back(static_cast<int>(ir.differenceInBC(irTFStart)));
+      }
     }
 
     // get local multiplicity - count neighbouring tracks
@@ -1146,6 +1231,13 @@ class TPCTimeSeries : public Task
   float mMaxdEdxRegionRatio{0.5};                                          ///< maximum abs dedx region ratio: log(dedx_region/dedx)
   float mSamplingFactor{0.1};                                              ///< sampling factor in case sampling is used for unbinned data
   bool mSampleTsallis{false};                                              ///< perform sampling of unbinned data
+  bool mStoreFullTrackPar{false};                                          ///< experimental: store tpcOut/trdIn/tpcAtVtx as TrackPar (constant per job)
+  uint8_t mTRDInReadout{255};                                              ///< TRD in detector readout (GRPECS): 1 yes, 0 no, 255 unknown
+  std::vector<o2::InteractionRecord> mTRDTrigBCs;                          ///< TRD-triggered BCs of the current TF, sorted
+  std::vector<int> mTRDTrigBCsInTF;                                        ///< the same BCs as BC numbers from the TF start (orbit mFirstTFOrbit)
+  std::vector<int> mNContributorsITS;                                      ///< per vertex ID: ITS-only PV contributors (current TF)
+  std::vector<int> mNContributorsITSTPC;                                   ///< per vertex ID: ITS-TPC PV contributors, TRD/TOF-matched included (current TF)
+  std::vector<int> mNContributorsTRD;                                      ///< per vertex ID: ITS-TPC-TRD (and -TOF) PV contributors (current TF)
   std::vector<std::mt19937> mGenerator;                                    ///< random generator for debug tree sampling
   std::vector<std::unique_ptr<o2::utils::TreeStreamRedirector>> mStreamer; ///< streamer for unbinned data
   float mXOuterMatching{60};                                               ///< reference x where delta track parameters for TPC with ITS-TPC track are stored in skimmed data
@@ -1235,6 +1327,11 @@ class TPCTimeSeries : public Task
 
     // get vertex (check if vertex ID is valid). In case no vertex is assigned return nearest vertex or else default vertex
     const auto vertex = (idxITSTPC.back() != -1) ? vertices[idxITSTPC.back()] : ((mNearestVtxTPC[iTrk] != -1) ? vertices[mNearestVtxTPC[iTrk]] : o2::dataformats::PrimaryVertex{});
+    // index of that vertex (-1: none) and its contributor counts, -1 without vertex
+    const int vtxID = (idxITSTPC.back() != -1) ? idxITSTPC.back() : mNearestVtxTPC[iTrk];
+    const int nContribITS = (vtxID >= 0 && vtxID < static_cast<int>(mNContributorsITS.size())) ? mNContributorsITS[vtxID] : -1;
+    const int nContribITSTPC = (vtxID >= 0 && vtxID < static_cast<int>(mNContributorsITSTPC.size())) ? mNContributorsITSTPC[vtxID] : -1;
+    const int nContribTRD = (vtxID >= 0 && vtxID < static_cast<int>(mNContributorsTRD.size())) ? mNContributorsTRD[vtxID] : -1;
 
     // calculate DCAz: (time TPC track - time vertex) * vDrift + sign_side * vertexZ
     const float signSide = trackFull.hasCSideClustersOnly() ? -1 : 1; // invert sign for C-side
@@ -1410,6 +1507,101 @@ class TPCTimeSeries : public Task
             }
           }
         }
+
+        // TPC-out / TRD-in states on a common local X plane, computed for every written entry (Architect decision 2026-10-28:
+        // residuals always stored; only the full TrackPar objects depend on --store-full-trackpar).
+        // Open Phase 0.4 finding, deferred: the target is local X = kTPCTRDMiddle in the frame rotated to the track position
+        // angle (lab radius = sqrt(X^2 + Y^2), not exactly 275 cm). The TRD side is the outer state of the ITS-TPC-TRD track,
+        // propagated inward to the plane; its outward refit includes the TPC clusters, so TRD - TPC is not independent.
+        static constexpr float kTPCTRDMiddle = 275.f;            // cm, common local X plane between TPC outer wall and TRD layer 0
+        static constexpr uint32_t kDeltaTRDTPCMask = 0xFFFFE000; // keep 10 mantissa bits: float16-like relative precision ~1e-3
+        o2::track::TrackParCov tpcOutCov;                        // local temporary with covariance (needed for chi2); persisted as TrackPar
+        o2::track::TrackParCov trdInCov;
+        uint8_t tpcOutOK = 2;       // 0 propagated, 2 propagation failed
+        uint8_t trdInOK = 1;        // 0 propagated, 1 not attempted (no TRD match or tpcOutOK != 0), 2 propagation failed; count TRD matches with trdPattern > 0
+        float chi2PhiTPCTRD = -1.f; // -1: not computed (trdInOK != 0) or singular covariance
+        float chi2ZTPCTRD = -1.f;
+        // deltaTRDTPC: TrackPar used as a residual container. mX and mAlpha = the common plane and frame (full precision,
+        // copied from the propagated TPC state); mP[0..4] = TRD - TPC of Y, Z, Snp, Tgl, Q2Pt, truncated to 10 mantissa bits.
+        // Meaningful: getX(), getAlpha(), getParam(i), getY(), getZ(), getSnp(), getTgl(), getQ2Pt(); not meaningful: derived
+        // getters (getPt(), getP(), getPhi(), getEta(), getCurvature(), ...). Charge, PID and user field are those of the TPC
+        // track. Default object (X = 0, parameters 0) if trdInOK != 0: select with trdInOK == 0.
+        o2::track::TrackPar deltaTRDTPC;
+        // D1: TPC outer → kTPCTRDMiddle
+        tpcOutCov = o2::track::TrackParCov(tracksTPC[iTrk].getParamOut());
+        {
+          // rotate to sector angle at current position
+          float sn = std::sin(tpcOutCov.getAlpha());
+          float cs = std::cos(tpcOutCov.getAlpha());
+          float gy = tpcOutCov.getX() * sn + tpcOutCov.getY() * cs;
+          float gx = tpcOutCov.getX() * cs - tpcOutCov.getY() * sn;
+          if (tpcOutCov.rotate(std::atan2(gy, gx)) &&
+              propagator->propagateTo(tpcOutCov, kTPCTRDMiddle, false, mMaxSnp, mCoarseStep, mMatType)) {
+            tpcOutOK = 0;
+          }
+        }
+
+        // D2: TRD matched → kTPCTRDMiddle, rotated to SAME alpha as TPC out
+        if (itTRD != tpcToTRDMap.end() && itTRD->second.hasTRDTrackPar && tpcOutOK == 0) {
+          trdInCov = o2::track::TrackParCov(itTRD->second.trdTrackParCov);
+          // rotate to TPC alpha FIRST, then propagate — guarantees same frame + same X
+          if (trdInCov.rotate(tpcOutCov.getAlpha()) &&
+              propagator->propagateTo(trdInCov, kTPCTRDMiddle, false, mMaxSnp, mCoarseStep, mMatType)) {
+            trdInOK = 0;
+            chi2PhiTPCTRD = chi2Match_Phi(tpcOutCov, trdInCov);
+            chi2ZTPCTRD = chi2Match_Z(tpcOutCov, trdInCov);
+            deltaTRDTPC = tpcOutCov; // mX, mAlpha (and charge, PID) of the common plane
+            for (int iPar = 0; iPar < 5; ++iPar) {
+              deltaTRDTPC.setParam(o2::math_utils::truncateFloatFraction(trdInCov.getParam(iPar) - tpcOutCov.getParam(iPar), kDeltaTRDTPCMask), iPar);
+            }
+          } else {
+            trdInOK = 2; // propagation failed
+          }
+        }
+
+        // TRD read out in the collision of this entry: TRD-triggered BCs closest to the BC range [IRMin, IRMax] of the entry's
+        // vertex. Both 0: a TRD trigger inside the range. Otherwise trdTrigDBCBefore < 0 = BCs from the range start back to the
+        // closest earlier trigger, trdTrigDBCAfter > 0 = BCs from the range end to the closest later trigger. Sentinels -999999 /
+        // 999999: no vertex with a BC range, or no such trigger in this TF.
+        int trdTrigDBCBefore = -999999;
+        int trdTrigDBCAfter = 999999;
+        if (vtxID >= 0 && !vertex.getIRMin().isDummy() && !vertex.getIRMax().isDummy()) {
+          const auto& irMin = vertex.getIRMin();
+          const auto& irMax = vertex.getIRMax();
+          const auto itTrig = std::lower_bound(mTRDTrigBCs.begin(), mTRDTrigBCs.end(), irMin); // first trigger at or after irMin
+          if (itTrig != mTRDTrigBCs.end() && *itTrig <= irMax) {
+            trdTrigDBCBefore = 0;
+            trdTrigDBCAfter = 0;
+          } else {
+            if (itTrig != mTRDTrigBCs.end()) {
+              trdTrigDBCAfter = static_cast<int>(itTrig->differenceInBC(irMax));
+            }
+            if (itTrig != mTRDTrigBCs.begin()) {
+              trdTrigDBCBefore = static_cast<int>((itTrig - 1)->differenceInBC(irMin));
+            }
+          }
+        }
+
+        // For calibrating the two estimators: BC of the vertex time as a BC number from the TF start (orbit firstTFOrbit, bc 0;
+        // same reference as vertex_time), and the closest TRD-triggered BCs at or before / at or after it, as BC differences to
+        // vertex_bc: trdTrigDBCVtxBefore <= 0, trdTrigDBCVtxAfter >= 0 (both 0 if a trigger is at vertex_bc).
+        // Sentinels: vertex_bc -999999 without vertex; -999999 / 999999 without vertex or without such a trigger in this TF.
+        int vertexBC = -999999;
+        int trdTrigDBCVtxBefore = -999999;
+        int trdTrigDBCVtxAfter = 999999;
+        if (vtxID >= 0) {
+          vertexBC = static_cast<int>(std::lround(vertex.getTimeStamp().getTimeStamp() / o2::constants::lhc::LHCBunchSpacingMUS));
+          const auto itBC = std::lower_bound(mTRDTrigBCsInTF.begin(), mTRDTrigBCsInTF.end(), vertexBC); // first trigger at or after vertexBC
+          if (itBC != mTRDTrigBCsInTF.end()) {
+            trdTrigDBCVtxAfter = *itBC - vertexBC;
+          }
+          if (itBC != mTRDTrigBCsInTF.end() && *itBC == vertexBC) {
+            trdTrigDBCVtxBefore = 0;
+          } else if (itBC != mTRDTrigBCsInTF.begin()) {
+            trdTrigDBCVtxBefore = *(itBC - 1) - vertexBC;
+          }
+        }
+
         int typeSide = 2; // A- and C-Side cluster
         if (trackFull.hasASideClustersOnly()) {
           typeSide = 0;
@@ -1505,6 +1697,29 @@ class TPCTimeSeries : public Task
         }
         double vertexTime = vertex.getTimeStamp().getTimeStamp();
         double trackTime0 = trackFull.getTime0();
+        // Optional payload (--store-full-trackpar, default off), persisted without covariance as TrackPar.
+        // This statement and the main chain below fill ONE entry: TreeStream keeps its element index until "\n",
+        // and the flag is constant for the job, so every entry has the same branch set (a varying set silently
+        // drops entries). Keep both statements adjacent, with no return/continue in between, and keep the objects in
+        // scope until the "\n" below (TreeStream stores pointers and reads them when the entry is filled).
+        // tpcAtVtx = TPC track after the DCA step; its reference depends on the path:
+        //   all tracks: DCA to (0,0,0);
+        //   then, for ITS-TPC vertex contributors passing the ITS-TPC DCA cuts: DCA to the primary vertex;
+        //   then, if also passing the combined DCA cut and having an ITS track: rotated to the ITS track frame and
+        //   propagated to the X of the ITS-TPC track.
+        // With the switch on, these three branches come first in the tree (compare by branch name, not position).
+        o2::track::TrackPar tpcOutPar;
+        o2::track::TrackPar trdInPar;
+        o2::track::TrackPar tpcAtVtxPar;
+        if (mStoreFullTrackPar) {
+          tpcOutPar = tpcOutCov;
+          trdInPar = trdInCov;
+          tpcAtVtxPar = track;
+          *mStreamer[iThread] << "treeTimeSeries"
+                              << "tpcOut=" << tpcOutPar
+                              << "trdIn=" << trdInPar
+                              << "tpcAtVtx=" << tpcAtVtxPar;
+        }
         *mStreamer[iThread] << "treeTimeSeries"
                             // DCAs
                             << "triggerMask=" << triggerMask
@@ -1526,6 +1741,16 @@ class TPCTimeSeries : public Task
                             << "vertex_z=" << vertex.getZ()
                             << "vertex_time=" << vertex.getTimeStamp().getTimeStamp()
                             << "vertex_nContributors=" << vertex.getNContributors()
+                            // contributor counts of the same vertex (-1 without vertex) and TRD triggers closest to its BC range
+                            << "vertex_nContributorsITS=" << nContribITS
+                            << "vertex_nContributorsITSTPC=" << nContribITSTPC
+                            << "vertex_nContributorsTRD=" << nContribTRD
+                            << "trdTrigDBCBefore=" << trdTrigDBCBefore
+                            << "trdTrigDBCAfter=" << trdTrigDBCAfter
+                            // vertex BC (from its time, BC number from the TF start) and closest TRD triggers as BC differences to it
+                            << "vertex_bc=" << vertexBC
+                            << "trdTrigDBCVtxBefore=" << trdTrigDBCVtxBefore
+                            << "trdTrigDBCVtxAfter=" << trdTrigDBCVtxAfter
                             << "isNearestVertex=" << isNearestVtx
                             // tpc track properties
                             << "pt=" << trkOrig.getPt()
@@ -1552,6 +1777,15 @@ class TPCTimeSeries : public Task
                             << "nTRDTracklets=" << nTRDTracklets
                             << "trdTracklets=" << trdTrackletVec
                             << "trdCalibTracklets=" << trdCalibVec
+                            // TPC out / TRD in on the common local X = 275 cm plane: status, matching chi2 and TRD - TPC residuals
+                            // (the full TrackPar objects are written above, only with --store-full-trackpar)
+                            << "tpcOutOK=" << tpcOutOK
+                            << "trdInOK=" << trdInOK
+                            << "chi2PhiTPCTRD=" << chi2PhiTPCTRD
+                            << "chi2ZTPCTRD=" << chi2ZTPCTRD
+                            << "deltaTRDTPC=" << deltaTRDTPC
+                            // TRD in detector readout for this run (GRPECS): 1 yes, 0 no, 255 unknown
+                            << "trdInReadout=" << mTRDInReadout
                             << "chi2match_ITSTPC=" << chi2match_ITSTPC
                             << "PID=" << trkOrig.getPID().getID()
                             // TPC cov at vertex (without vertex constrained)
@@ -1778,6 +2012,27 @@ class TPCTimeSeries : public Task
       }
     }
 
+    // per-vertex contributor counts, also written per entry of the unbinned tree (vertex_nContributorsITS/ITSTPC/TRD)
+    mNContributorsITS.assign(vertices.size(), 0);
+    mNContributorsITSTPC.assign(vertices.size(), 0);
+    mNContributorsTRD.assign(vertices.size(), 0);
+    const int nVertices = vertices.size();
+    for (const auto& [vID, n] : nContributors_ITS) {
+      if (vID >= 0 && vID < nVertices) {
+        mNContributorsITS[vID] = n;
+      }
+    }
+    for (const auto& [vID, n] : nContributors_ITSTPC) {
+      if (vID >= 0 && vID < nVertices) {
+        mNContributorsITSTPC[vID] = n;
+      }
+    }
+    for (const auto& [vID, n] : nContributors_TRD) {
+      if (vID >= 0 && vID < nVertices) {
+        mNContributorsTRD[vID] = n;
+      }
+    }
+
     // calculate statistics
     std::array<RobustAverage, 4> avgVtxITS;
     std::array<RobustAverage, 4> avgVtxITSTPC;
@@ -1943,7 +2198,7 @@ o2::framework::DataProcessorSpec getTPCTimeSeriesSpec(const bool disableWriter, 
 
   const bool enableAskMatLUT = matType == o2::base::Propagator::MatCorrType::USEMatCorrLUT;
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(!disableWriter,                 // orbitResetTime
-                                                                false,                          // GRPECS=true for nHBF per TF
+                                                                enableUnbinnedWriter,           // GRPECS only when the unbinned trdInReadout can be written
                                                                 false,                          // GRPLHCIF
                                                                 true,                           // GRPMagField
                                                                 enableAskMatLUT,                // askMatLUT
@@ -1998,6 +2253,7 @@ o2::framework::DataProcessorSpec getTPCTimeSeriesSpec(const bool disableWriter, 
       {"sample-unbinned-tsallis", VariantType::Bool, false, {"Perform sampling of unbinned data based on Tsallis function"}},
       {"sampling-factor", VariantType::Float, 0.001f, {"Sampling factor in case sample-unbinned-tsallis is used"}},
       {"disable-min-bias-trigger", VariantType::Bool, false, {"Disable the minimum bias trigger for skimmed data"}},
+      {"store-full-trackpar", VariantType::Bool, false, {"Experimental: store tpcOut, trdIn (common local X = 275 cm plane) and tpcAtVtx as TrackPar in the unbinned tree"}},
       {"out-file-unbinned", VariantType::String, "time_series_tracks.root", {"name of the output file for the unbinned data"}},
       {"max-occupancy-bins", VariantType::Int, 912, {"Maximum number of occupancy bins"}}}};
 }
