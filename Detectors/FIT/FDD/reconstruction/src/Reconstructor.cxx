@@ -42,69 +42,61 @@ void Reconstructor::process(o2::fdd::Digit const& digitBC, gsl::span<const o2::f
   int64_t timeSideC = 0;
   int64_t entriesNumSideA = 0;
   int64_t entriesNumSideC = 0;
+  uint32_t storedEntries = 0;
+
+  bool swOrGateSideA = false;
+  bool swOrGateSideC = false;
 
   for (const auto& channelData: inChData) {
     if (mDeadChannelMap && !mDeadChannelMap->isChannelAlive(channelData.mPMNumber)) {
       LOG(debug) << "Channel " << channelData.mPMNumber << " is dead - discarding data";
       continue;
     }
-    
-  }
 
-  for (int ich = 0; ich < nch; ich++) {
-    if (mDeadChannelMap && !mDeadChannelMap->isChannelAlive(inChData[ich].mPMNumber)) {
-      LOG(debug) << "Channel " << ich << " is dead - discarding data";
-      continue;
-    }
-    bool inTime = inChData[ich].getFlag(ChannelData::EEventDataBit::kIsEventInTVDC);
-    bool inAdcGate = inChData[ich].getFlag(ChannelData::EEventDataBit::kIsCFDinADCgate);
-    if (inAdcGate) {
+    if (isInAmplitudeWindow(channelData.mChargeADC) 
+      && isInTimeWindow(channelData.mTime) 
+      && isChannelDataGood(channelData.mFEEBits))
+    {
       outChData.emplace_back((int)inChData[ich].mPMNumber, (inChData[ich].mTime) * timePerTDC,
                              (double)inChData[ich].mChargeADC, inChData[ich].mFEEBits);
-      nStored++;
+      storedEntries++;
+    }
+    
+    if (FDDRecoConfig::Instance().SwTriggerEnabled) {
+      if(channelData.mPMNumber <= sSideAMaxId) {
+        swOrGateSideA |= checkSwOrGateConditions(channelData);
+      } else {
+        swOrGateSideC |= checkSwOrGateConditions(channelData);
+      }
     }
 
-    float adc = inChData[ich].mChargeADC;
-    float time = (inChData[ich].mTime) * timePerTDC;
-
-    float timeWeight = 1;
-    if (adc > FDDRecoConfig::Instance().AmplitudeCutOnCollisionTimeWeights) {
-      timeWeight = adc * adc;
-    }
-    if ((int)inChData[ich].mPMNumber < 8) {
-      nInTimeC += inTime;
-      timeFDC += time * timeWeight;
-      weightFDC += timeWeight;
+    if (!isInAmplitudeWindow(channelData.mChargeADC) 
+      || !isInTimeWindow(channelData.mTime) 
+      || !isChannelDataGood(channelData.mFEEBits)) {
+        continue;
+      }
+    
+    if(channelData.mPMNumber <= sSideAMaxId) {
+      timeSideA += channelData.mTime;
+      entriesNumSideA++;
     } else {
-      nInTimeA += inTime;
-      timeFDA += time * timeWeight;
-      weightFDA += timeWeight;
+      timeSideC += channelData.mTime;
+      entriesNumSideC++;
     }
-
-    atLeastOneVertexChannel = FDDRecoConfig::areChannelDataFlagsGood(inChData[ich].mFEEBits);
-    atLeastOneChannelInSwAmplitudeRange = (adc >= FDDRecoConfig::SwTriggerAmplitudeLowThreshold && adc <= FDDRecoConfig::SwTriggerAmplitudeHighThreshold);
   }
-  const int nsToPs = 1e3;
+
+  constexpr float nsToPs = 1e3;
+  float meanTimeSideA = std::round(float(timeSideA) * timePerTDC / float(entriesNumSideA));
+  float meanTimeSideC = std::round(float(timeSideC) * timePerTDC / float(entriesNumSideC));
+
+  bool swVertexTrg = FDDRecoConfig::Instance().SwTriggerEnabled ? calculateSwTrigger(meanTimeSideA, meanTimeSideC, swOrGateSideA, swOrGateSideC) : false;
+
   std::array<int, 2> mCollisionTime = {o2::fdd::RecPoint::sDummyCollissionTime, o2::fdd::RecPoint::sDummyCollissionTime};
-
-  float meanTimeSideA = round(timeFDA / weightFDA * nsToPs);
-  float meanTimeSideC = round(timeFDC / weightFDC * nsToPs);
-  float sideTimeDifference = fabs(meanTimeSideC - meanTimeSideA);
-  bool swTriggerBit = false;
-  swTriggerBit = (
-    FDDRecoConfig::SwTriggerEnabled && 
-    (sideTimeDifference => FDDRecoConfig::SwTriggerTimeLowThreshold 
-      && sideTimeDifference <= FDDRecoConfig::SwTriggerTimeHighThreshold
-      && atLeastOneVertexChannel 
-      && atLeastOneChannelInSwAmplitudeRange
-    )
-  );
-
-  if (nInTimeA > 0 && weightFDA > FDDRecoConfig::Instance().AmplitudeCollisionTimeCutSideA) {
-    mCollisionTime[o2::fdd::RecPoint::TimeA] = round(timeFDA / weightFDA * nsToPs);
+  if (entriesSideA > 0) {
+    mCollisionTime[o2::fdd::RecPoint::TimeA] = meanTimeSideA * nsToPs;
   }
-  if (nInTimeC > 0 && weightFDC > FDDRecoConfig::Instance().AmplitudeCollisionTimeCutSideC) {
-    mCollisionTime[o2::fdd::RecPoint::TimeC] = round(timeFDC / weightFDC * nsToPs);
+  if (entriesSideC > 0) {
+    mCollisionTime[o2::fdd::RecPoint::TimeC] = meanTimeSideC * nsToPs;
   }
   RecPoints.emplace_back(mCollisionTime, firstEntry, nStored, digitBC.getIntRecord(), digitBC.mTriggers);
 }

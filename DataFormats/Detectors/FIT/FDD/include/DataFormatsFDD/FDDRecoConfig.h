@@ -25,7 +25,7 @@ struct FDDRecoConfig : o2::conf::ConfigurableParamHelper<FDDRecoConfig> {
 
   uint8_t ChannelValidPmInputFlagMask = 0;
   uint8_t ChannelValidPmInputFlags = 0;
-  bool isChannelDataGoodForCollisionTime(uint8_t flags) const
+  bool isChannelDataGood(uint8_t flags) const
   {
     return (flags & ChannelValidPmInputFlagMask) == ChannelValidPmInputFlags;
   }
@@ -54,10 +54,12 @@ struct FDDRecoConfig : o2::conf::ConfigurableParamHelper<FDDRecoConfig> {
   float SwTriggerTimeHighThreshold= 1.25;
   float SwTriggerAmplitudeLowThreshold = 0.0;
   float SwTriggerAmplitudeHighThreshold = 4096.0;
+  float SwTriggerTimeDiffMin = -1.25;
+  float SwTriggerTimeDiffMax = 1.25;
   bool SwTriggerEnabled = false;
 
   O2ParamDef(FDDRecoConfig, "FDDRecoConfig");
-  ClassDefNV(FDDRecoConfig, 1);
+  ClassDefNV(FDDRecoConfig, 2);
 };
 } // namespace o2::fdd
 #endif
