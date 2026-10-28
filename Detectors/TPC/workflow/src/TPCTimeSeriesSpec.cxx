@@ -399,7 +399,9 @@ class TPCTimeSeries : public Task
             trdData.trackletIndices[iLay] = trkltId;
           }
         }
-        trdData.trdTrackParCov = o2::track::TrackParCov(trdTrack); // TrackTRD base state, not validated as the outer/entrance state (open Phase 0.4 finding)
+        // outer state of the ITS-TPC-TRD track: outward refit through ITS, TPC and TRD, at the outermost TRD layer (as in
+        // RecoContainer::getTrackParamOut). The base state of TrackTRD is the inward refit, which ends at the innermost ITS cluster.
+        trdData.trdTrackParCov = trdTrack.getOuterParam();
         trdData.hasTRDTrackPar = true;
         tpcToTRDMap[refTPC] = trdData;
       }
@@ -1486,9 +1488,9 @@ class TPCTimeSeries : public Task
 
         // TPC-out / TRD-in states on a common local X plane, computed for every written entry (Architect decision 2026-10-28:
         // residuals always stored; only the full TrackPar objects depend on --store-full-trackpar).
-        // Open Phase 0.4 findings, deferred: the target is local X = kTPCTRDMiddle in the frame rotated to the track
-        // position angle (lab radius = sqrt(X^2 + Y^2), not exactly 275 cm), and the TRD starting state is the TrackTRD
-        // base state (TrackTRD carries a single parameter set), not validated as the outer/entrance state.
+        // Open Phase 0.4 finding, deferred: the target is local X = kTPCTRDMiddle in the frame rotated to the track position
+        // angle (lab radius = sqrt(X^2 + Y^2), not exactly 275 cm). The TRD side is the outer state of the ITS-TPC-TRD track,
+        // propagated inward to the plane; its outward refit includes the TPC clusters, so TRD - TPC is not independent.
         static constexpr float kTPCTRDMiddle = 275.f;            // cm, common local X plane between TPC outer wall and TRD layer 0
         static constexpr uint32_t kDeltaTRDTPCMask = 0xFFFFE000; // keep 10 mantissa bits: float16-like relative precision ~1e-3
         o2::track::TrackParCov tpcOutCov;                        // local temporary with covariance (needed for chi2); persisted as TrackPar
@@ -1499,7 +1501,9 @@ class TPCTimeSeries : public Task
         float chi2ZTPCTRD = -1.f;
         // deltaTRDTPC: TrackPar used as a residual container. mX and mAlpha = the common plane and frame (full precision,
         // copied from the propagated TPC state); mP[0..4] = TRD - TPC of Y, Z, Snp, Tgl, Q2Pt, truncated to 10 mantissa bits.
-        // Only getX(), getAlpha() and getParam(i) are meaningful (getPt(), getPhi(), ... are not). Default (X = 0) if trdInOK != 0.
+        // Meaningful: getX(), getAlpha(), getParam(i), getY(), getZ(), getSnp(), getTgl(), getQ2Pt(); not meaningful: derived
+        // getters (getPt(), getP(), getPhi(), getEta(), getCurvature(), ...). Charge, PID and user field are those of the TPC
+        // track. Default object (X = 0, parameters 0) if trdInOK != 0: select with trdInOK == 0.
         o2::track::TrackPar deltaTRDTPC;
         // D1: TPC outer → kTPCTRDMiddle
         tpcOutCov = o2::track::TrackParCov(tracksTPC[iTrk].getParamOut());
