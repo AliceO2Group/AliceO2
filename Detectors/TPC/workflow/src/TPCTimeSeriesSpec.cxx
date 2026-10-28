@@ -71,7 +71,7 @@ class TPCTimeSeries : public Task
     uint8_t trdPattern = 0;
     uint8_t nTRDTracklets = 0;
     int trackletIndices[6] = {-1, -1, -1, -1, -1, -1};
-    o2::track::TrackParCov trdTrackParCov;  // Phase 0.4: TRD track for propagation to R=275
+    o2::track::TrackParCov trdTrackParCov; // TRD track state for propagation to the common local X = 275 cm plane; filled only with --store-full-trackpar
     bool hasTRDTrackPar = false;
   };
 
@@ -90,9 +90,7 @@ class TPCTimeSeries : public Task
     float c11 = trk1.getSigmaSnp2() + trk2.getSigmaSnp2();
     float c12 = trk1.getSigma1PtSnp() + trk2.getSigma1PtSnp();
     float c22 = trk1.getSigma1Pt2() + trk2.getSigma1Pt2();
-    float det = c00 * (c11 * c22 - c12 * c12)
-              - c01 * (c01 * c22 - c12 * c02)
-              + c02 * (c01 * c12 - c11 * c02);
+    float det = c00 * (c11 * c22 - c12 * c12) - c01 * (c01 * c22 - c12 * c02) + c02 * (c01 * c12 - c11 * c02);
     if (std::abs(det) < 1e-30f) {
       return -1.f;
     }
@@ -103,9 +101,7 @@ class TPCTimeSeries : public Task
     float i11 = (c00 * c22 - c02 * c02) * detInv;
     float i12 = (c01 * c02 - c00 * c12) * detInv;
     float i22 = (c00 * c11 - c01 * c01) * detInv;
-    return d0 * (i00 * d0 + i01 * d1 + i02 * d2)
-         + d1 * (i01 * d0 + i11 * d1 + i12 * d2)
-         + d2 * (i02 * d0 + i12 * d1 + i22 * d2);
+    return d0 * (i00 * d0 + i01 * d1 + i02 * d2) + d1 * (i01 * d0 + i11 * d1 + i12 * d2) + d2 * (i02 * d0 + i12 * d1 + i22 * d2);
   }
 
   /// Chi2 match in non-bending plane (Z, Tgl) — 2 DOF
@@ -165,6 +161,7 @@ class TPCTimeSeries : public Task
     mXOuterMatching = ic.options().get<float>("refX-for-outer-ITS");
     mUseMinBiasTrigger = !ic.options().get<bool>("disable-min-bias-trigger");
     mMaxOccupancyHistBins = ic.options().get<int>("max-occupancy-bins");
+    mStoreFullTrackPar = ic.options().get<bool>("store-full-trackpar");
 
     if (mUnbinnedWriter) {
       for (int iThread = 0; iThread < mNThreads; ++iThread) {
@@ -191,6 +188,13 @@ class TPCTimeSeries : public Task
   void run(ProcessingContext& pc) final
   {
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+    // run-level TRD readout flag from GRPECS (unbinned output only): 1 = TRD in readout, 0 = not in readout,
+    // 255 = unknown (defensive: GRPECS is requested only with the unbinned writer)
+    mTRDInReadout = 255;
+    if (mUnbinnedWriter) {
+      const auto* grpecs = o2::base::GRPGeomHelper::instance().getGRPECS();
+      mTRDInReadout = grpecs ? static_cast<uint8_t>(grpecs->isDetReadOut(DetID::TRD) ? 1 : 0) : static_cast<uint8_t>(255);
+    }
     mTPCVDriftHelper.extractCCDBInputs(pc);
     mPTHelper.extractCCDBInputs(pc);
     if (mTPCVDriftHelper.isUpdated()) {
@@ -394,8 +398,10 @@ class TPCTimeSeries : public Task
             trdData.trackletIndices[iLay] = trkltId;
           }
         }
-        trdData.trdTrackParCov = o2::track::TrackParCov(trdTrack);
-        trdData.hasTRDTrackPar = true;
+        if (mStoreFullTrackPar) {
+          trdData.trdTrackParCov = o2::track::TrackParCov(trdTrack); // TrackTRD base state, not validated as the outer/entrance state (open Phase 0.4 finding)
+          trdData.hasTRDTrackPar = true;
+        }
         tpcToTRDMap[refTPC] = trdData;
       }
     }
@@ -1211,6 +1217,8 @@ class TPCTimeSeries : public Task
   float mMaxdEdxRegionRatio{0.5};                                          ///< maximum abs dedx region ratio: log(dedx_region/dedx)
   float mSamplingFactor{0.1};                                              ///< sampling factor in case sampling is used for unbinned data
   bool mSampleTsallis{false};                                              ///< perform sampling of unbinned data
+  bool mStoreFullTrackPar{false};                                          ///< experimental: compute and store tpcOut/trdIn/tpcAtVtx TrackPar and TPC-TRD chi2 (constant per job)
+  uint8_t mTRDInReadout{255};                                              ///< TRD in detector readout (GRPECS): 1 yes, 0 no, 255 unknown
   std::vector<std::mt19937> mGenerator;                                    ///< random generator for debug tree sampling
   std::vector<std::unique_ptr<o2::utils::TreeStreamRedirector>> mStreamer; ///< streamer for unbinned data
   float mXOuterMatching{60};                                               ///< reference x where delta track parameters for TPC with ITS-TPC track are stored in skimmed data
@@ -1477,40 +1485,46 @@ class TPCTimeSeries : public Task
           }
         }
 
-        // Phase 0.4: TPC out / TRD in at kTPCTRDMiddle, same frame, same X
-        static constexpr float kTPCTRDMiddle = 275.f; // cm, midpoint TPC outer / TRD layer 0
-        auto propagator = o2::base::Propagator::Instance();
-
-        // D1: TPC outer → kTPCTRDMiddle
-        o2::track::TrackParCov tpcOutCov(tracksTPC[iTrk].getParamOut());
-        uint8_t tpcOutOK = 2; // default: propagation failed
-        {
-          // rotate to sector angle at current position
-          float sn = std::sin(tpcOutCov.getAlpha());
-          float cs = std::cos(tpcOutCov.getAlpha());
-          float gy = tpcOutCov.getX() * sn + tpcOutCov.getY() * cs;
-          float gx = tpcOutCov.getX() * cs - tpcOutCov.getY() * sn;
-          if (tpcOutCov.rotate(std::atan2(gy, gx)) &&
-              propagator->propagateTo(tpcOutCov, kTPCTRDMiddle, false, mMaxSnp, mCoarseStep, mMatType)) {
-            tpcOutOK = 0;
-          }
-        }
-
-        // D2: TRD matched → kTPCTRDMiddle, rotated to SAME alpha as TPC out
+        // Optional TPC-out / TRD-in states on a common local X plane (experimental, --store-full-trackpar, default off).
+        // Open Phase 0.4 findings, deferred: the target is local X = kTPCTRDMiddle in the frame rotated to the track
+        // position angle (lab radius = sqrt(X^2 + Y^2), not exactly 275 cm), and the TRD starting state is the TrackTRD
+        // base state, not validated as the outer/entrance state. With the switch off nothing below is computed.
+        static constexpr float kTPCTRDMiddle = 275.f; // cm, common local X plane between TPC outer wall and TRD layer 0
+        o2::track::TrackParCov tpcOutCov;             // local temporary with covariance (needed for chi2); persisted as TrackPar
         o2::track::TrackParCov trdInCov;
-        uint8_t trdInOK = 1; // default: no TRD match
-        float chi2PhiTPCTRD = -1.f;
+        uint8_t tpcOutOK = 255;     // 0 propagated, 2 propagation failed, 255 switch off (not computed)
+        uint8_t trdInOK = 255;      // 0 propagated, 1 not attempted (no TRD match or tpcOutOK != 0), 2 propagation failed, 255 switch off; count TRD matches with trdPattern > 0
+        float chi2PhiTPCTRD = -1.f; // -1: not computed (switch off, trdInOK != 0) or singular covariance
         float chi2ZTPCTRD = -1.f;
-        if (itTRD != tpcToTRDMap.end() && itTRD->second.hasTRDTrackPar && tpcOutOK == 0) {
-          trdInCov = o2::track::TrackParCov(itTRD->second.trdTrackParCov);
-          // rotate to TPC alpha FIRST, then propagate — guarantees same frame + same X
-          if (trdInCov.rotate(tpcOutCov.getAlpha()) &&
-              propagator->propagateTo(trdInCov, kTPCTRDMiddle, false, mMaxSnp, mCoarseStep, mMatType)) {
-            trdInOK = 0;
-            chi2PhiTPCTRD = chi2Match_Phi(tpcOutCov, trdInCov);
-            chi2ZTPCTRD = chi2Match_Z(tpcOutCov, trdInCov);
-          } else {
-            trdInOK = 2; // propagation failed
+        if (mStoreFullTrackPar) {
+          // D1: TPC outer → kTPCTRDMiddle
+          tpcOutCov = o2::track::TrackParCov(tracksTPC[iTrk].getParamOut());
+          tpcOutOK = 2; // default: propagation failed
+          {
+            // rotate to sector angle at current position
+            float sn = std::sin(tpcOutCov.getAlpha());
+            float cs = std::cos(tpcOutCov.getAlpha());
+            float gy = tpcOutCov.getX() * sn + tpcOutCov.getY() * cs;
+            float gx = tpcOutCov.getX() * cs - tpcOutCov.getY() * sn;
+            if (tpcOutCov.rotate(std::atan2(gy, gx)) &&
+                propagator->propagateTo(tpcOutCov, kTPCTRDMiddle, false, mMaxSnp, mCoarseStep, mMatType)) {
+              tpcOutOK = 0;
+            }
+          }
+
+          // D2: TRD matched → kTPCTRDMiddle, rotated to SAME alpha as TPC out
+          trdInOK = 1; // default: not attempted
+          if (itTRD != tpcToTRDMap.end() && itTRD->second.hasTRDTrackPar && tpcOutOK == 0) {
+            trdInCov = o2::track::TrackParCov(itTRD->second.trdTrackParCov);
+            // rotate to TPC alpha FIRST, then propagate — guarantees same frame + same X
+            if (trdInCov.rotate(tpcOutCov.getAlpha()) &&
+                propagator->propagateTo(trdInCov, kTPCTRDMiddle, false, mMaxSnp, mCoarseStep, mMatType)) {
+              trdInOK = 0;
+              chi2PhiTPCTRD = chi2Match_Phi(tpcOutCov, trdInCov);
+              chi2ZTPCTRD = chi2Match_Z(tpcOutCov, trdInCov);
+            } else {
+              trdInOK = 2; // propagation failed
+            }
           }
         }
 
@@ -1609,6 +1623,29 @@ class TPCTimeSeries : public Task
         }
         double vertexTime = vertex.getTimeStamp().getTimeStamp();
         double trackTime0 = trackFull.getTime0();
+        // Optional payload (--store-full-trackpar, default off), persisted without covariance as TrackPar.
+        // This statement and the main chain below fill ONE entry: TreeStream keeps its element index until "\n",
+        // and the flag is constant for the job, so every entry has the same branch set (a varying set silently
+        // drops entries). Keep both statements adjacent, with no return/continue in between, and keep the objects in
+        // scope until the "\n" below (TreeStream stores pointers and reads them when the entry is filled).
+        // tpcAtVtx = TPC track after the DCA step; its reference depends on the path:
+        //   all tracks: DCA to (0,0,0);
+        //   then, for ITS-TPC vertex contributors passing the ITS-TPC DCA cuts: DCA to the primary vertex;
+        //   then, if also passing the combined DCA cut and having an ITS track: rotated to the ITS track frame and
+        //   propagated to the X of the ITS-TPC track.
+        // With the switch on, these three branches come first in the tree (compare by branch name, not position).
+        o2::track::TrackPar tpcOutPar;
+        o2::track::TrackPar trdInPar;
+        o2::track::TrackPar tpcAtVtxPar;
+        if (mStoreFullTrackPar) {
+          tpcOutPar = tpcOutCov;
+          trdInPar = trdInCov;
+          tpcAtVtxPar = track;
+          *mStreamer[iThread] << "treeTimeSeries"
+                              << "tpcOut=" << tpcOutPar
+                              << "trdIn=" << trdInPar
+                              << "tpcAtVtx=" << tpcAtVtxPar;
+        }
         *mStreamer[iThread] << "treeTimeSeries"
                             // DCAs
                             << "triggerMask=" << triggerMask
@@ -1656,15 +1693,14 @@ class TPCTimeSeries : public Task
                             << "nTRDTracklets=" << nTRDTracklets
                             << "trdTracklets=" << trdTrackletVec
                             << "trdCalibTracklets=" << trdCalibVec
-                            // Phase 0.4: TPC out / TRD in at R=275 cm
-                            << "tpcOut=" << tpcOutCov
+                            // TPC out / TRD in on the common local X = 275 cm plane: status and matching chi2
+                            // (255 / -1 when --store-full-trackpar is off; the TrackPar objects are written above)
                             << "tpcOutOK=" << tpcOutOK
-                            << "trdIn=" << trdInCov
                             << "trdInOK=" << trdInOK
                             << "chi2PhiTPCTRD=" << chi2PhiTPCTRD
                             << "chi2ZTPCTRD=" << chi2ZTPCTRD
-                            // Track parameters at vertex (full TrackParCov)
-                            << "tpcAtVtx=" << track
+                            // TRD in detector readout for this run (GRPECS): 1 yes, 0 no, 255 unknown
+                            << "trdInReadout=" << mTRDInReadout
                             << "chi2match_ITSTPC=" << chi2match_ITSTPC
                             << "PID=" << trkOrig.getPID().getID()
                             // TPC cov at vertex (without vertex constrained)
@@ -2056,7 +2092,7 @@ o2::framework::DataProcessorSpec getTPCTimeSeriesSpec(const bool disableWriter, 
 
   const bool enableAskMatLUT = matType == o2::base::Propagator::MatCorrType::USEMatCorrLUT;
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(!disableWriter,                 // orbitResetTime
-                                                                false,                          // GRPECS=true for nHBF per TF
+                                                                enableUnbinnedWriter,           // GRPECS only when the unbinned trdInReadout can be written
                                                                 false,                          // GRPLHCIF
                                                                 true,                           // GRPMagField
                                                                 enableAskMatLUT,                // askMatLUT
@@ -2113,6 +2149,7 @@ o2::framework::DataProcessorSpec getTPCTimeSeriesSpec(const bool disableWriter, 
       {"sample-unbinned-tsallis", VariantType::Bool, false, {"Perform sampling of unbinned data based on Tsallis function"}},
       {"sampling-factor", VariantType::Float, 0.001f, {"Sampling factor in case sample-unbinned-tsallis is used"}},
       {"disable-min-bias-trigger", VariantType::Bool, false, {"Disable the minimum bias trigger for skimmed data"}},
+      {"store-full-trackpar", VariantType::Bool, false, {"Experimental: compute TPC-out/TRD-in states on the common local X = 275 cm plane and the TPC-TRD matching chi2, and store tpcOut, trdIn, tpcAtVtx as TrackPar in the unbinned tree"}},
       {"out-file-unbinned", VariantType::String, "time_series_tracks.root", {"name of the output file for the unbinned data"}},
       {"max-occupancy-bins", VariantType::Int, 912, {"Maximum number of occupancy bins"}}}};
 }
