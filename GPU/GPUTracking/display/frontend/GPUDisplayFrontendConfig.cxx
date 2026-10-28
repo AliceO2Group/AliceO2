@@ -121,8 +121,9 @@ namespace
 #include "utils/qconfig_genrtti.inc"
 } // namespace
 
-void GPUDisplay::checkAndApplyConfigChanges(const GPUSettingsDisplayHeavy& oldCfgH, const GPUSettingsDisplayLight& oldCfgL, const GPUSettingsDisplayRenderer& oldCfgR)
+void GPUDisplay::checkAndApplyConfigChanges()
 {
+  const auto& [oldCfgH, oldCfgL, oldCfgR] = mOldCfg;
   if (memcmp((void*)&oldCfgH, (void*)&mCfgH, sizeof(mCfgH)) != 0) {
     mUpdateEventData = true;
   }
@@ -164,7 +165,7 @@ void GPUDisplay::HandleExternalGUIKey(int32_t key)
   bool shifted = key >= 'A' && key <= 'Z';
   bool oldShift = mFrontend->mKeys[mFrontend->KEY_SHIFT];
   mFrontend->mKeys[mFrontend->KEY_SHIFT] = shifted;
-  HandleKey(key, true);
+  HandleKey(key);
   mFrontend->mKeys[mFrontend->KEY_SHIFT] = oldShift;
 }
 
@@ -173,13 +174,13 @@ bool GPUDisplayFrontend::HasExternalGUISignals() const
   return mExternalGUIKeys.size();
 }
 
-bool GPUDisplayFrontend::HandleExternalGUIKeys()
+void GPUDisplayFrontend::HandleExternalGUIKeys()
 {
   std::lock_guard lock(mExternalGUIKeyMutex);
   for (auto key : mExternalGUIKeys) {
     mDisplay->HandleExternalGUIKey(key);
   }
-  return !std::exchange(mExternalGUIKeys, {}).empty();
+  mExternalGUIKeys.clear();
 }
 
 template <typename... Args>
@@ -360,17 +361,10 @@ bool GPUDisplayFrontend::processKeyLambda(uint32_t key)
   return false;
 }
 
-void GPUDisplay::HandleKey(uint8_t key, bool doNotHandleConfigChanges)
+void GPUDisplay::HandleKey(uint8_t key)
 {
-  const GPUSettingsDisplayHeavy oldCfgH = mCfgH;
-  const GPUSettingsDisplayLight oldCfgL = mCfgL;
-  const GPUSettingsDisplayRenderer oldCfgR = mCfgR;
   if (key == mFrontend->KEY_ALT) {
     mFrontend->mKeys[mFrontend->KEY_CTRL] = false; // Release CTRL with alt, to avoid orienting along y automatically!
   } else if (mFrontend->processKeyLambda(key)) {
-  }
-
-  if (!doNotHandleConfigChanges) {
-    checkAndApplyConfigChanges(oldCfgH, oldCfgL, oldCfgR);
   }
 }

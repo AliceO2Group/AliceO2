@@ -177,6 +177,7 @@ int32_t GPUDisplay::InitDisplay(bool initFailure)
     retVal = 1;
   }
   mInitResult = retVal == 0 ? 1 : -1;
+  mOldCfg = {mCfgH, mCfgL, mCfgR};
   return (retVal);
 }
 

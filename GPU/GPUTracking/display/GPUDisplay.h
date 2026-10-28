@@ -23,6 +23,7 @@
 
 #include <atomic>
 #include <array>
+#include <tuple>
 #include <mutex>
 #include <condition_variable>
 
@@ -59,12 +60,12 @@ class GPUDisplay : public GPUDisplayInterface
   void UpdateCalib(const GPUCalibObjectsConst* calib) override { mCalib = calib; }
   void UpdateParam(const GPUParam* param) override { mParam = param; }
 
-  void HandleKey(uint8_t key, bool doNotHandleConfigChanges = false); // With doNotHandleConfigChanges, the caller must call checkAndApplyConfigChanges
+  void HandleKey(uint8_t key);
   int32_t DrawGLScene(bool suspended = false);
-  void HandleExternalGUIKey(int32_t key); // Does not handle config changes, see HandleKey
+  void HandleExternalGUIKey(int32_t key);
   int32_t InitDisplay(bool initFailure = false);
   void ResizeScene(int32_t width, int32_t height, bool init = false);
-  void checkAndApplyConfigChanges(const GPUSettingsDisplayHeavy& oldCfgH, const GPUSettingsDisplayLight& oldCfgL, const GPUSettingsDisplayRenderer& oldCfgR); // Set update flags / apply the settings that changed compared to the old copies
+  void checkAndApplyConfigChanges(); // Set update flags / apply the settings that changed compared to mOldCfg
 
   const GPUSettingsDisplayRenderer& cfgR() const { return mCfgR; }
   const GPUSettingsDisplayLight& cfgL() const { return mCfgL; }
@@ -244,6 +245,7 @@ class GPUDisplay : public GPUDisplayInterface
   GPUSettingsDisplayLight mCfgL;
   GPUSettingsDisplayHeavy mCfgH;
   GPUSettingsDisplayRenderer mCfgR;
+  std::tuple<GPUSettingsDisplayHeavy, GPUSettingsDisplayLight, GPUSettingsDisplayRenderer> mOldCfg; // Settings after the last draw, for checkAndApplyConfigChanges
   const GPUSettingsProcessing& mProcessingSettings;
   GPUQA* mQA;
 
