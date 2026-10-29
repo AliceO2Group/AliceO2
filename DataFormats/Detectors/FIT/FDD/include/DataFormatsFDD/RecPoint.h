@@ -53,16 +53,17 @@ class RecPoint
  public:
   enum TimeTypeIndex : int { TimeA,
                              TimeC };
-  enum ETriggerBits { kSwTrigger = 7 };
+  enum ETriggerBits { kSwVtxTrigger = 7 };
   RecPoint() = default;
   RecPoint(const std::array<int, 2>& collisiontime, int first, int ne,
-           o2::InteractionRecord iRec, o2::fdd::Triggers triggers)
+           o2::InteractionRecord iRec, o2::fdd::Triggers triggers, bool swVertexTrigger)
     : mCollisionTimePs(collisiontime)
   {
     mRef.setFirstEntry(first);
     mRef.setEntries(ne);
     mIntRecord = iRec;
     mTriggers = triggers;
+    updateTriggers(swVertexTrigger);
   }
   ~RecPoint() = default;
 
@@ -87,12 +88,20 @@ class RecPoint
   bool operator==(const RecPoint&) const = default;
 
  private:
+  void updateTriggers(bool swVertexTrigger)
+  {
+    auto [triggerBits, technicalWords] = o2::fit::Triggers::parseDigitTriggerWord(mTriggers.getTriggersignals(), true);
+    triggerBits |= (uint8_t(swVertexTrigger) << kSwVtxTrigger);
+    mTriggers.setTriggers(triggerBits);
+    mTechnicalWords = technicalWords;
+  }
   o2::dataformats::RangeReference<int, int> mRef;
   o2::InteractionRecord mIntRecord;
-  o2::fdd::Triggers mTriggers;                                                        // pattern of triggers  in this BC
+  o2::fdd::Triggers mTriggers; // pattern of triggers  in this BC
+  uint8_t mTechnicalWords{0};
   std::array<int, 2> mCollisionTimePs = {sDummyCollissionTime, sDummyCollissionTime}; // in picoseconds
 
-  ClassDefNV(RecPoint, 3);
+  ClassDefNV(RecPoint, 4);
 };
 } // namespace fdd
 } // namespace o2

@@ -47,36 +47,31 @@ void Reconstructor::process(o2::fdd::Digit const& digitBC, gsl::span<const o2::f
   bool swOrGateSideA = false;
   bool swOrGateSideC = false;
 
-  for (const auto& channelData: inChData) {
+  for (const auto& channelData : inChData) {
     if (mDeadChannelMap && !mDeadChannelMap->isChannelAlive(channelData.mPMNumber)) {
       LOG(debug) << "Channel " << channelData.mPMNumber << " is dead - discarding data";
       continue;
     }
 
-    if (isInAmplitudeWindow(channelData.mChargeADC) 
-      && isInTimeWindow(channelData.mTime) 
-      && isChannelDataGood(channelData.mFEEBits))
-    {
-      outChData.emplace_back((int)inChData[ich].mPMNumber, (inChData[ich].mTime) * timePerTDC,
-                             (double)inChData[ich].mChargeADC, inChData[ich].mFEEBits);
+    if (isInAmplitudeWindow(channelData.mChargeADC) && isInTimeWindow(channelData.mTime) && isChannelDataGood(channelData.mFEEBits)) {
+      outChData.emplace_back((int)channelData.mPMNumber, (channelData.mTime) * timePerTDC,
+                             (double)channelData.mChargeADC, channelData.mFEEBits);
       storedEntries++;
     }
-    
+
     if (FDDRecoConfig::Instance().SwTriggerEnabled) {
-      if(channelData.mPMNumber <= sSideAMaxId) {
+      if (channelData.mPMNumber <= sSideAMaxId) {
         swOrGateSideA |= checkSwOrGateConditions(channelData);
       } else {
         swOrGateSideC |= checkSwOrGateConditions(channelData);
       }
     }
 
-    if (!isInAmplitudeWindow(channelData.mChargeADC) 
-      || !isInTimeWindow(channelData.mTime) 
-      || !isChannelDataGood(channelData.mFEEBits)) {
-        continue;
-      }
-    
-    if(channelData.mPMNumber <= sSideAMaxId) {
+    if (!isInAmplitudeWindow(channelData.mChargeADC) || !isInTimeWindow(channelData.mTime) || !isChannelDataGood(channelData.mFEEBits)) {
+      continue;
+    }
+
+    if (channelData.mPMNumber <= sSideAMaxId) {
       timeSideA += channelData.mTime;
       entriesNumSideA++;
     } else {
@@ -92,13 +87,13 @@ void Reconstructor::process(o2::fdd::Digit const& digitBC, gsl::span<const o2::f
   bool swVertexTrg = FDDRecoConfig::Instance().SwTriggerEnabled ? calculateSwTrigger(meanTimeSideA, meanTimeSideC, swOrGateSideA, swOrGateSideC) : false;
 
   std::array<int, 2> mCollisionTime = {o2::fdd::RecPoint::sDummyCollissionTime, o2::fdd::RecPoint::sDummyCollissionTime};
-  if (entriesSideA > 0) {
+  if (entriesNumSideA > 0) {
     mCollisionTime[o2::fdd::RecPoint::TimeA] = meanTimeSideA * nsToPs;
   }
-  if (entriesSideC > 0) {
+  if (entriesNumSideC > 0) {
     mCollisionTime[o2::fdd::RecPoint::TimeC] = meanTimeSideC * nsToPs;
   }
-  RecPoints.emplace_back(mCollisionTime, firstEntry, nStored, digitBC.getIntRecord(), digitBC.mTriggers);
+  RecPoints.emplace_back(mCollisionTime, firstEntry, nStored, digitBC.getIntRecord(), digitBC.mTriggers, swVertexTrg);
 }
 //________________________________________________________
 void Reconstructor::finish()

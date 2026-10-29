@@ -32,11 +32,10 @@ struct FDDRecoConfig : o2::conf::ConfigurableParamHelper<FDDRecoConfig> {
 
   uint8_t TriggerBitsValidationMask = 0;
   uint8_t TriggerBitsValid = 0;
-  bool areTriggerBitsGood(uint8_t flags) const 
+  bool areTriggerBitsGood(uint8_t flags) const
   {
     return (flags & TriggerBitsValidationMask) == TriggerBitsValid;
   }
-
 
   int16_t CollisionTimeAmpltudeUpper = 4096;
   int16_t CollisionTimeAmplitudeLower = 0;
@@ -49,9 +48,9 @@ struct FDDRecoConfig : o2::conf::ConfigurableParamHelper<FDDRecoConfig> {
   {
     return (flags & CollisionTimeValidPmInputFlagMask) == CollisionTimeValidPmInputFlags;
   }
-  
-  float SwTriggerTimeLowThreshold= -1.25;
-  float SwTriggerTimeHighThreshold= 1.25;
+
+  float SwTriggerTimeLowThreshold = -1.25;
+  float SwTriggerTimeHighThreshold = 1.25;
   float SwTriggerAmplitudeLowThreshold = 0.0;
   float SwTriggerAmplitudeHighThreshold = 4096.0;
   float SwTriggerTimeDiffMin = -1.25;

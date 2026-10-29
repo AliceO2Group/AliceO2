@@ -41,41 +41,43 @@ class Reconstructor
   }
 
  private:
-  bool isInAmplitudeWindow(int16_t amplitude) {
+  bool isInAmplitudeWindow(int16_t amplitude)
+  {
     return amplitude >= FDDRecoConfig::Instance().ChannelAmplitudeLower && amplitude <= FDDRecoConfig::Instance().ChannelAmplitudeUpper;
   }
-  bool isInTimeWindow(int16_t time) {
+  bool isInTimeWindow(int16_t time)
+  {
     return time >= FDDRecoConfig::Instance().ChannelTimeLower && time <= FDDRecoConfig::Instance().ChannelTimeUpper;
   }
-  bool isChannelDataGood(uint8_t channelBits) {
+  bool isChannelDataGood(uint8_t channelBits)
+  {
     return FDDRecoConfig::Instance().isChannelDataGood(channelBits);
   }
 
-  bool isInCollisionTimeAmplitudeWindow(int16_t amplitude) {
+  bool isInCollisionTimeAmplitudeWindow(int16_t amplitude)
+  {
     return amplitude >= FDDRecoConfig::Instance().CollisionTimeAmplitudeLower && amplitude <= FDDRecoConfig::Instance().CollisionTimeAmpltudeUpper;
   }
-  bool isInCollisionTimeTimeWindow(int16_t time) {
+  bool isInCollisionTimeTimeWindow(int16_t time)
+  {
     return time >= FDDRecoConfig::Instance().CollisionTimeTimeLower && time <= FDDRecoConfig::Instance().CollisionTimeTimeUpper;
   }
-  bool isChannelDataGoodForCollisionTime(uint8_t channelBits) {
+  bool isChannelDataGoodForCollisionTime(uint8_t channelBits)
+  {
     return FDDRecoConfig::Instance().isChannelDataGoodForCollisionTime(channelBits);
   }
 
-  bool checkSwOrGateConditions(const ChannelData& channelData) {
-    bool isAmplitudeInRange = channelData.mChargeADC >= FDDRecoConfig::Instance().SwTriggerAmplitudeLowThreshold 
-      && channelData.mChargeADC <= FDDRecoConfig::Instance().SwTriggerAmplitudeHighThreshold;
-    bool isInTimeWindow = std::abs(channelData.mTime) >= FDDRecoConfig::Instance().SwTriggerTimeLowThreshold
-      && std::abs(channeData.mTime) <= FDDRecoConfig::Instance().SwTriggerTimeHighThreshold;
+  bool checkSwOrGateConditions(const ChannelData& channelData)
+  {
+    bool isAmplitudeInRange = channelData.mChargeADC >= FDDRecoConfig::Instance().SwTriggerAmplitudeLowThreshold && channelData.mChargeADC <= FDDRecoConfig::Instance().SwTriggerAmplitudeHighThreshold;
+    bool isInTimeWindow = std::abs(channelData.mTime) >= FDDRecoConfig::Instance().SwTriggerTimeLowThreshold && std::abs(channelData.mTime) <= FDDRecoConfig::Instance().SwTriggerTimeHighThreshold;
     bool isCfdInAdcGate = channelData.getFlag(ChannelData::EEventDataBit::kIsCFDinADCgate);
     return isAmplitudeInRange && isInTimeWindow && isCfdInAdcGate;
   }
 
   bool calculateSwTrigger(float meanTimeSideA, float meanTimeSideC, bool orGateSideA, bool orGateSideC)
   {
-    return (meanTimeSideC - meanTimeSideA) >= FDDRecoConfig::SwTriggerTimeDiffMin
-      && (meanTimeSideC - meanTimeSideA) <= FDDRecoConfig::SwTriggerTimeDiffMax
-      && orGateSideA
-      && orGateSideC;
+    return (meanTimeSideC - meanTimeSideA) >= FDDRecoConfig::Instance().SwTriggerTimeDiffMin && (meanTimeSideC - meanTimeSideA) <= FDDRecoConfig::Instance().SwTriggerTimeDiffMax && orGateSideA && orGateSideC;
   }
   static constexpr uint8_t sSideAMaxId = 7;
 
