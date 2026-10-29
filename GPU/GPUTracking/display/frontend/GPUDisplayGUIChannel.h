@@ -19,6 +19,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <cstdint>
+#include <functional>
 #include <mutex>
 #include <optional>
 #include <string>
@@ -57,6 +58,7 @@ struct GPUDisplayGUIChannel {
   std::chrono::milliseconds replyTimeout;      // Maximum time the GUI waits for a reply
   uint32_t maxUpdatesAhead = 0;                // GUI waits for the reply if it is that many updates ahead of the last one it applied
   std::string windowName;                      // Name of the display window, set when starting the GUI
+  std::function<void()> updatePosted;          // Set by the display, called by the GUI (without holding mutex) after posting an update, wakes up the display
 };
 } // namespace o2::gpu
 

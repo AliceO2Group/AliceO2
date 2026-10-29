@@ -259,6 +259,7 @@ int32_t GPUDisplayFrontendGlut::FrontendMain()
     std::lock_guard lock(mExitStateMutex);
     setDisplayControl(2);
     mDisplayRunning = false;
+    mDisplayStoppedCV.notify_all();
   }
 
   ExitDisplay();

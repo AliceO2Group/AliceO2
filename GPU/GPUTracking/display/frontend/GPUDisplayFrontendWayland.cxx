@@ -626,6 +626,7 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
   {
     std::lock_guard lock(mExitStateMutex);
     mDisplayRunning = false;
+    mDisplayStoppedCV.notify_all();
   }
 
   if (mCursorShapeDevice) {
