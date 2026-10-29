@@ -52,6 +52,7 @@ class GPUDisplayFrontendWayland : public GPUDisplayFrontend
 
  private:
   int32_t FrontendMain() override;
+  void handlePointerButton(uint32_t button, bool pressed); // In GPUDisplayFrontendWaylandEv.cxx, which needs the evdev button codes
   int32_t GetKey(uint32_t key, uint32_t state);
   void updateScale();                  // Scale from wp_fractional_scale_v1, else integer wl_surface.preferred_buffer_scale, or max scale of the outputs the surface is on (older compositors)
   void updateSize();                   // Physical size = logical size * scale, resizes the scene if changed

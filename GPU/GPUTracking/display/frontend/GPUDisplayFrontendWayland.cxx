@@ -38,7 +38,6 @@
 #include "viewporter-client-protocol.h"
 #include "cursor-shape-client-protocol.h"
 #include <xkbcommon/xkbcommon.h>
-#include <linux/input-event-codes.h>
 
 using namespace o2::gpu;
 
@@ -95,7 +94,7 @@ int32_t GPUDisplayFrontendWayland::GetKey(uint32_t key, uint32_t state)
       return (KEY_HOME);
     } else if (sym == XKB_KEY_Insert) {
       return (KEY_INSERT);
-    } else if (sym == XKB_KEY_F1) { // TODO: Fix F* keys not working
+    } else if (sym == XKB_KEY_F1) {
       return (KEY_F1);
     } else if (sym == XKB_KEY_F2) {
       return (KEY_F2);
@@ -174,24 +173,8 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
   };
   auto pointer_button = [](void* data, wl_pointer* wl_pointer, uint32_t serial, uint32_t time, uint32_t button, uint32_t state) {
     GPUDisplayFrontendWayland* me = (GPUDisplayFrontendWayland*)data;
-    if (state == WL_POINTER_BUTTON_STATE_PRESSED) {
-      if (button == BTN_RIGHT) {
-        me->mMouseDnR = true;
-      } else if (button == BTN_LEFT) {
-        me->mMouseDn = true;
-      } else if (button == BTN_MIDDLE) {
-        me->mMouseDnM = true;
-      }
-      me->mMouseDnX = me->mMouseMvX;
-      me->mMouseDnY = me->mMouseMvY;
-    } else if (state == WL_POINTER_BUTTON_STATE_RELEASED) {
-      if (button == BTN_RIGHT) {
-        me->mMouseDnR = false;
-      } else if (button == BTN_LEFT) {
-        me->mMouseDn = false;
-      } else if (button == BTN_MIDDLE) {
-        me->mMouseDnM = false;
-      }
+    if (state == WL_POINTER_BUTTON_STATE_PRESSED || state == WL_POINTER_BUTTON_STATE_RELEASED) {
+      me->handlePointerButton(button, state == WL_POINTER_BUTTON_STATE_PRESSED);
     }
   };
   auto pointer_frame = [](void* data, wl_pointer* wl_pointer) { ((GPUDisplayFrontendWayland*)data)->applyScroll(); };
