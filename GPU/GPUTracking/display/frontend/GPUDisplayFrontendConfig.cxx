@@ -86,6 +86,27 @@ struct GPUDisplayFrontend::configRTTIInfo {
     std::apply([&](auto... s) { ((retVal = i++ == index ? reinterpret_cast<char*>(&(display.*s)) : retVal), ...); }, configStructs);
     return retVal;
   }
+  std::optional<std::string> valueString(GPUDisplay& display, uint32_t index) const // Current value of an option, printed with print_type as in qconfig.cxx, nullopt for unsupported types
+  {
+    const auto& e = rttiEntries[index];
+    const char* ptr = configStructPtr(display, e.configStructIndex) + e.offset;
+    if (e.isVector || e.arraySize) {
+      return std::nullopt;
+    } else if (e.type == "bool") {
+      return qConfig::print_type(*(const bool*)ptr);
+    } else if (e.type == "float") {
+      return qConfig::print_type(*(const float*)ptr);
+    } else if (e.type == "int8_t") {
+      return qConfig::print_type(*(const int8_t*)ptr);
+    } else if (e.type == "uint8_t") {
+      return qConfig::print_type(*(const uint8_t*)ptr);
+    } else if (e.type == "int32_t" || e.type == "int") {
+      return qConfig::print_type(*(const int32_t*)ptr);
+    } else if (e.type == "uint32_t") {
+      return qConfig::print_type(*(const uint32_t*)ptr);
+    }
+    return std::nullopt;
+  }
   template <class T, class M>
   uint32_t getRTTIIndex(GPUDisplay& display, M T::* member) // RTTI index of a direct member of a config struct
   {
@@ -306,41 +327,24 @@ void GPUDisplay::buildConfig()
   buildConfigKeys();
 
   rtti->configInfos.resize(rtti->rttiEntries.size());
-  auto messageInfo = [this]<typename T>(const std::string& message, const T* value) { // Info from the qConfig message, value printed with print_type as in qconfig.cxx
-    return configKeyCallback([this, message, value]() {
+  for (uint32_t i = 0; i < rtti->rttiEntries.size(); i++) { // Info from the qConfig message, with the value as %s as in qconfig.cxx
+    const auto& e = rtti->rttiEntries[i];
+    if (e.message.empty()) {
+      continue;
+    }
+    if (!rtti->valueString(*this, i)) {
+      GPUError("No info message support for type %s of %s", e.type.c_str(), e.name.c_str());
+      continue;
+    }
+    rtti->configInfos[i] = [this, i, message = e.message]() {
       char buffer[256];
-      const int32_t n = snprintf(buffer, sizeof(buffer), message.c_str(), qConfig::print_type(*value).c_str());
+      const int32_t n = snprintf(buffer, sizeof(buffer), message.c_str(), mFrontend->mConfigRTTI->valueString(*this, i)->c_str());
       if (n < 0 || n >= (int32_t)sizeof(buffer)) {
         GPUError("Info message too long: %s", message.c_str());
         return;
       }
       SetInfo("%s", buffer);
-    });
-  };
-  for (uint32_t i = 0; i < rtti->rttiEntries.size(); i++) {
-    const auto& e = rtti->rttiEntries[i];
-    if (e.message.empty() || e.isVector || e.arraySize) {
-      continue;
-    }
-    const char* ptr = GPUDisplayFrontend::configRTTIInfo::configStructPtr(*this, e.configStructIndex) + e.offset;
-    configKeyCallback info;
-    if (e.type == "bool") {
-      info = messageInfo(e.message, (const bool*)ptr);
-    } else if (e.type == "float") {
-      info = messageInfo(e.message, (const float*)ptr);
-    } else if (e.type == "int8_t") {
-      info = messageInfo(e.message, (const int8_t*)ptr);
-    } else if (e.type == "uint8_t") {
-      info = messageInfo(e.message, (const uint8_t*)ptr);
-    } else if (e.type == "int32_t" || e.type == "int") {
-      info = messageInfo(e.message, (const int32_t*)ptr);
-    } else if (e.type == "uint32_t") {
-      info = messageInfo(e.message, (const uint32_t*)ptr);
-    } else {
-      GPUError("No info message support for type %s of %s", e.type.c_str(), e.name.c_str());
-      continue;
-    }
-    rtti->configInfos[i] = std::move(info);
+    };
   }
   buildConfigInfo();
   rtti->buildHelpText();
@@ -353,12 +357,22 @@ bool GPUDisplayFrontend::processKeyLambda(uint32_t key)
   }
   if (key < mConfigRTTI->configKeys.size() && mConfigRTTI->configKeys[key].callback) {
     mConfigRTTI->configKeys[key].callback();
-    if (const uint32_t index = mConfigRTTI->configKeys[key].configRTTIIndex; index < mConfigRTTI->configInfos.size() && mConfigRTTI->configInfos[index]) {
-      mConfigRTTI->configInfos[index]();
+    if (const uint32_t index = mConfigRTTI->configKeys[key].configRTTIIndex; index < mConfigRTTI->configInfos.size()) {
+      showConfigInfo(index);
     }
     return true;
   }
   return false;
+}
+
+void GPUDisplayFrontend::showConfigInfo(uint32_t index)
+{
+  if (mConfigRTTI->configInfos[index]) {
+    mConfigRTTI->configInfos[index]();
+  } else if (const auto value = mConfigRTTI->valueString(*mDisplay, index)) { // Generic info for options without info callback
+    const auto& e = mConfigRTTI->rttiEntries[index];
+    mDisplay->SetInfo("%s.%s changed to %s", mConfigRTTI->configStructNames[e.configStructIndex].c_str(), e.name.c_str(), value->c_str());
+  }
 }
 
 void GPUDisplay::HandleKey(uint8_t key)
