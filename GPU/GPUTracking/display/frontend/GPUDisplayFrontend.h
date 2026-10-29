@@ -22,10 +22,12 @@
 #include <mutex>
 #include <condition_variable>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace o2::gpu
 {
+struct GPUDisplayGUIUpdate;
 class GPUReconstruction;
 class GPUDisplay;
 class GPUDisplayBackend;
@@ -55,12 +57,12 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   static constexpr int32_t GL_MIN_VERSION_MAJOR = 4;
   static constexpr int32_t GL_MIN_VERSION_MINOR = 6;
 
-  int32_t StartDisplay();                                                                                                    // Start the display. This function returns, and should spawn a thread that runs the display, and calls InitDisplay
-  void StopDisplay() override;                                                                                               // Stop the display. Display thread should call ExitDisplay. Functions waits for display thread to terminate
-  virtual void SwitchFullscreen(bool set) = 0;                                                                               // Toggle full-screen mode
-  virtual void ToggleMaximized(bool set) = 0;                                                                                // Maximize window
-  virtual void SetVSync(bool enable) = 0;                                                                                    // Enable / disable vsync
-  virtual bool canSetVSync() { return false; }                                                                               // OpenGL: swap interval can be set
+  int32_t StartDisplay();                      // Start the display. This function returns, and should spawn a thread that runs the display, and calls InitDisplay
+  void StopDisplay() override;                 // Stop the display. Display thread should call ExitDisplay. Functions waits for display thread to terminate
+  virtual void SwitchFullscreen(bool set) = 0; // Toggle full-screen mode
+  virtual void ToggleMaximized(bool set) = 0;  // Maximize window
+  virtual void SetVSync(bool enable) = 0;      // Enable / disable vsync
+  virtual bool canSetVSync() { return false; } // OpenGL: swap interval can be set
   GPUDisplayBackend* backend();
   static GPUDisplayFrontend* getFrontend(const char* type);
   virtual void getSize(int32_t& width, int32_t& height) { width = height = 0; }
@@ -108,13 +110,13 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   std::array<uint8_t, KEY_MAP_MAX> mKeyDownMap = {};
 
   // Keyboard / Mouse actions
-  bool mMouseDn = false;          // Mouse button down
-  bool mMouseDnR = false;         // Right mouse button down
-  bool mMouseDnM = false;         // Middle mouse button down (not used yet)
-  float mMouseDnX, mMouseDnY;     // X/Y position where mouse button was pressed
-  float mMouseMvX, mMouseMvY;     // Current mouse pointer position
-  int32_t mMouseWheel = 0;        // Incremental value of mouse wheel, ca +/- 100 per wheel tick
-  bool mKeys[256] = {false};      // Array of mKeys currently pressed
+  bool mMouseDn = false;      // Mouse button down
+  bool mMouseDnR = false;     // Right mouse button down
+  bool mMouseDnM = false;     // Middle mouse button down (not used yet)
+  float mMouseDnX, mMouseDnY; // X/Y position where mouse button was pressed
+  float mMouseMvX, mMouseMvY; // Current mouse pointer position
+  int32_t mMouseWheel = 0;    // Incremental value of mouse wheel, ca +/- 100 per wheel tick
+  bool mKeys[256] = {false};  // Array of mKeys currently pressed
   int32_t mDisplayHeight = INIT_HEIGHT;
   int32_t mDisplayWidth = INIT_WIDTH;
 
@@ -158,6 +160,10 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   bool mWindowFullScreen = false, mWindowMaximized = false; // Window state last requested or reported by the window system
   template <typename... Args>
   void add_key_binding(Args&&... args); // KEY_LAMBDA(key, ...) entries, the help text, and optionally the keys to show in the help text, only used in GPUDisplayFrontendConfig.cxx
+  template <typename... Args>
+  void add_gui_binding(Args&&... args);                   // GUI_LAMBDA(name, ...) entries shown in one frame of the Qt GUI, and optionally its description and a flag to place the elements horizontally (default vertically), only used in GPUDisplayFrontendConfig.cxx
+  void setGUILayout(GPUDisplayGUIChannel& channel) const; // Copy the GUI elements of the add_gui_binding calls to the channel
+  void applyGUIValues(const GPUDisplayGUIUpdate& update); // Call the setter of the GUI elements changed in the GUI (element id, value), and show the info of their options
   void listConfig();
   const std::vector<std::string>& getHelpText() const; // Help text of all key bindings, one line per binding
 };

@@ -19,6 +19,9 @@
 
 using namespace o2::gpu;
 
+const std::array<std::string, 7> GPUDisplay::ANIMATION_MODE_NAMES_SHORT = {"Cartesian, quaternion", "Cartesian, Euler angles", "Spherical Rotation, quaternion", "Spherical Rotation, Euler angles", "Spherical, quaternion", "Spherical, Euler angles", "Spherical, centered on origin"};
+const std::array<std::string, 7> GPUDisplay::ANIMATION_MODE_NAMES_LONG = {"Position: Cartesian, Direction: Quaternion", "Position: Cartesian, Direction: Euler angles", "Position: Spherical (spherical rotation), Direction: Quaternion", "Position: Spherical (spherical rotation), Direction: Euler angles", "Position: Spherical (Euler angles), Direction: Quaternion", "Position: Spherical (Euler angles), Direction: Euler angles", "Position: Spherical (Euler angles), Direction: Centered on origin"};
+
 constexpr hmm_mat4 MY_HMM_FROM(float (&v)[16]) { return {{{v[0], v[1], v[2], v[3]}, {v[4], v[5], v[6], v[7]}, {v[8], v[9], v[10], v[11]}, {v[12], v[13], v[14], v[15]}}}; }
 
 void GPUDisplay::setAnimationPoint()
@@ -67,7 +70,7 @@ void GPUDisplay::setAnimationPoint()
   }
   float delay = 0.f;
   if (mAnimateVectors[0].size()) {
-    delay = mAnimateVectors[0].back() + ((int32_t)(mAnimationDelay * 20)) / 20.f;
+    delay = mAnimateVectors[0].back() + ((int32_t)(mCfgC.mAnimationDelay * 20)) / 20.f;
   }
   mAnimateVectors[0].emplace_back(delay);
   mAnimateConfig.emplace_back(mCfgL);
@@ -91,6 +94,19 @@ void GPUDisplay::removeAnimationPoint()
     mAnimateVectors[i].pop_back();
   }
   mAnimateConfig.pop_back();
+}
+
+void GPUDisplay::runAnimation()
+{
+  if (mAnimateVectors[0].size() > 1) {
+    if (mCfgC.mAnimateScreenshot) {
+      mAnimationExport++;
+    }
+    startAnimation();
+    SetInfo("Starting Animation", 1);
+  } else {
+    SetInfo("Insufficient Animation points to start Animation", 1);
+  }
 }
 
 void GPUDisplay::startAnimation()

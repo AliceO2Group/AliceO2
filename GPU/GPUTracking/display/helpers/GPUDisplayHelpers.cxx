@@ -13,6 +13,8 @@
 /// \author David Rohr
 
 #include "GPUDisplay.h"
+#include "frontend/GPUDisplayInfo.inc"
+#include "HandMadeMath.h"
 #include "GPUChainTracking.h"
 #include "GPULogging.h"
 #include "GPUParam.h"
@@ -52,6 +54,106 @@ void GPUDisplay::disableUnsupportedOptions()
   if (!mChain) {
     mCfgL.excludeClusters = mCfgL.drawInitLinks = mCfgL.drawLinks = mCfgL.drawSeeds = mCfgL.drawTracklets = mCfgL.drawTracks = mCfgL.drawExtrapolatedTracks = 0;
   }
+}
+
+void GPUDisplay::takeScreenshot()
+{
+  static int32_t nScreenshot = 1;
+  mCfgC.mRequestScreenshot = true;
+  mScreenshotFile = mCfgC.mScreenShotname + std::to_string(nScreenshot++) + ".bmp";
+  SetInfo("Taking screenshot (%s)", mScreenshotFile.c_str());
+}
+
+void GPUDisplay::SaveGLPos()
+{
+  const char* file = mCfgC.mGLPosFile.c_str();
+  FILE* ftmp = fopen(file, "w+b");
+  if (!ftmp) {
+    SetInfo("Error opening file %s", file);
+    return;
+  }
+  bool ok = fwrite(mViewMatrix.get(), sizeof(*mViewMatrix), 1, ftmp) == 1;
+  ok = fclose(ftmp) == 0 && ok;
+  SetInfo(ok ? "Camera position stored to file %s" : "Error writing camera position to file %s", file);
+}
+
+void GPUDisplay::LoadGLPos()
+{
+  const char* file = mCfgC.mGLPosFile.c_str();
+  FILE* ftmp = fopen(file, "rb");
+  if (!ftmp) {
+    SetInfo("Error opening file %s", file);
+    return;
+  }
+  hmm_mat4 matrix;
+  const bool ok = fread(&matrix, sizeof(matrix), 1, ftmp) == 1;
+  fclose(ftmp);
+  if (ok) {
+    *mViewMatrix = matrix;
+  }
+  SetInfo(ok ? "Camera position loaded from file %s" : "Error reading camera position from file %s", file);
+}
+
+void GPUDisplay::SaveGLAnimation()
+{
+  const char* file = mCfgC.mGLAnimationFile.c_str();
+  FILE* ftmp = fopen(file, "w+b");
+  if (!ftmp) {
+    SetInfo("Error opening file %s", file);
+    return;
+  }
+  const int32_t size = mAnimateVectors[0].size();
+  bool ok = fwrite(&mCfgL, sizeof(mCfgL), 1, ftmp) == 1 && fwrite(&size, sizeof(size), 1, ftmp) == 1;
+  for (int32_t i = 0; i < 9; i++) {
+    ok = ok && fwrite(mAnimateVectors[i].data(), sizeof(mAnimateVectors[i][0]), size, ftmp) == (size_t)size;
+  }
+  ok = ok && fwrite(mAnimateConfig.data(), sizeof(mAnimateConfig[0]), size, ftmp) == (size_t)size;
+  ok = fclose(ftmp) == 0 && ok;
+  SetInfo(ok ? "Animation path stored to file %s" : "Error writing animation path to file %s", file);
+}
+
+void GPUDisplay::LoadGLAnimation()
+{
+  const char* file = mCfgC.mGLAnimationFile.c_str();
+  FILE* ftmp = fopen(file, "rb");
+  if (!ftmp) {
+    SetInfo("Error opening file %s", file);
+    return;
+  }
+  GPUSettingsDisplayLight cfg;
+  int32_t size = 0;
+  bool ok = fread(&cfg, sizeof(cfg), 1, ftmp) == 1 && fread(&size, sizeof(size), 1, ftmp) == 1 && size >= 0;
+  if (ok) { // Check the file size before allocating memory or changing anything
+    const long start = ftell(ftmp);
+    fseek(ftmp, 0, SEEK_END);
+    ok = (size_t)ftell(ftmp) == start + (size_t)size * (9 * sizeof(mAnimateVectors[0][0]) + sizeof(mAnimateConfig[0]));
+    fseek(ftmp, start, SEEK_SET);
+  }
+  if (ok) {
+    for (int32_t i = 0; i < 9; i++) {
+      mAnimateVectors[i].resize(size);
+      ok = ok && fread(mAnimateVectors[i].data(), sizeof(mAnimateVectors[i][0]), size, ftmp) == (size_t)size;
+    }
+    mAnimateConfig.resize(size);
+    ok = ok && fread(mAnimateConfig.data(), sizeof(mAnimateConfig[0]), size, ftmp) == (size_t)size;
+    if (ok) {
+      mCfgL = cfg;
+      std::get<1>(mOldCfg).animationMode = cfg.animationMode; // Otherwise the mode change resets the animation which was just loaded
+      updateConfig();
+    } else {
+      resetAnimation(); // Read error after the size check: no incomplete path
+    }
+  }
+  fclose(ftmp);
+  SetInfo(ok ? "Animation path loaded from file %s" : "Error reading animation path from file %s", file);
+}
+
+std::string GPUDisplay::trackFilterName() const
+{
+  if (mCfgH.trackFilter <= 0) {
+    return "";
+  }
+  return (uint32_t)mCfgH.trackFilter <= mConfig.filterMacros.size() ? "displayTrackFilter/" + mConfig.filterMacros[mCfgH.trackFilter - 1] : "Custom Macro";
 }
 
 void GPUDisplay::DoScreenshot(const char* filename, std::vector<char>& pixels, float animateTime)
@@ -99,6 +201,12 @@ void GPUDisplay::DoScreenshot(const char* filename, std::vector<char>& pixels, f
 
 void GPUDisplay::showInfo(const char* info)
 {
+  if (mCfgC.mPrintInfoTextGUI) {
+    mGUIInfoStatus = info;
+  }
+  if (!(mCfgC.mPrintInfoText & 1)) {
+    return;
+  }
   mBackend->updateFontScale(mFrontend->getDisplayScale());
   mBackend->prepareText();
   float colorValue = mCfgL.invertColors ? 0.f : 1.f;

@@ -156,17 +156,7 @@ void GPUDisplay::buildConfigKeys()
       }
     }),
     KEY_LAMBDA('J', mCfgL, drawRelatedSectors, val ^= 1;), //
-    KEY_LAMBDA(';', mCfgH, xAdd, {
-      mCfgH.xAdd += 60;
-      mCfgH.zAdd += 60;
-    }),
-    KEY_LAMBDA(':', mCfgH, xAdd, {
-      mCfgH.xAdd -= 60;
-      mCfgH.zAdd -= 60;
-      if (mCfgH.zAdd < 0 || mCfgH.xAdd < 0) {
-        mCfgH.zAdd = mCfgH.xAdd = 0;
-      }
-    }), //
+    KEY_LAMBDA(';', mCfgH, xzAdd, val += 60;),             //
     "Draw single sector (next  / previous sector), draw related sectors (same plane in phi) / Show splitting of TPC in sectors by extruding volume, [:] resets");
 
   mFrontend->add_key_binding(
@@ -200,16 +190,12 @@ void GPUDisplay::buildConfigKeys()
         val = 0;
       }
     }), //
-    "Mark flagged clusters (splitPad = 0x1, splitTime = 0x2, edge = 0x4, singlePad = 0x8, rejectDistance = 0x10, rejectErr = 0x20 / Mark fake attached clusters / Mark clusters attached as adjacent");
+    "Mark flagged clusters (splitPad = 0x1, splitTime = 0x2, edge = 0x4, singlePad = 0x8, rejectDistance = 0x10, rejectErr = 0x20 / Mark fake attached clusters / Mark adjacent clusters");
 
   mFrontend->add_key_binding(
-    KEY_LAMBDA('v', mCfgH, hideRejectedClusters, val ^= 1;), //
-    KEY_LAMBDA('j', mCfgH, separateExtrapolatedTracks, {
-      if (val) {
-        mCfgH.splitCETracks ^= 1;
-      }
-      val ^= 1;
-    }),
+    KEY_LAMBDA('v', mCfgH, hideRejectedClusters, val ^= 1;),
+    KEY_LAMBDA('j', mCfgH, separateExtrapolatedTracks, val ^= 1;),
+    KEY_LAMBDA('m', mCfgH, splitCETracks, val ^= 1;),
     KEY_LAMBDA('u', mCfgH, trackFilter, val = (val + 1) % (mConfig.filterMacros.size() + 1);), //
     "Hide rejected clusters from tracks / Show tracks segments propagated to adjacent sector in different color / splt CE tracks / Cycle through track filter");
 
@@ -242,35 +228,18 @@ void GPUDisplay::buildConfigKeys()
     "Draw single collisions (next / previous) / Colorcode clusters of different collisions");
 
   mFrontend->add_key_binding(
-    KEY_LAMBDA('t', mCfgC, mRequestScreenshot, {
-      static int32_t nScreenshot = 1;
-      char fname[32];
-      snprintf(fname, 32, "screenshot%d.bmp", nScreenshot++);
-      val = true;
-      mScreenshotFile = fname;
-      SetInfo("Taking screenshot (%s)", fname);
-    }),
+    KEY_LAMBDA('t', mCfgC, mRequestScreenshot, takeScreenshot();),
     KEY_LAMBDA('T', mCfgC, mAnimateScreenshot, val ^= 1; SetInfo("Writing screenshots from animation set to %d", mCfgC.mAnimateScreenshot);), //
     KEY_LAMBDA('Z', mCfgR, screenshotScaleFactor, {
       val += 1;
-      if (val == 5) {
+      if (val > 4) {
         val = 1;
       }
     }), //
     "Take Screenshot / Record Animation to pictures / Change screenshot resolution (scaling factor)");
 
   mFrontend->add_key_binding(
-    KEY_LAMBDA('y', mCfgC, dummy, {
-      if (mAnimateVectors[0].size() > 1) {
-        if (mCfgC.mAnimateScreenshot) {
-          mAnimationExport++;
-        }
-        startAnimation();
-        SetInfo("Starting Animation", 1);
-      } else {
-        SetInfo("Insufficient Animation points to start Animation", 1);
-      }
-    }),
+    KEY_LAMBDA('y', mCfgC, dummy, runAnimation();),
     KEY_LAMBDA('Y', mCfgC, dummy, setAnimationPoint(); SetInfo("Added Animation point (%d points, %6.2f seconds)", (int32_t)mAnimateVectors[0].size(), mAnimateVectors[0].back());), //
     KEY_LAMBDA('\'', mCfgC, dummy, removeAnimationPoint(); SetInfo("Removed Animation point", 1);),                                                                                  //
     KEY_LAMBDA('X', mCfgC, dummy, resetAnimation(); SetInfo("Reset Animation points", 1);),                                                                                          //
@@ -288,72 +257,10 @@ void GPUDisplay::buildConfigKeys()
     "Toggle config interpolation during Animation / change Animation interval (via movement)");
 
   mFrontend->add_key_binding(
-    KEY_LAMBDA('o', mCfgC, dummy, {
-      FILE* ftmp = fopen("glpos.tmp", "w+b");
-      if (ftmp) {
-        int32_t retval = fwrite(&mViewMatrix, sizeof(mViewMatrix), 1, ftmp);
-        if (retval != 1) {
-          GPUError("Error writing position to file");
-        } else {
-          GPUInfo("Position stored to file");
-        }
-        fclose(ftmp);
-      } else {
-        GPUError("Error opening file");
-      }
-      SetInfo("Camera position stored to file", 1);
-    }),
-    KEY_LAMBDA('p', mCfgC, dummy, {
-      FILE* ftmp = fopen("glpos.tmp", "rb");
-      if (ftmp) {
-        int32_t retval = fread(&mViewMatrix, 1, sizeof(mViewMatrix), ftmp);
-        if (retval == sizeof(mViewMatrix)) {
-          GPUInfo("Position read from file");
-        } else {
-          GPUError("Error reading position from file");
-        }
-        fclose(ftmp);
-      } else {
-        GPUError("Error opening file");
-      }
-      SetInfo("Camera position loaded from file", 1);
-    }),
-    KEY_LAMBDA('O', mCfgC, dummy, {
-      FILE* ftmp = fopen("glanimation.tmp", "w+b");
-      if (ftmp) {
-        fwrite(&mCfgL, sizeof(mCfgL), 1, ftmp);
-        int32_t size = mAnimateVectors[0].size();
-        fwrite(&size, sizeof(size), 1, ftmp);
-        for (int32_t i = 0; i < 9; i++) {
-          fwrite(mAnimateVectors[i].data(), sizeof(mAnimateVectors[i][0]), size, ftmp);
-        }
-        fwrite(mAnimateConfig.data(), sizeof(mAnimateConfig[0]), size, ftmp);
-        fclose(ftmp);
-      } else {
-        GPUError("Error opening file");
-      }
-      SetInfo("Animation path stored to file %s", "glanimation.tmp");
-    }),
-    KEY_LAMBDA('P', mCfgC, dummy, {
-      FILE* ftmp = fopen("glanimation.tmp", "rb");
-      if (ftmp) {
-        int32_t retval = fread(&mCfgL, sizeof(mCfgL), 1, ftmp);
-        int32_t size;
-        retval += fread(&size, sizeof(size), 1, ftmp);
-        for (int32_t i = 0; i < 9; i++) {
-          mAnimateVectors[i].resize(size);
-          retval += fread(mAnimateVectors[i].data(), sizeof(mAnimateVectors[i][0]), size, ftmp);
-        }
-        mAnimateConfig.resize(size);
-        retval += fread(mAnimateConfig.data(), sizeof(mAnimateConfig[0]), size, ftmp);
-        (void)retval; // disable unused warning
-        fclose(ftmp);
-        updateConfig();
-      } else {
-        GPUError("Error opening file");
-      }
-      SetInfo("Animation path loaded from file %s", "glanimation.tmp");
-    }), //
+    KEY_LAMBDA('o', mCfgC, dummy, SaveGLPos();),
+    KEY_LAMBDA('p', mCfgC, dummy, LoadGLPos();),
+    KEY_LAMBDA('O', mCfgC, dummy, SaveGLAnimation();),
+    KEY_LAMBDA('P', mCfgC, dummy, LoadGLAnimation();),
     "Save / restore current camera position / Animation path");
 
   mFrontend->add_key_binding(

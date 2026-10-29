@@ -218,6 +218,10 @@ int32_t GPUDisplay::DrawGLScene(bool suspended)
   } else if (!mOverlayTFClusters.size()) {
     mNCollissions = std::max(1u, mIOPtrs->nMCInfosTPCCol);
   }
+  if (mCfgL.showCollision >= mNCollissions) { // Fewer collisions in the new event
+    mCfgL.showCollision = -1;
+    mUpdateDrawCommands = true;
+  }
   try {
     DrawGLScene_internal(suspended);
   } catch (const std::runtime_error& e) {
@@ -244,8 +248,8 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(bool suspended, float animateTim
   mFrontend->mMouseWheel = 0;
   bool lookOrigin = mCfgR.camLookOrigin ^ mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_FOCUS_ORIGIN]];
   bool yUp = mCfgR.camYUp ^ mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_FOCUS_ORIENT_UP]] ^ lookOrigin;
-  bool rotateModel = mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_ROTATE_MODEL]] || mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_ROTATE_AROUND_Z]];
-  bool rotateModelTPC = mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_ROTATE_AROUND_Z]];
+  bool rotateModelTPC = mCfgC.mRotateAroundZ || mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_ROTATE_AROUND_Z]];
+  bool rotateModel = rotateModelTPC || mCfgC.mRotateModel || mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_ROTATE_MODEL]];
 
   // Calculate rotation / translation scaling factors
   float scalefactor = mFrontend->mKeys[mFrontend->KEY_SHIFT] ? 0.2f : 1.0f;
@@ -277,7 +281,7 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(bool suspended, float animateTim
     mCfgL.lineWidth = 1.4f;
     mCfgL.drawSector = -1;
     mCfgL.showCollision = -1;
-    mCfgH.xAdd = mCfgH.zAdd = 0;
+    mCfgH.xzAdd = 0;
     mCfgR.camLookOrigin = mCfgR.camYUp = false;
     mAngleRollOrigin = -1e9f;
     mCfgR.fov = 45.f;
@@ -305,13 +309,15 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(bool suspended, float animateTim
     }
 
     if (mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_CHANGE_ANIMATION_INTERVAL]]) {
-      mAnimationDelay += moveX;
-      if (mAnimationDelay < 0.05f) {
-        mAnimationDelay = 0.05f;
+      mCfgC.mAnimationDelay += moveX;
+      if (mCfgC.mAnimationDelay < 0.05f) {
+        mCfgC.mAnimationDelay = 0.05f;
+      } else if (mCfgC.mAnimationDelay > 20.f) {
+        mCfgC.mAnimationDelay = 20.f;
       }
       moveX = 0.f;
       moveY = 0.f;
-      SetInfo("Animation delay set to %1.2f", mAnimationDelay);
+      SetInfo("Animation delay set to %1.2f", mCfgC.mAnimationDelay);
     }
 
     if (yUp) {
@@ -706,10 +712,10 @@ void GPUDisplay::DrawGLScene_internal(bool suspended, float animateTime, bool re
     char info[1024];
     float fps = (double)mFramesDoneFPS / fpstime;
     snprintf(info, 1024,
-             "FPS: %6.2f (Sector: %d, 1:Clusters %d, 2:Prelinks %d, 3:Links %d, 4:Seeds %d, 5:Tracklets %d, 6:Tracks %d, 7:GTracks %d, 8:Merger %d) (%d frames, %d draw calls) "
-             "(X %1.2f Y %1.2f Z %1.2f / R %1.2f Phi %1.1f Theta %1.1f) / Yaw %1.1f Pitch %1.1f Roll %1.1f)",
+             "FPS:%8.2f (Sector: %d, 1:Clusters %d, 2:Prelinks %d, 3:Links %d, 4:Seeds %d, 5:Tracklets %d, 6:Tracks %d, 7:GTracks %d, 8:Merger %d) (%d frames, %d draw calls) "
+             "(X %1.2f Y %1.2f Z %1.2f / R %1.2f Phi %1.1f Theta %1.1f) / Yaw %1.1f Pitch %1.1f Roll %1.1f - Size: %ux%u",
              fps, mCfgL.drawSector, mCfgL.drawClusters, mCfgL.drawInitLinks, mCfgL.drawLinks, mCfgL.drawSeeds, mCfgL.drawTracklets, mCfgL.drawTracks, mCfgL.drawExtrapolatedTracks, mCfgL.drawFinal, mFramesDone, mNDrawCalls, mXYZ[0], mXYZ[1], mXYZ[2], mRPhiTheta[0], mRPhiTheta[1] * 180 / CAMath::Pi(),
-             mRPhiTheta[2] * 180 / CAMath::Pi(), mAngle[1] * 180 / CAMath::Pi(), mAngle[0] * 180 / CAMath::Pi(), mAngle[2] * 180 / CAMath::Pi());
+             mRPhiTheta[2] * 180 / CAMath::Pi(), mAngle[1] * 180 / CAMath::Pi(), mAngle[0] * 180 / CAMath::Pi(), mAngle[2] * 180 / CAMath::Pi(), mBackend->mScreenWidth, mBackend->mScreenHeight);
     if (fpstime > 1.) {
       if (mCfgC.mPrintInfoText & 2) {
         GPUInfo("%s", info);
@@ -721,7 +727,7 @@ void GPUDisplay::DrawGLScene_internal(bool suspended, float animateTime, bool re
       mFramesDoneFPS = 0;
     }
 
-    if (mCfgC.mPrintInfoText & 1) {
+    if (mCfgC.mPrintInfoText & 1 || mCfgC.mPrintInfoTextGUI) {
       showInfo(info);
     }
   }
@@ -732,9 +738,9 @@ void GPUDisplay::DrawGLScene_internal(bool suspended, float animateTime, bool re
     std::vector<char> pixels = mBackend->getPixels();
     char tmpFileName[48];
     if (animateScreenshot) {
-      snprintf(tmpFileName, 48, "mAnimation%d_%05d.bmp", mAnimationExport, mAnimationFrame);
+      snprintf(tmpFileName, 48, "%d_%05d.bmp", mAnimationExport, mAnimationFrame);
     }
-    DoScreenshot(animateScreenshot ? tmpFileName : mScreenshotFile.c_str(), pixels);
+    DoScreenshot(animateScreenshot ? (mCfgC.mScreenShotname + tmpFileName).c_str() : mScreenshotFile.c_str(), pixels);
   }
 }
 
