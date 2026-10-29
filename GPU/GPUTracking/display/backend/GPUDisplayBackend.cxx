@@ -163,13 +163,16 @@ std::vector<char> GPUDisplayBackend::getPixels()
 
 void GPUDisplayBackend::fillIndirectCmdBuffer()
 {
-  mCmdBuffer.clear();
   mIndirectSectorOffset.resize(GPUTPCGeometry::NSECTORS);
-  // TODO: Check if this can be parallelized
+  size_t total = 0;
   for (uint32_t iSector = 0; iSector < GPUTPCGeometry::NSECTORS; iSector++) {
-    mIndirectSectorOffset[iSector] = mCmdBuffer.size();
+    mIndirectSectorOffset[iSector] = total;
+    total += mDisplay->vertexBufferStart()[iSector].size();
+  }
+  mCmdBuffer.resize(total);
+  for (uint32_t iSector = 0; iSector < GPUTPCGeometry::NSECTORS; iSector++) {
     for (uint32_t k = 0; k < mDisplay->vertexBufferStart()[iSector].size(); k++) {
-      mCmdBuffer.emplace_back(mDisplay->vertexBufferCount()[iSector][k], 1, mDisplay->vertexBufferStart()[iSector][k], 0);
+      mCmdBuffer[mIndirectSectorOffset[iSector] + k] = DrawArraysIndirectCommand(mDisplay->vertexBufferCount()[iSector][k], 1, mDisplay->vertexBufferStart()[iSector][k], 0);
     }
   }
 }
