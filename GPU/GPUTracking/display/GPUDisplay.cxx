@@ -638,7 +638,9 @@ void GPUDisplay::DrawGLScene_internal(bool suspended, float animateTime, bool re
       mCfgC.mAnimateScreenshot = 0;
     }
   }
-  bool doScreenshot = (mCfgC.mRequestScreenshot || mCfgC.mAnimateScreenshot) && animateTime < 0;
+  const bool animateScreenshot = mCfgC.mAnimateScreenshot && mAnimate;        // Copy, the animation resets mAnimateScreenshot in its last frame
+  const bool screenshotFrame = mCfgC.mRequestScreenshot || animateScreenshot; // Also for the mix pass (animateTime >= 0), which must use the same render size
+  const bool doScreenshot = screenshotFrame && animateTime < 0;
 
   updateOptions();
   if (animateTime < 0 && (mUpdateEventData || mCfgC.mResetScene.load() || mUpdateVertexLists) && mIOPtrs) {
@@ -680,7 +682,7 @@ void GPUDisplay::DrawGLScene_internal(bool suspended, float animateTime, bool re
   const float zFar = ((mParam->par.continuousTracking ? (mMaxClusterZ * GL_SCALE_FACTOR) : 8.f) + 50.f) * 2.f;
   const float aspect = mBackend->mRenderHeight ? (float)mBackend->mRenderWidth / (float)mBackend->mRenderHeight : 1.f; // No render size with the None backend
   const hmm_mat4 proj = HMM_Perspective(mCfgR.fov, aspect, 0.1f, zFar);
-  if (!mBackend->prepareDraw(proj, nextViewMatrix, doScreenshot || mCfgC.mRequestScreenshot, renderToMixBuffer, mixSlaveImage)) {
+  if (!mBackend->prepareDraw(proj, nextViewMatrix, screenshotFrame, renderToMixBuffer, mixSlaveImage)) {
     return; // No image available (e.g. hidden window), retry with the next frame
   }
   mBackend->pointSizeFactor(1);
@@ -726,15 +728,15 @@ void GPUDisplay::DrawGLScene_internal(bool suspended, float animateTime, bool re
     }
   }
 
-  mBackend->finishFrame(mCfgC.mRequestScreenshot, renderToMixBuffer, mixSlaveImage);
+  mBackend->finishFrame(doScreenshot, renderToMixBuffer, mixSlaveImage);
   if (doScreenshot) {
     mCfgC.mRequestScreenshot = false;
     std::vector<char> pixels = mBackend->getPixels();
     char tmpFileName[48];
-    if (mCfgC.mAnimateScreenshot) {
+    if (animateScreenshot) {
       snprintf(tmpFileName, 48, "mAnimation%d_%05d.bmp", mAnimationExport, mAnimationFrame);
     }
-    DoScreenshot(mCfgC.mAnimateScreenshot ? tmpFileName : mScreenshotFile.c_str(), pixels);
+    DoScreenshot(animateScreenshot ? tmpFileName : mScreenshotFile.c_str(), pixels);
   }
 }
 
