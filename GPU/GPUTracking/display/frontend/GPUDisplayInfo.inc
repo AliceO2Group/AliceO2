@@ -29,6 +29,8 @@ void GPUDisplay::SetInfo(Args... args)
   snprintf(mInfoText2, 1024, args...);
 #pragma GCC diagnostic pop
   GPUInfo("%s", mInfoText2);
+  mGUIInfoText = mInfoText2;
+  mGUIInfoTextCounter++;
   mInfoText2Timer.ResetStart();
 }
 } // namespace o2::gpu

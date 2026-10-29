@@ -16,6 +16,7 @@
 #define GPUDISPLAY_H
 
 #include "frontend/GPUDisplayFrontend.h"
+#include "frontend/GPUDisplayControl.h"
 #include "backend/GPUDisplayBackend.h"
 #include "GPUDisplayInterface.h"
 #include "GPUSettings.h"
@@ -87,21 +88,13 @@ class GPUDisplay : public GPUDisplayInterface
   GPUDisplayFrontend* frontend() { return mFrontend; }
   int32_t& drawTextFontSize() { return mDrawTextFontSize; }
 
-  struct control {
-    std::atomic<int32_t> mDisplayControl = 0; // Control for next event (=1) or quit (=2)
-    std::atomic<bool> mResetScene = false;
-    int32_t mPrintInfoText = 1;
-    bool mPrintInfoTextAlways = false;
-    bool mRequestScreenshot = false;
-    int32_t mAnimateScreenshot = 0;
-    bool mAnimationChangeConfig = true;
-    bool dummy = false; // dummy value to reference for keys that do not change variables
-  } mCfgC;
+  GPUDisplayControl mCfgC;
 
  private:
   void buildConfig();
   void buildConfigKeys();
   void buildConfigInfo();
+  void buildConfigQtGUI();
 
   static constexpr int32_t NSECTORS = o2::tpc::constants::MAXSECTOR;
   static constexpr float GL_SCALE_FACTOR = (1.f / 100.f);
@@ -114,6 +107,7 @@ class GPUDisplay : public GPUDisplayInterface
   static constexpr const int32_t N_LINES_TYPE = 7;
   static constexpr const int32_t N_FINAL_TYPE = 4;
   static constexpr int32_t TRACK_TYPE_ID_LIMIT = 100;
+  static const std::array<std::string, 7> ANIMATION_MODE_NAMES_SHORT, ANIMATION_MODE_NAMES_LONG; // By mCfgL.animationMode
   enum PointTypes { tCLUSTER = 0,
                     tINITLINK = 1,
                     tLINK = 2,
@@ -180,6 +174,7 @@ class GPUDisplay : public GPUDisplayInterface
   void updateOptions();
   void disableUnsupportedOptions();
   int32_t buildTrackFilter();
+  std::string trackFilterName() const; // Selected track filter: macro file from filterMacros, or "Custom Macro"
   const GPUTPCTracker& sectorTracker(int32_t iSector);
   const GPUTRDGeometry* trdGeometry();
   const GPUTrackingInOutPointers* mIOPtrs = nullptr;
@@ -191,6 +186,12 @@ class GPUDisplay : public GPUDisplayInterface
   void calcXYZ(const float*);
   void mAnimationCloseAngle(float& newangle, float lastAngle);
   void mAnimateCloseQuaternion(float* v, float lastx, float lasty, float lastz, float lastw);
+  void SaveGLPos(); // Camera position to mCfgC.mGLPosFile
+  void LoadGLPos();
+  void SaveGLAnimation(); // Animation path to mCfgC.mGLAnimationFile
+  void LoadGLAnimation();
+  void takeScreenshot();
+  void runAnimation(); // Starts the animation if it has enough points
   void setAnimationPoint();
   void resetAnimation();
   void removeAnimationPoint();
@@ -300,6 +301,8 @@ class GPUDisplay : public GPUDisplayInterface
   std::vector<bool> mTrackFilter;
 
   volatile bool mUpdateTrackFilter = false;
+  std::string mTrackFilterMacroLoaded; // Track filter macro file loaded into ROOT, unloaded before loading another one (same function name)
+  bool mUpdateGUIOptions = false;      // The Qt GUI must call the dynamic option lambdas of its elements again (new event, GUI started)
   volatile bool mUpdateVertexLists = true;
   volatile bool mUpdateEventData = false;
   volatile bool mUpdateDrawCommands = true;
@@ -313,12 +316,14 @@ class GPUDisplay : public GPUDisplayInterface
   int32_t mAnimationLastBase = 0;
   int32_t mAnimationMixBase = -1; // Target keyframe of the current config blend (mixing), -1 = none
   int32_t mAnimationExport = 0;
-  float mAnimationDelay = 2.f;
   vecpod<float> mAnimateVectors[9];
   vecpod<GPUSettingsDisplayLight> mAnimateConfig;
   opengl_spline mAnimationSplines[8];
 
   char mInfoText2[1024];
+  std::string mGUIInfoStatus;       // Latest status line (FPS etc.) for the Qt GUI
+  std::string mGUIInfoText;         // Latest info message (SetInfo) for the Qt GUI
+  uint64_t mGUIInfoTextCounter = 0; // Number of info messages, the GUI shows a new one for some seconds
   HighResTimer mInfoText2Timer, mInfoHelpTimer;
 
   std::vector<threadVertexBuffer> mThreadBuffers;

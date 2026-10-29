@@ -29,14 +29,8 @@ void GPUDisplay::buildConfigInfo()
     }
   }));
   addInfo(INFO_LAMBDA(mCfgL, drawRelatedSectors, SetInfo("Drawing of related sectors %s", val ? "enabled" : "disabled");));
-  addInfo(INFO_LAMBDA(mCfgH, xAdd, SetInfo("TPC sector separation: %f %f", mCfgH.xAdd, mCfgH.zAdd);));
-  addInfo(INFO_LAMBDA(mCfgL, animationMode, {
-    if (val == 6) {
-      SetInfo("Animation mode %d - Centered on origin", val);
-    } else {
-      SetInfo("Animation mode %d - Position: %s, Direction: %s", val, (val & 2) ? "Spherical (spherical rotation)" : ((val & 4) ? "Spherical (Euler angles)" : "Cartesian"), (val & 1) ? "Euler angles" : "Quaternion");
-    }
-  }));
+  addInfo(INFO_LAMBDA(mCfgH, xzAdd, SetInfo("TPC sector separation: %f", mCfgH.xzAdd);));
+  addInfo(INFO_LAMBDA(mCfgL, animationMode, SetInfo("Animation mode set to %s", ANIMATION_MODE_NAMES_LONG[val].c_str());));
   addInfo(INFO_LAMBDA(mCfgL, drawGrid, SetInfo("Fast Cluster Search Grid %s", val ? "shown" : "hidden");));
   addInfo(INFO_LAMBDA(mCfgH, projectXY, SetInfo("Projection onto xy plane %s", val ? "enabled" : "disabled");));
   addInfo(INFO_LAMBDA(mCfgL, excludeClusters, SetInfo(val ? "Clusters of selected category are excluded from display (%d)" : "Clusters are shown", val);));
@@ -64,7 +58,7 @@ void GPUDisplay::buildConfigInfo()
   addInfo(INFO_LAMBDA(mCfgL, colorCollisions, SetInfo("Color coding of collisions %s", val ? "enabled" : "disabled");));
   addInfo(INFO_LAMBDA(mCfgH, hideRejectedClusters, SetInfo("Rejected clusters are %s", val ? "hidden" : "shown");));
   addInfo(INFO_LAMBDA(mCfgH, separateExtrapolatedTracks, SetInfo("Seperated display of tracks propagated to adjacent sectors %s / of CE tracks %s", val ? "enabled" : "disabled", mCfgH.splitCETracks ? "enabled" : "disabled");));
-  addInfo(INFO_LAMBDA(mCfgH, trackFilter, SetInfo("Track filter: %s", val == 0 ? "None" : mConfig.filterMacros[val - 1].c_str());));
+  addInfo(INFO_LAMBDA(mCfgH, trackFilter, SetInfo("Track filter: %s", val == 0 ? "None" : trackFilterName().c_str());));
   addInfo(INFO_LAMBDA(mCfgL, propagateTracks, {
     const char* infoText[] = {"Hits connected", "Hits connected and propagated to vertex", "Reconstructed track propagated inwards and outwards", "Monte Carlo track"};
     SetInfo("Display of propagated tracks: %s", infoText[val]);
