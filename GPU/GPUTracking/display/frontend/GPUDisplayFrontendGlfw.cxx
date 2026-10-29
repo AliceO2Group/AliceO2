@@ -347,6 +347,7 @@ int32_t GPUDisplayFrontendGlfw::FrontendMain()
     glfwDestroyWindow(mWindow);
     glfwTerminate();
     mDisplayRunning = false;
+    mDisplayStoppedCV.notify_all();
   }
 
   return retVal;
