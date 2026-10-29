@@ -14,6 +14,7 @@
 
 #include "TRDSimulation/Detector.h"
 
+#include "TRDBase/Geometry.h"
 #include "TRDBase/PadResponse.h"
 #include "TRDSimulation/DiffAndTimeStructEstimator.h"
 #include "TRDSimulation/PileupTool.h"

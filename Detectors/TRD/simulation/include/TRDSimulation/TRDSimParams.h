@@ -41,7 +41,7 @@ struct TRDSimParams : public o2::conf::ConfigurableParamHelper<TRDSimParams> {
   int trf = 0;                  // Sampled TRF function. 0: default TRF, 1: TRF described in TRF TDR, 2: No TRF, 3: Landau dist as TRF (parameters specified below)
   float trf_landau_mu = 0.;     // Mu of the Landau distribution used to describe TRF
   float trf_landau_sigma = .03; // Sigma of the Landau distribution used to describe TRF
-  float t0 = 0.180;             // Time delay before start of amplification peak, in us
+  float t0 = -0.130;            // Time delay before start of amplification peak, in us
   O2ParamDef(TRDSimParams, "TRDSimParams");
 };
 
