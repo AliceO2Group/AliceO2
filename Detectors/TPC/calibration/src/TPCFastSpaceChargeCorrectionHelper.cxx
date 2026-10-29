@@ -324,6 +324,115 @@ std::unique_ptr<TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrectionHelper
   return std::move(correctionPtr);
 } // createFromLocalCorrection
 
+std::unique_ptr<TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrectionHelper::createFromLocalCorrection(
+  std::function<void(int sector, int irow, double y, double z, double& dx, double& dy, double& dz)> correctionLocal,
+  const std::vector<double>& knotsY, const std::vector<double>& knotsZ)
+{
+  /// creates TPCFastSpaceChargeCorrection object from a continuous space charge correction in local coordinates,
+  /// with irregular spline knots
+
+  LOG(info) << "fast space charge correction helper: create correction with irregular knots using " << mNthreads << " threads";
+
+  if (!mIsInitialized) {
+    initGeometry();
+  }
+
+  // spline knots must be positioned on the grid with an integer internal coordinate:
+  // the knot positioning accuracy is set to 0.1 * the smallest knot distance
+  std::vector<int> knotsInt[2];
+  for (int dim = 0; dim < 2; dim++) {
+    const std::vector<double>& knots = (dim == 0) ? knotsY : knotsZ;
+    if (knots.size() < 2) {
+      LOG(error) << "fast space charge correction helper: at least 2 knots needed in " << (dim == 0 ? "y" : "z");
+      return nullptr;
+    }
+    double minDistance = knots[1] - knots[0];
+    for (size_t i = 2; i < knots.size(); i++) {
+      minDistance = std::min(minDistance, knots[i] - knots[i - 1]);
+    }
+    if (!(minDistance > 0.)) {
+      LOG(error) << "fast space charge correction helper: the knots in " << (dim == 0 ? "y" : "z") << " must be strictly increasing";
+      return nullptr;
+    }
+    const double pitch = 0.1 * minDistance;
+    for (const double knot : knots) {
+      knotsInt[dim].push_back(int((knot - knots[0]) / pitch + 0.5));
+    }
+  }
+
+  std::unique_ptr<TPCFastSpaceChargeCorrection> correctionPtr(new TPCFastSpaceChargeCorrection);
+  TPCFastSpaceChargeCorrection& correction = *correctionPtr;
+
+  { // create the correction object: one spline scenario for all rows
+    correction.startConstruction(mGeo, 1);
+    for (int row = 0; row < mGeo.getNumberOfRows(); row++) {
+      correction.setRowScenarioID(row, 0);
+    }
+    TPCFastSpaceChargeCorrection::SplineType spline;
+    spline.recreate(knotsInt[0].size(), knotsInt[0].data(), knotsInt[1].size(), knotsInt[1].data());
+    correction.setSplineScenario(0, spline);
+    correction.finishConstruction();
+  }
+
+  // sampling points, relative to the grid (0: the first knot, 1: the last one): 6 per knot interval
+  std::vector<double> samplingPoints[2];
+  for (int dim = 0; dim < 2; dim++) {
+    const std::vector<int>& knots = knotsInt[dim];
+    const double uMax = knots.back();
+    for (size_t i = 0; i + 1 < knots.size(); i++) {
+      for (int j = 0; j < 6; j++) {
+        samplingPoints[dim].push_back((knots[i] + (knots[i + 1] - knots[i]) * j / 6.) / uMax);
+      }
+    }
+    samplingPoints[dim].push_back(1.);
+  }
+
+  LOG(info) << "fast space charge correction helper: fill data points from an input SP correction function";
+
+  const int nSectors = mGeo.getNumberOfSectors();
+  const int nRows = mGeo.getNumberOfRows();
+  mCorrectionMap.init(nSectors, nRows);
+
+  for (int iSector = 0; iSector < nSectors; iSector++) {
+
+    auto myThread = [&](int iThread) {
+      for (int iRow = iThread; iRow < nRows; iRow += mNthreads) {
+        const auto& rowInfo = mGeo.getRowInfo(iRow);
+        for (const double pointY : samplingPoints[0]) {
+          const double y = rowInfo.getYmin() + pointY * rowInfo.getYwidth();
+          for (const double pointZ : samplingPoints[1]) {
+            // z of the grid: 0 at the central electrode, mirrored on the C side
+            const double z = (iSector < mGeo.getNumberOfSectorsA() ? 1. : -1.) * pointZ * mGeo.getTPCzLength();
+            double dx;
+            double dy;
+            double dz;
+            correctionLocal(iSector, iRow, y, z, dx, dy, dz);
+            mCorrectionMap.addCorrectionPoint(iSector, iRow, y, z, dx, dy, dz, 1.);
+          }
+        }
+      } // row
+    }; // thread
+
+    std::vector<std::thread> threads(mNthreads);
+
+    // run n threads
+    for (int i = 0; i < mNthreads; i++) {
+      threads[i] = std::thread(myThread, i);
+    }
+
+    // wait for the threads to finish
+    for (auto& th : threads) {
+      th.join();
+    }
+
+  } // sector
+
+  fillSpaceChargeCorrectionFromMap(correction, false);
+  initInverse(correction, false);
+
+  return correctionPtr;
+} // createFromLocalCorrection with irregular knots
+
 void TPCFastSpaceChargeCorrectionHelper::testGeometry(const TPCFastTransformGeo& geo) const
 {
   const Mapper& mapper = Mapper::instance();

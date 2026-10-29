@@ -80,6 +80,17 @@ class TPCFastSpaceChargeCorrectionHelper
     std::function<void(int roc, int irow, double y, double z, double& dx, double& dy, double& dz)> correctionLocal,
     const int nKnotsY = 10, const int nKnotsZ = 20);
 
+  /// creates TPCFastSpaceChargeCorrection object from a continuous space charge correction in local coordinates,
+  /// with irregular spline knots (e.g. denser where the correction changes fast)
+  /// \param correctionLocal correction function in local coordinates
+  /// \param knotsY knot positions along the row, increasing; the first and the last knot are put at the row's y edges, the others in proportion
+  /// \param knotsZ knot positions along the drift, increasing; the first knot is put at the central electrode, the last one at the readout
+  /// \note the knots are rounded to an integer grid with 1/10 of the smallest knot distance as step (as in createFromTrackResiduals).
+  ///       The correction is sampled at 6 points per knot interval over the whole grid, in y and in z.
+  std::unique_ptr<TPCFastSpaceChargeCorrection> createFromLocalCorrection(
+    std::function<void(int roc, int irow, double y, double z, double& dx, double& dy, double& dz)> correctionLocal,
+    const std::vector<double>& knotsY, const std::vector<double>& knotsZ);
+
   /// creates TPCFastSpaceChargeCorrection object from a continious space charge correction in global coordinates
   std::unique_ptr<TPCFastSpaceChargeCorrection> createFromGlobalCorrection(
     std::function<void(int roc, double gx, double gy, double gz,
