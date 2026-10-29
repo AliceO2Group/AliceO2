@@ -138,6 +138,7 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   void HandleExternalGUISignals();                 // Callback to handle signals from external GUIs
   bool HasExternalGUISignals() const;              // Returns whether there are currently pending signals from external GUIs to be handled
   bool processKeyLambda(uint32_t key);             // Process key lambda callback
+  void showConfigInfo(uint32_t index);             // Info for a changed option (index in the config RTTI): its info callback, or "struct.option changed to value"
   void ResizeScene(int32_t width, int32_t height); // Callback when GL window is resized
   int32_t InitDisplay(bool initFailure = false);   // Callback to initialize the GL Display (to be called in StartDisplay)
   void ExitDisplay();                              // Callback to clean up the GL Display
