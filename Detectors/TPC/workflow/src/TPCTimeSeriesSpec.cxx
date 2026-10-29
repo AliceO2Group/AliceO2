@@ -40,6 +40,9 @@
 #include <chrono>
 #include "DataFormatsTPC/PIDResponse.h"
 #include "DataFormatsITS/TrackITS.h"
+#include "DataFormatsTRD/TrackTRD.h"
+#include "DataFormatsTRD/Tracklet64.h"
+#include "DataFormatsTRD/CalibratedTracklet.h"
 #include "TROOT.h"
 #include "ReconstructionDataFormats/MatchInfoTOF.h"
 #include "DataFormatsTOF/Cluster.h"
@@ -60,6 +63,13 @@ namespace tpc
 class TPCTimeSeries : public Task
 {
  public:
+  /// D2: per-track TRD tracklet lookup data
+  struct TRDTrackletData {
+    uint8_t trdPattern = 0;
+    uint8_t nTRDTracklets = 0;
+    int trackletIndices[6] = {-1, -1, -1, -1, -1, -1};
+  };
+
   /// \constructor
   TPCTimeSeries(std::shared_ptr<o2::base::GRPGeomRequest> req, const bool disableWriter, const o2::base::Propagator::MatCorrType matType, const bool enableUnbinnedWriter, const bool tpcOnly, std::shared_ptr<o2::globaltracking::DataRequest> dr) : mCCDBRequest(req), mDisableWriter(disableWriter), mMatType(matType), mUnbinnedWriter(enableUnbinnedWriter), mTPCOnly(tpcOnly), mDataRequest(dr) {};
 
@@ -298,6 +308,38 @@ class TPCTimeSeries : public Task
     // find nearest vertex of tracks which have no vertex assigned
     findNearesVertex(tracksTPC, vertices);
 
+    // D2: build TPC track index → TRD tracklet data map (for unbinned output)
+    // For each TPC track that has a TRD match, store the TrackTRD tracklet indices
+    std::unordered_map<unsigned int, TRDTrackletData> tpcToTRDMap;
+    auto trdTracklets = mTPCOnly ? gsl::span<const o2::trd::Tracklet64>() : recoData.getTRDTracklets();
+    auto trdCalibTracklets = mTPCOnly ? gsl::span<const o2::trd::CalibratedTracklet>() : recoData.getTRDCalibratedTracklets();
+    if (mUnbinnedWriter && !mTPCOnly) {
+      // scan ITS-TPC-TRD tracks
+      auto itstpctrdTracks = recoData.getITSTPCTRDTracks<o2::trd::TrackTRD>();
+      for (unsigned int ig = 0; ig < itstpctrdTracks.size(); ++ig) {
+        auto gid = GTrackID(ig, GTrackID::ITSTPCTRD);
+        auto refTPC = recoData.getTPCContributorGID(gid);
+        if (!refTPC.isIndexSet()) {
+          continue;
+        }
+        auto refTRD = recoData.getSingleDetectorRefs(gid)[GTrackID::TRD];
+        if (!refTRD.isIndexSet()) {
+          continue;
+        }
+        const auto& trdTrack = recoData.getTrack<o2::trd::TrackTRD>(refTRD);
+        TRDTrackletData trdData;
+        for (int iLay = 0; iLay < 6; ++iLay) {
+          auto trkltId = trdTrack.getTrackletIndex(iLay);
+          if (trkltId >= 0) {
+            trdData.trdPattern |= (1 << iLay);
+            trdData.nTRDTracklets++;
+            trdData.trackletIndices[iLay] = trkltId;
+          }
+        }
+        tpcToTRDMap[refTPC] = trdData;
+      }
+    }
+
     // getting cluster references for cluster bitmask
     if (mUnbinnedWriter) {
       mTPCTrackClIdx = pc.inputs().get<gsl::span<o2::tpc::TPCClRefElem>>("trackTPCClRefs");
@@ -467,7 +509,7 @@ class TPCTimeSeries : public Task
       auto myThread = [&](int iThread) {
         for (size_t i = iThread; i < loopEnd; i += mNThreads) {
           if (acceptTrack(tracksTPC[i])) {
-            fillDCA(tracksTPC, tracksITSTPC, vertices, i, iThread, indicesITSTPC, tracksITS, idxTPCTrackToTOFCluster, tofClusters);
+            fillDCA(tracksTPC, tracksITSTPC, vertices, i, iThread, indicesITSTPC, tracksITS, idxTPCTrackToTOFCluster, tofClusters, tpcToTRDMap, trdTracklets, trdCalibTracklets);
           }
         }
       };
@@ -484,7 +526,7 @@ class TPCTimeSeries : public Task
       auto myThread = [&](int iThread) {
         for (size_t i = iThread; i < loopEnd; i += mNThreads) {
           if (acceptTrack(tracksTPC[i])) {
-            fillDCA(tracksTPC, tracksITSTPC, vertices, i, iThread, indicesITSTPC, tracksITS, idxTPCTrackToTOFCluster, tofClusters);
+            fillDCA(tracksTPC, tracksITSTPC, vertices, i, iThread, indicesITSTPC, tracksITS, idxTPCTrackToTOFCluster, tofClusters, tpcToTRDMap, trdTracklets, trdCalibTracklets);
           }
         }
       };
@@ -1122,7 +1164,7 @@ class TPCTimeSeries : public Task
     return isGoodTrack;
   }
 
-  void fillDCA(const gsl::span<const TrackTPC> tracksTPC, const gsl::span<const o2::dataformats::TrackTPCITS> tracksITSTPC, const gsl::span<const o2::dataformats::PrimaryVertex> vertices, const int iTrk, const int iThread, const std::unordered_map<unsigned int, std::array<int, 2>>& indicesITSTPC, const gsl::span<const o2::its::TrackITS> tracksITS, const std::vector<std::tuple<int, float, float, o2::track::TrackLTIntegral, double, float, unsigned int, unsigned short>>& idxTPCTrackToTOFCluster, const gsl::span<const o2::tof::Cluster> tofClusters)
+  void fillDCA(const gsl::span<const TrackTPC> tracksTPC, const gsl::span<const o2::dataformats::TrackTPCITS> tracksITSTPC, const gsl::span<const o2::dataformats::PrimaryVertex> vertices, const int iTrk, const int iThread, const std::unordered_map<unsigned int, std::array<int, 2>>& indicesITSTPC, const gsl::span<const o2::its::TrackITS> tracksITS, const std::vector<std::tuple<int, float, float, o2::track::TrackLTIntegral, double, float, unsigned int, unsigned short>>& idxTPCTrackToTOFCluster, const gsl::span<const o2::tof::Cluster> tofClusters, const std::unordered_map<unsigned int, TRDTrackletData>& tpcToTRDMap, const gsl::span<const o2::trd::Tracklet64> trdTracklets, const gsl::span<const o2::trd::CalibratedTracklet> trdCalibTracklets)
   {
     const auto& trackFull = tracksTPC[iTrk];
     const bool isGoodTrack = checkTrack(trackFull);
@@ -1168,20 +1210,21 @@ class TPCTimeSeries : public Task
       return;
     }
 
-    const int tglBin = mTglBins * std::abs(trackTmp.getTgl()) / mMaxTgl + mPhiBins;
-    const int phiBin = mPhiBins * trackTmp.getPhi() / o2::constants::math::TwoPI;
+    // Saturate bin indices — edge bins act as overflow (Phase 0.2 fix)
+    const int tglBin = std::clamp(static_cast<int>(mTglBins * std::abs(trackTmp.getTgl()) / mMaxTgl) + mPhiBins,
+                                  mPhiBins, mPhiBins + mTglBins - 1);
+    const int phiBin = std::clamp(static_cast<int>(mPhiBins * trackTmp.getPhi() / o2::constants::math::TwoPI),
+                                  0, mPhiBins - 1);
 
     const int offsQPtBin = mPhiBins + mTglBins;
-    const int qPtBin = offsQPtBin + mQPtBins * (trackTmp.getQ2Pt() + mMaxQPt) / (2 * mMaxQPt);
+    const int qPtBin = std::clamp(offsQPtBin + static_cast<int>(mQPtBins * (trackTmp.getQ2Pt() + mMaxQPt) / (2 * mMaxQPt)),
+                                  offsQPtBin, offsQPtBin + mQPtBins - 1);
     const int localMult = mNTracksWindow[iTrk];
 
     const int offsMult = offsQPtBin + mQPtBins;
-    const int multBin = offsMult + mMultBins * localMult / mMultMax;
+    const int multBin = std::clamp(offsMult + static_cast<int>(mMultBins * localMult / mMultMax),
+                                   offsMult, offsMult + mMultBins - 1);
     const int nBins = getNBins();
-
-    if ((phiBin < 0) || (phiBin > mPhiBins) || (tglBin < mPhiBins) || (tglBin > offsQPtBin) || (qPtBin < offsQPtBin) || (qPtBin > offsMult) || (multBin < offsMult) || (multBin > offsMult + mMultBins)) {
-      return;
-    }
 
     float sigmaY2 = 0;
     float sigmaZ2 = 0;
@@ -1343,6 +1386,30 @@ class TPCTimeSeries : public Task
         const float chi2match_ITSTPC = hasITSTPC ? tracksITSTPC[idxITSTPC.front()].getChi2Match() : -1;
         const int nClITS = idxITSCheck ? tracksITS[idxITSTrack].getNClusters() : -1;
         const int chi2ITS = idxITSCheck ? tracksITS[idxITSTrack].getChi2() : -1;
+        // D1: ITS cluster sizes (4-bit per layer, mask bit 28 = kSharedClusters)
+        const uint32_t itsClusterSizes = idxITSCheck ? (static_cast<uint32_t>(tracksITS[idxITSTrack].getClusterSizes()) & 0x0FFFFFFFu) : 0u;
+        const bool itsHasSharedClusters = idxITSCheck ? tracksITS[idxITSTrack].hasSharedClusters() : false;
+        const uint32_t itsPattern = idxITSCheck ? (tracksITS[idxITSTrack].getPattern() & 0x7Fu) : 0u;
+
+        // D2: TRD tracklet data — native objects per layer
+        uint8_t trdPattern = 0;
+        uint8_t nTRDTracklets = 0;
+        std::vector<o2::trd::Tracklet64> trdTrackletVec(6);
+        std::vector<o2::trd::CalibratedTracklet> trdCalibVec(6);
+        auto itTRD = tpcToTRDMap.find(iTrk);
+        if (itTRD != tpcToTRDMap.end()) {
+          const auto& trdData = itTRD->second;
+          trdPattern = trdData.trdPattern;
+          nTRDTracklets = trdData.nTRDTracklets;
+          for (int iLay = 0; iLay < 6; ++iLay) {
+            if (trdData.trackletIndices[iLay] >= 0) {
+              trdTrackletVec[iLay] = trdTracklets[trdData.trackletIndices[iLay]];
+              if (trdData.trackletIndices[iLay] < static_cast<int>(trdCalibTracklets.size())) {
+                trdCalibVec[iLay] = trdCalibTracklets[trdData.trackletIndices[iLay]];
+              }
+            }
+          }
+        }
         int typeSide = 2; // A- and C-Side cluster
         if (trackFull.hasASideClustersOnly()) {
           typeSide = 0;
@@ -1477,6 +1544,14 @@ class TPCTimeSeries : public Task
                             << "mX_ITS=" << mx_ITS
                             << "nClITS=" << nClITS
                             << "chi2ITS=" << chi2ITS
+                            << "itsClusterSizes=" << itsClusterSizes
+                            << "itsHasSharedClusters=" << itsHasSharedClusters
+                            << "itsPattern=" << itsPattern
+                            // D2: TRD tracklet data
+                            << "trdPattern=" << trdPattern
+                            << "nTRDTracklets=" << nTRDTracklets
+                            << "trdTracklets=" << trdTrackletVec
+                            << "trdCalibTracklets=" << trdCalibVec
                             << "chi2match_ITSTPC=" << chi2match_ITSTPC
                             << "PID=" << trkOrig.getPID().getID()
                             // TPC cov at vertex (without vertex constrained)
@@ -1669,6 +1744,7 @@ class TPCTimeSeries : public Task
 
     std::unordered_map<int, int> nContributors_ITS;    // ITS: vertex ID -> n contributors
     std::unordered_map<int, int> nContributors_ITSTPC; // ITS-TPC (and ITS-TPC-TRD, ITS-TPC-TOF, ITS-TPC-TRD-TOF): vertex ID -> n contributors
+    std::unordered_map<int, int> nContributors_TRD;    // ITS-TPC-TRD (and ITS-TPC-TRD-TOF): vertex ID -> n TRD-matched PV contributors
 
     // loop over collisions
     if (!vertices.empty()) {
@@ -1689,6 +1765,10 @@ class TPCTimeSeries : public Task
               if (refITSTPC.isIndexSet()) {
                 indicesITSTPC_vtx[refITSTPC] = vID;
                 ++nContributors_ITSTPC[vID];
+                // count TRD-matched PV contributors
+                if (source == TrkSrc::ITSTPCTRD || source == TrkSrc::ITSTPCTRDTOF) {
+                  ++nContributors_TRD[vID];
+                }
               } else {
                 ++nContributors_ITS[vID];
               }
@@ -1749,6 +1829,17 @@ class TPCTimeSeries : public Task
     mBufferDCA.vertexX_ITSTPC_RMS.front() = avgVtxITSTPC[0].getStdDev();
     mBufferDCA.vertexY_ITSTPC_RMS.front() = avgVtxITSTPC[1].getStdDev();
     mBufferDCA.vertexZ_ITSTPC_RMS.front() = avgVtxITSTPC[2].getStdDev();
+
+    // TRD matching fraction (summed over all vertices in this TF)
+    int sumITSTPCBased = 0;
+    int sumWithTRD = 0;
+    for (int ivtx = 0; ivtx < vertices.size(); ++ivtx) {
+      sumITSTPCBased += nContributors_ITSTPC[ivtx];
+      sumWithTRD += nContributors_TRD[ivtx];
+    }
+    mBufferDCA.nITSTPCBasedPVContributors.front() = sumITSTPCBased;
+    mBufferDCA.nITSTPCWithTRDPVContributors.front() = sumWithTRD;
+    mBufferDCA.fracTRD.front() = (sumITSTPCBased > 0) ? static_cast<float>(sumWithTRD) / sumITSTPCBased : std::nanf("");
 
     // quantiles and truncated mean
     RobustAverage avg(vertices.size(), false);
@@ -1838,6 +1929,10 @@ o2::framework::DataProcessorSpec getTPCTimeSeriesSpec(const bool disableWriter, 
   dataRequest->requestTracks(srcTracks, useMC);
   if (src[GTrackID::TPC]) {
     dataRequest->requestClusters(GTrackID::getSourcesMask("TPC"), useMC);
+  }
+  // D2: request TRD tracklets for tracks with TRD contribution
+  if (srcTracks[GTrackID::ITSTPCTRD] || srcTracks[GTrackID::ITSTPCTRDTOF]) {
+    dataRequest->requestTRDTracklets(useMC);
   }
 
   bool tpcOnly = srcTracks == GTrackID::getSourcesMask("TPC");
