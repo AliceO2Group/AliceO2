@@ -617,7 +617,7 @@ void GPUDisplayBackendVulkan::clearDevice()
 
 // ---------------------------- VULKAN COMMAND BUFFERS ----------------------------
 
-void GPUDisplayBackendVulkan::createCommandBuffers()
+void GPUDisplayBackendVulkan::createCommandBuffersForImages()
 {
   vk::CommandBufferAllocateInfo allocInfo{};
   allocInfo.commandPool = mCommandPool;
@@ -632,7 +632,7 @@ void GPUDisplayBackendVulkan::createCommandBuffers()
   mCommandBuffersPresent = mDevice.allocateCommandBuffers(allocInfo);
 }
 
-void GPUDisplayBackendVulkan::clearCommandBuffers()
+void GPUDisplayBackendVulkan::clearCommandBuffersForImages()
 {
   mDevice.freeCommandBuffers(mCommandPool, mCommandBuffers.size(), mCommandBuffers.data());
   mDevice.freeCommandBuffers(mCommandPool, mCommandBuffersText.size(), mCommandBuffersText.data());
@@ -648,18 +648,22 @@ void GPUDisplayBackendVulkan::createSemaphores()
 {
   vk::SemaphoreCreateInfo semaphoreInfo{};
   mImageAvailableSemaphore.resize(mFramesInFlight);
-  mPresentSemaphore.resize(mImageCount);
   for (uint32_t i = 0; i < mFramesInFlight; i++) {
     mImageAvailableSemaphore[i] = mDevice.createSemaphore(semaphoreInfo, nullptr);
-  }
-  for (uint32_t i = 0; i < mImageCount; i++) {
-    mPresentSemaphore[i] = mDevice.createSemaphore(semaphoreInfo, nullptr);
   }
   vk::SemaphoreTypeCreateInfo timelineTypeInfo{vk::SemaphoreType::eTimeline, 0};
   semaphoreInfo.pNext = &timelineTypeInfo;
   mTimelineSemaphore = mDevice.createSemaphore(semaphoreInfo, nullptr);
   mTimelineValue = 0;
   mFrameTimelineValue.assign(mFramesInFlight, 0);
+}
+
+void GPUDisplayBackendVulkan::createSemaphoresForImages()
+{
+  mPresentSemaphore.resize(mImageCount);
+  for (uint32_t i = 0; i < mImageCount; i++) {
+    mPresentSemaphore[i] = mDevice.createSemaphore(vk::SemaphoreCreateInfo{}, nullptr);
+  }
   mImageTimelineValue.assign(mImageCount, 0);
   for (uint32_t i = 0; i < mImageCount; i++) {
     mPresentFences.emplace_back(mDevice.createFence(vk::FenceCreateInfo{vk::FenceCreateFlagBits::eSignaled}, nullptr));
@@ -679,8 +683,12 @@ void GPUDisplayBackendVulkan::waitPresentFences()
 void GPUDisplayBackendVulkan::clearSemaphores()
 {
   clearVector(mImageAvailableSemaphore, [&](auto& x) { mDevice.destroySemaphore(x, nullptr); });
-  clearVector(mPresentSemaphore, [&](auto& x) { mDevice.destroySemaphore(x, nullptr); });
   mDevice.destroySemaphore(mTimelineSemaphore, nullptr);
+}
+
+void GPUDisplayBackendVulkan::clearSemaphoresForImages()
+{
+  clearVector(mPresentSemaphore, [&](auto& x) { mDevice.destroySemaphore(x, nullptr); });
   clearVector(mPresentFences, [&](auto& x) { mDevice.destroyFence(x, nullptr); });
 }
 
@@ -688,13 +696,6 @@ void GPUDisplayBackendVulkan::clearSemaphores()
 
 void GPUDisplayBackendVulkan::createUniformLayoutsAndBuffers()
 {
-  for (int32_t j = 0; j < 3; j++) {
-    mUniformBuffersMat[j].resize(mImageCount);
-    for (uint32_t i = 0; i < mImageCount; i++) {
-      mUniformBuffersMat[j][i] = createBuffer(sizeof(hmm_mat4), nullptr, vk::BufferUsageFlagBits::eUniformBuffer, mDisplay->cfg().vulkan.uniformBuffersInDeviceMemory ? 2 : 0);
-    }
-  }
-
   vk::DescriptorSetLayoutBinding uboLayoutBindingMat{};
   uboLayoutBindingMat.binding = 0;
   uboLayoutBindingMat.descriptorType = vk::DescriptorType::eUniformBuffer;
@@ -714,7 +715,16 @@ void GPUDisplayBackendVulkan::createUniformLayoutsAndBuffers()
   mUniformDescriptor = mDevice.createDescriptorSetLayout(layoutInfo, nullptr);
   layoutInfo.bindingCount = 2;
   mUniformDescriptorTexture = mDevice.createDescriptorSetLayout(layoutInfo, nullptr);
+}
 
+void GPUDisplayBackendVulkan::createUniformLayoutsAndBuffersForImages()
+{
+  for (int32_t j = 0; j < 3; j++) {
+    mUniformBuffersMat[j].resize(mImageCount);
+    for (uint32_t i = 0; i < mImageCount; i++) {
+      mUniformBuffersMat[j][i] = createBuffer(sizeof(hmm_mat4), nullptr, vk::BufferUsageFlagBits::eUniformBuffer, mDisplay->cfg().vulkan.uniformBuffersInDeviceMemory ? 2 : 0);
+    }
+  }
   mUpdateUBOdrawMatrix = mUpdateUBOtextMatrix = mUpdateUBOmixMatrix = -1;
 }
 
@@ -722,6 +732,10 @@ void GPUDisplayBackendVulkan::clearUniformLayoutsAndBuffers()
 {
   mDevice.destroyDescriptorSetLayout(mUniformDescriptor, nullptr);
   mDevice.destroyDescriptorSetLayout(mUniformDescriptorTexture, nullptr);
+}
+
+void GPUDisplayBackendVulkan::clearUniformLayoutsAndBuffersForImages()
+{
   for (int32_t j = 0; j < 3; j++) {
     clearVector(mUniformBuffersMat[j], [&](auto& x) { clearBuffer(x); });
   }
@@ -818,22 +832,24 @@ void GPUDisplayBackendVulkan::createSwapChain(vk::SwapchainKHR oldSwapChain)
   }
 
   mSwapChainImages = mDevice.getSwapchainImagesKHR(mSwapChain);
-  uint32_t oldFramesInFlight = mFramesInFlight, oldImageCount = mImageCount;
-  mFramesInFlight = mDisplay->cfg().vulkan.nFramesInFlight;
+  uint32_t oldImageCount = mImageCount;
   mImageCount = mSwapChainImages.size();
   if (mImageCount > sizeof(mUpdateUBOdrawMatrix) * 8) {
     throw std::runtime_error("Too many swapchain images");
   }
 
-  if (mFramesInFlight != oldFramesInFlight || mImageCount != oldImageCount || !mCommandInfrastructureCreated) {
+  if (mImageCount != oldImageCount || !mCommandInfrastructureCreated) {
     if (mCommandInfrastructureCreated) {
-      clearUniformLayoutsAndBuffers(); // TODO: Check what must actually be cleaned up if frames in flight changes
-      clearCommandBuffers();
-      clearSemaphores();
+      clearUniformLayoutsAndBuffersForImages();
+      clearCommandBuffersForImages();
+      clearSemaphoresForImages();
+    } else {
+      createUniformLayoutsAndBuffers();
+      createSemaphores();
     }
-    createUniformLayoutsAndBuffers();
-    createCommandBuffers();
-    createSemaphores();
+    createUniformLayoutsAndBuffersForImages();
+    createCommandBuffersForImages();
+    createSemaphoresForImages();
     mCommandInfrastructureCreated = true;
   }
 
@@ -1397,8 +1413,10 @@ void GPUDisplayBackendVulkan::ExitBackendA()
   clearOffscreenBuffers();
   clearSwapChain();
   if (mCommandInfrastructureCreated) {
+    clearSemaphoresForImages();
     clearSemaphores();
-    clearCommandBuffers();
+    clearCommandBuffersForImages();
+    clearUniformLayoutsAndBuffersForImages();
     clearUniformLayoutsAndBuffers();
   }
   clearTextureSampler();

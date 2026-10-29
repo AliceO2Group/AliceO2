@@ -459,7 +459,6 @@ void GPUDisplayBackendOpenGL::clearScreen(bool alphaOnly)
 
 void GPUDisplayBackendOpenGL::loadDataToGPU(size_t totalVertizes)
 {
-  // TODO: Check if this can be parallelized
   if (mDisplay->useMultiVBO()) {
     for (uint32_t i = 0; i < GPUTPCGeometry::NSECTORS; i++) {
       CHKERR(glNamedBufferData(mVBOId[i], mDisplay->vertexBuffer()[i].size() * sizeof(mDisplay->vertexBuffer()[i][0]), mDisplay->vertexBuffer()[i].data(), GL_STATIC_DRAW));
