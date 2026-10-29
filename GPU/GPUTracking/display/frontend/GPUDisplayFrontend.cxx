@@ -123,15 +123,27 @@ void GPUDisplayFrontend::HandleExternalGUISignals()
     for (int32_t key : update->keys) {
       mDisplay->HandleExternalGUIKey(key);
     }
-    if (update->lineWidth) {
-      mDisplay->mCfgL.lineWidth = *update->lineWidth;
+    applyGUIValues(*update);
+    if (update->guiScale) {
+      mDisplay->mCfgC.mGuiScale = *update->guiScale;
+    }
+    if (update->guiDarkMode) {
+      mDisplay->mCfgC.mGuiDarkMode = *update->guiDarkMode;
     }
   }
 
   if (gui) {
+    GPUDisplayGUIChannel::Settings cfg{mDisplay->mCfgH, mDisplay->mCfgL, mDisplay->mCfgR, mDisplay->mCfgC};
     {
       std::lock_guard lock(mGUIChannel->mutex);
-      mGUIChannel->state.cfg = {mDisplay->mCfgH, mDisplay->mCfgL, mDisplay->mCfgR};
+      mGUIChannel->state.cfg = std::move(cfg);
+      mGUIChannel->state.infoStatus = mDisplay->mCfgC.mPrintInfoTextGUI ? mDisplay->mGUIInfoStatus : "";
+      mGUIChannel->state.infoText = mDisplay->mCfgC.mPrintInfoTextGUI ? mDisplay->mGUIInfoText : "";
+      mGUIChannel->state.infoTextCounter = mDisplay->mGUIInfoTextCounter;
+      if (mDisplay->mUpdateGUIOptions) {
+        mGUIChannel->state.optionsRevision++;
+        mDisplay->mUpdateGUIOptions = false;
+      }
       if (update) {
         mGUIChannel->state.appliedUpdate = update->id;
       }
@@ -139,6 +151,12 @@ void GPUDisplayFrontend::HandleExternalGUISignals()
       mGUIChannel->displayProcessingCurrentUpdate = false;
     }
     mGUIChannel->stateUpdated.notify_all();
+    std::unique_lock lock(mGUIChannel->mutex);
+    if (mGUIChannel->optionsReadRevision != mGUIChannel->state.optionsRevision) { // The GUI calls the dynamic option lambdas (reading display data) only while we wait here, short timeout, retried in the next frame
+      mGUIChannel->displayWaitingForOptions = true;
+      mGUIChannel->optionsRead.wait_for(lock, std::chrono::milliseconds(20), [this] { return mGUIChannel->optionsReadRevision == mGUIChannel->state.optionsRevision || mGUIChannel->stop; });
+      mGUIChannel->displayWaitingForOptions = false;
+    }
   }
 }
 
@@ -201,10 +219,13 @@ int32_t GPUDisplayFrontend::startGUI()
       std::lock_guard lock(mGUIChannel->mutex);
       mGUIChannel->update.reset();
       mGUIChannel->state = {};
-      mGUIChannel->guiSleeping = mGUIChannel->displayProcessingCurrentUpdate = mGUIChannel->stop = false;
+      mGUIChannel->guiSleeping = mGUIChannel->displayProcessingCurrentUpdate = mGUIChannel->stop = mGUIChannel->displayWaitingForOptions = false;
+      mGUIChannel->optionsReadRevision = 0;
+      mDisplay->mUpdateGUIOptions = true;
       mGUIChannel->replyTimeout = std::chrono::milliseconds(mDisplay->cfg().guiReplyTimeout);
       mGUIChannel->maxUpdatesAhead = std::max<uint32_t>(mDisplay->cfg().guiMaxUpdatesAhead, 1); // 0 would block all updates
       mGUIChannel->windowName = DISPLAY_WINDOW_NAME;
+      setGUILayout(*mGUIChannel);
     }
     mGUI->start();
   } else {

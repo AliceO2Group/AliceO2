@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>899</width>
-    <height>679</height>
+    <width>1370</width>
+    <height>1210</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,40 +15,6 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="mainLayout">
-    <item>
-     <layout class="QHBoxLayout" name="lineWidthLayout">
-      <item>
-       <widget class="QLabel" name="lineWidthLabel">
-        <property name="text">
-         <string>Line width</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QSlider" name="lineWidthSlider">
-        <property name="minimum">
-         <number>1</number>
-        </property>
-        <property name="maximum">
-         <number>50</number>
-        </property>
-        <property name="orientation">
-         <enum>Qt::Orientation::Horizontal</enum>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLabel" name="lineWidthValue">
-        <property name="minimumSize">
-         <size>
-          <width>40</width>
-          <height>0</height>
-         </size>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </item>
     <item>
      <spacer name="verticalSpacer">
       <property name="orientation">

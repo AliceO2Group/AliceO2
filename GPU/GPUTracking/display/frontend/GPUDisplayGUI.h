@@ -15,17 +15,17 @@
 #ifndef GPUDISPLAYGUI_H
 #define GPUDISPLAYGUI_H
 
-#define QT_BEGIN_NAMESPACE \
-  namespace o2::gpu::qtgui \
-  {
-#define QT_END_NAMESPACE }
-
 #include "GPUDisplayGUIChannel.h"
 #include <QMainWindow>
 #include <QTimer>
+#include <functional>
 #include <memory>
+#include <optional>
+#include <utility>
+#include <vector>
 
 class QKeyEvent;
+class QLabel;
 
 QT_BEGIN_NAMESPACE
 namespace Ui
@@ -47,11 +47,41 @@ class GPUDisplayGUI : public QMainWindow
 
  protected:
   void keyPressEvent(QKeyEvent* event) override;
+  void resizeEvent(QResizeEvent* event) override;
+  bool eventFilter(QObject* watched, QEvent* event) override; // Ctrl + mouse wheel / Ctrl + 0 for all widgets of the window
 
  private:
+  struct ElementWidget { // Result of the create* functions for a GUI element
+    QWidget* widget = nullptr;
+    std::function<void(const GPUDisplayGUIValue&)> set;                   // Set the element to a value from the display, signals are blocked
+    std::function<void(const GPUDisplayGUIChannel::Options&)> setOptions; // Update range / choices of elements with dynamic options
+  };
+  struct GUIElement { // By element id
+    std::function<void(const GPUDisplayGUIValue&)> set;
+    std::function<void(const GPUDisplayGUIChannel::Options&)> setOptions;
+    std::function<GPUDisplayGUIValue(const GPUDisplayGUIChannel::Settings&)> get; // Value of the element from mState.cfg
+    std::function<GPUDisplayGUIChannel::Options()> getOptions;                    // Called only while the display waits for it
+    std::optional<GPUDisplayGUIValue> applied;                                    // Value last set from the display, empty after a change by the user: the display might not accept it
+  };
+
   void timerTick(); // Exchange updates / settings with the display
   void applySettings();
-  static int32_t translateKey(const QKeyEvent* event); // Qt key → display key code, -1 if not forwarded
+  void applyElement(GUIElement& element); // Set the element from mState.cfg if the value changed
+  void updateInfoLabels();
+  bool darkPalette() const;
+  void setDarkMode(bool dark);                                                // Requests the color scheme from the platform theme
+  void colorSchemeChanged();                                                  // Style sheets and colors depending on the color scheme
+  void buildElements(const std::vector<GPUDisplayGUIChannel::Frame>& layout); // One frame per add_gui_binding call, with a labeled element per option
+  ElementWidget createCheckbox(const GPUDisplayGUIChannel::Element& el);
+  ElementWidget createTextbox(const GPUDisplayGUIChannel::Element& el);
+  ElementWidget createSlider(const GPUDisplayGUIChannel::Element& el);
+  ElementWidget createRadioButtons(const GPUDisplayGUIChannel::Element& el);
+  ElementWidget createTextEdit(const GPUDisplayGUIChannel::Element& el);
+  ElementWidget createButton(const GPUDisplayGUIChannel::Element& el);
+  ElementWidget createDropdown(const GPUDisplayGUIChannel::Element& el);
+  void setValue(uint32_t id, GPUDisplayGUIValue value); // Element changed by the user, sent with the next update
+  void setScale(float scale);                           // Font size, fixed element sizes, and check / radio indicators (not sent to the display)
+  static int32_t translateKey(const QKeyEvent* event);  // Qt key → display key code, -1 if not forwarded
 
   std::unique_ptr<Ui::GPUDisplayGUI> mUi;
   QTimer mTimer;
@@ -60,6 +90,15 @@ class GPUDisplayGUI : public QMainWindow
   GPUDisplayGUIChannel::State mState;   // Last state received from the display
   uint64_t mLastSentId = 0;             // Id of the last update sent
   uint64_t mLastAppliedId = 0;          // Id of the last update for which the display state was received
+  std::vector<GUIElement> mElements;
+  uint64_t mOptionsRevision = 0;                         // optionsRevision for which the option lambdas were called
+  std::vector<std::function<void(float)>> mScaleSetters; // Sizes of widgets and layouts that depend on the GUI scale
+  QLabel* mStatusLabel = nullptr;                        // Status line and, for 5 seconds, info message from the display, at the bottom of the window
+  QTimer mInfoTextTimer;
+  uint64_t mInfoTextCounter = 0;
+  bool mDarkMode = false;
+  float mScale = 1.f;
+  float mBaseFontSize = 0.f; // Point size of the font at scale 1
 };
 } // namespace o2::gpu
 
