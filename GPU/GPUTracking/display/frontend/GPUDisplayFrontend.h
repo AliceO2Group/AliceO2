@@ -20,6 +20,7 @@
 #include <memory>
 #include <chrono>
 #include <mutex>
+#include <condition_variable>
 #include <string>
 #include <vector>
 
@@ -84,7 +85,8 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   virtual int32_t FrontendMain() = 0;
   virtual void StopDisplayA();
   static void* FrontendThreadWrapper(void*);
-  void waitForFPSLimit(); // Sleep until the next frame is due according to fpsRate (only in FPS_LIMIT_RATE mode, see GPUDisplayBackend::fpsLimitMode)
+  void waitForFPSLimit();    // Sleep until the next frame is due according to fpsRate (only in FPS_LIMIT_RATE mode, see GPUDisplayBackend::fpsLimitMode), or until an external config update is signalled
+  void signalConfigUpdate(); // Signal a config update from an external source (console keys, Qt GUI), wakes up waitForFPSLimit
 
   static constexpr int32_t INIT_WIDTH = 1024, INIT_HEIGHT = 768;                        // Initial window size, before maximizing
   static constexpr int32_t MIN_WIDTH = 200, MIN_HEIGHT = 150;                           // Minimum window size
@@ -99,7 +101,11 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
 
   std::mutex mExternalGUIKeyMutex;
   std::vector<int32_t> mExternalGUIKeys; // Keys sent by external entity (usually console), may be ignored by backend.
+  std::mutex mConfigUpdateMutex;
+  std::condition_variable mConfigUpdateCV; // Notified by signalConfigUpdate
+  bool mConfigUpdatePending = false;       // Protected by mConfigUpdateMutex, set by signalConfigUpdate, cleared by HandleExternalGUISignals
   std::mutex mExitStateMutex;
+  std::condition_variable mDisplayStoppedCV; // Notified with mExitStateMutex held when the frontend sets mDisplayRunning to false, StopDisplay waits for it
   std::array<uint8_t, KEY_MAP_MAX> mKeyDownMap = {};
 
   // Keyboard / Mouse actions

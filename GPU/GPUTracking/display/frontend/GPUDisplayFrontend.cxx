@@ -44,7 +44,6 @@ GPUDisplayFrontend* createGPUDisplayFrontendWayland();
 #include <exception>
 #include <algorithm>
 #include <iterator>
-#include <thread>
 #include <utility>
 
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_QT
@@ -87,16 +86,30 @@ void GPUDisplayFrontend::waitForFPSLimit()
     mNextFrameTime = now;
     return;
   }
-  const auto period = std::chrono::duration_cast<std::chrono::steady_clock::duration>(std::chrono::duration<double>(1. / cfg.fpsRate)); // TODO: wake up on HasExternalGUISignals
+  const auto period = std::chrono::duration_cast<std::chrono::steady_clock::duration>(std::chrono::duration<double>(1. / cfg.fpsRate));
   mNextFrameTime += period;
   if (mNextFrameTime < now - period) { // More than one frame behind (slow rendering, first frame), do not try to catch up
     mNextFrameTime = now;
   }
-  std::this_thread::sleep_until(mNextFrameTime);
+  std::unique_lock lock(mConfigUpdateMutex);
+  mConfigUpdateCV.wait_until(lock, mNextFrameTime, [this] { return mConfigUpdatePending; });
+}
+
+void GPUDisplayFrontend::signalConfigUpdate()
+{
+  {
+    std::lock_guard lock(mConfigUpdateMutex);
+    mConfigUpdatePending = true;
+  }
+  mConfigUpdateCV.notify_one();
 }
 
 void GPUDisplayFrontend::HandleExternalGUISignals()
 {
+  {
+    std::lock_guard lock(mConfigUpdateMutex);
+    mConfigUpdatePending = false; // Before fetching the updates, so that updates sent in the meantime signal again
+  }
   HandleExternalGUIKeys();
 
   const bool gui = isGUIRunning();
@@ -131,8 +144,11 @@ void GPUDisplayFrontend::HandleExternalGUISignals()
 
 void GPUDisplayFrontend::sendExternalGUIKey(int32_t v)
 {
-  std::lock_guard lock(mExternalGUIKeyMutex);
-  mExternalGUIKeys.emplace_back(v);
+  {
+    std::lock_guard lock(mExternalGUIKeyMutex);
+    mExternalGUIKeys.emplace_back(v);
+  }
+  signalConfigUpdate();
 }
 
 int32_t GPUDisplayFrontend::getDisplayControl() const { return mDisplay->mCfgC.mDisplayControl.load(); }
@@ -177,6 +193,7 @@ int32_t GPUDisplayFrontend::startGUI()
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_QT
   if (!mGUI) {
     mGUIChannel = std::make_unique<GPUDisplayGUIChannel>();
+    mGUIChannel->updatePosted = [this]() { signalConfigUpdate(); };
     mGUI = std::make_unique<GPUDisplayGUIWrapper>(*mGUIChannel);
   }
   if (!mGUI->isRunning()) {
@@ -319,17 +336,13 @@ int32_t GPUDisplayFrontend::StartDisplay()
 
 void GPUDisplayFrontend::StopDisplay()
 {
-  {
-    std::lock_guard lock(mExitStateMutex);
-    if (mDisplayRunning) {
-      mDisplay->mCfgC.mDisplayControl.store(2);
-      StopDisplayA();
-      mDisplay->UnblockDisplay();
-    }
+  std::unique_lock lock(mExitStateMutex);
+  if (mDisplayRunning) {
+    mDisplay->mCfgC.mDisplayControl.store(2);
+    StopDisplayA();
+    mDisplay->UnblockDisplay();
   }
-  while (mDisplayRunning) {
-    std::this_thread::sleep_for(std::chrono::microseconds(10000)); // TODO: Signal by semaphore
-  }
+  mDisplayStoppedCV.wait(lock, [this] { return !mDisplayRunning; });
 }
 
 void GPUDisplayFrontend::StopDisplayA() {}

@@ -476,6 +476,7 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
   {
     std::lock_guard lock(mExitStateMutex);
     mDisplayRunning = false;
+    mDisplayStoppedCV.notify_all();
   }
 
   return (0);

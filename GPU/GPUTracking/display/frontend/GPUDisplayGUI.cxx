@@ -65,7 +65,8 @@ void GPUDisplayGUI::timerTick()
     }
   }
   const bool apply = newState && mUpdate.empty() && mState.appliedUpdate == mLastSentId; // State contains all our updates, and we have no unsent changes
-  if (!mUpdate.empty() && mLastSentId - mLastAppliedId < mChannel.maxUpdatesAhead) {
+  const bool post = !mUpdate.empty() && mLastSentId - mLastAppliedId < mChannel.maxUpdatesAhead;
+  if (post) {
     if (mChannel.update) { // Previous update not yet picked up by the display, merge
       auto& update = *mChannel.update;
       update.keys.insert(update.keys.end(), mUpdate.keys.begin(), mUpdate.keys.end());
@@ -81,6 +82,9 @@ void GPUDisplayGUI::timerTick()
   }
   lock.unlock();
 
+  if (post) {
+    mChannel.updatePosted();
+  }
   if (apply) {
     applySettings();
   }
