@@ -23,7 +23,10 @@
 #include "GPUDisplayGUIChannel.h"
 #include <QMainWindow>
 #include <QTimer>
+#include <functional>
 #include <memory>
+#include <utility>
+#include <vector>
 
 class QKeyEvent;
 
@@ -47,19 +50,34 @@ class GPUDisplayGUI : public QMainWindow
 
  protected:
   void keyPressEvent(QKeyEvent* event) override;
+  bool eventFilter(QObject* watched, QEvent* event) override; // Ctrl + mouse wheel / Ctrl + 0 for all widgets of the window
 
  private:
   void timerTick(); // Exchange updates / settings with the display
   void applySettings();
-  static int32_t translateKey(const QKeyEvent* event); // Qt key → display key code, -1 if not forwarded
+  void buildElements(const std::vector<GPUDisplayGUIChannel::Frame>& layout); // One frame per add_gui_binding call, with a labeled element per option
+  void setValue(uint32_t id, GPUDisplayGUIValue value);                       // Element changed by the user, sent with the next update
+  void setScale(float scale);                                                 // Font size, fixed element sizes, and check / radio indicators (not sent to the display)
+  static int32_t translateKey(const QKeyEvent* event);                        // Qt key → display key code, -1 if not forwarded
 
   std::unique_ptr<Ui::GPUDisplayGUI> mUi;
   QTimer mTimer;
   GPUDisplayGUIChannel& mChannel;
-  GPUDisplayGUIChannel::Update mUpdate; // Changes collected since the last tick
-  GPUDisplayGUIChannel::State mState;   // Last state received from the display
-  uint64_t mLastSentId = 0;             // Id of the last update sent
-  uint64_t mLastAppliedId = 0;          // Id of the last update for which the display state was received
+  GPUDisplayGUIChannel::Update mUpdate;                                        // Changes collected since the last tick
+  GPUDisplayGUIChannel::State mState;                                          // Last state received from the display
+  uint64_t mLastSentId = 0;                                                    // Id of the last update sent
+  uint64_t mLastAppliedId = 0;                                                 // Id of the last update for which the display state was received
+  std::vector<std::function<void(const GPUDisplayGUIValue&)>> mElementSetters; // By element id, set the element to a value from the display
+  struct ScaledWidth {
+    QWidget* widget;
+    int width;  // Unscaled pixels
+    bool fixed; // Fixed width, otherwise minimum width
+  };
+  std::vector<ScaledWidth> mScaledWidths; // Widget widths that scale with the GUI
+  std::vector<QWidget*> mSliderFrames;    // Frames with floating point sliders, preferred width 1/3 of the screen width times the scale
+  QLayout* mFramesLayout = nullptr;       // FlowLayout of the frames
+  float mScale = 1.f;
+  float mBaseFontSize = 0.f; // Point size of the font at scale 1
 };
 } // namespace o2::gpu
 

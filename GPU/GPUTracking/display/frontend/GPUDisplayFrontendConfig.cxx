@@ -16,6 +16,7 @@
 #include "GPUDisplay.h"
 #include "frontend/GPUDisplayInfo.inc"
 #include "GPULogging.h"
+#include "GPUDisplayGUIChannel.h"
 #include "utils/qconfig_rtti.h"
 #include "utils/qconfig_internal_helpers.h"
 
@@ -31,6 +32,7 @@
 #include <string_view>
 #include <tuple>
 #include <utility>
+#include <variant>
 
 using namespace o2::gpu;
 struct GPUDisplayFrontend::configRTTIExt : public qConfig::qConfigRTTIentry {
@@ -57,6 +59,13 @@ struct GPUDisplayFrontend::configRTTIInfo {
   std::vector<std::string> keyMapNames;                             // Names of the key down mapping ids (KEY_MAP_*)
   std::vector<std::pair<std::string, std::string>> helpTextEntries; // Keys and text of each add_key_binding call
   std::vector<std::string> helpText;
+  struct guiElementCallbacks {
+    uint32_t rttiIndex;
+    std::function<void(const GPUDisplayGUIValue&)> set; // GUI_LAMBDA setter, applies a value from the GUI
+    std::function<GPUDisplayGUIValue()> get;            // Current value of the option of the element
+  };
+  std::vector<guiElementCallbacks> guiElements;                                                                               // By element id
+  std::vector<GPUDisplayGUIChannel::Frame> guiLayout;                                                                         // Frames of the add_gui_binding calls
   static constexpr std::string_view possibleKeys = " 0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ#.:;>'^_"; // Bindable keys >= 32 (space), special keys < 32 are those with a name in keyNames
 
   template <class T, size_t I = 0>
@@ -232,6 +241,148 @@ void GPUDisplayFrontend::add_key_binding(Args&&... args)
   mConfigRTTI->helpTextEntries.emplace_back(std::move(keys), std::get<nKeys>(argTuple));
 }
 
+struct guiType { // Element type and choices, GUI_CHECKBOX, GUI_DROPDOWN(...), etc. in GPUDisplayFrontendConfigQtGUI.inc
+  guiType(GPUDisplayGUIChannel::ElementType t, std::vector<std::pair<std::string, GPUDisplayGUIValue>> c = {}) : type(t), choices(std::move(c)) {}
+  GPUDisplayGUIChannel::ElementType type;
+  std::vector<std::pair<std::string, GPUDisplayGUIValue>> choices;
+};
+
+static std::vector<std::pair<std::string, GPUDisplayGUIValue>> guiSliderValues(std::initializer_list<GPUDisplayGUIValue> values) // Choices of GUI_SLIDER_VALUES, named by their value
+{
+  auto name = [](const auto& x) -> std::string {
+    if constexpr (std::is_same_v<std::remove_cvref_t<decltype(x)>, std::string>) {
+      return x;
+    } else {
+      return qConfig::print_type(x);
+    }
+  };
+  std::vector<std::pair<std::string, GPUDisplayGUIValue>> retVal;
+  for (const auto& v : values) {
+    retVal.emplace_back(std::visit(name, v), v);
+  }
+  return retVal;
+}
+
+struct guiElement { // GUI_LAMBDA(...)
+  guiElement(std::string n, uint32_t i, guiType t, std::function<void(const GPUDisplayGUIValue&)> s, std::function<GPUDisplayGUIValue()> g) : name(std::move(n)), rttiIndex(i), type(std::move(t)), set(std::move(s)), get(std::move(g)) {}
+  std::string name;
+  uint32_t rttiIndex;
+  guiType type;
+  std::function<void(const GPUDisplayGUIValue&)> set;
+  std::function<GPUDisplayGUIValue()> get;
+};
+
+template <class T>
+static void guiAssign(T& dst, const GPUDisplayGUIValue& value) // Default GUI_LAMBDA setter: assign the GUI value, converted to the type of the option
+{
+  std::visit([&](const auto& v) {
+    using V = std::remove_cvref_t<decltype(v)>;
+    if constexpr (std::is_same_v<T, std::string>) {
+      if constexpr (std::is_same_v<V, std::string>) {
+        dst = v;
+      } else {
+        dst = std::to_string(v);
+      }
+    } else if constexpr (std::is_same_v<V, std::string>) {
+      dst = static_cast<T>(std::stod(v)); // Throws for invalid text
+    } else {
+      dst = static_cast<T>(v);
+    }
+  },
+             value);
+}
+
+template <class T>
+static GPUDisplayGUIValue toGUIValue(const T& v)
+{
+  if constexpr (requires { v.load(); }) { // std::atomic in GPUDisplay::control
+    return toGUIValue(v.load());
+  } else if constexpr (std::is_same_v<T, std::string>) {
+    return v;
+  } else if constexpr (std::is_integral_v<T>) {
+    return (int64_t)v;
+  } else {
+    static_assert(std::is_floating_point_v<T>, "Unsupported option type for the Qt GUI");
+    return (double)v;
+  }
+}
+
+template <typename... Args>
+void GPUDisplayFrontend::add_gui_binding(Args&&... args)
+{
+  constexpr size_t nElements = (0 + ... + std::is_same_v<std::remove_cvref_t<Args>, guiElement>);
+  constexpr size_t nHorizontal = (0 + ... + std::is_same_v<std::remove_cvref_t<Args>, bool>);
+  static_assert(nElements >= 1 && nHorizontal <= 1 && sizeof...(Args) <= nElements + nHorizontal + 1, "add_gui_binding needs at least one GUI element, and optionally the description and the horizontal flag");
+  GPUDisplayGUIChannel::Frame frame;
+  auto addElement = [&](auto& element) {
+    using Type = GPUDisplayGUIChannel::ElementType;
+    const uint32_t id = mConfigRTTI->guiElements.size();
+    auto& el = frame.elements.emplace_back(GPUDisplayGUIChannel::Element{.name = element.name, .rttiIndex = element.rttiIndex, .type = element.type.type, .id = id, .isInteger = std::holds_alternative<int64_t>(element.get()), .choices = std::move(element.type.choices)});
+    if (el.type == Type::SLIDER) {
+      if (element.rttiIndex >= mConfigRTTI->rttiEntries.size()) {
+        throw std::runtime_error("GUI slider " + element.name + " needs an option with RTTI for min and max values");
+      }
+      const auto& e = mConfigRTTI->rttiEntries[element.rttiIndex];
+      if (e.min.empty() || e.max.empty()) {
+        throw std::runtime_error("GUI slider " + element.name + ": option " + e.name + " needs min and max values");
+      }
+      el.min = std::stod(e.min);
+      el.max = std::stod(e.max);
+    }
+    if (el.type == Type::TEXTBOX && element.rttiIndex < mConfigRTTI->rttiEntries.size() && !mConfigRTTI->rttiEntries[element.rttiIndex].min.empty() && !mConfigRTTI->rttiEntries[element.rttiIndex].max.empty()) {
+      el.min = std::stod(mConfigRTTI->rttiEntries[element.rttiIndex].min);
+      el.max = std::stod(mConfigRTTI->rttiEntries[element.rttiIndex].max);
+      el.hasRange = true;
+    }
+    if ((el.type == Type::RADIO_BUTTONS || el.type == Type::DROPDOWN) ? el.choices.empty() : (!el.choices.empty() && el.type != Type::SLIDER)) {
+      throw std::runtime_error("GUI element " + element.name + ": choices are needed for radio buttons and dropdown menus, and only allowed for them and sliders");
+    }
+    mConfigRTTI->guiElements.emplace_back(configRTTIInfo::guiElementCallbacks{element.rttiIndex, std::move(element.set), std::move(element.get)});
+  };
+  auto addArg = [&](auto& arg) {
+    if constexpr (std::is_same_v<std::remove_cvref_t<decltype(arg)>, guiElement>) {
+      addElement(arg);
+    } else if constexpr (std::is_same_v<std::remove_cvref_t<decltype(arg)>, bool>) {
+      frame.horizontal = arg;
+    } else {
+      frame.description = arg;
+    }
+  };
+  (addArg(args), ...);
+  mConfigRTTI->guiLayout.emplace_back(std::move(frame));
+}
+
+void GPUDisplayFrontend::setGUILayout(GPUDisplayGUIChannel& channel) const { channel.layout = mConfigRTTI->guiLayout; }
+
+std::vector<GPUDisplayGUIValue> GPUDisplayFrontend::getGUIValues()
+{
+  std::vector<GPUDisplayGUIValue> retVal;
+  retVal.reserve(mConfigRTTI->guiElements.size());
+  for (const auto& e : mConfigRTTI->guiElements) {
+    retVal.emplace_back(e.get());
+  }
+  return retVal;
+}
+
+void GPUDisplayFrontend::applyGUIValues(const std::vector<std::pair<uint32_t, GPUDisplayGUIValue>>& values)
+{
+  for (const auto& [id, value] : values) {
+    if (id >= mConfigRTTI->guiElements.size()) {
+      continue;
+    }
+    const auto& e = mConfigRTTI->guiElements[id];
+    try {
+      e.set(value);
+    } catch (const std::exception& ex) {
+      GPUError("Invalid value from the GUI for element %u: %s", id, ex.what());
+      continue;
+    }
+    if (mDisplay->mCfgC.mGuiPrintInfo && e.rttiIndex < mConfigRTTI->configInfos.size()) {
+      showConfigInfo(e.rttiIndex);
+    }
+  }
+}
+
 const std::vector<std::string>& GPUDisplayFrontend::getHelpText() const { return mConfigRTTI->helpText; }
 
 void GPUDisplayFrontend::listConfig()
@@ -256,8 +407,8 @@ void GPUDisplayFrontend::listConfig()
   std::sort(boundKeys.begin(), boundKeys.end(), [&](uint16_t a, uint16_t b) { return keyOrder(a) < keyOrder(b); });
   std::sort(availableKeys.begin(), availableKeys.end(), [&](uint16_t a, uint16_t b) { return keyOrder(a) < keyOrder(b); });
 
-  GPUInfo("Display config options with RTTI (struct, option, type, keys):");
-  uint32_t nOptionsWithKey = 0;
+  GPUInfo("Display config options with RTTI (struct, option, type, in Qt GUI, keys):");
+  uint32_t nOptionsWithKey = 0, nOptionsInGUI = 0;
   for (uint32_t i = 0; i < rtti.rttiEntries.size(); i++) {
     const auto& e = rtti.rttiEntries[i];
     std::string keys;
@@ -266,9 +417,12 @@ void GPUDisplayFrontend::listConfig()
         keys += (keys.empty() ? "[" : " [") + rtti.getKeyName(k) + "]";
       }
     }
+    const bool inGUI = std::any_of(rtti.guiElements.begin(), rtti.guiElements.end(), [i](const auto& g) { return g.rttiIndex == i; });
     nOptionsWithKey += !keys.empty();
-    GPUInfo("  %-28s %-32s %-12s %s", e.configStruct.c_str(), e.name.c_str(), e.type.c_str(), keys.c_str());
+    nOptionsInGUI += inGUI;
+    GPUInfo("  %-28s %-32s %-12s %-3s %s", e.configStruct.c_str(), e.name.c_str(), e.type.c_str(), inGUI ? "GUI" : "---", keys.c_str());
   }
+  GPUInfo("");
   GPUInfo("Bound keys (key, struct, option):");
   std::vector<std::string> mappedKeys(KEY_MAP_MAX);
   int32_t keyWidth = 0;
@@ -285,20 +439,28 @@ void GPUDisplayFrontend::listConfig()
       GPUInfo("  %-*s %-28s %s", keyWidth, ("[" + rtti.getKeyName(k) + "]").c_str(), hasRTTI ? rtti.rttiEntries[index].configStruct.c_str() : "(no config option)", hasRTTI ? rtti.rttiEntries[index].name.c_str() : "");
     }
   }
+  GPUInfo("");
   GPUInfo("Key down mappings (id, name, key):");
   for (uint32_t i = 0; i < KEY_MAP_MAX; i++) {
     GPUInfo("  %2u %-28s %s", i, rtti.keyMapNames[i].c_str(), mappedKeys[i].c_str());
   }
+  GPUInfo("");
   std::string available;
   for (uint16_t k : availableKeys) {
     available += (available.empty() ? "[" : " [") + rtti.getKeyName(k) + "]";
   }
   GPUInfo("Available keys: %s", available.c_str());
-  GPUInfo("%zu options with RTTI, %u of them with a key, %zu bound keys, %zu available keys", rtti.rttiEntries.size(), nOptionsWithKey, boundKeys.size(), availableKeys.size());
+  GPUInfo("Help text:");
+  for (const auto& line : rtti.helpText) {
+    GPUInfo("  %s", line.c_str());
+  }
+  GPUInfo("");
+  GPUInfo("%zu options with RTTI, %u of them with a key, %u in the Qt GUI, %zu bound keys, %zu available keys", rtti.rttiEntries.size(), nOptionsWithKey, nOptionsInGUI, boundKeys.size(), availableKeys.size());
 }
 
 #include "GPUDisplayFrontendConfigKeys.inc"
 #include "GPUDisplayFrontendConfigInfo.inc"
+#include "GPUDisplayFrontendConfigQtGUI.inc"
 
 void GPUDisplay::buildConfig()
 {
@@ -341,6 +503,7 @@ void GPUDisplay::buildConfig()
     };
   }
   buildConfigInfo();
+  buildConfigQtGUI();
   rtti->buildHelpText();
 }
 

@@ -95,13 +95,18 @@ class GPUDisplay : public GPUDisplayInterface
     bool mRequestScreenshot = false;
     int32_t mAnimateScreenshot = 0;
     bool mAnimationChangeConfig = true;
-    bool dummy = false; // dummy value to reference for keys that do not change variables
+    bool mGuiPrintInfo = false;  // Show the info of options changed with Qt GUI elements (not for key presses in the GUI)
+    bool mRotateModel = false;   // Rotate the model instead of the camera, like holding RCTRL (set in the Qt GUI)
+    bool mRotateAroundZ = false; // Rotate the TPC around the beamline, like holding RALT (set in the Qt GUI)
+    float mGuiScale = 1.f;       // Scale factor of text and elements of the Qt GUI (on top of the system scaling), Ctrl + mouse wheel / Ctrl + 0 in the GUI
+    bool dummy = false;          // dummy value to reference for keys that do not change variables
   } mCfgC;
 
  private:
   void buildConfig();
   void buildConfigKeys();
   void buildConfigInfo();
+  void buildConfigQtGUI();
 
   static constexpr int32_t NSECTORS = o2::tpc::constants::MAXSECTOR;
   static constexpr float GL_SCALE_FACTOR = (1.f / 100.f);

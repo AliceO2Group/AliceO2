@@ -16,6 +16,7 @@
 #define GPUDISPLAYGUICHANNEL_H
 
 #include "GPUSettings.h"
+#include "GPUDisplayFrontend.h"
 #include <chrono>
 #include <condition_variable>
 #include <cstdint>
@@ -23,6 +24,7 @@
 #include <mutex>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace o2::gpu
@@ -36,16 +38,41 @@ struct GPUDisplayGUIChannel {
     GPUSettingsDisplayLight cfgL;
     GPUSettingsDisplayRenderer cfgR;
   };
+  enum class ElementType : uint8_t { CHECKBOX,
+                                     TEXTBOX,
+                                     SLIDER,
+                                     RADIO_BUTTONS,
+                                     DROPDOWN,
+                                     BUTTON };
+
+  struct Element {                                                   // GUI element for one option, from GUI_LAMBDA in GPUDisplayFrontendConfigQtGUI.inc
+    std::string name;                                                // Label
+    uint32_t rttiIndex;                                              // Option in the display config RTTI, invalid for options without RTTI (GPUDisplay::control)
+    ElementType type;                                                // Widget type
+    uint32_t id;                                                     // Index of the element in Update::values / State::values
+    bool isInteger;                                                  // Integer / bool option, otherwise floating point
+    bool hasRange = false;                                           // Text field: value converted (0 if invalid) and limited to min / max
+    double min = 0, max = 0;                                         // Slider range / text field range (if hasRange), from the min / max of the option
+    std::vector<std::pair<std::string, GPUDisplayGUIValue>> choices; // Radio buttons / dropdown / slider with only these values: name -> value
+  };
+  struct Frame { // One add_gui_binding call
+    std::string description;
+    std::vector<Element> elements;
+    bool horizontal = false; // Elements in a row, wrapping into further rows at the window border, otherwise one element per row
+  };
   struct Update { // GUI → display
     uint64_t id = 0;
-    std::vector<int32_t> keys;      // Keys pressed in the GUI and not handled by it, display key codes
-    std::optional<float> lineWidth; // For testing, to be replaced by generic settings updates
-    bool empty() const { return keys.empty() && !lineWidth; }
+    std::vector<int32_t> keys;                                   // Keys pressed in the GUI and not handled by it, display key codes
+    std::vector<std::pair<uint32_t, GPUDisplayGUIValue>> values; // Elements changed in the GUI: element id, new value
+    std::optional<float> guiScale;                               // GUI scale changed with Ctrl + mouse wheel / Ctrl + 0
+    bool empty() const { return keys.empty() && values.empty() && !guiScale; }
   };
   struct State { // display → GUI
     Settings cfg;
-    uint64_t appliedUpdate = 0; // Id of the last GUI update included in cfg
-    uint64_t counter = 0;       // Incremented with every published state
+    std::vector<GPUDisplayGUIValue> values; // Current values of the options of the GUI elements, by element id
+    float guiScale = 1.f;                   // GPUDisplay::control::mGuiScale
+    uint64_t appliedUpdate = 0;             // Id of the last GUI update included in cfg
+    uint64_t counter = 0;                   // Incremented with every published state
   };
 
   std::mutex mutex;                            // Protects all members below
@@ -58,6 +85,7 @@ struct GPUDisplayGUIChannel {
   std::chrono::milliseconds replyTimeout;      // Maximum time the GUI waits for a reply
   uint32_t maxUpdatesAhead = 0;                // GUI waits for the reply if it is that many updates ahead of the last one it applied
   std::string windowName;                      // Name of the display window, set when starting the GUI
+  std::vector<Frame> layout;                   // GUI elements, set when starting the GUI
   std::function<void()> updatePosted;          // Set by the display, called by the GUI (without holding mutex) after posting an update, wakes up the display
 };
 } // namespace o2::gpu

@@ -123,15 +123,19 @@ void GPUDisplayFrontend::HandleExternalGUISignals()
     for (int32_t key : update->keys) {
       mDisplay->HandleExternalGUIKey(key);
     }
-    if (update->lineWidth) {
-      mDisplay->mCfgL.lineWidth = *update->lineWidth;
+    applyGUIValues(update->values);
+    if (update->guiScale) {
+      mDisplay->mCfgC.mGuiScale = *update->guiScale;
     }
   }
 
   if (gui) {
+    auto values = getGUIValues();
     {
       std::lock_guard lock(mGUIChannel->mutex);
       mGUIChannel->state.cfg = {mDisplay->mCfgH, mDisplay->mCfgL, mDisplay->mCfgR};
+      mGUIChannel->state.values = std::move(values);
+      mGUIChannel->state.guiScale = mDisplay->mCfgC.mGuiScale;
       if (update) {
         mGUIChannel->state.appliedUpdate = update->id;
       }
@@ -205,6 +209,7 @@ int32_t GPUDisplayFrontend::startGUI()
       mGUIChannel->replyTimeout = std::chrono::milliseconds(mDisplay->cfg().guiReplyTimeout);
       mGUIChannel->maxUpdatesAhead = std::max<uint32_t>(mDisplay->cfg().guiMaxUpdatesAhead, 1); // 0 would block all updates
       mGUIChannel->windowName = DISPLAY_WINDOW_NAME;
+      setGUILayout(*mGUIChannel);
     }
     mGUI->start();
   } else {

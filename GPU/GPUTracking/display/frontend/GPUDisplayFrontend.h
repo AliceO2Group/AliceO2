@@ -22,10 +22,13 @@
 #include <mutex>
 #include <condition_variable>
 #include <string>
+#include <utility>
+#include <variant>
 #include <vector>
 
 namespace o2::gpu
 {
+using GPUDisplayGUIValue = std::variant<int64_t, double, std::string>; // Value of a Qt GUI element
 class GPUReconstruction;
 class GPUDisplay;
 class GPUDisplayBackend;
@@ -158,6 +161,11 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   bool mWindowFullScreen = false, mWindowMaximized = false; // Window state last requested or reported by the window system
   template <typename... Args>
   void add_key_binding(Args&&... args); // KEY_LAMBDA(key, ...) entries, the help text, and optionally the keys to show in the help text, only used in GPUDisplayFrontendConfig.cxx
+  template <typename... Args>
+  void add_gui_binding(Args&&... args);                                                    // GUI_LAMBDA(name, ...) entries shown in one frame of the Qt GUI, and optionally its description and a flag to place the elements horizontally (default vertically), only used in GPUDisplayFrontendConfig.cxx
+  void setGUILayout(GPUDisplayGUIChannel& channel) const;                                  // Copy the GUI elements of the add_gui_binding calls to the channel
+  std::vector<GPUDisplayGUIValue> getGUIValues();                                          // Current values of the options of the GUI elements, by element id
+  void applyGUIValues(const std::vector<std::pair<uint32_t, GPUDisplayGUIValue>>& values); // Call the setter of the GUI elements changed in the GUI (element id, value), and show the info of their options
   void listConfig();
   const std::vector<std::string>& getHelpText() const; // Help text of all key bindings, one line per binding
 };
