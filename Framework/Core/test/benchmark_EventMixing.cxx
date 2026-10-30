@@ -49,7 +49,7 @@ static void BM_EventMixingTraditional(benchmark::State& state)
   std::vector<double> xBins{VARIABLE_WIDTH, -0.064, -0.062, -0.060, 0.066, 0.068, 0.070, 0.072};
   std::vector<double> yBins{VARIABLE_WIDTH, -0.320, -0.301, -0.300, 0.330, 0.340, 0.350, 0.360};
   using BinningType = ColumnBinningPolicy<o2::aod::collision::PosX, o2::aod::collision::PosY>;
-  BinningType binningOnPositions{{xBins, yBins}, true}; // true is for 'ignore overflows' (true by default)
+  BinningType binningOnPositions{{xBins, yBins}};
 
   TableBuilder colBuilder, trackBuilder;
   auto rowWriterCol = colBuilder.cursor<o2::aod::Collisions>();
@@ -141,7 +141,7 @@ static void BM_EventMixingCombinations(benchmark::State& state)
   std::vector<double> xBins{VARIABLE_WIDTH, -0.064, -0.062, -0.060, 0.066, 0.068, 0.070, 0.072};
   std::vector<double> yBins{VARIABLE_WIDTH, -0.320, -0.301, -0.300, 0.330, 0.340, 0.350, 0.360};
   using BinningType = ColumnBinningPolicy<o2::aod::collision::PosX, o2::aod::collision::PosY>;
-  BinningType binningOnPositions{{xBins, yBins}, true}; // true is for 'ignore overflows' (true by default)
+  BinningType binningOnPositions{{xBins, yBins}};
 
   TableBuilder colBuilder, trackBuilder;
   auto rowWriterCol = colBuilder.cursor<o2::aod::Collisions>();
