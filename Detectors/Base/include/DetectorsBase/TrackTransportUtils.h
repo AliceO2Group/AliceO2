@@ -75,7 +75,9 @@ inline bool validTrackTransportFeatures(const std::vector<float>& features)
 
 inline float trackTransportMediumCode(std::string_view medium)
 {
-  return medium == "PIPE_VACUUM" ? 1.f : medium == "TPC_DriftGas2" ? 2.f : medium == "TPC_Air" ? 3.f : 0.f;
+  return medium == "PIPE_VACUUM" ? 1.f : medium == "TPC_DriftGas2" ? 2.f
+                                       : medium == "TPC_Air"       ? 3.f
+                                                                   : 0.f;
 }
 
 inline double trackTransportZAtRadius(const TParticle& p, double radius)
