@@ -16,10 +16,13 @@
 #include "Framework/DataDescriptorMatcher.h"
 #include "Framework/DataAllocator.h"
 #include "Framework/RootArrowFilesystem.h"
+#include "AODInputFile.h"
+#include "AODNative/ByteSource.h"
 
 #include <arrow/filesystem/filesystem.h>
 #include <arrow/dataset/dataset.h>
 
+#include <map>
 #include <regex>
 #include <stdexcept>
 #include <vector>
@@ -66,6 +69,10 @@ struct DataInputDirectorContext {
   // Optional registry of pre-opened TFiles (keyed by name) used to bypass
   // TFile::Open for testing with in-memory TMemFile instances.
   std::vector<std::pair<std::string, TFile*>> openFiles = {};
+  // Which reader opens the files: "root", "native", or "auto" (native, with a
+  // per-file fallback to ROOT for what the native reader cannot read).
+  std::string readerBackend = "root";
+  o2::aod::native::Options nativeOptions = {};
 
   int levelForOrigin(std::string_view origin) const
   {
@@ -146,6 +153,7 @@ class DataInputDescriptor
   std::string* mFilenameRegexPtr = nullptr;
   std::vector<FileNameHolder> mfilenames;
   std::vector<FileNameHolder> mdefaultFilenamesPtr;
+  std::shared_ptr<AODInputFile> mCurrentFile;
   std::shared_ptr<arrow::fs::FileSystem> mCurrentFilesystem;
   int mCurrentFileID = -1;
   // File-local DF indices visited during the current output timeframe.
@@ -153,7 +161,8 @@ class DataInputDescriptor
   bool mAlienSupport = false;
 
   DataInputDirectorContext& mContext;
-  TMap* mParentFileMap = nullptr;
+  // folder name (DF_XXX) --> parent file (absolute path), empty if the file has none
+  std::map<std::string, std::string> mParentFileMap;
   std::shared_ptr<DataInputDescriptor> mParentFile = nullptr;
   std::vector<std::shared_ptr<DataInputDescriptor>> mRetainedParents;
   bool mTimeFrameActive = false;
