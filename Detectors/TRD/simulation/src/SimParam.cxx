@@ -29,6 +29,7 @@ SimParam::SimParam()
   mTRF = TRDSimParams::Instance().trf;
   mMu = TRDSimParams::Instance().trf_landau_mu;
   mSigma = TRDSimParams::Instance().trf_landau_sigma;
+  mT0 = TRDSimParams::Instance().t0;
   init();
 }
 
