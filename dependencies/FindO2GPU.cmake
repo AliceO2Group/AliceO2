@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 
 # NOTE!!!! - Whenever this file is changed, move it over to alidist/resources
-# FindO2GPU.cmake Version 23
+# FindO2GPU.cmake Version 24
 
 set(CUDA_COMPUTETARGET_DEFAULT_FULL 80-real;86-real;89-real;120-real;75-virtual)
 set(HIP_AMDGPUTARGET_DEFAULT_FULL gfx906;gfx908)
@@ -21,8 +21,7 @@ if(NOT DEFINED ENABLE_CUDA)
   set(ENABLE_CUDA "AUTO")
 endif()
 if(NOT DEFINED ENABLE_METAL)
-  # OFF rather than AUTO while the backend is unproven
-  set(ENABLE_METAL "OFF")
+  set(ENABLE_METAL "AUTO")
 endif()
 if(NOT DEFINED ENABLE_OPENCL)
   set(ENABLE_OPENCL "AUTO")
