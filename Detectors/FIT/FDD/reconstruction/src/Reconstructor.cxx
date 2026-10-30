@@ -27,13 +27,7 @@ void Reconstructor::process(o2::fdd::Digit const& digitBC, gsl::span<const o2::f
                             std::vector<o2::fdd::RecPoint>& RecPoints, std::vector<o2::fdd::ChannelDataFloat>& outChData)
 // gsl::span<o2::fdd::ChannelDataFloat> outChData)
 {
-  // Compute charge weighted average time
-  Double_t timeFDA = 0, timeFDC = 0;
-  Double_t weightFDA = 0.0, weightFDC = 0.0;
-  Int_t nInTimeA = 0, nInTimeC = 0;
-  int firstEntry = outChData.size();
-  int nStored = 0;
-  int nch = inChData.size();
+  const int firstEntry = outChData.size();
 
   bool atLeastOneVertexChannel = false;
   bool atLeastOneChannelInSwAmplitudeRange = false;
@@ -81,19 +75,19 @@ void Reconstructor::process(o2::fdd::Digit const& digitBC, gsl::span<const o2::f
   }
 
   constexpr float nsToPs = 1e3;
-  float meanTimeSideA = std::round(float(timeSideA) * timePerTDC / float(entriesNumSideA));
-  float meanTimeSideC = std::round(float(timeSideC) * timePerTDC / float(entriesNumSideC));
+  float meanTimeSideA = float(timeSideA) * timePerTDC / float(entriesNumSideA);
+  float meanTimeSideC = float(timeSideC) * timePerTDC / float(entriesNumSideC);
 
   bool swVertexTrg = FDDRecoConfig::Instance().SwTriggerEnabled ? calculateSwTrigger(meanTimeSideA, meanTimeSideC, swOrGateSideA, swOrGateSideC) : false;
 
   std::array<int, 2> mCollisionTime = {o2::fdd::RecPoint::sDummyCollissionTime, o2::fdd::RecPoint::sDummyCollissionTime};
   if (entriesNumSideA > 0) {
-    mCollisionTime[o2::fdd::RecPoint::TimeA] = meanTimeSideA * nsToPs;
+    mCollisionTime[o2::fdd::RecPoint::TimeA] = std::round(meanTimeSideA * nsToPs);
   }
   if (entriesNumSideC > 0) {
-    mCollisionTime[o2::fdd::RecPoint::TimeC] = meanTimeSideC * nsToPs;
+    mCollisionTime[o2::fdd::RecPoint::TimeC] = std::round(meanTimeSideC * nsToPs);
   }
-  RecPoints.emplace_back(mCollisionTime, firstEntry, nStored, digitBC.getIntRecord(), digitBC.mTriggers, swVertexTrg);
+  RecPoints.emplace_back(mCollisionTime, firstEntry, storedEntries, digitBC.getIntRecord(), digitBC.mTriggers, swVertexTrg);
 }
 //________________________________________________________
 void Reconstructor::finish()

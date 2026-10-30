@@ -39,8 +39,8 @@ struct FDDRecoConfig : o2::conf::ConfigurableParamHelper<FDDRecoConfig> {
 
   int16_t CollisionTimeAmpltudeUpper = 4096;
   int16_t CollisionTimeAmplitudeLower = 0;
-  int16_t CollisionTimeTimeLower = -2050;
-  int16_t CollisionTimeTimeUpper = 2050;
+  int16_t CollisionTimeTimeLower = -500;
+  int16_t CollisionTimeTimeUpper = 500;
 
   uint8_t CollisionTimeValidPmInputFlagMask = static_cast<uint8_t>(~(1u << ChannelData::kNumberADC));
   uint8_t CollisionTimeValidPmInputFlags = static_cast<uint8_t>((1u << ChannelData::kIsCFDinADCgate) | (1u << ChannelData::kIsEventInTVDC));
@@ -49,12 +49,12 @@ struct FDDRecoConfig : o2::conf::ConfigurableParamHelper<FDDRecoConfig> {
     return (flags & CollisionTimeValidPmInputFlagMask) == CollisionTimeValidPmInputFlags;
   }
 
-  float SwTriggerTimeLowThreshold = -1.25;
-  float SwTriggerTimeHighThreshold = 1.25;
-  float SwTriggerAmplitudeLowThreshold = 0.0;
-  float SwTriggerAmplitudeHighThreshold = 4096.0;
-  float SwTriggerTimeDiffMin = -1.25;
-  float SwTriggerTimeDiffMax = 1.25;
+  int16_t SwTriggerTimeLowThreshold = -153;
+  int16_t SwTriggerTimeHighThreshold = 153;
+  int16_t SwTriggerAmplitudeLowThreshold = 10;
+  int16_t SwTriggerAmplitudeHighThreshold = 4096;
+  float SwTriggerTimeDiffMin = -1.3;
+  float SwTriggerTimeDiffMax = 1.3;
   bool SwTriggerEnabled = false;
 
   O2ParamDef(FDDRecoConfig, "FDDRecoConfig");
