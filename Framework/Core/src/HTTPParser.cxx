@@ -226,14 +226,13 @@ std::string encode_websocket_handshake_reply(char const* nonce, const char* prot
   return fmt::format(res, protocol && protocol[0] ? fmt::format("Sec-WebSocket-Protocol: {}\r\n", protocol) : "", HTTPParserHelpers::calculateAccept(nonce));
 }
 
-void parse_http_request(char* start, size_t size, HTTPParser* parser)
+void parse_http_request(char const* start, size_t size, HTTPParser* parser)
 {
-  enum HTTPState state = HTTPState::IN_START;
   // Too short, let's try again...
   if (size < 2) {
     parser->remaining += std::string_view(start, size);
   }
-  char* cur = start;
+  char* cur = (char*)start;
   char* next = cur;
   std::string_view lastToken(cur, 0);
   std::string_view lastKey;

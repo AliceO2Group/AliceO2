@@ -280,7 +280,18 @@ target_link_libraries(o2-test-framework-core PRIVATE O2::Catch2)
 get_filename_component(outdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/../tests ABSOLUTE)
 set_property(TARGET o2-test-framework-core PROPERTY RUNTIME_OUTPUT_DIRECTORY ${outdir})
 
+if(APPLE)
+add_custom_command(TARGET o2-test-framework-core POST_BUILD
+                   COMMAND codesign --force --sign - --entitlements ${CMAKE_CURRENT_SOURCE_DIR}/entitlements.plist $<TARGET_FILE:o2-test-framework-core>
+                   COMMENT "Re-signing o2-test-framework-core with debugging entitlements")
+# Leaks originating in third-party code (Cling JIT, FairMQ / boost::program_options)
+set(O2_FRAMEWORK_CORE_LEAKS_EXCLUDES
+    "--exclude=llvm::orc::shared::runFinalizeActions(std::__1::vector<llvm::orc::shared::AllocActionCallPair, std::__1::allocator<llvm::orc::shared::AllocActionCallPair>>&)"
+    "--exclude=fair::mq::ProgOptions::ParseAll(int, char const* const*, bool)")
+add_test(NAME framework:core COMMAND leaks --quiet ${O2_FRAMEWORK_CORE_LEAKS_EXCLUDES} --groupByType --atExit -- $<TARGET_FILE:o2-test-framework-core> --skip-benchmarks)
+else()
 add_test(NAME framework:core COMMAND o2-test-framework-core --skip-benchmarks)
+endif()
 
 o2_add_test(AlgorithmWrapper NAME test_Framework_test_AlgorithmWrapper
             SOURCES test/test_AlgorithmWrapper.cxx

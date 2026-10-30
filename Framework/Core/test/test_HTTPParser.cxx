@@ -39,7 +39,7 @@ class DPLParser : public HTTPParser
   {
     mHeaders[std::string(k)] = v;
   }
-  void body(char* buf, size_t s) override
+  void body(char* buf, size_t /*s*/) override
   {
     mBody = buf;
   }
@@ -71,7 +71,7 @@ class DPLClientParser : public HTTPParser
   {
     mHeaders[std::string(k)] = v;
   }
-  void body(char* buf, size_t s) override
+  void body(char* buf, size_t /*s*/) override
   {
     mBody = buf;
   }
@@ -80,35 +80,35 @@ class DPLClientParser : public HTTPParser
 class TestWSHandler : public WebSocketHandler
 {
  public:
-  std::vector<char const*> mFrame;
+  std::vector<std::string> mFrame;
   std::vector<size_t> mSize;
   void frame(const char* f, size_t s) final
   {
-    mFrame.push_back(strdup(f));
-    mSize.push_back(s);
+    mFrame.emplace_back(f, s);
+    mSize.emplace_back(s);
   }
 };
 
 TEST_CASE("HTTPParser1")
 {
   {
-    char* request = strdup(
+    std::string_view request =
       "GET / HTTP/1.1\r\n"
-      "x-dpl-pid: 124679842\r\n\r\nCONTROL QUIT");
+      "x-dpl-pid: 124679842\r\n\r\nCONTROL QUIT";
     DPLParser parser;
-    parse_http_request(request, strlen(request), &parser);
+    parse_http_request(request.data(), request.size(), &parser);
     REQUIRE(std::string(parser.mMethod) == std::string("GET"));
     REQUIRE(std::string(parser.mPath) == std::string("/"));
     REQUIRE(std::string(parser.mVersion) == std::string("HTTP/1.1"));
     REQUIRE(parser.mHeaders.size() == 1);
   }
   {
-    char* request = strdup(
+    std::string_view request =
       "GET / HTTP/1.1\r\n"
       "x-dpl-pid: 124679842\r\n"
-      "Somethingelse: cjnjsdnjks\r\n\r\nCONTROL QUIT");
+      "Somethingelse: cjnjsdnjks\r\n\r\nCONTROL QUIT";
     DPLParser parser;
-    parse_http_request(request, strlen(request), &parser);
+    parse_http_request(request.data(), request.size(), &parser);
     REQUIRE(std::string(parser.mMethod) == std::string("GET"));
     REQUIRE(std::string(parser.mPath) == std::string("/"));
     REQUIRE(std::string(parser.mVersion) == std::string("HTTP/1.1"));
@@ -119,13 +119,13 @@ TEST_CASE("HTTPParser1")
   }
   {
     // handle continuations...
-    char* request = strdup(
+    std::string_view request =
       "GET / HTTP/1.1\r\n"
       "x-dpl-pid: 124679842\r\n"
-      "Somethingelse: cjnjsdnjks\r\n\r\nCONTROL QUIT");
-    char* request2 = strdup("FOO BAR");
+      "Somethingelse: cjnjsdnjks\r\n\r\nCONTROL QUIT";
+    std::string_view request2 = "FOO BAR";
     DPLParser parser;
-    parse_http_request(request, strlen(request), &parser);
+    parse_http_request(request.data(), request.size(), &parser);
     REQUIRE(std::string(parser.mMethod) == std::string("GET"));
     REQUIRE(std::string(parser.mPath) == std::string("/"));
     REQUIRE(std::string(parser.mVersion) == std::string("HTTP/1.1"));
@@ -133,13 +133,13 @@ TEST_CASE("HTTPParser1")
     REQUIRE(parser.mHeaders["x-dpl-pid"] == "124679842");
     REQUIRE(parser.mHeaders["Somethingelse"] == "cjnjsdnjks");
     REQUIRE(parser.mBody == "CONTROL QUIT");
-    parse_http_request(request2, strlen(request2), &parser);
+    parse_http_request(request2.data(), request2.size(), &parser);
     REQUIRE(parser.mBody == "FOO BAR");
   }
 
   {
     // WebSocket example
-    char* request = strdup(
+    std::string_view request =
       "GET /chat HTTP/1.1\r\n"
       "Host: server.example.com\r\n"
       "Upgrade: websocket\r\n"
@@ -147,10 +147,10 @@ TEST_CASE("HTTPParser1")
       "Sec-WebSocket-Key: x3JJHMbDL1EzLkh9GBhXDw==\r\n"
       "Sec-WebSocket-Protocol: chat, superchat\r\n"
       "Sec-WebSocket-Version: 13\r\n"
-      "Origin: http://example.com\r\n\r\n");
+      "Origin: http://example.com\r\n\r\n";
 
     DPLParser parser;
-    parse_http_request(request, strlen(request), &parser);
+    parse_http_request(request.data(), request.size(), &parser);
     REQUIRE(std::string(parser.mMethod) == std::string("GET"));
     REQUIRE(std::string(parser.mPath) == std::string("/chat"));
     REQUIRE(std::string(parser.mVersion) == std::string("HTTP/1.1"));
@@ -159,16 +159,16 @@ TEST_CASE("HTTPParser1")
   }
   {
     // WebSocket example
-    char* request = strdup(
+    std::string_view request =
       "HTTP/1.1 101 Switching Protocols\r\n"
       "Upgrade: websocket\r\n"
       "Connection: Upgrade\r\n"
       "Access-Control-Allow-Origin: \"*\"\r\n"
-      "Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n\r\n");
+      "Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n\r\n";
 
     DPLClientParser parser;
     parser.states.push_back(HTTPState::IN_START_REPLY);
-    parse_http_request(request, strlen(request), &parser);
+    parse_http_request(request.data(), request.size(), &parser);
     REQUIRE(std::string(parser.mReplyCode) == std::string("101"));
     REQUIRE(std::string(parser.mReplyMessage) == std::string("Switching Protocols"));
     REQUIRE(std::string(parser.mReplyVersion) == std::string("HTTP/1.1"));
@@ -178,22 +178,23 @@ TEST_CASE("HTTPParser1")
   }
   {
     // WebSocket frame encoding / decoding
-    char* buffer = strdup("hello websockets!");
+    std::string_view buffer = "hello websockets!";
     std::vector<uv_buf_t> encoded;
-    encode_websocket_frames(encoded, buffer, strlen(buffer) + 1, WebSocketOpCode::Binary, 0);
+    encode_websocket_frames(encoded, buffer.data(), buffer.size() + 1, WebSocketOpCode::Binary, 0);
     REQUIRE(encoded.size() == 1);
     TestWSHandler handler;
-    REQUIRE(encoded[0].len == strlen(buffer) + 1 + 2);
+    REQUIRE(encoded[0].len == buffer.size() + 1 + 2);
     ; // 1 for the 0, 2 for the header
     decode_websocket(encoded[0].base, encoded[0].len, handler);
-    REQUIRE(handler.mSize[0] == strlen(buffer) + 1);
-    REQUIRE(std::string(handler.mFrame[0], handler.mSize[0] - 1) == std::string(buffer));
+    REQUIRE(handler.mSize[0] == buffer.size() + 1);
+    REQUIRE(handler.mFrame[0].substr(0, handler.mSize[0] - 1) == std::string(buffer));
+    std::ranges::for_each(encoded, [](auto& buf) { free(buf.base); });
   }
   {
     // WebSocket multiple frame encoding / decoding
-    char* buffer = strdup("hello websockets!");
+    std::string_view buffer = "hello websockets!";
     std::vector<uv_buf_t> encoded;
-    encode_websocket_frames(encoded, buffer, strlen(buffer) + 1, WebSocketOpCode::Binary, 0);
+    encode_websocket_frames(encoded, buffer.data(), buffer.size() + 1, WebSocketOpCode::Binary, 0);
     REQUIRE(encoded.size() == 1);
     char const* prototype = "and again.";
     char* buffer2 = (char*)malloc(0x20000);
@@ -214,14 +215,17 @@ TEST_CASE("HTTPParser1")
     decode_websocket(multiBuffer, encoded[0].len + encoded[1].len, handler);
     REQUIRE(handler.mFrame.size() == 2);
     REQUIRE(handler.mSize.size() == 2);
-    REQUIRE(std::string(handler.mFrame[0], handler.mSize[0] - 1) == std::string(buffer));
-    REQUIRE(std::string(handler.mFrame[1], handler.mSize[1] - 1) == std::string(buffer2));
+    REQUIRE(handler.mFrame[0].substr(0, handler.mSize[0] - 1) == std::string(buffer));
+    REQUIRE(handler.mFrame[1].substr(0, handler.mSize[1] - 1) == std::string(buffer2));
+    std::ranges::for_each(encoded, [](auto& buf) { free(buf.base); });
+    free(multiBuffer);
+    free(buffer2);
   }
   {
     // Decode a frame which is split in two.
-    char* buffer = strdup("hello websockets!1");
+    std::string_view buffer = "hello websockets!1";
     std::vector<uv_buf_t> encoded;
-    encode_websocket_frames(encoded, buffer, strlen(buffer) + 1, WebSocketOpCode::Binary, 0);
+    encode_websocket_frames(encoded, buffer.data(), buffer.size() + 1, WebSocketOpCode::Binary, 0);
     REQUIRE(encoded.size() == 1);
 
     TestWSHandler handler;
@@ -229,13 +233,14 @@ TEST_CASE("HTTPParser1")
     decode_websocket(encoded[0].base + encoded[0].len / 2, encoded[0].len - encoded[0].len / 2, handler);
     REQUIRE(handler.mFrame.size() == 1);
     REQUIRE(handler.mSize.size() == 1);
-    REQUIRE(std::string(handler.mFrame[0], handler.mSize[0] - 1) == std::string(buffer));
+    REQUIRE(handler.mFrame[0].substr(0, handler.mSize[0] - 1) == std::string(buffer));
+    std::ranges::for_each(encoded, [](auto& buf) { free(buf.base); });
   }
   {
     // Decode a long frame which is split in two.
-    char* buffer = strdup("string with more than 127 characters: cdsklcmalkmc cdmslkc adslkccmkadsc adslkmc dsa ckdls cdksclknds lkndnc anslkc klsad ckl lksad clkas ccdascnkjancjnjkascsa cdascds clsad nclksad ncklsd clkadns lkc sadnlk cklsa cnaksld csad");
+    std::string_view buffer = "string with more than 127 characters: cdsklcmalkmc cdmslkc adslkccmkadsc adslkmc dsa ckdls cdksclknds lkndnc anslkc klsad ckl lksad clkas ccdascnkjancjnjkascsa cdascds clsad nclksad ncklsd clkadns lkc sadnlk cklsa cnaksld csad";
     std::vector<uv_buf_t> encoded;
-    encode_websocket_frames(encoded, buffer, strlen(buffer) + 1, WebSocketOpCode::Binary, 0);
+    encode_websocket_frames(encoded, buffer.data(), buffer.size() + 1, WebSocketOpCode::Binary, 0);
     REQUIRE(encoded.size() == 1);
 
     TestWSHandler handler;
@@ -243,33 +248,35 @@ TEST_CASE("HTTPParser1")
     decode_websocket(encoded[0].base + encoded[0].len / 2, encoded[0].len - encoded[0].len / 2, handler);
     REQUIRE(handler.mFrame.size() == 1);
     REQUIRE(handler.mSize.size() == 1);
-    REQUIRE(std::string(handler.mFrame[0], handler.mSize[0] - 1) == std::string(buffer));
+    REQUIRE(handler.mFrame[0].substr(0, handler.mSize[0] - 1) == std::string(buffer));
+    std::ranges::for_each(encoded, [](auto& buf) { free(buf.base); });
   }
   {
     // WebSocket multiple frame encoding / decoding, long frames
-    char* buffer = strdup("dwqnocewnclkanklcdanslkcndklsnclkdsnckldsnclk  cnldcl dsklc dslk cljdnsck sdlakcn askc sdkla cnsd c sdcn dsklncn dklsc nsdkl cklds clkds ckls dklc shello websockets!");
+    std::string_view buffer = "dwqnocewnclkanklcdanslkcndklsnclkdsnckldsnclk  cnldcl dsklc dslk cljdnsck sdlakcn askc sdkla cnsd c sdcn dsklncn dklsc nsdkl cklds clkds ckls dklc shello websockets!";
     std::vector<uv_buf_t> encoded;
-    encode_websocket_frames(encoded, buffer, strlen(buffer) + 1, WebSocketOpCode::Binary, 0);
+    encode_websocket_frames(encoded, buffer.data(), buffer.size() + 1, WebSocketOpCode::Binary, 0);
     REQUIRE(encoded.size() == 1);
-    char const* buffer2 = "xsanjkcnsadjknc dsjc nsdnc dlscndsck dsc ds clds cds vnlsfl nklnjk nj nju n nio nkmnklfmdkl mkld mkl mkl mkl mlk m lkm klfdnkln jkafdnk nk mkldfm lkdamlkdmlkdmlk m klml km lkm kl.";
-    encode_websocket_frames(encoded, buffer2, strlen(buffer2) + 1, WebSocketOpCode::Binary, 0);
+    std::string_view buffer2 = "xsanjkcnsadjknc dsjc nsdnc dlscndsck dsc ds clds cds vnlsfl nklnjk nj nju n nio nkmnklfmdkl mkld mkl mkl mkl mlk m lkm klfdnkln jkafdnk nk mkldfm lkdamlkdmlkdmlk m klml km lkm kl.";
+    encode_websocket_frames(encoded, buffer2.data(), buffer2.size() + 1, WebSocketOpCode::Binary, 0);
     REQUIRE(encoded.size() == 1);
 
     TestWSHandler handler;
     decode_websocket(encoded[0].base, encoded[0].len, handler);
     REQUIRE(handler.mFrame.size() == 2);
     REQUIRE(handler.mSize.size() == 2);
-    REQUIRE(std::string(handler.mFrame[0], handler.mSize[0] - 1) == std::string(buffer));
-    REQUIRE(std::string(handler.mFrame[1], handler.mSize[1] - 1) == std::string(buffer2));
+    REQUIRE(handler.mFrame[0].substr(0, handler.mSize[0] - 1) == std::string(buffer));
+    REQUIRE(handler.mFrame[1].substr(0, handler.mSize[1] - 1) == std::string(buffer2));
+    std::ranges::for_each(encoded, [](auto& buf) { free(buf.base); });
   }
   {
     // Decode a long frame which is split in two, after the first byte.
-    char* buffer = strdup("string with more than 127 characters: cdsklcmalkmc cdmslkc adslkccmkadsc adslkmc dsa ckdls cdksclknds lkndnc anslkc klsad ckl lksad clkas ccdascnkjancjnjkascsa cdascds clsad nclksad ncklsd clkadns lkc sadnlk cklsa cnaksld csad");
+    std::string_view buffer = "string with more than 127 characters: cdsklcmalkmc cdmslkc adslkccmkadsc adslkmc dsa ckdls cdksclknds lkndnc anslkc klsad ckl lksad clkas ccdascnkjancjnjkascsa cdascds clsad nclksad ncklsd clkadns lkc sadnlk cklsa cnaksld csad";
     std::vector<uv_buf_t> encoded;
-    encode_websocket_frames(encoded, buffer, strlen(buffer) + 1, WebSocketOpCode::Binary, 0);
+    encode_websocket_frames(encoded, buffer.data(), buffer.size() + 1, WebSocketOpCode::Binary, 0);
     REQUIRE(encoded.size() == 1);
 
-    for (size_t i = 1; i < strlen(buffer); ++i) {
+    for (size_t i = 1; i < buffer.size(); ++i) {
       char buffer1[1024];
       char buffer2[1024];
       memset(buffer1, 0xfa, 1024);
@@ -281,18 +288,19 @@ TEST_CASE("HTTPParser1")
       decode_websocket(buffer2, encoded[0].len - i, handler);
       REQUIRE(handler.mFrame.size() == 1);
       REQUIRE(handler.mSize.size() == 1);
-      REQUIRE(std::string(handler.mFrame[0], handler.mSize[0] - 1) == std::string(buffer));
+      REQUIRE(handler.mFrame[0].substr(0, handler.mSize[0] - 1) == std::string(buffer));
     }
+    std::ranges::for_each(encoded, [](auto& buf) { free(buf.base); });
   }
   {
     // Decode a long frame which is split in two, after the first byte.
-    char* buffer = strdup("string with more than 127 characters: cdsklcmalkmc cdmslkc adslkccmkadsc adslkmc dsa ckdls cdksclknds lkndnc anslkc klsad ckl lksad clkas ccdascnkjancjnjkascsa cdascds clsad nclksad ncklsd clkadns lkc sadnlk cklsa cnaksld csad");
+    std::string_view buffer = "string with more than 127 characters: cdsklcmalkmc cdmslkc adslkccmkadsc adslkmc dsa ckdls cdksclknds lkndnc anslkc klsad ckl lksad clkas ccdascnkjancjnjkascsa cdascds clsad nclksad ncklsd clkadns lkc sadnlk cklsa cnaksld csad";
     std::vector<uv_buf_t> encoded;
-    encode_websocket_frames(encoded, buffer, strlen(buffer) + 1, WebSocketOpCode::Binary, 0);
+    encode_websocket_frames(encoded, buffer.data(), buffer.size() + 1, WebSocketOpCode::Binary, 0);
     REQUIRE(encoded.size() == 1);
 
-    for (size_t i = 0; i < strlen(buffer) - 1; ++i) {
-      for (size_t j = i + 1; j < strlen(buffer); ++j) {
+    for (size_t i = 0; i < buffer.size() - 1; ++i) {
+      for (size_t j = i + 1; j < buffer.size(); ++j) {
         char buffer1[1024];
         char buffer2[1024];
         char buffer3[1024];
@@ -310,9 +318,10 @@ TEST_CASE("HTTPParser1")
         decode_websocket(buffer3, encoded[0].len - j, handler);
         REQUIRE(handler.mFrame.size() == 1);
         REQUIRE(handler.mSize.size() == 1);
-        REQUIRE(std::string(handler.mFrame[0], handler.mSize[0] - 1) == std::string(buffer));
+        REQUIRE(handler.mFrame[0].substr(0, handler.mSize[0] - 1) == std::string(buffer));
       }
     }
+    std::ranges::for_each(encoded, [](auto& buf) { free(buf.base); });
   }
   {
     std::string checkRequest =
@@ -328,7 +337,7 @@ TEST_CASE("HTTPParser1")
       "Connection: Upgrade\r\n"
       "Access-Control-Allow-Origin: \"*\"\r\n"
       "Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n\r\n";
-    int someSeed = 123;
+
     std::string result = encode_websocket_handshake_request("/chat", "myprotocol", 13, "dGhlIHNhbXBsZSBub25jZQ==");
     REQUIRE(result == checkRequest);
 
