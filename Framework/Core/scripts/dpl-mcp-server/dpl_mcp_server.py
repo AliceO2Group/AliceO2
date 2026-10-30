@@ -27,12 +27,14 @@ Wire protocol (client -> driver)
     {"cmd":"list_metrics","device":"<name>"}
     {"cmd":"subscribe","device":"<name>","metrics":["m1","m2"]}
     {"cmd":"unsubscribe","device":"<name>","metrics":["m1"]}
+    {"cmd":"smaps","device":"<name>"}
 
 Wire protocol (driver -> client)
 --------------------------------
     {"type":"snapshot","devices":[{"name","pid","active","streamingState","deviceState"},...]}
     {"type":"update","device":<idx>,"name":"<name>","metrics":{<name:value,...>}}
     {"type":"metrics_list","device":"<name>","metrics":["m1","m2",...]}
+    {"type":"smaps","device":"<name>","pid":<pid>,"fields":[...],"mappings":{"<path>":[<kB>,...]}}
 """
 
 from __future__ import annotations
@@ -63,6 +65,7 @@ class WorkflowConnection:
         self.updates: list[dict] = []
         self.logs: list[dict] = []
         self.metrics_lists: dict[str, list[str]] = {}
+        self.smaps: dict[str, dict] = {}
 
     async def ensure_connected(self) -> None:
         """Connect (or reconnect) to the driver's /status WebSocket."""
@@ -113,6 +116,8 @@ class WorkflowConnection:
                 elif t == "metrics_list":
                     device = msg.get("device", "")
                     self.metrics_lists[device] = msg.get("metrics", [])
+                elif t == "smaps":
+                    self.smaps[msg.get("device", "")] = msg
         except Exception:
             pass
         finally:
@@ -313,6 +318,71 @@ async def list_metrics(workflow: str, device: str) -> str:
                 return f"Device '{device}' has no numeric metrics yet."
             return f"{len(names)} metric(s): " + ", ".join(names)
     return f"No reply from driver for device '{device}' (timeout)."
+
+
+# Where a mapping's memory is attributed, first match wins (O2Physics before O2,
+# since both paths contain "/O2").
+_SMAPS_GROUPS = (
+    ("O2Physics libs", lambda p: "/O2Physics/" in p),
+    ("O2 libs", lambda p: "/O2/" in p),
+    ("ROOT libs", lambda p: "/ROOT/" in p),
+    ("arrow libs", lambda p: "/arrow/" in p),
+    ("other libs", lambda p: ".so" in p),
+    ("heap", lambda p: p == "[heap]"),
+    ("anon", lambda p: p == "[anon]"),
+    ("shm", lambda p: p.startswith("/dev/shm") or "SYSV" in p or "fmq_" in p),
+    ("other", lambda p: True),
+)
+
+
+@mcp.tool()
+async def smaps(workflow: str, device: str, top: int = 25) -> str:
+    """Memory of a DPL device per mapping, read from /proc/<pid>/smaps by the driver.
+
+    The driver runs as the same user as its devices, so this works where an
+    outside reader cannot (e.g. Hyperloop tests running as another account).
+    Reports PSS / private-dirty / RSS per group (O2Physics, O2, ROOT, arrow and
+    other libs, heap, anon, shm) and the ``top`` paths by PSS. Private-dirty is
+    the device's own cost, independent of how many processes share a library;
+    PSS splits shared pages between them. Linux only.
+
+    Args:
+        workflow: Workflow name as returned by connect.
+        device: Device name exactly as shown by list_devices.
+        top: Number of individual paths to list.
+    """
+    conn = _get(workflow)
+    conn.smaps.pop(device, None)
+    await conn.send({"cmd": "smaps", "device": device})
+    for _ in range(100):         # up to 5 s
+        await asyncio.sleep(0.05)
+        if device in conn.smaps:
+            break
+    else:
+        return f"No reply from driver for device '{device}' (timeout, or a driver without the smaps command)."
+    msg = conn.smaps[device]
+    if "error" in msg:
+        return f"{device} (pid {msg.get('pid')}): {msg['error']}"
+    idx = {f: i for i, f in enumerate(msg["fields"])}
+    rows = sorted(((p, v[idx["pss"]], v[idx["private_dirty"]], v[idx["rss"]]) for p, v in msg["mappings"].items()),
+                  key=lambda r: -r[1])
+    groups = {name: [0, 0, 0] for name, _ in _SMAPS_GROUPS}
+    for path, pss, pd, rss in rows:
+        g = groups[next(n for n, match in _SMAPS_GROUPS if match(path))]
+        g[0] += pss
+        g[1] += pd
+        g[2] += rss
+    mb = lambda kb: f"{kb / 1024:9.1f}"
+    total = [sum(g[i] for g in groups.values()) for i in range(3)]
+    lines = [f"{device} (pid {msg['pid']})", "", f"{'group':16} {'PSS MB':>9} {'privDirty':>9} {'RSS MB':>9}"]
+    for name, (pss, pd, rss) in sorted(groups.items(), key=lambda kv: -kv[1][0]):
+        if rss:
+            lines.append(f"{name:16} {mb(pss)} {mb(pd)} {mb(rss)}")
+    lines.append(f"{'TOTAL':16} {mb(total[0])} {mb(total[1])} {mb(total[2])}")
+    lines += ["", f"top {top} paths by PSS:", f"{'PSS MB':>9} {'privDirty':>9} {'RSS MB':>9}  path"]
+    for path, pss, pd, rss in rows[:max(1, top)]:
+        lines.append(f"{mb(pss)} {mb(pd)} {mb(rss)}  {path}")
+    return "\n".join(lines)
 
 
 @mcp.tool()
