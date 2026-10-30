@@ -168,7 +168,7 @@ bool Generator::initTPCLoopersGen()
   // timeframe: when several of them feed the same collision context (embedding), only the source
   // owning a collision generates its loopers, otherwise each source will generate them for the same time intervals.
   if (!o2::eventgen::GenTPCLoopers::ownsContextCollisions()) {
-    LOG(info) << "All collisions of this simulation are also taken by a source which comes earlier in the collision context and generates their loopers.";
+    LOG(info) << "All collisions of this simulation are owned by another source of the collision context, which generates their loopers.";
     LOG(info) << "Fast loopers generator will remain OFF.";
     return kFALSE;
   }

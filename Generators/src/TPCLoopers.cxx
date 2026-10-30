@@ -166,13 +166,17 @@ void GenTPCLoopers::setGeomProtection(bool protect)
 
 bool GenTPCLoopers::ownsCollision(const std::vector<o2::steer::EventPart>& parts, int source)
 {
-  // A collision is owned by the source with the lowest ID among the event parts it holds, so that
+  // A collision is owned by the source with the highest ID among the event parts it holds, so that
   // exactly one of the simulations feeding a collision context (i.e. bkg, sgn) generates its loopers.
-  int lowest = std::numeric_limits<int>::max();
+  // The signal comes after the background and has one event per collision, so it tiles the time
+  // exactly; a reused background event can only cover the average of its gaps. This assumes that
+  // signal events are not reused. The rule only looks at the collision itself, because the
+  // background reads the global context and each signal its per-timeframe one.
+  int highest = std::numeric_limits<int>::min();
   for (const auto& part : parts) {
-    lowest = std::min(lowest, part.sourceID);
+    highest = std::max(highest, part.sourceID);
   }
-  return lowest == source;
+  return highest == source;
 }
 
 bool GenTPCLoopers::ownsContextCollisions()
@@ -182,11 +186,11 @@ bool GenTPCLoopers::ownsContextCollisions()
   // simulation tiles the whole timeframe exactly once. When several transport simulations feed the
   // same context (embedding), each of them would tile that same time axis again and the loopers
   // would end up in the digits as many times as there are simulations.
-  // Every collision is therefore owned by exactly one source, the one with the lowest source ID
+  // Every collision is therefore owned by exactly one source, the one with the highest source ID
   // among the event parts present, and only the owner generates loopers for it. Embedding without
-  // replacement ("@" patterns) leaves all collisions to the background, since its event part is
-  // present everywhere; when the signal replaces the background ("r" patterns) the background part
-  // is taken out of the collisions it loses, so each source covers exactly its own share.
+  // replacement ("@" patterns) gives the signal the collisions it is embedded into and the
+  // background the others; when the signal replaces the background ("r" patterns) each source
+  // owns the collisions it is present in alone.
   const auto& simConfig = o2::conf::SimConfig::Instance();
   const auto contextAndPrefix = simConfig.getCollContextFilenameAndEventPrefix();
   const std::string contextName = contextAndPrefix.first.empty() ? "collisioncontext.root" : contextAndPrefix.first;
@@ -202,9 +206,12 @@ bool GenTPCLoopers::ownsContextCollisions()
   }
   const auto source = context->findSimPrefix(simPrefix);
   if (source < 0) {
+    if (context->getSimPrefixes().size() <= 1) {
+      return true; // a single source: nobody to share the loopers with
+    }
     LOG(warn) << "Simulation prefix " << simPrefix << " not found in the collision context " << contextName
-              << "; loopers will be generated without checking for other sources";
-    return true;
+              << ", which is shared by " << context->getSimPrefixes().size() << " sources; loopers will remain OFF";
+    return false;
   }
   // count the collisions this source takes part in and those it owns
   unsigned int nPresent = 0, nOwned = 0;
