@@ -48,6 +48,9 @@ struct WSDPLHandler;
 ///   {"cmd":"disable_signpost","device":"<name>","streams":["device","completion",...]}
 ///     → disable the named signpost log streams for a device
 ///
+///   {"cmd":"smaps","device":"<name>"}
+///     → driver reads /proc/<pid>/smaps of the device and replies with its usage per mapping
+///
 ///   {"cmd":"list_signposts"}
 ///     → driver replies with {"type":"signposts_list","streams":["device","completion",...]}
 ///     → lists the known stream names
@@ -61,6 +64,10 @@ struct WSDPLHandler;
 ///
 ///   {"type":"metrics_list","device":"<name>","metrics":["m1","m2",...]}
 ///     → reply to list_metrics command
+///
+///   {"type":"smaps","device":"<name>","pid":<pid>,"fields":["rss","pss",...],"mappings":{"<path>":[<kB>,...],...}}
+///     → reply to smaps: kB per field, summed over all mappings of a path ("[anon]" for unnamed ones),
+///       or {"type":"smaps","device":"<name>","pid":<pid>,"error":"<text>"} where /proc is unavailable
 ///
 ///   {"type":"log","device":"<name>","level":"<level>","line":"<text>"}
 ///     → pushed for each new log line from a subscribed device
@@ -96,6 +103,7 @@ struct StatusWebSocketHandler : public WebSocketHandler {
   void handleSubscribeLogs(std::string_view deviceName);
   void handleUnsubscribeLogs(std::string_view deviceName);
   void handleStartDevices();
+  void handleSmaps(std::string_view deviceName);
   void handleEnableSignpost(std::string_view deviceName, std::string_view streamsArr);
   void handleDisableSignpost(std::string_view deviceName, std::string_view streamsArr);
   size_t findDeviceIndex(std::string_view name) const;

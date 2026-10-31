@@ -13,5 +13,4 @@
 
 using namespace o2::trkft3;
 
-ChipDigitsContainer::ChipDigitsContainer(UShort_t idx)
-  : o2::itsmft::ChipDigitsContainer(idx) {}
+ChipDigitsContainer::ChipDigitsContainer(UShort_t idx) : mChipIndex(idx) {}

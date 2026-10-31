@@ -164,6 +164,14 @@ bool Generator::initTPCLoopersGen()
       return kFALSE;
     }
   }
+  // Loopers are a detector background continuous in time, and a single simulation covers the whole
+  // timeframe: when several of them feed the same collision context (embedding), only the source
+  // owning a collision generates its loopers, otherwise each source will generate them for the same time intervals.
+  if (!o2::eventgen::GenTPCLoopers::ownsContextCollisions()) {
+    LOG(info) << "All collisions of this simulation are owned by another source of the collision context, which generates their loopers.";
+    LOG(info) << "Fast loopers generator will remain OFF.";
+    return kFALSE;
+  }
   std::array<float, 2> multiplier = {loopersParam.multiplier[0], loopersParam.multiplier[1]};
   unsigned int nLoopersPairs = loopersParam.fixedNLoopers[0];
   unsigned int nLoopersCompton = loopersParam.fixedNLoopers[1];

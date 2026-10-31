@@ -24,9 +24,13 @@
 #include "Framework/LogParsingHelpers.h"
 #include "Framework/Signpost.h"
 #include <algorithm>
+#include <array>
 #include <cstdio>
+#include <fstream>
+#include <sstream>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 namespace o2::framework
@@ -262,6 +266,8 @@ void StatusWebSocketHandler::frame(char const* data, size_t s)
     handleEnableSignpost(deviceName, extractArrayField(msg, "streams"));
   } else if (cmd == "disable_signpost") {
     handleDisableSignpost(deviceName, extractArrayField(msg, "streams"));
+  } else if (cmd == "smaps") {
+    handleSmaps(deviceName);
   }
 }
 
@@ -443,6 +449,64 @@ size_t StatusWebSocketHandler::findDeviceIndex(std::string_view name) const
     }
   }
   return SIZE_MAX;
+}
+
+void StatusWebSocketHandler::handleSmaps(std::string_view deviceName)
+{
+  size_t di = findDeviceIndex(deviceName);
+  if (di == SIZE_MAX) {
+    return;
+  }
+  auto pid = (*mContext.infos)[di].pid;
+  std::string out = R"({"type":"smaps","device":")";
+  out += jsonEscape(deviceName);
+  out += R"(","pid":)";
+  out += std::to_string(pid);
+
+  std::ifstream smaps("/proc/" + std::to_string(pid) + "/smaps");
+  if (!smaps) {
+    out += R"(,"error":"cannot read /proc/)" + std::to_string(pid) + R"(/smaps"})";
+    sendText(out);
+    return;
+  }
+  constexpr std::array<std::string_view, 7> fields{"Rss:", "Pss:", "Shared_Clean:", "Shared_Dirty:", "Private_Clean:", "Private_Dirty:", "Swap:"};
+  std::unordered_map<std::string, std::array<uint64_t, fields.size()>> usage;
+  std::array<uint64_t, fields.size()>* current = nullptr;
+  std::string line;
+  while (std::getline(smaps, line)) {
+    std::istringstream tokens(line);
+    std::string first;
+    tokens >> first;
+    if (first.empty()) {
+      continue;
+    }
+    if (first.back() != ':') {
+      std::string perms, offset, dev, inode, name;
+      tokens >> perms >> offset >> dev >> inode;
+      std::getline(tokens >> std::ws, name);
+      current = &usage[name.empty() ? "[anon]" : name];
+      continue;
+    }
+    auto field = std::find(fields.begin(), fields.end(), first);
+    uint64_t kb = 0;
+    if (current && field != fields.end() && tokens >> kb) {
+      (*current)[field - fields.begin()] += kb;
+    }
+  }
+  out += R"(,"fields":["rss","pss","shared_clean","shared_dirty","private_clean","private_dirty","swap"],"mappings":{)";
+  bool first = true;
+  for (auto const& [name, kbs] : usage) {
+    out += first ? "\"" : ",\"";
+    first = false;
+    out += jsonEscape(name);
+    out += "\":[";
+    for (size_t fi = 0; fi < kbs.size(); ++fi) {
+      out += (fi ? "," : "") + std::to_string(kbs[fi]);
+    }
+    out += ']';
+  }
+  out += "}}";
+  sendText(out);
 }
 
 void StatusWebSocketHandler::handleStartDevices()
