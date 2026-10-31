@@ -32,8 +32,6 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   GPUDisplayBackendVulkan();
   ~GPUDisplayBackendVulkan() override;
 
-  uint32_t DepthBits() override;
-
  protected:
   struct SwapChainSupportDetails {
     vk::SurfaceCapabilitiesKHR capabilities;
@@ -81,8 +79,6 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void cmdPushDescriptors(vk::CommandBuffer commandBuffer, vk::PipelineLayout layout, const VulkanBuffer& ubo, vk::ImageView textureView = {}); // Push descriptors: UBO at binding 0, optional texture at binding 2
   void pointSizeFactor(float factor) override;
   void lineWidthFactor(float factor) override;
-  bool useNativeSmoothLines() const;
-  bool useSmoothLineShader() const;
   bool canLimitToVSync() const override { return true; } // Present wait
   void waitPresentFences();
   void resizeScene(uint32_t width, uint32_t height) override;
@@ -116,17 +112,21 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void createDevice();
   void loadShaders();
   void createTextureSampler();
-  void createCommandBuffers();
+  void createCommandBuffersForImages();
   void createSemaphores();
+  void createSemaphoresForImages();
   void createUniformLayoutsAndBuffers();
+  void createUniformLayoutsAndBuffersForImages();
   void createSwapChain(vk::SwapchainKHR oldSwapChain = {});
   void createOffscreenBuffers(bool forScreenshot = false, bool forMixing = false);
   void createPipeline();
   void clearDevice();
   void clearTextureSampler();
-  void clearCommandBuffers();
+  void clearCommandBuffersForImages();
   void clearSemaphores();
+  void clearSemaphoresForImages();
   void clearUniformLayoutsAndBuffers();
+  void clearUniformLayoutsAndBuffersForImages();
   void clearOffscreenBuffers();
   void clearSwapChain(bool keepSwapChain = false);
   void clearPipeline();
@@ -136,7 +136,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void addFontSymbol(int32_t symbol, int32_t sizex, int32_t sizey, int32_t offsetx, int32_t offsety, int32_t advance, void* data) override;
   void initializeTextDrawing() override;
   void clearFontSymbols() override;
-  void OpenGLPrint(const char* s, float x, float y, float* color, float scale) override;
+  void GLPrintText(const char* s, float x, float y, float* color, float scale, uint32_t nCharacters) override;
 
   uint32_t mGraphicsFamily;
   SwapChainSupportDetails mSwapChainDetails;
@@ -218,12 +218,10 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   bool mStencilSupported = false;
   float mMaxLineWidth = 1.f, mMaxPointSize = 1.f;
   bool mStrictLines = false;              // Wide lines are rectangles, not parallelograms
-  bool mSmoothLinesSupported = false;     // Optional Vulkan 1.4 feature smoothLines
   bool mFifoLatestReadySupported = false; // Optional present mode FIFO_LATEST_READY (VK_KHR / VK_EXT_present_mode_fifo_latest_ready)
 
   vk::SampleCountFlagBits mMSAASampleCount = vk::SampleCountFlagBits::e16;
   bool mZActive = false;
-  bool mSmoothLines = false;
   bool mPresentModeErrorShown = false;
   bool mPresentModeForVSyncLimit = false; // Swapchain created with FIFO for the refresh rate FPS limit
   std::vector<vk::Fence> mPresentFences;  // Per swapchain image, signaled when its last present is done (swapchain_maintenance1)

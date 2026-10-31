@@ -66,15 +66,6 @@ bool GPUDisplayBackendOpenGL::canLimitToVSync() const
   return mDisplay->frontend()->canSetVSync();
 }
 
-bool GPUDisplayBackendOpenGL::CoreProfile()
-{
-#ifdef GPUCA_DISPLAY_OPENGL_CORE
-  return true;
-#else
-  return false;
-#endif
-}
-
 // #define CHKERR(cmd) {cmd;}
 #define CHKERR(cmd)                                                                                                 \
   do {                                                                                                              \
@@ -85,15 +76,6 @@ bool GPUDisplayBackendOpenGL::CoreProfile()
       throw std::runtime_error("OpenGL Failure");                                                                   \
     }                                                                                                               \
   } while (false)
-
-uint32_t GPUDisplayBackendOpenGL::DepthBits()
-{
-  GLint depthBits = 0;
-#ifndef GPUCA_DISPLAY_OPENGL_CORE
-  glGetIntegerv(GL_DEPTH_BITS, &depthBits);
-#endif
-  return depthBits;
-}
 
 void GPUDisplayBackendOpenGL::createFB(GLfb& fb, bool tex, bool withDepth, bool msaa, uint32_t width, uint32_t height)
 {
@@ -185,22 +167,13 @@ uint32_t GPUDisplayBackendOpenGL::drawVertices(const vboList& v, const drawType 
   }
 
   if (mDisplay->useMultiVBO()) {
-    if (!mDisplay->cfgR().rendererCompatSmoothing) { // TODO: Remove OpenGL compat profile completely
-      CHKERR(glBindVertexArray(mVertexArray));
-    }
+    CHKERR(glBindVertexArray(mVertexArray));
     CHKERR(glBindBuffer(GL_ARRAY_BUFFER, mVBOId[iSector]));
-#ifndef GPUCA_DISPLAY_OPENGL_CORE
-    if (mDisplay->cfgR().rendererCompatSmoothing) {
-      CHKERR(glVertexPointer(3, GL_FLOAT, 0, nullptr));
-    } else
-#endif
-    {
-      CHKERR(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr));
-      glEnableVertexAttribArray(0);
-    }
+    CHKERR(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr));
+    glEnableVertexAttribArray(0);
   }
 
-  const uint32_t smoothProgram = tt == POINTS ? (mUseSmoothPointShader ? mShaderProgramSmoothPoint : 0) : (mUseSmoothLineShader ? mShaderProgramSmoothLine : 0);
+  const uint32_t smoothProgram = tt == POINTS ? (mDisplay->cfgL().smoothPoints ? mShaderProgramSmoothPoint : 0) : (mDisplay->cfgL().smoothLines ? mShaderProgramSmoothLine : 0);
   if (smoothProgram) {
     CHKERR(glUseProgram(smoothProgram));
   }
@@ -222,19 +195,12 @@ uint32_t GPUDisplayBackendOpenGL::drawVertices(const vboList& v, const drawType 
 
 void GPUDisplayBackendOpenGL::ActivateColor(std::array<float, 4>& color)
 {
-#ifndef GPUCA_DISPLAY_OPENGL_CORE
-  if (mDisplay->cfgR().rendererCompatSmoothing) {
-    glColor4f(color[0], color[1], color[2], color[3]);
-  } else
-#endif
-  {
-    CHKERR(glUniform4fv(UNIFORM_LOCATION_COLOR, 1, &color[0]));
-    if (mUseSmoothPointShader) {
-      CHKERR(glProgramUniform4fv(mShaderProgramSmoothPoint, UNIFORM_LOCATION_COLOR, 1, &color[0]));
-    }
-    if (mUseSmoothLineShader) {
-      CHKERR(glProgramUniform4fv(mShaderProgramSmoothLine, UNIFORM_LOCATION_COLOR, 1, &color[0]));
-    }
+  CHKERR(glUniform4fv(UNIFORM_LOCATION_COLOR, 1, &color[0]));
+  if (mDisplay->cfgL().smoothPoints) {
+    CHKERR(glProgramUniform4fv(mShaderProgramSmoothPoint, UNIFORM_LOCATION_COLOR, 1, &color[0]));
+  }
+  if (mDisplay->cfgL().smoothLines) {
+    CHKERR(glProgramUniform4fv(mShaderProgramSmoothLine, UNIFORM_LOCATION_COLOR, 1, &color[0]));
   }
 }
 
@@ -325,9 +291,6 @@ int32_t GPUDisplayBackendOpenGL::InitBackendA()
   CHKERR(glBindBuffer(GL_ARRAY_BUFFER, mVBOId[0]));
   CHKERR(glGenBuffers(1, &mIndirectId));
   CHKERR(glBindBuffer(GL_DRAW_INDIRECT_BUFFER, mIndirectId));
-#ifndef GPUCA_DISPLAY_OPENGL_CORE
-  CHKERR(glShadeModel(GL_SMOOTH)); // Enable Smooth Shading
-#endif
   setDepthBuffer();
   setQuality();
   CHKERR(mVertexShader = loadShader(GL_VERTEX_SHADER, _binary_opengl_vertex_vert_spv_start, _binary_opengl_vertex_vert_spv_len));
@@ -459,7 +422,6 @@ void GPUDisplayBackendOpenGL::clearScreen(bool alphaOnly)
 
 void GPUDisplayBackendOpenGL::loadDataToGPU(size_t totalVertizes)
 {
-  // TODO: Check if this can be parallelized
   if (mDisplay->useMultiVBO()) {
     for (uint32_t i = 0; i < GPUTPCGeometry::NSECTORS; i++) {
       CHKERR(glNamedBufferData(mVBOId[i], mDisplay->vertexBuffer()[i].size() * sizeof(mDisplay->vertexBuffer()[i][0]), mDisplay->vertexBuffer()[i].data(), GL_STATIC_DRAW));
@@ -494,77 +456,34 @@ bool GPUDisplayBackendOpenGL::prepareDraw(const hmm_mat4& proj, const hmm_mat4& 
     setFrameBuffer(0);
   }
   clearScreen();
-  mUseSmoothPointShader = mDisplay->cfgL().smoothPoints && !mDisplay->cfgR().rendererCompatSmoothing; // The compat profile uses GL_POINT_SMOOTH / GL_LINE_SMOOTH
-  mUseSmoothLineShader = mDisplay->cfgL().smoothLines && !mDisplay->cfgR().rendererCompatSmoothing;
-#ifndef GPUCA_DISPLAY_OPENGL_CORE
-  if (mUseSmoothPointShader) { // Compatibility context: gl_PointCoord is only defined with point sprites
-    CHKERR(glEnable(GL_POINT_SPRITE));
-  } else {
-    CHKERR(glDisable(GL_POINT_SPRITE));
-  }
-  if (mDisplay->cfgL().smoothPoints && mDisplay->cfgR().rendererCompatSmoothing) {
-    CHKERR(glEnable(GL_POINT_SMOOTH));
-  } else {
-    CHKERR(glDisable(GL_POINT_SMOOTH));
-  }
-  if (mDisplay->cfgL().smoothLines && mDisplay->cfgR().rendererCompatSmoothing) {
-    CHKERR(glEnable(GL_LINE_SMOOTH));
-  } else {
-    CHKERR(glDisable(GL_LINE_SMOOTH));
-  }
-#endif
   CHKERR(glEnable(GL_BLEND));
   CHKERR(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
 
   glViewport(0, 0, mRenderWidth, mRenderHeight);
-#ifndef GPUCA_DISPLAY_OPENGL_CORE
-  if (mDisplay->cfgR().rendererCompatSmoothing) {
-    CHKERR(glEnableClientState(GL_VERTEX_ARRAY));
-    CHKERR(glVertexPointer(3, GL_FLOAT, 0, nullptr));
-  } else
-#endif
-  {
-    CHKERR(glBindVertexArray(mVertexArray));
-    CHKERR(glUseProgram(mShaderProgram));
-    CHKERR(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr));
-    CHKERR(glEnableVertexAttribArray(0));
+  CHKERR(glBindVertexArray(mVertexArray));
+  CHKERR(glUseProgram(mShaderProgram));
+  CHKERR(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr));
+  CHKERR(glEnableVertexAttribArray(0));
+
+  const hmm_mat4 modelViewProj = proj * view;
+  CHKERR(glUniformMatrix4fv(UNIFORM_LOCATION_MATRIX, 1, GL_FALSE, &modelViewProj.Elements[0][0]));
+  if (mDisplay->cfgL().smoothPoints) {
+    CHKERR(glProgramUniformMatrix4fv(mShaderProgramSmoothPoint, UNIFORM_LOCATION_MATRIX, 1, GL_FALSE, &modelViewProj.Elements[0][0]));
   }
-#ifndef GPUCA_DISPLAY_OPENGL_CORE
-  if (mDisplay->cfgR().rendererCompatSmoothing) {
-    CHKERR(glMatrixMode(GL_PROJECTION));
-    CHKERR(glLoadMatrixf(&proj.Elements[0][0]));
-    CHKERR(glMatrixMode(GL_MODELVIEW));
-    CHKERR(glLoadMatrixf(&view.Elements[0][0]));
-  } else
-#endif
-  {
-    const hmm_mat4 modelViewProj = proj * view;
-    CHKERR(glUniformMatrix4fv(UNIFORM_LOCATION_MATRIX, 1, GL_FALSE, &modelViewProj.Elements[0][0]));
-    if (mUseSmoothPointShader) {
-      CHKERR(glProgramUniformMatrix4fv(mShaderProgramSmoothPoint, UNIFORM_LOCATION_MATRIX, 1, GL_FALSE, &modelViewProj.Elements[0][0]));
-    }
-    if (mUseSmoothLineShader) {
-      CHKERR(glProgramUniformMatrix4fv(mShaderProgramSmoothLine, UNIFORM_LOCATION_MATRIX, 1, GL_FALSE, &modelViewProj.Elements[0][0]));
-      CHKERR(glProgramUniform2f(mShaderProgramSmoothLine, UNIFORM_LOCATION_VIEWPORT, mRenderWidth, mRenderHeight));
-    }
-    if (mMagneticFieldVisualization) {
-      CHKERR(glNamedBufferSubData(mFieldModelViewBuffer, 0, sizeof(modelViewProj), &modelViewProj));
-    }
+  if (mDisplay->cfgL().smoothLines) {
+    CHKERR(glProgramUniformMatrix4fv(mShaderProgramSmoothLine, UNIFORM_LOCATION_MATRIX, 1, GL_FALSE, &modelViewProj.Elements[0][0]));
+    CHKERR(glProgramUniform2f(mShaderProgramSmoothLine, UNIFORM_LOCATION_VIEWPORT, mRenderWidth, mRenderHeight));
+  }
+  if (mMagneticFieldVisualization) {
+    CHKERR(glNamedBufferSubData(mFieldModelViewBuffer, 0, sizeof(modelViewProj), &modelViewProj));
   }
   return true;
 }
 
 void GPUDisplayBackendOpenGL::finishDraw(bool doScreenshot, bool toMixBuffer, float includeMixImage)
 {
-#ifndef GPUCA_DISPLAY_OPENGL_CORE
-  if (mDisplay->cfgR().rendererCompatSmoothing) {
-    CHKERR(glDisableClientState(GL_VERTEX_ARRAY));
-  } else
-#endif
-  {
-    CHKERR(glBindVertexArray(0));
-    CHKERR(glUseProgram(0));
-  }
+  CHKERR(glBindVertexArray(0));
+  CHKERR(glUseProgram(0));
 
   if (mOffscreenBufferMSAA.created) {
     uint32_t dstId = toMixBuffer ? mMixBuffer.fb_id : (mDownsampleFactor != 1 ? mOffscreenBuffer.fb_id : 0);
@@ -617,15 +536,7 @@ void GPUDisplayBackendOpenGL::prepareText()
   setFrameBuffer(0);
   glViewport(0, 0, mScreenWidth, mScreenHeight);
   hmm_mat4 proj = HMM_Orthographic(0.f, mScreenWidth, 0.f, mScreenHeight, -1, 1);
-  if (mDisplay->drawTextInCompatMode()) {
-#ifndef GPUCA_DISPLAY_OPENGL_CORE
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    glMatrixMode(GL_PROJECTION);
-    glLoadMatrixf(&proj.Elements[0][0]);
-    glViewport(0, 0, mScreenWidth, mScreenHeight);
-#endif
-  } else if (mFreetypeInitialized) {
+  if (mFreetypeInitialized) {
     CHKERR(glUseProgram(mShaderProgramText));
     CHKERR(glActiveTexture(GL_TEXTURE0));
     CHKERR(glBindVertexArray(VAO_text));
@@ -637,7 +548,7 @@ void GPUDisplayBackendOpenGL::prepareText()
 
 void GPUDisplayBackendOpenGL::finishText()
 {
-  if (!mDisplay->drawTextInCompatMode() && mFreetypeInitialized) {
+  if (mFreetypeInitialized) {
     CHKERR(glBindVertexArray(0));
     CHKERR(glBindTexture(GL_TEXTURE_2D, 0));
     CHKERR(glUseProgram(0));
@@ -667,55 +578,25 @@ void GPUDisplayBackendOpenGL::mixImages(float mixSlaveImage)
 {
   hmm_mat4 proj = HMM_Orthographic(0.f, mRenderWidth, 0.f, mRenderHeight, -1.f, 1.f);
   glDisable(GL_DEPTH_TEST);
-#ifndef GPUCA_DISPLAY_OPENGL_CORE
-  if (mDisplay->cfgR().rendererCompatSmoothing) {
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    glMatrixMode(GL_PROJECTION);
-    glLoadMatrixf(&proj.Elements[0][0]);
-    CHKERR(glEnable(GL_TEXTURE_2D));
-  } else
-#endif
-  {
-    CHKERR(glUseProgram(mShaderProgramTexture));
-    CHKERR(glActiveTexture(GL_TEXTURE0));
-    CHKERR(glBindVertexArray(VAO_texture));
-    CHKERR(glUniformMatrix4fv(UNIFORM_LOCATION_MATRIX, 1, GL_FALSE, &proj.Elements[0][0]));
-    CHKERR(glUniform1f(UNIFORM_LOCATION_COLOR, mixSlaveImage));
-  }
+  CHKERR(glUseProgram(mShaderProgramTexture));
+  CHKERR(glActiveTexture(GL_TEXTURE0));
+  CHKERR(glBindVertexArray(VAO_texture));
+  CHKERR(glUniformMatrix4fv(UNIFORM_LOCATION_MATRIX, 1, GL_FALSE, &proj.Elements[0][0]));
+  CHKERR(glUniform1f(UNIFORM_LOCATION_COLOR, mixSlaveImage));
 
   CHKERR(glBindTexture(GL_TEXTURE_2D, mMixBuffer.fbCol_id));
 
-#ifndef GPUCA_DISPLAY_OPENGL_CORE
-  if (mDisplay->cfgR().rendererCompatSmoothing) {
-    glColor4f(1, 1, 1, mixSlaveImage);
-    glBegin(GL_QUADS);
-    glTexCoord2f(0, 0);
-    glVertex3f(0, 0, 0);
-    glTexCoord2f(0, 1);
-    glVertex3f(0, mRenderHeight, 0);
-    glTexCoord2f(1, 1);
-    glVertex3f(mRenderWidth, mRenderHeight, 0);
-    glTexCoord2f(1, 0);
-    glVertex3f(mRenderWidth, 0, 0);
-    glEnd();
-    glColor4f(1, 1, 1, 0);
-    CHKERR(glDisable(GL_TEXTURE_2D));
-  } else
-#endif
-  {
-    CHKERR(glDrawArrays(GL_TRIANGLES, 0, 6));
-    CHKERR(glBindVertexArray(0));
-    CHKERR(glUseProgram(0));
-  }
+  CHKERR(glDrawArrays(GL_TRIANGLES, 0, 6));
+  CHKERR(glBindVertexArray(0));
+  CHKERR(glUseProgram(0));
   CHKERR(glBindTexture(GL_TEXTURE_2D, 0));
   setDepthBuffer();
 }
 
 void GPUDisplayBackendOpenGL::pointSizeFactor(float factor)
 {
-  const float size = mDisplay->cfgL().pointSize * mDownsampleFactor * factor + (mUseSmoothPointShader ? SMOOTH_POINT_EXTRA_SIZE : 0.f);
-  if (mUseSmoothPointShader) {
+  const float size = mDisplay->cfgL().pointSize * mDownsampleFactor * factor + (mDisplay->cfgL().smoothPoints ? SMOOTH_POINT_EXTRA_SIZE : 0.f);
+  if (mDisplay->cfgL().smoothPoints) {
     CHKERR(glProgramUniform1f(mShaderProgramSmoothPoint, UNIFORM_LOCATION_POINT_SIZE, size));
   }
   CHKERR(glPointSize(size));
@@ -724,7 +605,7 @@ void GPUDisplayBackendOpenGL::pointSizeFactor(float factor)
 void GPUDisplayBackendOpenGL::lineWidthFactor(float factor)
 {
   float width = mDisplay->cfgL().lineWidth * mDownsampleFactor * factor;
-  if (mUseSmoothLineShader) {
+  if (mDisplay->cfgL().smoothLines) {
     width += SMOOTH_LINE_EXTRA_WIDTH;
     CHKERR(glProgramUniform1f(mShaderProgramSmoothLine, UNIFORM_LOCATION_LINE_WIDTH, width));
     width *= 1.4143f; // Wide lines are parallelograms in OpenGL, widen so that the perpendicular width is covered
@@ -787,9 +668,9 @@ void GPUDisplayBackendOpenGL::initializeTextDrawing()
   CHKERR(glBindVertexArray(0));
 }
 
-void GPUDisplayBackendOpenGL::OpenGLPrint(const char* s, float x, float y, float* color, float scale)
+void GPUDisplayBackendOpenGL::GLPrintText(const char* s, float x, float y, float* color, float scale, uint32_t nCharacters)
 {
-  if (!mFreetypeInitialized || mDisplay->drawTextInCompatMode()) {
+  if (!mFreetypeInitialized) {
     return;
   }
   CHKERR(glUniform4fv(UNIFORM_LOCATION_COLOR, 1, color));
@@ -797,7 +678,7 @@ void GPUDisplayBackendOpenGL::OpenGLPrint(const char* s, float x, float y, float
   if (smoothFont()) {
     scale *= 0.25f; // Font size is 48 to have nice bitmap, scale to size 12
   }
-  for (const unsigned char* c = (const unsigned char*)s; *c; c++) {
+  for (const unsigned char* c = (const unsigned char*)s; *c && (nCharacters == 0 || c < (const unsigned char*)s + nCharacters); c++) {
     if ((int32_t)*c >= (int32_t)mFontSymbols.size()) {
       GPUError("Trying to draw unsupported symbol: %d > %d\n", (int32_t)*c, (int32_t)mFontSymbols.size());
       continue;

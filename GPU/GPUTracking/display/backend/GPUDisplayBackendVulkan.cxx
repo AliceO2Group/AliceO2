@@ -556,8 +556,6 @@ void GPUDisplayBackendVulkan::createDevice()
   if (checkDevice(mPhysicalDevice, reqDeviceExtensions, reqDeviceFeatures, true) <= 0) {
     throw std::runtime_error("Selected vulkan device is incompatible");
   }
-  mSmoothLinesSupported = getFeatures(mPhysicalDevice, reqDeviceFeatures).get<vk::PhysicalDeviceVulkan14Features>().smoothLines;
-  reqDeviceFeatures.get<vk::PhysicalDeviceVulkan14Features>().smoothLines = mSmoothLinesSupported;
   std::vector<const char*> deviceExtensions = reqDeviceExtensions;
   void* featureChain = &reqDeviceFeatures.get<vk::PhysicalDeviceFeatures2>();
   const std::vector<vk::ExtensionProperties> availableDeviceExtensions = mPhysicalDevice.enumerateDeviceExtensionProperties(nullptr);
@@ -578,7 +576,7 @@ void GPUDisplayBackendVulkan::createDevice()
   mStencilSupported = (bool)(depth64FormatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment);
   bool mailboxSupported = std::find(mSwapChainDetails.presentModes.begin(), mSwapChainDetails.presentModes.end(), vk::PresentModeKHR::eMailbox) != mSwapChainDetails.presentModes.end();
   if (mDisplay->GetProcessingSettings().debugLevel >= 2) {
-    GPUInfo("Max MSAA: %d, 32 bit Z buffer %d, 32 bit Z buffer + stencil buffer %d, Mailbox present mode %d, FIFO latest ready present mode %d, smooth lines %d\n", (int32_t)mMaxMSAAsupported, (int32_t)mZSupported, (int32_t)mStencilSupported, (int32_t)mailboxSupported, (int32_t)mFifoLatestReadySupported, (int32_t)mSmoothLinesSupported);
+    GPUInfo("Max MSAA: %d, 32 bit Z buffer %d, 32 bit Z buffer + stencil buffer %d, Mailbox present mode %d, FIFO latest ready present mode %d\n", (int32_t)mMaxMSAAsupported, (int32_t)mZSupported, (int32_t)mStencilSupported, (int32_t)mailboxSupported, (int32_t)mFifoLatestReadySupported);
   }
 
   vk::DeviceQueueCreateInfo queueCreateInfo{};
@@ -617,7 +615,7 @@ void GPUDisplayBackendVulkan::clearDevice()
 
 // ---------------------------- VULKAN COMMAND BUFFERS ----------------------------
 
-void GPUDisplayBackendVulkan::createCommandBuffers()
+void GPUDisplayBackendVulkan::createCommandBuffersForImages()
 {
   vk::CommandBufferAllocateInfo allocInfo{};
   allocInfo.commandPool = mCommandPool;
@@ -632,7 +630,7 @@ void GPUDisplayBackendVulkan::createCommandBuffers()
   mCommandBuffersPresent = mDevice.allocateCommandBuffers(allocInfo);
 }
 
-void GPUDisplayBackendVulkan::clearCommandBuffers()
+void GPUDisplayBackendVulkan::clearCommandBuffersForImages()
 {
   mDevice.freeCommandBuffers(mCommandPool, mCommandBuffers.size(), mCommandBuffers.data());
   mDevice.freeCommandBuffers(mCommandPool, mCommandBuffersText.size(), mCommandBuffersText.data());
@@ -648,18 +646,22 @@ void GPUDisplayBackendVulkan::createSemaphores()
 {
   vk::SemaphoreCreateInfo semaphoreInfo{};
   mImageAvailableSemaphore.resize(mFramesInFlight);
-  mPresentSemaphore.resize(mImageCount);
   for (uint32_t i = 0; i < mFramesInFlight; i++) {
     mImageAvailableSemaphore[i] = mDevice.createSemaphore(semaphoreInfo, nullptr);
-  }
-  for (uint32_t i = 0; i < mImageCount; i++) {
-    mPresentSemaphore[i] = mDevice.createSemaphore(semaphoreInfo, nullptr);
   }
   vk::SemaphoreTypeCreateInfo timelineTypeInfo{vk::SemaphoreType::eTimeline, 0};
   semaphoreInfo.pNext = &timelineTypeInfo;
   mTimelineSemaphore = mDevice.createSemaphore(semaphoreInfo, nullptr);
   mTimelineValue = 0;
   mFrameTimelineValue.assign(mFramesInFlight, 0);
+}
+
+void GPUDisplayBackendVulkan::createSemaphoresForImages()
+{
+  mPresentSemaphore.resize(mImageCount);
+  for (uint32_t i = 0; i < mImageCount; i++) {
+    mPresentSemaphore[i] = mDevice.createSemaphore(vk::SemaphoreCreateInfo{}, nullptr);
+  }
   mImageTimelineValue.assign(mImageCount, 0);
   for (uint32_t i = 0; i < mImageCount; i++) {
     mPresentFences.emplace_back(mDevice.createFence(vk::FenceCreateInfo{vk::FenceCreateFlagBits::eSignaled}, nullptr));
@@ -679,8 +681,12 @@ void GPUDisplayBackendVulkan::waitPresentFences()
 void GPUDisplayBackendVulkan::clearSemaphores()
 {
   clearVector(mImageAvailableSemaphore, [&](auto& x) { mDevice.destroySemaphore(x, nullptr); });
-  clearVector(mPresentSemaphore, [&](auto& x) { mDevice.destroySemaphore(x, nullptr); });
   mDevice.destroySemaphore(mTimelineSemaphore, nullptr);
+}
+
+void GPUDisplayBackendVulkan::clearSemaphoresForImages()
+{
+  clearVector(mPresentSemaphore, [&](auto& x) { mDevice.destroySemaphore(x, nullptr); });
   clearVector(mPresentFences, [&](auto& x) { mDevice.destroyFence(x, nullptr); });
 }
 
@@ -688,13 +694,6 @@ void GPUDisplayBackendVulkan::clearSemaphores()
 
 void GPUDisplayBackendVulkan::createUniformLayoutsAndBuffers()
 {
-  for (int32_t j = 0; j < 3; j++) {
-    mUniformBuffersMat[j].resize(mImageCount);
-    for (uint32_t i = 0; i < mImageCount; i++) {
-      mUniformBuffersMat[j][i] = createBuffer(sizeof(hmm_mat4), nullptr, vk::BufferUsageFlagBits::eUniformBuffer, mDisplay->cfg().vulkan.uniformBuffersInDeviceMemory ? 2 : 0);
-    }
-  }
-
   vk::DescriptorSetLayoutBinding uboLayoutBindingMat{};
   uboLayoutBindingMat.binding = 0;
   uboLayoutBindingMat.descriptorType = vk::DescriptorType::eUniformBuffer;
@@ -714,7 +713,16 @@ void GPUDisplayBackendVulkan::createUniformLayoutsAndBuffers()
   mUniformDescriptor = mDevice.createDescriptorSetLayout(layoutInfo, nullptr);
   layoutInfo.bindingCount = 2;
   mUniformDescriptorTexture = mDevice.createDescriptorSetLayout(layoutInfo, nullptr);
+}
 
+void GPUDisplayBackendVulkan::createUniformLayoutsAndBuffersForImages()
+{
+  for (int32_t j = 0; j < 3; j++) {
+    mUniformBuffersMat[j].resize(mImageCount);
+    for (uint32_t i = 0; i < mImageCount; i++) {
+      mUniformBuffersMat[j][i] = createBuffer(sizeof(hmm_mat4), nullptr, vk::BufferUsageFlagBits::eUniformBuffer, mDisplay->cfg().vulkan.uniformBuffersInDeviceMemory ? 2 : 0);
+    }
+  }
   mUpdateUBOdrawMatrix = mUpdateUBOtextMatrix = mUpdateUBOmixMatrix = -1;
 }
 
@@ -722,6 +730,10 @@ void GPUDisplayBackendVulkan::clearUniformLayoutsAndBuffers()
 {
   mDevice.destroyDescriptorSetLayout(mUniformDescriptor, nullptr);
   mDevice.destroyDescriptorSetLayout(mUniformDescriptorTexture, nullptr);
+}
+
+void GPUDisplayBackendVulkan::clearUniformLayoutsAndBuffersForImages()
+{
   for (int32_t j = 0; j < 3; j++) {
     clearVector(mUniformBuffersMat[j], [&](auto& x) { clearBuffer(x); });
   }
@@ -818,22 +830,24 @@ void GPUDisplayBackendVulkan::createSwapChain(vk::SwapchainKHR oldSwapChain)
   }
 
   mSwapChainImages = mDevice.getSwapchainImagesKHR(mSwapChain);
-  uint32_t oldFramesInFlight = mFramesInFlight, oldImageCount = mImageCount;
-  mFramesInFlight = mDisplay->cfg().vulkan.nFramesInFlight;
+  uint32_t oldImageCount = mImageCount;
   mImageCount = mSwapChainImages.size();
   if (mImageCount > sizeof(mUpdateUBOdrawMatrix) * 8) {
     throw std::runtime_error("Too many swapchain images");
   }
 
-  if (mFramesInFlight != oldFramesInFlight || mImageCount != oldImageCount || !mCommandInfrastructureCreated) {
+  if (mImageCount != oldImageCount || !mCommandInfrastructureCreated) {
     if (mCommandInfrastructureCreated) {
-      clearUniformLayoutsAndBuffers(); // TODO: Check what must actually be cleaned up if frames in flight changes
-      clearCommandBuffers();
-      clearSemaphores();
+      clearUniformLayoutsAndBuffersForImages();
+      clearCommandBuffersForImages();
+      clearSemaphoresForImages();
+    } else {
+      createUniformLayoutsAndBuffers();
+      createSemaphores();
     }
-    createUniformLayoutsAndBuffers();
-    createCommandBuffers();
-    createSemaphores();
+    createUniformLayoutsAndBuffersForImages();
+    createCommandBuffersForImages();
+    createSemaphoresForImages();
     mCommandInfrastructureCreated = true;
   }
 
@@ -861,24 +875,21 @@ void GPUDisplayBackendVulkan::recreateRendering(bool forScreenshot, bool forMixi
   needRecordCommandBuffers();
   const bool needUpdateSwapChain = mMustUpdateSwapChain;
   const bool needUpdateOffscreenBuffers = needUpdateSwapChain || mDownsampleFactor != getDownsampleFactor(forScreenshot) || mMSAASampleCount != getMSAASamplesFlag(std::min<uint32_t>(mMaxMSAAsupported, mDisplay->cfgR().drawQualityMSAA)) || mZActive != (mZSupported && mDisplay->cfgL().depthBuffer) || mMixingSupported != forMixing;
-  const bool smoothLinesChanged = mSmoothLines != useNativeSmoothLines();
-  if (!needUpdateOffscreenBuffers && !smoothLinesChanged) {
+  if (!needUpdateOffscreenBuffers) {
     return;
   }
   mDevice.waitIdle();
   const vk::Format oldFormat = mSurfaceFormat.format;
   const vk::SampleCountFlagBits oldMSAASampleCount = mMSAASampleCount;
   const bool oldZActive = mZActive;
-  if (needUpdateOffscreenBuffers) {
-    clearOffscreenBuffers();
-    if (needUpdateSwapChain) {
-      clearSwapChain(true);
-      createSwapChain(mSwapChain);
-    }
-    createOffscreenBuffers(forScreenshot, forMixing);
-    mUpdateUBOtextMatrix = mUpdateUBOmixMatrix = -1; // Screen / render size may have changed
+  clearOffscreenBuffers();
+  if (needUpdateSwapChain) {
+    clearSwapChain(true);
+    createSwapChain(mSwapChain);
   }
-  if (mSurfaceFormat.format != oldFormat || mMSAASampleCount != oldMSAASampleCount || mZActive != oldZActive || smoothLinesChanged) { // Viewport / scissor are dynamic
+  createOffscreenBuffers(forScreenshot, forMixing);
+  mUpdateUBOtextMatrix = mUpdateUBOmixMatrix = -1;                                                              // Screen / render size may have changed
+  if (mSurfaceFormat.format != oldFormat || mMSAASampleCount != oldMSAASampleCount || mZActive != oldZActive) { // Viewport / scissor are dynamic
     clearPipeline();
     createPipeline();
   }
@@ -1096,15 +1107,10 @@ void GPUDisplayBackendVulkan::createPipeline()
   pipelineInfo.basePipelineHandle = VkPipeline(VK_NULL_HANDLE); // Optional
   pipelineInfo.basePipelineIndex = -1;                          // Optional
 
-  mSmoothLines = useNativeSmoothLines();
-  vk::PipelineRasterizationLineStateCreateInfo smoothLineState{};
-  smoothLineState.lineRasterizationMode = vk::LineRasterizationMode::eRectangularSmooth; // Coverage goes to alpha, blending is enabled
-
   mPipelines.resize(9); // 0 points, 1 lines, 2 line strip (drawType index), 3 text, 4 texture, 5-7 smooth (shader-based) points, lines, line strip, 8 FSAA downsampling
   static constexpr vk::PrimitiveTopology types[3] = {vk::PrimitiveTopology::ePointList, vk::PrimitiveTopology::eLineList, vk::PrimitiveTopology::eLineStrip};
   for (uint32_t i = 0; i < mPipelines.size(); i++) {
     if (i == 8) { // FSAA downsampling, full-screen triangle without vertex input (last pipeline, the changed states are not reset)
-      rasterizer.pNext = nullptr;
       rasterizer.cullMode = vk::CullModeFlagBits::eNone;
       vertexInputInfo.vertexBindingDescriptionCount = vertexInputInfo.vertexAttributeDescriptionCount = 0;
       inputAssembly.topology = vk::PrimitiveTopology::eTriangleList;
@@ -1117,7 +1123,6 @@ void GPUDisplayBackendVulkan::createPipeline()
       colorBlendAttachment.blendEnable = false;
       multisampling.rasterizationSamples = vk::SampleCountFlagBits::e1;
     } else if (i == 4) { // Texture rendering
-      rasterizer.pNext = nullptr;
       bindingDescription.stride = 4 * sizeof(float);
       attributeDescriptions.format = vk::Format::eR32G32B32A32Sfloat;
       inputAssembly.topology = vk::PrimitiveTopology::eTriangleList;
@@ -1130,7 +1135,6 @@ void GPUDisplayBackendVulkan::createPipeline()
       colorBlendAttachment.blendEnable = true;
       multisampling.rasterizationSamples = vk::SampleCountFlagBits::e1;
     } else if (i == 3) { // Text rendering
-      rasterizer.pNext = nullptr;
       bindingDescription.stride = 4 * sizeof(float);
       attributeDescriptions.format = vk::Format::eR32G32B32A32Sfloat;
       inputAssembly.topology = vk::PrimitiveTopology::eTriangleList;
@@ -1147,7 +1151,6 @@ void GPUDisplayBackendVulkan::createPipeline()
       attributeDescriptions.format = vk::Format::eR32G32B32Sfloat;
       const uint32_t drawIdx = i >= 5 ? i - 5 : i;
       inputAssembly.topology = types[drawIdx];
-      rasterizer.pNext = mSmoothLines && (i == 1 || i == 2) ? &smoothLineState : nullptr;
       vertShaderStageInfo.pNext = &mShaders.at(i < 5 ? (drawIdx == 0 ? "vertexPoint" : "vertex") : (drawIdx == 0 ? "vertexSmoothPoint" : "vertexSmoothLine"));
       fragShaderStageInfo.pNext = &mShaders.at(i < 5 ? "fragment" : (drawIdx == 0 ? "fragmentSmoothPoint" : "fragmentSmoothLine"));
       pipelineInfo.layout = mPipelineLayout;
@@ -1397,8 +1400,10 @@ void GPUDisplayBackendVulkan::ExitBackendA()
   clearOffscreenBuffers();
   clearSwapChain();
   if (mCommandInfrastructureCreated) {
+    clearSemaphoresForImages();
     clearSemaphores();
-    clearCommandBuffers();
+    clearCommandBuffersForImages();
+    clearUniformLayoutsAndBuffersForImages();
     clearUniformLayoutsAndBuffers();
   }
   clearTextureSampler();
@@ -1453,7 +1458,7 @@ uint32_t GPUDisplayBackendVulkan::drawVertices(const vboList& v, const drawType 
     return count;
   }
 
-  const int32_t pipeline = tt + ((tt == POINTS ? mDisplay->cfgL().smoothPoints : useSmoothLineShader()) ? 5 : 0);
+  const int32_t pipeline = tt + ((tt == POINTS ? mDisplay->cfgL().smoothPoints : mDisplay->cfgL().smoothLines) ? 5 : 0);
   if (mCurrentCommandBufferLastPipeline != pipeline) {
     mCurrentCommandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, mPipelines[pipeline]);
     mCurrentCommandBufferLastPipeline = pipeline;
@@ -1496,7 +1501,7 @@ bool GPUDisplayBackendVulkan::prepareDraw(const hmm_mat4& proj, const hmm_mat4& 
     if (mPresentModeForVSyncLimit != (fpsLimitMode() == FPS_LIMIT_VSYNC)) { // Present mode depends on the FPS limit mode
       mMustUpdateSwapChain = true;
     }
-    bool mustUpdateSwapChain = mMustUpdateSwapChain || mDisplay->updateRenderPipeline() || (toMixBuffer && !mMixingSupported) || mDownsampleFactor != getDownsampleFactor(requestScreenshot) || mSmoothLines != useNativeSmoothLines();
+    bool mustUpdateSwapChain = mMustUpdateSwapChain || mDisplay->updateRenderPipeline() || (toMixBuffer && !mMixingSupported) || mDownsampleFactor != getDownsampleFactor(requestScreenshot);
     if (!mustUpdateSwapChain) {
       retVal = getImage();
       if (retVal == vk::Result::eErrorOutOfDateKHR) {
@@ -1781,23 +1786,13 @@ void GPUDisplayBackendVulkan::pointSizeFactor(float factor)
   mCurrentCommandBuffer.pushConstants(mPipelineLayout, vk::ShaderStageFlagBits::eVertex, sizeof(std::array<float, 4>), sizeof(size), &size);
 }
 
-bool GPUDisplayBackendVulkan::useNativeSmoothLines() const
-{
-  return mDisplay->cfgL().smoothLines && mSmoothLinesSupported && mDisplay->cfgR().rendererCompatSmoothing;
-}
-
-bool GPUDisplayBackendVulkan::useSmoothLineShader() const
-{
-  return mDisplay->cfgL().smoothLines && !useNativeSmoothLines();
-}
-
 void GPUDisplayBackendVulkan::lineWidthFactor(float factor)
 {
   if (mCommandBufferUpToDate[mCurrentImageIndex]) {
     return;
   }
   float width = mDisplay->cfgL().lineWidth * mDownsampleFactor * factor;
-  if (useSmoothLineShader()) {
+  if (mDisplay->cfgL().smoothLines) {
     const float expand = mStrictLines ? 1.f : 1.4143f;                         // Non-strict wide lines may be parallelograms, widen so that the perpendicular width is covered
     width = std::min(width + SMOOTH_LINE_EXTRA_WIDTH, mMaxLineWidth / expand); // The shader must see the width that is actually rasterized
     mCurrentCommandBuffer.pushConstants(mPipelineLayout, vk::ShaderStageFlagBits::eVertex, 5 * sizeof(float), sizeof(width), &width);
@@ -1893,9 +1888,9 @@ void GPUDisplayBackendVulkan::clearFontSymbols()
   mFontSymbols.clear();
 }
 
-void GPUDisplayBackendVulkan::OpenGLPrint(const char* s, float x, float y, float* color, float scale)
+void GPUDisplayBackendVulkan::GLPrintText(const char* s, float x, float y, float* color, float scale, uint32_t nCharacters)
 {
-  if (!mFreetypeInitialized || mDisplay->drawTextInCompatMode()) {
+  if (!mFreetypeInitialized) {
     return;
   }
 
@@ -1904,7 +1899,7 @@ void GPUDisplayBackendVulkan::OpenGLPrint(const char* s, float x, float y, float
     scale *= 0.25f; // Font size is 48 to have nice bitmap, scale to size 12
   }
 
-  for (const unsigned char* c = (const unsigned char*)s; *c; c++) {
+  for (const unsigned char* c = (const unsigned char*)s; *c && (nCharacters == 0 || c < (const unsigned char*)s + nCharacters); c++) {
     if ((int32_t)*c >= (int32_t)mFontSymbols.size()) {
       GPUError("Trying to draw unsupported symbol: %d > %d\n", (int32_t)*c, (int32_t)mFontSymbols.size());
       continue;
@@ -2022,11 +2017,6 @@ void GPUDisplayBackendVulkan::readImageToPixels(vk::Image image, vk::ImageView v
     mDevice.freeMemory(dstImageMemory, nullptr);
     mDevice.destroyImage(dstImage, nullptr);
   }
-}
-
-uint32_t GPUDisplayBackendVulkan::DepthBits()
-{
-  return 32;
 }
 
 bool GPUDisplayBackendVulkan::backendNeedRedraw()

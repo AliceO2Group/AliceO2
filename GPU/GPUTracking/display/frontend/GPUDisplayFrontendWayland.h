@@ -43,7 +43,6 @@ class GPUDisplayFrontendWayland : public GPUDisplayFrontend
   void SwitchFullscreen(bool set) override;
   void ToggleMaximized(bool set) override;
   void SetVSync(bool enable) override;
-  void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) override;
   void getSize(int32_t& width, int32_t& height) override;
   float getDisplayScale() const override { return mScale; }
   float getRefreshRate() override;
@@ -52,6 +51,7 @@ class GPUDisplayFrontendWayland : public GPUDisplayFrontend
 
  private:
   int32_t FrontendMain() override;
+  void handlePointerButton(uint32_t button, bool pressed); // In GPUDisplayFrontendWaylandEv.cxx, which needs the evdev button codes
   int32_t GetKey(uint32_t key, uint32_t state);
   void updateScale();                  // Scale from wp_fractional_scale_v1, else integer wl_surface.preferred_buffer_scale, or max scale of the outputs the surface is on (older compositors)
   void updateSize();                   // Physical size = logical size * scale, resizes the scene if changed

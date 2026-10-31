@@ -21,7 +21,9 @@
 #include "GPUSettings.h"
 #include "DataFormatsTPC/Constants.h"
 
+#include <atomic>
 #include <array>
+#include <tuple>
 #include <mutex>
 #include <condition_variable>
 
@@ -58,12 +60,12 @@ class GPUDisplay : public GPUDisplayInterface
   void UpdateCalib(const GPUCalibObjectsConst* calib) override { mCalib = calib; }
   void UpdateParam(const GPUParam* param) override { mParam = param; }
 
-  void HandleKey(uint8_t key, bool doNotHandleConfigChanges = false); // With doNotHandleConfigChanges, the caller must call checkAndApplyConfigChanges
-  int32_t DrawGLScene();
-  void HandleExternalGUIKey(int32_t key); // Does not handle config changes, see HandleKey
+  void HandleKey(uint8_t key);
+  int32_t DrawGLScene(bool suspended = false);
+  void HandleExternalGUIKey(int32_t key);
   int32_t InitDisplay(bool initFailure = false);
   void ResizeScene(int32_t width, int32_t height, bool init = false);
-  void checkAndApplyConfigChanges(const GPUSettingsDisplayHeavy& oldCfgH, const GPUSettingsDisplayLight& oldCfgL, const GPUSettingsDisplayRenderer& oldCfgR); // Set update flags / apply the settings that changed compared to the old copies
+  void checkAndApplyConfigChanges(); // Set update flags / apply the settings that changed compared to mOldCfg
 
   const GPUSettingsDisplayRenderer& cfgR() const { return mCfgR; }
   const GPUSettingsDisplayLight& cfgL() const { return mCfgL; }
@@ -83,10 +85,29 @@ class GPUDisplay : public GPUDisplayInterface
   const GPUParam* param() { return mParam; }
   const GPUSettingsProcessing& GetProcessingSettings() const { return mProcessingSettings; }
   GPUDisplayFrontend* frontend() { return mFrontend; }
-  bool drawTextInCompatMode() const { return mDrawTextInCompatMode; }
   int32_t& drawTextFontSize() { return mDrawTextFontSize; }
 
+  struct control {
+    std::atomic<int32_t> mDisplayControl = 0; // Control for next event (=1) or quit (=2)
+    std::atomic<bool> mResetScene = false;
+    int32_t mPrintInfoText = 1;
+    bool mPrintInfoTextAlways = false;
+    bool mRequestScreenshot = false;
+    int32_t mAnimateScreenshot = 0;
+    bool mAnimationChangeConfig = true;
+    bool mGuiPrintInfo = false;  // Show the info of options changed with Qt GUI elements (not for key presses in the GUI)
+    bool mRotateModel = false;   // Rotate the model instead of the camera, like holding RCTRL (set in the Qt GUI)
+    bool mRotateAroundZ = false; // Rotate the TPC around the beamline, like holding RALT (set in the Qt GUI)
+    float mGuiScale = 1.f;       // Scale factor of text and elements of the Qt GUI (on top of the system scaling), Ctrl + mouse wheel / Ctrl + 0 in the GUI
+    bool dummy = false;          // dummy value to reference for keys that do not change variables
+  } mCfgC;
+
  private:
+  void buildConfig();
+  void buildConfigKeys();
+  void buildConfigInfo();
+  void buildConfigQtGUI();
+
   static constexpr int32_t NSECTORS = o2::tpc::constants::MAXSECTOR;
   static constexpr float GL_SCALE_FACTOR = (1.f / 100.f);
 
@@ -154,9 +175,9 @@ class GPUDisplay : public GPUDisplayInterface
   static const GPUSettingsDisplay& GetConfig(GPUChainTracking* chain);
   static const GPUSettingsProcessing& GetProcessingConfig(GPUChainTracking* chain);
 
-  void DrawGLScene_internal(float animateTime = -1.f, bool renderToMixBuffer = false);
+  void DrawGLScene_internal(bool suspended, float animateTime = -1.f, bool renderToMixBuffer = false); // suspended: return before drawing
   void DrawGLScene_updateEventData();
-  void DrawGLScene_cameraAndAnimation(float animateTime, float& mixSlaveImage, hmm_mat4& nextViewMatrix);
+  void DrawGLScene_cameraAndAnimation(bool suspended, float animateTime, float& mixSlaveImage, hmm_mat4& nextViewMatrix);
   size_t DrawGLScene_updateVertexList();
   void DrawGLScene_drawCommands();
   int32_t InitDisplay_internal();
@@ -179,7 +200,7 @@ class GPUDisplay : public GPUDisplayInterface
   void resetAnimation();
   void removeAnimationPoint();
   void startAnimation();
-  int32_t animateCamera(float& animateTime, float& mixSlaveImage, hmm_mat4& nextViewMatrix);
+  int32_t animateCamera(bool suspended, float& animateTime, float& mixSlaveImage, hmm_mat4& nextViewMatrix);
   void showInfo(const char* info);
   void ActivateColor();
   void SetColorTRD();
@@ -217,7 +238,7 @@ class GPUDisplay : public GPUDisplayInterface
   void PrintHelp();
   void createQuaternionFromMatrix(float* v, const float* mat);
   void drawVertices(const vboList& v, const GPUDisplayBackend::drawType t);
-  void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true);
+  void GLPrintText(const char* s, float x, float y, float r, float g, float b, float a, uint32_t nCharacters = 0, bool fromBotton = true); // nCharacters > 0: print at most that many characters
 
   GPUDisplayFrontend* mFrontend = nullptr;
   std::unique_ptr<GPUDisplayBackend> mBackend;
@@ -228,6 +249,7 @@ class GPUDisplay : public GPUDisplayInterface
   GPUSettingsDisplayLight mCfgL;
   GPUSettingsDisplayHeavy mCfgH;
   GPUSettingsDisplayRenderer mCfgR;
+  std::tuple<GPUSettingsDisplayHeavy, GPUSettingsDisplayLight, GPUSettingsDisplayRenderer> mOldCfg; // Settings after the last draw, for checkAndApplyConfigChanges
   const GPUSettingsProcessing& mProcessingSettings;
   GPUQA* mQA;
 
@@ -235,7 +257,6 @@ class GPUDisplay : public GPUDisplayInterface
   std::mutex mMutexLoadAndShowEvent;
   std::condition_variable mCVLoadAndShowEvent;
 
-  bool mDrawTextInCompatMode = false;
   int32_t mDrawTextFontSize = 0;
 
   int32_t mNDrawCalls = 0;
@@ -243,8 +264,6 @@ class GPUDisplay : public GPUDisplayInterface
   bool mUseMultiVBO = false;
 
   std::array<float, 4> mDrawColor = {1.f, 1.f, 1.f, 1.f};
-
-  int32_t mTestSetting = 0;
 
   float mAngleRollOrigin = -1e9;
   float mMaxClusterZ = -1;
@@ -290,7 +309,6 @@ class GPUDisplay : public GPUDisplayInterface
   volatile bool mUpdateEventData = false;
   volatile bool mUpdateDrawCommands = true;
   volatile bool mUpdateRenderPipeline = false;
-  volatile bool mResetScene = false;
   volatile bool mLoadAndShowEvent = false;
   bool mTracksArePropagated = false;
 
@@ -299,16 +317,12 @@ class GPUDisplay : public GPUDisplayInterface
   int32_t mAnimationFrame = 0;
   int32_t mAnimationLastBase = 0;
   int32_t mAnimationMixBase = -1; // Target keyframe of the current config blend (mixing), -1 = none
-  int32_t mAnimateScreenshot = 0;
   int32_t mAnimationExport = 0;
-  bool mAnimationChangeConfig = true;
   float mAnimationDelay = 2.f;
   vecpod<float> mAnimateVectors[9];
   vecpod<GPUSettingsDisplayLight> mAnimateConfig;
   opengl_spline mAnimationSplines[8];
 
-  int32_t mPrintInfoText = 1;
-  bool mPrintInfoTextAlways = 0;
   char mInfoText2[1024];
   HighResTimer mInfoText2Timer, mInfoHelpTimer;
 
@@ -326,7 +340,6 @@ class GPUDisplay : public GPUDisplayInterface
   vboList mGlDLGrid[NSECTORS];
   vboList mGlDLGridTRD[NSECTORS / 2];
 
-  bool mRequestScreenshot = false;
   std::string mScreenshotFile;
 
   float mYFactor = 1.0f;

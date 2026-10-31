@@ -31,7 +31,6 @@ class GPUDisplayFrontendGlfw : public GPUDisplayFrontend
   void SwitchFullscreen(bool set) override;
   void ToggleMaximized(bool set) override;
   void SetVSync(bool enable) override;
-  void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) override;
   void getSize(int32_t& width, int32_t& height) override;
   float getDisplayScale() const override { return mScale; }
   float getRefreshRate() override;
@@ -67,7 +66,7 @@ class GPUDisplayFrontendGlfw : public GPUDisplayFrontend
   int32_t mWindowY = 0;
   int32_t mWindowWidth = INIT_WIDTH;
   int32_t mWindowHeight = INIT_HEIGHT;
-  uint8_t mKeyDownMap[256] = {0};
+  uint8_t mGLFWKeyDownMap[256] = {0};
   uint8_t mLastKeyDown = 0;
 };
 } // namespace o2::gpu

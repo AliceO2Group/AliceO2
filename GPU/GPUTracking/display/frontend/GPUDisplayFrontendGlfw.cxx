@@ -163,19 +163,16 @@ void GPUDisplayFrontendGlfw::key_callback(GLFWwindow* window, int32_t key, int32
   if (handleKey < 32) {
     if (action == GLFW_PRESS) {
       me->mKeys[keyPress] = true;
-      me->mKeysShift[keyPress] = mods & GLFW_MOD_SHIFT;
       me->HandleKey(handleKey);
     } else if (action == GLFW_RELEASE) {
       me->mKeys[keyPress] = false;
-      me->mKeysShift[keyPress] = false;
     }
   } else if (handleKey < 256) {
     if (action == GLFW_PRESS) {
       me->mLastKeyDown = handleKey;
     } else if (action == GLFW_RELEASE) {
-      keyPress = (uint8_t)me->mKeyDownMap[handleKey];
+      keyPress = (uint8_t)me->mGLFWKeyDownMap[handleKey];
       me->mKeys[keyPress] = false;
-      me->mKeysShift[keyPress] = false;
     }
   }
 }
@@ -188,9 +185,8 @@ void GPUDisplayFrontendGlfw::char_callback(GLFWwindow* window, uint32_t codepoin
     if (keyPress >= 'a' && keyPress <= 'z') {
       keyPress += 'A' - 'a';
     }
-    me->mKeyDownMap[me->mLastKeyDown] = keyPress;
+    me->mGLFWKeyDownMap[me->mLastKeyDown] = keyPress;
     me->mKeys[keyPress] = true;
-    me->mKeysShift[keyPress] = me->mKeys[KEY_SHIFT];
     me->HandleKey(codepoint);
   }
 }
@@ -275,7 +271,7 @@ int32_t GPUDisplayFrontendGlfw::FrontendMain()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, GL_MIN_VERSION_MAJOR);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, GL_MIN_VERSION_MINOR);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, 0);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, mBackend->CoreProfile() ? GLFW_OPENGL_CORE_PROFILE : GLFW_OPENGL_COMPAT_PROFILE);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   }
   glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE); // Initial size scaled by the content scale on X11 / Win32
   mWindow = glfwCreateWindow(INIT_WIDTH, INIT_HEIGHT, DISPLAY_WINDOW_NAME, nullptr, nullptr);
@@ -326,8 +322,7 @@ int32_t GPUDisplayFrontendGlfw::FrontendMain()
 
   int32_t retVal = 0;
   while (!glfwWindowShouldClose(mWindow)) {
-    HandleExternalGUISignals();
-    if (DrawGLScene()) {
+    if (HandleUpdatesAndDrawGLScene()) {
       fprintf(stderr, "Error drawing GL scene\n");
       retVal = 1;
       break; // Cleanup below
@@ -348,10 +343,11 @@ int32_t GPUDisplayFrontendGlfw::FrontendMain()
   ExitDisplay();
   {
     std::lock_guard lock(mExitStateMutex);
-    mDisplayControl = 2;
+    setDisplayControl(2);
     glfwDestroyWindow(mWindow);
     glfwTerminate();
     mDisplayRunning = false;
+    mDisplayStoppedCV.notify_all();
   }
 
   return retVal;
@@ -360,10 +356,6 @@ int32_t GPUDisplayFrontendGlfw::FrontendMain()
 void GPUDisplayFrontendGlfw::StopDisplayA()
 {
   glfwSetWindowShouldClose(mWindow, true);
-}
-
-void GPUDisplayFrontendGlfw::OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton)
-{
 }
 
 void GPUDisplayFrontendGlfw::SwitchFullscreen(bool set)

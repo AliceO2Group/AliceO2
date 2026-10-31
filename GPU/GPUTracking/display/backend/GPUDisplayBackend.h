@@ -39,8 +39,6 @@ class GPUDisplayBackend
   virtual ~GPUDisplayBackend();
 
   virtual int32_t ExtInit() { return 0; };
-  virtual bool CoreProfile() { return false; };
-  virtual uint32_t DepthBits() = 0;
 
   typedef std::tuple<uint32_t, uint32_t, int32_t> vboList;
 
@@ -101,7 +99,7 @@ class GPUDisplayBackend
   const char* backendName() const { return mBackendName; }
   virtual void resizeScene(uint32_t width, uint32_t height) {}
   virtual size_t needMultiVBO() { return 0; }
-  virtual void OpenGLPrint(const char* s, float x, float y, float* color, float scale) = 0;
+  virtual void GLPrintText(const char* s, float x, float y, float* color, float scale, uint32_t nCharacters) = 0; // nCharacters > 0: at most that many characters, otherwise until the terminating 0
   static GPUDisplayBackend* getBackend(const char* type);
   std::vector<char> getPixels();
   virtual float getYFactor() const { return 1.0f; }
@@ -122,7 +120,7 @@ class GPUDisplayBackend
   vecpod<DrawArraysIndirectCommand> mCmdBuffer;
   bool mFreetypeInitialized = false;
   float mFontRasterScale = 1.f; // Display scale the font was rasterized for
-  bool mFrontendCompatTextDraw = false;
+  float mFontCharWidth = 0.f;   // Advance of a character of the (monospace) font in logical pixels, 0 without Freetype font
   std::vector<char> mScreenshotPixels;
 
   static constexpr float SMOOTH_POINT_EXTRA_SIZE = 0.6f;

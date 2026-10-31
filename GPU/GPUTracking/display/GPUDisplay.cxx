@@ -75,7 +75,6 @@ GPUDisplay::GPUDisplay(GPUDisplayFrontend* frontend, GPUChainTracking* chain, GP
   mBackend->mDisplay = this;
   frontend->mDisplay = this;
   frontend->mBackend = mBackend.get();
-  mCfgR.rendererCompatSmoothing &= !mBackend->CoreProfile();
 }
 
 void GPUDisplay::calcXYZ(const float* matrix)
@@ -148,7 +147,7 @@ void GPUDisplay::ResizeScene(int32_t width, int32_t height, bool init)
   mBackend->resizeScene(width, height);
 
   if (init) {
-    mResetScene = true;
+    mCfgC.mResetScene.store(true);
     *mViewMatrix = MY_HMM_IDENTITY;
     *mModelMatrix = MY_HMM_IDENTITY;
   }
@@ -177,6 +176,7 @@ int32_t GPUDisplay::InitDisplay(bool initFailure)
     retVal = 1;
   }
   mInitResult = retVal == 0 ? 1 : -1;
+  mOldCfg = {mCfgH, mCfgL, mCfgR};
   return (retVal);
 }
 
@@ -188,7 +188,6 @@ int32_t GPUDisplay::InitDisplay_internal()
     return 1;
   }
   mYFactor = mBackend->getYFactor();
-  mDrawTextInCompatMode = !mBackend->mFreetypeInitialized && mFrontend->mCanDrawText == 1;
   int32_t height = 0, width = 0;
   mFrontend->getSize(width, height);
   if (height == 0 || width == 0) {
@@ -204,7 +203,7 @@ void GPUDisplay::ExitDisplay()
   mBackend->ExitBackend();
 }
 
-int32_t GPUDisplay::DrawGLScene()
+int32_t GPUDisplay::DrawGLScene(bool suspended)
 {
   // Make sure event gets not overwritten during display
   mSemLockDisplay.Lock();
@@ -220,7 +219,7 @@ int32_t GPUDisplay::DrawGLScene()
     mNCollissions = std::max(1u, mIOPtrs->nMCInfosTPCCol);
   }
   try {
-    DrawGLScene_internal();
+    DrawGLScene_internal(suspended);
   } catch (const std::runtime_error& e) {
     GPUError("Runtime error %s during display", e.what());
     retVal = 1;
@@ -238,15 +237,15 @@ int32_t GPUDisplay::DrawGLScene()
   return retVal;
 }
 
-void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSlaveImage, hmm_mat4& nextViewMatrix)
+void GPUDisplay::DrawGLScene_cameraAndAnimation(bool suspended, float animateTime, float& mixSlaveImage, hmm_mat4& nextViewMatrix)
 {
   HighResTimer timer(mUpdateVertexLists && mChain->GetProcessingSettings().debugLevel >= 2);
   int32_t mMouseWheelTmp = mFrontend->mMouseWheel;
   mFrontend->mMouseWheel = 0;
-  bool lookOrigin = mCfgR.camLookOrigin ^ mFrontend->mKeys[mFrontend->KEY_ALT];
-  bool yUp = mCfgR.camYUp ^ mFrontend->mKeys[mFrontend->KEY_CTRL] ^ lookOrigin;
-  bool rotateModel = mFrontend->mKeys[mFrontend->KEY_RCTRL] || mFrontend->mKeys[mFrontend->KEY_RALT];
-  bool rotateModelTPC = mFrontend->mKeys[mFrontend->KEY_RALT];
+  bool lookOrigin = mCfgR.camLookOrigin ^ mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_FOCUS_ORIGIN]];
+  bool yUp = mCfgR.camYUp ^ mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_FOCUS_ORIENT_UP]] ^ lookOrigin;
+  bool rotateModelTPC = mCfgC.mRotateAroundZ || mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_ROTATE_AROUND_Z]];
+  bool rotateModel = rotateModelTPC || mCfgC.mRotateModel || mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_ROTATE_MODEL]];
 
   // Calculate rotation / translation scaling factors
   float scalefactor = mFrontend->mKeys[mFrontend->KEY_SHIFT] ? 0.2f : 1.0f;
@@ -266,9 +265,9 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
 
   // Perform new rotation / translation / animation
 
-  if (animateCamera(animateTime, mixSlaveImage, nextViewMatrix)) {
+  if (animateCamera(suspended, animateTime, mixSlaveImage, nextViewMatrix)) {
     // Do nothing else
-  } else if (mResetScene) {
+  } else if (mCfgC.mResetScene.load()) {
     const float initialZpos = mCfgH.projectXY ? 16 : (mParam->par.continuousTracking ? (mMaxClusterZ * GL_SCALE_FACTOR + 8) : 8);
     nextViewMatrix = nextViewMatrix * HMM_Translate({{0, 0, -initialZpos}});
     *mViewMatrix = MY_HMM_IDENTITY;
@@ -284,14 +283,14 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
     mCfgR.fov = 45.f;
     mUpdateDrawCommands = true;
 
-    mResetScene = false;
+    mCfgC.mResetScene.store(false);
   } else {
-    float moveZ = scalefactor * ((float)mMouseWheelTmp / 150 + (float)(mFrontend->mKeys[(uint8_t)'W'] - mFrontend->mKeys[(uint8_t)'S']) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]) * 0.2f * mFPSScale);
-    float moveY = scalefactor * ((float)(mFrontend->mKeys[mFrontend->KEY_PAGEDOWN] - mFrontend->mKeys[mFrontend->KEY_PAGEUP]) * 0.2f * mFPSScale);
-    float moveX = scalefactor * ((float)(mFrontend->mKeys[(uint8_t)'A'] - mFrontend->mKeys[(uint8_t)'D']) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]) * 0.2f * mFPSScale);
-    float rotRoll = rotatescalefactor * mFPSScale * 2 * (mFrontend->mKeys[(uint8_t)'E'] - mFrontend->mKeys[(uint8_t)'F']) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]);
-    float rotYaw = rotatescalefactor * mFPSScale * 2 * (mFrontend->mKeys[mFrontend->KEY_RIGHT] - mFrontend->mKeys[mFrontend->KEY_LEFT]);
-    float rotPitch = rotatescalefactor * mFPSScale * 2 * (mFrontend->mKeys[mFrontend->KEY_DOWN] - mFrontend->mKeys[mFrontend->KEY_UP]);
+    float moveZ = scalefactor * ((float)mMouseWheelTmp / 150 + (float)(mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_FORWARD]] - mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_BACKWARD]]) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]) * 0.2f * mFPSScale);
+    float moveY = scalefactor * ((float)(mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_STRAFE_DOWN]] - mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_STRAFE_UP]]) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]) * 0.2f * mFPSScale);
+    float moveX = scalefactor * ((float)(mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_STRAFE_LEFT]] - mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_STRAFE_RIGHT]]) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]) * 0.2f * mFPSScale);
+    float rotRoll = rotatescalefactor * mFPSScale * 2 * (mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_ROTATE_LEFT]] - mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_ROTATE_RIGHT]]) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]);
+    float rotYaw = rotatescalefactor * mFPSScale * 2 * (mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_ROTATE_YAW_RIGHT]] - mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_ROTATE_YAW_LEFT]]) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]);
+    float rotPitch = rotatescalefactor * mFPSScale * 2 * (mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_ROTATE_PITCH_DOWN]] - mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_ROTATE_PITCH_UP]]) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]);
 
     float mouseScale = 1920.f / std::max<float>(1920.f, mBackend->mScreenWidth);
     if (mFrontend->mMouseDnR && mFrontend->mMouseDn) {
@@ -305,7 +304,7 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
       rotPitch += rotatescalefactor * mouseScale * ((float)mFrontend->mMouseMvY - (float)mFrontend->mMouseDnY);
     }
 
-    if (mFrontend->mKeys[(uint8_t)'<'] && !mFrontend->mKeysShift[(uint8_t)'<']) {
+    if (mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_CHANGE_ANIMATION_INTERVAL]]) {
       mAnimationDelay += moveX;
       if (mAnimationDelay < 0.05f) {
         mAnimationDelay = 0.05f;
@@ -395,7 +394,7 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
 
     // Graphichs Options
     float minSize = 0.4f / (mCfgR.drawQualityDownsampleFSAA > 1 ? mCfgR.drawQualityDownsampleFSAA : 1);
-    int32_t deltaLine = mFrontend->mKeys[(uint8_t)'+'] * mFrontend->mKeysShift[(uint8_t)'+'] - mFrontend->mKeys[(uint8_t)'-'] * mFrontend->mKeysShift[(uint8_t)'-'];
+    int32_t deltaLine = (mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_INCREASE_WIDTH]] - mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_DECREASE_WIDTH]]) * mFrontend->mKeys[mFrontend->KEY_SHIFT];
     mCfgL.lineWidth += (float)deltaLine * mFPSScale * 0.02f * mCfgL.lineWidth;
     if (mCfgL.lineWidth < minSize) {
       mCfgL.lineWidth = minSize;
@@ -405,7 +404,7 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
       mUpdateDrawCommands = true;
     }
     minSize *= 2;
-    int32_t deltaPoint = mFrontend->mKeys[(uint8_t)'+'] * (!mFrontend->mKeysShift[(uint8_t)'+']) - mFrontend->mKeys[(uint8_t)'-'] * (!mFrontend->mKeysShift[(uint8_t)'-']);
+    int32_t deltaPoint = (mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_INCREASE_WIDTH]] - mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_DECREASE_WIDTH]]) * !mFrontend->mKeys[mFrontend->KEY_SHIFT];
     mCfgL.pointSize += (float)deltaPoint * mFPSScale * 0.02f * mCfgL.pointSize;
     if (mCfgL.pointSize < minSize) {
       mCfgL.pointSize = minSize;
@@ -627,20 +626,22 @@ void GPUDisplay::DrawGLScene_drawCommands()
   }
 }
 
-void GPUDisplay::DrawGLScene_internal(float animateTime, bool renderToMixBuffer) // negative time = no mixing
+void GPUDisplay::DrawGLScene_internal(bool suspended, float animateTime, bool renderToMixBuffer) // negative time = no mixing
 {
-  if (mRequestScreenshot || mAnimateScreenshot) {
+  if (mCfgC.mRequestScreenshot || mCfgC.mAnimateScreenshot) {
     const uint32_t factor = std::max(1, mCfgR.drawQualityDownsampleFSAA) * std::max(1, mCfgR.screenshotScaleFactor);
     if (std::max(mBackend->mScreenWidth, mBackend->mScreenHeight) * factor > mBackend->mMaxRenderSize) {
       GPUError("Screenshot not taken: requested render size %u x %u (window x FSAA x screenshot scale) exceeds the maximum size %u x %u", mBackend->mScreenWidth * factor, mBackend->mScreenHeight * factor, mBackend->mMaxRenderSize, mBackend->mMaxRenderSize);
-      mRequestScreenshot = false;
-      mAnimateScreenshot = 0;
+      mCfgC.mRequestScreenshot = false;
+      mCfgC.mAnimateScreenshot = 0;
     }
   }
-  bool doScreenshot = (mRequestScreenshot || mAnimateScreenshot) && animateTime < 0;
+  const bool animateScreenshot = mCfgC.mAnimateScreenshot && mAnimate;        // Copy, the animation resets mAnimateScreenshot in its last frame
+  const bool screenshotFrame = mCfgC.mRequestScreenshot || animateScreenshot; // Also for the mix pass (animateTime >= 0), which must use the same render size
+  const bool doScreenshot = screenshotFrame && animateTime < 0;
 
   updateOptions();
-  if (animateTime < 0 && (mUpdateEventData || mResetScene || mUpdateVertexLists) && mIOPtrs) {
+  if (animateTime < 0 && (mUpdateEventData || mCfgC.mResetScene.load() || mUpdateVertexLists) && mIOPtrs) {
     disableUnsupportedOptions();
   }
   if (mUpdateEventData || mUpdateVertexLists) {
@@ -648,7 +649,7 @@ void GPUDisplay::DrawGLScene_internal(float animateTime, bool renderToMixBuffer)
   }
 
   HighResTimer timerDraw(mUpdateVertexLists);
-  if (animateTime < 0 && (mUpdateEventData || mResetScene) && mIOPtrs) {
+  if (animateTime < 0 && (mUpdateEventData || mCfgC.mResetScene.load()) && mIOPtrs) {
     timerDraw.ResetStart();
     DrawGLScene_updateEventData();
     mTimerFPS.ResetStart();
@@ -660,7 +661,7 @@ void GPUDisplay::DrawGLScene_internal(float animateTime, bool renderToMixBuffer)
 
   hmm_mat4 nextViewMatrix = MY_HMM_IDENTITY;
   float mixSlaveImage = 0.f;
-  DrawGLScene_cameraAndAnimation(animateTime, mixSlaveImage, nextViewMatrix);
+  DrawGLScene_cameraAndAnimation(suspended, animateTime, mixSlaveImage, nextViewMatrix);
 
   // Prepare Event
   if (mUpdateVertexLists && mIOPtrs) {
@@ -670,11 +671,16 @@ void GPUDisplay::DrawGLScene_internal(float animateTime, bool renderToMixBuffer)
     }
   }
 
+  if (suspended) {
+    return;
+  }
+
   // Draw Event
   nextViewMatrix = nextViewMatrix * *mModelMatrix;
   const float zFar = ((mParam->par.continuousTracking ? (mMaxClusterZ * GL_SCALE_FACTOR) : 8.f) + 50.f) * 2.f;
-  const hmm_mat4 proj = HMM_Perspective(mCfgR.fov, (float)mBackend->mRenderWidth / (float)mBackend->mRenderHeight, 0.1f, zFar);
-  if (!mBackend->prepareDraw(proj, nextViewMatrix, doScreenshot || mRequestScreenshot, renderToMixBuffer, mixSlaveImage)) {
+  const float aspect = mBackend->mRenderHeight ? (float)mBackend->mRenderWidth / (float)mBackend->mRenderHeight : 1.f; // No render size with the None backend
+  const hmm_mat4 proj = HMM_Perspective(mCfgR.fov, aspect, 0.1f, zFar);
+  if (!mBackend->prepareDraw(proj, nextViewMatrix, screenshotFrame, renderToMixBuffer, mixSlaveImage)) {
     return; // No image available (e.g. hidden window), retry with the next frame
   }
   mBackend->pointSizeFactor(1);
@@ -705,7 +711,7 @@ void GPUDisplay::DrawGLScene_internal(float animateTime, bool renderToMixBuffer)
              fps, mCfgL.drawSector, mCfgL.drawClusters, mCfgL.drawInitLinks, mCfgL.drawLinks, mCfgL.drawSeeds, mCfgL.drawTracklets, mCfgL.drawTracks, mCfgL.drawExtrapolatedTracks, mCfgL.drawFinal, mFramesDone, mNDrawCalls, mXYZ[0], mXYZ[1], mXYZ[2], mRPhiTheta[0], mRPhiTheta[1] * 180 / CAMath::Pi(),
              mRPhiTheta[2] * 180 / CAMath::Pi(), mAngle[1] * 180 / CAMath::Pi(), mAngle[0] * 180 / CAMath::Pi(), mAngle[2] * 180 / CAMath::Pi());
     if (fpstime > 1.) {
-      if (mPrintInfoText & 2) {
+      if (mCfgC.mPrintInfoText & 2) {
         GPUInfo("%s", info);
       }
       if (mFPSScaleadjust++) {
@@ -715,20 +721,20 @@ void GPUDisplay::DrawGLScene_internal(float animateTime, bool renderToMixBuffer)
       mFramesDoneFPS = 0;
     }
 
-    if (mPrintInfoText & 1) {
+    if (mCfgC.mPrintInfoText & 1) {
       showInfo(info);
     }
   }
 
-  mBackend->finishFrame(mRequestScreenshot, renderToMixBuffer, mixSlaveImage);
+  mBackend->finishFrame(doScreenshot, renderToMixBuffer, mixSlaveImage);
   if (doScreenshot) {
-    mRequestScreenshot = false;
+    mCfgC.mRequestScreenshot = false;
     std::vector<char> pixels = mBackend->getPixels();
     char tmpFileName[48];
-    if (mAnimateScreenshot) {
+    if (animateScreenshot) {
       snprintf(tmpFileName, 48, "mAnimation%d_%05d.bmp", mAnimationExport, mAnimationFrame);
     }
-    DoScreenshot(mAnimateScreenshot ? tmpFileName : mScreenshotFile.c_str(), pixels);
+    DoScreenshot(animateScreenshot ? tmpFileName : mScreenshotFile.c_str(), pixels);
   }
 }
 
@@ -738,9 +744,8 @@ void GPUDisplay::ShowNextEvent(const GPUTrackingInOutPointers* ptrs)
     mIOPtrs = ptrs;
   }
   if (mMaxClusterZ <= 0) {
-    mResetScene = true;
+    mCfgC.mResetScene.store(true);
   }
-  mFrontend->mNeedUpdate = 1;
   mUpdateEventData = true;
   mLoadAndShowEvent = true;
   mSemLockDisplay.Unlock();

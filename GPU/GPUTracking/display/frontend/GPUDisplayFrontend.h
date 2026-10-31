@@ -20,10 +20,15 @@
 #include <memory>
 #include <chrono>
 #include <mutex>
+#include <condition_variable>
+#include <string>
+#include <utility>
+#include <variant>
 #include <vector>
 
 namespace o2::gpu
 {
+using GPUDisplayGUIValue = std::variant<int64_t, double, std::string>; // Value of a Qt GUI element
 class GPUReconstruction;
 class GPUDisplay;
 class GPUDisplayBackend;
@@ -59,7 +64,6 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   virtual void ToggleMaximized(bool set) = 0;                                                                                // Maximize window
   virtual void SetVSync(bool enable) = 0;                                                                                    // Enable / disable vsync
   virtual bool canSetVSync() { return false; }                                                                               // OpenGL: swap interval can be set
-  virtual void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) = 0; // Print text on the display (needs the backend to build the font)
   GPUDisplayBackend* backend();
   static GPUDisplayFrontend* getFrontend(const char* type);
   virtual void getSize(int32_t& width, int32_t& height) { width = height = 0; }
@@ -68,8 +72,8 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   virtual int32_t getVulkanSurface(void* instance, void* surface) { return 1; }
   virtual uint32_t getReqVulkanExtensions(const char**& p) { return 0; };
 
-  int32_t getDisplayControl() const override { return mDisplayControl; }
-  void setDisplayControl(int32_t v) override { mDisplayControl = v; }
+  int32_t getDisplayControl() const override;
+  void setDisplayControl(int32_t v) override;
   void sendExternalGUIKey(int32_t v) override;
 
   frontendTypes frontendType() const { return mFrontendType; }
@@ -83,48 +87,28 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   virtual int32_t FrontendMain() = 0;
   virtual void StopDisplayA();
   static void* FrontendThreadWrapper(void*);
-  void waitForFPSLimit(); // Sleep until the next frame is due according to fpsRate (only in FPS_LIMIT_RATE mode, see GPUDisplayBackend::fpsLimitMode)
+  void waitForFPSLimit();    // Sleep until the next frame is due according to fpsRate (only in FPS_LIMIT_RATE mode, see GPUDisplayBackend::fpsLimitMode), or until an external config update is signalled
+  void signalConfigUpdate(); // Signal a config update from an external source (console keys, Qt GUI), wakes up waitForFPSLimit
 
   static constexpr int32_t INIT_WIDTH = 1024, INIT_HEIGHT = 768;                        // Initial window size, before maximizing
   static constexpr int32_t MIN_WIDTH = 200, MIN_HEIGHT = 150;                           // Minimum window size
   static constexpr const char* DISPLAY_WINDOW_NAME = "GPU CA Standalone Event Display"; // Title of event display set by backend
   // Constant key codes for special mKeys (to unify different treatment in X11 / Windows / GLUT / etc.)
-  static constexpr int32_t KEY_UP = 1;
-  static constexpr int32_t KEY_DOWN = 2;
-  static constexpr int32_t KEY_LEFT = 3;
-  static constexpr int32_t KEY_RIGHT = 4;
-  static constexpr int32_t KEY_PAGEUP = 5;
-  static constexpr int32_t KEY_PAGEDOWN = 6;
-  static constexpr int32_t KEY_SHIFT = 8;
-  static constexpr int32_t KEY_ALT = 9;
-  static constexpr int32_t KEY_RALT = 10;
-  static constexpr int32_t KEY_CTRL = 11;
-  static constexpr int32_t KEY_RCTRL = 12;
-  static constexpr int32_t KEY_ENTER = 13; // fixed at 13
-  static constexpr int32_t KEY_F1 = 14;
-  static constexpr int32_t KEY_F2 = 15;
-  static constexpr int32_t KEY_F3 = 16;
-  static constexpr int32_t KEY_F4 = 17;
-  static constexpr int32_t KEY_F5 = 18;
-  static constexpr int32_t KEY_F6 = 19;
-  static constexpr int32_t KEY_F7 = 20;
-  static constexpr int32_t KEY_F8 = 21;
-  static constexpr int32_t KEY_F9 = 22;
-  static constexpr int32_t KEY_F10 = 23;
-  static constexpr int32_t KEY_F11 = 24;
-  static constexpr int32_t KEY_F12 = 25;
-  static constexpr int32_t KEY_INSERT = 26;
-  static constexpr int32_t KEY_ESCAPE = 27; // fixed at 27
-  static constexpr int32_t KEY_HOME = 28;
-  static constexpr int32_t KEY_END = 29;
-  static constexpr int32_t KEY_SPACE = 32; // fixed at 32
+#define GPUDisplayFrontendAddKey(code, key) static constexpr int32_t KEY_##key = code
+#define GPUDisplayFrontendKeyDownMap(code, key) static constexpr int32_t KEY_MAP_##key = code
+#include "GPUDisplayFrontendKeys.h"
+  static constexpr uint32_t N_SPECIAL_KEYS = 32;
+  static constexpr uint32_t SPECIAL_KEYS_SHIFTED = 255;
+  static constexpr uint32_t N_TOTAL_KEYS = 256 + N_SPECIAL_KEYS;
 
-  // volatile variables to exchange control informations between display and backend
-  volatile int32_t mDisplayControl = 0; // Control for next event (=1) or quit (=2)
-  volatile int32_t mNeedUpdate = 0;     // flag that backend shall update the GL window, and call DrawGLScene
   std::mutex mExternalGUIKeyMutex;
   std::vector<int32_t> mExternalGUIKeys; // Keys sent by external entity (usually console), may be ignored by backend.
+  std::mutex mConfigUpdateMutex;
+  std::condition_variable mConfigUpdateCV; // Notified by signalConfigUpdate
+  bool mConfigUpdatePending = false;       // Protected by mConfigUpdateMutex, set by signalConfigUpdate, cleared by HandleExternalGUISignals
   std::mutex mExitStateMutex;
+  std::condition_variable mDisplayStoppedCV; // Notified with mExitStateMutex held when the frontend sets mDisplayRunning to false, StopDisplay waits for it
+  std::array<uint8_t, KEY_MAP_MAX> mKeyDownMap = {};
 
   // Keyboard / Mouse actions
   bool mMouseDn = false;          // Mouse button down
@@ -134,10 +118,8 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   float mMouseMvX, mMouseMvY;     // Current mouse pointer position
   int32_t mMouseWheel = 0;        // Incremental value of mouse wheel, ca +/- 100 per wheel tick
   bool mKeys[256] = {false};      // Array of mKeys currently pressed
-  bool mKeysShift[256] = {false}; // Array whether shift was held during key-press
   int32_t mDisplayHeight = INIT_HEIGHT;
   int32_t mDisplayWidth = INIT_WIDTH;
-  int32_t mCanDrawText = 0; // 1 = in compat mode, 2 = with shader
 
   std::chrono::steady_clock::time_point mNextFrameTime;
 
@@ -151,10 +133,13 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   std::unique_ptr<GPUDisplayGUIChannel> mGUIChannel; // Must outlive mGUI
   std::unique_ptr<GPUDisplayGUIWrapper> mGUI;
 
+  int32_t HandleUpdatesAndDrawGLScene(bool suspended = false); // Handle external GUI signals and config changes, then draw the scene (suspended: only update, no drawing, e.g. for a hidden window)
+
   void HandleKey(uint8_t key);                     // Callback for handling key presses
-  int32_t DrawGLScene();                           // Callback to draw the GL scene
   void HandleExternalGUISignals();                 // Callback to handle signals from external GUIs
   bool HasExternalGUISignals() const;              // Returns whether there are currently pending signals from external GUIs to be handled
+  bool processKeyLambda(uint32_t key);             // Process key lambda callback
+  void showConfigInfo(uint32_t index);             // Info for a changed option (index in the config RTTI): its info callback, or "struct.option changed to value"
   void ResizeScene(int32_t width, int32_t height); // Callback when GL window is resized
   int32_t InitDisplay(bool initFailure = false);   // Callback to initialize the GL Display (to be called in StartDisplay)
   void ExitDisplay();                              // Callback to clean up the GL Display
@@ -163,8 +148,26 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   void setWindowState(bool fullScreen, bool maximized); // Sync the settings if the window manager changed the window state
   void focusLost();                                     // Release all keys and mouse buttons when the window loses focus, since the release events go to another window
   void applyInitialWindowState();                       // Switch to fullscreen / maximize at startup according to the settings
+  void requestFullScreen(bool set);                     // Call SwitchFullscreen / ToggleMaximized only if the state differs from the last requested or reported (setWindowState) one
+  void requestMaximized(bool set);
+
  private:
-  bool HandleExternalGUIKeys(); // Returns whether keys were handled, config changes are not handled
+  struct configRTTIInfo;
+  struct configRTTIExt;
+  struct configKey;
+  std::unique_ptr<configRTTIInfo, void (*)(configRTTIInfo*)> mConfigRTTI{nullptr, nullptr}; // Deleter set in GPUDisplayFrontendConfig.cxx, the only place where configRTTIInfo is defined
+
+  void HandleExternalGUIKeys();
+  bool mWindowFullScreen = false, mWindowMaximized = false; // Window state last requested or reported by the window system
+  template <typename... Args>
+  void add_key_binding(Args&&... args); // KEY_LAMBDA(key, ...) entries, the help text, and optionally the keys to show in the help text, only used in GPUDisplayFrontendConfig.cxx
+  template <typename... Args>
+  void add_gui_binding(Args&&... args);                                                    // GUI_LAMBDA(name, ...) entries shown in one frame of the Qt GUI, and optionally its description and a flag to place the elements horizontally (default vertically), only used in GPUDisplayFrontendConfig.cxx
+  void setGUILayout(GPUDisplayGUIChannel& channel) const;                                  // Copy the GUI elements of the add_gui_binding calls to the channel
+  std::vector<GPUDisplayGUIValue> getGUIValues();                                          // Current values of the options of the GUI elements, by element id
+  void applyGUIValues(const std::vector<std::pair<uint32_t, GPUDisplayGUIValue>>& values); // Call the setter of the GUI elements changed in the GUI (element id, value), and show the info of their options
+  void listConfig();
+  const std::vector<std::string>& getHelpText() const; // Help text of all key bindings, one line per binding
 };
 } // namespace o2::gpu
 

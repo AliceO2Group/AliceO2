@@ -105,11 +105,11 @@ void GPUDisplay::startAnimation()
   mAnimationMixBase = -1;
 }
 
-int32_t GPUDisplay::animateCamera(float& animateTime, float& mixSlaveImage, hmm_mat4& nextViewMatrix)
+int32_t GPUDisplay::animateCamera(bool suspended, float& animateTime, float& mixSlaveImage, hmm_mat4& nextViewMatrix)
 {
   float time = animateTime;
   if (mAnimate && time < 0) {
-    if (mAnimateScreenshot) {
+    if (mCfgC.mAnimateScreenshot) {
       time = mAnimationFrame / 30.f;
     } else {
       time = mAnimationTimer.GetCurrentElapsedTime();
@@ -118,7 +118,7 @@ int32_t GPUDisplay::animateCamera(float& animateTime, float& mixSlaveImage, hmm_
     float maxTime = mAnimateVectors[0].back();
     if (time >= maxTime) {
       time = maxTime;
-      mAnimate = mAnimateScreenshot = 0;
+      mAnimate = mCfgC.mAnimateScreenshot = 0;
       SetInfo("Animation finished. (%1.2f seconds, %d frames)", time, mAnimationFrame);
     } else {
       SetInfo("Running mAnimation: time %1.2f/%1.2f, frames %d", time, maxTime, mAnimationFrame);
@@ -132,7 +132,7 @@ int32_t GPUDisplay::animateCamera(float& animateTime, float& mixSlaveImage, hmm_
   for (int32_t i = 0; i < 8; i++) {
     vals[i] = mAnimationSplines[i].evaluate(time);
   }
-  if (mAnimationChangeConfig && animateTime < 0) {
+  if (mCfgC.mAnimationChangeConfig && animateTime < 0) {
     int32_t base = 0;
     int32_t k = mAnimateVectors[0].size() - 1;
     while (base < k && time > mAnimateVectors[0][base]) {
@@ -152,7 +152,7 @@ int32_t GPUDisplay::animateCamera(float& animateTime, float& mixSlaveImage, hmm_
       if (mixSlaveImage > 0) {
         mCfgL = mAnimateConfig[mAnimationLastBase];
         updateConfig();
-        DrawGLScene_internal(time, true);
+        DrawGLScene_internal(suspended, time, true);
       }
     }
 

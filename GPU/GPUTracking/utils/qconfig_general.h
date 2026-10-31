@@ -17,16 +17,21 @@
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <cstdint>
 #include <string>
+#include <tuple>
+#include <vector>
 #endif
 
 namespace qConfig
 {
+struct qConfigRTTIentry;
 #ifndef GPUCA_GPUCODE_DEVICE
-int32_t qConfigParse(int argc, const char** argv, const char* filename = nullptr);
-void qConfigPrint(); // Print all settings
+int32_t qConfigParse(int argc, const char** argv, const char* filename = nullptr); // Parse qConfig options
+void qConfigPrint();                                                               // Print all settings
 template <class T>
-void qConfigPrint(const T& qconfig_tmp_object, const std::string& blockName = ""); // Print one sub config, specializations created in qconfig.cxx
+void qConfigPrint(const T& qconfig_tmp_object, const std::string& blockName = "");                                                           // Print one sub config, specializations created in qconfig.cxx
+std::tuple<std::vector<qConfigRTTIentry>, std::vector<std::string>> qConfigGenRTTI(const std::vector<std::string>* configStructs = nullptr); // Entries and list of config structs, for the given config structs (all if nullptr)
 #endif
+
 enum qConfigRetVal { qcrOK = 0,
                      qcrError = 1,
                      qcrMinFailure = 2,

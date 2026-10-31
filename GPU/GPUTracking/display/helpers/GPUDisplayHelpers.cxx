@@ -102,15 +102,15 @@ void GPUDisplay::showInfo(const char* info)
   mBackend->updateFontScale(mFrontend->getDisplayScale());
   mBackend->prepareText();
   float colorValue = mCfgL.invertColors ? 0.f : 1.f;
-  OpenGLPrint(info, 40.f, 20.f + std::max(20, mDrawTextFontSize + 4), colorValue, colorValue, colorValue, 1);
+  GLPrintText(info, 40.f, 20.f + std::max(20, mDrawTextFontSize + 4), colorValue, colorValue, colorValue, 1);
   if (mInfoText2Timer.IsRunning()) {
     if (mInfoText2Timer.GetCurrentElapsedTime() >= 6) {
       mInfoText2Timer.Reset();
     } else {
-      OpenGLPrint(mInfoText2, 40.f, 20.f, colorValue, colorValue, colorValue, 6 - mInfoText2Timer.GetCurrentElapsedTime());
+      GLPrintText(mInfoText2, 40.f, 20.f, colorValue, colorValue, colorValue, 6 - mInfoText2Timer.GetCurrentElapsedTime());
     }
   }
-  if (mInfoHelpTimer.IsRunning() || mPrintInfoTextAlways) {
+  if (mInfoHelpTimer.IsRunning() || mCfgC.mPrintInfoTextAlways) {
     if (mInfoHelpTimer.GetCurrentElapsedTime() >= 6) {
       mInfoHelpTimer.Reset();
     } else {
@@ -120,7 +120,7 @@ void GPUDisplay::showInfo(const char* info)
   mBackend->finishText();
 }
 
-void GPUDisplay::OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton)
+void GPUDisplay::GLPrintText(const char* s, float x, float y, float r, float g, float b, float a, uint32_t nCharacters, bool fromBotton)
 {
   if (mBackend->mFreetypeInitialized) {
     const float scale = mFrontend->getDisplayScale();
@@ -130,8 +130,6 @@ void GPUDisplay::OpenGLPrint(const char* s, float x, float y, float r, float g, 
       y = mBackend->mScreenHeight - y;
     }
     float color[4] = {r, g, b, a};
-    mBackend->OpenGLPrint(s, x, y, color, scale / mBackend->mFontRasterScale);
-  } else if (mFrontend->mCanDrawText) {
-    mFrontend->OpenGLPrint(s, x, y, r, g, b, a, fromBotton);
+    mBackend->GLPrintText(s, x, y, color, scale / mBackend->mFontRasterScale, nCharacters);
   }
 }
