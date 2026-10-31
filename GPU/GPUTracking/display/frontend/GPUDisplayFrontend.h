@@ -61,7 +61,6 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   virtual void ToggleMaximized(bool set) = 0;                                                                                // Maximize window
   virtual void SetVSync(bool enable) = 0;                                                                                    // Enable / disable vsync
   virtual bool canSetVSync() { return false; }                                                                               // OpenGL: swap interval can be set
-  virtual void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) = 0; // Print text on the display (needs the backend to build the font)
   GPUDisplayBackend* backend();
   static GPUDisplayFrontend* getFrontend(const char* type);
   virtual void getSize(int32_t& width, int32_t& height) { width = height = 0; }
@@ -118,7 +117,6 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   bool mKeys[256] = {false};      // Array of mKeys currently pressed
   int32_t mDisplayHeight = INIT_HEIGHT;
   int32_t mDisplayWidth = INIT_WIDTH;
-  int32_t mCanDrawText = 0; // 1 = in compat mode, 2 = with shader
 
   std::chrono::steady_clock::time_point mNextFrameTime;
 

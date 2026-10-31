@@ -49,10 +49,6 @@ GPUDisplayFrontendWayland::GPUDisplayFrontendWayland()
   mFrontendName = "Wayland";
 }
 
-void GPUDisplayFrontendWayland::OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton)
-{
-}
-
 int32_t GPUDisplayFrontendWayland::GetKey(uint32_t key, uint32_t state)
 {
   int32_t retVal = 0;

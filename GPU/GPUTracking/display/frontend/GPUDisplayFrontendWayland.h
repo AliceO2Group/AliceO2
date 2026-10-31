@@ -43,7 +43,6 @@ class GPUDisplayFrontendWayland : public GPUDisplayFrontend
   void SwitchFullscreen(bool set) override;
   void ToggleMaximized(bool set) override;
   void SetVSync(bool enable) override;
-  void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) override;
   void getSize(int32_t& width, int32_t& height) override;
   float getDisplayScale() const override { return mScale; }
   float getRefreshRate() override;

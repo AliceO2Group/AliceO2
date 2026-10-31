@@ -39,8 +39,6 @@ class GPUDisplayBackend
   virtual ~GPUDisplayBackend();
 
   virtual int32_t ExtInit() { return 0; };
-  virtual bool CoreProfile() { return false; };
-  virtual uint32_t DepthBits() = 0;
 
   typedef std::tuple<uint32_t, uint32_t, int32_t> vboList;
 
@@ -122,7 +120,6 @@ class GPUDisplayBackend
   vecpod<DrawArraysIndirectCommand> mCmdBuffer;
   bool mFreetypeInitialized = false;
   float mFontRasterScale = 1.f; // Display scale the font was rasterized for
-  bool mFrontendCompatTextDraw = false;
   std::vector<char> mScreenshotPixels;
 
   static constexpr float SMOOTH_POINT_EXTRA_SIZE = 0.6f;

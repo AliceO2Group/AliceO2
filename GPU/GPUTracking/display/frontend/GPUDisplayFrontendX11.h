@@ -32,7 +32,6 @@ class GPUDisplayFrontendX11 : public GPUDisplayFrontend
   void SwitchFullscreen(bool set) override;
   void ToggleMaximized(bool set) override;
   void SetVSync(bool enable) override;
-  void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) override;
   void getSize(int32_t& width, int32_t& height) override;
   float getDisplayScale() const override { return mScale; }
   int32_t getVulkanSurface(void* instance, void* surface) override;
@@ -42,8 +41,6 @@ class GPUDisplayFrontendX11 : public GPUDisplayFrontend
   int32_t FrontendMain() override;
   int32_t GetKey(int32_t key);
   void GetKey(XEvent& event, int32_t& keyOut, int32_t& keyPressOut);
-
-  GLuint mFontBase;
 
   Display* mXDisplay = nullptr;
   Window mWindow;
