@@ -28,7 +28,10 @@ Class for storing the scalers which are used to calculate an estimate for the me
 */
 
 struct TPCScalerWeights {
+  /// \return weight for the time deltaTime relative to the timestamp; 1 if deltaTime is outside the stored weights (see isInRange)
   float getWeight(float deltaTime) const;
+  /// \return true if the stored weights cover deltaTime
+  bool isInRange(float deltaTime) const;
   bool isValid() const { return (mSamplingTimeMS > 0 && !mWeights.empty()); }
   float getDurationMS() const { return mSamplingTimeMS * mWeights.size(); }
   float mSamplingTimeMS = -1;  ///< sampling of the stored weights

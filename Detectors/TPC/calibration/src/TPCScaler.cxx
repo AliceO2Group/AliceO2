@@ -19,6 +19,7 @@
 #include <TTree.h>
 #include "Framework/Logger.h"
 #include "CommonConstants/LHCConstants.h"
+#include <atomic>
 
 using namespace o2::tpc;
 
@@ -130,29 +131,50 @@ float TPCScaler::getMeanScaler(double timestamp, o2::tpc::Side side) const
   // sump up values from last ion drift time
   float sum = 0;
   float sumW = 0;
+  int nOutOfRange = 0;
   const bool useWeights = mUseWeights && getScalerWeights().isValid();
   for (int i = firstIdx; i < lastIdx; ++i) {
     float weight = 1;
     if (useWeights) {
       const double relTSMS = mTimeStampMS + i * mIntegrationTimeMS - timestamp;
+      nOutOfRange += !getScalerWeights().isInRange(relTSMS);
       weight = getScalerWeights().getWeight(relTSMS);
     }
     sum += getScalers(i, side) * weight;
     sumW += weight;
   }
+
+  // values outside the stored weights (e.g. timestamp within the first ion drift time of this object, where the clamped range extends
+  // beyond the timestamp) are used with weight 1: reported once per call and at most MaxOutOfRangeReports times per process
+  if (nOutOfRange > 0) {
+    constexpr int MaxOutOfRangeReports = 20;
+    static std::atomic<int> nReports{0};
+    const int report = nReports++;
+    if (report < MaxOutOfRangeReports) {
+      LOGP(error, "{} of {} scaler values for timestamp {} outside the weights (first timestamp {} ms, sampling {} ms): weight 1 used{}", nOutOfRange,
+           lastIdx - firstIdx, timestamp, getScalerWeights().mFirstTimeStampMS, getScalerWeights().mSamplingTimeMS,
+           (report + 1 == MaxOutOfRangeReports) ? ", further messages suppressed" : "");
+    }
+  }
+
   if (sumW != 0) {
     return (sum / sumW);
   }
   return 0;
 }
 
+bool TPCScalerWeights::isInRange(float deltaTime) const
+{
+  const int idx = (deltaTime - mFirstTimeStampMS) / mSamplingTimeMS;
+  return (idx >= 0) && (idx < static_cast<int>(mWeights.size()));
+}
+
 float TPCScalerWeights::getWeight(float deltaTime) const
 {
   const float idxF = (deltaTime - mFirstTimeStampMS) / mSamplingTimeMS;
   const int idx = idxF;
-  if ((idx < 0) || (idx > mWeights.size() - 1)) {
-    LOGP(error, "Index out of range for deltaTime: {} mFirstTimeStampMS: {} mSamplingTimeMS: {}", deltaTime, mFirstTimeStampMS, mSamplingTimeMS);
-    // set weight 1 to in case it is out of range. This can only happen if the TPC scaler is not valid for given time
+  if (!isInRange(deltaTime)) {
+    // set weight 1 to in case it is out of range. This can only happen if the TPC scaler is not valid for given time (reported in getMeanScaler)
     return 1;
   }
 
