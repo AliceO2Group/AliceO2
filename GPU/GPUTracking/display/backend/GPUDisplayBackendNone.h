@@ -26,7 +26,6 @@ class GPUDisplayBackendNone : public GPUDisplayBackend
   ~GPUDisplayBackendNone() override = default;
 
  protected:
-  uint32_t DepthBits() override { return 32; };
   uint32_t drawVertices(const vboList& v, const drawType t) override { return 0; }
   void ActivateColor(std::array<float, 4>& color) override {}
   void setDepthBuffer() override {}

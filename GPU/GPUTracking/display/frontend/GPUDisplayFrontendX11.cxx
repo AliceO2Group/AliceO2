@@ -163,28 +163,6 @@ void GPUDisplayFrontendX11::GetKey(XEvent& event, int32_t& keyOut, int32_t& keyP
   }
 }
 
-void GPUDisplayFrontendX11::OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton)
-{
-#ifndef GPUCA_DISPLAY_OPENGL_CORE
-  if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
-    if (!fromBotton) {
-      y = mDisplayHeight - y;
-    }
-    glColor4f(r, g, b, a);
-    glRasterPos2f(x, y);
-    if (!glIsList(mFontBase)) {
-      GPUError("print string: Bad display list.");
-      exit(1);
-    } else if (s && strlen(s)) {
-      glPushAttrib(GL_LIST_BIT);
-      glListBase(mFontBase);
-      glCallLists(strlen(s), GL_UNSIGNED_BYTE, (GLubyte*)s);
-      glPopAttrib();
-    }
-  }
-#endif
-}
-
 int32_t GPUDisplayFrontendX11::FrontendMain()
 {
   XSetWindowAttributes windowAttributes;
@@ -261,7 +239,7 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
       int32_t context_attribs[] = {
         GLX_CONTEXT_MAJOR_VERSION_ARB, GL_MIN_VERSION_MAJOR,
         GLX_CONTEXT_MINOR_VERSION_ARB, GL_MIN_VERSION_MINOR,
-        GLX_CONTEXT_PROFILE_MASK_ARB, mBackend->CoreProfile() ? GLX_CONTEXT_CORE_PROFILE_BIT_ARB : GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB,
+        GLX_CONTEXT_PROFILE_MASK_ARB, GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
         None};
       glxContext = glXCreateContextAttribsARB(mXDisplay, fbconfig, nullptr, GL_TRUE, context_attribs);
     } else {
@@ -300,31 +278,6 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
   // Receive signal when window closed
   Atom WM_DELETE_WINDOW = XInternAtom(mXDisplay, "WM_DELETE_WINDOW", False);
   XSetWMProtocols(mXDisplay, mWindow, &WM_DELETE_WINDOW, 1);
-#ifndef GPUCA_DISPLAY_OPENGL_CORE
-  XFontStruct* font_info = nullptr;
-  if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
-    // Prepare fonts
-    mFontBase = glGenLists(256);
-    if (!glIsList(mFontBase)) {
-      GPUError("Out of display lists.");
-      return (-1);
-    }
-    const char* f = "fixed";
-    font_info = XLoadQueryFont(mXDisplay, f);
-    if (!font_info) {
-      GPUError("XLoadQueryFont failed.");
-      return (-1);
-    } else {
-      int32_t first = font_info->min_char_or_byte2;
-      int32_t last = font_info->max_char_or_byte2;
-      glXUseXFont(font_info->fid, first, last - first + 1, mFontBase + first);
-    }
-  }
-  mCanDrawText = 1;
-  if (drawTextFontSize() == 0) {
-    drawTextFontSize() = 12;
-  }
-#endif
 
   if (mBackend->ExtInit()) {
     fprintf(stderr, "Error initializing backend\n");
@@ -459,12 +412,6 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
     waitForFPSLimit();
   }
 
-#ifndef GPUCA_DISPLAY_OPENGL_CORE
-  if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
-    glDeleteLists(mFontBase, 256);
-    XUnloadFont(mXDisplay, font_info->fid);
-  }
-#endif
   ExitDisplay();
   if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
     glXDestroyContext(mXDisplay, glxContext);

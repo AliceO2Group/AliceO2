@@ -209,7 +209,6 @@ int32_t GPUDisplayFrontendGlut::FrontendMain()
     fprintf(stderr, "Only OpenGL backend supported\n");
     return 1;
   }
-  mCanDrawText = 1;
   if (drawTextFontSize() == 0) {
     drawTextFontSize() = 12;
   }
@@ -220,7 +219,7 @@ int32_t GPUDisplayFrontendGlut::FrontendMain()
   char* opts[] = {opt1, opt2};
   glutInit(&nopts, opts);
   glutInitContextVersion(GL_MIN_VERSION_MAJOR, GL_MIN_VERSION_MINOR);
-  glutInitContextProfile(mBackend->CoreProfile() ? GLUT_CORE_PROFILE : GLUT_COMPATIBILITY_PROFILE);
+  glutInitContextProfile(GLUT_CORE_PROFILE);
   glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
   glutInitWindowSize(INIT_WIDTH, INIT_HEIGHT);
   glutCreateWindow(DISPLAY_WINDOW_NAME);
@@ -269,18 +268,6 @@ int32_t GPUDisplayFrontendGlut::FrontendMain()
 void GPUDisplayFrontendGlut::StopDisplayA()
 {
   glutLeaveMainLoop();
-}
-
-void GPUDisplayFrontendGlut::OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton)
-{
-#ifndef GPUCA_DISPLAY_OPENGL_CORE
-  if (!fromBotton) {
-    y = mDisplayHeight - y;
-  }
-  glColor4f(r, g, b, a);
-  glRasterPos2f(x, y);
-  glutBitmapString(GLUT_BITMAP_HELVETICA_12, (const uint8_t*)s);
-#endif
 }
 
 void GPUDisplayFrontendGlut::SwitchFullscreen(bool set)

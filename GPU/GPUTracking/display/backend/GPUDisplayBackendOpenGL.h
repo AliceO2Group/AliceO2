@@ -34,9 +34,7 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   GPUDisplayBackendOpenGL();
   ~GPUDisplayBackendOpenGL() override = default;
   int32_t ExtInit() override;
-  bool CoreProfile() override;
   bool canLimitToVSync() const override; // Buffer swap blocks with VSync, if the frontend can set the swap interval
-  uint32_t DepthBits() override;
 
  protected:
   void createFB(GLfb& fb, bool tex, bool withDepth, bool msaa, uint32_t width, uint32_t height);
@@ -101,10 +99,8 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   uint32_t mFragmentShaderDownsample;
   uint32_t mGeometryShader;
   uint32_t mShaderProgram;
-  uint32_t mShaderProgramSmoothPoint; // Points with fragmentSmoothPoint.frag, for smoothPoints with the shader path (not rendererCompatSmoothing / GL_POINT_SMOOTH)
-  bool mUseSmoothPointShader = false;
-  uint32_t mShaderProgramSmoothLine; // Lines with vertexSmoothLine.vert / fragmentSmoothLine.frag, for smoothLines with the shader path (not rendererCompatSmoothing / GL_LINE_SMOOTH)
-  bool mUseSmoothLineShader = false;
+  uint32_t mShaderProgramSmoothPoint; // Points with fragmentSmoothPoint.frag, for smoothPoints
+  uint32_t mShaderProgramSmoothLine;  // Lines with vertexSmoothLine.vert / fragmentSmoothLine.frag, for smoothLines
   uint32_t mShaderProgramText;
   uint32_t mShaderProgramTexture;
   uint32_t mShaderProgramDownsample;

@@ -131,7 +131,5 @@ void GPUDisplay::OpenGLPrint(const char* s, float x, float y, float r, float g, 
     }
     float color[4] = {r, g, b, a};
     mBackend->OpenGLPrint(s, x, y, color, scale / mBackend->mFontRasterScale);
-  } else if (mFrontend->mCanDrawText) {
-    mFrontend->OpenGLPrint(s, x, y, r, g, b, a, fromBotton);
   }
 }

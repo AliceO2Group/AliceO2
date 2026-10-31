@@ -85,7 +85,6 @@ class GPUDisplay : public GPUDisplayInterface
   const GPUParam* param() { return mParam; }
   const GPUSettingsProcessing& GetProcessingSettings() const { return mProcessingSettings; }
   GPUDisplayFrontend* frontend() { return mFrontend; }
-  bool drawTextInCompatMode() const { return mDrawTextInCompatMode; }
   int32_t& drawTextFontSize() { return mDrawTextFontSize; }
 
   struct control {
@@ -253,7 +252,6 @@ class GPUDisplay : public GPUDisplayInterface
   std::mutex mMutexLoadAndShowEvent;
   std::condition_variable mCVLoadAndShowEvent;
 
-  bool mDrawTextInCompatMode = false;
   int32_t mDrawTextFontSize = 0;
 
   int32_t mNDrawCalls = 0;

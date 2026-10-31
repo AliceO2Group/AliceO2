@@ -251,7 +251,7 @@ if (OPENGL_GLU_FOUND)
 endif()
 
 if(GPUCA_CONFIG_GL3W)
-  target_compile_definitions(${targetName} PRIVATE GPUCA_DISPLAY_GL3W GPUCA_DISPLAY_OPENGL_CORE)
+  target_compile_definitions(${targetName} PRIVATE GPUCA_DISPLAY_GL3W)
 endif()
 
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
