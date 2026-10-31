@@ -102,12 +102,15 @@ void check(const std::vector<std::string>& arguments,
 TEST_CASE("test_prepareArguments")
 {
   int lm[1][2] = {{1, 2}};
+  std::string om[2][3] = {{"MC", "/path/L0.root", ""}, {"", "/path/L1.root", "1"}};
   std::vector<ConfigParamSpec> workflowOptions{
     {"foo", VariantType::String, "bar", {"charlie foxtrot"}},
     {"depth", VariantType::Int, 1, {"height"}},
     {"labeled", VariantType::LabeledArrayInt, LabeledArray<int>{&lm[0][0], 1, 2, {"r"}, {"c1", "c2"}}, {"a labeled array"}},
+    {"aod-metadata-origins", VariantType::LabeledArrayString, LabeledArray<std::string>{&om[0][0], 2, 3, {"EMB", "AOD"}, {"DataType", "source", "disable"}}, {"metadata per origin"}},
   };
   std::string labeledDefault = R"({"labels_rows":["r"],"labels_cols":["c1","c2"],"values":[[1,2]]})";
+  std::string originsDefault = R"({"labels_rows":["EMB","AOD"],"labels_cols":["DataType","source","disable"],"values":[["MC","/path/L0.root",""],["","/path/L1.root","1"]]})";
   std::string labeledOther = R"({"labels_rows":["r"],"labels_cols":["c1","c2"],"values":[[3,4]]})";
 
   auto algorithm = [](ProcessingContext& /*ctx*/) {};
@@ -183,7 +186,7 @@ TEST_CASE("test_prepareArguments")
   check({"--depth", "2", "--processor0", "--mode silly"}, workflowOptions, deviceSpecs, matrix);
 
   // a LabeledArray workflow option is forwarded as a single JSON argument, defaulted or set
-  matrix["processor0"] = {{"--depth", "1"}, {"--labeled", labeledDefault}};
+  matrix["processor0"] = {{"--depth", "1"}, {"--labeled", labeledDefault}, {"--aod-metadata-origins", originsDefault}};
   matrix["processor1"] = matrix["processor0"];
   check({}, workflowOptions, deviceSpecs, matrix);
   matrix["processor0"] = {{"--depth", "1"}, {"--labeled", labeledOther}};
