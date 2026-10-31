@@ -140,6 +140,9 @@ void GPUDisplayBackend::loadFont()
       return;
     }
     const auto& glyph = face->glyph;
+    if (i == 'M') {
+      mFontCharWidth = (glyph->advance.x >> 6) * (smoothFont() ? 0.25f : 1.f) / mFontRasterScale; // As in GLPrintText of the backends
+    }
     addFontSymbol(i, glyph->bitmap.width, glyph->bitmap.rows, glyph->bitmap_left, glyph->bitmap_top, glyph->advance.x, glyph->bitmap.buffer);
   }
   initializeTextDrawing();

@@ -233,7 +233,7 @@ class GPUDisplay : public GPUDisplayInterface
   void PrintHelp();
   void createQuaternionFromMatrix(float* v, const float* mat);
   void drawVertices(const vboList& v, const GPUDisplayBackend::drawType t);
-  void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true);
+  void GLPrintText(const char* s, float x, float y, float r, float g, float b, float a, uint32_t nCharacters = 0, bool fromBotton = true); // nCharacters > 0: print at most that many characters
 
   GPUDisplayFrontend* mFrontend = nullptr;
   std::unique_ptr<GPUDisplayBackend> mBackend;
