@@ -668,7 +668,7 @@ void GPUDisplayBackendOpenGL::initializeTextDrawing()
   CHKERR(glBindVertexArray(0));
 }
 
-void GPUDisplayBackendOpenGL::OpenGLPrint(const char* s, float x, float y, float* color, float scale)
+void GPUDisplayBackendOpenGL::GLPrintText(const char* s, float x, float y, float* color, float scale, uint32_t nCharacters)
 {
   if (!mFreetypeInitialized) {
     return;
@@ -678,7 +678,7 @@ void GPUDisplayBackendOpenGL::OpenGLPrint(const char* s, float x, float y, float
   if (smoothFont()) {
     scale *= 0.25f; // Font size is 48 to have nice bitmap, scale to size 12
   }
-  for (const unsigned char* c = (const unsigned char*)s; *c; c++) {
+  for (const unsigned char* c = (const unsigned char*)s; *c && (nCharacters == 0 || c < (const unsigned char*)s + nCharacters); c++) {
     if ((int32_t)*c >= (int32_t)mFontSymbols.size()) {
       GPUError("Trying to draw unsupported symbol: %d > %d\n", (int32_t)*c, (int32_t)mFontSymbols.size());
       continue;
