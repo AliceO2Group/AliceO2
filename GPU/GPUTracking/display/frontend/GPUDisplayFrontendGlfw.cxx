@@ -271,7 +271,7 @@ int32_t GPUDisplayFrontendGlfw::FrontendMain()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, GL_MIN_VERSION_MAJOR);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, GL_MIN_VERSION_MINOR);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, 0);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, mBackend->CoreProfile() ? GLFW_OPENGL_CORE_PROFILE : GLFW_OPENGL_COMPAT_PROFILE);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   }
   glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE); // Initial size scaled by the content scale on X11 / Win32
   mWindow = glfwCreateWindow(INIT_WIDTH, INIT_HEIGHT, DISPLAY_WINDOW_NAME, nullptr, nullptr);
@@ -356,10 +356,6 @@ int32_t GPUDisplayFrontendGlfw::FrontendMain()
 void GPUDisplayFrontendGlfw::StopDisplayA()
 {
   glfwSetWindowShouldClose(mWindow, true);
-}
-
-void GPUDisplayFrontendGlfw::OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton)
-{
 }
 
 void GPUDisplayFrontendGlfw::SwitchFullscreen(bool set)
