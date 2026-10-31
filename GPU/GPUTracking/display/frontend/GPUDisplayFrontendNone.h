@@ -28,7 +28,6 @@ class GPUDisplayFrontendNone : public GPUDisplayFrontend
   void SwitchFullscreen(bool set) override {}
   void ToggleMaximized(bool set) override {}
   void SetVSync(bool enable) override {}
-  void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) override {}
 
  private:
   int32_t FrontendMain() override;

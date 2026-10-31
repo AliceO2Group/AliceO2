@@ -94,13 +94,8 @@ void GPUDisplay::buildConfigKeys()
         val = 5;
       }
     }),
-    KEY_LAMBDA('m', mCfgR, rendererCompatSmoothing, {
-      if (!displayOpenGLCore || backend()->backendType() != GPUDisplayBackend::TYPE_OPENGL) {
-        val ^= 1;
-      }
-    }),
     KEY_LAMBDA('I', mCfgR, useGLIndirectDraw, val ^= true;), //
-    "Switch mFullScreen / Maximized window / Change FOV (field of view) / Switch between core / compat renderer path (OpenGL profile, Vulkan smooth lines) / Enable / disable GL indirect draw");
+    "Switch Full Screen / Maximized window / Change FOV (field of view) / Enable / disable GL indirect draw");
 
   mFrontend->add_key_binding(
     KEY_LAMBDA('S', mCfgL, smoothPoints, val ^= true;), //

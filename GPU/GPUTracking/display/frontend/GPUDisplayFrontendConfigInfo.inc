@@ -73,7 +73,7 @@ void GPUDisplay::buildConfigInfo()
   addInfo(INFO_LAMBDA(mCfgR, screenshotScaleFactor, SetInfo("Screenshot scaling factor set to %d", val);));
   addInfo(INFO_LAMBDA(mCfgL, smoothPoints, SetInfo("Smoothing of points %s", val ? "enabled" : "disabled");));
   addInfo(INFO_LAMBDA(mCfgL, smoothLines, SetInfo("Smoothing of lines %s", val ? "enabled" : "disabled");));
-  addInfo(INFO_LAMBDA(mCfgL, depthBuffer, SetInfo("Depth buffer (z-buffer, %u bits) %s", mBackend->DepthBits(), val ? "enabled" : "disabled");));
+  addInfo(INFO_LAMBDA(mCfgL, depthBuffer, SetInfo("Depth buffer (z-buffer) %s", val ? "enabled" : "disabled");));
   addInfo(INFO_LAMBDA(mCfgR, drawQualityMSAA, SetInfo("Multisampling anti-aliasing factor set to %d", val);));
   addInfo(INFO_LAMBDA(mCfgR, drawQualityDownsampleFSAA, SetInfo("Downsampling anti-aliasing factor set to %d", val);));
   addInfo(INFO_LAMBDA(mCfgR, drawQualityVSync, SetInfo("VSync: %s", val ? "enabled" : "disabled");));
@@ -100,13 +100,6 @@ void GPUDisplay::buildConfigInfo()
   addInfo(INFO_LAMBDA(mCfgR, fullScreen, SetInfo("Toggling full screen (%d)", (int32_t)val);));
   addInfo(INFO_LAMBDA(mCfgR, maximized, SetInfo("Toggling Maximized window (%d)", (int32_t)val);));
   addInfo(INFO_LAMBDA(mCfgR, fov, SetInfo("Set FOV to %f", val);));
-  addInfo(INFO_LAMBDA(mCfgR, rendererCompatSmoothing, {
-    if (displayOpenGLCore && backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
-      SetInfo("OpenGL compat profile not available, using core profile", 1);
-    } else {
-      SetInfo("Using renderer path for %s profile", val ? "compat" : "core (shader)");
-    }
-  }));
   addInfo(INFO_LAMBDA(mCfgR, useGLIndirectDraw, SetInfo("OpenGL Indirect Draw %s", val ? "enabled" : "disabled");));
   addInfo(INFO_LAMBDA(mCfgL, drawTPC, SetInfo("Showing TPC Clusters: %d", (int32_t)val);));
   addInfo(INFO_LAMBDA(mCfgL, drawTRD, SetInfo("Showing TRD Tracklets: %d", (int32_t)val);));

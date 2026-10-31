@@ -43,12 +43,6 @@ struct GPUDisplayFrontend::configKey {
   configKeyCallback callback;
 };
 
-#ifdef GPUCA_DISPLAY_OPENGL_CORE
-static constexpr bool displayOpenGLCore = true; // OpenGL compat profile not available
-#else
-static constexpr bool displayOpenGLCore = false;
-#endif
-
 struct GPUDisplayFrontend::configRTTIInfo {
   static constexpr std::tuple configStructs{&GPUDisplay::mCfgL, &GPUDisplay::mCfgH, &GPUDisplay::mCfgR}; // Config structs with RTTI, as members of GPUDisplay
   std::vector<configRTTIExt> rttiEntries;

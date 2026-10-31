@@ -75,7 +75,6 @@ GPUDisplay::GPUDisplay(GPUDisplayFrontend* frontend, GPUChainTracking* chain, GP
   mBackend->mDisplay = this;
   frontend->mDisplay = this;
   frontend->mBackend = mBackend.get();
-  mCfgR.rendererCompatSmoothing &= !mBackend->CoreProfile();
 }
 
 void GPUDisplay::calcXYZ(const float* matrix)
@@ -189,7 +188,6 @@ int32_t GPUDisplay::InitDisplay_internal()
     return 1;
   }
   mYFactor = mBackend->getYFactor();
-  mDrawTextInCompatMode = !mBackend->mFreetypeInitialized && mFrontend->mCanDrawText == 1;
   int32_t height = 0, width = 0;
   mFrontend->getSize(width, height);
   if (height == 0 || width == 0) {
