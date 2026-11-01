@@ -26,9 +26,10 @@
 #include "rapidjson/prettywriter.h"
 #include "rapidjson/filereadstream.h"
 
+#include "NativeAOD.h"
+#include "AODNative/Errors.h"
+
 #include "TGrid.h"
-#include "TObjString.h"
-#include "TMap.h"
 #include "TFile.h"
 
 #include <arrow/dataset/file_base.h>
@@ -36,12 +37,7 @@
 #include <uv.h>
 #include <exception>
 #include <memory>
-
-#if __has_include(<TJAlienFile.h>)
-#include <TJAlienFile.h>
-
 #include <utility>
-#endif
 
 #include <dlfcn.h>
 O2_DECLARE_DYNAMIC_LOG(reader_memory_dump);
@@ -67,6 +63,11 @@ DataInputDescriptor::DataInputDescriptor(bool alienSupport, int level, DataInput
     "O2Framework:RNTupleObjectReadingCapability",
     "O2Framework:TTreeObjectReadingCapability",
   };
+  // The native reader comes first, so that it wins for files it opened. For
+  // files opened with ROOT it provides no handle, and the others are used.
+  if (mContext.readerBackend != "root") {
+    capabilitiesSpecs.insert(capabilitiesSpecs.begin(), "O2FrameworkAnalysisNativeAODSupport:NativeAODObjectReadingCapability");
+  }
 
   std::vector<LoadablePlugin> plugins;
   for (auto spec : capabilitiesSpecs) {
@@ -141,39 +142,47 @@ bool DataInputDescriptor::setFile(int counter, int wantedParentLevel, std::strin
   }
 
   // open file
-  auto rootFS = std::dynamic_pointer_cast<TFileFileSystem>(mCurrentFilesystem);
-  if (rootFS.get()) {
-    if (rootFS->GetFile()->GetName() == filename) {
+  if (mCurrentFile) {
+    if (mCurrentFile->name() == filename) {
       return true;
     }
     closeInputFile();
   }
 
-  TFile* tfile = nullptr;
-  bool externalFile = false;
+  TFile* externalFile = nullptr;
   for (auto& [name, f] : mContext.openFiles) {
     if (name == filename) {
-      tfile = f;
-      externalFile = true;
+      externalFile = f;
       break;
     }
   }
-  if (tfile == nullptr) {
-    tfile = TFile::Open(filename.c_str());
-  }
-  if (!tfile || tfile->IsZombie()) {
-    if (tfile && !externalFile) {
-      delete tfile;
+  // In-memory files given by tests can only be read with ROOT.
+  auto backend = externalFile ? std::string("root") : mContext.readerBackend;
+  if (backend != "root") {
+    try {
+      mCurrentFile = openNativeAOD(filename, mFactory, mContext.nativeOptions);
+    } catch (o2::aod::native::FormatError const& e) {
+      if (backend == "native") {
+        throw AODReadError(AODReadError::Kind::FileOpen, fmt::format("Couldn't open file \"{}\" with the native reader: {}", filename, e.what()));
+      }
+      LOGP(info, "Reading \"{}\" with ROOT, the native reader cannot: {}", filename, e.what());
+      if (mContext.monitoring) {
+        mContext.monitoring->send(o2::monitoring::Metric{filename, "aod-native-fallback"}.addTag(o2::monitoring::tags::Key::Subsystem, o2::monitoring::tags::Value::DPL));
+      }
     }
+  }
+  if (!mCurrentFile) {
+    mCurrentFile = RootAODInputFile::open(filename, mFactory, externalFile);
+  }
+  if (!mCurrentFile) {
     throw AODReadError(AODReadError::Kind::FileOpen, fmt::format("Couldn't open file \"{}\"!", filename));
   }
-  mCurrentFilesystem = std::make_shared<TFileFileSystem>(tfile, 50 * 1024 * 1024, mFactory, !externalFile);
-  rootFS = std::dynamic_pointer_cast<TFileFileSystem>(mCurrentFilesystem);
+  mCurrentFilesystem = mCurrentFile->filesystem();
   printFileOpening();
 
   // get the parent file map if exists
-  mParentFileMap = (TMap*)rootFS->GetFile()->Get("parentFiles"); // folder name (DF_XXX) --> parent file (absolute path)
-  if (mParentFileMap && !mContext.parentFileReplacement.empty()) {
+  mParentFileMap = mCurrentFile->parentFiles();
+  if (!mParentFileMap.empty() && !mContext.parentFileReplacement.empty()) {
     auto pos = mContext.parentFileReplacement.find(';');
     if (pos == std::string::npos) {
       throw std::runtime_error(fmt::format("Invalid syntax in aod-parent-base-path-replacement: \"{}\"", mContext.parentFileReplacement.c_str()));
@@ -181,28 +190,26 @@ bool DataInputDescriptor::setFile(int counter, int wantedParentLevel, std::strin
     auto from = mContext.parentFileReplacement.substr(0, pos);
     auto to = mContext.parentFileReplacement.substr(pos + 1);
 
-    auto it = mParentFileMap->MakeIterator();
-    while (auto obj = it->Next()) {
-      auto objString = (TObjString*)mParentFileMap->GetValue(obj);
-      objString->String().ReplaceAll(from.c_str(), to.c_str());
+    for (auto& [df, parent] : mParentFileMap) {
+      // Same as TString::ReplaceAll
+      for (size_t at = 0; !from.empty() && (at = parent.find(from, at)) != std::string::npos; at += to.size()) {
+        parent.replace(at, from.size(), to);
+      }
     }
-    delete it;
   }
 
   // get the directory names
   if (mfilenames[counter].numberOfTimeFrames <= 0) {
     const std::regex TFRegex = std::regex("/?DF_([0-9]+)(|-.*)$");
-    TList* keyList = rootFS->GetFile()->GetListOfKeys();
-    std::vector<std::string> finalList;
 
     // extract TF numbers and sort accordingly
     // We use an extra seen set to make sure we preserve the order in which
     // we instert things in the final list and to make sure we do not have duplicates.
     // Multiple folder numbers can happen if we use a flat structure /DF_<df>-<tablename>
     std::unordered_set<size_t> seen;
-    for (auto key : *keyList) {
+    for (auto& key : mCurrentFile->topLevelKeys()) {
       std::smatch matchResult;
-      std::string keyName = ((TObjString*)key)->GetString().Data();
+      std::string const& keyName = key.name;
       bool match = std::regex_match(keyName, matchResult, TFRegex);
       if (match) {
         auto folderNumber = std::stoul(matchResult[1].str());
@@ -213,13 +220,16 @@ bool DataInputDescriptor::setFile(int counter, int wantedParentLevel, std::strin
       }
     }
 
-    if (mParentFileMap != nullptr) {
+    if (!mParentFileMap.empty()) {
       // If we have a parent map, we should not process in DF alphabetical order but according to parent file to avoid swapping between files
+      auto parentOf = [this](long df) -> std::string const& {
+        static const std::string none;
+        auto it = mParentFileMap.find("DF_" + std::to_string(df));
+        return it == mParentFileMap.end() ? none : it->second;
+      };
       std::ranges::sort(mfilenames[counter].listOfTimeFrameNumbers,
-                        [this](long const& l1, long const& l2) -> bool {
-                          auto p1 = (TObjString*)this->mParentFileMap->GetValue(("DF_" + std::to_string(l1)).c_str());
-                          auto p2 = (TObjString*)this->mParentFileMap->GetValue(("DF_" + std::to_string(l2)).c_str());
-                          return p1->GetString().CompareTo(p2->GetString()) < 0;
+                        [&parentOf](long const& l1, long const& l2) -> bool {
+                          return parentOf(l1) < parentOf(l2);
                         });
     } else {
       std::sort(mfilenames[counter].listOfTimeFrameNumbers.begin(), mfilenames[counter].listOfTimeFrameNumbers.end());
@@ -228,6 +238,11 @@ bool DataInputDescriptor::setFile(int counter, int wantedParentLevel, std::strin
     mfilenames[counter].alreadyRead.resize(mfilenames[counter].alreadyRead.size() + mfilenames[counter].listOfTimeFrameNumbers.size(), false);
     mfilenames[counter].numberOfTimeFrames = mfilenames[counter].listOfTimeFrameNumbers.size();
   }
+  std::vector<std::string> readOrder;
+  for (auto number : mfilenames[counter].listOfTimeFrameNumbers) {
+    readOrder.push_back(fmt::format("DF_{}", number));
+  }
+  mCurrentFile->setReadOrder(readOrder);
 
   mCurrentFileID = counter;
   mCurrentFileStartedAt = uv_hrtime();
@@ -353,23 +368,22 @@ void DataInputDescriptor::releaseParentFile()
 
 std::shared_ptr<DataInputDescriptor> DataInputDescriptor::getParentFile(int counter, int numTF, std::string treename, int wantedParentLevel, std::string_view wantedOrigin)
 {
-  if (!mParentFileMap) {
+  if (mParentFileMap.empty()) {
     // This file has no parent map
     return nullptr;
   }
 
   auto folderName = fmt::format("DF_{}", mfilenames[counter].listOfTimeFrameNumbers[numTF]);
-  auto parentFileName = (TObjString*)mParentFileMap->GetValue(folderName.c_str());
+  auto parentEntry = mParentFileMap.find(folderName);
   // The current DF is not found in the parent map (this should not happen and is a fatal error)
-  auto rootFS = std::dynamic_pointer_cast<TFileFileSystem>(mCurrentFilesystem);
-  if (!parentFileName) {
-    throw AODReadError(AODReadError::Kind::InvalidTimeframe, fmt::format(R"(parent file map exists but does not contain the current DF "{}" in file "{}")", folderName.c_str(), rootFS->GetFile()->GetName()));
+  if (parentEntry == mParentFileMap.end()) {
+    throw AODReadError(AODReadError::Kind::InvalidTimeframe, fmt::format(R"(parent file map exists but does not contain the current DF "{}" in file "{}")", folderName.c_str(), mCurrentFile->name()));
   }
+  auto const& parentFileName = parentEntry->second;
 
   if (mParentFile) {
     // Is this still the corresponding to the correct file?
-    auto parentRootFS = std::dynamic_pointer_cast<TFileFileSystem>(mParentFile->mCurrentFilesystem);
-    if (parentFileName->GetString().CompareTo(parentRootFS->GetFile()->GetName()) == 0) {
+    if (parentFileName == mParentFile->mCurrentFile->name()) {
       return mParentFile;
     } else {
       releaseParentFile();
@@ -378,12 +392,12 @@ std::shared_ptr<DataInputDescriptor> DataInputDescriptor::getParentFile(int coun
 
   if (mLevel == mContext.allowedParentLevel) {
     throw std::runtime_error(fmt::format(R"(while looking for tree "{}", the parent file was requested but we are already at level {} of maximal allowed level {} for DF "{}" in file "{}")", treename.c_str(), mLevel, mContext.allowedParentLevel, folderName.c_str(),
-                                         rootFS->GetFile()->GetName()));
+                                         mCurrentFile->name()));
   }
 
-  LOGP(info, "Opening parent file {} for DF {}", parentFileName->GetString().Data(), folderName.c_str());
+  LOGP(info, "Opening parent file {} for DF {}", parentFileName, folderName.c_str());
   mParentFile = std::make_shared<DataInputDescriptor>(mAlienSupport, mLevel + 1, mContext);
-  mParentFile->mdefaultFilenamesPtr.emplace_back(makeFileNameHolder(parentFileName->GetString().Data()));
+  mParentFile->mdefaultFilenamesPtr.emplace_back(makeFileNameHolder(parentFileName));
   mParentFile->fillInputfiles();
   try {
     mParentFile->setFile(0, wantedParentLevel, wantedOrigin);
@@ -392,7 +406,7 @@ std::shared_ptr<DataInputDescriptor> DataInputDescriptor::getParentFile(int coun
     }
   } catch (...) {
     mParentFile.reset();
-    std::throw_with_nested(AODReadError(AODReadError::Kind::InvalidTimeframe, fmt::format("Unable to open parent file \"{}\" for {}", parentFileName->GetString().Data(), folderName)));
+    std::throw_with_nested(AODReadError(AODReadError::Kind::InvalidTimeframe, fmt::format("Unable to open parent file \"{}\" for {}", parentFileName, folderName)));
   }
   return mParentFile;
 }
@@ -410,15 +424,8 @@ int DataInputDescriptor::getReadTimeFramesInFile(int counter)
 
 void DataInputDescriptor::printFileOpening()
 {
-  auto rootFS = std::dynamic_pointer_cast<TFileFileSystem>(mCurrentFilesystem);
-  auto f = dynamic_cast<TFile*>(rootFS->GetFile());
-  std::string monitoringInfo(fmt::format("lfn={},size={}", f->GetName(), f->GetSize()));
-#if __has_include(<TJAlienFile.h>)
-  auto alienFile = dynamic_cast<TJAlienFile*>(f);
-  if (alienFile) {
-    monitoringInfo += fmt::format(",se={},open_time={:.1f}", alienFile->GetSE(), alienFile->GetElapsed());
-  }
-#endif
+  std::string monitoringInfo(fmt::format("lfn={},size={}", mCurrentFile->name(), mCurrentFile->size()));
+  monitoringInfo += mCurrentFile->monitoringDetails();
   if (mContext.monitoring) {
     mContext.monitoring->send(o2::monitoring::Metric{monitoringInfo, "aod-file-open-info"}.addTag(o2::monitoring::tags::Key::Subsystem, o2::monitoring::tags::Value::DPL));
   }
@@ -431,17 +438,10 @@ void DataInputDescriptor::printFileStatistics()
   if (wait_time < 0) {
     wait_time = 0;
   }
-  auto rootFS = std::dynamic_pointer_cast<TFileFileSystem>(mCurrentFilesystem);
-  auto f = dynamic_cast<TFile*>(rootFS->GetFile());
-  std::string monitoringInfo(fmt::format("lfn={},size={},total_df={},read_bytes={},read_calls={},io_time={:.1f},wait_time={:.1f},level={}", f->GetName(),
-                                         f->GetSize(), getTimeFramesInFile(mCurrentFileID), f->GetBytesRead(), f->GetReadCalls(),
+  std::string monitoringInfo(fmt::format("lfn={},size={},total_df={},read_bytes={},read_calls={},io_time={:.1f},wait_time={:.1f},level={}", mCurrentFile->name(),
+                                         mCurrentFile->size(), getTimeFramesInFile(mCurrentFileID), mCurrentFile->bytesRead(), mCurrentFile->readCalls(),
                                          ((float)mIOTime / 1e9), ((float)wait_time / 1e9), mLevel));
-#if __has_include(<TJAlienFile.h>)
-  auto alienFile = dynamic_cast<TJAlienFile*>(f);
-  if (alienFile) {
-    monitoringInfo += fmt::format(",se={},open_time={:.1f}", alienFile->GetSE(), alienFile->GetElapsed());
-  }
-#endif
+  monitoringInfo += mCurrentFile->monitoringDetails();
   if (mTimeFrameActive) {
     // Snapshot I/O statistics now, but publish DF counts after commit or rollback.
     mPendingFileStatistics.emplace_back(mCurrentFileID, std::move(monitoringInfo));
@@ -461,14 +461,14 @@ void DataInputDescriptor::reportFileStatistics(int counter, std::string monitori
 
 void DataInputDescriptor::closeInputFile()
 {
-  if (mCurrentFilesystem.get()) {
+  if (mCurrentFile) {
     releaseParentFile();
 
-    delete mParentFileMap;
-    mParentFileMap = nullptr;
+    mParentFileMap.clear();
 
     printFileStatistics();
     mCurrentFilesystem.reset();
+    mCurrentFile.reset();
   }
 }
 
@@ -574,12 +574,10 @@ try {
       return false;
     }
     if (parentFile == nullptr) {
-      auto rootFS = std::dynamic_pointer_cast<TFileFileSystem>(mCurrentFilesystem);
-      throw AODReadError(AODReadError::Kind::InvalidTimeframe, fmt::format(R"(No parent file found for "{}" while looking for level {} in "{}")", treename, wantedLevel, rootFS->GetFile()->GetName()));
+      throw AODReadError(AODReadError::Kind::InvalidTimeframe, fmt::format(R"(No parent file found for "{}" while looking for level {} in "{}")", treename, wantedLevel, mCurrentFile->name()));
     }
     if (parentNumTF == -1) {
-      auto parentRootFS = std::dynamic_pointer_cast<TFileFileSystem>(parentFile->mCurrentFilesystem);
-      throw AODReadError(AODReadError::Kind::InvalidTimeframe, fmt::format(R"(DF not found in parent file "{}")", parentRootFS->GetFile()->GetName()));
+      throw AODReadError(AODReadError::Kind::InvalidTimeframe, fmt::format(R"(DF not found in parent file "{}")", parentFile->mCurrentFile->name()));
     }
     t.deactivate();
     return parentFile->readTree(outputs, dh, 0, parentNumTF, treename, totalSizeCompressed, totalSizeUncompressed);
@@ -591,11 +589,11 @@ try {
     return false;
   }
 
-  auto rootFS = std::dynamic_pointer_cast<TFileFileSystem>(folder.filesystem());
+  auto rootFS = std::dynamic_pointer_cast<VirtualRootFileSystemBase>(folder.filesystem());
 
   if (!rootFS) {
     t.deactivate();
-    throw std::runtime_error(fmt::format(R"(Not a TFile filesystem!)"));
+    throw std::runtime_error(fmt::format(R"(Not a ROOT file filesystem!)"));
   }
   // FIXME: Ugly. We should detect the format from the treename, good enough for now.
   std::shared_ptr<arrow::dataset::FileFormat> format;
@@ -628,13 +626,11 @@ try {
     LOGP(debug, "Could not find tree {}. Trying in parent file.", fullpath.path());
     auto parentFile = getParentFile(counter, numTF, treename, wantedLevel, wantedOrigin);
     if (parentFile == nullptr) {
-      auto rootFS = std::dynamic_pointer_cast<TFileFileSystem>(mCurrentFilesystem);
-      throw std::runtime_error(fmt::format(R"(Couldn't get TTree "{}" from "{}". Please check https://aliceo2group.github.io/analysis-framework/docs/troubleshooting/#tree-not-found for more information.)", fullpath.path(), rootFS->GetFile()->GetName()));
+      throw std::runtime_error(fmt::format(R"(Couldn't get TTree "{}" from "{}". Please check https://aliceo2group.github.io/analysis-framework/docs/troubleshooting/#tree-not-found for more information.)", fullpath.path(), mCurrentFile->name()));
     }
     int parentNumTF = parentFile->findDFNumber(0, folder.path());
     if (parentNumTF == -1) {
-      auto parentRootFS = std::dynamic_pointer_cast<TFileFileSystem>(parentFile->mCurrentFilesystem);
-      throw AODReadError(AODReadError::Kind::InvalidTimeframe, fmt::format(R"(DF {} listed in parent file map but not found in the corresponding file "{}")", folder.path(), parentRootFS->GetFile()->GetName()));
+      throw AODReadError(AODReadError::Kind::InvalidTimeframe, fmt::format(R"(DF {} listed in parent file map but not found in the corresponding file "{}")", folder.path(), parentFile->mCurrentFile->name()));
     }
     // first argument is 0 as the parent file object contains only 1 file
     return parentFile->readTree(outputs, dh, 0, parentNumTF, treename, totalSizeCompressed, totalSizeUncompressed);
@@ -678,8 +674,7 @@ try {
 
   return true;
 } catch (AODReadError const& e) {
-  auto rootFS = std::dynamic_pointer_cast<TFileFileSystem>(mCurrentFilesystem);
-  auto filename = rootFS ? std::string(rootFS->GetFile()->GetName()) : mfilenames.at(counter).fileName;
+  auto filename = mCurrentFile ? mCurrentFile->name() : mfilenames.at(counter).fileName;
   auto const& dfs = mfilenames.at(counter).listOfTimeFrameNumbers;
   auto df = numTF >= 0 && static_cast<size_t>(numTF) < dfs.size() ? fmt::format("DF_{}", dfs[numTF]) : fmt::format("timeframe index {}", numTF);
   std::throw_with_nested(AODReadError(e.getKind(), fmt::format("Reading tree {} in {} from file \"{}\" at parent level {}", treename, df, filename, mLevel)));

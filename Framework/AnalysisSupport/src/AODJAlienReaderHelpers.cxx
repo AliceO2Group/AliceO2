@@ -39,6 +39,7 @@
 #include "Framework/StringContext.h"
 #include "Framework/ConfigContext.h"
 #include "DataInputDirector.h"
+#include "NativeAOD.h"
 #include "Framework/SourceInfoHeader.h"
 #include "Framework/ChannelInfo.h"
 #include "Framework/Logger.h"
@@ -198,7 +199,19 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
     auto maxRate = options.get<float>("aod-max-io-rate");
 
     // create a DataInputDirector
-    auto didir = std::make_shared<DataInputDirector>(std::vector<std::string>{filename}, DataInputDirectorContext{&monitoring, parentAccessLevel, parentFileReplacement, originLevelMapping});
+    DataInputDirectorContext context{&monitoring, parentAccessLevel, parentFileReplacement, originLevelMapping};
+    context.readerBackend = options.get<std::string>("aod-reader-backend");
+    if (context.readerBackend != "root" && context.readerBackend != "native" && context.readerBackend != "auto") {
+      LOGP(fatal, "Invalid --aod-reader-backend \"{}\": use root, native or auto.", context.readerBackend);
+    }
+    context.nativeOptions.threads = std::max(1, options.get<int>("aod-reader-threads"));
+    context.nativeOptions.prefetchDepth = std::max(0, options.get<int>("aod-reader-prefetch"));
+    auto localIO = options.get<std::string>("aod-reader-local-io");
+    if (localIO != "mmap" && localIO != "pread") {
+      LOGP(fatal, "Invalid --aod-reader-local-io \"{}\": use mmap or pread.", localIO);
+    }
+    context.nativeOptions.localIO = localIO == "pread" ? o2::aod::native::Options::LocalIO::PRead : o2::aod::native::Options::LocalIO::MMap;
+    auto didir = std::make_shared<DataInputDirector>(std::vector<std::string>{filename}, std::move(context));
     if (options.isSet("aod-reader-json")) {
       auto jsonFile = options.get<std::string>("aod-reader-json");
       if (!didir->readJson(jsonFile)) {
@@ -340,13 +353,22 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
           // Origin file name for derived output map
           auto o2 = Output(TFFileNameHeader);
           auto fileAndFolder = didir->getFileFolder(dh, fcnt, ntf);
-          auto rootFS = std::dynamic_pointer_cast<TFileFileSystem>(fileAndFolder.filesystem());
-          auto* f = dynamic_cast<TFile*>(rootFS->GetFile());
-          std::string currentFilename(f->GetFile()->GetName());
-          if (strcmp(f->GetEndpointUrl()->GetProtocol(), "file") == 0 && f->GetEndpointUrl()->GetFile()[0] != '/') {
-            // This is not an absolute local path. Make it absolute.
-            static std::string pwd = gSystem->pwd() + std::string("/");
-            currentFilename = pwd + std::string(f->GetName());
+          static std::string pwd = gSystem->pwd() + std::string("/");
+          std::string currentFilename;
+          if (auto nativeFS = std::dynamic_pointer_cast<NativeAODFileSystem>(fileAndFolder.filesystem())) {
+            currentFilename = nativeFS->name();
+            // Only a relative local path needs to be made absolute; URLs are kept as they are.
+            if (!currentFilename.starts_with("/") && currentFilename.find("://") == std::string::npos) {
+              currentFilename = pwd + currentFilename;
+            }
+          } else {
+            auto rootFS = std::dynamic_pointer_cast<TFileFileSystem>(fileAndFolder.filesystem());
+            auto* f = dynamic_cast<TFile*>(rootFS->GetFile());
+            currentFilename = f->GetFile()->GetName();
+            if (strcmp(f->GetEndpointUrl()->GetProtocol(), "file") == 0 && f->GetEndpointUrl()->GetFile()[0] != '/') {
+              // This is not an absolute local path. Make it absolute.
+              currentFilename = pwd + std::string(f->GetName());
+            }
           }
           outputs.make<std::string>(o2) = currentFilename;
         }
@@ -374,7 +396,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
           }
         } catch (AODReadError const& e) {
           if (!skipInvalidReads) {
-            throw;
+            throw AODReadError(e.getKind(), describeException(e));
           }
           switch (e.getKind()) {
             case AODReadError::Kind::InvalidTimeframe:
