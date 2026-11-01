@@ -148,6 +148,9 @@ void CheckResidSpec::init(InitContext& ic)
   if (maxLanes > 1) {
     o2::conf::ConfigurableParam::updateFromString(fmt::format("checkresid.outname={}_t{}", nm, lane));
   }
+  if (lane == 0) {
+    params.printKeyValues();
+  }
   if (mDraw) {
     mFillHistos = true;
   }
