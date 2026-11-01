@@ -552,8 +552,8 @@ inline float TrackResiduals::getDXI(int ix) const
     if (ix < param::NRowsPerROC[0]) {
       // we are in the IROC
       return 1.f / param::RowDX[0];
-    } else if (ix > param::NRowsAccumulated[param::NROCTypes - 2]) {
-      // we are in the last OROC
+    } else if (ix >= param::NRowsAccumulated[param::NROCTypes - 2]) {
+      // we are in the last OROC (rows 127 - 151)
       return 1.f / param::RowDX[param::NROCTypes - 1];
     } else if (ix < param::NRowsAccumulated[1]) {
       // OROC1
