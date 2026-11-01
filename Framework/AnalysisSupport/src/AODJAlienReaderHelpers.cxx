@@ -11,12 +11,10 @@
 
 #include "AODJAlienReaderHelpers.h"
 #include <algorithm>
-#include <charconv>
 #include <cctype>
 #include <cstdlib>
 #include <exception>
 #include <memory>
-#include <ranges>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -27,6 +25,7 @@
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/ArrowContext.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/Array2D.h"
 #include "Framework/ControlService.h"
 #include "Framework/CallbackService.h"
 #include "Framework/EndOfStreamContext.h"
@@ -155,24 +154,11 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
     parentAccessLevel = ctx.options().get<int>("aod-parent-access-level");
   }
   std::vector<std::pair<std::string, int>> originLevelMapping;
-  if (ctx.options().isSet("aod-origin-level-mapping")) {
-    auto originLevelMappingStr = ctx.options().get<std::string>("aod-origin-level-mapping");
-    for (auto pairRange : originLevelMappingStr | std::views::split(',')) {
-      std::string_view pair{pairRange.begin(), pairRange.end()};
-      auto colonPos = pair.find(':');
-      if (colonPos == std::string_view::npos) {
-        LOGP(fatal, "Badly formatted aod-origin-level-mapping entry: \"{}\"", pair);
-        continue;
-      }
-      std::string key(pair.substr(0, colonPos));
-      std::string_view valueStr = pair.substr(colonPos + 1);
-      int value{};
-      auto [ptr, ec] = std::from_chars(valueStr.data(), valueStr.data() + valueStr.size(), value);
-      if (ec == std::errc{}) {
-        originLevelMapping.emplace_back(std::move(key), value);
-      } else {
-        LOGP(fatal, "Unable to parse level in aod-origin-level-mapping entry: \"{}\"", pair);
-      }
+  if (ctx.options().hasOption("aod-origin-level-map")) {
+    auto originLevelMap = ctx.options().get<LabeledArray<int>>("aod-origin-level-map");
+    auto origins = originLevelMap.getLabelsRows();
+    for (auto i = 0U; i < originLevelMap.rows(); ++i) {
+      originLevelMapping.emplace_back(origins[i], originLevelMap.get(i, 0U));
     }
   }
   auto callback = AlgorithmSpec{adaptStateful([parentFileReplacement, parentAccessLevel, originLevelMapping](ConfigParamRegistry const& options,
