@@ -127,6 +127,48 @@ class Cursor
   size_t mPos = 0;
 };
 
+/// The key and header of a TBasket.
+struct BasketHeader {
+  uint32_t nbytes;
+  uint32_t objlen;
+  uint16_t keylen;
+  uint16_t version;
+  int32_t nevbuf;
+  int32_t last;
+  uint8_t flag;
+};
+
+/// Reads a TBasket key and header forwards from @a c, as TBasket::Streamer
+/// writes them: a negative fNevBufSize is followed by one more byte, fIOBits.
+/// Leaves @a c at the end of the key.
+inline BasketHeader readBasketHeader(Cursor& c)
+{
+  auto start = c.pos();
+  BasketHeader h;
+  h.nbytes = c.u32();
+  bool big = c.i16() > 1000;
+  h.objlen = c.u32();
+  c.u32(); // fDatime
+  h.keylen = c.u16();
+  c.u16();              // fCycle
+  c.skip(big ? 16 : 8); // fSeekKey, fSeekPdir
+  c.string();           // fClassName
+  c.string();           // fName
+  c.string();           // fTitle
+  h.version = c.u16();
+  c.i32(); // fBufferSize
+  if (c.i32() < 0) {
+    c.u8(); // fIOBits
+  }
+  h.nevbuf = c.i32();
+  h.last = c.i32();
+  h.flag = c.u8();
+  if (c.pos() != start + h.keylen) {
+    c.fail("TBasket key of " + std::to_string(c.pos() - start) + " bytes, but fKeylen is " + std::to_string(h.keylen));
+  }
+  return h;
+}
+
 } // namespace o2::aod::native
 
 #endif // O2_FRAMEWORK_AODNATIVE_CURSOR_H_

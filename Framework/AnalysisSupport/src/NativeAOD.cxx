@@ -206,7 +206,7 @@ void NativeAODFileSystem::addToPlan(std::string const& treeName)
   NativeTreeHandle* handle = nullptr;
   try {
     handle = findTree(mPlanDF, treeName);
-  } catch (FormatError const&) {
+  } catch (std::exception const&) {
     // Reported when the tree itself is asked for.
   }
   if (handle) {

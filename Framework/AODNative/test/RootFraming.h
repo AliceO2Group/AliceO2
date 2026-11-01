@@ -110,8 +110,10 @@ struct BigEndianWriter {
 };
 
 /// A TBasket key as written on disk: key header, TBasket fields, then the
-/// payload holding @a values followed by a fake entry-offset tail.
-inline std::vector<uint8_t> makeBasket(Algo algo, std::span<const uint8_t> values, int32_t nevbuf, size_t tailBytes = 0, size_t chunkSize = 0xffffff)
+/// payload holding @a values followed by a fake entry-offset tail. With
+/// @a ioBits, the header has the layout of TTree::kGenerateOffsetMap: a
+/// negative fNevBufSize followed by one fIOBits byte.
+inline std::vector<uint8_t> makeBasket(Algo algo, std::span<const uint8_t> values, int32_t nevbuf, size_t tailBytes = 0, size_t chunkSize = 0xffffff, bool ioBits = false)
 {
   std::vector<uint8_t> raw(values.begin(), values.end());
   // The tail is poisoned: a decoder that reads past the value region sees it.
@@ -132,9 +134,12 @@ inline std::vector<uint8_t> makeBasket(Algo algo, std::span<const uint8_t> value
     h.string("TBasket"); // class, name, title
     h.string("fX");
     h.string("O2track");
-    h.put<uint16_t>(3);                     // fVersion
-    h.put<int32_t>(32000);                  // fBufferSize
-    h.put<int32_t>(0);                      // fNevBufSize
+    h.put<uint16_t>(3);              // fVersion
+    h.put<int32_t>(32000);           // fBufferSize
+    h.put<int32_t>(ioBits ? -4 : 0); // fNevBufSize
+    if (ioBits) {
+      h.put<uint8_t>(0); // fIOBits
+    }
     h.put<int32_t>(nevbuf);                 // fNevBuf
     h.put<int32_t>(keylen + values.size()); // fLast
     h.put<uint8_t>(tailBytes ? 1 : 2);      // flag
