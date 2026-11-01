@@ -17,13 +17,14 @@
 #include "Framework/Signpost.h"
 #include "AODJAlienReaderHelpers.h"
 #include "AODWriterHelpers.h"
-#include <TFile.h>
-#include <TMap.h>
+#include "AODInputFile.h"
+#include <TDataType.h>
 #include <TGrid.h>
-#include <TObjString.h>
-#include <TString.h>
 #include <fmt/format.h>
+#include <cstring>
+#include <fstream>
 #include <memory>
+#include <unistd.h>
 
 O2_DECLARE_DYNAMIC_LOG(analysis_support);
 
@@ -105,35 +106,25 @@ struct RunSummary : o2::framework::ServicePlugin {
   }
 };
 
-std::vector<std::string> getListOfTables(std::unique_ptr<TFile>& f)
+std::vector<std::string> getListOfTables(AODInputFile& f)
 {
   std::vector<std::string> r;
-  TList* keyList = f->GetListOfKeys();
   // We should handle two cases, one where the list of tables in a  TDirectory,
   // the other one where the dataframe number is just a prefix
   std::string first = "";
 
-  for (auto key : *keyList) {
-    if (!std::string_view(key->GetName()).starts_with("DF_") && !std::string_view(key->GetName()).starts_with("/DF_")) {
+  for (auto& key : f.topLevelKeys()) {
+    if (!std::string_view(key.name).starts_with("DF_") && !std::string_view(key.name).starts_with("/DF_")) {
       continue;
     }
-    auto* d = (TDirectory*)f->GetObjectChecked(key->GetName(), TClass::GetClass("TDirectory"));
     // Objects are in a folder, list it.
-    if (d) {
-      TList* branchList = d->GetListOfKeys();
-      for (auto b : *branchList) {
-        r.emplace_back(b->GetName());
-      }
+    if (key.className == "TDirectoryFile" || key.className == "TDirectory") {
+      r = f.keysIn(key.name);
       break;
     }
 
-#if __has_include(<ROOT/RFieldBase.hxx>)
-    void* v = f->GetObjectChecked(key->GetName(), TClass::GetClass("ROOT::RNTuple"));
-#else
-    void* v = f->GetObjectChecked(key->GetName(), TClass::GetClass("ROOT::Experimental::RNTuple"));
-#endif
-    if (v) {
-      std::string s = key->GetName();
+    if (key.className == "ROOT::RNTuple" || key.className == "ROOT::Experimental::RNTuple") {
+      std::string const& s = key.name;
       size_t pos = s.find('-');
       // Check if '-' is found
       // Skip metaData and parentFiles
@@ -155,31 +146,34 @@ std::vector<std::string> getListOfTables(std::unique_ptr<TFile>& f)
   return r;
 }
 
-auto readMetadata(std::unique_ptr<TFile>& currentFile) -> std::vector<ConfigParamSpec>
+auto readMetadata(AODInputFile& currentFile) -> std::vector<ConfigParamSpec>
 {
   // Get the metadata, if any
-  auto m = (TMap*)currentFile->Get("metaData");
-  if (!m) {
-    return {};
-  }
+  auto m = currentFile.metaData();
   std::vector<ConfigParamSpec> results;
-  auto it = m->MakeIterator();
 
   // Serialise metadata into a ; separated string with : separating key and value
   bool first = true;
-  while (auto obj = it->Next()) {
+  for (auto& [name, value] : m) {
     if (first) {
-      LOGP(info, "Metadata for file \"{}\":", currentFile->GetName());
+      LOGP(info, "Metadata for file \"{}\":", currentFile.name());
       first = false;
     }
-    auto objString = (TObjString*)m->GetValue(obj);
-    LOGP(info, "- {}: {}", obj->GetName(), objString->String().Data());
-    std::string key = "aod-metadata-" + std::string(obj->GetName());
-    char const* value = strdup(objString->String());
-    results.push_back(ConfigParamSpec{key, VariantType::String, value, {"Metadata in AOD"}});
+    LOGP(info, "- {}: {}", name, value);
+    std::string key = "aod-metadata-" + name;
+    char const* valueCopy = strdup(value.c_str());
+    results.push_back(ConfigParamSpec{key, VariantType::String, valueCopy, {"Metadata in AOD"}});
   }
 
   return results;
+}
+
+/// Opens an AO2D for metadata discovery. The factory is only needed to read
+/// tables, which discovery does not do.
+std::shared_ptr<AODInputFile> openForDiscovery(std::string const& filename)
+{
+  static RootObjectReadingFactory noTables;
+  return RootAODInputFile::open(filename, noTables);
 }
 
 struct DiscoverMetadataInAOD : o2::framework::ConfigDiscoveryPlugin {
@@ -206,13 +200,13 @@ struct DiscoverMetadataInAOD : o2::framework::ConfigDiscoveryPlugin {
           TGrid::Connect("alien://");
         }
         LOGP(info, "Loading metadata from file {} in PID {}", filename, getpid());
-        std::unique_ptr<TFile> currentFile{TFile::Open(filename.c_str())};
+        auto currentFile = openForDiscovery(filename);
         if (currentFile.get() == nullptr) {
-          LOGP(fatal, "Couldn't open file \"{}\"!", filename);
+          throw std::runtime_error(fmt::format("Couldn't open file \"{}\"!", filename));
         }
-        std::vector<ConfigParamSpec> results = readMetadata(currentFile);
+        std::vector<ConfigParamSpec> results = readMetadata(*currentFile);
         const bool metaDataEmpty = results.empty();
-        auto tables = getListOfTables(currentFile);
+        auto tables = getListOfTables(*currentFile);
         if (tables.empty() == false) {
           results.push_back(ConfigParamSpec{"aod-metadata-tables", VariantType::ArrayString, tables, {"Tables in first AOD"}});
         }
@@ -230,15 +224,15 @@ struct DiscoverMetadataInAOD : o2::framework::ConfigDiscoveryPlugin {
         }
 
         // Lets try in parent file.
-        auto parentFiles = (TMap*)currentFile->Get("parentFiles");
-        if (!parentFiles) {
+        auto parentFiles = currentFile->parentFiles();
+        if (parentFiles.empty()) {
           LOGP(info, "No metadata found in file \"{}\"", filename);
           results.push_back(ConfigParamSpec{"aod-metadata-disable", VariantType::String, "1", {"Metadata not found in AOD"}});
           return results;
         }
         LOGP(info, "No metadata found in file \"{}\", checking in its parents.", filename);
-        for (auto* p : *parentFiles) {
-          std::string parentFilename = ((TPair*)p)->Value()->GetName();
+        for (auto& [df, parentFilenameInFile] : parentFiles) {
+          std::string parentFilename = parentFilenameInFile;
           // Do the replacement. Notice this will require changing aod-parent-base-path-replacement to be
           // a workflow option (because the metadata itself is potentially changing the topology).
           if (registry.isSet("aod-parent-base-path-replacement")) {
@@ -259,14 +253,14 @@ struct DiscoverMetadataInAOD : o2::framework::ConfigDiscoveryPlugin {
             TGrid::Connect("alien://");
           }
 
-          std::unique_ptr<TFile> parentFile{TFile::Open(parentFilename.c_str())};
+          auto parentFile = openForDiscovery(parentFilename);
           if (parentFile.get() == nullptr) {
             LOGP(fatal, "Couldn't open derived file \"{}\"!", parentFilename);
           }
-          results = readMetadata(parentFile);
+          results = readMetadata(*parentFile);
           // Found metadata already in the main file.
           if (!results.empty()) {
-            auto tables = getListOfTables(parentFile);
+            auto tables = getListOfTables(*parentFile);
             if (tables.empty() == false) {
               results.push_back(ConfigParamSpec{"aod-metadata-tables", VariantType::ArrayString, tables, {"Tables in first AOD"}});
             }
