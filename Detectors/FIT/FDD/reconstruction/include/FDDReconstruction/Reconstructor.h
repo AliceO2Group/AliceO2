@@ -19,6 +19,7 @@
 #include "DataFormatsFDD/RecPoint.h"
 #include "DataFormatsFIT/DeadChannelMap.h"
 #include "DataFormatsFDD/FDDRecoConfig.h"
+#include "FDDBase/Constants.h"
 namespace o2
 {
 namespace fdd
@@ -41,6 +42,9 @@ class Reconstructor
   }
 
  private:
+  static const int coincidencePairsSideC[4][2] = {{0, 4}, {1, 5}, {2, 6}, {3, 7}};
+  static const int coincidencePairsSideA[4][2] = {{8, 12}, {9, 13}, {10, 14}, {11, 15}};
+
   bool isInAmplitudeWindow(int16_t amplitude)
   {
     return amplitude >= FDDRecoConfig::Instance().ChannelAmplitudeLower && amplitude <= FDDRecoConfig::Instance().ChannelAmplitudeUpper;
@@ -69,15 +73,15 @@ class Reconstructor
 
   bool checkSwOrGateConditions(const ChannelData& channelData)
   {
-    bool isAmplitudeInRange = channelData.mChargeADC >= FDDRecoConfig::Instance().SwTriggerAmplitudeLowThreshold && channelData.mChargeADC <= FDDRecoConfig::Instance().SwTriggerAmplitudeHighThreshold;
-    bool isInTimeWindow = std::abs(channelData.mTime) >= FDDRecoConfig::Instance().SwTriggerTimeLowThreshold && std::abs(channelData.mTime) <= FDDRecoConfig::Instance().SwTriggerTimeHighThreshold;
+    bool isAmplitudeInRange = channelData.mChargeADC >= FDDRecoConfig::Instance().SwOrTriggerAmplitudeLowThreshold && channelData.mChargeADC <= FDDRecoConfig::Instance().SwOrTriggerAmplitudeHighThreshold;
+    bool isInTimeWindow = std::abs(channelData.mTime) >= o2::fdd::timePerTDC * FDDRecoConfig::Instance().SwOrTriggerTimeLowThreshold && std::abs(channelData.mTime) <= o2::fdd::timePerTDC *  FDDRecoConfig::Instance().SwOrTriggerTimeHighThreshold;
     bool isCfdInAdcGate = channelData.getFlag(ChannelData::EEventDataBit::kIsCFDinADCgate);
     return isAmplitudeInRange && isInTimeWindow && isCfdInAdcGate;
   }
 
   bool calculateSwTrigger(float meanTimeSideA, float meanTimeSideC, bool orGateSideA, bool orGateSideC)
   {
-    return (meanTimeSideC - meanTimeSideA) >= FDDRecoConfig::Instance().SwTriggerTimeDiffMin && (meanTimeSideC - meanTimeSideA) <= FDDRecoConfig::Instance().SwTriggerTimeDiffMax && orGateSideA && orGateSideC;
+    return (meanTimeSideC - meanTimeSideA) >= o2::fdd::timePerTDC * FDDRecoConfig::Instance().SwVtxTriggerTimeDiffMin && (meanTimeSideC - meanTimeSideA) <= o2::fdd::timePerTDC * FDDRecoConfig::Instance().SwVtxTriggerTimeDiffMax && orGateSideA && orGateSideC;
   }
   static constexpr uint8_t sSideAMaxId = 7;
 

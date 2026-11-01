@@ -49,12 +49,12 @@ struct FDDRecoConfig : o2::conf::ConfigurableParamHelper<FDDRecoConfig> {
     return (flags & CollisionTimeValidPmInputFlagMask) == CollisionTimeValidPmInputFlags;
   }
 
-  int16_t SwTriggerTimeLowThreshold = -153;
-  int16_t SwTriggerTimeHighThreshold = 153;
-  int16_t SwTriggerAmplitudeLowThreshold = 10;
-  int16_t SwTriggerAmplitudeHighThreshold = 4096;
-  float SwTriggerTimeDiffMin = -1.3;
-  float SwTriggerTimeDiffMax = 1.3;
+  int16_t SwOrTriggerTimeLowThreshold = -153;
+  int16_t SwOrTriggerTimeHighThreshold = 153;
+  int16_t SwOrTriggerAmplitudeLowThreshold = 10;
+  int16_t SwOrTriggerAmplitudeHighThreshold = 4096;
+  int16_t SwVtxTriggerTimeDiffMin = -100;
+  int16_t SwVtxTriggerTimeDiffMax = 100;
   bool SwTriggerEnabled = false;
 
   O2ParamDef(FDDRecoConfig, "FDDRecoConfig");
