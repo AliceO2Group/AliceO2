@@ -16,6 +16,8 @@ endif()
 o2_add_library(TRKReconstruction
                TARGETVARNAME targetName
                SOURCES src/Clusterer.cxx
+                       src/TopologyDictionary.cxx
+                       src/BuildTopologyDictionary.cxx
                        $<$<BOOL:${Acts_FOUND}>:src/ClustererACTS.cxx>
                PUBLIC_LINK_LIBRARIES
                        Microsoft.GSL::GSL
@@ -30,3 +32,8 @@ o2_add_library(TRKReconstruction
 if(Acts_FOUND)
   target_compile_definitions(${targetName} PUBLIC O2_WITH_ACTS)
 endif()
+
+o2_target_root_dictionary(TRKReconstruction
+                          HEADERS include/TRKReconstruction/TopologyDictionary.h
+                                  include/TRKReconstruction/BuildTopologyDictionary.h
+                          LINKDEF src/TRKReconstructionLinkDef.h)
