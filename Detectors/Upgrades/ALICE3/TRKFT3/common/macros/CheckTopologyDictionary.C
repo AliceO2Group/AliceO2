@@ -27,6 +27,8 @@
 ///
 ///   root -b -q 'CheckTopologyDictionary.C+("TRK", "TRKTopologyDictionary.root", {"tf7", "tf8"}, {"tf2", "tf3"})'
 
+#define ENABLE_UPGRADES // DetID::TRK and FT3; the macro is not compiled with O2's definitions
+
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include "DataFormatsTRKFT3/Cluster.h"
 #include "DataFormatsTRKFT3/Hit.h"
