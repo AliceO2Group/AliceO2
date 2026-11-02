@@ -14,6 +14,7 @@
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
 #include <iostream>
+#include <unistd.h>
 
 #include <catch_amalgamated.hpp>
 
@@ -196,6 +197,46 @@ struct MTask {
   } foo;
   void process(aod::McCollision const&, soa::SmallGroups<soa::Join<aod::Collisions, aod::McCollisionLabels>> const&) {}
 };
+
+struct BuildCounter {
+  static inline int built = 0;
+  BuildCounter() { ++built; }
+};
+
+struct CountedTask {
+  BuildCounter counter;
+  void process(aod::Tracks const&) {}
+};
+
+TEST_CASE("AdaptorBuildsOnlyTheTaskOfTheDevice")
+{
+  auto cfgc = makeEmptyConfigContext();
+  // A device gets the workflow from the driver on stdin.
+  int fds[2];
+  REQUIRE(pipe(fds) == 0);
+  int stdinCopy = dup(STDIN_FILENO);
+  dup2(fds[0], STDIN_FILENO);
+  char const* otherArgs[] = {"workflow", "--id", "another-task"};
+  char const* ownArgs[] = {"workflow", "--id", "counted-task_t1"};
+  ConfigContext otherDevice{cfgc->options(), cfgc->services(), 3, const_cast<char**>(otherArgs)};
+  ConfigContext ownDevice{cfgc->options(), cfgc->services(), 3, const_cast<char**>(ownArgs)};
+  auto skipped = adaptAnalysisTask<CountedTask>(otherDevice);
+  auto own = adaptAnalysisTask<CountedTask>(ownDevice);
+  auto renamed = adaptAnalysisTask<CountedTask>(otherDevice, SetDefaultProcesses{}, TaskName{"another-task"});
+  dup2(stdinCopy, STDIN_FILENO);
+  close(stdinCopy);
+  close(fds[0]);
+  close(fds[1]);
+  auto driver = adaptAnalysisTask<CountedTask>(*cfgc);
+
+  REQUIRE(BuildCounter::built == 3);
+  REQUIRE(DataProcessorSpecHelpers::isPlaceholder(skipped));
+  REQUIRE(skipped.name == own.name);
+  REQUIRE(skipped.inputs.empty());
+  REQUIRE(!DataProcessorSpecHelpers::isPlaceholder(own));
+  REQUIRE(own.inputs.size() == driver.inputs.size());
+  REQUIRE(!DataProcessorSpecHelpers::isPlaceholder(renamed));
+}
 
 TEST_CASE("AdaptorCompilation")
 {

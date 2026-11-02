@@ -18,6 +18,10 @@ namespace o2::framework
 {
 struct DataProcessorSpecHelpers {
   static bool hasLabel(DataProcessorSpec const& spec, char const* name);
+  /// Stands for a processor this process does not run: everything but the name
+  /// is filled from the workflow the driver passes to the device.
+  static DataProcessorSpec placeholder(std::string name);
+  static bool isPlaceholder(DataProcessorSpec const& spec);
 };
 } // namespace o2::framework
 #endif

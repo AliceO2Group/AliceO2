@@ -19,6 +19,7 @@
 #include "Framework/ConfigParamsHelper.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/DataProcessorSpecHelpers.h"
 #include "Framework/Expressions.h"
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/GroupSlicer.h"
@@ -451,6 +452,24 @@ struct TaskName {
 namespace
 {
 template <typename T, typename... A>
+std::string getTaskName(TaskName const& first, A const&...)
+{
+  return first.value;
+}
+
+template <typename T, typename... A>
+std::string getTaskName(SetDefaultProcesses const&, TaskName const& second, A const&...)
+{
+  return second.value;
+}
+
+template <typename T, typename... A>
+std::string getTaskName(A const&...)
+{
+  return type_to_task_name(type_name<T>());
+}
+
+template <typename T, typename... A>
 auto getTaskNameSetProcesses(std::string& outputName, TaskName first, SetDefaultProcesses second, A... args)
 {
   auto task = std::make_shared<T>(std::forward<A>(args)...);
@@ -519,6 +538,10 @@ auto getTaskNameSetProcesses(std::string& outputName, A... args)
 template <typename T, typename... Args>
 DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
 {
+  if (auto name = getTaskName<T>(args...) + ctx.options().get<std::string>("workflow-suffix"); !ctx.mayRun(name)) {
+    return DataProcessorSpecHelpers::placeholder(name);
+  }
+
   TH1::AddDirectory(false);
 
   std::string name_str;
