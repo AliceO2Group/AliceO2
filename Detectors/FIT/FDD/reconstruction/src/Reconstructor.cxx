@@ -41,28 +41,30 @@ void Reconstructor::process(o2::fdd::Digit const& digitBC, gsl::span<const o2::f
   bool swOrGateSideA = false;
   bool swOrGateSideC = false;
 
+  bool coincidencePairs[Nchannels] = {false};
+
   for (const auto& channelData : inChData) {
     if (mDeadChannelMap && !mDeadChannelMap->isChannelAlive(channelData.mPMNumber)) {
       LOG(debug) << "Channel " << channelData.mPMNumber << " is dead - discarding data";
       continue;
     }
-
-    if (isInAmplitudeWindow(channelData.mChargeADC) && isInTimeWindow(channelData.mTime) && isChannelDataGood(channelData.mFEEBits)) {
-      outChData.emplace_back((int)channelData.mPMNumber, (channelData.mTime) * timePerTDC,
-                             (double)channelData.mChargeADC, channelData.mFEEBits);
-      storedEntries++;
-    }
-
-    if (FDDRecoConfig::Instance().SwTriggerEnabled) {
-      if (channelData.mPMNumber <= sSideAMaxId) {
-        swOrGateSideA |= checkSwOrGateConditions(channelData);
-      } else {
-        swOrGateSideC |= checkSwOrGateConditions(channelData);
-      }
-    }
-
     if (!isInAmplitudeWindow(channelData.mChargeADC) || !isInTimeWindow(channelData.mTime) || !isChannelDataGood(channelData.mFEEBits)) {
       continue;
+    }
+    const auto& chNum = channelData.mPMNumber;
+
+    outChData.emplace_back((int)chNum, (channelData.mTime) * timePerTDC,
+                           (double)channelData.mChargeADC, channelData.mFEEBits);
+    storedEntries++;
+
+    if (FDDRecoConfig::Instance().SwTriggerEnabled) {
+      if (chNum <= sSideAMaxId) {
+        coincidencePairs[chNum] |= checkSwOrGateConditions(channelData);
+        swOrGateSideA |= coincidencePairs[chNum] && isCoincidenceConditionFulFilled(coincidencePairs, chNum);
+      } else {
+        coincidencePairs[chNum] |= checkSwOrGateConditions(channelData);
+        swOrGateSideC |= coincidencePairs[chNum] && isCoincidenceConditionFulFilled(coincidencePairs, chNum);
+      }
     }
 
     if (channelData.mPMNumber <= sSideAMaxId) {
@@ -87,7 +89,7 @@ void Reconstructor::process(o2::fdd::Digit const& digitBC, gsl::span<const o2::f
   if (entriesNumSideC > 0) {
     mCollisionTime[o2::fdd::RecPoint::TimeC] = std::round(meanTimeSideC * nsToPs);
   }
-  RecPoints.emplace_back(mCollisionTime, firstEntry, storedEntries, digitBC.getIntRecord(), digitBC.mTriggers, swVertexTrg);
+  RecPoints.emplace_back(mCollisionTime, firstEntry, storedEntries, digitBC.getIntRecord(), digitBC.mTriggers, swVertexTrg, swOrGateSideA, swOrGateSideC);
 }
 //________________________________________________________
 void Reconstructor::finish()

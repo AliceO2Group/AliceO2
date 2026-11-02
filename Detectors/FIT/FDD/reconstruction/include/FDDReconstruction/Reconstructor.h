@@ -42,29 +42,33 @@ class Reconstructor
   }
 
  private:
-  static const int coincidencePairsSideC[4][2] = {{0, 4}, {1, 5}, {2, 6}, {3, 7}};
-  static const int coincidencePairsSideA[4][2] = {{8, 12}, {9, 13}, {10, 14}, {11, 15}};
+  static constexpr uint8_t coincidencePairsSideC[8] = {4, 5, 6, 7, 0, 1, 2, 3};
+  static constexpr uint8_t coincidencePairsSideA[8] = {12, 13, 14, 15, 8, 9, 10, 11};
 
   bool isInAmplitudeWindow(int16_t amplitude)
   {
-    return amplitude >= FDDRecoConfig::Instance().ChannelAmplitudeLower && amplitude <= FDDRecoConfig::Instance().ChannelAmplitudeUpper;
+    return amplitude > FDDRecoConfig::Instance().ChannelAmplitudeLower && amplitude < FDDRecoConfig::Instance().ChannelAmplitudeUpper;
   }
   bool isInTimeWindow(int16_t time)
   {
-    return time >= FDDRecoConfig::Instance().ChannelTimeLower && time <= FDDRecoConfig::Instance().ChannelTimeUpper;
+    return time > FDDRecoConfig::Instance().ChannelTimeLower && time < FDDRecoConfig::Instance().ChannelTimeUpper;
   }
   bool isChannelDataGood(uint8_t channelBits)
   {
     return FDDRecoConfig::Instance().isChannelDataGood(channelBits);
   }
+  bool isCoincidenceConditionFulFilled(const bool* coincidencePairs, uint8_t channelNumber)
+  {
+    return (!FDDRecoConfig::Instance().SwTriggerCoincidenceMode) || ((channelNumber <= sSideAMaxId) ? coincidencePairs[coincidencePairsSideA[channelNumber]] : coincidencePairs[coincidencePairsSideC[channelNumber]]);
+  }
 
   bool isInCollisionTimeAmplitudeWindow(int16_t amplitude)
   {
-    return amplitude >= FDDRecoConfig::Instance().CollisionTimeAmplitudeLower && amplitude <= FDDRecoConfig::Instance().CollisionTimeAmpltudeUpper;
+    return amplitude > FDDRecoConfig::Instance().CollisionTimeAmplitudeLower && amplitude < FDDRecoConfig::Instance().CollisionTimeAmpltudeUpper;
   }
   bool isInCollisionTimeTimeWindow(int16_t time)
   {
-    return time >= FDDRecoConfig::Instance().CollisionTimeTimeLower && time <= FDDRecoConfig::Instance().CollisionTimeTimeUpper;
+    return time > FDDRecoConfig::Instance().CollisionTimeTimeLower && time < FDDRecoConfig::Instance().CollisionTimeTimeUpper;
   }
   bool isChannelDataGoodForCollisionTime(uint8_t channelBits)
   {
@@ -73,15 +77,20 @@ class Reconstructor
 
   bool checkSwOrGateConditions(const ChannelData& channelData)
   {
-    bool isAmplitudeInRange = channelData.mChargeADC >= FDDRecoConfig::Instance().SwOrTriggerAmplitudeLowThreshold && channelData.mChargeADC <= FDDRecoConfig::Instance().SwOrTriggerAmplitudeHighThreshold;
-    bool isInTimeWindow = std::abs(channelData.mTime) >= o2::fdd::timePerTDC * FDDRecoConfig::Instance().SwOrTriggerTimeLowThreshold && std::abs(channelData.mTime) <= o2::fdd::timePerTDC *  FDDRecoConfig::Instance().SwOrTriggerTimeHighThreshold;
+    bool isAmplitudeInRange = false;
+    if (channelData.mPMNumber <= sSideAMaxId) {
+      isAmplitudeInRange = channelData.mChargeADC > FDDRecoConfig::Instance().SwOrTriggerAmplitudeLowThresholdSideA && channelData.mChargeADC < FDDRecoConfig::Instance().SwOrTriggerAmplitudeHighThresholdSideA;
+    } else {
+      isAmplitudeInRange = channelData.mChargeADC > FDDRecoConfig::Instance().SwOrTriggerAmplitudeLowThresholdSideC && channelData.mChargeADC < FDDRecoConfig::Instance().SwOrTriggerAmplitudeHighThresholdSideC;
+    }
+    bool isInTimeWindow = std::abs(channelData.mTime) <= FDDRecoConfig::Instance().SwOrGate;
     bool isCfdInAdcGate = channelData.getFlag(ChannelData::EEventDataBit::kIsCFDinADCgate);
     return isAmplitudeInRange && isInTimeWindow && isCfdInAdcGate;
   }
 
   bool calculateSwTrigger(float meanTimeSideA, float meanTimeSideC, bool orGateSideA, bool orGateSideC)
   {
-    return (meanTimeSideC - meanTimeSideA) >= o2::fdd::timePerTDC * FDDRecoConfig::Instance().SwVtxTriggerTimeDiffMin && (meanTimeSideC - meanTimeSideA) <= o2::fdd::timePerTDC * FDDRecoConfig::Instance().SwVtxTriggerTimeDiffMax && orGateSideA && orGateSideC;
+    return std::abs(meanTimeSideC - meanTimeSideA) < o2::fdd::timePerTDC * FDDRecoConfig::Instance().SwVtxTriggerTimeWindow && orGateSideA && orGateSideC;
   }
   static constexpr uint8_t sSideAMaxId = 7;
 

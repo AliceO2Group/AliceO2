@@ -49,13 +49,21 @@ struct FDDRecoConfig : o2::conf::ConfigurableParamHelper<FDDRecoConfig> {
     return (flags & CollisionTimeValidPmInputFlagMask) == CollisionTimeValidPmInputFlags;
   }
 
-  int16_t SwOrTriggerTimeLowThreshold = -153;
-  int16_t SwOrTriggerTimeHighThreshold = 153;
-  int16_t SwOrTriggerAmplitudeLowThreshold = 10;
-  int16_t SwOrTriggerAmplitudeHighThreshold = 4096;
-  int16_t SwVtxTriggerTimeDiffMin = -100;
-  int16_t SwVtxTriggerTimeDiffMax = 100;
+  int16_t SwOrGate = 153;
+  int16_t SwOrTriggerAmplitudeLowThresholdSideA = 6;
+  int16_t SwOrTriggerAmplitudeLowThresholdSideC = 0;
+  int16_t SwOrTriggerAmplitudeHighThresholdSideA = 4095;
+  int16_t SwOrTriggerAmplitudeHighThresholdSideC = 4095;
+  int16_t SwVtxTriggerTimeWindow = 100;
+  bool SwTriggerCoincidenceMode = true;
   bool SwTriggerEnabled = false;
+
+  uint8_t SwTriggerValidPmInputFlagMask = static_cast<uint8_t>(~(1u << ChannelData::kNumberADC));
+  uint8_t SwTriggerValidPmInputFlags = static_cast<uint8_t>((1u << ChannelData::kIsCFDinADCgate) | (1u << ChannelData::kIsEventInTVDC));
+  bool isChannelDataGoodForSwTrigger(uint8_t flags) const
+  {
+    return (flags & SwTriggerValidPmInputFlagMask) == SwTriggerValidPmInputFlags;
+  }
 
   O2ParamDef(FDDRecoConfig, "FDDRecoConfig");
   ClassDefNV(FDDRecoConfig, 2);
