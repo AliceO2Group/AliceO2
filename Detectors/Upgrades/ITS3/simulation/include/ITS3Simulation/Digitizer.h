@@ -86,7 +86,7 @@ class Digitizer : public TObject
   void setDeadChannelsMap(const o2::itsmft::NoiseMap* mp) { mDeadChanMap = mp; }
 
  private:
-  void processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID, int srcID, int layer);
+  void processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID, int srcID, int layer, std::vector<float>& respMatrix);
   void registerDigits(o2::its3::ChipDigitsContainer& chip, uint32_t roFrame, float tInROF, int nROF,
                       uint16_t row, uint16_t col, int nEle, o2::MCCompLabel& lbl, int layer);
 

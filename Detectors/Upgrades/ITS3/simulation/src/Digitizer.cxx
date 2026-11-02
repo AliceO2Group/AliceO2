@@ -95,13 +95,14 @@ void Digitizer::process(const std::vector<itsmft::Hit>* hits, int evID, int srcI
             [hits](auto lhs, auto rhs) {
               return (*hits)[lhs].GetDetectorID() < (*hits)[rhs].GetDetectorID();
             });
+  std::vector<float> respMatrix; // the hits' charge response, reused from hit to hit within the event
   for (int i : hitIdx | std::views::filter([&](int idx) {
                  if (layer < 0) {
                    return true;
                  }
                  return mGeometry->getLayer((*hits)[idx].GetDetectorID()) == layer;
                })) {
-    processHit((*hits)[i], mROFrameMax, evID, srcID, layer);
+    processHit((*hits)[i], mROFrameMax, evID, srcID, layer, respMatrix);
   }
   // in the triggered mode store digits after every MC event
   // TODO: in the real triggered mode this will not be needed, this is actually for the
@@ -218,7 +219,7 @@ void Digitizer::fillOutputContainer(uint32_t frameLast, int layer)
   }
 }
 
-void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID, int srcID, int lay)
+void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID, int srcID, int lay, std::vector<float>& respMatrix)
 {
   // convert single hit to digits
   auto chipID = hit.GetDetectorID();
@@ -336,8 +337,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
   colE = std::min(colE, maxNcols - 1);
 
   int rowSpan = rowE - rowS + 1, colSpan = colE - colS + 1; // size of plaquet where some response is expected
-  float respMatrix[rowSpan][colSpan];                       // response accumulated here
-  std::fill(&respMatrix[0][0], &respMatrix[0][0] + rowSpan * colSpan, 0.f);
+  respMatrix.assign(static_cast<size_t>(rowSpan) * colSpan, 0.f); // response accumulated here, row by row
 
   float nElectrons = hit.GetEnergyLoss() * mParams.getEnergyToNElectrons(); // total number of deposited electrons
   nElectrons *= nStepsInv;                                                  // N electrons injected per step
@@ -401,7 +401,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
         if (colDest < 0 || colDest >= colSpan) {
           continue;
         }
-        respMatrix[rowDest][colDest] += rspmat->getValue(irow, icol, ((chip.isIB() && mSimRespIBOrientation) ? !flipRow : flipRow), flipCol);
+        respMatrix[rowDest * colSpan + colDest] += rspmat->getValue(irow, icol, ((chip.isIB() && mSimRespIBOrientation) ? !flipRow : flipRow), flipCol);
       }
     }
   }
@@ -413,7 +413,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
   for (int irow = rowSpan; irow--;) {
     uint16_t rowIS = irow + rowS;
     for (int icol = colSpan; icol--;) {
-      float nEleResp = respMatrix[irow][icol];
+      float nEleResp = respMatrix[irow * colSpan + icol];
       if (nEleResp <= 1.e-36) {
         continue;
       }
