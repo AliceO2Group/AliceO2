@@ -21,7 +21,7 @@
 #include <oneapi/tbb/combinable.h>
 
 #include "ITStracking/VertexerTraits.h"
-#include "ITSMFTTracking/BoundedAllocator.h"
+#include "GenericTracking/BoundedAllocator.h"
 #include "ITStracking/ClusterLines.h"
 #include "ITStracking/Definitions.h"
 #include "ITStracking/LineVertexerHelpers.h"
@@ -35,7 +35,7 @@
 
 namespace o2::its
 {
-using o2::itsmft::tracking::deepVectorClear;
+using o2::gtrk::deepVectorClear;
 
 namespace
 {

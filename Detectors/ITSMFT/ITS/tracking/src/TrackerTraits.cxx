@@ -35,7 +35,7 @@
 
 #include "DetectorsBase/Propagator.h"
 #include "GPUCommonMath.h"
-#include "ITSMFTTracking/BoundedAllocator.h"
+#include "GenericTracking/BoundedAllocator.h"
 #include "ITSMFTTracking/MathUtils.h"
 #include "ITStracking/Cell.h"
 #include "ITSMFTTracking/Constants.h"
@@ -54,7 +54,7 @@
 namespace o2::its
 {
 
-using o2::itsmft::tracking::deepVectorClear;
+using o2::gtrk::deepVectorClear;
 using o2::itsmft::tracking::GroupedSlabSink;
 using o2::itsmft::tracking::SlabSinkStats;
 using o2::itsmft::tracking::SlabSite;

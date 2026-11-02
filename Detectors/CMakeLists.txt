@@ -25,6 +25,7 @@ add_subdirectory(HMPID)
 add_subdirectory(TOF)
 add_subdirectory(ZDC)
 
+add_subdirectory(GenericTracking)
 add_subdirectory(ITSMFT)
 add_subdirectory(External) # sensitive external (CAD-derived) detectors; uses ITSMFT hit type
 add_subdirectory(TRD)

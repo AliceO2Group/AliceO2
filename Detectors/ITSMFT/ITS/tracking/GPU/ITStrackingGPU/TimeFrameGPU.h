@@ -16,7 +16,7 @@
 #include <gsl/gsl>
 #include <bitset>
 
-#include "ITSMFTTracking/BoundedAllocator.h"
+#include "GenericTracking/BoundedAllocator.h"
 #include "ITStracking/TimeFrame.h"
 #include "ITStracking/Configuration.h"
 #include "ITStracking/TrackExtensionHypothesis.h"

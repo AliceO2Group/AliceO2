@@ -32,7 +32,7 @@
 #include "ITStracking/Tracklet.h"
 #include "ITStracking/IndexTableUtils.h"
 #include "ITStracking/ExternalAllocator.h"
-#include "ITSMFTTracking/BoundedAllocator.h"
+#include "GenericTracking/BoundedAllocator.h"
 #include "ITSMFTTracking/ROFLookupTables.h"
 #include "ITStracking/TrackingTopology.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -58,8 +58,8 @@ class ROFRecord;
 namespace its
 {
 
-using o2::itsmft::tracking::bounded_vector;
-using o2::itsmft::tracking::BoundedMemoryResource;
+using o2::gtrk::bounded_vector;
+using o2::gtrk::BoundedMemoryResource;
 using o2::itsmft::tracking::CapacityEstimator;
 
 namespace gpu

@@ -26,7 +26,7 @@
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
-#include "ITSMFTTracking/BoundedAllocator.h"
+#include "GenericTracking/BoundedAllocator.h"
 
 namespace
 {
@@ -41,8 +41,8 @@ struct ClusterHelper {
 namespace o2::its
 {
 
-using o2::itsmft::tracking::clearResizeBoundedVector;
-using o2::itsmft::tracking::deepVectorClear;
+using o2::gtrk::clearResizeBoundedVector;
+using o2::gtrk::deepVectorClear;
 
 constexpr float DefClusErrorRow = o2::itsmft::SegmentationAlpide::PitchRow * 0.5;
 constexpr float DefClusErrorCol = o2::itsmft::SegmentationAlpide::PitchCol * 0.5;

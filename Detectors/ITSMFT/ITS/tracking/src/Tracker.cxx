@@ -14,7 +14,7 @@
 ///
 
 #include "ITStracking/Tracker.h"
-#include "ITSMFTTracking/BoundedAllocator.h"
+#include "GenericTracking/BoundedAllocator.h"
 #include "ITSMFTTracking/Constants.h"
 #include "ITStracking/TrackerTraits.h"
 #include "ITSMFTTracking/ITSTrackingConfigParam.h"
