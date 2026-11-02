@@ -39,6 +39,7 @@ class TrackCosmicsExtendedReader : public Task
 
  private:
   void connectTree(const std::string& filename);
+  bool mIncludeTFIDInfo = false;
   std::unique_ptr<TFile> mFile;
   std::unique_ptr<TTree> mTree;
   std::string mFileName = "";

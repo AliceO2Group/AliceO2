@@ -28,6 +28,7 @@ namespace globaltracking
 {
 void TrackCosmicsExtendedReader::init(InitContext& ic)
 {
+  mIncludeTFIDInfo = ic.options().get<bool>("push-tfid-info");
   mFileName = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
                                             ic.options().get<std::string>("cosmics-full-infile"));
   connectTree(mFileName);
@@ -50,8 +51,9 @@ void TrackCosmicsExtendedReader::run(ProcessingContext& pc)
 
   pc.outputs().snapshot(Output{"GLO", "COSMFULL", 0}, mCosmics);
   pc.outputs().snapshot(Output{"GLO", "COSMFULLTF", 0}, mTFInfo);
-  pc.outputs().snapshot(Output{"GLO", "COSMFULLTFID", 0}, mTFID);
-
+  if (mIncludeTFIDInfo) {
+    pc.outputs().snapshot(Output{"GLO", "COSMFULLTFID", 0}, mTFID);
+  }
   if (noEntry || mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
@@ -71,7 +73,9 @@ void TrackCosmicsExtendedReader::connectTree(const std::string& filename)
   }
   mTree->SetBranchAddress("cosmics", &mCosmicsPtr);
   mTree->SetBranchAddress("tfInfo", &mTFInfoPtr);
-  mTree->SetBranchAddress("tfID", &mTFIDPtr);
+  if (mIncludeTFIDInfo) {
+    mTree->SetBranchAddress("tfID", &mTFIDPtr);
+  }
   LOG(info) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
@@ -89,6 +93,7 @@ DataProcessorSpec getTrackCosmicsExtendedReaderSpec()
     AlgorithmSpec{adaptFromTask<TrackCosmicsExtendedReader>()},
     Options{
       {"cosmics-full-infile", VariantType::String, "o2_cosmics_full.root", {"Name of the input file"}},
+      {"push-tfid-info", VariantType::Bool, false, {"Include tfID branch (identical to o2_tfidinfo.root content pushed by DPL)"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 
