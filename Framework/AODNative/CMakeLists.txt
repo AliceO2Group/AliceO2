@@ -22,7 +22,7 @@ o2_add_library(AODNative
                        src/ReadPlan.cxx
                TARGETVARNAME targetName
                PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
-               PUBLIC_LINK_LIBRARIES Arrow::arrow_shared
+               PUBLIC_LINK_LIBRARIES Arrow::arrow_shared Threads::Threads
                PRIVATE_LINK_LIBRARIES PkgConfig::zstd PkgConfig::lz4 PkgConfig::lzma ZLIB::ZLIB)
 
 # Reading over root:// needs the XRootD client, which does not depend on ROOT.
