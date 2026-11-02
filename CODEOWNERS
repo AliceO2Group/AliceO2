@@ -64,6 +64,7 @@
 /Detectors/FOCAL                   @maxrauch @iarsene @matthiasrichter
 /Detectors/Geometry                @sawenzel @shahor02
 /Detectors/GlobalTracking          @shahor02
+/Detectors/GenericTracking         @f3sch @mpuccio
 /Detectors/GlobalTrackingWorkflow  @shahor02
 /Detectors/HMPID                   @gvolpe79
 /Detectors/ITSMFT                  @f3sch @fprino @mcoquet642 @mconcas @shahor02
