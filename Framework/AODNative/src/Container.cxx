@@ -27,8 +27,6 @@ constexpr size_t kHeaderReadSize = 128;
 constexpr size_t kDirectoryReadSize = 64;
 // Largest gap between the TTrees of a DF still read together with them.
 constexpr uint64_t kMetadataGap = 4 * 1024;
-// Fixed part of a TBasket key, after which come the class name, name and title.
-constexpr size_t kBasketHeaderTail = 19;
 // Smallest possible key header: 32-bit seeks and three empty strings.
 constexpr size_t kMinKeySize = 29;
 // Metadata objects (trees, maps) in AO2Ds are a few MB at most. A larger
@@ -184,6 +182,9 @@ std::vector<std::string> RootFile::dataFrames()
   for (auto& k : topKeys()) {
     std::smatch m;
     if (std::regex_match(k.name, m, tfRegex)) {
+      if (m[1].length() > 19) {
+        throw CorruptData(mUrl, k.seekKey, "DF number of " + k.name + " does not fit 64 bits");
+      }
       auto n = std::stoull(m[1].str());
       if (seen.insert(n).second) {
         numbers.push_back(n);
@@ -325,13 +326,8 @@ TreeInfo RootFile::readTree(const KeyInfo& key)
         continue;
       }
       auto buf = readRange(*mSource, basket.seek, std::min<uint64_t>(basket.nbytes, kHeaderReadSize * 4));
-      auto k = parseKey(buf, basket.seek);
       Cursor c{buf, mUrl, basket.seek};
-      c.seek(k.keylen - kBasketHeaderTail);
-      c.u16(); // fVersion
-      c.i32(); // fBufferSize
-      c.i32(); // fNevBufSize
-      basket.nEntries = c.i32();
+      basket.nEntries = readBasketHeader(c).nevbuf;
     }
   }
   return tree;

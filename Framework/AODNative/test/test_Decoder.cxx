@@ -45,9 +45,9 @@ struct BranchBuilder {
     branch.entries = branch.totBytes = branch.zipBytes = 0;
   }
 
-  void add(Algo algo, std::vector<uint8_t> const& values, int32_t nEntries, size_t tail = 0, size_t chunkSize = 0xffffff)
+  void add(Algo algo, std::vector<uint8_t> const& values, int32_t nEntries, size_t tail = 0, size_t chunkSize = 0xffffff, bool ioBits = false)
   {
-    auto basket = makeBasket(algo, values, nEntries, tail, chunkSize);
+    auto basket = makeBasket(algo, values, nEntries, tail, chunkSize, ioBits);
     branch.baskets.push_back(BasketRef{file.size(), (uint32_t)basket.size(), branch.entries, nEntries, false, {}});
     file.insert(file.end(), basket.begin(), basket.end());
     branch.entries += nEntries;
@@ -101,6 +101,25 @@ TEST_CASE("float values across codecs, uncompressed and embedded baskets")
       CHECK(out == expected);
     }
   }
+}
+
+TEST_CASE("baskets with fIOBits in their header decode like the others")
+{
+  BranchBuilder b{'F'};
+  std::vector<float> expected;
+  for (auto [algo, ioBits] : {std::pair{Algo::ZSTD, true}, std::pair{Algo::None, false}, std::pair{Algo::LZ4, true}}) {
+    std::vector<float> values;
+    for (int i = 0; i < 100; ++i) {
+      values.push_back(expected.size() + i);
+    }
+    b.add(algo, bigEndian(values), values.size(), 404, 0xffffff, ioBits);
+    expected.insert(expected.end(), values.begin(), values.end());
+  }
+  MemoryByteSource source{b.file};
+  BranchDecoder decoder{source, Options{}};
+  std::vector<float> out(expected.size(), 42.f);
+  decoder.decodeValues(b.branch, (uint8_t*)out.data(), out.size() * sizeof(float));
+  CHECK(out == expected);
 }
 
 TEST_CASE("decoding stops exactly at the value region for every codec")

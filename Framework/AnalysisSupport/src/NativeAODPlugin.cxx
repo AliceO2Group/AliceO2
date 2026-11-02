@@ -324,7 +324,9 @@ struct NativeAODObjectReadingCapability : o2::framework::RootObjectReadingCapabi
         }
         try {
           return nativeFS->getTreeHandle(path);
-        } catch (o2::aod::native::FormatError const& e) {
+        } catch (AODReadError const&) {
+          throw;
+        } catch (std::exception const& e) {
           // A DF which cannot be parsed: --aod-skip-invalid-reads skips it.
           throw AODReadError(AODReadError::Kind::InvalidTimeframe, e.what());
         }

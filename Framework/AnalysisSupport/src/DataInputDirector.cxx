@@ -161,7 +161,7 @@ bool DataInputDescriptor::setFile(int counter, int wantedParentLevel, std::strin
   if (backend != "root") {
     try {
       mCurrentFile = openNativeAOD(filename, mFactory, mContext.nativeOptions);
-    } catch (o2::aod::native::FormatError const& e) {
+    } catch (std::exception const& e) {
       if (backend == "native") {
         throw AODReadError(AODReadError::Kind::FileOpen, fmt::format("Couldn't open file \"{}\" with the native reader: {}", filename, e.what()));
       }

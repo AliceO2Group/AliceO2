@@ -27,8 +27,6 @@ constexpr uint32_t kNewClassTag = 0xFFFFFFFF;
 constexpr uint16_t kStreamedMemberWise = 0x4000;
 constexpr uint32_t kIsReferenced = 1 << 4;
 constexpr int64_t kMapOffset = 2;
-// Fixed part of a TBasket key, after which come the class name, name and title.
-constexpr size_t kBasketHeaderTail = 19;
 
 struct LeafInfo {
   std::string name;
@@ -256,6 +254,9 @@ std::shared_ptr<LeafInfo> ObjectReader::tleaf(std::string const& className, int6
   leaf->className = className;
   leaf->name = tnamed();
   leaf->len = mC.i32();
+  if (leaf->len <= 0) {
+    mC.fail("leaf " + leaf->name + " with length " + std::to_string(leaf->len));
+  }
   mC.i32(); // fLenType
   mC.i32(); // fOffset
   mC.u8();  // fIsRange
@@ -277,23 +278,12 @@ std::shared_ptr<EmbeddedBasket> ObjectReader::tbasket(int64_t mapAt)
   // TBasket has no versioned header of its own: it starts with its TKey.
   auto basket = std::make_shared<EmbeddedBasket>();
   mObjects[mapAt] = basket;
-  auto start = mC.pos();
-  mC.i32(); // fNbytes
-  mC.i16(); // key fVersion
-  mC.i32(); // fObjlen
-  mC.u32(); // fDatime
-  auto keylen = mC.u16();
-  mC.u16(); // fCycle
-  if (keylen < kBasketHeaderTail) {
-    mC.fail("embedded basket with key length " + std::to_string(keylen));
-  }
-  mC.seek(start + keylen - kBasketHeaderTail);
-  checkVersion("TBasket", mC.u16() % 1000);
-  mC.i32(); // fBufferSize
-  mC.i32(); // fNevBufSize
-  auto nevbuf = mC.i32();
-  auto last = mC.i32();
-  int flag = mC.u8();
+  auto header = readBasketHeader(mC);
+  checkVersion("TBasket", header.version % 1000);
+  auto keylen = header.keylen;
+  auto nevbuf = header.nevbuf;
+  auto last = header.last;
+  int flag = header.flag;
   if (nevbuf < 0 || last < keylen) {
     mC.fail("inconsistent embedded basket header");
   }

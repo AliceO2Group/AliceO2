@@ -28,8 +28,6 @@ namespace o2::aod::native
 
 namespace
 {
-// Fixed part of a TBasket key, after which come the class name, name and title.
-constexpr size_t kBasketHeaderTail = 19;
 
 template <typename T>
 void byteswapAll(uint8_t* data, size_t count)
@@ -132,21 +130,12 @@ void BranchDecoder::forEachBasket(BranchInfo const& branch, bool parallel, F&& f
         bytes = storage;
       }
       Cursor c{bytes, mUrl, ref.seek};
-      auto nbytes = c.u32();
-      c.i16(); // key fVersion
-      auto objlen = c.u32();
-      c.u32(); // fDatime
-      auto keylen = c.u16();
-      if (nbytes != ref.nbytes || keylen < kBasketHeaderTail || keylen > nbytes) {
-        c.fail("basket header of branch " + branch.name + " does not match its TBranch");
-      }
-      c.seek(keylen - kBasketHeaderTail);
-      c.u16(); // fVersion
-      c.i32(); // fBufferSize
-      c.i32(); // fNevBufSize
-      auto nevbuf = c.i32();
-      auto last = c.i32();
-      if (nevbuf != ref.nEntries || last < keylen || (uint32_t)(last - keylen) > objlen) {
+      auto header = readBasketHeader(c);
+      auto nbytes = header.nbytes;
+      auto objlen = header.objlen;
+      auto keylen = header.keylen;
+      auto last = header.last;
+      if (nbytes != ref.nbytes || keylen > nbytes || header.nevbuf != ref.nEntries || last < keylen || (uint32_t)(last - keylen) > objlen) {
         c.fail("basket header of branch " + branch.name + " does not match its TBranch");
       }
       values.border = last - keylen;
@@ -278,6 +267,8 @@ std::vector<int32_t> BranchDecoder::decodeOffsets(BranchInfo const& sizeBranch)
   if (sizeBranch.leafClass != 'I' || sizeBranch.fixedLen != 1) {
     throw UnsupportedLayout("size branch " + sizeBranch.name + " is not a scalar 32-bit integer");
   }
+  // fEntries sizes the allocation: check it against the baskets first.
+  checkBaskets(sizeBranch);
   // Decode the sizes after the leading 0, then prefix-sum in place.
   std::vector<int32_t> offsets(sizeBranch.entries + 1);
   decodeValues(sizeBranch, (uint8_t*)(offsets.data() + 1), sizeBranch.entries * sizeof(int32_t));
