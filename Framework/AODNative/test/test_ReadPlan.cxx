@@ -185,3 +185,27 @@ TEST_CASE("buffers of finished plans are reused by the next one")
   auto big = pool->get(1 << 16);
   REQUIRE(big.capacity >= 1 << 16);
 }
+
+TEST_CASE("a pool with a budget drops the largest free buffers beyond it")
+{
+  ReadBufferPool pool{1000};
+  auto small = pool.get(400);
+  auto medium = pool.get(500);
+  auto large = pool.get(2000);
+  auto* smallData = small.data.get();
+  auto* mediumData = medium.data.get();
+  pool.put(std::move(small));
+  pool.put(std::move(medium));
+  pool.put(std::move(large)); // over the budget: the largest goes
+  REQUIRE(pool.get(300).data.get() == smallData);
+  REQUIRE(pool.get(480).data.get() == mediumData);
+}
+
+TEST_CASE("bytesOf counts the baskets a plan reads, not the embedded ones")
+{
+  TreeInfo tree;
+  tree.branches.resize(2);
+  tree.branches[0].baskets = {BasketRef{100, 300, 0, 10, false, {}}, BasketRef{400, 200, 10, 5, false, {}}};
+  tree.branches[1].baskets = {BasketRef{600, 50, 0, 10, false, {}}, BasketRef{0, 0, 10, 5, true, {1, 2, 3}}};
+  REQUIRE(ReadPlan::bytesOf(tree) == 550);
+}

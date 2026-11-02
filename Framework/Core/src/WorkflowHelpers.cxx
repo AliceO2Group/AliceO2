@@ -227,6 +227,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
                 ConfigParamSpec{"aod-reader-threads", VariantType::Int, 1, {"Decompression threads of the native AOD reader"}},
                 ConfigParamSpec{"aod-reader-prefetch", VariantType::Int, 1, {"DFs the native AOD reader prepares ahead for remote files: 0 (off) or 1"}},
                 ConfigParamSpec{"aod-reader-local-io", VariantType::String, "pread", {"How the native AOD reader reads local files: pread or mmap"}},
+                ConfigParamSpec{"aod-reader-buffer-mb", VariantType::Int, -1, {"Most MB the native AOD reader holds in read buffers: 0 for no limit, -1 for 16 MB for local files and 64 MB for remote ones"}},
                 ConfigParamSpec{"aod-reader-json", VariantType::String, {"json configuration file"}},
                 ConfigParamSpec{"time-limit", VariantType::Int64, 0ll, {"Maximum run time limit in seconds"}},
                 ConfigParamSpec{"orbit-offset-enumeration", VariantType::Int64, 0ll, {"initial value for the orbit"}},

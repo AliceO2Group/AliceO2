@@ -206,6 +206,9 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
     }
     context.nativeOptions.threads = std::max(1, options.get<int>("aod-reader-threads"));
     context.nativeOptions.prefetchDepth = std::max(0, options.get<int>("aod-reader-prefetch"));
+    if (auto mb = options.get<int>("aod-reader-buffer-mb"); mb >= 0) {
+      context.nativeOptions.bufferBudget = mb * size_t{1024 * 1024};
+    }
     auto localIO = options.get<std::string>("aod-reader-local-io");
     if (localIO != "mmap" && localIO != "pread") {
       LOGP(fatal, "Invalid --aod-reader-local-io \"{}\": use mmap or pread.", localIO);

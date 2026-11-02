@@ -20,8 +20,19 @@ namespace o2::framework
 
 using namespace o2::aod::native;
 
+namespace
+{
+Options withBudget(Options options, RootFile& file)
+{
+  if (options.bufferBudget == Options::kAutoBufferBudget) {
+    options.bufferBudget = (file.source().isRemote() ? 64 : 16) * size_t{1024 * 1024};
+  }
+  return options;
+}
+} // namespace
+
 NativeAODFileSystem::NativeAODFileSystem(std::shared_ptr<RootFile> file, Options options, RootObjectReadingFactory& factory)
-  : mFile(std::move(file)), mOptions(options), mObjectFactory(factory)
+  : mFile(std::move(file)), mOptions(withBudget(options, *mFile)), mObjectFactory(factory), mPool(std::make_shared<ReadBufferPool>(mOptions.bufferBudget))
 {
 }
 
@@ -63,12 +74,20 @@ std::shared_ptr<ReadPlan> NativeAODFileSystem::planFor(std::string const& path)
   if (df != mPlanDF) {
     auto previous = std::move(mPlanTrees);
     mPlanTrees.clear();
+    mPlanOf.clear();
+    mPlanBytes = 0;
     mPlanDF = df;
     // Also when the directory is already known, e.g. the first DF, read at open.
     adoptLookahead(df);
     directory(df);
     if (mAdoptedDF == df) {
       mPlan = std::move(mAdoptedPlan);
+      for (auto& name : mAdoptedTrees) {
+        mPlanOf[name] = mPlan;
+        if (auto* handle = findTree(df, name)) {
+          mPlanBytes += ReadPlan::bytesOf(handle->tree);
+        }
+      }
       mPlanTrees = std::move(mAdoptedTrees);
     } else {
       mPlan = std::make_shared<ReadPlan>(mFile->sourcePtr(), mOptions, mPool);
@@ -90,7 +109,15 @@ std::shared_ptr<ReadPlan> NativeAODFileSystem::planFor(std::string const& path)
     }
   }
   addToPlan(treeName);
-  return mPlan;
+  // Let go of the plan once its tree is handed out: the plan, and its buffers,
+  // then go away when the reads of its trees are done.
+  auto it = mPlanOf.find(treeName);
+  if (it == mPlanOf.end()) {
+    return nullptr;
+  }
+  auto plan = std::move(it->second);
+  mPlanOf.erase(it);
+  return plan;
 }
 
 void NativeAODFileSystem::releaseMappedDF(std::string const& df)
@@ -182,10 +209,19 @@ void NativeAODFileSystem::startLookahead(std::string const& afterDF, std::vector
       Lookahead lookahead{df, {}, {}, std::make_shared<ReadPlan>(file->sourcePtr(), options, pool)};
       file->setTreesToPrefetch(trees);
       lookahead.keys = file->keysOf(df);
+      // Only the trees which fit in the budget; the others are read when asked for.
+      uint64_t bytes = 0;
       for (auto const& name : trees) {
         for (auto const& key : lookahead.keys) {
           if (key.name == name && key.className == "TTree") {
-            lookahead.trees.emplace_back(name, file->readTree(key));
+            auto tree = file->readTree(key);
+            auto treeBytes = ReadPlan::bytesOf(tree);
+            if (options.bufferBudget > 0 && bytes > 0 && bytes + treeBytes > options.bufferBudget) {
+              lookahead.plan->fetch();
+              return lookahead;
+            }
+            bytes += treeBytes;
+            lookahead.trees.emplace_back(name, std::move(tree));
             lookahead.plan->add(lookahead.trees.back().second);
           }
         }
@@ -210,7 +246,14 @@ void NativeAODFileSystem::addToPlan(std::string const& treeName)
     // Reported when the tree itself is asked for.
   }
   if (handle) {
+    auto bytes = ReadPlan::bytesOf(handle->tree);
+    if (mOptions.bufferBudget > 0 && mPlanBytes > 0 && mPlanBytes + bytes > mOptions.bufferBudget) {
+      mPlan = std::make_shared<ReadPlan>(mFile->sourcePtr(), mOptions, mPool);
+      mPlanBytes = 0;
+    }
     mPlan->add(handle->tree);
+    mPlanBytes += bytes;
+    mPlanOf[treeName] = mPlan;
     mPlanTrees.push_back(treeName);
   }
 }

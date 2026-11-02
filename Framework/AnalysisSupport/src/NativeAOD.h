@@ -52,13 +52,17 @@ class NativeAODFileSystem : public VirtualRootFileSystemBase
   /// The tree at @a path, parsed on first use. nullptr if there is no such
   /// tree. Throws o2::aod::native::FormatError if it cannot be parsed.
   NativeTreeHandle* getTreeHandle(std::string const& path);
-  /// The read plan of the DF of the tree at @a path, with that tree in it;
-  /// nullptr when the file is mapped and nothing needs reading. A new DF gets a
-  /// new plan, with the trees read in the previous DF already in it: a reader
-  /// asks for the same tables in every DF, so the first read of a DF fetches
-  /// all of them together. For a remote file, the next DF is prepared in the
-  /// background meanwhile (keys, TTrees and data of the same trees), so that
-  /// its round trips overlap with the decoding of this one.
+  /// The read plan with the tree at @a path in it; nullptr when the file is
+  /// mapped and nothing needs reading. A new DF gets new plans, with the trees
+  /// read in the previous DF already in them: a reader asks for the same tables
+  /// in every DF, so the first read of a plan fetches all of its trees
+  /// together. With Options::bufferBudget, the trees of a DF are split into
+  /// plans of at most that many bytes, in the order they are read, and a plan
+  /// is freed once the reads of its trees are done; a tree larger than the
+  /// budget gets a plan of its own. For a remote file, the next DF is prepared
+  /// in the background meanwhile (keys, TTrees and data of the same trees, up
+  /// to the budget), so that its round trips overlap with the decoding of this
+  /// one.
   std::shared_ptr<o2::aod::native::ReadPlan> planFor(std::string const& path);
   o2::aod::native::RootFile& file() { return *mFile; }
   /// The name the file was asked for by (an LFN for a grid file), which is
@@ -97,8 +101,12 @@ class NativeAODFileSystem : public VirtualRootFileSystemBase
   std::mutex mMutex;
   std::map<std::string, std::vector<o2::aod::native::KeyInfo>> mDirectories;
   std::map<std::string, std::unique_ptr<NativeTreeHandle>> mTrees;
-  std::shared_ptr<o2::aod::native::ReadBufferPool> mPool = std::make_shared<o2::aod::native::ReadBufferPool>();
+  std::shared_ptr<o2::aod::native::ReadBufferPool> mPool;
+  // The plan trees are being added to, and how many bytes it holds.
   std::shared_ptr<o2::aod::native::ReadPlan> mPlan;
+  uint64_t mPlanBytes = 0;
+  // The plan of each tree of the DF, until planFor() hands it out.
+  std::map<std::string, std::shared_ptr<o2::aod::native::ReadPlan>> mPlanOf;
   std::string mPlanDF;
   // The DF whose pages are mapped, released when the next one starts.
   std::string mMappedDF;
