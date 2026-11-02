@@ -174,7 +174,6 @@ class StrangeTrack;
 class TrackCosmics;
 struct TrackCosmicsExtended;
 struct CosmicsTFInfo;
-struct TFIDInfo;
 class GlobalFwdTrack;
 class MatchInfoFwd;
 class TrackMCHMID;
@@ -330,7 +329,6 @@ struct RecoContainer {
                       COSM_TRACKS_MC,
                       COSMEXT_TRACKS, // extended cosmics (with clusters), no MC
                       COSMEXT_TFINFO, // per-TF info of the extended cosmics
-                      COSMEXT_TFID,   // TFIDInfo of the extended cosmics
                       NCOSMSLOTS };
 
   // slots to register ITS/MFT clusters data (per layer, or all layers together in the slot 0)
@@ -378,7 +376,7 @@ struct RecoContainer {
   std::unique_ptr<const std::vector<o2::MCCompLabel>> mcMIDTracks;
   o2::ctp::LumiInfo mCTPLumi;
 
-  std::shared_ptr<const void> cosmExtHolder[3];   // owners of the extended cosmics, TF info and TFID objects deserialized from the messages
+  std::shared_ptr<const void> cosmExtHolder[2];   // owners of the extended cosmics and TF info objects deserialized from the messages
   gsl::span<const unsigned char> clusterShMapTPC; ///< externally set TPC clusters sharing map
   gsl::span<const unsigned int> occupancyMapTPC;  ///< externally set TPC clusters occupancy map
 
@@ -764,11 +762,10 @@ struct RecoContainer {
   auto getCosmicTracks() const { return cosmPool.getSpan<o2::dataformats::TrackCosmics>(COSM_TRACKS); }
   auto getCosmicTrackMCLabels() const { return cosmPool.getSpan<o2::MCCompLabel>(COSM_TRACKS_MC); }
 
-  // Extended cosmic tracks (with clusters); the user must include DataFormatsGlobalTracking/TrackCosmicsExtended.h and CommonDataFormat/TFIDInfo.h
+  // Extended cosmic tracks (with clusters); the user must include DataFormatsGlobalTracking/TrackCosmicsExtended.h
   const o2::dataformats::TrackCosmicsExtended& getCosmicExtTrack(int i) const { return cosmPool.get_as<o2::dataformats::TrackCosmicsExtended>(COSMEXT_TRACKS, i); }
   auto getCosmicExtTracks() const { return cosmPool.getSpan<o2::dataformats::TrackCosmicsExtended>(COSMEXT_TRACKS); }
   const o2::dataformats::CosmicsTFInfo& getCosmicExtTFInfo() const { return cosmPool.get_as<o2::dataformats::CosmicsTFInfo>(COSMEXT_TFINFO, 0); }
-  const o2::dataformats::TFIDInfo& getCosmicExtTFID() const { return cosmPool.get_as<o2::dataformats::TFIDInfo>(COSMEXT_TFID, 0); }
 
   // IRFrames where ITS was reconstructed and tracks were seen (e.g. sync.w-flow mult. selection)
   auto getIRFramesITS() const { return getSpan<o2::dataformats::IRFrame>(GTrackID::ITS, VARIA); }
