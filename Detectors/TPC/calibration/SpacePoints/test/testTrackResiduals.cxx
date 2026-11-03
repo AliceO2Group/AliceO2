@@ -19,6 +19,7 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 #include "SpacePoints/TrackResiduals.h"
+#include "TPCBase/Mapper.h"
 
 namespace o2::tpc
 {
@@ -55,6 +56,18 @@ BOOST_AUTO_TEST_CASE(TrackResidualsBinning_test)
         BOOST_CHECK_SMALL(z - zRef, 1e-6f);
       }
     }
+  }
+}
+
+// the y/x grid ends at the pad plane's edge of each pad row
+BOOST_AUTO_TEST_CASE(TrackResidualsY2XEdge_test)
+{
+  TrackResiduals resid;
+  resid.initBinning();
+  const auto& mapper = Mapper::instance();
+  for (int ix = 0; ix < resid.getNXBins(); ++ix) {
+    const float halfWidth = 0.5f * mapper.getNumberOfPadsInRowSector(ix) * mapper.getPadRegionInfo(Mapper::REGION[ix]).getPadWidth();
+    BOOST_CHECK_CLOSE(resid.getMaxY2X(ix) * resid.getX(ix), halfWidth, 1e-3);
   }
 }
 

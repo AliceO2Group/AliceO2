@@ -460,7 +460,6 @@ class TrackResiduals
 
   // some constants
   static constexpr float sFloatEps{1.e-7f}; ///< float epsilon for robust linear fitting
-  static constexpr float sDeadZone{1.5f};   ///< dead zone for TPC in between sectors
   static constexpr int sSmtLinDim{4};       ///< max matrix size for smoothing (pol1)
   static constexpr int sMaxSmtDim{7};       ///< max matrix size for smoothing (pol2)
 
@@ -483,7 +482,7 @@ class TrackResiduals
   int mNVoxPerSector{};                                    ///< number of voxels per sector
   float mDX{};                                             ///< x bin size
   float mDXI{};                                            ///< inverse of x bin size
-  std::vector<float> mMaxY2X{};                            ///< max y/x at each x bin, accounting dead zones
+  std::vector<float> mMaxY2X{};                            ///< max y/x at each x bin: the pad plane's edge in its pad row
   std::vector<float> mDY2X{};                              ///< y/x bin size at given x bin
   std::vector<float> mDY2XI{};                             ///< inverse y/x bin size at given x bin
   std::vector<float> mY2XBinsDH{};                         ///< half width in y/x within the interval [-1..1]
