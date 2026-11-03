@@ -45,7 +45,6 @@ class TrackCosmicsExtendedReader : public Task
   std::string mFileName = "";
   std::vector<o2::dataformats::TrackCosmicsExtended> mCosmics, *mCosmicsPtr = &mCosmics;
   o2::dataformats::CosmicsTFInfo mTFInfo, *mTFInfoPtr = &mTFInfo;
-  o2::dataformats::TFIDInfo mTFID, *mTFIDPtr = &mTFID;
 };
 
 /// create a processor spec to read the extended cosmics (as written by cosmics-full-writer) from a root file
