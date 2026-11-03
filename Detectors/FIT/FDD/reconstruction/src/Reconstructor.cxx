@@ -40,8 +40,13 @@ void Reconstructor::process(o2::fdd::Digit const& digitBC, gsl::span<const o2::f
 
   bool swOrGateSideA = false;
   bool swOrGateSideC = false;
+  int64_t swTimeSideA = 0;
+  int64_t swTimeSideC = 0;
+  int64_t swEntriesNumSideA = 0;
+  int64_t swEntriesNumSideC = 0;
 
-  bool coincidencePairs[Nchannels] = {false};
+  bool coincidencePairsOrTrg[Nchannels] = {false};
+  int64_t coincidencePairsTime[Nchannels] = {0};
 
   for (const auto& channelData : inChData) {
     if (mDeadChannelMap && !mDeadChannelMap->isChannelAlive(channelData.mPMNumber)) {
@@ -58,16 +63,36 @@ void Reconstructor::process(o2::fdd::Digit const& digitBC, gsl::span<const o2::f
     storedEntries++;
 
     if (FDDRecoConfig::Instance().SwTriggerEnabled) {
-      if (chNum <= sSideAMaxId) {
-        coincidencePairs[chNum] |= checkSwOrGateConditions(channelData);
-        swOrGateSideA |= coincidencePairs[chNum] && isCoincidenceConditionFulFilled(coincidencePairs, chNum);
-      } else {
-        coincidencePairs[chNum] |= checkSwOrGateConditions(channelData);
-        swOrGateSideC |= coincidencePairs[chNum] && isCoincidenceConditionFulFilled(coincidencePairs, chNum);
+      coincidencePairsOrTrg[chNum] |= checkSwOrGateConditions(channelData);
+      coincidencePairsTime[chNum] = channelData.mTime;
+      if (FDDRecoConfig::Instance().SwTriggerCoincidenceMode && coincidencePairsOrTrg[chNum] && coincidencePairsOrTrg[coincidencePairs[chNum]]) {
+        if (chNum >= sSideAStartId) {
+          swOrGateSideA = true;
+          swTimeSideA += channelData.mTime + coincidencePairsTime[coincidencePairs[chNum]];
+          swEntriesNumSideA += 2;
+        } else {
+          swOrGateSideC = true;
+          swTimeSideC += channelData.mTime + coincidencePairsTime[coincidencePairs[chNum]];
+          swEntriesNumSideC += 2;
+        }
+      } else if (!FDDRecoConfig::Instance().SwTriggerCoincidenceMode && coincidencePairsOrTrg[chNum]) {
+        if (chNum >= sSideAStartId) {
+          swOrGateSideA = true;
+          swTimeSideA += channelData.mTime;
+          swEntriesNumSideA++;
+        } else {
+          swOrGateSideC = true;
+          swTimeSideC += channelData.mTime;
+          swEntriesNumSideC++;
+        }
       }
     }
 
-    if (channelData.mPMNumber <= sSideAMaxId) {
+    if (!isChannelDataGoodForCollisionTime(channelData.mFEEBits) || !isInCollisionTimeAmplitudeWindow(channelData.mChargeADC) || !isInCollisionTimeTimeWindow(channelData.mTime)) {
+      continue;
+    }
+
+    if (channelData.mPMNumber >= sSideAStartId) {
       timeSideA += channelData.mTime;
       entriesNumSideA++;
     } else {
@@ -77,10 +102,15 @@ void Reconstructor::process(o2::fdd::Digit const& digitBC, gsl::span<const o2::f
   }
 
   constexpr float nsToPs = 1e3;
-  float meanTimeSideA = float(timeSideA) * timePerTDC / float(entriesNumSideA);
-  float meanTimeSideC = float(timeSideC) * timePerTDC / float(entriesNumSideC);
+  float meanTimeSideA = entriesNumSideA > 0 ? float(timeSideA) * timePerTDC / float(entriesNumSideA) : 0;
+  float meanTimeSideC = entriesNumSideC > 0 ? float(timeSideC) * timePerTDC / float(entriesNumSideC) : 0;
 
-  bool swVertexTrg = FDDRecoConfig::Instance().SwTriggerEnabled ? calculateSwTrigger(meanTimeSideA, meanTimeSideC, swOrGateSideA, swOrGateSideC) : false;
+  bool swVertexTrg = false;
+  if (FDDRecoConfig::Instance().SwTriggerEnabled) {
+    float swMeanTimeSideA = swEntriesNumSideA > 0 ? float(swTimeSideA) * timePerTDC / float(swEntriesNumSideA) : 0;
+    float swMeanTimeSideC = swEntriesNumSideC > 0 ? float(swTimeSideC) * timePerTDC / float(swEntriesNumSideC) : 0;
+    swVertexTrg = calculateSwTrigger(swMeanTimeSideA, swMeanTimeSideC, swOrGateSideA, swOrGateSideC);
+  }
 
   std::array<int, 2> mCollisionTime = {o2::fdd::RecPoint::sDummyCollissionTime, o2::fdd::RecPoint::sDummyCollissionTime};
   if (entriesNumSideA > 0) {
@@ -89,7 +119,7 @@ void Reconstructor::process(o2::fdd::Digit const& digitBC, gsl::span<const o2::f
   if (entriesNumSideC > 0) {
     mCollisionTime[o2::fdd::RecPoint::TimeC] = std::round(meanTimeSideC * nsToPs);
   }
-  RecPoints.emplace_back(mCollisionTime, firstEntry, storedEntries, digitBC.getIntRecord(), digitBC.mTriggers, swVertexTrg, swOrGateSideA, swOrGateSideC);
+  RecPoints.emplace_back(mCollisionTime, firstEntry, storedEntries, digitBC.getIntRecord(), digitBC.mTriggers, swOrGateSideA, swOrGateSideC, swVertexTrg);
 }
 //________________________________________________________
 void Reconstructor::finish()

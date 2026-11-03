@@ -53,8 +53,8 @@ class RecPoint
  public:
   enum TimeTypeIndex : int { TimeA,
                              TimeC };
-  enum ETriggerBits { kSwOrTrgSideA,
-                      kSwOrTrgSideC,
+  enum ETriggerBits { kSwOrTrgSideA = 5,
+                      kSwOrTrgSideC = 6,
                       kSwVtxTrg = 7 };
   RecPoint() = default;
   RecPoint(const std::array<int, 2>& collisiontime, int first, int ne,

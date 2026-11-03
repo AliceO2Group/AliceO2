@@ -58,8 +58,8 @@ struct FDDRecoConfig : o2::conf::ConfigurableParamHelper<FDDRecoConfig> {
   bool SwTriggerCoincidenceMode = true;
   bool SwTriggerEnabled = false;
 
-  uint8_t SwTriggerValidPmInputFlagMask = static_cast<uint8_t>(~(1u << ChannelData::kNumberADC));
-  uint8_t SwTriggerValidPmInputFlags = static_cast<uint8_t>((1u << ChannelData::kIsCFDinADCgate) | (1u << ChannelData::kIsEventInTVDC));
+  uint8_t SwTriggerValidPmInputFlagMask = static_cast<uint8_t>(~((1u << ChannelData::kNumberADC) | (1u << ChannelData::kIsEventInTVDC)));
+  uint8_t SwTriggerValidPmInputFlags = static_cast<uint8_t>(1u << ChannelData::kIsCFDinADCgate);
   bool isChannelDataGoodForSwTrigger(uint8_t flags) const
   {
     return (flags & SwTriggerValidPmInputFlagMask) == SwTriggerValidPmInputFlags;
