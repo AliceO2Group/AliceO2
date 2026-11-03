@@ -161,7 +161,9 @@ void Digitizer<DetID>::setEventTime(const o2::InteractionTimeRecord& irt, int la
   auto nbc = mEventTime.differenceInBC(mIRFirstSampledTF);
 
   if (mCollisionTimeWrtROF < 0 && nbc > 0) {
+    // move to the ROF it actually belongs to and account this in the time offset wrt updated reference BC
     nbc--;
+    mCollisionTimeWrtROF += o2::constants::lhc::LHCBunchSpacingNS;
   }
 
   mROFsWrtFirstRO = std::floor(float(nbc) / mParams.getROFrameLengthInBC(layer));
@@ -467,7 +469,7 @@ void Digitizer<DetID>::processHit(const o2::trkft3::Hit& hit, uint32_t& maxFr, i
       }
     }
   }
-  LOG(info) << "Response done; adding labels; making digits";
+  LOG(debug) << "Response done; adding labels; making digits";
   // fire the pixels assuming Poisson(n_response_electrons)
   o2::MCCompLabel lbl(hit.GetTrackID(), evID, srcID, false);
   auto roFrameAbs = mNewROFrame + roFrameRel;
