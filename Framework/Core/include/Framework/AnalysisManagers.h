@@ -629,6 +629,73 @@ bool replaceOrigin(T& presliceGroup, header::DataOrigin const& newOrigin)
 
 template <typename T>
   requires(!is_preslice<T> && !is_preslice_group<T>)
+bool addSlicingInputs(T&, std::vector<InputSpec>&, header::DataOrigin const&)
+{
+  return false;
+}
+
+/// check if any of the tables the sliced type is based on is an input of the task
+template <soa::is_table T>
+bool isSlicedTableInput(std::vector<InputSpec> const& inputs, header::DataOrigin const& newOrigin)
+{
+  auto isInput = [&inputs, &newOrigin](ConcreteDataMatcher matcher) {
+    if ((matcher.origin == header::DataOrigin{"AOD"}) && (newOrigin != header::DataOrigin{"AOD"})) {
+      matcher = replaceOrigin(matcher, newOrigin);
+    }
+    return std::ranges::any_of(inputs, [&matcher](InputSpec const& input) { return DataSpecUtils::match(input, matcher); });
+  };
+  return [&isInput]<size_t... Is>(std::index_sequence<Is...>) {
+    return (isInput(o2::aod::matcher<T::originals[Is]>()) || ...);
+  }(std::make_index_sequence<T::originals.size()>{});
+}
+
+/// all the process function inputs are already added at this point, so a Preslice can only
+/// amend them. Depending on whether the sliced table is an input of the task and whether it has
+/// the index column, there are 4 cases:
+/// 1. no table, no column - likely an incorrect declaration, warning for both Preslice and PresliceOptional
+/// 2. no table, column    - Preslice that never works, or a common declaration in a templated task that is
+///                          not effective in this specialization, warning for Preslice only
+/// 3. table, no column    - the intended case for PresliceOptional, a mistake for Preslice, warning for Preslice only
+/// 4. table, column       - slicing input is added
+template <is_preslice T>
+bool addSlicingInputs(T& preslice, std::vector<InputSpec>& inputs, header::DataOrigin const& newOrigin)
+{
+  using target_t = typename T::target_t;
+  auto const& [binding, matcher, key, enabled] = preslice.bindingKey;
+  if (preslice.isMissing()) {
+    if (!isSlicedTableInput<target_t>(inputs, newOrigin)) {
+      LOGP(warn, "Preslice declared on {} is skipped: {} is not an input of any process function and does not have column {}, the declaration is likely incorrect",
+           o2::soa::getLabelFromType<target_t>(), o2::soa::getLabelFromType<target_t>(), key);
+    } else if constexpr (!T::optional) {
+      LOGP(warn, "Preslice declared on {} is skipped: it does not have column {}, use PresliceOptional if the column is not always expected",
+           o2::soa::getLabelFromType<target_t>(), key);
+    }
+    return true;
+  }
+  if (std::ranges::none_of(inputs, [&matcher](InputSpec const& input) { return DataSpecUtils::match(input, matcher); })) {
+    if constexpr (!T::optional) {
+      LOGP(warn, "Preslice declared on {}/{} ({}) is skipped: {} is not an input of any process function, use PresliceOptional if the declaration is not effective in every specialization of a templated task",
+           binding, key, DataSpecUtils::describe(matcher), binding);
+    }
+    return true;
+  }
+  DataSpecUtils::updateInputList(inputs, inputForEntry(preslice.bindingKey, std::same_as<typename T::policy_t, framework::PreslicePolicySorted>));
+  return true;
+}
+
+template <is_preslice_group T>
+bool addSlicingInputs(T&& presliceGroup, std::vector<InputSpec>& inputs, header::DataOrigin const& newOrigin)
+{
+  homogeneous_apply_refs<true>(
+    [&inputs, &newOrigin](auto& preslice) {
+      return addSlicingInputs(preslice, inputs, newOrigin);
+    },
+    presliceGroup);
+  return true;
+}
+
+template <typename T>
+  requires(!is_preslice<T> && !is_preslice_group<T>)
 bool registerCache(T&, Cache&, Cache&)
 {
   return false;
@@ -638,10 +705,8 @@ template <is_preslice T>
   requires std::same_as<typename T::policy_t, framework::PreslicePolicySorted>
 bool registerCache(T& preslice, Cache& bsks, Cache&)
 {
-  if constexpr (T::optional) {
-    if (preslice.binding == "[MISSING]") {
-      return true;
-    }
+  if (preslice.isMissing()) {
+    return true;
   }
   auto locate = std::find(bsks.begin(), bsks.end(), preslice.getBindingKey());
   if (locate == bsks.end()) {
@@ -656,10 +721,8 @@ template <is_preslice T>
   requires std::same_as<typename T::policy_t, framework::PreslicePolicyGeneral>
 bool registerCache(T& preslice, Cache&, Cache& bsksU)
 {
-  if constexpr (T::optional) {
-    if (preslice.binding == "[MISSING]") {
-      return true;
-    }
+  if (preslice.isMissing()) {
+    return true;
   }
   auto locate = std::find(bsksU.begin(), bsksU.end(), preslice.getBindingKey());
   if (locate == bsksU.end()) {
@@ -688,10 +751,8 @@ template <is_preslice T>
 static bool updateSliceInfo(T& preslice, ArrowTableSlicingCache& cache)
   requires std::same_as<typename T::policy_t, framework::PreslicePolicySorted>
 {
-  if constexpr (T::optional) {
-    if (preslice.binding == "[MISSING]") {
-      return true;
-    }
+  if (preslice.isMissing()) {
+    return true;
   }
   preslice.updateSliceInfo(cache.getCacheFor(preslice.getBindingKey()));
   return true;
@@ -701,10 +762,8 @@ template <is_preslice T>
 static bool updateSliceInfo(T& preslice, ArrowTableSlicingCache& cache)
   requires std::same_as<typename T::policy_t, framework::PreslicePolicyGeneral>
 {
-  if constexpr (T::optional) {
-    if (preslice.binding == "[MISSING]") {
-      return true;
-    }
+  if (preslice.isMissing()) {
+    return true;
   }
   preslice.updateSliceInfo(cache.getCacheUnsortedFor(preslice.getBindingKey()));
   return true;
