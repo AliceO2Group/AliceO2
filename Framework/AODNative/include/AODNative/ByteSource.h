@@ -36,6 +36,11 @@ struct Options {
   int threads = 1;
   int prefetchDepth = 1;
   size_t coalesceGap = 64 * 1024;
+  /// Most bytes the read plans of a file hold at once, 0 for no limit. A DF
+  /// larger than this is read in groups of trees. kAutoBufferBudget: 16 MB for
+  /// a local file, 64 MB for a remote one, where each read is a round trip.
+  static constexpr size_t kAutoBufferBudget = SIZE_MAX;
+  size_t bufferBudget = kAutoBufferBudget;
   double spanFraction = 0.8;
   int streamWindows = 4;
   size_t streamWindowBytes = 2 * 1024 * 1024;

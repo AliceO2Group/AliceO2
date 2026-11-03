@@ -28,16 +28,26 @@ namespace o2::aod::native
 class ReadBufferPool
 {
  public:
+  /// Mapped directly rather than taken from malloc, so that a buffer which is
+  /// dropped always goes back to the system, whatever its size.
+  struct Unmap {
+    size_t size = 0;
+    void operator()(uint8_t* p) const;
+  };
   struct Buffer {
-    std::unique_ptr<uint8_t[]> data;
+    std::unique_ptr<uint8_t[], Unmap> data;
     size_t capacity = 0;
   };
+  /// Keeps at most @a maxFreeBytes in free buffers, dropping the largest
+  /// first; with 0, at most kMaxFree buffers, dropping the smallest first.
+  explicit ReadBufferPool(size_t maxFreeBytes = 0) : mMaxFreeBytes(maxFreeBytes) {}
   /// The smallest free buffer of at least @a size bytes, or a new one.
   Buffer get(size_t size);
   void put(Buffer buffer);
 
  private:
   static constexpr size_t kMaxFree = 2;
+  size_t mMaxFreeBytes;
   std::mutex mMutex;
   std::vector<Buffer> mFree;
 };
@@ -58,6 +68,8 @@ class ReadPlan
   void add(uint64_t offset, size_t length);
   /// Registers every basket of @a tree which is not embedded in its TBranch.
   void add(TreeInfo const& tree);
+  /// The bytes add(@a tree) registers.
+  static uint64_t bytesOf(TreeInfo const& tree);
   /// The bytes of [offset, offset + length), if a registered range covers
   /// them, fetching the pending ranges first if needed. Empty otherwise. The
   /// span stays valid as long as the plan.

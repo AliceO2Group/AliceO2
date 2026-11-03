@@ -12,6 +12,8 @@
 #include "AODNative/ReadPlan.h"
 #include <algorithm>
 #include <cstring>
+#include <new>
+#include <sys/mman.h>
 
 namespace o2::aod::native
 {
@@ -34,16 +36,37 @@ ReadBufferPool::Buffer ReadBufferPool::get(size_t size)
   // resident next to the new one. Some headroom, so that the next DF, a bit
   // larger, still fits.
   mFree.clear();
-  auto capacity = size + size / 8;
-  return {std::make_unique_for_overwrite<uint8_t[]>(capacity), capacity};
+  auto capacity = std::max<size_t>(size + size / 8, 1);
+  void* p = mmap(nullptr, capacity, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+  if (p == MAP_FAILED) {
+    throw std::bad_alloc();
+  }
+  return {std::unique_ptr<uint8_t[], Unmap>((uint8_t*)p, Unmap{capacity}), capacity};
+}
+
+void ReadBufferPool::Unmap::operator()(uint8_t* p) const
+{
+  munmap(p, size);
 }
 
 void ReadBufferPool::put(Buffer buffer)
 {
   std::lock_guard lock{mMutex};
   mFree.push_back(std::move(buffer));
-  if (mFree.size() > kMaxFree) {
+  if (mMaxFreeBytes == 0 && mFree.size() > kMaxFree) {
     mFree.erase(std::ranges::min_element(mFree, {}, &Buffer::capacity));
+  }
+  auto freeBytes = [this] {
+    size_t total = 0;
+    for (auto const& b : mFree) {
+      total += b.capacity;
+    }
+    return total;
+  };
+  // The same headroom as get() allocates, so that a buffer for a group just
+  // under the budget can still be kept.
+  while (mMaxFreeBytes > 0 && !mFree.empty() && freeBytes() > mMaxFreeBytes + mMaxFreeBytes / 8) {
+    mFree.erase(std::ranges::max_element(mFree, {}, &Buffer::capacity));
   }
 }
 
@@ -78,6 +101,19 @@ void ReadPlan::add(TreeInfo const& tree)
       }
     }
   }
+}
+
+uint64_t ReadPlan::bytesOf(TreeInfo const& tree)
+{
+  uint64_t total = 0;
+  for (auto const& branch : tree.branches) {
+    for (auto const& basket : branch.baskets) {
+      if (!basket.embedded) {
+        total += basket.nbytes;
+      }
+    }
+  }
+  return total;
 }
 
 std::span<const uint8_t> ReadPlan::lookup(uint64_t offset, size_t length) const
