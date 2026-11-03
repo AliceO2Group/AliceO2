@@ -17,6 +17,7 @@
 ///
 
 #include "SpacePoints/TrackResiduals.h"
+#include "TPCBase/Mapper.h"
 #include "CommonConstants/MathConstants.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "MathUtils/fit.h"
@@ -164,14 +165,21 @@ void TrackResiduals::initBinning()
     mDXI = 1.f / mDX; // should not be used
   }
   //
-  // Y/X binning
+  // Y/X binning: y/x = +-mMaxY2X is the pad plane's edge in the pad row of the x bin (the outer edge of its outermost pads; with uniform
+  // X-binning the pad row closest to the bin centre), so the outermost y/x bins end with the row's last pads
   mMaxY2X.resize(mNXBins);
   mDY2XI.resize(mNXBins);
   mDY2X.resize(mNXBins);
   //
+  const auto& mapper = Mapper::instance();
   for (int ix = 0; ix < mNXBins; ++ix) {
     float x = getX(ix);
-    mMaxY2X[ix] = tan(.5f * SECPHIWIDTH) - sDeadZone / x;
+    int row = ix;
+    if (mUniformBins[VoxX]) {
+      row = int(std::min_element(param::RowX, param::RowX + param::NPadRows, [x](float a, float b) { return std::abs(a - x) < std::abs(b - x); }) - param::RowX);
+    }
+    const float halfWidth = 0.5f * mapper.getNumberOfPadsInRowSector(row) * mapper.getPadRegionInfo(Mapper::REGION[row]).getPadWidth();
+    mMaxY2X[ix] = halfWidth / x;
     mDY2XI[ix] = mNY2XBins / (2.f * mMaxY2X[ix]);
     mDY2X[ix] = 1.f / mDY2XI[ix];
   }
