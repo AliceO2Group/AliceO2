@@ -32,7 +32,6 @@
 #include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "ReconstructionDataFormats/TrackCosmics.h"
 #include "DataFormatsGlobalTracking/TrackCosmicsExtended.h"
-#include "CommonDataFormat/TFIDInfo.h"
 #include "ReconstructionDataFormats/TrackMCHMID.h"
 #include "DataFormatsITSMFT/TrkClusRef.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
@@ -435,7 +434,6 @@ void DataRequest::requestCosmicExtTracks(bool mc)
 {
   addInput({"cosmicsExt", "GLO", "COSMFULL", 0, Lifetime::Timeframe});
   addInput({"cosmicsExtTF", "GLO", "COSMFULLTF", 0, Lifetime::Timeframe});
-  addInput({"cosmicsExtTFID", "GLO", "COSMFULLTFID", 0, Lifetime::Timeframe});
   if (mc) {
     LOG(error) << "Extended cosmics do not support MC truth";
   }
@@ -925,18 +923,14 @@ void RecoContainer::addPVerticesTMP(ProcessingContext& pc, bool mc)
 void RecoContainer::addCosmicExtTracks(ProcessingContext& pc, bool mc)
 {
   using o2::dataformats::CosmicsTFInfo;
-  using o2::dataformats::TFIDInfo;
   using o2::dataformats::TrackCosmicsExtended;
   // the messages are ROOT-serialized, keep the deserialized objects alive until the next TF
   std::shared_ptr<const std::vector<TrackCosmicsExtended>> cosm = pc.inputs().get<std::vector<TrackCosmicsExtended>*>("cosmicsExt");
   std::shared_ptr<const CosmicsTFInfo> tfInfo = pc.inputs().get<CosmicsTFInfo*>("cosmicsExtTF");
-  std::shared_ptr<const TFIDInfo> tfID = pc.inputs().get<TFIDInfo*>("cosmicsExtTFID");
   cosmPool.registerContainer(*cosm, COSMEXT_TRACKS);
   cosmPool.registerContainer(gsl::span<const CosmicsTFInfo>(tfInfo.get(), 1), COSMEXT_TFINFO);
-  cosmPool.registerContainer(gsl::span<const TFIDInfo>(tfID.get(), 1), COSMEXT_TFID);
   cosmExtHolder[0] = std::move(cosm);
   cosmExtHolder[1] = std::move(tfInfo);
-  cosmExtHolder[2] = std::move(tfID);
   if (mc) {
     LOG(error) << "Extended cosmics do not support MC truth";
   }
