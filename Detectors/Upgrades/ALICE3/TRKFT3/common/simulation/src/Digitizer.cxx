@@ -469,7 +469,7 @@ void Digitizer<DetID>::processHit(const o2::trkft3::Hit& hit, uint32_t& maxFr, i
       }
     }
   }
-  LOG(info) << "Response done; adding labels; making digits";
+  LOG(debug) << "Response done; adding labels; making digits";
   // fire the pixels assuming Poisson(n_response_electrons)
   o2::MCCompLabel lbl(hit.GetTrackID(), evID, srcID, false);
   auto roFrameAbs = mNewROFrame + roFrameRel;
