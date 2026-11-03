@@ -214,12 +214,12 @@ class GPUTPCGMTrackParam
  private:
   GPUd() int32_t initResetT0();
 
-  float mX;        // x position
-  float mTOffset;  // Z offset with early transform, T offset otherwise
-  float mP[5];     // 'active' track parameters: Y, Z, SinPhi, DzDs, q/Pt
-  float mC[15];    // the covariance matrix for Y,Z,SinPhi,..
-  float mChi2;     // the chi^2 value
-  int32_t mNDF;    // the Number of Degrees of Freedom
+  float mX;       // x position
+  float mTOffset; // Z offset with early transform, T offset otherwise
+  float mP[5];    // 'active' track parameters: Y, Z, SinPhi, DzDs, q/Pt
+  float mC[15];   // the covariance matrix for Y,Z,SinPhi,..
+  float mChi2;    // the chi^2 value
+  int32_t mNDF;   // the Number of Degrees of Freedom
 };
 
 struct GPUTPCGMLoopData {

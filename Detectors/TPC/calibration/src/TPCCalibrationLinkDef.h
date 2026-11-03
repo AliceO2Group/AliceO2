@@ -115,6 +115,7 @@
 #pragma link C++ class o2::tpc::TPCFastSpaceChargeCorrectionHelper + ;
 
 #pragma link C++ class o2::tpc::CalculatedEdx + ;
+#pragma link C++ struct o2::tpc::AverageOccupancy + ;
 #pragma link C++ class o2::tpc::TPCScaler + ;
 #pragma link C++ struct o2::tpc::TPCScalerWeights + ;
 #pragma link C++ class o2::tpc::TPCMShapeCorrection + ;
