@@ -129,7 +129,7 @@ inline float DigitTime::getCommonMode(const GEMstack& gemstack) const
 template <DigitzationMode MODE>
 inline void DigitTime::fillOutputContainer(std::vector<Digit>& output, dataformats::MCTruthContainer<MCCompLabel>& mcTruth,
                                            std::vector<CommonMode>& commonModeOutput, const Sector& sector, TimeBin timeBin,
-                                           PrevDigitInfoArray* prevTime, Streamer* debugStream, const CalPad* padParams[3],
+                                           PrevDigitInfoArray* prevTime, Streamer* debugStream, const CalPad* padParams[4],
                                            const CalDet<bool>* deadMap)
 {
   const auto& mapper = Mapper::instance();
@@ -148,7 +148,12 @@ inline void DigitTime::fillOutputContainer(std::vector<Digit>& output, dataforma
     }
     const CRU cru = mapper.getCRU(sector, iPad);
     const float cmKValue = (padParams[2]) ? padParams[2]->getValue(sector.getSector(), iPad) : 1.f;
-    mCommonMode[cru.gemStack()] += digit.getChargePad() * eleParam.commonModeCoupling * cmKValue; // TODO: Add stack-by-stack variation?
+    float commonModeSignal = digit.getChargePad() * eleParam.commonModeCoupling * cmKValue; // TODO: Add stack-by-stack variation?
+    if (eleParam.doCommonModePerPadSaturation) {
+      const float pedestal = (padParams[3]) ? padParams[3]->getValue(sector.getSector(), iPad) : 77.f;
+      commonModeSignal = std::min(commonModeSignal, pedestal);
+    }
+    mCommonMode[cru.gemStack()] += commonModeSignal;
   }
 
   // fill common mode output container

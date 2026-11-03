@@ -48,6 +48,7 @@ struct ParameterElectronics : public o2::conf::ConfigurableParamHelper<Parameter
   bool doIonTail = false;                                                       ///< add ion tail in simulation
   bool doIonTailPerPad = false;                                                 ///< add ion tail in simulation using pad-by-pad values
   bool doCommonModePerPad = true;                                               ///< add common mode in simulation using pad-by-pad values
+  bool doCommonModePerPadSaturation = true;                                     ///< Saturate the common mode signal by the per pad pedestal value
   bool doSaturationTail = false;                                                ///< add saturation tail in simulation
   bool doNoiseEmptyPads = false;                                                ///< add noise in pads without signal in simulation
   bool applyDeadMap = true;                                                     ///< apply dead channel map
