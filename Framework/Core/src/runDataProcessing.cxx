@@ -26,6 +26,7 @@
 #include "Framework/DataProcessingDevice.h"
 #include "Framework/DataProcessingContext.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/DataProcessorSpecHelpers.h"
 #include "Framework/PluginManager.h"
 #include "Framework/DeviceControl.h"
 #include "Framework/DeviceExecution.h"
@@ -3038,7 +3039,16 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
       if (found == physicalWorkflow.end()) {
         physicalWorkflow.push_back(dp);
         rankIndex.insert(std::make_pair(dp.name, workflowHashB));
+      } else if (DataProcessorSpecHelpers::isPlaceholder(*found)) {
+        auto algorithm = std::move(found->algorithm);
+        *found = dp;
+        found->algorithm = std::move(algorithm);
       }
+    }
+  }
+  for (auto& dp : physicalWorkflow) {
+    if (DataProcessorSpecHelpers::isPlaceholder(dp)) {
+      LOGP(fatal, "{} was not built, but the driver did not pass its spec.", dp.name);
     }
   }
 
