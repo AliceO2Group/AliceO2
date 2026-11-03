@@ -860,6 +860,12 @@ int32_t GPUChainTracking::RunChainFinalize()
       usleep(10000);
       if (GetProcessingSettings().runsStandalone) {
         iKey = kbhit() ? getch() : 0;
+        if (iKey == 27 && kbhit()) { // Escape sequence (arrow keys, ...), not the ESC key
+          while (kbhit()) {
+            getch();
+          }
+          iKey = 0;
+        }
         if (iKey == 27) {
           GetProcessingSettings().eventDisplay->setDisplayControl(2);
         } else if (iKey == 'n') {
