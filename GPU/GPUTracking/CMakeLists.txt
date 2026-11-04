@@ -120,6 +120,7 @@ set(HDRS_INSTALL
     Base/GPUReconstructionIncludesITS.h
     Base/GPUReconstructionKernelMacros.h
     Base/GPUReconstructionCPUKernels.h
+    Base/GPUStdSystemHeaders.h
     DataCompression/GPUTPCClusterRejection.h
     DataCompression/GPUTPCCompressionKernels.inc
     DataCompression/TPCClusterDecompressionCore.inc
@@ -156,6 +157,7 @@ set(HDRS_INSTALL
     SectorTracker/GPUTPCMCInfo.h
     SectorTracker/GPUTPCTracklet.h
     SectorTracker/GPUTPCTrackLinearisation.h
+    SectorTracker/GPUTPCRow.h
     TPCConvert/GPUTPCConvertImpl.h
     TRDTracking/GPUTRDGeometry.h
     TRDTracking/GPUTRDSpacePoint.h
@@ -165,6 +167,7 @@ set(HDRS_INSTALL
     TRDTracking/GPUTRDTrackPoint.h
     TRDTracking/GPUTRDTrackPoint.h
     DataTypes/GPUTPCGMPolynomialField.h
+    DataTypes/GPUSettingsParam.h
 )
 
 set(SRCS_NO_CINT ${SRCS_NO_CINT} display/GPUDisplayInterface.cxx)

@@ -19,19 +19,12 @@
 // Create plain-C struct for GPU code.
 // Create static constexpr with default values for GPU run time compilation
 
-#include "GPUCommonDef.h"
+#ifdef BeginConfig // File should not be included without defining the macros, but rootcling will do for dictionary generation
 #ifndef GPUSETTINGS_H
 #error Please include GPUSettings.h!
 #endif
 
 // clang-format off
-
-#ifdef QCONFIG_INSTANCE
-using namespace o2::gpu;
-#endif
-#ifdef BeginNamespace // File should not be included without defining the macros, but rootcling will do for dictionary generation
-BeginNamespace(o2)
-BeginNamespace(gpu)
 
 // Settings concerning the reconstruction, stored as parameters in GPU constant memory
 // There must be no bool in here, use int8_t, as sizeof(bool) is compiler dependent and fails on GPUs!!!!!!
@@ -719,14 +712,4 @@ EndConfig()
 #endif // !GPUCA_STANDALONE
 #endif // !GPUCA_GPUCODE_DEVICE
 
-// Derrived parameters used in GPUParam
-BeginHiddenConfig(GPUSettingsParam, param)
-AddVariableRTC(continuousTracking, int8_t, 0) // Continuous tracking, estimate bz and errors for abs(z) = 125cm during seeding
-AddVariableRTC(dodEdx, int8_t, 0)             // Do dEdx computation
-EndConfig()
-
-EndNamespace() // gpu
-EndNamespace() // o2
-#endif // #ifdef BeginNamespace
-
-  // clang-format on
+#endif // #ifndef __CLING__
