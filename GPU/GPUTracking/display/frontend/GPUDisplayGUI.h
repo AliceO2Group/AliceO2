@@ -19,20 +19,12 @@
 #include <QMainWindow>
 #include <QTimer>
 #include <functional>
-#include <memory>
 #include <optional>
 #include <utility>
 #include <vector>
 
 class QKeyEvent;
 class QLabel;
-
-QT_BEGIN_NAMESPACE
-namespace Ui
-{
-class GPUDisplayGUI;
-}
-QT_END_NAMESPACE
 
 namespace o2::gpu
 {
@@ -42,7 +34,6 @@ class GPUDisplayGUI : public QMainWindow
 
  public:
   explicit GPUDisplayGUI(GPUDisplayGUIChannel& channel, QWidget* parent = nullptr);
-  ~GPUDisplayGUI() override;
   void bringToFront();
 
  protected:
@@ -68,10 +59,11 @@ class GPUDisplayGUI : public QMainWindow
   void applySettings();
   void applyElement(GUIElement& element); // Set the element from mState.cfg if the value changed
   void updateInfoLabels();
+  void fitStatusLabel(); // Height needed for the wrapped text, otherwise the size hint of the label makes the status bar too high
   bool darkPalette() const;
-  void setDarkMode(bool dark);                                                // Requests the color scheme from the platform theme
-  void colorSchemeChanged();                                                  // Style sheets and colors depending on the color scheme
-  void buildElements(const std::vector<GPUDisplayGUIChannel::Frame>& layout); // One frame per add_gui_binding call, with a labeled element per option
+  void setDarkMode(bool dark);                                                    // Requests the color scheme from the platform theme
+  void colorSchemeChanged();                                                      // Style sheets and colors depending on the color scheme
+  QWidget* buildElements(const std::vector<GPUDisplayGUIChannel::Frame>& layout); // One frame per add_gui_binding call, with a labeled element per option
   ElementWidget createCheckbox(const GPUDisplayGUIChannel::Element& el);
   ElementWidget createTextbox(const GPUDisplayGUIChannel::Element& el);
   ElementWidget createSlider(const GPUDisplayGUIChannel::Element& el);
@@ -83,7 +75,6 @@ class GPUDisplayGUI : public QMainWindow
   void setScale(float scale);                           // Font size, fixed element sizes, and check / radio indicators (not sent to the display)
   static int32_t translateKey(const QKeyEvent* event);  // Qt key → display key code, -1 if not forwarded
 
-  std::unique_ptr<Ui::GPUDisplayGUI> mUi;
   QTimer mTimer;
   GPUDisplayGUIChannel& mChannel;
   GPUDisplayGUIChannel::Update mUpdate; // Changes collected since the last tick
