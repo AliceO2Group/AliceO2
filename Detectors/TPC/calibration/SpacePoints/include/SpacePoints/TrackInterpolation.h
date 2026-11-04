@@ -18,6 +18,8 @@
 #define ALICEO2_TPC_TRACKINTERPOLATION_H_
 
 #include <gsl/span>
+#include <algorithm>
+#include <cmath>
 #include "CommonDataFormat/EvIndex.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "ReconstructionDataFormats/Track.h"
@@ -77,11 +79,11 @@ struct TPCClusterResiduals {
 struct UnbinnedResid {
   UnbinnedResid() = default;
   UnbinnedResid(float dyIn, float dzIn, float tgSlpIn, float yIn, float zIn,
-                unsigned char rowIn, unsigned char secIn, short chanIn = -1, bool rejFlag = false) : dy(static_cast<short>(dyIn * 0x7fff / param::MaxResid)),
-                                                                                                     dz(static_cast<short>(dzIn * 0x7fff / param::MaxResid)),
-                                                                                                     tgSlp(static_cast<short>(tgSlpIn * 0x7fff / param::MaxTgSlp)),
-                                                                                                     y(static_cast<short>(yIn * 0x7fff / param::MaxY)),
-                                                                                                     z(static_cast<short>(zIn * 0x7fff / param::MaxZ)),
+                unsigned char rowIn, unsigned char secIn, short chanIn = -1, bool rejFlag = false) : dy(pack(dyIn, param::MaxResid)),
+                                                                                                     dz(pack(dzIn, param::MaxResid)),
+                                                                                                     tgSlp(pack(tgSlpIn, param::MaxTgSlp, std::abs(tgSlpIn) < param::MaxTgSlp ? 0x7fff - 1 : 0x7fff)),
+                                                                                                     y(pack(yIn, param::MaxY)),
+                                                                                                     z(pack(zIn, param::MaxZ)),
                                                                                                      row(rowIn),
                                                                                                      sec(secIn),
                                                                                                      channel(chanIn),
@@ -95,6 +97,14 @@ struct UnbinnedResid {
   unsigned char sec{0}; ///< TPC sector (0..35)
   short channel{-1};    ///< extra channel info (ITS chip ID, TRD chamber, TOF main pad within the sector)
   bool rejected{false}; ///< residual is flagged as rejected in the validateTrack
+
+  /// value (|value| <= maximum) packed into a short, rounded to the nearest of the 0x7fff steps per maximum and limited to +-limit.
+  /// A plain cast would truncate towards zero, i.e. move every value towards zero by up to one step: the decoded cluster position
+  /// y + dy then depends on the sign of dy below the step size, which biases residuals binned by the cluster position on sub-pad scales
+  static short pack(float value, float maximum, int limit = 0x7fff)
+  {
+    return static_cast<short>(std::clamp<long>(std::lround(value * 0x7fff / maximum), -limit, limit));
+  }
 
   /// true if tgSlp was saturated at +-param::MaxTgSlp (scdcalib.clampTgSlp): unclamped values have |tgSlp| <= 0x7fff - 1
   bool isTgSlpClamped() const { return tgSlp == 0x7fff || tgSlp == -0x7fff; }
