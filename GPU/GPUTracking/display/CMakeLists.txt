@@ -186,11 +186,10 @@ if(GLFW_FOUND)
 endif()
 
 if(GPUCA_EVENT_DISPLAY_QT)
-  qt_wrap_cpp(GPUCA_QT_MOC_SRCS frontend/GPUDisplayGUI.h) # Explicit moc / uic instead of AUTOMOC / AUTOUIC: rerun only if these files change; add new Q_OBJECT headers / .ui files here
-  qt_wrap_ui(GPUCA_QT_UI_HDRS frontend/GPUDisplayGUI.ui)
+  qt_wrap_cpp(GPUCA_QT_MOC_SRCS frontend/GPUDisplayGUI.h) # Explicit moc instead of AUTOMOC: rerun only if these files change; add new Q_OBJECT headers here
 
   set(SRCS ${SRCS} frontend/GPUDisplayGUI.cxx frontend/GPUDisplayGUIWrapper.cxx)
-  set(SRCS_NO_H ${SRCS_NO_H} ${GPUCA_QT_MOC_SRCS} ${GPUCA_QT_UI_HDRS})
+  set(SRCS_NO_H ${SRCS_NO_H} ${GPUCA_QT_MOC_SRCS})
   set(HDRS_INSTALL ${HDRS_INSTALL} frontend/GPUDisplayGUIChannel.h)
 endif()
 
@@ -315,7 +314,6 @@ endif()
 if(GPUCA_EVENT_DISPLAY_QT)
   target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_EVENT_DISPLAY_QT)
   target_link_libraries(${targetName} PRIVATE Qt6::Widgets)
-  target_include_directories(${targetName} PRIVATE ${CMAKE_CURRENT_BINARY_DIR}) # ui_*.h
 endif()
 
 target_link_libraries(${targetName} PRIVATE TBB::tbb)

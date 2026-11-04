@@ -14,7 +14,6 @@
 
 #include "GPUDisplayGUI.h"
 #include "GPUDisplayFrontend.h"
-#include "ui_GPUDisplayGUI.h"
 
 #include <QButtonGroup>
 #include <QCheckBox>
@@ -40,6 +39,7 @@
 #include <QSlider>
 #include <QStyle>
 #include <QStyleHints>
+#include <QStatusBar>
 #include <QStyleOptionSizeGrip>
 #include <QStylePainter>
 #include <QVBoxLayout>
@@ -338,29 +338,19 @@ static bool sameValue(const GPUDisplayGUIValue& a, const GPUDisplayGUIValue& b) 
   return aString || bString ? a == b : toDouble(a) == toDouble(b);
 }
 
-GPUDisplayGUI::GPUDisplayGUI(GPUDisplayGUIChannel& channel, QWidget* parent) : QMainWindow(parent), mUi(std::make_unique<Ui::GPUDisplayGUI>()), mChannel(channel)
+GPUDisplayGUI::GPUDisplayGUI(GPUDisplayGUIChannel& channel, QWidget* parent) : QMainWindow(parent), mChannel(channel)
 {
   qApp->setStyle(new GUIStyle); // Owned by the application
-  mUi->setupUi(this);
-  auto* scroll = new QScrollArea; // Vertical scroll bar if the frames do not fit into the window, they wrap to the window width
-  scroll->setWidgetResizable(true);
-  scroll->setFrameShape(QFrame::NoFrame);
-  scroll->setWidget(takeCentralWidget());
-  auto* central = new QWidget;
-  auto* centralLayout = new QVBoxLayout(central);
-  centralLayout->setContentsMargins(0, 0, 0, 0);
-  centralLayout->setSpacing(0);
-  centralLayout->addWidget(scroll, 1);
+  resize(1370, 1210);
+  setMinimumSize(500, 500);
   mStatusLabel = new QLabel;
   mStatusLabel->setWordWrap(true);
   mStatusLabel->hide();
-  mStatusLabel->setStyleSheet("background-color: rgba(0, 0, 0, 25); padding: 2px 4px;"); // Slightly darker than the window, in light and dark mode
-  centralLayout->addWidget(mStatusLabel);
+  statusBar()->addWidget(mStatusLabel, 1);
   mDarkMode = darkPalette();                                                                                                                // System scheme, until the display tells otherwise
   connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged, this, &GPUDisplayGUI::colorSchemeChanged, Qt::QueuedConnection); // Queued: after the palette was updated
   mInfoTextTimer.setSingleShot(true);
   connect(&mInfoTextTimer, &QTimer::timeout, this, &GPUDisplayGUI::updateInfoLabels);
-  setCentralWidget(central);
   std::vector<GPUDisplayGUIChannel::Frame> layout;
   {
     std::lock_guard lock(mChannel.mutex);
@@ -368,14 +358,20 @@ GPUDisplayGUI::GPUDisplayGUI(GPUDisplayGUIChannel& channel, QWidget* parent) : Q
     layout = mChannel.layout;
   }
   mBaseFontSize = font().pointSizeF() > 0 ? font().pointSizeF() : 10.f; // Fonts with pixel size have no point size
-  buildElements(layout);
+  auto* content = new QWidget;
+  auto* contentLayout = new QVBoxLayout(content);
+  contentLayout->addWidget(buildElements(layout));
+  contentLayout->addStretch();
+  auto* scroll = new QScrollArea; // Vertical scroll bar if the frames do not fit into the window, they wrap to the window width
+  scroll->setWidgetResizable(true);
+  scroll->setFrameShape(QFrame::NoFrame);
+  scroll->setWidget(content);
+  setCentralWidget(scroll);
   colorSchemeChanged();           // Style sheets, with the GUI scale, which comes from the display with the first state
   qApp->installEventFilter(this); // Sliders / dropdowns would consume Ctrl + mouse wheel themselves
   connect(&mTimer, &QTimer::timeout, this, &GPUDisplayGUI::timerTick);
   mTimer.start(std::chrono::milliseconds(10));
 }
-
-GPUDisplayGUI::~GPUDisplayGUI() = default;
 
 void GPUDisplayGUI::timerTick()
 {
@@ -472,6 +468,12 @@ void GPUDisplayGUI::resizeEvent(QResizeEvent* event)
   updateInfoLabels(); // Shows the GUI size
 }
 
+void GPUDisplayGUI::fitStatusLabel()
+{
+  mStatusLabel->setMinimumHeight(0); // heightForWidth of QLabel does not return less than the minimum height
+  mStatusLabel->setFixedHeight(mStatusLabel->heightForWidth(mStatusLabel->width()));
+}
+
 void GPUDisplayGUI::updateInfoLabels()
 {
   const QString status = QString::fromStdString(mState.infoStatus) + QString(" GUI %1x%2").arg(width()).arg(height());
@@ -484,6 +486,7 @@ void GPUDisplayGUI::updateInfoLabels()
     mStatusLabel->setText(status);
   }
   mStatusLabel->setVisible(!mState.infoStatus.empty());
+  fitStatusLabel();
 }
 
 void GPUDisplayGUI::applySettings()
@@ -680,13 +683,12 @@ GPUDisplayGUI::ElementWidget GPUDisplayGUI::createDropdown(const GPUDisplayGUICh
           }};
 }
 
-void GPUDisplayGUI::buildElements(const std::vector<GPUDisplayGUIChannel::Frame>& layout)
+QWidget* GPUDisplayGUI::buildElements(const std::vector<GPUDisplayGUIChannel::Frame>& layout)
 {
   using Type = GPUDisplayGUIChannel::ElementType;
   auto* frames = new QWidget; // Frames with their natural width, next to each other while they fit into the window
   auto* framesLayout = new FlowLayout(frames, 1, true);
   framesLayout->setContentsMargins(0, 0, 0, 0);
-  mUi->mainLayout->insertWidget(mUi->mainLayout->count() - 1, frames); // Before the vertical spacer
   for (const auto& frame : layout) {
     auto* box = new QGroupBox(QString::fromStdString(frame.description));
     if (frame.description.empty()) {
@@ -761,6 +763,7 @@ void GPUDisplayGUI::buildElements(const std::vector<GPUDisplayGUIChannel::Frame>
     }
   }
   mScaleSetters.emplace_back([framesLayout](float) { framesLayout->invalidate(); });
+  return frames;
 }
 
 void GPUDisplayGUI::setScale(float scale)
@@ -782,6 +785,10 @@ bool GPUDisplayGUI::eventFilter(QObject* watched, QEvent* event)
 {
   const auto* w = qobject_cast<QWidget*>(watched);
   if (!w || w->window() != this) {
+    return false;
+  }
+  if (watched == mStatusLabel && event->type() == QEvent::Resize) {
+    fitStatusLabel();
     return false;
   }
   if (event->type() == QEvent::Wheel && (static_cast<QWheelEvent*>(event)->modifiers() & Qt::ControlModifier)) {
