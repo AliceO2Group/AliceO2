@@ -170,7 +170,8 @@ if(GPUCA_EVENT_DISPLAY_WAYLAND)
   set_property(SOURCE frontend/GPUDisplayFrontendWayland.cxx frontend/GPUDisplayFrontendWaylandEv.cxx ${WAYLAND_PROTOCOL_SOURCES} APPEND PROPERTY OBJECT_DEPENDS ${WAYLAND_PROTOCOL_HEADERS})
   set_property(SOURCE frontend/GPUDisplayFrontendWayland.cxx frontend/GPUDisplayFrontendWaylandEv.cxx APPEND PROPERTY INCLUDE_DIRECTORIES ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/)
 
-  set(SRCS_NO_H ${SRCS_NO_H} frontend/GPUDisplayFrontendWayland.cxx frontend/GPUDisplayFrontendWaylandEv.cxx ${WAYLAND_PROTOCOL_SOURCES})
+  set(SRCS ${SRCS} frontend/GPUDisplayFrontendWayland.cxx)
+  set(SRCS_NO_H ${SRCS_NO_H} frontend/GPUDisplayFrontendWaylandEv.cxx ${WAYLAND_PROTOCOL_SOURCES})
 endif()
 
 if(X11_FOUND)
