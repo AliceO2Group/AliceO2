@@ -139,13 +139,14 @@ void Digitizer<DetID>::process(const std::vector<Hit>* hits, int evID, int srcID
               return (*hits)[lhs].GetDetectorID() < (*hits)[rhs].GetDetectorID();
             });
   LOG(info) << "Processing " << nHits << " hits";
+  std::vector<float> respMatrix; // the hits' charge response, reused from hit to hit within the event
   for (int i : hitIdx | std::views::filter([&](int idx) {
                  if (layer < 0) {
                    return true;
                  }
                  return getROFLayer((*hits)[idx].GetDetectorID()) == layer;
                })) {
-    processHit((*hits)[i], mROFrameMax, evID, srcID, layer);
+    processHit((*hits)[i], mROFrameMax, evID, srcID, layer, respMatrix);
   }
 }
 
@@ -255,7 +256,7 @@ void Digitizer<DetID>::fillOutputContainer(uint32_t frameLast, int layer)
 
 //_______________________________________________________________________
 template <int DetID>
-void Digitizer<DetID>::processHit(const o2::trkft3::Hit& hit, uint32_t& maxFr, int evID, int srcID, int rofLayer)
+void Digitizer<DetID>::processHit(const o2::trkft3::Hit& hit, uint32_t& maxFr, int evID, int srcID, int rofLayer, std::vector<float>& respMatrix)
 {
   int chipID = hit.GetDetectorID(); //// the chip ID at the moment is not referred to the chip but to a wider detector element (e.g. quarter of layer or disk in VD, stave in ML, half stave in OT)
   int subDetID = mGeometry->getSubDetID(chipID);
@@ -396,8 +397,7 @@ void Digitizer<DetID>::processHit(const o2::trkft3::Hit& hit, uint32_t& maxFr, i
   }
   int rowSpan = rowE - rowS + 1, colSpan = colE - colS + 1; // size of plaquet where some response is expected
 
-  float respMatrix[rowSpan][colSpan]; // response accumulated here
-  std::fill(&respMatrix[0][0], &respMatrix[0][0] + rowSpan * colSpan, 0.f);
+  respMatrix.assign(static_cast<size_t>(rowSpan) * colSpan, 0.f); // response accumulated here, row by row
 
   float nElectrons = hit.GetEnergyLoss() * mParams.getEnergyToNElectrons(); // total number of deposited electrons
   nElectrons *= nStepsInv;                                                  // N electrons injected per step
@@ -465,7 +465,7 @@ void Digitizer<DetID>::processHit(const o2::trkft3::Hit& hit, uint32_t& maxFr, i
         if (colDest < 0 || colDest >= colSpan) {
           continue;
         }
-        respMatrix[rowDest][colDest] += rspmat->getValue(irow, icol, mSimRespOrientation ? !flipRow : flipRow, flipCol);
+        respMatrix[rowDest * colSpan + colDest] += rspmat->getValue(irow, icol, mSimRespOrientation ? !flipRow : flipRow, flipCol);
       }
     }
   }
@@ -477,7 +477,7 @@ void Digitizer<DetID>::processHit(const o2::trkft3::Hit& hit, uint32_t& maxFr, i
   for (int irow = rowSpan; irow--;) {          // irow ranging from 4 to 0
     uint16_t rowIS = irow + rowS;              // row distant irow from the row of the hit start
     for (int icol = colSpan; icol--;) {        // icol ranging from 4 to 0
-      float nEleResp = respMatrix[irow][icol]; // value of the probability of the response in this pixel
+      float nEleResp = respMatrix[irow * colSpan + icol]; // value of the probability of the response in this pixel
       if (nEleResp <= 1.e-36) {
         continue;
       }
