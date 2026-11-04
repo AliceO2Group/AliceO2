@@ -33,11 +33,6 @@
 #ifdef RANS_SIMD
 #include "rANS/internal/common/simdops.h"
 #include "rANS/internal/common/simdtypes.h"
-
-#ifdef RANS_OPENMP
-#include <omp.h>
-#endif
-
 #endif /* RANS_SIMD */
 
 namespace o2::rans
