@@ -26,7 +26,7 @@
 #include "ITSMFTTracking/CapacityEstimator.h"
 #include "ITStracking/TimeFrame.h"
 #include "ITStracking/Cell.h"
-#include "ITSMFTTracking/BoundedAllocator.h"
+#include "GenericTracking/BoundedAllocator.h"
 #include "ITStracking/TrackExtensionHypothesis.h"
 #include "ITStracking/TrackFollower.h"
 #include "ITStracking/TrackITSInternal.h"

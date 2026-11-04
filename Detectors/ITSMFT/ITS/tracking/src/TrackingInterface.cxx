@@ -38,7 +38,7 @@
 #include "DataFormatsTRD/TriggerRecord.h"
 #include "CommonDataFormat/IRFrame.h"
 #include "DetectorsBase/GRPGeomHelper.h"
-#include "ITSMFTTracking/BoundedAllocator.h"
+#include "GenericTracking/BoundedAllocator.h"
 #include "Framework/InputRecordWalker.h"
 #include "Framework/DataRefUtils.h"
 #include "Framework/DeviceSpec.h"

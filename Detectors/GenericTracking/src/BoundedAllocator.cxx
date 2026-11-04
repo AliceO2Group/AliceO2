@@ -9,16 +9,19 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "ITSMFTTracking/BoundedAllocator.h"
+#include "GenericTracking/BoundedAllocator.h"
 
 #include <cstdio>
 #include <format>
 
 #include "GPUCommonLogger.h"
-#include "ITSMFTTracking/Constants.h"
 
-namespace o2::itsmft::tracking
+namespace o2::gtrk
 {
+namespace
+{
+constexpr double kGigabyte = 1024. * 1024. * 1024.;
+}
 
 BoundedMemoryResource::MemoryLimitExceeded::MemoryLimitExceeded(size_t attempted, size_t used, size_t max)
 {
@@ -56,13 +59,19 @@ void* BoundedMemoryResource::do_allocate(size_t bytes, size_t alignment)
 {
   size_t newUsed{0};
   size_t currentUsed{mUsedMemory.load(std::memory_order_relaxed)};
-  do {
-    newUsed = currentUsed + bytes;
-    if (newUsed > mMaxMemory.load(std::memory_order_relaxed)) {
+  for (;;) {
+    const size_t limit = mMaxMemory.load(std::memory_order_relaxed);
+    // Test before adding, so even SIZE_MAX requests cannot wrap under budget.
+    if (currentUsed > limit || bytes > limit - currentUsed) {
+      const size_t attempted = bytes > std::numeric_limits<size_t>::max() - currentUsed ? std::numeric_limits<size_t>::max() : currentUsed + bytes;
       mCountThrow.fetch_add(1, std::memory_order_relaxed);
-      throw MemoryLimitExceeded(newUsed, currentUsed, mMaxMemory.load(std::memory_order_relaxed));
+      throw MemoryLimitExceeded(attempted, currentUsed, limit);
     }
-  } while (!mUsedMemory.compare_exchange_weak(currentUsed, newUsed, std::memory_order_acq_rel, std::memory_order_relaxed));
+    newUsed = currentUsed + bytes;
+    if (mUsedMemory.compare_exchange_weak(currentUsed, newUsed, std::memory_order_acq_rel, std::memory_order_relaxed)) {
+      break;
+    }
+  }
 
   void* p{nullptr};
   try {
@@ -74,6 +83,9 @@ void* BoundedMemoryResource::do_allocate(size_t bytes, size_t alignment)
 #endif
     throw;
   }
+
+  mAllocations.fetch_add(1, std::memory_order_relaxed);
+  mAllocatedBytes.fetch_add(bytes, std::memory_order_relaxed);
 
   size_t peak = mPeakUsedMemory.load(std::memory_order_relaxed);
   while (newUsed > peak && !mPeakUsedMemory.compare_exchange_weak(peak, newUsed, std::memory_order_relaxed)) {
@@ -137,11 +149,18 @@ size_t BoundedMemoryResource::getPeakMemoryDelta() const noexcept
   return peak > baseline ? peak - baseline : 0;
 }
 
-void BoundedMemoryResource::resetPeakMemory() noexcept
+size_t BoundedMemoryResource::resetPeakMemory() noexcept
 {
   const size_t used = mUsedMemory.load(std::memory_order_acquire);
   mPeakBaselineMemory.store(used, std::memory_order_release);
-  mPeakUsedMemory.store(used, std::memory_order_release);
+  return mPeakUsedMemory.exchange(used, std::memory_order_acq_rel);
+}
+
+void BoundedMemoryResource::raisePeakMemory(size_t peak) noexcept
+{
+  size_t current = mPeakUsedMemory.load(std::memory_order_relaxed);
+  while (peak > current && !mPeakUsedMemory.compare_exchange_weak(current, peak, std::memory_order_relaxed)) {
+  }
 }
 
 void BoundedMemoryResource::setMaxMemory(size_t max)
@@ -174,18 +193,18 @@ std::string BoundedMemoryResource::asString() const
   const auto maxMemory = mMaxMemory.load(std::memory_order_relaxed);
   std::string result;
   if (maxMemory == std::numeric_limits<size_t>::max()) {
-    result += std::format("maxthrow={} maxmem=unbounded used={:.2f} GB stagepeak={:.2f} GB stagealloc={:.2f} GB", throwCount, used / o2::its::constants::GB, peak / o2::its::constants::GB, peakDelta / o2::its::constants::GB);
+    result += std::format("maxthrow={} maxmem=unbounded used={:.2f} GB stagepeak={:.2f} GB stagealloc={:.2f} GB", throwCount, used / kGigabyte, peak / kGigabyte, peakDelta / kGigabyte);
   } else {
-    result += std::format("maxthrow={} maxmem={:.2f} GB used={:.2f} GB ({:.2f}%) stagepeak={:.2f} GB stagealloc={:.2f} GB", throwCount, static_cast<double>(maxMemory) / o2::its::constants::GB, used / o2::its::constants::GB, 100.0 * used / static_cast<double>(maxMemory), peak / o2::its::constants::GB, peakDelta / o2::its::constants::GB);
+    result += std::format("maxthrow={} maxmem={:.2f} GB used={:.2f} GB ({:.2f}%) stagepeak={:.2f} GB stagealloc={:.2f} GB", throwCount, static_cast<double>(maxMemory) / kGigabyte, used / kGigabyte, 100.0 * used / static_cast<double>(maxMemory), peak / kGigabyte, peakDelta / kGigabyte);
   }
 #ifdef BOUNDED_MR_STATS
   result += std::format("  peak={:.2f} GB live={} nAlloc={} nFree={} totalAlloc={:.2f} GB totalFreed={:.2f} GB maxAlign={} upstreamFail={}",
-                        static_cast<float>(mStats.peak.load(std::memory_order_relaxed)) / o2::its::constants::GB,
+                        static_cast<float>(mStats.peak.load(std::memory_order_relaxed)) / kGigabyte,
                         mStats.live.load(std::memory_order_relaxed),
                         mStats.nAlloc.load(std::memory_order_relaxed),
                         mStats.nFree.load(std::memory_order_relaxed),
-                        static_cast<float>(mStats.totalAlloc.load(std::memory_order_relaxed)) / o2::its::constants::GB,
-                        static_cast<float>(mStats.totalFreed.load(std::memory_order_relaxed)) / o2::its::constants::GB,
+                        static_cast<float>(mStats.totalAlloc.load(std::memory_order_relaxed)) / kGigabyte,
+                        static_cast<float>(mStats.totalFreed.load(std::memory_order_relaxed)) / kGigabyte,
                         mStats.maxAlign.load(std::memory_order_relaxed),
                         mStats.upstreamFailures.load(std::memory_order_relaxed));
 #endif
@@ -197,4 +216,4 @@ void BoundedMemoryResource::print() const
   LOGP(info, "{}", asString());
 }
 
-} // namespace o2::itsmft::tracking
+} // namespace o2::gtrk
