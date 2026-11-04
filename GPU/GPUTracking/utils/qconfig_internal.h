@@ -208,6 +208,7 @@ void qConfigPrint(const T& qconfig_tmp_object, const std::string& blockName); //
 // End QCONFIG_PRINT
 #elif defined(QCONFIG_INSTANCE)
 #define BeginNamespace(name) \
+  using namespace name;      \
   namespace name             \
   {
 #define EndNamespace() }
