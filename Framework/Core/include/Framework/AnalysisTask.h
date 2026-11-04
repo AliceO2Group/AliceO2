@@ -315,6 +315,25 @@ struct AnalysisDataProcessorBuilder {
     (std::get<As>(dest).bindInternalIndicesTo(&std::get<As>(src)), ...);
   }
 
+  /// The members that binding a process function's arguments can affect.
+  struct BindableMembers {
+    template <typename M>
+    constexpr auto operator()(M& member) const
+    {
+      if constexpr (is_partition<M> || is_combinations_generator<M>) {
+        return std::tuple<M&>{member};
+      } else {
+        return std::tuple<>{};
+      }
+    }
+  };
+
+  template <typename Members, typename L>
+  static void forEachRef(Members& members, L&& l)
+  {
+    std::apply([&l](auto&... member) { (l(member), ...); }, members);
+  }
+
   template <typename Task, is_table_iterator_or_enumeration Grouping, std::ranges::input_range R, soa::is_table... Associated>
   static void invokeProcess(Task& task, InputRecord& inputs, R matchers, PointerReconstructor const& pointerReconstructor, void (Task::*processingFunction)(Grouping, Associated...), std::vector<ExpressionInfo>& infos, ArrowTableSlicingCache& slices, header::DataOrigin newOrigin = header::DataOrigin{"AOD"})
   {
@@ -326,23 +345,22 @@ struct AnalysisDataProcessorBuilder {
     }
 
     constexpr const int numElements = homogeneous_apply_refs_size<false, std::decay_t<Task>>();
+    auto bindable = apply_refs_tuple_cat_sized<numElements>(BindableMembers{}, task);
 
     // set filtered tables for partitions with grouping
-    homogeneous_apply_refs_sized<numElements>([&groupingTable](auto& element) {
+    forEachRef(bindable, [&groupingTable](auto& element) {
       analysis_task_parsers::setPartition(element, groupingTable);
       analysis_task_parsers::bindInternalIndicesPartition(element, &groupingTable);
       return true;
-    },
-                                              task);
+    });
 
     if constexpr (sizeof...(Associated) == 0) {
       // single argument to process
-      homogeneous_apply_refs_sized<numElements>([&groupingTable](auto& element) {
+      forEachRef(bindable, [&groupingTable](auto& element) {
         analysis_task_parsers::bindExternalIndicesPartition(element, &groupingTable);
         analysis_task_parsers::setGroupedCombination(element, groupingTable);
         return true;
-      },
-                                                task);
+      });
       if constexpr (soa::is_iterator<G>) {
         for (auto& element : groupingTable) {
           std::invoke(processingFunction, task, *element);
@@ -355,13 +373,12 @@ struct AnalysisDataProcessorBuilder {
       auto associatedTables = AnalysisDataProcessorBuilder::bindAssociatedTables(inputs, matchers, processingFunction, infos);
       // pre-bind self indices
       std::apply(
-        [&task](auto&... t) mutable {
-          (homogeneous_apply_refs_sized<numElements>(
-             [&t](auto& p) {
-               analysis_task_parsers::bindInternalIndicesPartition(p, &t);
-               return true;
-             },
-             task),
+        [&bindable](auto&... t) mutable {
+          (forEachRef(bindable,
+                      [&t](auto& p) {
+                        analysis_task_parsers::bindInternalIndicesPartition(p, &t);
+                        return true;
+                      }),
            ...);
         },
         associatedTables);
@@ -370,14 +387,13 @@ struct AnalysisDataProcessorBuilder {
       },
                  associatedTables);
 
-      auto binder = [&task, &groupingTable, &associatedTables](auto& x) mutable {
+      auto binder = [&bindable, &groupingTable, &associatedTables](auto& x) mutable {
         x.bindExternalIndices(&groupingTable, &std::get<std::decay_t<Associated>>(associatedTables)...);
-        homogeneous_apply_refs_sized<numElements>([&x](auto& t) mutable {
+        forEachRef(bindable, [&x](auto& t) mutable {
           analysis_task_parsers::setPartition(t, x);
           analysis_task_parsers::bindExternalIndicesPartition(t, &x);
           return true;
-        },
-                                                  task);
+        });
       };
       groupingTable.bindExternalIndices(&std::get<std::decay_t<Associated>>(associatedTables)...);
 
@@ -389,11 +405,10 @@ struct AnalysisDataProcessorBuilder {
         associatedTables);
 
       // GroupedCombinations bound separately, as they should be set once for all associated tables
-      homogeneous_apply_refs_sized<numElements>([&groupingTable, &associatedTables](auto& t) {
+      forEachRef(bindable, [&groupingTable, &associatedTables](auto& t) {
         analysis_task_parsers::setGroupedCombination(t, groupingTable, associatedTables);
         return true;
-      },
-                                                task);
+      });
       overwriteInternalIndices(associatedTables, associatedTables);
       if constexpr (soa::is_iterator<G>) {
         auto slicer = GroupSlicer(groupingTable, associatedTables, slices, newOrigin);
@@ -412,11 +427,10 @@ struct AnalysisDataProcessorBuilder {
             associatedSlices);
 
           // bind partitions and grouping table
-          homogeneous_apply_refs_sized<numElements>([&groupingTable](auto& x) {
+          forEachRef(bindable, [&groupingTable](auto& x) {
             analysis_task_parsers::bindExternalIndicesPartition(x, &groupingTable);
             return true;
-          },
-                                                    task);
+          });
 
           [](Task& task, void (Task::*processingFunction)(Grouping, Associated...), Grouping g, std::tuple<std::decay_t<Associated>...>& at) {
             std::invoke(processingFunction, task, g, std::get<std::decay_t<Associated>>(at)...);
@@ -424,11 +438,10 @@ struct AnalysisDataProcessorBuilder {
         }
       } else {
         // bind partitions and grouping table
-        homogeneous_apply_refs_sized<numElements>([&groupingTable](auto& x) {
+        forEachRef(bindable, [&groupingTable](auto& x) {
           analysis_task_parsers::bindExternalIndicesPartition(x, &groupingTable);
           return true;
-        },
-                                                  task);
+        });
 
         [](Task& task, void (Task::*processingFunction)(Grouping, Associated...), Grouping g, std::tuple<std::decay_t<Associated>...>& at) {
           std::invoke(processingFunction, task, g, std::get<std::decay_t<Associated>>(at)...);
