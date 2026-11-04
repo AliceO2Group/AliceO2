@@ -153,7 +153,7 @@ void Digitizer<DetID>::process(const std::vector<Hit>* hits, int evID, int srcID
 template <int DetID>
 void Digitizer<DetID>::setEventTime(const o2::InteractionTimeRecord& irt, int layer)
 {
-  LOG(info) << "Setting event time to " << irt.getTimeNS() << " ns after orbit 0 bc 0";
+  LOG(debug) << "Setting event time to " << irt.getTimeNS() << " ns after orbit 0 bc 0";
   // assign event time in ns
   mEventTime = irt;
   // RO frame corresponding to provided time
@@ -213,7 +213,7 @@ void Digitizer<DetID>::fillOutputContainer(uint32_t frameLast, int layer)
       if (chip.isDisabled() || (layer >= 0 && getROFLayer(chip.getChipIndex()) != layer)) {
         continue;
       }
-      chip.addNoise(mROFrameMin, mROFrameMin, &mParams, mGeometry->getSubDetID(chip.getChipIndex()), mGeometry->getLayer(chip.getChipIndex())); /// TODO: add noise
+      chip.addNoise(mROFrameMin, mROFrameMin, &mParams, mGeometry->getSubDetID(chip.getChipIndex()), mGeometry->getLayer(chip.getChipIndex()), mParams.getROFrameLength(getROFLayer(chip.getChipIndex())));
       auto& buffer = chip.getPreDigits();
       if (buffer.empty()) {
         continue;

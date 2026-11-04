@@ -68,7 +68,7 @@ void DigiParams<DetIDV>::print() const
   printf("Min N electrons to account     : %d\n", mMinChargeToAccount);
   printf("Number of charge sharing steps : %d\n", mNSimSteps);
   printf("ELoss to N electrons factor    : %e\n", mEnergyToNElectrons);
-  printf("Noise level per pixel          : %e\n", mNoisePerPixel);
+  printf("Noise rate per pixel           : %e/s\n", mNoisePerPixel);
   printf("Charge time-response:\n");
   mSignalShape.print();
 }

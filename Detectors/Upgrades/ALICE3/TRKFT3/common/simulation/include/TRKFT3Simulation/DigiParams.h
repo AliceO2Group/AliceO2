@@ -124,7 +124,7 @@ class DigiParams
 
  private:
   static constexpr double infTime = 1e99;
-  float mNoisePerPixel = 1.e-7;          ///< Noise per chip
+  float mNoisePerPixel = 0.2;            ///< noise rate per pixel, in hits/s
   double mTimeOffset = -2 * infTime;     ///< time offset (in seconds!) to calculate ROFrame from hit time
   int mChargeThreshold = 75;             ///< charge threshold in Nelectrons
   int mMinChargeToAccount = 7;           ///< minimum charge contribution to account

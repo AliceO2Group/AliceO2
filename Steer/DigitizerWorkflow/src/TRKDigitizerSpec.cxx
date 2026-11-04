@@ -303,7 +303,7 @@ class TRKFT3DPLDigitizerTask : BaseDPLDigitizer
       // parameters of signal time response: flat-top duration, max rise time and q @ which rise time is 0
       digipar.getSignalShape().setParameters(dopt.strobeFlatTop, dopt.strobeMaxRiseTime, dopt.strobeQRiseTime0);
       digipar.setChargeThreshold(dopt.chargeThreshold); // charge threshold in electrons
-      digipar.setNoisePerPixel(dopt.noisePerPixel);     // noise level
+      digipar.setNoisePerPixel(dopt.noisePerPixel);     // noise rate in hits/pixel/s
       digipar.setTimeOffset(dopt.timeOffset);
       digipar.setNSimSteps(dopt.nSimSteps);
 

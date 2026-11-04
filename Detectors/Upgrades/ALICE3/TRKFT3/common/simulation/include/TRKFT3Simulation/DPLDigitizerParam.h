@@ -31,7 +31,7 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
   }
 
   bool continuous = true;                   ///< flag for continuous simulation
-  float noisePerPixel = DEFNoisePerPixel(); ///< ALPIDE Noise per channel
+  float noisePerPixel = DEFNoisePerPixel(); ///< ALMIRA chips noise rate in hits/pixel/s
   float strobeFlatTop = 20.;                ///< strobe shape flat top
   float strobeMaxRiseTime = 0.;             ///< strobe max rise time
   float strobeQRiseTime0 = 0.;              ///< q @ which strobe rise time is 0
@@ -54,7 +54,7 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
  private:
   static constexpr float DEFNoisePerPixel()
   {
-    return N == o2::detectors::DetID::TRK ? 1e-7 : 1e-8; // ITS/MFT values here!!
+    return N == o2::detectors::DetID::TRK ? 0.2 : 0.2; // TRK/FT3 values here. At the moment the noise should be the same for both cases, but option to set it differently left for the future
   }
 
   static constexpr std::string_view ParamName[2] = {"TRKDigitizerParam", "FT3DigitizerParam"};
