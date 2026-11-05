@@ -59,6 +59,9 @@ struct GPUReconstructionMetalInternals {
   // encoded into afterwards, so the two cannot be the same object.
   std::array<id<MTLCommandBuffer>, constants::GPU_MAX_STREAMS> commandBuffers;
   std::array<std::vector<id<MTLCommandBuffer>>, constants::GPU_MAX_STREAMS> submittedBuffers;
+  // Signalled by each committed buffer and waited for by the next one, see CommitStream
+  std::array<id<MTLSharedEvent>, constants::GPU_MAX_STREAMS> streamOrder;
+  std::array<uint64_t, constants::GPU_MAX_STREAMS> streamOrderValue;
 
   std::vector<id<MTLFunction>> functions;
   std::vector<id<MTLComputePipelineState>> pipelines;
