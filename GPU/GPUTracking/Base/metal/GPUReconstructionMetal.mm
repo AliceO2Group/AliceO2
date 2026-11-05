@@ -105,6 +105,8 @@ int32_t GPUReconstructionMetal::InitDevice_Runtime()
       if (mInternals->commandBuffers[i] == nil) {
         GPUErrorReturn("Error creating Metal command buffer");
       }
+      mInternals->streamOrder[i] = [mInternals->device newSharedEvent];
+      mInternals->streamOrderValue[i] = 0;
     }
 
     mInternals->mem_host = [mInternals->device newBufferWithLength:mHostMemorySize options:MTLResourceStorageModeShared];
@@ -179,6 +181,7 @@ int32_t GPUReconstructionMetal::ExitDevice_Runtime()
         DrainStream(i);
         [mInternals->commandBuffers[i] release];
         [mInternals->commandQueues[i] release];
+        [mInternals->streamOrder[i] release];
       }
       [mInternals->mem_host release];
     }
@@ -323,11 +326,17 @@ void GPUReconstructionMetal::RecordMarker(deviceEvent* ev, int32_t stream)
 void GPUReconstructionMetal::CommitStream(int32_t stream)
 {
   id<MTLCommandBuffer> cb = mInternals->commandBuffers[stream];
+  // A CUDA stream runs its work in order, a Metal queue only as far as its
+  // hazard tracking sees, and the kernels reach most memory through addresses
+  // in constant memory. So each buffer of a stream waits for the previous one.
+  const uint64_t value = ++mInternals->streamOrderValue[stream];
+  [cb encodeSignalEvent:mInternals->streamOrder[stream] value:value];
   [cb commit];
   // Hand the committed buffer over to the stream's submission list, which owns
   // it until it is waited for, and open a fresh one to encode the next work in.
   mInternals->submittedBuffers[stream].emplace_back(cb);
   mInternals->commandBuffers[stream] = [[mInternals->commandQueues[stream] commandBuffer] retain];
+  [mInternals->commandBuffers[stream] encodeWaitForEvent:mInternals->streamOrder[stream] value:value];
 }
 
 void GPUReconstructionMetal::DrainStream(int32_t stream)
