@@ -20,6 +20,7 @@
 #include <FairRunSim.h>
 #include <TStopwatch.h>
 #include "PrimaryServerState.h"
+#include <SimulationDataFormat/PrimaryChunk.h>
 
 class TVirtualMC;
 
@@ -59,6 +60,21 @@ class O2SimDevice final : public fair::mq::Device
   bool isWorkAvailable(fair::mq::Channel& statuschannel, int workerID = -1);
 
   bool Kernel(int workerID, fair::mq::Channel& requestchannel, fair::mq::Channel& dataoutchannel, fair::mq::Channel* statuschannel = nullptr);
+
+  /// outcome of asking the primary server for work
+  enum class ChunkStatus {
+    Work,      ///< a chunk to transport
+    Retry,     ///< nothing yet (server busy or no answer); ask again
+    EndOfWork, ///< the server sent the end-of-work marker
+    Stop       ///< the request could not be sent, or the server has nothing more to give; stop asking
+  };
+  struct FetchedChunk {
+    ChunkStatus status;
+    std::unique_ptr<o2::data::PrimaryChunk> chunk; ///< set for ChunkStatus::Work
+  };
+
+  /// requests one chunk of primaries from the server on the given channel
+  static FetchedChunk fetchChunk(int workerID, fair::mq::Channel& requestchannel);
 
  protected:
   /// Overloads the ConditionalRun() method of fair::mq::Device
