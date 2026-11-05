@@ -472,6 +472,11 @@ if(workflowPluginsTest)
                                DPL_WORKFLOW_PLUGIN_LIBRARY=O2FrameworkTestWorkflowPlugin${p})
     add_dependencies(${workflowPluginsTest} O2FrameworkTestWorkflowPlugin${p})
   endforeach()
+  add_test(NAME test_Framework_test_WorkflowPluginsDump
+           COMMAND ${CMAKE_CURRENT_LIST_DIR}/test/test_WorkflowPluginsDump.sh $<TARGET_FILE:${workflowPluginsTest}>)
+  set_property(TEST test_Framework_test_WorkflowPluginsDump PROPERTY LABELS framework)
+  set_property(TEST test_Framework_test_WorkflowPluginsDump PROPERTY ENVIRONMENT
+               "DYLD_LIBRARY_PATH=${CMAKE_LIBRARY_OUTPUT_DIRECTORY}:$ENV{DYLD_LIBRARY_PATH};LD_LIBRARY_PATH=${CMAKE_LIBRARY_OUTPUT_DIRECTORY}:$ENV{LD_LIBRARY_PATH}")
 endif()
 
 # the test is compiled from the ExternalFairMQDeviceWorkflow test and run with

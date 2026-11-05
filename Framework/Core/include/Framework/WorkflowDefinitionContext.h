@@ -23,6 +23,7 @@
 #include "Framework/ChannelConfigurationPolicy.h"
 #include "Framework/ServiceRegistry.h"
 #include <functional>
+#include <map>
 #include <memory>
 #include <vector>
 
@@ -47,6 +48,8 @@ struct WorkflowDefinitionContext {
   std::unique_ptr<ConfigParamRegistry> workflowOptionsRegistry{nullptr};
 
   o2::framework::WorkflowSpec specs;
+  /// The plugin which defines each data processor, if not embedded in the executable.
+  std::map<std::string, std::string> processorPlugins;
 };
 
 struct WorkflowDefinition {

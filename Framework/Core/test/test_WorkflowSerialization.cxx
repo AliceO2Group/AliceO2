@@ -169,3 +169,42 @@ TEST_CASE("TestInputOutputSpecMetadata")
   REQUIRE(wso[0].outputs[0].metadata[0] == wsi[0].outputs[0].metadata[0]);
   REQUIRE(wso[0].outputs[0].metadata[1] == wsi[0].outputs[0].metadata[1]);
 }
+
+/// The plugin of a data processor is only written when there is one,
+/// so that dumps of executables with an embedded plugin do not change.
+TEST_CASE("TestDataProcessorInfoPlugin")
+{
+  using namespace o2::framework;
+  WorkflowSpec w0{
+    DataProcessorSpec{.name = "A", .outputs = {OutputSpec{"TST", "A"}}},
+    DataProcessorSpec{.name = "B", .inputs = {InputSpec{"a", "TST", "A"}}}};
+
+  std::vector<DataProcessorInfo> dataProcessorInfoOut{
+    {.name = "A", .executable = "o2-dpl-workflow", .plugin = "O2SomePlugins:A"},
+    {.name = "B", .executable = "o2-dpl-workflow"},
+  };
+  CommandInfo commandInfoOut{"o2-dpl-workflow -b"};
+
+  std::ostringstream firstDump;
+  WorkflowSerializationHelpers::dump(firstDump, w0, dataProcessorInfoOut, commandInfoOut);
+  auto json = firstDump.str();
+  REQUIRE(json.find(R"("plugin": "O2SomePlugins:A")") != std::string::npos);
+  // Only A has a plugin.
+  REQUIRE(json.find(R"("plugin")") == json.rfind(R"("plugin")"));
+
+  std::vector<DataProcessorInfo> dataProcessorInfoIn{};
+  CommandInfo commandInfoIn;
+  std::istringstream is;
+  is.str(json);
+  WorkflowSpec w1;
+  WorkflowSerializationHelpers::import(is, w1, dataProcessorInfoIn, commandInfoIn);
+  REQUIRE(dataProcessorInfoIn.size() == 2);
+  REQUIRE(dataProcessorInfoIn[0].plugin == "O2SomePlugins:A");
+  REQUIRE(dataProcessorInfoIn[0].executable == "o2-dpl-workflow");
+  REQUIRE(dataProcessorInfoIn[1].plugin.empty());
+  REQUIRE(dataProcessorInfoIn[1].executable == "o2-dpl-workflow");
+
+  std::ostringstream secondDump;
+  WorkflowSerializationHelpers::dump(secondDump, w1, dataProcessorInfoIn, commandInfoIn);
+  REQUIRE(json == secondDump.str());
+}

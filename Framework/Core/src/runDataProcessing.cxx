@@ -1183,6 +1183,7 @@ struct WorkflowInfo {
   std::string executable;
   std::vector<std::string> args;
   std::vector<ConfigParamSpec> options;
+  std::map<std::string, std::string> plugins;
 };
 
 void gui_callback(uv_timer_s* ctx)
@@ -1696,7 +1697,8 @@ int runStateMachine(DataProcessorSpecs const& workflow,
               workflowInfo.executable,
               workflowInfo.args,
               workflowInfo.options,
-              channels});
+              channels,
+              workflowInfo.plugins.contains(device.name) ? workflowInfo.plugins.at(device.name) : ""});
         }
         break;
       case DriverState::MATERIALISE_WORKFLOW:
@@ -2989,6 +2991,9 @@ o2::framework::WorkflowDefinitionContext o2::framework::defineWorkflow(std::vect
       if (!inserted && it->second != di) {
         throw runtime_error_f("Data processor %s is defined by both %s and %s.", spec.name.c_str(), names[it->second].c_str(), names[di].c_str());
       }
+      if (!names[di].starts_with(":")) {
+        result.processorPlugins[spec.name] = names[di];
+      }
     }
     append(result.specs, context.specs);
     append(result.channelPolicies, context.channelPolicies);
@@ -3035,7 +3040,8 @@ int doMain(int argc, char** argv, o2::framework::WorkflowDefinitionContext& work
   WorkflowInfo currentWorkflow{
     argv[0],
     currentArgs,
-    currentWorkflowOptions};
+    currentWorkflowOptions,
+    workflowContext.processorPlugins};
 
   ProcessingPolicies processingPolicies;
   enum LogParsingHelpers::LogLevel minFailureLevel;
