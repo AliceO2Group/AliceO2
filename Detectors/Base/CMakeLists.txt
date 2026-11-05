@@ -34,6 +34,7 @@ o2_add_library(DetectorsBase
                        src/GRPGeomHelper.cxx
                        src/Stack.cxx
                        src/VMCSeederService.cxx
+                       src/SimRandom.cxx
                        src/GlobalParams.cxx
                        src/O2Tessellated.cxx
                        src/TGeoGeometryUtils.cxx
@@ -85,6 +86,13 @@ o2_target_root_dictionary(DetectorsBase
 o2_add_test(
   HalfSpaceBox
   SOURCES test/testHalfSpaceBox.cxx
+  COMPONENT_NAME DetectorsBase
+  PUBLIC_LINK_LIBRARIES O2::DetectorsBase
+  LABELS detectorsbase)
+
+o2_add_test(
+  SimRandom
+  SOURCES test/testSimRandom.cxx
   COMPONENT_NAME DetectorsBase
   PUBLIC_LINK_LIBRARIES O2::DetectorsBase
   LABELS detectorsbase)

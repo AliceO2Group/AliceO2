@@ -22,6 +22,7 @@
 #include <TRandom.h>
 #include <SimConfig/SimConfig.h>
 #include <cstring>
+#include "DetectorsBase/SimRandom.h"
 
 void doLogInfo(int workerID, std::string const& message)
 {
@@ -192,7 +193,7 @@ bool O2SimDevice::Kernel(int workerID, fair::mq::Channel& requestchannel, fair::
 
   if (reproducibleSim) {
     LOG(info) << workerStr() << " Setting seed for this sub-event to " << chunk->mSubEventInfo.seed;
-    gRandom->SetSeed(chunk->mSubEventInfo.seed);
+    o2::base::simRandom()->SetSeed(chunk->mSubEventInfo.seed);
     o2::base::VMCSeederService::instance().setSeed();
   }
 

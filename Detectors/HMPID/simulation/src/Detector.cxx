@@ -33,6 +33,7 @@
 #include "DetectorsBase/MaterialManager.h"
 
 #include "Framework/Logger.h"
+#include "DetectorsBase/SimRandom.h"
 
 namespace o2
 {
@@ -185,14 +186,14 @@ void Detector::GenFee(Float_t qtot)
   // eloss=0 means photon so only pulse height distribution is to be analysed.
   TLorentzVector x4;
   fMC->TrackPosition(x4);
-  Int_t iNphotons = fMC->GetRandom()->Poisson(0.02 * qtot); // # of feedback photons is proportional to the charge of hit
+  Int_t iNphotons = o2::base::simRandom()->Poisson(0.02 * qtot); // # of feedback photons is proportional to the charge of hit
   // AliDebug(1,Form("N photons=%i",iNphotons));
   Int_t j;
   Float_t cthf, phif, enfp = 0, sthf, e1[3], e2[3], e3[3], vmod, uswop, dir[3], phi, pol[3], mom[4];
   // Generate photons
   for (Int_t i = 0; i < iNphotons; i++) { // feedbacks loop
     Double_t ranf[2];
-    fMC->GetRandom()->RndmArray(2, ranf); // Sample direction
+    o2::base::simRandom()->RndmArray(2, ranf); // Sample direction
     cthf = ranf[0] * 2 - 1.0;
     if (cthf < 0) {
       continue;
@@ -200,7 +201,7 @@ void Detector::GenFee(Float_t qtot)
     sthf = TMath::Sqrt((1. - cthf) * (1. + cthf));
     phif = ranf[1] * 2 * TMath::Pi();
 
-    if (Double_t randomNumber = fMC->GetRandom()->Rndm() <= 0.57) {
+    if (Double_t randomNumber = o2::base::simRandom()->Rndm() <= 0.57) {
       enfp = 7.5e-9;
     } else if (randomNumber <= 0.7) {
       enfp = 6.4e-9;
@@ -268,7 +269,7 @@ void Detector::GenFee(Float_t qtot)
       e2[j] *= vmod;
     }
 
-    phi = fMC->GetRandom()->Rndm() * 2 * TMath::Pi();
+    phi = o2::base::simRandom()->Rndm() * 2 * TMath::Pi();
     for (j = 0; j < 3; j++) {
       pol[j] = e1[j] * TMath::Sin(phi) + e2[j] * TMath::Cos(phi);
     }
@@ -293,7 +294,7 @@ Bool_t Detector::IsLostByFresnel()
   Double_t localTc = localMom[0] * localMom[0] + localMom[2] * localMom[2];
   Double_t localTheta = TMath::ATan2(TMath::Sqrt(localTc), localMom[1]);
   Double_t cotheta = TMath::Abs(TMath::Cos(localTheta));
-  if (fMC->GetRandom()->Rndm() < Fresnel(p4.E() * 1e9, cotheta, 1)) {
+  if (o2::base::simRandom()->Rndm() < Fresnel(p4.E() * 1e9, cotheta, 1)) {
     // AliDebug(1,"Photon lost");
     return kTRUE;
   } else {

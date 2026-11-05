@@ -49,6 +49,7 @@
 #include "TRDSimulation/TRsim.h"
 
 #include "FairModule.h"
+#include "DetectorsBase/SimRandom.h"
 
 using namespace o2::trd;
 
@@ -228,7 +229,7 @@ int TRsim::calculatePhotons(float p, float mass, std::vector<float>& ePhoton)
   // <nTR> (binsize corr.)
   float nTr = mSpBinWidth * mSpectrum->Integral();
   // Number of TR photons from Poisson distribution with mean <nTr>
-  int nPhCand = gRandom->Poisson(nTr);
+  int nPhCand = o2::base::simRandom()->Poisson(nTr);
 
   // Link the MC stack and get info about parent electron
   TVirtualMCStack* stack = TVirtualMC::GetMC()->GetStack();
@@ -244,7 +245,7 @@ int TRsim::calculatePhotons(float p, float mass, std::vector<float>& ePhoton)
   TVirtualMC::GetMC()->TrackPosition(x, y, z);
   double t = TVirtualMC::GetMC()->TrackTime();
   for (int iPhoton = 0; iPhoton < nPhCand; ++iPhoton) {
-    double e = mSpectrum->GetRandom(); // Energy of the TR photon
+    double e = mSpectrum->GetRandom(o2::base::simRandom()); // Energy of the TR photon
     // Put TR photon on particle stack
     if (e > 15) {
       e *= 1e-6; // Convert it to GeV
