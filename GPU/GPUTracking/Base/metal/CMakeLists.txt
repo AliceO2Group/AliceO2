@@ -46,7 +46,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                  PUBLIC_LINK_LIBRARIES O2::GPUTracking
                  TARGETVARNAME targetName)
 
-  target_link_libraries(${targetName} PUBLIC ${METAL_FRAMEWORKS})
+  target_link_libraries(${targetName} PUBLIC ${METAL_FRAMEWORKS} "-framework IOKit")
 
   target_compile_definitions(${targetName} PRIVATE $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>)
   # the compile_defitions are not propagated automatically on purpose (they are

@@ -18,6 +18,7 @@
 #include <cstddef>
 #include <map>
 
+#include <IOKit/IOKitLib.h>
 #include <mach-o/dyld.h>
 #include <mach-o/getsect.h>
 #include <mach-o/ldsyms.h>  // _mh_execute_header
@@ -27,6 +28,28 @@
     GPUError(__VA_ARGS__);  \
     return (1);             \
   }
+
+namespace
+{
+// Metal does not report the number of GPU cores, but the IORegistry entry of
+// an Apple silicon GPU does. 0 if it is not there.
+uint32_t metalGPUCoreCount()
+{
+  uint32_t n = 0;
+  io_service_t service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AGXAccelerator"));
+  if (service) {
+    CFTypeRef p = IORegistryEntrySearchCFProperty(service, kIOServicePlane, CFSTR("gpu-core-count"), kCFAllocatorDefault, kIORegistryIterateRecursively);
+    if (p) {
+      if (CFGetTypeID(p) == CFNumberGetTypeID()) {
+        CFNumberGetValue((CFNumberRef)p, kCFNumberSInt32Type, &n);
+      }
+      CFRelease(p);
+    }
+    IOObjectRelease(service);
+  }
+  return n;
+}
+}  // namespace
 
 #include "utils/qGetLdBinarySymbols.h"
 QGET_LD_BINARY_SYMBOLS(GPUReconstructionMetalCode_src);
@@ -74,6 +97,14 @@ int32_t GPUReconstructionMetal::InitDevice_Runtime()
     mDeviceName = device_name.c_str();
     // Basically a random number for now.
     mMaxBackendThreads = 1000;
+    // The automatic grids are minBlocks per core; with the default of 1 they
+    // left all but one core idle.
+    mMultiprocessorCount = metalGPUCoreCount();
+    if (mMultiprocessorCount == 0) {
+      GPUWarning("Could not read the number of GPU cores, assuming 1");
+      mMultiprocessorCount = 1;
+    }
+    mMaxBackendThreads = std::max<int32_t>(mMaxBackendThreads, deviceMaxWorkGroup.width * mMultiprocessorCount);
 
     if (GetMetalPrograms()) {
       return 1;
