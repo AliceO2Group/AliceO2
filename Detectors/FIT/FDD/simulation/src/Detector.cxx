@@ -151,29 +151,23 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   Int_t nPhotonsInStep_ad = Int_t(fFDDLightYield * destep_ad);
   nPhotonsInStep_ad = gRandom->Poisson(nPhotonsInStep_ad);
 
-  static Float_t eloss_ad = 0.;
-  static Float_t tlength_ad = 0.;
-  static Int_t nPhotons_ad = 0;
-
-  static TVector3 vPos;
-
-  eloss_ad += destep_ad;
+  mElossAD += destep_ad;
 
   if (fMC->IsTrackEntering()) {
-    nPhotons_ad = nPhotonsInStep_ad;
-    fMC->TrackPosition(vPos(0), vPos(1), vPos(2));
+    mNPhotonsAD = nPhotonsInStep_ad;
+    fMC->TrackPosition(mHitPosAD(0), mHitPosAD(1), mHitPosAD(2));
 
-    eloss_ad = 0.0;
+    mElossAD = 0.0;
     return kFALSE;
   }
-  nPhotons_ad += nPhotonsInStep_ad;
+  mNPhotonsAD += nPhotonsInStep_ad;
 
   if (fMC->IsTrackExiting() || fMC->IsTrackStop() || fMC->IsTrackDisappeared()) {
     Int_t trackID = fMC->GetStack()->GetCurrentTrackNumber();
 
     Float_t time = fMC->TrackTime() * 1.0e9; //time from seconds to ns
 
-    addHit(trackID, ADsector, vPos, time, eloss_ad, nPhotons_ad);
+    addHit(trackID, ADsector, mHitPosAD, time, mElossAD, mNPhotonsAD);
     return kTRUE;
   }
 

@@ -20,6 +20,7 @@
 #include "DetectorsBase/Detector.h"
 #include "DataFormatsFDD/Hit.h"
 #include "FDDBase/Geometry.h"
+#include <TVector3.h>
 
 class FairModule;
 class FairVolume;
@@ -72,6 +73,11 @@ class Detector : public o2::base::DetImpl<Detector>
   /// Container for data points
   std::vector<o2::fdd::Hit>* mHits = nullptr;
   int mTrackRefLastTrackID = -1; //! last track that received a TrackReference in the current event
+
+  // state of the hit being built across steps in ProcessHits
+  Float_t mElossAD = 0.; //! energy loss collected so far
+  Int_t mNPhotonsAD = 0; //! photons collected so far
+  TVector3 mHitPosAD;    //! position where the track entered
 
   Detector& operator=(const Detector&);
 

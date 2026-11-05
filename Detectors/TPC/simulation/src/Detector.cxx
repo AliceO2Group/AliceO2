@@ -116,8 +116,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   mStepCounter++;
   auto& gasParam = ParameterGas::Instance();
   auto& detParam = ParameterDetector::Instance();
-  const Int_t kMaxDistRef = 15;       // maximal difference between 2 stored references - the parameter should be 15 cm as default
-  static Double_t lastReferenceR = 0; // keeps last reference point in radius (cm)
+  const Int_t kMaxDistRef = 15; // maximal difference between 2 stored references - the parameter should be 15 cm as default
 
   /* This method is called from the MC stepping for the sensitive volume only */
   //   LOG(info) << "tpc::ProcessHits";
@@ -166,7 +165,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   // if (sectorID != 0) return kFALSE;
 
   // ---| momentum and beta gamma |---
-  static TLorentzVector momentum; // static to make avoid creation/deletion of this expensive object
+  TLorentzVector momentum;
   fMC->TrackMomentum(momentum);
 
   const float time = fMC->TrackTime() * 1.0e9;
@@ -175,12 +174,12 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   if (fMC->IsTrackEntering() || fMC->IsTrackExiting()) {
     stack->addTrackReference(o2::TrackReference(position.X(), position.Y(), position.Z(), momentum.X(), momentum.Y(),
                                                 momentum.Z(), fMC->TrackLength(), time, trackID, GetDetId()));
-    lastReferenceR = fMC->TrackLength();
+    mLastReferenceR = fMC->TrackLength();
   }
-  if (TMath::Abs(lastReferenceR - fMC->TrackLength()) > kMaxDistRef) { /// we can speedup
+  if (TMath::Abs(mLastReferenceR - fMC->TrackLength()) > kMaxDistRef) { /// we can speedup
     stack->addTrackReference(o2::TrackReference(position.X(), position.Y(), position.Z(), momentum.X(), momentum.Y(),
                                                 momentum.Z(), fMC->TrackLength(), time, trackID, GetDetId()));
-    lastReferenceR = fMC->TrackLength();
+    mLastReferenceR = fMC->TrackLength();
   }
 
   // ---| remove clusters between the IFC and the FC strips |---

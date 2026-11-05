@@ -59,7 +59,7 @@ namespace steer
 template <typename T>
 void TypedVectorAttach(const char* name, fair::mq::Channel& channel, fair::mq::Parts& parts)
 {
-  static auto mgr = FairRootManager::Instance();
+  auto mgr = FairRootManager::Instance();
   auto vector = mgr->InitObjectAs<const std::vector<T>*>(name);
   if (vector) {
     auto buffer = (char*)&(*vector)[0];
