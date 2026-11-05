@@ -31,6 +31,9 @@
 #include <cmath>
 #include <csignal>
 #include <unistd.h>
+#ifdef __linux__
+#include <sys/prctl.h>
+#endif
 #include "SimPublishChannelHelper.h"
 
 #include "rapidjson/document.h"
@@ -48,9 +51,9 @@ void sigaction_handler(int signal, siginfo_t* signal_info, void*)
   auto pid = getpid();
   LOG(info) << pid << " caught signal " << signal << " from source " << signal_info->si_pid;
   auto groupid = getpgrp();
-  if (pid == gMasterProcess && signal_info->si_pid != gDriverProcess) {
+  if (pid == gMasterProcess && (signal_info->si_pid != gDriverProcess || signal == SIGTERM)) {
     // master worker forwards signal to whole worker process group
-    // (do this only if not coming from gDriverProcess since this uses killpg and already affected all children)
+    // (always for SIGTERM, since a parent-death signal also carries the driver pid)
     killpg(pid, signal);
   } else {
     if (signal_info->si_pid != gDriverProcess) {
@@ -168,6 +171,7 @@ KernelSetup initSim(std::string transport, std::string primaddress, std::string 
   auto datachannel = new fair::mq::Channel{"simdata", "push", factory};
   datachannel->Connect(mergeraddress);
   datachannel->Validate();
+  datachannel->GetSocket().SetLinger(-1); // keep queued hits until the merger has taken them
   // the channels are setup
 
   // init the sim object
@@ -393,6 +397,13 @@ int main(int argc, char* argv[])
       // we use the current process as one of the workers as it has nothing else to do
       auto pid = (i == nworkers - 1) ? 0 : fork();
       if (pid == 0) {
+#ifdef __linux__
+        // terminate if our parent dies, so a worker never outlives the o2-sim process tree
+        prctl(PR_SET_PDEATHSIG, SIGTERM);
+        if (getppid() != ((i == nworkers - 1) ? driverPID : gMasterProcess)) {
+          _exit(1);
+        }
+#endif
         // Each worker can publish its progress/state on a ZMQ channel.
         // We actually use a push/pull mechanism to collect all messages in the
         // master worker which can then publish using PUB/SUB.
@@ -418,7 +429,7 @@ int main(int argc, char* argv[])
         }
 
         // everyone else is getting a push socket for notifications
-        auto pushchannel = o2::simpubsub::createPUBChannel(o2::simpubsub::getPublishAddress("o2sim-workerinternal", driverPID), "push");
+        auto pushchannel = std::make_unique<fair::mq::Channel>(o2::simpubsub::createPUBChannel(o2::simpubsub::getPublishAddress("o2sim-workerinternal", driverPID), "push"));
 
         // we will try to pin each worker to a particular CPU
         // this can be made configurable via environment variables??
@@ -428,7 +439,7 @@ int main(int argc, char* argv[])
 
         std::stringstream worker;
         worker << "WORKER" << i;
-        o2::simpubsub::publishMessage(pushchannel, o2::simpubsub::simStatusString(worker.str(), "STATUS", "SETUP COMPLETED"));
+        o2::simpubsub::publishMessage(*pushchannel, o2::simpubsub::simStatusString(worker.str(), "STATUS", "SETUP COMPLETED"));
 
         auto& conf = o2::conf::SimConfig::Instance();
 
@@ -438,18 +449,28 @@ int main(int argc, char* argv[])
 
           if (conf.asService()) {
             LOG(info) << "IN SERVICE MODE WAITING";
-            o2::simpubsub::publishMessage(pushchannel, o2::simpubsub::simStatusString(worker.str(), "STATUS", "AWAITING INPUT"));
+            o2::simpubsub::publishMessage(*pushchannel, o2::simpubsub::simStatusString(worker.str(), "STATUS", "AWAITING INPUT"));
             more = waitForControlInput(kernelSetup.workerID);
             usleep(100); // --> why? (probably to give the server some chance to come to a "serving" state)
           } else {
-            o2::simpubsub::publishMessage(pushchannel, o2::simpubsub::simStatusString(worker.str(), "STATUS", "TERMINATING"));
+            o2::simpubsub::publishMessage(*pushchannel, o2::simpubsub::simStatusString(worker.str(), "STATUS", "TERMINATING"));
 
             LOG(info) << "FINISHING";
             more = false;
           }
         }
-        sleep(10); // ---> give some time for message to be delivered to merger (destructing too early might affect the ZQM buffers)
-                   // The process will in any case be terminated by the main o2-sim driver.
+        // Close the worker transport; this blocks until the merger has taken all queued hits
+        pushchannel.reset();
+        delete kernelSetup.primchannel;
+        delete kernelSetup.primstatuschannel;
+        delete kernelSetup.datachannel;
+
+        if (i == nworkers - 1) {
+          // the master reaps its forked workers
+          int status, cpid;
+          while ((cpid = wait(&status)) != -1) {
+          }
+        }
 
         // destruct setup (using _exit due to problems in ROOT shutdown (segmentation violations)
         // Clearly at some moment, a more robust solution would be appreciated
@@ -458,14 +479,6 @@ int main(int argc, char* argv[])
         gChildProcesses.push_back(pid);
       }
     }
-    int status, cpid;
-    while ((cpid = wait(&status))) {
-      // LOG(info) << "normal wait " << cpid << " returned ";
-      if (cpid == -1) {
-        break;
-      }
-    }
-    _exit(0);
   } else {
     // This the solution where we setup an ordinary fair::mq::Device
     // (each if which will setup its own simulation). Parallelism
