@@ -327,9 +327,14 @@ arrow::Result<arrow::fs::FileInfo> NativeAODFileSystem::GetFileInfo(const std::s
 
 std::shared_ptr<NativeAODInputFile> NativeAODInputFile::open(std::string const& url, RootObjectReadingFactory& factory, Options const& options, std::string const& name)
 {
+  return open(ByteSource::open(url, options), factory, options, name.empty() ? url : name);
+}
+
+std::shared_ptr<NativeAODInputFile> NativeAODInputFile::open(std::unique_ptr<ByteSource> source, RootObjectReadingFactory& factory, Options const& options, std::string const& name)
+{
   auto result = std::shared_ptr<NativeAODInputFile>(new NativeAODInputFile);
-  result->mName = name.empty() ? url : name;
-  result->mFile = std::make_shared<RootFile>(ByteSource::open(url, options));
+  result->mName = name;
+  result->mFile = std::make_shared<RootFile>(std::move(source));
   result->mFilesystem = std::make_shared<NativeAODFileSystem>(result->mFile, options, factory);
   result->mFilesystem->setName(result->mName);
   result->mParentFiles = result->mFile->readStringMap("parentFiles");

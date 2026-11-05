@@ -11,6 +11,7 @@
 
 #include "AODNative/ByteSource.h"
 #include "AODNative/Errors.h"
+#include "FailoverByteSource.h"
 #include "LocalByteSource.h"
 #ifdef AODNATIVE_WITH_XROOTD
 #include "XRootDByteSource.h"
@@ -57,6 +58,12 @@ std::unique_ptr<ByteSource> ByteSource::open(std::string url, const Options& opt
     throw IoError(url, "unknown URL scheme");
   }
   return std::make_unique<LocalByteSource>(std::move(url), options);
+}
+
+std::unique_ptr<ByteSource> ByteSource::openReplicas(std::vector<Replica> replicas, const Options& options,
+                                                     std::function<void(std::string const&)> log)
+{
+  return std::make_unique<FailoverByteSource>(std::move(replicas), options, &ByteSource::open, std::move(log));
 }
 
 } // namespace o2::aod::native

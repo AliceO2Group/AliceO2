@@ -14,9 +14,11 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <span>
 #include <string>
+#include <vector>
 
 namespace o2::aod::native
 {
@@ -46,6 +48,23 @@ struct Options {
   size_t streamWindowBytes = 2 * 1024 * 1024;
   HttpVersion httpVersion = HttpVersion::Auto;
   int httpConnections = 4;
+  /// For a source opened with ByteSource::openReplicas: how many times, at
+  /// most, failed reads are retried on a replica (reopened) during the life of
+  /// the file before moving on to the next replica, and the seconds waited
+  /// before the first retry (doubled for each further one).
+  int readRetries = 2;
+  double retryDelay = 2.0;
+  /// Most bytes of one read plan in flight at once on a remote file, so that
+  /// each request finishes within the server timeout on a slow link (XRootD
+  /// expires requests after XRD_REQUESTTIMEOUT, 150 s in the ALICE setup).
+  size_t remoteInFlightBytes = 32 * 1024 * 1024;
+};
+
+/// One copy of a file, for ByteSource::openReplicas: where it is, and a label
+/// (e.g. the storage element) to report which one is being read.
+struct Replica {
+  std::string url;
+  std::string label;
 };
 
 struct ReadRequest {
@@ -77,7 +96,15 @@ class ByteSource
   virtual uint64_t bytesRead() const = 0;
   virtual uint64_t readCalls() const = 0;
   virtual std::string url() const = 0;
+  /// The label of the replica being read, for a source opened with openReplicas().
+  virtual std::string replicaLabel() const { return {}; }
   static std::unique_ptr<ByteSource> open(std::string url, const Options&);
+  /// Opens the first replica which opens, and on a read error retries it
+  /// (Options::readRetries times, reopened) and then moves on to the next
+  /// replica of the same size. @a log, if given, is told about every retry
+  /// and every change of replica. Throws IoError when no replica is left.
+  static std::unique_ptr<ByteSource> openReplicas(std::vector<Replica> replicas, const Options&,
+                                                  std::function<void(std::string const&)> log = {});
 };
 
 } // namespace o2::aod::native
