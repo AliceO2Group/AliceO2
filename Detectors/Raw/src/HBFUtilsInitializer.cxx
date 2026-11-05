@@ -156,6 +156,9 @@ std::vector<o2::dataformats::TFIDInfo> HBFUtilsInitializer::readTFIDInfoVector(c
   }
   std::vector<o2::dataformats::TFIDInfo> v(*vptr);
   NTFs = v.size();
+  if (!NTFs) {
+    throw std::runtime_error(fmt::format("tfidinfo vector from {} has 0 size", fname));
+  }
   return v;
 }
 
