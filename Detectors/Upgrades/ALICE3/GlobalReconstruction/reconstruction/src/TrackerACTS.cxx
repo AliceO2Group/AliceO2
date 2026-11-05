@@ -288,7 +288,7 @@ void TrackerACTS<nLayers>::initDebugOutput()
   mROFTree->Branch("nAcceptedTracks", &mDebugROF.nAcceptedTracks, "nAcceptedTracks/I");
 
   mHistSpacePoints = std::make_unique<TH2F>("hSpacePoints", "Space points; x (cm); y (cm)",
-                                             200, -100, 100, 200, -100, 100);
+                                            200, -100, 100, 200, -100, 100);
   mHistSpacePoints->SetDirectory(nullptr); // Owned by TrackerACTS, not by TFile.
   LOG(info) << "ACTS debug trees enabled: " << mConfig.debugFileName;
 }
@@ -480,7 +480,8 @@ void TrackerACTS<nLayers>::buildSpacePoints(int rof)
         mDebugCluster.externalId = mTimeFrame->getClusterExternalIndex(layer, clusterIndex);
         mDebugCluster.sensorId = sensorID;
         // 0: sensor ID missing; 1: ACTS surface missing; 2: mapped.
-        mDebugCluster.mappingStatus = !hasSensorID ? 0 : !surface ? 1 : 2;
+        mDebugCluster.mappingStatus = !hasSensorID ? 0 : !surface ? 1
+                                                                  : 2;
         mDebugCluster.geometryId = surface ? surface->geometryId().value() : 0;
         mDebugCluster.x = cluster.xCoordinate;
         mDebugCluster.y = cluster.yCoordinate;
