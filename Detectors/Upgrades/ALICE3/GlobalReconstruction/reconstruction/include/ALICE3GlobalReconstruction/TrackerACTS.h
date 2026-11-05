@@ -155,12 +155,6 @@ class TrackerACTS
   /// Read-only access to the tracker configuration.
   const TrackerACTSConfig& getConfig() const { return mConfig; }
 
-  /// Set the magnetic field along z, in Tesla.
-  void setBz(float bz) { mBz = bz; }
-
-  /// Get the magnetic field along z, in Tesla.
-  float getBz() const { return mBz; }
-
   /// Print the accumulated tracking timing and processing summary.
   void printSummary() const;
 
@@ -239,7 +233,6 @@ class TrackerACTS
   std::vector<std::array<int, nLayers>> mAcceptedTrackClusterIndices;
 
   // Tracking state
-  float mBz{0.5f}; ///< Magnetic field in Tesla
   unsigned int mTimeFrameCounter{0};
   double mTotalTime{0.};
   const std::array<std::vector<int>, nLayers>* mSensorIDs = nullptr;

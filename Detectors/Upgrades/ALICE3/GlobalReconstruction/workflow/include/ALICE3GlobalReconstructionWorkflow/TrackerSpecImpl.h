@@ -125,9 +125,6 @@ void TrackerDPL::runTracking(framework::ProcessingContext& pc, TimeFrameT& timeF
     actsTracker.adoptTimeFrame(timeFrame);
     actsTracker.adoptSensorIDs(timeFrame.getClusterSensorIDs());
 
-    const auto& config = mHitRecoConfig.empty() ? mClusterRecoConfig : mHitRecoConfig;
-    // The input magnetic field is in kG; ACTS TrackerACTS expects Tesla.
-    actsTracker.setBz(config["geometry"]["bz"].get<float>() * 0.1f);
     actsTracker.clustersToTracks(); // This will run the full tracking chain: space point building, seeding, and track finding.
     actsTracker.printSummary();
   } else

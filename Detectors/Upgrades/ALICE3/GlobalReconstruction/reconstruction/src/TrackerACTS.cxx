@@ -38,6 +38,7 @@
 
 #include "ALICE3GlobalReconstruction/TrackerACTS.h"
 
+#include "ACTSInterface/MagneticFieldAdapter.h"
 #include "ACTSInterface/TrackingGeometryManager.h"
 #include "MathUtils/Utils.h"
 #include "TRKBase/GeometryTGeo.h"
@@ -55,7 +56,6 @@
 #include <Acts/EventData/TrackContainer.hpp>
 #include <Acts/EventData/VectorMultiTrajectory.hpp>
 #include <Acts/EventData/VectorTrackContainer.hpp>
-#include <Acts/MagneticField/ConstantBField.hpp>
 #include <Acts/MagneticField/MagneticFieldContext.hpp>
 #include <Acts/Propagator/DirectNavigator.hpp>
 #include <Acts/Propagator/EigenStepper.hpp>
@@ -87,6 +87,7 @@
 #include <optional>
 #include <memory>
 #include <span>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -546,7 +547,14 @@ void TrackerACTS<nLayers>::createSeeds()
     return;
   }
 
-  const float bFieldInZ = mBz * Acts::UnitConstants::T;
+  o2::acts::MagneticFieldAdapter magneticField;
+  Acts::MagneticFieldContext magneticFieldContext;
+  auto magneticFieldCache = magneticField.makeCache(magneticFieldContext);
+  const auto fieldAtOrigin = magneticField.getField(Acts::Vector3::Zero(), magneticFieldCache);
+  if (!fieldAtOrigin.ok()) {
+    throw std::runtime_error("Failed to query the O2 magnetic field for ACTS seeding");
+  }
+  const float bFieldInZ = fieldAtOrigin.value().z();
 
   // ACTS seeding consumes cylindrical (phi, z, r) bins in ACTS units. The
   // bins are populated from the owned space-point vector, whose indices are
@@ -697,10 +705,8 @@ void TrackerACTS<nLayers>::findTracks()
   Acts::MagneticFieldContext magneticFieldContext;
   Acts::CalibrationContext calibrationContext;
 
-  // Initial implementation with a constant magnetic field; the ACTS geometry
-  // is used for surface navigation, while this field is uniform in z.
-  auto magneticField = std::make_shared<Acts::ConstantBField>(
-    Acts::Vector3{0., 0., mBz * Acts::UnitConstants::T});
+  auto magneticField = std::make_shared<o2::acts::MagneticFieldAdapter>();
+  auto magneticFieldCache = magneticField->makeCache(magneticFieldContext);
 
   using Propagator = Acts::Propagator<Acts::EigenStepper<>, Acts::DirectNavigator>;
   using Trajectory = Acts::VectorMultiTrajectory;
@@ -816,9 +822,13 @@ void TrackerACTS<nLayers>::findTracks()
 
     Acts::FreeVector freeParams;
     try {
-      freeParams = Acts::estimateTrackParamsFromSeed(
-        pos0, 0., pos1, pos2,
-        Acts::Vector3{0., 0., mBz * Acts::UnitConstants::T});
+      const auto localField = magneticField->getField(pos1, magneticFieldCache);
+      if (!localField.ok()) {
+        LOG(error) << "Failed to query the O2 magnetic field for ACTS seed parameters";
+        ++nInvalid;
+        continue;
+      }
+      freeParams = Acts::estimateTrackParamsFromSeed(pos0, 0., pos1, pos2, localField.value());
     } catch (const std::exception& e) {
       LOG(debug) << "ACTS seed parameter estimation failed: " << e.what();
       ++nInvalid;
