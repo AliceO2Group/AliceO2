@@ -1,0 +1,9 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: FairRoot
+Upstream-Contact: Mohammad Al-Turany <m.al-turany@gsi.de>
+Source: https://github.com/FairRootGroup/FairRoot
+
+Files: *
+Copyright: 2003-2019, GSI Helmholtzzentrum fuer Schwerionenforschung GmbH
+Copyright: 2003-2019, [see AUTHORS file]
+Copyright: 2003-2019, [see CONTRIBUTORS file]
