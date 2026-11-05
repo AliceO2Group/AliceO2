@@ -46,7 +46,7 @@ class ChipDigitsContainer
   o2::trkft3::PreDigit* findDigit(ULong64_t key);
   void addDigit(ULong64_t key, UInt_t roframe, UShort_t row, UShort_t col, int charge, o2::MCCompLabel lbl, float toa = 0.f);
   template <int DetID>
-  void addNoise(UInt_t rofMin, UInt_t rofMax, const o2::trkft3::DigiParams<DetID>* params, int subDetID, int layer);
+  void addNoise(UInt_t rofMin, UInt_t rofMax, const o2::trkft3::DigiParams<DetID>* params, int subDetID, int layer, float rofLengthNS);
 
   /// Get global ordering key made of readout frame, column and row
   static ULong64_t getOrderingKey(UInt_t roframe, UShort_t row, UShort_t col)
@@ -85,7 +85,7 @@ inline void ChipDigitsContainer::addDigit(ULong64_t key, UInt_t roframe, UShort_
 } // namespace o2::trkft3
 
 template <int DetID>
-void o2::trkft3::ChipDigitsContainer::addNoise(UInt_t rofMin, UInt_t rofMax, const o2::trkft3::DigiParams<DetID>* params, int subDetID, int layer)
+void o2::trkft3::ChipDigitsContainer::addNoise(UInt_t rofMin, UInt_t rofMax, const o2::trkft3::DigiParams<DetID>* params, int subDetID, int layer, float rofLengthNS)
 {
   UInt_t row = 0;
   UInt_t col = 0;
@@ -102,7 +102,7 @@ void o2::trkft3::ChipDigitsContainer::addNoise(UInt_t rofMin, UInt_t rofMax, con
     maxRows = o2::trk::constants::moduleMLOT::chip::nRows;
     maxCols = o2::trk::constants::moduleMLOT::chip::nCols;
   }
-  mean = params->getNoisePerPixel() * maxRows * maxCols;
+  mean = params->getNoisePerPixel() * rofLengthNS * 1e-9 * maxRows * maxCols; // hits per ROF in the chip, calculated from the noise rate in hits/s
   nel = static_cast<int>(params->getChargeThreshold() * 1.1);
 
   LOG(debug) << "Adding noise for chip " << mChipIndex << " with mean " << mean << " and charge " << nel;
@@ -121,7 +121,8 @@ void o2::trkft3::ChipDigitsContainer::addNoise(UInt_t rofMin, UInt_t rofMax, con
       }
       auto key = getOrderingKey(rof, row, col);
       if (!findDigit(key)) {
-        addDigit(key, rof, row, col, nel, o2::MCCompLabel(true), 0.f); /// TODO: find a better ToA for noise
+        float toa = gRandom->Uniform(0.f, rofLengthNS); // noise fires uniformly in the ROF
+        addDigit(key, rof, row, col, nel, o2::MCCompLabel(true), toa);
       }
     }
   }
