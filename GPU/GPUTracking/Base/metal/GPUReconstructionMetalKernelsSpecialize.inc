@@ -23,5 +23,5 @@ inline void GPUReconstructionMetal::runKernelBackend<GPUMemClean16, 0>(const krn
   [blit fillBuffer:mInternals->mem_gpu range:NSMakeRange(offset, length) value:0];
   [blit endEncoding];
 
-  [cb commit];
+  CommitStream(_xyz.x.stream);
 }
