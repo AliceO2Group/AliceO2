@@ -57,10 +57,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto disableRootOutput = configcontext.options().get<bool>("disable-root-output");
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
 
-  if (hitRecoConfig.empty() && clusterRecoConfig.empty()) {
-    throw std::invalid_argument("no reconstruction input configured: provide either --tracking-from-hits-config <file> or --tracking-from-clusters-config <file>");
-  }
-
   o2::conf::ConfigurableParam::writeINI("o2alice3globalrecoflow_configuration.ini");
 
   return o2::trk::global_reco_workflow::getWorkflow(useMC, hitRecoConfig, clusterRecoConfig, disableRootOutput, gpuDevice, trackingThreads);

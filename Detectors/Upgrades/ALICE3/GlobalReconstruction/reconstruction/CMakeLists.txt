@@ -10,12 +10,18 @@
 # or submit itself to any jurisdiction.
 
 if(Acts_FOUND)
-  set(actsTarget Acts::Core)
+  set(actsSources src/TrackerACTS.cxx)
+  set(actsTarget
+        Acts::Core
+        O2::ACTSInterface
+        O2::ALICE3ACTS
+        ROOT::Tree
+        ROOT::RIO)
 endif()
 
 o2_add_library(ALICE3GlobalReconstruction
                TARGETVARNAME targetName
-               SOURCES src/TimeFrame.cxx
+               SOURCES src/TimeFrame.cxx ${actsSources}
                PUBLIC_LINK_LIBRARIES
                        O2::ITStracking
                        O2::GPUCommon
