@@ -62,6 +62,10 @@ struct GPUReconstructionMetalInternals {
   // Signalled by each committed buffer and waited for by the next one, see CommitStream
   std::array<id<MTLSharedEvent>, constants::GPU_MAX_STREAMS> streamOrder;
   std::array<uint64_t, constants::GPU_MAX_STREAMS> streamOrderValue;
+  // Orders the encoders within the open command buffer of a stream, which
+  // collects the stream's work until something has to wait for it.
+  std::array<id<MTLFence>, constants::GPU_MAX_STREAMS> streamFence;
+  std::array<bool, constants::GPU_MAX_STREAMS> streamHasWork;
 
   std::vector<id<MTLFunction>> functions;
   std::vector<id<MTLComputePipelineState>> pipelines;
@@ -79,6 +83,20 @@ struct GPUReconstructionMetalInternals {
   std::unordered_map<void*, uint64_t> eventValues;
   std::mutex eventMutex;
 };
+// An encoder of a stream starts after the previous one of the same stream and
+// leaves its work in the open command buffer.
+template <class E>
+inline void metalBeginEncoder(GPUReconstructionMetalInternals* internals, E encoder, int32_t stream)
+{
+  [encoder waitForFence:internals->streamFence[stream]];
+}
+template <class E>
+inline void metalEndEncoder(GPUReconstructionMetalInternals* internals, E encoder, int32_t stream)
+{
+  [encoder updateFence:internals->streamFence[stream]];
+  [encoder endEncoding];
+  internals->streamHasWork[stream] = true;
+}
 } // namespace o2::gpu
 
 #endif // GPURECONSTRUCTIONOMETALINCLUDESHOST_H

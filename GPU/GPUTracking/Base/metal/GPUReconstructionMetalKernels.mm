@@ -32,6 +32,7 @@ inline void GPUReconstructionMetal::runKernelBackend(const krnlSetupTime& _xyz, 
 
   id<MTLComputePipelineState> pso = mInternals->pipelines[num];
   id<MTLComputeCommandEncoder> computeEncoder = [mInternals->commandBuffers[kExec.stream] computeCommandEncoder];
+  metalBeginEncoder(mInternals, computeEncoder, kExec.stream);
 
   // Slots 0 to 2 are what GPUCA_KRNL_BUFFERS and GPUCA_KRNL_SECTOR_ARG declare
   // in the generated signature; the kernel's own arguments follow from slot 3.
@@ -51,10 +52,7 @@ inline void GPUReconstructionMetal::runKernelBackend(const krnlSetupTime& _xyz, 
   }
   [computeEncoder dispatchThreadgroups:MTLSizeMake(kExec.nBlocks, 1, 1)
                  threadsPerThreadgroup:MTLSizeMake(threadGroupSize, 1, 1)];
-  // Without ending the encoder the next one on this buffer is rejected, and
-  // without committing the kernel never reaches the device.
-  [computeEncoder endEncoding];
-  CommitStream(kExec.stream);
+  metalEndEncoder(mInternals, computeEncoder, kExec.stream);
   if (kEvents.ev) {
     RecordMarker(kEvents.ev, kExec.stream);
   }
