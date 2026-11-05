@@ -131,6 +131,8 @@ class NativeAODInputFile : public AODInputFile
   /// file can still go to ROOT. Throws o2::aod::native::FormatError.
   /// @a name is what the file is called (an LFN for a grid file); @a url by default.
   static std::shared_ptr<NativeAODInputFile> open(std::string const& url, RootObjectReadingFactory& factory, o2::aod::native::Options const& options, std::string const& name = {});
+  /// The same, reading from @a source (e.g. the replicas of a grid file).
+  static std::shared_ptr<NativeAODInputFile> open(std::unique_ptr<o2::aod::native::ByteSource> source, RootObjectReadingFactory& factory, o2::aod::native::Options const& options, std::string const& name);
   /// The storage element and the seconds the grid lookup and open took, for monitoring.
   void setGridInfo(std::string se, double openTime);
   std::string monitoringDetails() const override;

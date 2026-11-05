@@ -229,10 +229,20 @@ ROOT's 50 MB TTreeCache. With the macOS allocator cache on, max RSS is higher
 
 `XRootDByteSource` (root://, roots://, xroot://, xroots://), built when O2 finds
 XRootD (optional in O2); otherwise those URLs get an IoError, so `auto` falls
-back. Links only libXrdCl. `readvInto` sends a whole read plan at once: ranges
-up to 2097136 bytes go in vectored reads of at most 1024 chunks, larger ones
-in plain reads of at most 64 MiB, all asynchronous, then waits for all of them;
-a short or failed reply is an IoError. `readCalls()` counts requests sent.
+back. Links only libXrdCl. After opening it asks the data server for its
+kXR_readv limits (`readv_ior_max`, `readv_iov_max`), as TNetXNGFile does,
+keeping XrdCl's defaults (2097136 bytes, 1024 chunks) when it does not answer.
+`readvInto` sends ranges up to the chunk limit in vectored reads and larger ones
+in plain reads of at most 8 MiB, asynchronously, in rounds of at most
+`Options::remoteInFlightBytes` (32 MiB), waiting for each round; a short or
+failed reply is an IoError. `readCalls()` counts requests sent.
+
+Until 2026-11-05 a whole plan went out at once, with plain reads of up to
+64 MiB. On the Grid, at ORNL reading Poznan EOS (slow transatlantic link), the
+native reader then failed 2-6x more often than ROOT, mostly with "Operation
+expired": requests sharing the link took longer than XRD_REQUESTTIMEOUT (150 s
+in the ALICE environment). Smaller requests and the in-flight limit keep each
+request well within it.
 
 Tested against a local server (Homebrew xrootd 6.2.0, `all.export ~/src/data
 r/o`): byte-identical with both readers over root:// on hy_3993289/0065,
@@ -319,9 +329,16 @@ in DPL (analysis-histograms, LHC24ar) 380 vs 319, with identical results.
 sends `access read <lfn>` through `gGrid`, as `TJAlienFile::Open` does, and
 turns each replica into `root://<se>//<pfn>?&authz=<envelope>`. Files inside
 an archive (`#member`, on the LFN or the replica) are refused, so `auto` falls
-back to ROOT. `openNativeAOD()` tries the replicas in the order AliEn proposes,
-moving on after an IoError only (a format problem is the same on every
-replica); DPL's reader and the comparison tool both open files through it.
+back to ROOT. `openNativeAOD()` reads the replicas, in the order AliEn
+proposes, through `ByteSource::openReplicas()` (`FailoverByteSource`): the
+first replica which opens is read; a read which fails with an IoError, at any
+point of the file, is retried on that replica, reopened, up to
+`Options::readRetries` (2) times per replica with a doubling delay from
+`retryDelay` (2 s), and then continues on the next replica of the same size.
+Only IoErrors are retried: a format problem is the same on every replica. Each
+retry and change of replica is logged. ROOT only moves to another replica when
+opening fails, so this makes the native reader more robust than ROOT on flaky
+storage. DPL's reader and the comparison tool both open files through it.
 The file keeps its LFN as name: what DataInputDirector compares, what goes
 with derived output, and what monitoring reports, with `se=` and
 `open_time=` as for TJAlienFile. `XRootDByteSource` uses the full URL only to

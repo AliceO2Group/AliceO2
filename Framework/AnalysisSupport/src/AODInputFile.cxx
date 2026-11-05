@@ -152,18 +152,19 @@ std::shared_ptr<AODInputFile> openNativeAOD(std::string const& filename, RootObj
   if (replicas.empty()) {
     throw o2::aod::native::IoError(filename, "no replica the native reader can read");
   }
-  std::string errors;
+  // The file is read from the first replica which opens; a read error later on
+  // is retried and then continues on the next replica (FailoverByteSource).
+  std::vector<o2::aod::native::Replica> list;
   for (auto const& replica : replicas) {
-    try {
-      auto file = NativeAODInputFile::open(replica.url, factory, options, filename);
-      file->setGridInfo(replica.se, std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count());
-      return file;
-    } catch (o2::aod::native::IoError const& e) {
-      LOGP(info, "Could not open replica of \"{}\" on {}: {}", filename, replica.se, e.what());
-      errors += fmt::format(" {}: {};", replica.se, e.what());
-    }
+    list.push_back({replica.url, replica.se});
   }
-  throw o2::aod::native::IoError(filename, "no replica could be opened:" + errors);
+  auto source = o2::aod::native::ByteSource::openReplicas(std::move(list), options, [filename](std::string const& message) {
+    LOGP(info, "\"{}\": {}", filename, message);
+  });
+  auto se = source->replicaLabel();
+  auto file = NativeAODInputFile::open(std::move(source), factory, options, filename);
+  file->setGridInfo(se, std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count());
+  return file;
 }
 
 } // namespace o2::framework

@@ -13,6 +13,7 @@
 # ROOT, at build or run time: see the check at the end of this file.
 o2_add_library(AODNative
                SOURCES src/ByteSource.cxx
+                       src/FailoverByteSource.cxx
                        src/LocalByteSource.cxx
                        src/Container.cxx
                        src/Objects.cxx
@@ -54,7 +55,8 @@ add_executable(o2-test-framework-aod-native
                test/test_Codecs.cxx
                test/test_Objects.cxx
                test/test_Decoder.cxx
-               test/test_ReadPlan.cxx)
+               test/test_ReadPlan.cxx
+               test/test_Failover.cxx)
 target_include_directories(o2-test-framework-aod-native PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
 target_link_libraries(o2-test-framework-aod-native PRIVATE O2::AODNative O2::Catch2 PkgConfig::zstd PkgConfig::lz4 PkgConfig::lzma ZLIB::ZLIB)
 

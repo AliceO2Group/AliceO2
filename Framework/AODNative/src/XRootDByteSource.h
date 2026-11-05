@@ -25,9 +25,11 @@ namespace o2::aod::native
 {
 
 /// A file read with the XRootD client (root://, roots://, xroot://, xroots://).
-/// readvInto() sends all its ranges at once, as vectored reads for the small
-/// ones and plain reads for the large ones, and waits for all of them: one
-/// round trip for a whole read plan.
+/// readvInto() sends its ranges as vectored reads for the small ones, within
+/// the server's kXR_readv limits, and plain reads of at most 8 MB for the
+/// large ones, in rounds of at most Options::remoteInFlightBytes: usually one
+/// round trip for a whole read plan, and no request so large that it expires
+/// on a slow link. Errors are not retried here: see FailoverByteSource.
 class XRootDByteSource : public ByteSource
 {
  public:
@@ -49,6 +51,9 @@ class XRootDByteSource : public ByteSource
   std::string mName;
   std::unique_ptr<XrdCl::File> mFile;
   uint64_t mSize = 0;
+  size_t mVectorChunkMax;
+  size_t mVectorChunksMax;
+  size_t mInFlightMax;
   std::atomic<uint64_t> mBytesRead = 0;
   std::atomic<uint64_t> mReadCalls = 0;
 };
