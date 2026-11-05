@@ -17,8 +17,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_MODULE_PATH})
 
 # Required packages
 #
-# Order is not completely irrelevant. For instance arrow must come before
-# FairRoot (see FindFairRoot.cmake)
+# Order is not completely irrelevant.
 #
 # Generally speaking we should prefer the CONFIG variant of the find_package. We
 # explicitely don't use the CONFIG variant (i.e. we do use the MODULE variant)
@@ -167,10 +166,6 @@ set_package_properties(Boost PROPERTIES TYPE REQUIRED)
 
 find_package(FairLogger CONFIG)
 set_package_properties(FairLogger PROPERTIES TYPE REQUIRED)
-
-# FairRoot is no longer an external dependency: its simulation base classes
-# are vendored in Detectors/FairRootBase (target O2::FairRootBase).
-set_package_properties(FairRoot PROPERTIES TYPE REQUIRED)
 
 find_package(Microsoft.GSL CONFIG)
 set_package_properties(Microsoft.GSL
