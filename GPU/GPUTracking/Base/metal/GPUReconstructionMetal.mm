@@ -137,7 +137,12 @@ int32_t GPUReconstructionMetal::InitDevice_Runtime()
 
   for (uint32_t i = 0; i < mEvents.size(); i++) {
     auto* events = (id<MTLSharedEvent>*)mEvents[i].data();
-    new (events) id<MTLSharedEvent>[ mEvents[i].size() ];
+    for (uint32_t j = 0; j < mEvents[i].size(); j++) {
+      events[j] = [mInternals->device newSharedEvent];
+      if (events[j] == nil) {
+        GPUErrorReturn("Error creating Metal event");
+      }
+    }
   }
 
   return (0);
@@ -147,6 +152,13 @@ int32_t GPUReconstructionMetal::ExitDevice_Runtime()
 {
   // Tear down Metal
   SynchronizeGPU();
+
+  for (uint32_t i = 0; i < mEvents.size(); i++) {
+    auto* events = (id<MTLSharedEvent>*)mEvents[i].data();
+    for (uint32_t j = 0; j < mEvents[i].size(); j++) {
+      [events[j] release];
+    }
+  }
 
   if (mMaster == nullptr) {
     if (mDeviceMemoryBase) {
