@@ -232,6 +232,9 @@ size_t GPUReconstructionMetal::GPUMemCpy(void* dst, const void* src, size_t size
   }
 
   auto realStream = stream == -1 ? 0 : stream;
+  if (nEvents) {
+    StreamWaitForEvents(realStream, evList, nEvents);
+  }
   const MetalMemRef s = metalResolve(mInternals, src, mHostMemoryBase, mHostMemorySize, mDeviceMemoryBase, mDeviceMemorySize);
   const MetalMemRef d = metalResolve(mInternals, dst, mHostMemoryBase, mHostMemorySize, mDeviceMemoryBase, mDeviceMemorySize);
 
@@ -251,6 +254,9 @@ size_t GPUReconstructionMetal::GPUMemCpy(void* dst, const void* src, size_t size
                     size:sizeBytes];
     [blit endEncoding];
     CommitStream(realStream);
+  }
+  if (ev) {
+    RecordMarker(ev, realStream);
   }
 
   if (GetProcessingSettings().serializeGPU & 2) {
@@ -281,6 +287,9 @@ size_t GPUReconstructionMetal::WriteToConstantMemory(size_t offset, const void* 
                     size:size];
     [blit endEncoding];
     CommitStream(realStream);
+  }
+  if (ev) {
+    RecordMarker(ev, realStream);
   }
 
   if (GetProcessingSettings().serializeGPU & 2) {

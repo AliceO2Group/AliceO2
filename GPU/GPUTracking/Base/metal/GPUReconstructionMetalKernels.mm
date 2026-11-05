@@ -25,6 +25,10 @@ inline void GPUReconstructionMetal::runKernelBackend(const krnlSetupTime& _xyz, 
   const uint32_t num = GetKernelNum<T, I>();
   auto& kExec = _xyz.x;
   auto& runRange = _xyz.y;
+  auto& kEvents = _xyz.z;
+  if (kEvents.evList) {
+    StreamWaitForEvents(kExec.stream, kEvents.evList, kEvents.nEvents);
+  }
 
   id<MTLComputePipelineState> pso = mInternals->pipelines[num];
   id<MTLComputeCommandEncoder> computeEncoder = [mInternals->commandBuffers[kExec.stream] computeCommandEncoder];
@@ -51,6 +55,9 @@ inline void GPUReconstructionMetal::runKernelBackend(const krnlSetupTime& _xyz, 
   // without committing the kernel never reaches the device.
   [computeEncoder endEncoding];
   CommitStream(kExec.stream);
+  if (kEvents.ev) {
+    RecordMarker(kEvents.ev, kExec.stream);
+  }
 }
 
 template <class T, int32_t I>
