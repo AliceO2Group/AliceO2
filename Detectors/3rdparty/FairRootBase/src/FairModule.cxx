@@ -5,6 +5,7 @@
  *              GNU Lesser General Public Licence (LGPL) version 3,             *
  *                  copied verbatim in the file "LICENSE"                       *
  ********************************************************************************/
+// Modified for ALICE O2 in 2026: parts not used by O2 were removed (see README.md in this directory).
 // -------------------------------------------------------------------------
 // -----                     FairModule source file                    -----
 // -----            Created 06/01/04  by M. Al-Turany                  -----
@@ -470,6 +471,9 @@ void FairModule::ExpandNodeForGDML(__attribute__((unused)) TGeoNode* curNode) {}
 
 void FairModule::ReAssignMediaId()
 {
+    if (!FairGeoLoader::Instance()) {
+        LOG(fatal) << "FairModule: no FairGeoLoader, the ASCII/ROOT geometry import of FairRoot is not set up in O2";
+    }
     // Initialise pointer to GeoBuilder
     FairGeoBuilder* geoBuilder = FairGeoLoader::Instance()->getGeoBuilder();
     // Get list of TGeo media
@@ -601,6 +605,9 @@ void FairModule::AssignMediumAtImport(TGeoVolume* v)
      * case 1: For CAD converted volumes they have no mediums (only names)
      * case 2: TGeoVolumes, we need to be sure that the material is defined in this session
      */
+    if (!FairGeoLoader::Instance()) {
+        LOG(fatal) << "FairModule: no FairGeoLoader, the ASCII/ROOT geometry import of FairRoot is not set up in O2";
+    }
     FairGeoMedia* Media = FairGeoLoader::Instance()->getGeoInterface()->getMedia();
     FairGeoBuilder* geobuild = FairGeoLoader::Instance()->getGeoBuilder();
 

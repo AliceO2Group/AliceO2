@@ -14,4 +14,3 @@ o2_add_test_root_macro(drawCPVgeometry.C
                                              O2::DetectorsPassive
                                              O2::PHOSSimulation
                        LABELS cpv)
-		       		       

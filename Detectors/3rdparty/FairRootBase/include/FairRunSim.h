@@ -5,6 +5,7 @@
  *              GNU Lesser General Public Licence (LGPL) version 3,             *
  *                  copied verbatim in the file "LICENSE"                       *
  ********************************************************************************/
+// Modified for ALICE O2 in 2026: parts not used by O2 were removed (see README.md in this directory).
 #ifndef FAIRRUNSIM_H
 #define FAIRRUNSIM_H
 

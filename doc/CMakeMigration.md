@@ -83,7 +83,6 @@ Third-party dependencies are found in [dependencies/CMakeLists.txt](../dependenc
 `find_package` calls are of the `CONFIG` variety unless there's a compelling reason to use the `MODULE` version.
 In particular :
 
-- [FindFairRoot](../dependencies/FindFairRoot.cmake) is creating imported targets so we can use `FairRoot::XXX` targets even if those are not (yet) created by FairRoot itself. That file will disappear when FairRoot completes its own CMake migration.
 - [FindGeant3](../dependencies/FindGeant3.cmake), [FindGeant4](../dependencies/FindGeant4.cmake), [Geant4VMC](../dependencies/FindGeant4VMC.cmake) : while those MC projects have Config.cmake files and thus define targets, they do not include the proper include paths for those targets. So those Find modules are just light ones that add the missing include paths to the imported targets defined in those projects.
 - [Findpythia](../dependencies/Findpythia.cmake) (for Pythia8) and [Findpythia6](../dependencies/Findpythia6.cmake) define imported targets for those libraries
 - [Findms_gsl](../dependencies/Findms_gsl.cmake) defines a `ms_gsl` target corresponding to the header only library

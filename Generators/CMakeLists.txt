@@ -56,7 +56,6 @@ o2_add_library(Generators
                        $<$<AND:$<BOOL:${pythia_FOUND}>,$<BOOL:${HepMC3_FOUND}>>:src/GeneratorHybridParam.cxx>
                PUBLIC_LINK_LIBRARIES O2::FairRootBase O2::SimConfig O2::CommonUtils O2::DetectorsBase O2::ZDCBase O2::DetectorsRaw
                                      O2::SimulationDataFormat ${pythiaTarget} ${hepmcTarget}
-                                     O2::FairRootBase
                                      onnxruntime::onnxruntime
                TARGETVARNAME targetName)
 

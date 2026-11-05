@@ -1,6 +1,5 @@
-// Generated for the vendored FairRoot simulation base classes.
-// Dictionary flags mirror FairRoot's own LinkDef files so the on-disk
-// streamer behaviour of persisted classes is unchanged.
+// Dictionary for the FairRoot classes used by O2. The streamer flags follow FairRoot's own
+// LinkDef files, so the on-disk format of persisted classes is unchanged.
 
 #ifdef __CLING__
 #pragma link off all globals;

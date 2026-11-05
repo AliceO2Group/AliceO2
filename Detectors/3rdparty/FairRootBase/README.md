@@ -8,13 +8,15 @@ ALICE has been building against.
 
 The files keep their original copyright and licence headers. FairRoot is distributed under the GNU
 Lesser General Public Licence version 3. The licence text is in [LICENSE](LICENSE) and the copyright
-statement in [COPYRIGHT](COPYRIGHT), both copied verbatim from FairRoot.
+statement in [COPYRIGHT](COPYRIGHT), with [AUTHORS](AUTHORS) and [CONTRIBUTORS](CONTRIBUTORS), all copied verbatim
+from FairRoot. Each modified file carries a note below its licence header.
 
-Changes with respect to the upstream sources:
+Changes with respect to the upstream sources, made in 2026:
 
 - Code paths that O2 does not use were removed. This covers the runtime parameter database and the
   geometry parameter containers, among others. The affected files are `FairMCApplication`,
   `FairModule`, `FairRun`, `FairRunSim`, `FairSink` and `FairField`.
+- `FairModule` stops with a clear message if its geometry import is used, since O2 does not set it up.
 - `FairRootBaseLinkDef.h` is new and builds one dictionary for the directory.
 
 The sources keep their upstream formatting and are excluded from clang-format.

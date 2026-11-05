@@ -5,6 +5,7 @@
  *              GNU Lesser General Public Licence (LGPL) version 3,             *
  *                  copied verbatim in the file "LICENSE"                       *
  ********************************************************************************/
+// Modified for ALICE O2 in 2026: parts not used by O2 were removed (see README.md in this directory).
 #ifndef FAIRMODULE_H
 #define FAIRMODULE_H
 
@@ -116,7 +117,6 @@ class FairModule : public TNamed
      **/
     void SetMotherVolume(TString volName) { fMotherVolumeName = volName; }
     /**called from ConstuctASCIIGeometry*/
-    void ProcessNodes(TList* aList);
     /**Set the parameter containers*/
     virtual void SetParContainers() { ; }
     /** Initialize everything which has to be done before the construction and modification

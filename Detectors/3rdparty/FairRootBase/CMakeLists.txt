@@ -9,17 +9,7 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-# FairRootBase: the FairRoot simulation base classes, vendored into O2.
-#
-# These files are copied verbatim from ALICE's own FairRoot fork
-# (alisw/FairRoot, v18.4.9-alice3) so that O2 no longer needs FairRoot as an
-# external package. They remain LGPLv3 (see the per-file headers), which is
-# compatible with O2's GPLv3.
-#
-# The classes deliberately keep their original names and header names in this
-# first step: that makes the move a pure relocation with no call-site changes,
-# so it can be validated as behaviour-preserving. Renaming them into an O2
-# namespace, and pruning the parts O2 does not use, are follow-up steps.
+# FairRootBase: the FairRoot simulation classes used by O2. Origin, licence and changes are in README.md.
 
 # o2_target_root_dictionary requires paths relative to the current source dir
 file(GLOB FAIRROOTBASE_SOURCES CONFIGURE_DEPENDS
