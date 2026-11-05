@@ -23,6 +23,8 @@
 #include <chrono>
 #include <cmath>
 #include <iomanip>
+#include <memory>
+#include <string>
 #include <string_view>
 #include <Framework/Logger.h>
 #include <array>
@@ -32,6 +34,8 @@
 #include <ITStracking/TimeFrame.h>
 #include <TH2F.h>
 
+class TFile;
+class TTree;
 namespace Acts
 {
 class Surface;
@@ -64,6 +68,12 @@ struct TrackerACTSConfig {
   // Quality cuts
   float maxSeedsPerMiddleSP = 2;
   float deltaPhiMax = 0.1f; ///< Maximum phi difference for doublets
+  // Optional debug output. No ROOT file or histogram is created by default.
+  bool writeDebugTrees = false;             ///< Cluster, seed and ROF summary trees
+  bool dumpTrackingGeometry = false;        ///< Write a JSON volume/surface snapshot on first use
+  int debugMaxTimeFrames = 1;               ///< 1 by default, -1 for all TFs
+  std::string debugFileName = "TrackerACTS_debug.root";
+  std::string geometryDumpFileName = "TrackerACTS_geometry.json";
 };
 
 /// Space point representation for tracking
@@ -101,14 +111,7 @@ class TrackerACTS
 {
  public:
   TrackerACTS();
-  ~TrackerACTS()
-  {
-    if (mHistSpacePoints) {
-      mHistSpacePoints->SaveAs("/tmp/mHistSpacePoints.C");
-      delete mHistSpacePoints;
-      mHistSpacePoints = nullptr;
-    }
-  }
+  ~TrackerACTS();
 
   /// Adopt a TimeFrame for processing
   void adoptTimeFrame(o2::its::TimeFrame<nLayers>& tf);
@@ -135,7 +138,40 @@ class TrackerACTS
   void printSummary() const;
 
  private:
-  TH2F* mHistSpacePoints = nullptr;
+  // Debug resources are allocated only if requested and closed at destruction.
+  std::unique_ptr<TFile> mDebugFile;
+  TTree* mClusterTree = nullptr; // Owned by mDebugFile
+  TTree* mSeedTree = nullptr;    // Owned by mDebugFile
+  TTree* mROFTree = nullptr;     // Owned by mDebugFile
+  std::unique_ptr<TH2F> mHistSpacePoints;
+  bool mGeometryDumped = false;
+
+  struct DebugClusterRecord {
+    int tf = 0, rof = 0, layer = 0, clusterId = -1;
+    int externalId = -1, sensorId = -1, mappingStatus = 0;
+    unsigned long long geometryId = 0;
+    float x = 0.f, y = 0.f, z = 0.f;
+    float r = 0.f, phi = 0.f;
+    float varianceR = 0.f, varianceZ = 0.f;
+  } mDebugCluster;
+
+  struct DebugSeedRecord {
+    int tf = 0, rof = 0, seedId = 0;
+    float quality = 0.f;
+    int layer[3] = {}, clusterId[3] = {}, sensorId[3] = {};
+    unsigned long long geometryId[3] = {};
+    float x[3] = {}, y[3] = {}, z[3] = {}, r[3] = {}, phi[3] = {};
+  } mDebugSeed;
+
+  struct DebugROFRecord {
+    int tf = 0, rof = 0, nSpacePoints = 0, nSeeds = 0;
+    int nAcceptedTracks = 0;
+  } mDebugROF;
+
+  void initDebugOutput();
+  void dumpGeometryOnce();
+  bool isDebugTimeFrame() const;
+  void fillDebugSeeds(int rof);
 
   /// Build space points from clusters in the TimeFrame
   void buildSpacePoints(int rof);

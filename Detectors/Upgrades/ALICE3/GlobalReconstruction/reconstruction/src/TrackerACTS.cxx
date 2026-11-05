@@ -22,6 +22,8 @@
 #include "MathUtils/Utils.h"
 #include "TRKBase/GeometryTGeo.h"
 
+#include <Acts/Geometry/TrackingGeometry.hpp>
+#include <Acts/Geometry/TrackingVolume.hpp>
 #include <Acts/Definitions/Direction.hpp>
 #include <Acts/Definitions/TrackParametrization.hpp>
 #include <Acts/EventData/BoundTrackParameters.hpp>
@@ -52,10 +54,14 @@
 
 #include "ACTSInterface/TrackingGeometryManager.h"
 
+#include <TFile.h>
+#include <TTree.h>
+#include <nlohmann/json.hpp>
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdint>
+#include <fstream>
 #include <limits>
 #include <optional>
 #include <memory>
@@ -178,9 +184,193 @@ TrackerACTS<nLayers>::TrackerACTS()
 {
   // Initialize space points storage per layer
   mSpacePointsPerLayer.resize(nLayers);
-  mHistSpacePoints = new TH2F("hSpacePoints", "Space points; x (cm); y (cm)", 200, -100, 100, 200, -100, 100);
+  // The debug file and histogram are intentionally not allocated here.
+}
 
-  // Initialize ACTS Tracking geometry
+template <int nLayers>
+TrackerACTS<nLayers>::~TrackerACTS()
+{
+  if (mDebugFile) {
+    mDebugFile->cd();
+    if (mHistSpacePoints) {
+      mHistSpacePoints->Write("", TObject::kOverwrite);
+    }
+    mDebugFile->Write("", TObject::kOverwrite);
+    mDebugFile->Close();
+  }
+}
+
+template <int nLayers>
+bool TrackerACTS<nLayers>::isDebugTimeFrame() const
+{
+  return mDebugFile && (mConfig.debugMaxTimeFrames < 0 ||
+                        mTimeFrameCounter < static_cast<unsigned int>(mConfig.debugMaxTimeFrames));
+}
+
+template <int nLayers>
+void TrackerACTS<nLayers>::initDebugOutput()
+{
+  if (!mConfig.writeDebugTrees || mDebugFile || mConfig.debugMaxTimeFrames == 0) {
+    return;
+  }
+  mDebugFile.reset(TFile::Open(mConfig.debugFileName.c_str(), "RECREATE"));
+  if (!mDebugFile || mDebugFile->IsZombie()) {
+    LOG(error) << "Cannot create ACTS debug ROOT file " << mConfig.debugFileName;
+    mDebugFile.reset();
+    return;
+  }
+  mDebugFile->cd();
+  mClusterTree = new TTree("clusters", "ACTS input clusters and surface mapping; positions in cm; variances in ACTS units");
+  mClusterTree->Branch("tf", &mDebugCluster.tf, "tf/I");
+  mClusterTree->Branch("rof", &mDebugCluster.rof, "rof/I");
+  mClusterTree->Branch("layer", &mDebugCluster.layer, "layer/I");
+  mClusterTree->Branch("clusterId", &mDebugCluster.clusterId, "clusterId/I");
+  mClusterTree->Branch("externalId", &mDebugCluster.externalId, "externalId/I");
+  mClusterTree->Branch("sensorId", &mDebugCluster.sensorId, "sensorId/I");
+  mClusterTree->Branch("mappingStatus", &mDebugCluster.mappingStatus, "mappingStatus/I");
+  mClusterTree->Branch("geometryId", &mDebugCluster.geometryId, "geometryId/l");
+  mClusterTree->Branch("x", &mDebugCluster.x, "x/F");
+  mClusterTree->Branch("y", &mDebugCluster.y, "y/F");
+  mClusterTree->Branch("z", &mDebugCluster.z, "z/F");
+  mClusterTree->Branch("r", &mDebugCluster.r, "r/F");
+  mClusterTree->Branch("phi", &mDebugCluster.phi, "phi/F");
+  mClusterTree->Branch("varianceR", &mDebugCluster.varianceR, "varianceR/F");
+  mClusterTree->Branch("varianceZ", &mDebugCluster.varianceZ, "varianceZ/F");
+
+  mSeedTree = new TTree("seeds", "ACTS output seed triplets; positions in cm; bottom/middle/top order");
+  mSeedTree->Branch("tf", &mDebugSeed.tf, "tf/I");
+  mSeedTree->Branch("rof", &mDebugSeed.rof, "rof/I");
+  mSeedTree->Branch("seedId", &mDebugSeed.seedId, "seedId/I");
+  mSeedTree->Branch("quality", &mDebugSeed.quality, "quality/F");
+  mSeedTree->Branch("layer", mDebugSeed.layer, "layer[3]/I");
+  mSeedTree->Branch("clusterId", mDebugSeed.clusterId, "clusterId[3]/I");
+  mSeedTree->Branch("sensorId", mDebugSeed.sensorId, "sensorId[3]/I");
+  mSeedTree->Branch("geometryId", mDebugSeed.geometryId, "geometryId[3]/l");
+  mSeedTree->Branch("x", mDebugSeed.x, "x[3]/F");
+  mSeedTree->Branch("y", mDebugSeed.y, "y[3]/F");
+  mSeedTree->Branch("z", mDebugSeed.z, "z[3]/F");
+  mSeedTree->Branch("r", mDebugSeed.r, "r[3]/F");
+  mSeedTree->Branch("phi", mDebugSeed.phi, "phi[3]/F");
+
+  mROFTree = new TTree("rofSummary", "ACTS reconstruction counts per time frame and ROF");
+  mROFTree->Branch("tf", &mDebugROF.tf, "tf/I");
+  mROFTree->Branch("rof", &mDebugROF.rof, "rof/I");
+  mROFTree->Branch("nSpacePoints", &mDebugROF.nSpacePoints, "nSpacePoints/I");
+  mROFTree->Branch("nSeeds", &mDebugROF.nSeeds, "nSeeds/I");
+  mROFTree->Branch("nAcceptedTracks", &mDebugROF.nAcceptedTracks, "nAcceptedTracks/I");
+
+  mHistSpacePoints = std::make_unique<TH2F>("hSpacePoints", "Space points; x (cm); y (cm)",
+                                             200, -100, 100, 200, -100, 100);
+  mHistSpacePoints->SetDirectory(nullptr); // Owned by TrackerACTS, not by TFile.
+  LOG(info) << "ACTS debug trees enabled: " << mConfig.debugFileName;
+}
+
+template <int nLayers>
+void TrackerACTS<nLayers>::dumpGeometryOnce()
+{
+  if (!mConfig.dumpTrackingGeometry || mGeometryDumped) {
+    return;
+  }
+  mGeometryDumped = true; // Even on I/O failure, do not retry on every TF.
+  auto& manager = o2::acts::TrackingGeometryManager::instance();
+  const auto& geometry = manager.get();
+  const auto& gctx = manager.getNominalContext();
+  auto* trkGeometry = o2::trk::GeometryTGeo::Instance();
+  const auto& surfaceIndex = manager.getIndex(*trkGeometry, 1.e-3, [trkGeometry](int sensorID) {
+    return std::string(trkGeometry->getMatrixPath(sensorID).Data());
+  });
+
+  std::ofstream out(mConfig.geometryDumpFileName);
+  if (!out) {
+    LOG(error) << "Cannot open ACTS geometry dump: " << mConfig.geometryDumpFileName;
+    return;
+  }
+  out << "{\n  \"description\": \"ACTS volumes and surfaces snapshot, not a complete ACTS geometry serialization\",\n"
+         "  \"lengthUnits\": \"mm (angles in rad)\",\n  \"volumes\": [\n";
+  bool first = true;
+  int nVolumes = 0;
+  geometry.visitVolumes([&](const Acts::TrackingVolume& volume) {
+    const auto& transform = volume.localToGlobalTransform(gctx);
+    nlohmann::json item;
+    item["geometryId"] = volume.geometryId().value();
+    item["motherGeometryId"] = volume.motherVolume() ? volume.motherVolume()->geometryId().value() : 0;
+    item["name"] = volume.volumeName();
+    item["boundsType"] = static_cast<int>(volume.volumeBounds().type());
+    item["boundsValues"] = volume.volumeBounds().values();
+    item["hasMaterial"] = volume.volumeMaterial() != nullptr;
+    item["translation"] = {transform.translation().x(), transform.translation().y(), transform.translation().z()};
+    item["rotation"] = nlohmann::json::array();
+    for (int row = 0; row < 3; ++row) {
+      item["rotation"].push_back({transform.rotation()(row, 0), transform.rotation()(row, 1), transform.rotation()(row, 2)});
+    }
+    if (!first) {
+      out << ",\n";
+    }
+    out << item.dump();
+    first = false;
+    ++nVolumes;
+  });
+  out << "\n  ],\n  \"surfaces\": [\n";
+  first = true;
+  int nSurfaces = 0;
+  geometry.visitSurfaces([&](const Acts::Surface& surface) {
+    const auto& transform = surface.localToGlobalTransform(gctx);
+    nlohmann::json item;
+    item["geometryId"] = surface.geometryId().value();
+    item["surfaceType"] = static_cast<int>(surface.type());
+    item["boundsType"] = static_cast<int>(surface.bounds().type());
+    item["boundsValues"] = surface.bounds().values();
+    item["hasMaterial"] = surface.hasMaterial();
+    item["translation"] = {transform.translation().x(), transform.translation().y(), transform.translation().z()};
+    item["rotation"] = nlohmann::json::array();
+    for (int row = 0; row < 3; ++row) {
+      item["rotation"].push_back({transform.rotation()(row, 0), transform.rotation()(row, 1), transform.rotation()(row, 2)});
+    }
+    item["sensorIds"] = surfaceIndex.getSensorIDs(surface.geometryId());
+    if (!first) {
+      out << ",\n";
+    }
+    out << item.dump();
+    first = false;
+    ++nSurfaces;
+  }, false); // Also include passive/non-sensitive surfaces where reachable.
+  out << "\n  ]\n}\n";
+  if (!out.good()) {
+    LOG(error) << "Error while writing ACTS geometry dump " << mConfig.geometryDumpFileName;
+    return;
+  }
+  LOG(info) << "ACTS tracking geometry snapshot: " << nVolumes << " volumes and "
+            << nSurfaces << " surfaces written to " << mConfig.geometryDumpFileName;
+}
+
+template <int nLayers>
+void TrackerACTS<nLayers>::fillDebugSeeds(int rof)
+{
+  if (!isDebugTimeFrame()) {
+    return;
+  }
+  for (size_t iSeed = 0; iSeed < mSeeds.size(); ++iSeed) {
+    const auto& seed = mSeeds[iSeed];
+    mDebugSeed = {};
+    mDebugSeed.tf = static_cast<int>(mTimeFrameCounter);
+    mDebugSeed.rof = rof;
+    mDebugSeed.seedId = static_cast<int>(iSeed);
+    mDebugSeed.quality = seed.quality;
+    const std::array<const SpacePoint*, 3> points{seed.bottom, seed.middle, seed.top};
+    for (int i = 0; i < 3; ++i) {
+      const auto& sp = *points[i];
+      mDebugSeed.layer[i] = sp.layer;
+      mDebugSeed.clusterId[i] = sp.clusterId;
+      mDebugSeed.sensorId[i] = sp.sensorId;
+      mDebugSeed.geometryId[i] = sp.surface ? sp.surface->geometryId().value() : 0;
+      mDebugSeed.x[i] = sp.x / Acts::UnitConstants::cm;
+      mDebugSeed.y[i] = sp.y / Acts::UnitConstants::cm;
+      mDebugSeed.z[i] = sp.z / Acts::UnitConstants::cm;
+      mDebugSeed.r[i] = sp.r() / Acts::UnitConstants::cm;
+      mDebugSeed.phi[i] = sp.phi();
+    }
+    mSeedTree->Fill();
+  }
 }
 
 template <int nLayers>
@@ -224,14 +414,35 @@ void TrackerACTS<nLayers>::buildSpacePoints(int rof)
       const auto& cluster = clusters[iCluster];
       const int clusterIndex = firstCluster + static_cast<int>(iCluster);
 
-      if (static_cast<size_t>(clusterIndex) >= (*mSensorIDs)[layer].size()) {
+      const bool hasSensorID = clusterIndex >= 0 && static_cast<size_t>(clusterIndex) < (*mSensorIDs)[layer].size();
+      const int sensorID = hasSensorID ? (*mSensorIDs)[layer][clusterIndex] : -1;
+      const auto* surface = hasSensorID ? surfaceIndex.getSurface(sensorID) : nullptr;
+      if (isDebugTimeFrame()) {
+        mDebugCluster = {};
+        mDebugCluster.tf = static_cast<int>(mTimeFrameCounter);
+        mDebugCluster.rof = rof;
+        mDebugCluster.layer = layer;
+        mDebugCluster.clusterId = clusterIndex;
+        mDebugCluster.externalId = mTimeFrame->getClusterExternalIndex(layer, clusterIndex);
+        mDebugCluster.sensorId = sensorID;
+        // 0: sensor ID missing; 1: ACTS surface missing; 2: mapped.
+        mDebugCluster.mappingStatus = !hasSensorID ? 0 : !surface ? 1 : 2;
+        mDebugCluster.geometryId = surface ? surface->geometryId().value() : 0;
+        mDebugCluster.x = cluster.xCoordinate;
+        mDebugCluster.y = cluster.yCoordinate;
+        mDebugCluster.z = cluster.zCoordinate;
+        mDebugCluster.r = std::hypot(mDebugCluster.x, mDebugCluster.y);
+        mDebugCluster.phi = std::atan2(mDebugCluster.y, mDebugCluster.x);
+        mDebugCluster.varianceR = 0.01f;
+        mDebugCluster.varianceZ = 0.01f;
+        mClusterTree->Fill();
+      }
+      if (!hasSensorID) {
         LOG(error) << "Missing sensor ID for layer " << layer << " cluster " << clusterIndex;
         ++nMissing;
         continue;
       }
 
-      const int sensorID = (*mSensorIDs)[layer][clusterIndex];
-      const auto* surface = surfaceIndex.getSurface(sensorID);
       if (!surface) {
         LOG(error) << "No ACTS surface for sensor " << sensorID << " on layer " << layer;
         ++nMissing;
@@ -406,6 +617,7 @@ void TrackerACTS<nLayers>::createSeeds()
     output.quality = seed.quality();
     mSeeds.push_back(output);
   }
+  fillDebugSeeds(mSpacePoints.front().rof);
 
   LOGF(info, "Created %zu seeds from %zu space points", mSeeds.size(), mSpacePoints.size());
 }
@@ -861,8 +1073,11 @@ void TrackerACTS<nLayers>::clustersToTracks()
   mAcceptedTrackClusterIndices.clear();
   LOG(info) << "==== TRK ACTS Tracking ====";
 
+  // Verify tracking geometry usage
   auto& actsGeometryManager = o2::acts::TrackingGeometryManager::instance();
   const auto& trackingGeometry = actsGeometryManager.get();
+
+  // Dump tracking geometry to json file for debugging
   (void)trackingGeometry;
 
   auto* trkGeometry = o2::trk::GeometryTGeo::Instance();
@@ -873,6 +1088,14 @@ void TrackerACTS<nLayers>::clustersToTracks()
 
   LOG(info) << "ACTS tracking geometry initialized with " << surfaceIndex.size()
             << " mapped sensors on " << surfaceIndex.getNSurfaces() << " surfaces";
+  try {
+    dumpGeometryOnce();
+  } catch (const std::exception& e) {
+    LOG(error) << "ACTS geometry debug dump failed: " << e.what();
+  }
+  if (mConfig.writeDebugTrees && mTimeFrameCounter == 0) {
+    initDebugOutput();
+  }
 
   for (int iROF = 0; iROF < mTimeFrame->getNrof(0); ++iROF) {
     LOG(info) << "Processing ROF " << iROF;
@@ -883,8 +1106,17 @@ void TrackerACTS<nLayers>::clustersToTracks()
     mCurState = Seeding;
     totalTime += evaluateTask([this]() { createSeeds(); }, StateNames[mCurState]);
 
+    const auto nTracksBefore = mTimeFrame->getTracks().size();
     mCurState = TrackFinding;
     totalTime += evaluateTask([this]() { findTracks(); }, StateNames[mCurState]);
+    if (isDebugTimeFrame()) {
+      mDebugROF.tf = static_cast<int>(mTimeFrameCounter);
+      mDebugROF.rof = iROF;
+      mDebugROF.nSpacePoints = static_cast<int>(mSpacePoints.size());
+      mDebugROF.nSeeds = static_cast<int>(mSeeds.size());
+      mDebugROF.nAcceptedTracks = static_cast<int>(mTimeFrame->getTracks().size() - nTracksBefore);
+      mROFTree->Fill();
+    }
   }
 
   // Run MC labeling once, after every accepted track has been published.
@@ -893,6 +1125,14 @@ void TrackerACTS<nLayers>::clustersToTracks()
   }
 
   LOG(info) << "=== TimeFrame " << mTimeFrameCounter << " completed in: " << totalTime << " ms ===";
+  if (isDebugTimeFrame()) {
+    mDebugFile->cd();
+    if (mHistSpacePoints) {
+      mHistSpacePoints->Write("", TObject::kOverwrite);
+    }
+    mDebugFile->Write("", TObject::kOverwrite);
+    mDebugFile->Flush();
+  }
   ++mTimeFrameCounter;
   mTotalTime += totalTime;
 }
