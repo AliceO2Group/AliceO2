@@ -43,21 +43,22 @@ class MaterialBudgetMap
   void FinishEvent();
 
  private:
-  Int_t mMode;      //! mode
-  Float_t mTotRadl; //! Total Radiation length
-  Float_t mTotAbso; //! Total absorption length
-  Float_t mTotGcm2; //! Total g/cm2 traversed
-  TH2F* mHistRadl;  //! Radiation length map
-  TH2F* mHistAbso;  //! Interaction length map
-  TH2F* mHistGcm2;  //! g/cm2 length map
-  TH2F* mHistReta;  //! Radiation length map as a function of eta
-  TH2F* mRZR;       //! Radiation lenghts at (R.Z)
-  TH2F* mRZA;       //! Absorbtion lengths at (R,Z)
-  TH2F* mRZG;       //! Density at (R,Z)
-  Bool_t mStopped;  //! Scoring has been stopped
-  Float_t mRmin;    //! minimum radius
-  Float_t mZmax;    //! maximum radius
-  Float_t mRmax;    //! maximum z
+  Int_t mMode;                 //! mode
+  Float_t mTotRadl;            //! Total Radiation length
+  Float_t mTotAbso;            //! Total absorption length
+  Float_t mTotGcm2;            //! Total g/cm2 traversed
+  TH2F* mHistRadl;             //! Radiation length map
+  TH2F* mHistAbso;             //! Interaction length map
+  TH2F* mHistGcm2;             //! g/cm2 length map
+  TH2F* mHistReta;             //! Radiation length map as a function of eta
+  TH2F* mRZR;                  //! Radiation lenghts at (R.Z)
+  TH2F* mRZA;                  //! Absorbtion lengths at (R,Z)
+  TH2F* mRZG;                  //! Density at (R,Z)
+  Bool_t mStopped;             //! Scoring has been stopped
+  Float_t mRmin;               //! minimum radius
+  Float_t mZmax;               //! maximum radius
+  Float_t mRmax;               //! maximum z
+  Float_t mDistToBoundary = 0; //! distance to the scoring boundary from the previous step
 };
 } // namespace steer
 } // namespace o2

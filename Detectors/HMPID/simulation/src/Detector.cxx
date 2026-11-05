@@ -113,8 +113,6 @@ bool Detector::ProcessHits(FairVolume* v)
   } // photon hit PC
 
   // Treat charged particles
-  static Float_t eloss; // need to store mip parameters between different steps
-  static Double_t in[3];
 
   if (fMC->IsTrackEntering() && fMC->TrackCharge() && (volID == mHpad0VolID || volID == mHpad1VolID || volID == mHpad2VolID || volID == mHpad3VolID || volID == mHpad4VolID || volID == mHpad5VolID || volID == mHpad6VolID)) {
     // Trackref stored when entering in the pad volume
@@ -127,18 +125,18 @@ bool Detector::ProcessHits(FairVolume* v)
   if (fMC->TrackCharge() && (volID == mHcel0VolID || volID == mHcel1VolID || volID == mHcel2VolID || volID == mHcel3VolID || volID == mHcel4VolID || volID == mHcel5VolID || volID == mHcel6VolID)) {
     // charged particle in amplification gap (Hcel)
     if (fMC->IsTrackEntering() || fMC->IsNewTrack()) {                                     // entering or newly created
-      eloss = 0;                                                                           // reset Eloss collector
-      fMC->TrackPosition(in[0], in[1], in[2]);                                             // take position at the entrance
+      mMipEloss = 0;                                                                       // reset Eloss collector
+      fMC->TrackPosition(mMipEntry[0], mMipEntry[1], mMipEntry[2]);                        // take position at the entrance
     } else if (fMC->IsTrackExiting() || fMC->IsTrackStop() || fMC->IsTrackDisappeared()) { // exiting or disappeared
-      eloss += fMC->Edep();                                                                // take into account last step Eloss
+      mMipEloss += fMC->Edep();                                                            // take into account last step Eloss
       Int_t tid = fMC->GetStack()->GetCurrentTrackNumber();                                // take TID
       Int_t pid = fMC->TrackPid();                                                         // take PID
       Double_t out[3];
       fMC->TrackPosition(out[0], out[1], out[2]);  // take MARS position at exit
       Float_t hitTime = (Float_t)fMC->TrackTime(); // hit formation time
-      out[0] = 0.5 * (out[0] + in[0]);             //
-      out[1] = 0.5 * (out[1] + in[1]);             // take hit position at the anod plane
-      out[2] = 0.5 * (out[2] + in[2]);
+      out[0] = 0.5 * (out[0] + mMipEntry[0]);      //
+      out[1] = 0.5 * (out[1] + mMipEntry[1]);      // take hit position at the anod plane
+      out[2] = 0.5 * (out[2] + mMipEntry[2]);
       Int_t idch; // chamber number
       if (volID == mHcel0VolID) {
         idch = 0;
@@ -157,16 +155,16 @@ bool Detector::ProcessHits(FairVolume* v)
       }
       Double_t xl, yl;
       o2::hmpid::Param::instance()->mars2Lors(idch, out, xl, yl); // take LORS position
-      if (eloss > 0) {
+      if (mMipEloss > 0) {
         // HIT for MIP, position near anod plane, eloss will be set to Q
-        AddHit(out[0], out[1], out[2], hitTime, eloss, tid, idch);
-        GenFee(eloss); // generate feedback photons
+        AddHit(out[0], out[1], out[2], hitTime, mMipEloss, tid, idch);
+        GenFee(mMipEloss); // generate feedback photons
         stack->addHit(GetDetId());
-        eloss = 0;
+        mMipEloss = 0;
       }
     } else {
       // just going inside
-      eloss += fMC->Edep(); // collect this step eloss
+      mMipEloss += fMC->Edep(); // collect this step eloss
     }
     return kTRUE;
   } // MIP in GAP

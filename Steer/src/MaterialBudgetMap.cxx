@@ -180,11 +180,10 @@ void MaterialBudgetMap::Stepping()
   // called from AliRun::Stepmanager from gustep.
   // Accumulate the 3 parameters step by step
   //
-  static Float_t t;
   Float_t a, z, dens, radl, absl;
   Int_t i, id, copy;
   const char* vol;
-  static Float_t vect[3], dir[3];
+  Float_t vect[3], dir[3];
 
   TString tmp1, tmp2;
   copy = 1;
@@ -212,12 +211,12 @@ void MaterialBudgetMap::Stepping()
       // Not the first step, add past contribution
       if (!mStopped) {
         if (absl) {
-          mTotAbso += t / absl;
+          mTotAbso += mDistToBoundary / absl;
         }
         if (radl) {
-          mTotRadl += t / radl;
+          mTotRadl += mDistToBoundary / radl;
         }
-        mTotGcm2 += t * dens;
+        mTotGcm2 += mDistToBoundary * dens;
       } // not stooped
     }   // not a new track !
     mStopped = kTRUE;
@@ -231,7 +230,7 @@ void MaterialBudgetMap::Stepping()
     dir[i] = mom[i];
   }
 
-  t = eventgen::GeneratorGeantinos::PropagateCylinder(vect, dir, mRmax, mZmax);
+  mDistToBoundary = eventgen::GeneratorGeantinos::PropagateCylinder(vect, dir, mRmax, mZmax);
 
   if (step) {
     if (absl) {

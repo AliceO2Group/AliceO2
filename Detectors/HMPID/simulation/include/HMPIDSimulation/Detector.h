@@ -98,6 +98,10 @@ class Detector : public o2::base::DetImpl<Detector>
   int mHcel5VolID = -1;
   int mHcel6VolID = -1;
 
+  // state of a charged-particle hit being built across steps in ProcessHits
+  Float_t mMipEloss = 0;             //! energy loss collected in the amplification gap
+  Double_t mMipEntry[3] = {0, 0, 0}; //! position where the track entered the gap
+
   template <typename Det>
   friend class o2::base::DetImpl;
   ClassDefOverride(Detector, 1);
