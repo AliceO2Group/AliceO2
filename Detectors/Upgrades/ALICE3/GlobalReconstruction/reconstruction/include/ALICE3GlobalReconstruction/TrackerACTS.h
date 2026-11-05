@@ -40,7 +40,7 @@ namespace Acts
 {
 class Surface;
 class BoundTrackParameters;
-}
+} // namespace Acts
 namespace o2::trk
 {
 
@@ -49,7 +49,7 @@ namespace o2::trk
 /// Length and momentum-valued cuts use ACTS units (mm and GeV, respectively).
 struct TrackerACTSConfig {
   /// Minimum transverse momentum accepted by the seeding algorithms.
-  float minPt = 0.4f * Acts::UnitConstants::GeV;             ///< Minimum pT for seeds
+  float minPt = 0.4f * Acts::UnitConstants::GeV; ///< Minimum pT for seeds
   /// Maximum transverse distance of closest approach used in seeding.
   float maxImpactParameter = 10.f * Acts::UnitConstants::mm;
   /// Maximum absolute cot(theta); the default corresponds approximately to |eta| = 4.
@@ -59,8 +59,8 @@ struct TrackerACTSConfig {
   float deltaRMinBottom = 5.f * Acts::UnitConstants::mm;   ///< Min deltaR for bottom-middle
   float deltaRMaxBottom = 200.f * Acts::UnitConstants::mm; ///< Max deltaR for bottom-middle
   /// Minimum and maximum radial separation for middle-to-top space-point pairs.
-  float deltaRMinTop = 5.f * Acts::UnitConstants::mm;      ///< Min deltaR for middle-top
-  float deltaRMaxTop = 200.f * Acts::UnitConstants::mm;    ///< Max deltaR for middle-top
+  float deltaRMinTop = 5.f * Acts::UnitConstants::mm;   ///< Min deltaR for middle-top
+  float deltaRMaxTop = 200.f * Acts::UnitConstants::mm; ///< Max deltaR for middle-top
 
   /// Longitudinal range used to select space points for seeding.
   float zMin = -3000.f * Acts::UnitConstants::mm;
