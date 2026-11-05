@@ -53,6 +53,7 @@
 
 #include <iostream>
 #include <cmath>
+#include "DetectorsBase/SimRandom.h"
 
 using std::cout;
 using std::endl;
@@ -144,7 +145,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   // random shift to avoid binning effects), which was tuned for GEANT4, see
   // https://indico.cern.ch/event/316891/contributions/732168/
 
-  const double rnd = fMC->GetRandom()->Rndm();
+  const double rnd = o2::base::simRandom()->Rndm();
   fMC->SetMaxStep(0.2 + (2. * rnd - 1.) * 0.05); // 2 mm +- rndm*0.5mm step
 
   // ===| check active sector |=================================================
@@ -243,7 +244,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 
     // ---| mean number of collisions and random for this event |---
     const double meanNcoll = stepSize * trackCharge * trackCharge * primaryElectronsPerCM;
-    const int nColl = static_cast<int>(fMC->GetRandom()->Poisson(meanNcoll));
+    const int nColl = static_cast<int>(o2::base::simRandom()->Poisson(meanNcoll));
 
     // Variables needed to generate random powerlaw distributed energy loss
     const double alpha_p1 = 1. - gasParam.Exp; // NA49/G3 value
@@ -259,7 +260,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
       // P(eDep) ~ k * edep^-gasParam.getExp()
       // eMin(~I) < eDep < eMax(300 electrons)
       // k fixed so that Int_Emin^EMax P(Edep) = 1.
-      const double rndm = fMC->GetRandom()->Rndm();
+      const double rndm = o2::base::simRandom()->Rndm();
       const double eDep = TMath::Power((kMax - kMin) * rndm + kMin, oneOverAlpha_p1);
       int nel_step = static_cast<int>(((eDep - eMin) / wIon) + 1);
       nel_step = TMath::Min(nel_step, gasParam.MaxElePerStep); // 300 electrons corresponds to 10 keV
@@ -3255,8 +3256,8 @@ Double_t Detector::Gamma(Double_t k)
   Double_t x;
   Double_t y = -1.;
   while (1) {
-    Double_t nu1 = gRandom->Rndm();
-    Double_t nu2 = gRandom->Rndm();
+    Double_t nu1 = o2::base::simRandom()->Rndm();
+    Double_t nu2 = o2::base::simRandom()->Rndm();
     Double_t w1 = c1 + TMath::Log(nu1);
     Double_t w2 = c2 + TMath::Log(nu2);
     y = n * (b1 * w2 - b2 * w1);

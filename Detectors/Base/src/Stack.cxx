@@ -36,6 +36,7 @@
 #include <cassert>
 #include <cstddef> // for NULL
 #include <cmath>
+#include "DetectorsBase/SimRandom.h"
 
 using std::cout;
 using std::endl;
@@ -361,7 +362,7 @@ TParticle* Stack::PopNextTrack(Int_t& iTrack)
         auto hash = getHash(mCurrentParticle);
         // LOG(info) << "SEEDING NEW TRACK USING HASH" << hash;
         // init seed per track
-        gRandom->SetSeed(hash);
+        o2::base::simRandom()->SetSeed(hash);
         o2::base::VMCSeederService::instance().setSeed();
         // NOTE: THE BETTER PLACE WOULD BE IN PRETRACK HOOK BUT THIS DOES NOT SEEM TO WORK
         // WORKS ONLY WITH G3 SINCE G4 DOES NOT CALL THIS FUNCTION

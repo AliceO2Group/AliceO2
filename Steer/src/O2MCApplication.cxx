@@ -50,6 +50,7 @@
 #include <TLorentzVector.h>
 #include <TRandom.h>
 #include <cstring>
+#include "DetectorsBase/SimRandom.h"
 
 namespace o2
 {
@@ -194,7 +195,7 @@ void O2MCApplicationBase::PreTrack()
     // step, so a suspended track is not reseeded mid-flight.
     auto hash = hashCurrentTrack(fMC);
     // TRandom::SetSeed(0) means "seed from the clock" -- never let that happen.
-    gRandom->SetSeed(hash == 0 ? 1 : hash);
+    o2::base::simRandom()->SetSeed(hash == 0 ? 1 : hash);
     o2::base::VMCSeederService::instance().setSeed();
   }
 
@@ -271,6 +272,8 @@ void O2MCApplicationBase::initStepFilterHook()
 
 void O2MCApplicationBase::InitGeometry()
 {
+  // set up the engine seeding here, on the main thread, so that transport threads never JIT-compile it
+  o2::base::VMCSeederService::instance();
   // load special cuts which might be given from the outside first.
   auto& matMgr = o2::base::MaterialManager::Instance();
   matMgr.loadCutsAndProcessesFromJSON(o2::base::MaterialManager::ESpecial::kTRUE);

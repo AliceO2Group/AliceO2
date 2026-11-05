@@ -37,6 +37,7 @@
 #include "FT0Base/Geometry.h"
 #include "FT0Simulation/Detector.h"
 #include "DetectorsBase/Stack.h"
+#include "DetectorsBase/SimRandom.h"
 
 using namespace o2::ft0;
 using o2::ft0::Geometry;
@@ -1373,7 +1374,7 @@ void Detector::FillOtherOptProperties()
 Bool_t Detector::RegisterPhotoE(float energy)
 {
   float eff = mPMTeff->Eval(energy);
-  float p = gRandom->Rndm();
+  float p = o2::base::simRandom()->Rndm();
   if (p > eff) {
     return kFALSE;
   }
