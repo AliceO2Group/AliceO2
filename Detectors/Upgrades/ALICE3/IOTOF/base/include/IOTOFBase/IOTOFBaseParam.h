@@ -21,11 +21,11 @@ namespace iotof
 {
 
 struct ChipSpecifics {
-  int NCols = 129;
-  int NRows = 271;
+  int NCols = 120;
+  int NRows = 240;
   float PitchCol = 250.00e-4;
   float PitchRow = 100.00e-4;
-  float PassiveEdgeReadOut = 0.;
+  float PassiveEdgeReadOut = 0.2;
   float PassiveEdgeTop = 0.;
   float PassiveEdgeSide = 0.;
   float PixelPassiveEdgeX = 0.;
@@ -49,11 +49,24 @@ struct IOTOFBaseParam : public o2::conf::ConfigurableParamHelper<IOTOFBaseParam>
   bool enableOuterTOF = true;       // Enable Outer TOF layer
   bool enableForwardTOF = false;    // Enable Forward TOF layer
   bool enableBackwardTOF = false;   // Enable Backward TOF layer
+  bool itofTurbo = true;            // Segmented ITOF turbo or staggered
   std::string detectorPattern = ""; // Layouts of the detector
   bool segmentedInnerTOF = true;    // If the inner TOF layer is segmented
   bool segmentedOuterTOF = true;    // If the outer TOF layer is segmented
   float x2x0 = 0.02f;               // thickness expressed in radiation length, for all layers for the moment
   float sensorThickness = 0.0050f;  // thickness of the sensor in cm, for all layers for the moment, the default is set to 50 microns
+
+  // ITOF segmentation parameters
+  float itofRadius = 21.38f;  // ITOF radius (cm)
+  float itofLength = 126.82f; // ITOF length (cm)
+  int itofNStaves = 28;       // ITOF number of staves
+  float itofStaveTilt = 6.63; // ITOF stave tilt angle (deg)
+
+  // OTOF segmentation parameters
+  float otofRadius = 92.f;    // OTOF radius (cm)
+  float otofLength = 688.54f; // OTOF length (cm)
+  int otofNStaves = 62;       // OTOF number of staves
+  float otofStaveTilt = 5;    // OTOF stave tilt angle (deg)
 
   O2ParamDef(IOTOFBaseParam, "IOTOFBase");
 };

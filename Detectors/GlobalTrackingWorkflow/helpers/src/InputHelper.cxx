@@ -31,6 +31,7 @@
 #include "GlobalTrackingWorkflowReaders/SecondaryVertexReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/StrangenessTrackingReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/TrackCosmicsReaderSpec.h"
+#include "GlobalTrackingWorkflowReaders/TrackCosmicsExtendedReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/IRFrameReaderSpec.h"
 #include "TOFWorkflowIO/ClusterReaderSpec.h"
 #include "TOFWorkflowIO/TOFMatchedReaderSpec.h"
@@ -222,6 +223,16 @@ int InputHelper::addInputSpecsCosmics(const o2::framework::ConfigContext& config
     return 0;
   }
   specs.emplace_back(o2::globaltracking::getTrackCosmicsReaderSpec(mc));
+  return 0;
+}
+
+// attach extended cosmic tracks reader
+int InputHelper::addInputSpecsCosmicsExtended(const o2::framework::ConfigContext& configcontext, o2::framework::WorkflowSpec& specs)
+{
+  if (configcontext.options().get<bool>("disable-root-input")) {
+    return 0;
+  }
+  specs.emplace_back(o2::globaltracking::getTrackCosmicsExtendedReaderSpec());
   return 0;
 }
 

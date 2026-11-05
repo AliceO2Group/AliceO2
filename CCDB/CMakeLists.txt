@@ -32,8 +32,7 @@ o2_target_root_dictionary(CCDB
                                   include/CCDB/IdPath.h
                                   include/CCDB/BasicCCDBManager.h
                                   include/CCDB/CCDBTimeStampUtils.h
-                                  include/CCDB/CCDBQuery.h
-                                  include/CCDB/CCDBDownloader.h)
+                                  include/CCDB/CCDBQuery.h)
 
 o2_add_executable(inspectccdbfile
             COMPONENT_NAME ccdb

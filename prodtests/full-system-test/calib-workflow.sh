@@ -80,21 +80,30 @@ if [[ $CALIB_ASYNC_EXTRACTTIMESERIES == 1 ]] ; then
   add_W o2-tpc-time-series-workflow "$DISABLE_ROOT_INPUT ${CONFIG_TPCTIMESERIES}"
 fi
 if [[ ${CALIB_ASYNC_EXTRACTCOSMICS:-0} == 1 ]] ; then
-  # cosmic muons in collision data: TPC-only legs matched with the preset's selection, raw clusters of each cosmic -> o2_cosmics_full.root
+  # cosmic muons: TPC-only legs, raw clusters of each cosmic -> o2_cosmics_full.root. In collision data the legs are selected against collision
+  # tracks by the preset (default physics-v1); in cosmics runs no preset (the matcher's defaults). COSMICS_PRESET=none: no preset in any run
+  [[ $BEAMTYPE == "cosmic" ]] && : ${COSMICS_PRESET:=none}
   : ${COSMICS_PRESET:=physics-v1}
+  COSMICS_OPT=
+  [[ $COSMICS_PRESET != "none" ]] && COSMICS_OPT+=" --cosmics-preset $COSMICS_PRESET"
+  # cosmics runs reconstruct the TPC without corrections: the legs miss their ITS hits by mm to cm, wider ITS road than the default 1.5 cm
+  [[ $BEAMTYPE == "cosmic" ]] && : ${COSMICS_ITS_ROAD_WIDTH:=2.5}
+  [[ -n ${COSMICS_ITS_ROAD_WIDTH:-} ]] && COSMICS_OPT+=" --its-road-width $COSMICS_ITS_ROAD_WIDTH"
+  # road search in ITS if it is in the input (its clusters come from the CTF decoding, the ITS reco is not needed) and in TOF, TRD if they are
+  # reconstructed (TOF clusters, calibrated TRD tracklets)
   COSMICS_ROAD_DETECTORS=
-  for det in ITS TOF TRD; do
+  has_detector ITS && COSMICS_ROAD_DETECTORS=ITS
+  for det in TOF TRD; do
     has_detector_reco $det && COSMICS_ROAD_DETECTORS+="${COSMICS_ROAD_DETECTORS:+,}$det"
   done
   COSMICS_CONFIG=
   has_detector_reco TOF || COSMICS_CONFIG="cosmicsMatch.tofFlightSelection=false" # the TOF flight selection of the preset needs TOF clusters
   # the TPC part of a primary-vertex contributor comes from a collision: veto it as a leg, with the vertexing sources (those without TPC are ignored)
-  COSMICS_OPT=
   : ${COSMICS_PV_SOURCES:=${VERTEXING_SOURCES:-}}
   if [[ ${COSMICS_PV_VETO:-1} == 1 ]] && [[ $BEAMTYPE != "cosmic" ]] && has_detector_matching PRIMVTX && [[ -n ${VERTEXING_SOURCES:-} ]] && [[ -n $COSMICS_PV_SOURCES ]]; then
     COSMICS_OPT+=" --pv-contributor-sources $COSMICS_PV_SOURCES"
   fi
-  add_W o2-cosmics-match-workflow "$DISABLE_ROOT_INPUT $DISABLE_MC --track-sources TPC --cosmics-preset ${COSMICS_PRESET} --enable-cluster-output --road-detectors ${COSMICS_ROAD_DETECTORS:-none}$COSMICS_OPT" "$COSMICS_CONFIG"
+  add_W o2-cosmics-match-workflow "$DISABLE_ROOT_INPUT $DISABLE_MC --track-sources TPC --enable-cluster-output --road-detectors ${COSMICS_ROAD_DETECTORS:-none}$COSMICS_OPT" "$COSMICS_CONFIG"
 fi
 
 # output-proxy for aggregator

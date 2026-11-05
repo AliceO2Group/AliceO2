@@ -139,13 +139,14 @@ void Digitizer<DetID>::process(const std::vector<Hit>* hits, int evID, int srcID
               return (*hits)[lhs].GetDetectorID() < (*hits)[rhs].GetDetectorID();
             });
   LOG(info) << "Processing " << nHits << " hits";
+  std::vector<float> respMatrix; // the hits' charge response, reused from hit to hit within the event
   for (int i : hitIdx | std::views::filter([&](int idx) {
                  if (layer < 0) {
                    return true;
                  }
                  return getROFLayer((*hits)[idx].GetDetectorID()) == layer;
                })) {
-    processHit((*hits)[i], mROFrameMax, evID, srcID, layer);
+    processHit((*hits)[i], mROFrameMax, evID, srcID, layer, respMatrix);
   }
 }
 
@@ -161,7 +162,9 @@ void Digitizer<DetID>::setEventTime(const o2::InteractionTimeRecord& irt, int la
   auto nbc = mEventTime.differenceInBC(mIRFirstSampledTF);
 
   if (mCollisionTimeWrtROF < 0 && nbc > 0) {
+    // move to the ROF it actually belongs to and account this in the time offset wrt updated reference BC
     nbc--;
+    mCollisionTimeWrtROF += o2::constants::lhc::LHCBunchSpacingNS;
   }
 
   mROFsWrtFirstRO = std::floor(float(nbc) / mParams.getROFrameLengthInBC(layer));
@@ -226,8 +229,8 @@ void Digitizer<DetID>::fillOutputContainer(uint32_t frameLast, int layer)
         auto& preDig = iter->second; // preDigit
         if (preDig.charge >= mParams.getChargeThreshold()) {
           int digID = mDigits->size();
-          mDigits->emplace_back(chip.getChipIndex(), preDig.row, preDig.col, preDig.charge);
-          LOG(debug) << "Adding digit ID: " << digID << " with chipID: " << chip.getChipIndex() << ", row: " << preDig.row << ", col: " << preDig.col << ", charge: " << preDig.charge;
+          mDigits->emplace_back(chip.getChipIndex(), preDig.row, preDig.col, preDig.charge, preDig.toa);
+          LOG(debug) << "Adding digit ID: " << digID << " with chipID: " << chip.getChipIndex() << ", row: " << preDig.row << ", col: " << preDig.col << ", charge: " << preDig.charge << ", ToA: " << preDig.toa;
           mMCLabels->addElement(digID, preDig.labelRef.label);
           auto& nextRef = preDig.labelRef; // extra contributors are in extra array
           while (nextRef.next >= 0) {
@@ -253,7 +256,7 @@ void Digitizer<DetID>::fillOutputContainer(uint32_t frameLast, int layer)
 
 //_______________________________________________________________________
 template <int DetID>
-void Digitizer<DetID>::processHit(const o2::trkft3::Hit& hit, uint32_t& maxFr, int evID, int srcID, int rofLayer)
+void Digitizer<DetID>::processHit(const o2::trkft3::Hit& hit, uint32_t& maxFr, int evID, int srcID, int rofLayer, std::vector<float>& respMatrix)
 {
   int chipID = hit.GetDetectorID(); //// the chip ID at the moment is not referred to the chip but to a wider detector element (e.g. quarter of layer or disk in VD, stave in ML, half stave in OT)
   int subDetID = mGeometry->getSubDetID(chipID);
@@ -297,6 +300,9 @@ void Digitizer<DetID>::processHit(const o2::trkft3::Hit& hit, uint32_t& maxFr, i
   float tTot = mParams.getSignalShape().getMaxDuration();
   // frame of the hit signal start wrt event ROFrame
   int roFrameRel = int(timeInROF * mParams.getROFrameLengthInv(rofLayer));
+  // Time of Arrival w.r.t. the start of the ROF where the signal starts (= w.r.t. roFrameAbs)
+  float toaInROF = timeInROF - roFrameRel * mParams.getROFrameLength(rofLayer);
+
   // frame of the hit signal end  wrt event ROFrame: in the triggered mode we read just 1 frame
   uint32_t roFrameRelMax = (timeInROF + tTot) * mParams.getROFrameLengthInv(rofLayer);
   int nFrames = roFrameRelMax + 1 - roFrameRel;
@@ -391,8 +397,7 @@ void Digitizer<DetID>::processHit(const o2::trkft3::Hit& hit, uint32_t& maxFr, i
   }
   int rowSpan = rowE - rowS + 1, colSpan = colE - colS + 1; // size of plaquet where some response is expected
 
-  float respMatrix[rowSpan][colSpan]; // response accumulated here
-  std::fill(&respMatrix[0][0], &respMatrix[0][0] + rowSpan * colSpan, 0.f);
+  respMatrix.assign(static_cast<size_t>(rowSpan) * colSpan, 0.f); // response accumulated here, row by row
 
   float nElectrons = hit.GetEnergyLoss() * mParams.getEnergyToNElectrons(); // total number of deposited electrons
   nElectrons *= nStepsInv;                                                  // N electrons injected per step
@@ -460,11 +465,11 @@ void Digitizer<DetID>::processHit(const o2::trkft3::Hit& hit, uint32_t& maxFr, i
         if (colDest < 0 || colDest >= colSpan) {
           continue;
         }
-        respMatrix[rowDest][colDest] += rspmat->getValue(irow, icol, mSimRespOrientation ? !flipRow : flipRow, flipCol);
+        respMatrix[rowDest * colSpan + colDest] += rspmat->getValue(irow, icol, mSimRespOrientation ? !flipRow : flipRow, flipCol);
       }
     }
   }
-  LOG(info) << "Response done; adding labels; making digits";
+  LOG(debug) << "Response done; adding labels; making digits";
   // fire the pixels assuming Poisson(n_response_electrons)
   o2::MCCompLabel lbl(hit.GetTrackID(), evID, srcID, false);
   auto roFrameAbs = mNewROFrame + roFrameRel;
@@ -472,7 +477,7 @@ void Digitizer<DetID>::processHit(const o2::trkft3::Hit& hit, uint32_t& maxFr, i
   for (int irow = rowSpan; irow--;) {          // irow ranging from 4 to 0
     uint16_t rowIS = irow + rowS;              // row distant irow from the row of the hit start
     for (int icol = colSpan; icol--;) {        // icol ranging from 4 to 0
-      float nEleResp = respMatrix[irow][icol]; // value of the probability of the response in this pixel
+      float nEleResp = respMatrix[irow * colSpan + icol]; // value of the probability of the response in this pixel
       if (nEleResp <= 1.e-36) {
         continue;
       }
@@ -493,24 +498,25 @@ void Digitizer<DetID>::processHit(const o2::trkft3::Hit& hit, uint32_t& maxFr, i
       if (mDeadChanMap && mDeadChanMap->isNoisy(chipID, rowIS, colIS)) {
         continue;
       }
-      registerDigits(chip, roFrameAbs, timeInROF, nFrames, rowIS, colIS, nEle, lbl, rofLayer);
+      registerDigits(chip, roFrameAbs, toaInROF, nFrames, rowIS, colIS, nEle, lbl, rofLayer);
     }
   }
 }
 
 //________________________________________________________________________________
 template <int DetID>
-void Digitizer<DetID>::registerDigits(o2::trkft3::ChipDigitsContainer& chip, uint32_t roFrame, float tInROF, int nROF,
+void Digitizer<DetID>::registerDigits(o2::trkft3::ChipDigitsContainer& chip, uint32_t roFrame, float toaInROF, int nROF,
                                       uint16_t row, uint16_t col, int nEle, o2::MCCompLabel& lbl, int layer)
 {
   // Register digits for given pixel, accounting for the possible signal contribution to
-  // multiple ROFrame. The signal starts at time tInROF wrt the start of provided roFrame
+  // multiple ROFrame. The signal starts at time toaInROF wrt the start of provided roFrame
   // In every ROFrame we check the collected signal during strobe
   LOG(debug) << "Registering digits for chip " << chip.getChipIndex() << " at ROFrame " << roFrame
-             << " row " << row << " col " << col << " nEle " << nEle << " label " << lbl;
-  float tStrobe = mParams.getStrobeDelay(layer) - tInROF; // strobe start wrt signal start
-  for (int i = 0; i < nROF; i++) {                        // loop on all the ROFs occupied by the same signal to calculate the charge accumulated in that ROF
+             << " row " << row << " col " << col << " nEle " << nEle << " label " << lbl << " layer " << layer << " toa " << toaInROF;
+  float tStrobe = mParams.getStrobeDelay(layer) - toaInROF; // strobe start wrt signal start
+  for (int i = 0; i < nROF; i++) {                          // loop on all the ROFs occupied by the same signal to calculate the charge accumulated in that ROF
     uint32_t roFr = roFrame + i;
+    float toaROF = toaInROF - i * mParams.getROFrameLength(layer); // ToA w.r.t. start of ROF
     int nEleROF = mParams.getSignalShape().getCollectedCharge(nEle, tStrobe, tStrobe + mParams.getStrobeLength(layer));
     tStrobe += mParams.getROFrameLength(layer); // for the next ROF
 
@@ -525,14 +531,15 @@ void Digitizer<DetID>::registerDigits(o2::trkft3::ChipDigitsContainer& chip, uin
       mEventROFrameMin = roFr;
     }
     auto key = chip.getOrderingKey(roFr, row, col);
-    o2::itsmft::PreDigit* pd = chip.findDigit(key);
+    o2::trkft3::PreDigit* pd = chip.findDigit(key);
     if (!pd) {
-      chip.addDigit(key, roFr, row, col, nEleROF, lbl);
+      chip.addDigit(key, roFr, row, col, nEleROF, lbl, toaROF);
       LOG(debug) << "Added digit with key: " << key << "  ROF: " << roFr << "  row: " << row << "  col: " << col << "  charge: " << nEleROF;
     } else { // there is already a digit at this slot, account as PreDigitExtra contribution
       LOG(debug) << "Added to pre-digit with key: " << key << "  ROF: " << roFr << "  row: " << row << "  col: " << col << "  charge: " << nEleROF;
       pd->charge += nEleROF;
-      if (pd->labelRef.label == lbl) { // don't store the same label twice
+      pd->toa = std::min(pd->toa, toaROF); /// in case of two hits on the same digit in the same ROF, get the first ToA
+      if (pd->labelRef.label == lbl) {     // don't store the same label twice
         continue;
       }
       ExtraDig* extra = getExtraDigBuffer(roFr);

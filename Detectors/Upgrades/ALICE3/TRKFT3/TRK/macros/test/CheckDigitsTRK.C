@@ -75,7 +75,9 @@ void addTLines(float pitch)
   gPad->Update();
 }
 
-void CheckDigitsTRK(std::string digifile = "trkdigits.root", std::string hitfile = "o2sim_HitsTRK.root", std::string inputGeom = "o2sim_geometry.root")
+void CheckDigitsTRK(std::string digifile = "trkdigits.root", std::string hitfile = "o2sim_HitsTRK.root", std::string inputGeom = "o2sim_geometry.root",
+                    std::string localRespFile = "") // empty: APTS response from CCDB, as in the digitizer
+
 {
   gStyle->SetPalette(55);
 
@@ -145,15 +147,32 @@ void CheckDigitsTRK(std::string digifile = "trkdigits.root", std::string hitfile
   SegmentationChip seg;
   // seg.Print();
 
-  // MLOT response plane: y = halfThickness - depthMax.
-  float depthMax = (float)o2::trk::constants::apts::thickness; // fallback (no CCDB)
-  auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
-  ccdbMgr.setURL("http://alice-ccdb.cern.ch");
-  if (auto* alpResp = ccdbMgr.get<o2::itsmft::AlpideSimResponse>("IT3/Calib/APTSResponse")) {
-    depthMax = alpResp->getDepthMax();
+  // Chip response: same choice as the digitizer (TRKDigitizerSpec): APTS from CCDB by default
+  const o2::itsmft::AlpideSimResponse* alpResp = nullptr;
+  if (localRespFile.empty()) {
+    auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
+    ccdbMgr.setURL("http://alice-ccdb.cern.ch");
+    alpResp = ccdbMgr.get<o2::itsmft::AlpideSimResponse>("IT3/Calib/APTSResponse");
+  } else {
+    TFile* respFile = TFile::Open(localRespFile.data());
+    alpResp = respFile ? (const o2::itsmft::AlpideSimResponse*)respFile->Get("response1") : nullptr;
   }
-  const float yPlaneMLOT = o2::trk::SegmentationChip::SiliconThicknessMLOT / 2.f - depthMax;
-  const float yPlaneVD = -o2::trk::SegmentationChip::SiliconThicknessVD; // VD reference plane in local flat y
+  if (!alpResp) {
+    LOG(fatal) << "Cannot load the chip response from " << (localRespFile.empty() ? "CCDB IT3/Calib/APTSResponse" : localRespFile);
+  }
+
+  const float depthMax = alpResp->getDepthMax();
+  // Reference plane for the hits: middle of the 10 um epitaxial layer.
+  // Epi in response depth coordinates (y_resp): APTS +10..0 um, ALICE3 (local response file) 0..-10 um.
+  // Local y (flat frame for VD) = y_resp - shift, with the digitizer shifts (Digitizer::init):
+  // depthMax for VD, depthMax - SiliconThicknessMLOT/2 for ML/OT.
+  const float halfThicknessMLOT = o2::trk::SegmentationChip::SiliconThicknessMLOT / 2.f;
+  const float yEpiMidResp = localRespFile.empty() ? 5e-4f : -5e-4f;
+  const float yPlaneVD = yEpiMidResp - depthMax;
+  const float yPlaneMLOT = yEpiMidResp - (depthMax - halfThicknessMLOT);
+
+  Info("CheckDigitsTRK", "Response %s: depthMax = %.2f um | VD y-plane = %.2f um | ML/OT y-plane = %.2f um",
+       localRespFile.empty() ? "APTS (CCDB)" : localRespFile.data(), depthMax * 1e4, yPlaneVD * 1e4, yPlaneMLOT * 1e4);
   // Hits
   TFile* hitFile = TFile::Open(hitfile.data());
   TTree* hitTree = (TTree*)hitFile->Get("o2sim");

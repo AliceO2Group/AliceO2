@@ -1751,6 +1751,27 @@ void addSpecialParticles()
   //Sexaquark (uuddss): compact, neutral and stable hypothetical bound state (arxiv.org/abs/1708.08951)
   TVirtualMC::GetMC()->DefineParticle(900000020, "Sexaquark", kPTUndefined, 2.0, 0.0, 4.35e+17, "Hadron", 0.0, 0, 1, 0, 0, 0, 0, 0, 2, kTRUE);
   TVirtualMC::GetMC()->DefineParticle(-900000020, "AntiSexaquark", kPTUndefined, 2.0, 0.0, 4.35e+17, "Hadron", 0.0, 0, 1, 0, 0, 0, 0, 0, -2, kTRUE);
+
+  // BSM Monopoles, defined only when their physics is enabled (G4.monopole=1), so that a
+  // monopole primary without it is reported by the engine instead of crossing the detector unseen.
+  // The transported mass has to match the one the generator used; see
+  // G4Params.monopoleMass and o2::sim::MonopoleMassDefaultGeV.
+  // To-do: find a way to define multiple masses for monopoles species
+  if (!o2::conf::G4Params::Instance().monopole) {
+    return;
+  }
+  const double monopoleMass = o2::conf::G4Params::Instance().monopoleMass;
+  if (!(monopoleMass > 0.)) {
+    LOG(fatal) << "G4.monopoleMass must be positive, got " << monopoleMass;
+  }
+  // kPTUndefined: Geant4-VMC attaches no process to them (a kPTHadron would get hIoni and hmsc);
+  // their ionisation and transport are attached by O2MonopolePhysics
+  // Symmetric monopoles: same electric and magnetic charge
+  TVirtualMC::GetMC()->DefineParticle(4110000, "Monopole_symm", kPTUndefined, monopoleMass, 0.0, 1e10, "BSM", 0.0, 0, 0, 0, 0, 0, 0, 0, 0, kTRUE);
+  TVirtualMC::GetMC()->DefineParticle(-4110000, "AntiMonopole_symm", kPTUndefined, monopoleMass, 0.0, 1e10, "BSM", 0.0, 0, 0, 0, 0, 0, 0, 0, 0, kTRUE);
+  // Asymmetric monopoles: opposite electric and magnetic charge
+  TVirtualMC::GetMC()->DefineParticle(4120000, "Monopole_asymm", kPTUndefined, monopoleMass, 0.0, 1e10, "BSM", 0.0, 0, 0, 0, 0, 0, 0, 0, 0, kTRUE);
+  TVirtualMC::GetMC()->DefineParticle(-4120000, "AntiMonopole_asymm", kPTUndefined, monopoleMass, 0.0, 1e10, "BSM", 0.0, 0, 0, 0, 0, 0, 0, 0, 0, kTRUE);
 }
 
 void O2MCApplicationBase::AddParticles()

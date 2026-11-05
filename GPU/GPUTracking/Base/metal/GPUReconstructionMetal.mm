@@ -9,10 +9,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "GPUReconstructionMetal.h"
+#include "GPUReconstructionMetalIncludesHost.h"  // must come first
+
 #include "GPUConstantMem.h"
 #include "GPUDefParametersLoad.inc"
-#include "GPUReconstructionMetalIncludesHost.h"
+#include "GPUReconstructionMetal.h"
 
 #include <cstddef>
 #include <map>
@@ -100,7 +101,7 @@ int32_t GPUReconstructionMetal::InitDevice_Runtime()
       if (mInternals->commandQueues[i] == nil) {
         GPUErrorReturn("Error creating Metal command queue");
       }
-      mInternals->commandBuffers[i] = [mInternals->commandQueues[i] commandBuffer];
+      mInternals->commandBuffers[i] = [[mInternals->commandQueues[i] commandBuffer] retain];
       if (mInternals->commandBuffers[i] == nil) {
         GPUErrorReturn("Error creating Metal command buffer");
       }
@@ -113,9 +114,11 @@ int32_t GPUReconstructionMetal::InitDevice_Runtime()
 
     mHostMemoryBase = mInternals->mem_host.contents;
     mHostMemorySize = mInternals->mem_host.allocatedSize;
-    mDeviceMemoryBase = mInternals->mem_gpu.contents;
+    // The kernels reconstruct device pointers from these bases, so they must be
+    // the addresses the GPU sees, not the CPU-visible ones of a shared buffer.
+    mDeviceMemoryBase = (void*)(uintptr_t)mInternals->mem_gpu.gpuAddress;
     mDeviceMemorySize = mInternals->mem_gpu.allocatedSize;
-    mDeviceConstantMem = (GPUConstantMem*)mInternals->mem_constant.contents;
+    mDeviceConstantMem = (GPUConstantMem*)(uintptr_t)mInternals->mem_constant.gpuAddress;
 
     if (GetProcessingSettings().debugLevel >= 1) {
       GPUInfo("Memory ptrs: GPU (%ld bytes): %p - Host (%ld bytes): %p", (int64_t)mDeviceMemorySize, mDeviceMemoryBase, (int64_t)mHostMemorySize, mHostMemoryBase);
@@ -153,11 +156,17 @@ int32_t GPUReconstructionMetal::ExitDevice_Runtime()
         [mInternals->functions[i] release];
       }
       mInternals->functions.clear();
+      for (uint32_t i = 0; i < mInternals->pipelines.size(); i++) {
+        [mInternals->pipelines[i] release];
+      }
+      mInternals->pipelines.clear();
+      mInternals->maxThreadsPerGroup.clear();
     }
     if (mHostMemoryBase) {
       for (int32_t i = 0; i < mNStreams; i++) {
-        [mInternals->commandQueues[i] release];
+        DrainStream(i);
         [mInternals->commandBuffers[i] release];
+        [mInternals->commandQueues[i] release];
       }
       [mInternals->mem_host release];
     }
@@ -171,6 +180,31 @@ int32_t GPUReconstructionMetal::ExitDevice_Runtime()
 
   return (0);
 }
+
+namespace
+{
+// Where a pointer lives as far as the backend is concerned. mDeviceMemoryBase is
+// a GPU address, so the CPU-visible address of owned memory has to be taken from
+// the buffer rather than from the pointer itself.
+struct MetalMemRef {
+  id<MTLBuffer> buffer;  // nil for memory the backend does not own
+  size_t offset;
+  char* cpu;
+};
+
+MetalMemRef metalResolve(const GPUReconstructionMetalInternals* internals, const void* p, const void* hostBase, size_t hostSize, const void* devBase, size_t devSize)
+{
+  if (p >= hostBase && p < ((const char*)hostBase + hostSize)) {
+    const size_t o = (const char*)p - (const char*)hostBase;
+    return {internals->mem_host, o, (char*)internals->mem_host.contents + o};
+  }
+  if (p >= devBase && p < ((const char*)devBase + devSize)) {
+    const size_t o = (const char*)p - (const char*)devBase;
+    return {internals->mem_gpu, o, (char*)internals->mem_gpu.contents + o};
+  }
+  return {nil, 0, (char*)p};
+}
+}  // namespace
 
 size_t GPUReconstructionMetal::GPUMemCpy(void* dst, const void* src, size_t sizeBytes, int32_t stream, int32_t toGPU, deviceEvent* ev, deviceEvent* evList, int32_t nEvents)
 {
@@ -186,41 +220,26 @@ size_t GPUReconstructionMetal::GPUMemCpy(void* dst, const void* src, size_t size
   }
 
   auto realStream = stream == -1 ? 0 : stream;
-  id<MTLCommandBuffer> cb = mInternals->commandBuffers[realStream];
-  id<MTLBlitCommandEncoder> blit = [cb blitCommandEncoder];
-  id<MTLBuffer> sourceBuffer = nil;
-  id<MTLBuffer> destBuffer = nil;
-  ptrdiff_t sourceOffset = 0;
-  ptrdiff_t destOffset = 0;
+  const MetalMemRef s = metalResolve(mInternals, src, mHostMemoryBase, mHostMemorySize, mDeviceMemoryBase, mDeviceMemorySize);
+  const MetalMemRef d = metalResolve(mInternals, dst, mHostMemoryBase, mHostMemorySize, mDeviceMemoryBase, mDeviceMemorySize);
 
-  if (src >= mHostMemoryBase && src < ((char*)mHostMemoryBase + mHostMemorySize)) {
-    sourceBuffer = mInternals->mem_host;
-    sourceOffset = (char*)src - (char*)mHostMemoryBase;
-  } else if (src >= mDeviceMemoryBase && src < ((char*)mDeviceMemoryBase + mDeviceMemorySize)) {
-    sourceBuffer = mInternals->mem_gpu;
-    sourceOffset = (char*)src - (char*)mDeviceMemoryBase;
+  if (s.buffer == nil || d.buffer == nil) {
+    // A blit moves data between MTLBuffers only, and the calibration objects
+    // live in ordinary memory. Both pools are shared storage on a unified
+    // architecture, so the copy can be done on the host once the stream is idle.
+    DrainStream(realStream);
+    memcpy(d.cpu, s.cpu, sizeBytes);
   } else {
-    GPUErrorReturn("Unknown buffer at %p", src);
+    id<MTLCommandBuffer> cb = mInternals->commandBuffers[realStream];
+    id<MTLBlitCommandEncoder> blit = [cb blitCommandEncoder];
+    [blit copyFromBuffer:s.buffer
+            sourceOffset:s.offset
+                toBuffer:d.buffer
+       destinationOffset:d.offset
+                    size:sizeBytes];
+    [blit endEncoding];
+    CommitStream(realStream);
   }
-
-  if (dst >= mHostMemoryBase && dst < ((char*)mHostMemoryBase + mHostMemorySize)) {
-    destBuffer = mInternals->mem_host;
-    destOffset = (char*)dst - (char*)mHostMemoryBase;
-  } else if (dst >= mDeviceMemoryBase && dst < ((char*)mDeviceMemoryBase + mDeviceMemorySize)) {
-    destBuffer = mInternals->mem_gpu;
-    destOffset = (char*)dst - (char*)mDeviceMemoryBase;
-  } else {
-    GPUErrorReturn("Unknown buffer at %p", dst);
-  }
-
-  [blit copyFromBuffer:sourceBuffer
-          sourceOffset:sourceOffset
-              toBuffer:destBuffer
-     destinationOffset:destOffset
-                  size:sizeBytes];
-
-  [blit endEncoding];
-  [cb commit];
 
   if (GetProcessingSettings().serializeGPU & 2) {
     GPUDebug(("GPUMemCpy " + std::to_string(toGPU)).c_str(), stream, true);
@@ -235,27 +254,22 @@ size_t GPUReconstructionMetal::WriteToConstantMemory(size_t offset, const void* 
   }
 
   auto realStream = stream == -1 ? 0 : stream;
-  id<MTLCommandBuffer> cb = mInternals->commandBuffers[realStream];
-  id<MTLBlitCommandEncoder> blit = [cb blitCommandEncoder];
-  id<MTLBuffer> sourceBuffer = nil;
-  ptrdiff_t sourceOffset = 0;
-  if (src >= mHostMemoryBase && src < ((char*)mHostMemoryBase + mHostMemorySize)) {
-    sourceBuffer = mInternals->mem_host;
-    sourceOffset = (char*)src - (char*)mHostMemoryBase;
-  } else if (src >= mDeviceMemoryBase && src < ((char*)mDeviceMemoryBase + mDeviceMemorySize)) {
-    sourceBuffer = mInternals->mem_gpu;
-    sourceOffset = (char*)src - (char*)mDeviceMemoryBase;
-  } else {
-    GPUErrorReturn("Unknown buffer at %p", src);
-  }
-  [blit copyFromBuffer:sourceBuffer
-          sourceOffset:sourceOffset
-              toBuffer:mInternals->mem_constant
-     destinationOffset:offset
-                  size:size];
+  const MetalMemRef s = metalResolve(mInternals, src, mHostMemoryBase, mHostMemorySize, mDeviceMemoryBase, mDeviceMemorySize);
 
-  [blit endEncoding];
-  [cb commit];
+  if (s.buffer == nil) {
+    DrainStream(realStream);
+    memcpy((char*)mInternals->mem_constant.contents + offset, s.cpu, size);
+  } else {
+    id<MTLCommandBuffer> cb = mInternals->commandBuffers[realStream];
+    id<MTLBlitCommandEncoder> blit = [cb blitCommandEncoder];
+    [blit copyFromBuffer:s.buffer
+            sourceOffset:s.offset
+                toBuffer:mInternals->mem_constant
+       destinationOffset:offset
+                    size:size];
+    [blit endEncoding];
+    CommitStream(realStream);
+  }
 
   if (GetProcessingSettings().serializeGPU & 2) {
     GPUDebug("WriteToConstantMemory", stream, true);
@@ -278,26 +292,46 @@ void GPUReconstructionMetal::RecordMarker(deviceEvent* ev, int32_t stream)
   // the lifetime of the events outside here.
   auto mtlEvent = (__bridge id<MTLSharedEvent>)(ev->get<void*>());
   [cb encodeSignalEvent:mtlEvent value:1];
+  CommitStream(stream);
+}
+
+void GPUReconstructionMetal::CommitStream(int32_t stream)
+{
+  id<MTLCommandBuffer> cb = mInternals->commandBuffers[stream];
   [cb commit];
+  // Hand the committed buffer over to the stream's submission list, which owns
+  // it until it is waited for, and open a fresh one to encode the next work in.
+  mInternals->submittedBuffers[stream].emplace_back(cb);
+  mInternals->commandBuffers[stream] = [[mInternals->commandQueues[stream] commandBuffer] retain];
+}
+
+void GPUReconstructionMetal::DrainStream(int32_t stream)
+{
+  // Waiting on the buffer that is currently open would block forever: it is not
+  // committed, so it never completes. Only what was submitted can be waited for.
+  for (id<MTLCommandBuffer> cb : mInternals->submittedBuffers[stream]) {
+    [cb waitUntilCompleted];
+    [cb release];
+  }
+  mInternals->submittedBuffers[stream].clear();
 }
 
 void GPUReconstructionMetal::SynchronizeGPU()
 {
   for (int32_t i = 0; i < mNStreams; i++) {
-    [mInternals->commandBuffers[i] waitUntilCompleted];
+    DrainStream(i);
   }
 }
 
 void GPUReconstructionMetal::SynchronizeStream(int32_t stream)
 {
-  [mInternals->commandBuffers[stream] waitUntilCompleted];
+  DrainStream(stream);
 }
 
 void GPUReconstructionMetal::SynchronizeEvents(deviceEvent* evList, int32_t nEvents)
 {
   for (int32_t si = 0; si < mNStreams; si++) {
-    id<MTLCommandBuffer> cb = mInternals->commandBuffers[si];
-    [cb waitUntilCompleted];
+    DrainStream(si);
   }
 }
 
@@ -309,8 +343,8 @@ void GPUReconstructionMetal::StreamWaitForEvents(int32_t stream, deviceEvent* ev
     auto mtlEvent = (__bridge id<MTLSharedEvent>)(evList[ei].get<void*>());
     [cb encodeWaitForEvent:mtlEvent value:1];
   }
-  [cb commit];
-  [cb waitUntilCompleted];
+  CommitStream(stream);
+  DrainStream(stream);
 }
 
 bool GPUReconstructionMetal::IsEventDone(deviceEvent* evList, int32_t nEvents)
@@ -331,7 +365,7 @@ int32_t GPUReconstructionMetal::GPUDebug(const char* state, int32_t stream, bool
     return (0);
   }
   for (int32_t si = 0; si < mNStreams; si++) {
-    [mInternals->commandBuffers[si] waitUntilCompleted];
+    DrainStream(si);
   }
   if (GetProcessingSettings().debugLevel >= 3) {
     GPUInfo("GPU Sync Done");

@@ -30,6 +30,7 @@
 #pragma link C++ class o2::its::Line + ;
 #pragma link C++ class std::vector < o2::its::Line> + ;
 
+#pragma link C++ class o2::its::LineFit + ;
 #pragma link C++ class o2::its::ClusterLines + ;
 #pragma link C++ class std::vector < o2::its::ClusterLines> + ;
 

@@ -27,6 +27,10 @@ name: Clean PR checks
         description: build/O2/fullCI_slc9
         type: boolean
         default: true
+      'check_build/O2/fullCI-slc10-x86':
+        description: build/O2/fullCI-slc10-x86
+        type: boolean
+        default: true
       # Off by default, unlike every other check here: the gpu pool is a single
       # worker and a gpu-test round is hours, so resetting this is a much bigger
       # ask than requeueing one of the twenty-odd slc9/slc10 builders. Tick it

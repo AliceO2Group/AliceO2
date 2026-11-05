@@ -29,7 +29,7 @@ namespace
 GPUSettingsStandalone configStandalone;
 std::vector<std::function<void()>> qprint_global;
 #define QCONFIG_PRINT
-#include "utils/qconfig.h"
+#include "utils/qconfig_internal.h"
 #undef QCONFIG_PRINT
 } // namespace
 

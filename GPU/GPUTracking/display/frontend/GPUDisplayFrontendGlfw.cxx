@@ -26,11 +26,6 @@
 #include <cstring>
 #include <unistd.h>
 
-#ifndef GPUCA_STANDALONE
-#include <DebugGUI/imgui.h>
-#include <DebugGUI/DebugGUI.h>
-#endif
-
 using namespace o2::gpu;
 
 GPUDisplayFrontendGlfw::GPUDisplayFrontendGlfw()
@@ -207,6 +202,8 @@ void GPUDisplayFrontendGlfw::mouseButton_callback(GLFWwindow* window, int32_t bu
       me->mMouseDn = true;
     } else if (button == 1) {
       me->mMouseDnR = true;
+    } else if (button == GLFW_MOUSE_BUTTON_MIDDLE) {
+      me->mMouseDnM = true;
     }
     me->mMouseDnX = me->mMouseMvX;
     me->mMouseDnY = me->mMouseMvY;
@@ -215,6 +212,8 @@ void GPUDisplayFrontendGlfw::mouseButton_callback(GLFWwindow* window, int32_t bu
       me->mMouseDn = false;
     } else if (button == 1) {
       me->mMouseDnR = false;
+    } else if (button == GLFW_MOUSE_BUTTON_MIDDLE) {
+      me->mMouseDnM = false;
     }
   }
 }
@@ -223,23 +222,41 @@ void GPUDisplayFrontendGlfw::scroll_callback(GLFWwindow* window, double x, doubl
 
 void GPUDisplayFrontendGlfw::cursorPos_callback(GLFWwindow* window, double x, double y)
 {
-  me->mMouseMvX = x;
-  me->mMouseMvY = y;
+  me->mMouseMvX = x * me->mPixelRatio; // Window coordinates to framebuffer pixels
+  me->mMouseMvY = y * me->mPixelRatio;
 }
 
-void GPUDisplayFrontendGlfw::resize_callback(GLFWwindow* window, int32_t width, int32_t height) { me->ResizeScene(width, height); }
-
-#ifndef GPUCA_STANDALONE
-void GPUDisplayFrontendGlfw::DisplayLoop()
+void GPUDisplayFrontendGlfw::resize_callback(GLFWwindow* window, int32_t width, int32_t height) // Framebuffer size in pixels
 {
-  ImGui::SetNextWindowPos(ImVec2(0, 0));
-  ImGui::SetNextWindowSize(ImVec2(me->mDisplayWidth, me->mDisplayHeight));
-  ImGui::SetNextWindowBgAlpha(0.f);
-  ImGui::Begin("Console", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
-  me->DrawGLScene();
-  ImGui::End();
+  int32_t windowWidth, windowHeight;
+  glfwGetWindowSize(window, &windowWidth, &windowHeight);
+  me->mPixelRatio = windowWidth ? (double)width / windowWidth : 1.;
+  me->ResizeScene(width, height);
 }
-#endif
+
+void GPUDisplayFrontendGlfw::focus_callback(GLFWwindow* window, int32_t focused)
+{
+  if (!focused) {
+    me->focusLost();
+  }
+}
+
+void GPUDisplayFrontendGlfw::contentScale_callback(GLFWwindow* window, float xscale, float yscale)
+{
+  me->mScale = xscale;
+}
+
+void GPUDisplayFrontendGlfw::maximize_callback(GLFWwindow* window, int32_t maximized)
+{
+  me->setWindowState(glfwGetWindowMonitor(window) != nullptr, maximized);
+  if (glfwGetPlatform() == GLFW_PLATFORM_WAYLAND) { // Called before the resize. GLFW keeps the maximized size if the compositor leaves the size to the client when unmaximizing, so restore the last windowed size
+    if (maximized) {
+      glfwGetWindowSize(window, &me->mWindowedWidth, &me->mWindowedHeight);
+    } else {
+      me->mRestoreWindowedSize = true; // Must be applied after GLFW has processed the configure event, otherwise GLFW resizes to the pending maximized size again
+    }
+  }
+}
 
 int32_t GPUDisplayFrontendGlfw::FrontendMain()
 {
@@ -251,7 +268,6 @@ int32_t GPUDisplayFrontendGlfw::FrontendMain()
   }
   glfwSetErrorCallback(error_callback);
 
-  glfwWindowHint(GLFW_MAXIMIZED, 1);
   if (backend()->backendType() == GPUDisplayBackend::TYPE_VULKAN) {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
   }
@@ -261,6 +277,7 @@ int32_t GPUDisplayFrontendGlfw::FrontendMain()
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, 0);
     glfwWindowHint(GLFW_OPENGL_PROFILE, mBackend->CoreProfile() ? GLFW_OPENGL_CORE_PROFILE : GLFW_OPENGL_COMPAT_PROFILE);
   }
+  glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE); // Initial size scaled by the content scale on X11 / Win32
   mWindow = glfwCreateWindow(INIT_WIDTH, INIT_HEIGHT, DISPLAY_WINDOW_NAME, nullptr, nullptr);
   if (!mWindow) {
     fprintf(stderr, "Error creating glfw window\n");
@@ -276,14 +293,21 @@ int32_t GPUDisplayFrontendGlfw::FrontendMain()
   glfwSetMouseButtonCallback(mWindow, mouseButton_callback);
   glfwSetScrollCallback(mWindow, scroll_callback);
   glfwSetCursorPosCallback(mWindow, cursorPos_callback);
-  glfwSetWindowSizeCallback(mWindow, resize_callback);
-  if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
-    glfwSwapInterval(1);
-  }
-
-  pthread_mutex_lock(&mSemLockExit);
-  mGlfwRunning = true;
-  pthread_mutex_unlock(&mSemLockExit);
+  glfwSetFramebufferSizeCallback(mWindow, resize_callback);
+  glfwSetWindowMaximizeCallback(mWindow, maximize_callback);
+  glfwSetWindowFocusCallback(mWindow, focus_callback);
+  float xscale, yscale;
+  glfwGetWindowContentScale(mWindow, &xscale, &yscale);
+  contentScale_callback(mWindow, xscale, yscale);
+  glfwSetWindowContentScaleCallback(mWindow, contentScale_callback);
+  const float limitScale = (glfwGetPlatform() == GLFW_PLATFORM_X11 || glfwGetPlatform() == GLFW_PLATFORM_WIN32) ? mScale : 1.f; // Window coordinates are pixels on X11 / Win32, logical on Wayland / macOS
+  glfwSetWindowSizeLimits(mWindow, MIN_WIDTH * limitScale, MIN_HEIGHT * limitScale, GLFW_DONT_CARE, GLFW_DONT_CARE);
+  int32_t fbWidth, fbHeight, windowWidth, windowHeight;
+  glfwGetFramebufferSize(mWindow, &fbWidth, &fbHeight);
+  glfwGetWindowSize(mWindow, &windowWidth, &windowHeight);
+  mPixelRatio = windowWidth ? (double)fbWidth / windowWidth : 1.; // Updated in resize_callback, which must not be called before InitDisplay
+  applyInitialWindowState();
+  SetVSync(vsyncEnabled());
 
   if (mBackend->ExtInit()) {
     fprintf(stderr, "Error initializing GL extension wrapper\n");
@@ -295,39 +319,47 @@ int32_t GPUDisplayFrontendGlfw::FrontendMain()
     return (1);
   }
 
+  {
+    std::lock_guard lock(mExitStateMutex);
+    mDisplayRunning = true; // Only after successful initialization, StopDisplay waits for it to become false again
+  }
+
+  int32_t retVal = 0;
   while (!glfwWindowShouldClose(mWindow)) {
-    HandleSendKey();
+    HandleExternalGUISignals();
     if (DrawGLScene()) {
       fprintf(stderr, "Error drawing GL scene\n");
-      return (1);
+      retVal = 1;
+      break; // Cleanup below
     }
     if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
       glfwSwapBuffers(mWindow);
     }
+    waitForFPSLimit();
     glfwPollEvents();
+    if (mRestoreWindowedSize) {
+      mRestoreWindowedSize = false;
+      if (mWindowedWidth > 0 && mWindowedHeight > 0 && !glfwGetWindowAttrib(mWindow, GLFW_MAXIMIZED)) {
+        glfwSetWindowSize(mWindow, mWindowedWidth, mWindowedHeight);
+      }
+    }
   }
 
   ExitDisplay();
-  mDisplayControl = 2;
-  pthread_mutex_lock(&mSemLockExit);
-  glfwDestroyWindow(mWindow);
-  glfwTerminate();
-  mGlfwRunning = false;
-  pthread_mutex_unlock(&mSemLockExit);
+  {
+    std::lock_guard lock(mExitStateMutex);
+    mDisplayControl = 2;
+    glfwDestroyWindow(mWindow);
+    glfwTerminate();
+    mDisplayRunning = false;
+  }
 
-  return 0;
+  return retVal;
 }
 
-void GPUDisplayFrontendGlfw::DisplayExit()
+void GPUDisplayFrontendGlfw::StopDisplayA()
 {
-  pthread_mutex_lock(&mSemLockExit);
-  if (mGlfwRunning) {
-    glfwSetWindowShouldClose(mWindow, true);
-  }
-  pthread_mutex_unlock(&mSemLockExit);
-  while (mGlfwRunning) {
-    usleep(10000);
-  }
+  glfwSetWindowShouldClose(mWindow, true);
 }
 
 void GPUDisplayFrontendGlfw::OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton)
@@ -357,15 +389,20 @@ void GPUDisplayFrontendGlfw::ToggleMaximized(bool set)
   }
 }
 
-void GPUDisplayFrontendGlfw::SetVSync(bool enable) { glfwSwapInterval(enable); }
-
-bool GPUDisplayFrontendGlfw::EnableSendKey()
+void GPUDisplayFrontendGlfw::SetVSync(bool enable)
 {
-#ifdef GPUCA_STANDALONE
-  return true;
-#else
-  return false;
-#endif
+  if (canSetVSync()) { // No GL context with Vulkan
+    glfwSwapInterval(enable);
+  }
+}
+
+bool GPUDisplayFrontendGlfw::canSetVSync() { return backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL; }
+
+float GPUDisplayFrontendGlfw::getRefreshRate()
+{
+  GLFWmonitor* monitor = glfwGetWindowMonitor(mWindow) ? glfwGetWindowMonitor(mWindow) : glfwGetPrimaryMonitor(); // Monitor of a windowed window is not known, use the primary one
+  const GLFWvidmode* mode = monitor ? glfwGetVideoMode(monitor) : nullptr;
+  return mode ? mode->refreshRate : 0.f;
 }
 
 void GPUDisplayFrontendGlfw::getSize(int32_t& width, int32_t& height)

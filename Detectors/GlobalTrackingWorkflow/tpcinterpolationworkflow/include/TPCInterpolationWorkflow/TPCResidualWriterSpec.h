@@ -22,7 +22,7 @@ namespace tpc
 {
 
 /// create a processor spec
-framework::DataProcessorSpec getTPCResidualWriterSpec(bool writeTrackData, bool debugOutput);
+framework::DataProcessorSpec getTPCResidualWriterSpec(bool writeTrackData, bool debugOutput, bool writeTrackDataMC);
 
 } // namespace tpc
 } // namespace o2

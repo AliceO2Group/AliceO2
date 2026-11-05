@@ -96,6 +96,13 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 {
   // This method is called from the MC stepping
 
+  if (fMC->IsTrackEntering() && !fMC->IsNewTrack() && fMC->TrackCharge() != 0) { // one reference per charged particle, first entry from outside
+    auto o2stack = static_cast<o2::data::Stack*>(fMC->GetStack());
+    if (o2stack->GetCurrentTrackNumber() != mTrackRefLastTrackID) {
+      mTrackRefLastTrackID = o2stack->GetCurrentTrackNumber();
+      o2stack->addTrackReference(o2::TrackReference(*fMC, GetDetId()));
+    }
+  }
   // do not track neutral particles
   if (!(fMC->TrackCharge())) {
     return kFALSE;
@@ -744,4 +751,5 @@ void Detector::Reset()
   if (!o2::utils::ShmManager::Instance().isOperational()) {
     mHits->clear();
   }
+  mTrackRefLastTrackID = -1;
 }

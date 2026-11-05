@@ -22,39 +22,16 @@
 #include <tuple>
 #include "qconfig.h"
 #include "qconfig_helpers.h"
+#include "qconfig_internal_helpers.h"
 
 // Create config instances
 #define QCONFIG_PARSER_CXX
 #define QCONFIG_INSTANCE
-#include "qconfig.h"
+#include "qconfig_internal.h"
 #undef QCONFIG_INSTANCE
 
 namespace qConfig
 {
-#define QCONFIG_SETTING(name, type)                     \
-  struct qon_mxcat3(q, name, _t) {                      \
-    type v;                                             \
-    constexpr qon_mxcat3(q, name, _t)(type s) : v(s) {} \
-  };                                                    \
-  constexpr qon_mxcat3(q, name, _t) name(type v) { return (qon_mxcat3(q, name, _t)(v)); }
-
-#define QCONFIG_SETTING_TEMPLATE(name)                      \
-  template <typename T>                                     \
-  struct qon_mxcat3(q, name, _t) {                          \
-    T v;                                                    \
-    constexpr qon_mxcat3(q, name, _t)(const T& s) : v(s) {} \
-  };                                                        \
-  template <typename T>                                     \
-  constexpr qon_mxcat3(q, name, _t)<T> name(T v)            \
-  {                                                         \
-    return (qon_mxcat3(q, name, _t) < T > (v));             \
-  }
-
-QCONFIG_SETTING(message, const char*)
-QCONFIG_SETTING_TEMPLATE(min)
-QCONFIG_SETTING_TEMPLATE(max)
-QCONFIG_SETTING_TEMPLATE(set)
-QCONFIG_SETTING_TEMPLATE(def)
 
 static inline const char* getOptName(const char** argv, int32_t i)
 {
@@ -477,7 +454,7 @@ static inline void qConfigHelp(const char* subConfig = nullptr, int32_t followSu
     printf("Usage Info:");
   }
 #define QCONFIG_HELP
-#include "qconfig.h"
+#include "qconfig_internal.h"
 #undef QCONFIG_HELP
   if (followSub < 2) {
     printf("\n");
@@ -485,14 +462,14 @@ static inline void qConfigHelp(const char* subConfig = nullptr, int32_t followSu
 }
 
 // Create parser for configuration
-static inline int32_t qConfigParse(int argc, const char** argv, const char* /*filename*/)
+int32_t qConfigParse(int argc, const char** argv, const char* /*filename*/)
 {
   for (int32_t i = 1; i < argc; i++) {
     const char* thisoption = argv[i];
   repeat:
     bool found = false;
 #define QCONFIG_PARSE
-#include "qconfig.h"
+#include "qconfig_internal.h"
 #undef QCONFIG_PARSE
     if (found == false) {
       printf("Invalid argument: %s\n", argv[i]);
@@ -505,16 +482,13 @@ static inline int32_t qConfigParse(int argc, const char** argv, const char* /*fi
 
 std::vector<std::function<void()>> qprint_global;
 #define QCONFIG_PRINT
-#include "qconfig.h"
+#include "qconfig_internal.h"
 #undef QCONFIG_PRINT
-} // end namespace qConfig
-
-// Main parse function called from outside
-int32_t qConfigParse(int argc, const char** argv, const char* filename) { return (qConfig::qConfigParse(argc, argv, filename)); }
 
 void qConfigPrint()
 {
-  for (auto& f : qConfig::qprint_global) {
+  for (auto& f : qprint_global) {
     f();
   }
 }
+} // end namespace qConfig

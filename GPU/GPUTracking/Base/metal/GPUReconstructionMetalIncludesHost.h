@@ -12,12 +12,19 @@
 #ifndef GPURECONSTRUCTIONOMETALINCLUDESHOST_H
 #define GPURECONSTRUCTIONOMETALINCLUDESHOST_H
 
+#ifdef GPUCOMMONDEF_H
+#error "this header establishes GPUCA_GPUTYPE_METAL and __METAL_HOST__, so it must be included before any other GPU header"
+#endif
+
 #define GPUCA_GPUTYPE_METAL
 
 #import <Metal/Metal.h>
 #ifndef __METAL_VERSION__
 // __METAL_VERSION__ is only defined in device code.
 #define __METAL_HOST__
+// The parameter table picks MSL's `half` for the device layouts this translation
+// unit has to agree with; _Float16 is the same IEEE binary16 type.
+using half = _Float16;
 #endif
 
 #import <Foundation/Foundation.h>
@@ -45,10 +52,15 @@ struct GPUReconstructionMetalInternals {
   id<MTLDevice> device;
 
   std::array<id<MTLCommandQueue>, constants::GPU_MAX_STREAMS> commandQueues;
+  // The buffer currently open for encoding, plus the ones already committed and
+  // not yet waited for. A Metal command buffer takes one commit and cannot be
+  // encoded into afterwards, so the two cannot be the same object.
   std::array<id<MTLCommandBuffer>, constants::GPU_MAX_STREAMS> commandBuffers;
+  std::array<std::vector<id<MTLCommandBuffer>>, constants::GPU_MAX_STREAMS> submittedBuffers;
 
   std::vector<id<MTLFunction>> functions;
   std::vector<id<MTLComputePipelineState>> pipelines;
+  std::vector<uint32_t> maxThreadsPerGroup;
 
   id<MTLBuffer> mem_gpu;
   id<MTLBuffer> mem_constant;

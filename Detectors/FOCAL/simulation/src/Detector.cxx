@@ -1335,6 +1335,7 @@ bool Detector::ProcessHitsEPad(FairVolume* v)
   } else {
     LOG(debug3) << "Adding energy to the current hit";
     currenthit->SetEnergyLoss(currenthit->GetEnergyLoss() + eloss);
+    o2stack->modifiesHit(GetDetId());
   }
   return true;
 }
@@ -1384,6 +1385,7 @@ bool Detector::ProcessHitsHCAL(FairVolume* v)
   } else {
     LOG(debug3) << "Adding energy to the current hit";
     currenthit->SetEnergyLoss(currenthit->GetEnergyLoss() + eloss);
+    o2stack->modifiesHit(GetDetId());
   }
   return true;
 }
@@ -1433,6 +1435,7 @@ bool Detector::ProcessHitsEPix(FairVolume* v)
   } else {
     LOG(debug3) << "Adding energy to the current hit";
     currenthit->SetEnergyLoss(currenthit->GetEnergyLoss() + eloss);
+    o2stack->modifiesHit(GetDetId());
   }
   return true;
 }

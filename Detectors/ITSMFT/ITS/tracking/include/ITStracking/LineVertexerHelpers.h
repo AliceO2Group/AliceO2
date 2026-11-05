@@ -15,14 +15,14 @@
 #include <memory>
 #include <span>
 
-#include "ITSMFTTracking/BoundedAllocator.h"
+#include "GenericTracking/BoundedAllocator.h"
 #include "ITStracking/ClusterLines.h"
 
 namespace o2::its::line_vertexer
 {
 
-using o2::itsmft::tracking::bounded_vector;
-using o2::itsmft::tracking::BoundedMemoryResource;
+using o2::gtrk::bounded_vector;
+using o2::gtrk::BoundedMemoryResource;
 
 struct Settings {
   float beamX = 0.f;

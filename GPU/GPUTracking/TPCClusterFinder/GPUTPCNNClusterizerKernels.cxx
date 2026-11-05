@@ -29,9 +29,11 @@ using namespace o2::gpu::tpccf;
 namespace o2::OrtDataType
 {
 struct Float16_t {
-  half v;
+  half val;
   Float16_t() = default;
-  Float16_t(float f) : v(f) {}
+  explicit Float16_t(float v) : val(v) {}
+  float ToFloat() const { return (float)val; }
+  explicit operator float() const { return ToFloat(); }
 };
 } // namespace o2::OrtDataType
 #else

@@ -40,6 +40,7 @@ class InputHelper
   static int addInputSpecsSVertex(const o2::framework::ConfigContext& configcontext, o2::framework::WorkflowSpec& specs);
   static int addInputSpecsStrangeTrack(const o2::framework::ConfigContext& configcontext, o2::framework::WorkflowSpec& specs, bool mc);
   static int addInputSpecsCosmics(const o2::framework::ConfigContext& configcontext, o2::framework::WorkflowSpec& specs, bool mc);
+  static int addInputSpecsCosmicsExtended(const o2::framework::ConfigContext& configcontext, o2::framework::WorkflowSpec& specs);
   static int addInputSpecsIRFramesITS(const o2::framework::ConfigContext& configcontext, o2::framework::WorkflowSpec& specs);
 };
 

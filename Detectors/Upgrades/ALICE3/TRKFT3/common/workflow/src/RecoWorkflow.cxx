@@ -23,19 +23,37 @@ namespace o2::trk::reco_workflow
 framework::WorkflowSpec getWorkflow(bool useMC,
                                     bool upstreamDigits,
                                     bool upstreamClusters,
-                                    bool disableRootOutput)
+                                    bool disableRootOutput,
+                                    o2::detectors::DetID::mask_t detectors)
 {
   framework::WorkflowSpec specs;
 
+  const bool trk = detectors[o2::detectors::DetID::TRK];
+  const bool ft3 = detectors[o2::detectors::DetID::FT3];
   if (!(upstreamDigits || upstreamClusters)) {
-    specs.emplace_back(o2::trk::getTRKDigitReaderSpec(useMC, false, "trkdigits.root"));
+    if (trk) {
+      specs.emplace_back(o2::trk::getTRKDigitReaderSpec(useMC, false, "trkdigits.root"));
+    }
+    if (ft3) {
+      specs.emplace_back(o2::trk::getFT3DigitReaderSpec(useMC, false, "ft3digits.root"));
+    }
   }
   if (!upstreamClusters) {
-    specs.emplace_back(o2::trk::getClustererSpec(useMC));
+    if (trk) {
+      specs.emplace_back(o2::trk::getClustererSpec(useMC));
+    }
+    if (ft3) {
+      specs.emplace_back(o2::trk::getFT3ClustererSpec(useMC));
+    }
   }
 
   if (!disableRootOutput) {
-    specs.emplace_back(o2::trk::getClusterWriterSpec(useMC));
+    if (trk) {
+      specs.emplace_back(o2::trk::getTRKClusterWriterSpec(useMC));
+    }
+    if (ft3) {
+      specs.emplace_back(o2::trk::getFT3ClusterWriterSpec(useMC));
+    }
   }
 
   return specs;

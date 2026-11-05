@@ -9,9 +9,9 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-# Simply provide a namespaced alias for the existing target 
+# Simply provide a namespaced alias for the existing target
 
-find_package(GLFW NAMES glfw3 CONFIG)
+find_package(GLFW 3.4 NAMES glfw3 CONFIG)
 if(NOT GLFW_FOUND)
   return()
 endif()

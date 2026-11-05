@@ -68,7 +68,12 @@ GPUChainTracking::GPUChainTracking(GPUReconstruction* rec, uint32_t maxTPCHits, 
   mFlatObjectsDevice.mChainTracking = this;
 }
 
-GPUChainTracking::~GPUChainTracking() = default;
+GPUChainTracking::~GPUChainTracking()
+{
+  if (mDisplayRunning) {
+    GetProcessingSettings().eventDisplay->StopDisplay();
+  }
+}
 
 void GPUChainTracking::RegisterPermanentMemoryAndProcessors()
 {
@@ -844,33 +849,29 @@ int32_t GPUChainTracking::RunChainFinalize()
 
     mEventDisplay->WaitTillEventShown();
 
-    if (GetProcessingSettings().eventDisplay->EnableSendKey()) {
+    if (GetProcessingSettings().runsStandalone) {
       while (kbhit()) {
         getch();
       }
       GPUInfo("Press key for next event!");
     }
-
     int32_t iKey;
     do {
       usleep(10000);
-      if (GetProcessingSettings().eventDisplay->EnableSendKey()) {
+      if (GetProcessingSettings().runsStandalone) {
         iKey = kbhit() ? getch() : 0;
         if (iKey == 27) {
           GetProcessingSettings().eventDisplay->setDisplayControl(2);
         } else if (iKey == 'n') {
           break;
         } else if (iKey) {
-          while (GetProcessingSettings().eventDisplay->getSendKey() != 0) {
-            usleep(1000);
-          }
-          GetProcessingSettings().eventDisplay->setSendKey(iKey);
+          GetProcessingSettings().eventDisplay->sendExternalGUIKey(iKey);
         }
       }
     } while (GetProcessingSettings().eventDisplay->getDisplayControl() == 0);
     if (GetProcessingSettings().eventDisplay->getDisplayControl() == 2) {
       mDisplayRunning = false;
-      GetProcessingSettings().eventDisplay->DisplayExit();
+      GetProcessingSettings().eventDisplay->StopDisplay();
       const_cast<GPUSettingsProcessing&>(GetProcessingSettings()).eventDisplay = nullptr; // TODO: fixme - eventDisplay should probably not be put into ProcessingSettings in the first place
       return GPUReconstruction::retValValue::retDoExit;
     }

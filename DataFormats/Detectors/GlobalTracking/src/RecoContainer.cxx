@@ -31,6 +31,7 @@
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "ReconstructionDataFormats/TrackCosmics.h"
+#include "DataFormatsGlobalTracking/TrackCosmicsExtended.h"
 #include "ReconstructionDataFormats/TrackMCHMID.h"
 #include "DataFormatsITSMFT/TrkClusRef.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
@@ -429,6 +430,16 @@ void DataRequest::requestCoscmicTracks(bool mc)
   requestMap["Cosmics"] = mc;
 }
 
+void DataRequest::requestCosmicExtTracks(bool mc)
+{
+  addInput({"cosmicsExt", "GLO", "COSMFULL", 0, Lifetime::Timeframe});
+  addInput({"cosmicsExtTF", "GLO", "COSMFULLTF", 0, Lifetime::Timeframe});
+  if (mc) {
+    LOG(error) << "Extended cosmics do not support MC truth";
+  }
+  requestMap["CosmicsExt"] = false;
+}
+
 void DataRequest::requestPrimaryVertices(bool mc)
 {
   addInput({"pvtx", "GLO", "PVTX", 0, Lifetime::Timeframe});
@@ -825,6 +836,11 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
     addCosmicTracks(pc, req->second);
   }
 
+  req = reqMap.find("CosmicsExt");
+  if (req != reqMap.end()) {
+    addCosmicExtTracks(pc, req->second);
+  }
+
   req = reqMap.find("PVertex");
   if (req != reqMap.end()) {
     addPVertices(pc, req->second);
@@ -900,6 +916,23 @@ void RecoContainer::addPVerticesTMP(ProcessingContext& pc, bool mc)
 
   if (mc) { // in case was loaded via addPVertices
     pvtxPool.registerContainer(pc.inputs().get<gsl::span<o2::MCEventLabel>>("pvtx_mc"), PVTX_MCTR);
+  }
+}
+
+//____________________________________________________________
+void RecoContainer::addCosmicExtTracks(ProcessingContext& pc, bool mc)
+{
+  using o2::dataformats::CosmicsTFInfo;
+  using o2::dataformats::TrackCosmicsExtended;
+  // the messages are ROOT-serialized, keep the deserialized objects alive until the next TF
+  std::shared_ptr<const std::vector<TrackCosmicsExtended>> cosm = pc.inputs().get<std::vector<TrackCosmicsExtended>*>("cosmicsExt");
+  std::shared_ptr<const CosmicsTFInfo> tfInfo = pc.inputs().get<CosmicsTFInfo*>("cosmicsExtTF");
+  cosmPool.registerContainer(*cosm, COSMEXT_TRACKS);
+  cosmPool.registerContainer(gsl::span<const CosmicsTFInfo>(tfInfo.get(), 1), COSMEXT_TFINFO);
+  cosmExtHolder[0] = std::move(cosm);
+  cosmExtHolder[1] = std::move(tfInfo);
+  if (mc) {
+    LOG(error) << "Extended cosmics do not support MC truth";
   }
 }
 

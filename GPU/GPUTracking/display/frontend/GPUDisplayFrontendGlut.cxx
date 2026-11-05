@@ -21,6 +21,10 @@
 #include <cstring>
 #include <GL/freeglut.h>
 #include <unistd.h>
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_X11
+#include <GL/glx.h>
+#include <GL/glxext.h>
+#endif
 
 #include <pthread.h>
 using namespace o2::gpu;
@@ -32,15 +36,16 @@ GPUDisplayFrontendGlut::GPUDisplayFrontendGlut()
   mFrontendName = "GLUT";
 }
 
-void GPUDisplayFrontendGlut::displayFunc()
+void GPUDisplayFrontendGlut::displayFunc() // TODO: Functions should be lambdas, to get rid of the static me variable!
 {
   me->DrawGLScene();
   glutSwapBuffers();
+  me->waitForFPSLimit();
 }
 
 void GPUDisplayFrontendGlut::glutLoopFunc()
 {
-  me->HandleSendKey();
+  me->HandleExternalGUISignals();
   displayFunc();
 }
 
@@ -194,6 +199,8 @@ void GPUDisplayFrontendGlut::mouseFunc(int32_t button, int32_t state, int32_t x,
       me->mMouseDn = true;
     } else if (button == GLUT_RIGHT_BUTTON) {
       me->mMouseDnR = true;
+    } else if (button == GLUT_MIDDLE_BUTTON) {
+      me->mMouseDnM = true;
     }
     me->mMouseDnX = x;
     me->mMouseDnY = y;
@@ -202,6 +209,8 @@ void GPUDisplayFrontendGlut::mouseFunc(int32_t button, int32_t state, int32_t x,
       me->mMouseDn = false;
     } else if (button == GLUT_RIGHT_BUTTON) {
       me->mMouseDnR = false;
+    } else if (button == GLUT_MIDDLE_BUTTON) {
+      me->mMouseDnM = false;
     }
   }
 }
@@ -258,31 +267,27 @@ int32_t GPUDisplayFrontendGlut::FrontendMain()
   glutMotionFunc(mouseMoveFunc);
   glutPassiveMotionFunc(mouseMoveFunc);
   glutMouseWheelFunc(mMouseWheelFunc);
-  ToggleMaximized(true);
+  applyInitialWindowState();
+  SetVSync(vsyncEnabled());
 
-  pthread_mutex_lock(&mSemLockExit);
-  mGlutRunning = true;
-  pthread_mutex_unlock(&mSemLockExit);
+  {
+    std::lock_guard lock(mExitStateMutex);
+    mDisplayRunning = true;
+  }
   glutMainLoop();
-  mDisplayControl = 2;
-  pthread_mutex_lock(&mSemLockExit);
-  mGlutRunning = false;
-  pthread_mutex_unlock(&mSemLockExit);
+  {
+    std::lock_guard lock(mExitStateMutex);
+    mDisplayControl = 2;
+    mDisplayRunning = false;
+  }
 
   ExitDisplay();
   return 0;
 }
 
-void GPUDisplayFrontendGlut::DisplayExit()
+void GPUDisplayFrontendGlut::StopDisplayA()
 {
-  pthread_mutex_lock(&mSemLockExit);
-  if (mGlutRunning) {
-    glutLeaveMainLoop();
-  }
-  pthread_mutex_unlock(&mSemLockExit);
-  while (mGlutRunning) {
-    usleep(10000);
-  }
+  glutLeaveMainLoop();
 }
 
 void GPUDisplayFrontendGlut::OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton)
@@ -308,4 +313,20 @@ void GPUDisplayFrontendGlut::SwitchFullscreen(bool set)
 }
 
 void GPUDisplayFrontendGlut::ToggleMaximized(bool set) {}
-void GPUDisplayFrontendGlut::SetVSync(bool enable) {}
+void GPUDisplayFrontendGlut::SetVSync(bool enable) // GLUT has no swap interval API, set it via GLX directly (no-op if freeglut does not use GLX)
+{
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_X11
+  if (canSetVSync()) {
+    ((PFNGLXSWAPINTERVALEXTPROC)glXGetProcAddressARB((const GLubyte*)"glXSwapIntervalEXT"))(glXGetCurrentDisplay(), glXGetCurrentDrawable(), enable);
+  }
+#endif
+}
+
+bool GPUDisplayFrontendGlut::canSetVSync()
+{
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_X11
+  return glXGetProcAddressARB((const GLubyte*)"glXSwapIntervalEXT") && glXGetCurrentDisplay();
+#else
+  return false;
+#endif
+}

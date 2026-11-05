@@ -23,5 +23,7 @@
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::trkft3::DPLDigitizerParam < o2::detectors::DetID::TRK>> + ;
 #pragma link C++ class o2::trkft3::DPLDigitizerParam < o2::detectors::DetID::FT3> + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::trkft3::DPLDigitizerParam < o2::detectors::DetID::FT3>> + ;
+#pragma link C++ class o2::trkft3::PreDigit + ;
+#pragma link C++ class o2::trkft3::PreDigitLabelRef + ;
 
 #endif

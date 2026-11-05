@@ -31,12 +31,21 @@
 #include "GPUDisplayFrontendGlut.h"
 #endif
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_WAYLAND
-#include "GPUDisplayFrontendWayland.h"
+namespace o2::gpu
+{
+GPUDisplayFrontend* createGPUDisplayFrontendWayland();
+} // namespace o2::gpu
 #endif
 #include "GPUDisplayFrontendNone.h"
 
+#include "GPUDisplayGUIChannel.h"
 #include "GPULogging.h"
 #include <cstring>
+#include <exception>
+#include <algorithm>
+#include <iterator>
+#include <thread>
+#include <utility>
 
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_QT
 #include "GPUDisplayGUIWrapper.h"
@@ -51,28 +60,106 @@ class GPUDisplayGUIWrapper
 
 using namespace o2::gpu;
 
+GPUDisplayFrontend::GPUDisplayFrontend() = default;
 GPUDisplayFrontend::~GPUDisplayFrontend() = default;
 
 void* GPUDisplayFrontend::FrontendThreadWrapper(void* ptr)
 {
   GPUDisplayFrontend* me = reinterpret_cast<GPUDisplayFrontend*>(ptr);
-  int32_t retVal = me->FrontendMain();
-  if (retVal == -1) {
+  int32_t retVal;
+  try {
+    retVal = me->FrontendMain();
+  } catch (const std::exception& e) {
+    GPUError("Error in display frontend: %s", e.what());
+    retVal = -1;
+  }
+  if (retVal && me->mDisplay->mInitResult == 0) { // Failed before InitDisplay was called, report failure to StartDisplay(), which otherwise waits forever
     me->InitDisplay(true);
   }
   return ((void*)(size_t)retVal);
 }
 
-void GPUDisplayFrontend::HandleSendKey()
+void GPUDisplayFrontend::waitForFPSLimit()
 {
-  if (mSendKey) {
-    mDisplay->HandleSendKey(mSendKey);
-    mSendKey = 0;
+  mNeedUpdate = 0;
+  const auto now = std::chrono::steady_clock::now();
+  const auto& cfg = mDisplay->cfgR();
+  if (mBackend->fpsLimitMode() != GPUDisplayBackend::FPS_LIMIT_RATE || cfg.fpsRate <= 0) {
+    mNextFrameTime = now;
+    return;
   }
+  const auto period = std::chrono::duration_cast<std::chrono::steady_clock::duration>(std::chrono::duration<double>(1. / cfg.fpsRate)); // TODO: wake up on HasExternalGUISignals
+  mNextFrameTime += period;
+  if (mNextFrameTime < now - period) { // More than one frame behind (slow rendering, first frame), do not try to catch up
+    mNextFrameTime = now;
+  }
+  std::this_thread::sleep_until(mNextFrameTime);
+}
+
+void GPUDisplayFrontend::HandleExternalGUISignals()
+{
+  const GPUSettingsDisplayHeavy oldCfgH = mDisplay->mCfgH;
+  const GPUSettingsDisplayLight oldCfgL = mDisplay->mCfgL;
+  const GPUSettingsDisplayRenderer oldCfgR = mDisplay->mCfgR;
+  bool changes = HandleExternalGUIKeys();
+
+  const bool gui = isGUIRunning();
+  std::optional<GPUDisplayGUIChannel::Update> update;
+  if (gui) {
+    std::lock_guard lock(mGUIChannel->mutex);
+    update = std::exchange(mGUIChannel->update, std::nullopt);
+    mGUIChannel->displayProcessingCurrentUpdate = update && mGUIChannel->guiSleeping; // GUI waits for the reply when it wakes up
+  }
+  if (update) {
+    for (int32_t key : update->keys) {
+      mDisplay->HandleExternalGUIKey(key);
+    }
+    if (update->lineWidth) {
+      mDisplay->mCfgL.lineWidth = *update->lineWidth;
+    }
+    changes = true;
+  }
+
+  if (changes) {
+    mDisplay->checkAndApplyConfigChanges(oldCfgH, oldCfgL, oldCfgR);
+  }
+  if (gui) {
+    {
+      std::lock_guard lock(mGUIChannel->mutex);
+      mGUIChannel->state.cfg = {mDisplay->mCfgH, mDisplay->mCfgL, mDisplay->mCfgR};
+      if (update) {
+        mGUIChannel->state.appliedUpdate = update->id;
+      }
+      mGUIChannel->state.counter++;
+      mGUIChannel->displayProcessingCurrentUpdate = false;
+    }
+    mGUIChannel->stateUpdated.notify_all();
+  }
+}
+
+bool GPUDisplayFrontend::HasExternalGUISignals() const
+{
+  return mExternalGUIKeys.size();
+}
+
+bool GPUDisplayFrontend::HandleExternalGUIKeys()
+{
+  std::lock_guard lock(mExternalGUIKeyMutex);
+  for (auto key : mExternalGUIKeys) {
+    mDisplay->HandleExternalGUIKey(key);
+  }
+  return !std::exchange(mExternalGUIKeys, {}).empty();
+}
+
+void GPUDisplayFrontend::sendExternalGUIKey(int32_t v)
+{
+  std::lock_guard lock(mExternalGUIKeyMutex);
+  mExternalGUIKeys.emplace_back(v);
 }
 
 void GPUDisplayFrontend::HandleKey(uint8_t key) { mDisplay->HandleKey(key); }
 int32_t GPUDisplayFrontend::DrawGLScene() { return mDisplay->DrawGLScene(); }
+
 void GPUDisplayFrontend::ResizeScene(int32_t width, int32_t height)
 {
   mDisplayHeight = height;
@@ -86,7 +173,6 @@ void GPUDisplayFrontend::ExitDisplay()
   stopGUI();
   mGUI.reset(nullptr);
 }
-bool GPUDisplayFrontend::EnableSendKey() { return true; }
 
 void GPUDisplayFrontend::stopGUI()
 {
@@ -102,9 +188,19 @@ int32_t GPUDisplayFrontend::startGUI()
   int32_t retVal = 1;
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_QT
   if (!mGUI) {
-    mGUI.reset(new GPUDisplayGUIWrapper);
+    mGUIChannel = std::make_unique<GPUDisplayGUIChannel>();
+    mGUI = std::make_unique<GPUDisplayGUIWrapper>(*mGUIChannel);
   }
   if (!mGUI->isRunning()) {
+    {
+      std::lock_guard lock(mGUIChannel->mutex);
+      mGUIChannel->update.reset();
+      mGUIChannel->state = {};
+      mGUIChannel->guiSleeping = mGUIChannel->displayProcessingCurrentUpdate = mGUIChannel->stop = false;
+      mGUIChannel->replyTimeout = std::chrono::milliseconds(mDisplay->cfg().guiReplyTimeout);
+      mGUIChannel->maxUpdatesAhead = std::max<uint32_t>(mDisplay->cfg().guiMaxUpdatesAhead, 1); // 0 would block all updates
+      mGUIChannel->windowName = DISPLAY_WINDOW_NAME;
+    }
     mGUI->start();
   } else {
     mGUI->focus();
@@ -145,7 +241,7 @@ GPUDisplayFrontend* GPUDisplayFrontend::getFrontend(const char* type)
 #endif
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_WAYLAND
   if (strcmp(type, "wayland") == 0 || (strcmp(type, "auto") == 0 && getenv("XDG_SESSION_TYPE") && strcmp(getenv("XDG_SESSION_TYPE"), "wayland") == 0)) {
-    return new GPUDisplayFrontendWayland;
+    return createGPUDisplayFrontendWayland();
   } else
 #endif
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_GLUT
@@ -164,6 +260,33 @@ GPUDisplayFrontend* GPUDisplayFrontend::getFrontend(const char* type)
 GPUDisplayBackend* GPUDisplayFrontend::backend()
 {
   return mDisplay->backend();
+}
+
+void GPUDisplayFrontend::setWindowState(bool fullScreen, bool maximized)
+{
+  mDisplay->mCfgR.fullScreen = fullScreen;
+  mDisplay->mCfgR.maximized = maximized;
+}
+
+void GPUDisplayFrontend::focusLost()
+{
+  std::fill(std::begin(mKeys), std::end(mKeys), false);
+  std::fill(std::begin(mKeysShift), std::end(mKeysShift), false);
+  mMouseDn = mMouseDnR = mMouseDnM = false;
+}
+
+void GPUDisplayFrontend::applyInitialWindowState()
+{
+  if (mDisplay->cfgR().fullScreen) {
+    SwitchFullscreen(true);
+  } else if (mDisplay->cfgR().maximized) {
+    ToggleMaximized(true);
+  }
+}
+
+bool GPUDisplayFrontend::vsyncEnabled() const
+{
+  return mDisplay->cfgR().drawQualityVSync;
 }
 
 int32_t& GPUDisplayFrontend::drawTextFontSize()
@@ -188,3 +311,20 @@ int32_t GPUDisplayFrontend::StartDisplay()
 #endif
   return (0);
 }
+
+void GPUDisplayFrontend::StopDisplay()
+{
+  {
+    std::lock_guard lock(mExitStateMutex);
+    if (mDisplayRunning) {
+      mDisplayControl = 2;
+      StopDisplayA();
+      mDisplay->UnblockDisplay();
+    }
+  }
+  while (mDisplayRunning) {
+    std::this_thread::sleep_for(std::chrono::microseconds(10000)); // TODO: Signal by semaphore
+  }
+}
+
+void GPUDisplayFrontend::StopDisplayA() {}

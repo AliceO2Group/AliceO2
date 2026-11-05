@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "ITSStudies/ITSBeamBackgroundStudy.h"
+#include "ITSStudies/ITSStudiesConfigParam.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "DataFormatsParameters/GRPObject.h"
@@ -19,10 +20,14 @@
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
+#include "ITSBase/GeometryTGeo.h"
+#include "ITSMFTReconstruction/ChipMappingITS.h"
 
 #include <set>
 #include <algorithm>
 #include <limits>
+#include <cmath>
+#include <cstdint>
 
 #include <TTree.h>
 #include <TH2.h>
@@ -57,16 +62,16 @@ class ITSBeamBackgroundStudy : public Task
   void updateTimeDependentParams(ProcessingContext& pc);
 
  private:
+  void prepareOutput();
   void getClusterPatterns(gsl::span<const o2::itsmft::CompClusterExt>&, gsl::span<const unsigned char>&, const o2::itsmft::TopologyDictionary&);
   std::vector<o2::itsmft::ClusterPattern> mPatterns;
 
   // ITS layout
-  int NStaves[7] = {12, 16, 20, 24, 30, 42, 48};
-  int N_STAVES_IB = 48;
-  int N_CHIP_IB = 432;
+  static constexpr int N_CHIP_IB = o2::itsmft::ChipMappingITS::getNChips(o2::itsmft::ChipMappingITS::IB);
+  o2::itsmft::ChipMappingITS mChipMapping;
+  o2::its::GeometryTGeo* mGeom = nullptr;
 
   // Utilities
-  int ChipToLayer(int chip);
   double ChipToPhi(int chip);
   bool searchBCfromMap(std::map<long, std::set<int>>& BCperorbit, long target_orbit, int target_bc);
 
@@ -81,7 +86,7 @@ class ITSBeamBackgroundStudy : public Task
   int mStrobeFallBack = 594;
   int mStrobe = mStrobeFallBack;
 
-  // TODO: the following should be make configurable
+  // TODO: the following should be made configurable
 
   std::pair<double, double> TimeWindowZDC = std::make_pair(5., 11.);
   std::pair<double, double> TimeWindowZNAr = std::make_pair(5.64507, 9.64507);
@@ -92,8 +97,9 @@ class ITSBeamBackgroundStudy : public Task
   int targetClusterMinCol = 128; // definition of anomalous cluster
   int targetClusterMaxRow = 29;  // definition of anomalous cluster
 
-  int mDumpEveryTF = 10; // use -1 to save only at the end
-  int mSkimmedOnlyAfterTF = 15000;
+  int mDumpEveryTF = ITSBeamBackgroundStudyParamConfig::Instance().dumpEveryTF;
+  int mSkimmedOnlyAfterTF = ITSBeamBackgroundStudyParamConfig::Instance().skimmedOnlyAfterTF;
+  bool mSaveClusterParameters = ITSBeamBackgroundStudyParamConfig::Instance().saveClusterParameters;
   std::string mOutputChip = "chipevents";
   std::string mOutoutChipSkim = "chipeventstarget";
 
@@ -111,6 +117,10 @@ class ITSBeamBackgroundStudy : public Task
   long Torbit;
   int Tchip;
   double Tphi;
+  // Cluster vectors share the input cluster order within this chip/ROF.
+  // Positions are global: phi in radians [-pi, pi], r and z in cm.
+  std::vector<float> TclusterPhi, TclusterR, TclusterZ;
+  std::vector<int> TclusterSize, TclusterColSpan, TclusterRowSpan;
   int TZDCtag;
   int Tnhit, Tnclus, Tnhit_no1pix, Tnclus_no1pix;
   int Tnclus_s20, Tnclus_s100, Tnclus_s150;
@@ -123,25 +133,30 @@ class ITSBeamBackgroundStudy : public Task
 
 void ITSBeamBackgroundStudy::updateTimeDependentParams(ProcessingContext& pc)
 {
-  // o2::base::GRPGeomHelper::instance().checkUpdates(pc);
-  // static bool initOnceDone = false;
-  // if (!initOnceDone) { // this param need to be queried only once
-  //   initOnceDone = true;
-  //   // mGeom = o2::its::GeometryTGeo::Instance();
-  //   // mGeom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot, o2::math_utils::TransformType::T2G));
-  // }
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+  if (mSaveClusterParameters) {
+    mGeom = o2::its::GeometryTGeo::Instance();
+    mGeom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G));
+  }
 }
 
 void ITSBeamBackgroundStudy::init(InitContext& ic)
 {
   LOGP(info, "Initializing ITSBeamBackgroundStudy");
+  o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   LOGP(info, "Fetching ClusterDictionary");
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
   mgr.setURL("http://alice-ccdb.cern.ch");
   mgr.setTimestamp(o2::ccdb::getCurrentTimestamp());
   mDict = mgr.get<o2::itsmft::TopologyDictionary>("ITS/Calib/ClusterDictionary");
 
+  prepareOutput();
+}
+
+void ITSBeamBackgroundStudy::prepareOutput()
+{
   LOGP(info, "Setting up trees and histograms. They will be dumped on file every {} TFs", mDumpEveryTF);
+  LOGP(info, "Skimmed-only output after TF {}; saving cluster parameters: {}", mSkimmedOnlyAfterTF, mSaveClusterParameters);
 
   TimeWindowCut = new TH1F("ZDC bkg region", "ZNAr, ZNCr, -ZNAl, -ZNCl", 8, 0, 8);
   TimeWindowCut->SetBinContent(1, TimeWindowZNAr.first);
@@ -177,6 +192,14 @@ void ITSBeamBackgroundStudy::init(InitContext& ic)
   ITSChipEvtTree->Branch("bc", &Tbc, "bc/I");
   ITSChipEvtTree->Branch("chip", &Tchip, "chip/I");
   ITSChipEvtTree->Branch("phi", &Tphi, "phi/D");
+  if (mSaveClusterParameters) {
+    ITSChipEvtTree->Branch("cluster_phi", &TclusterPhi);
+    ITSChipEvtTree->Branch("cluster_r", &TclusterR);
+    ITSChipEvtTree->Branch("cluster_z", &TclusterZ);
+    ITSChipEvtTree->Branch("cluster_size", &TclusterSize);
+    ITSChipEvtTree->Branch("cluster_colspan", &TclusterColSpan);
+    ITSChipEvtTree->Branch("cluster_rowspan", &TclusterRowSpan);
+  }
   ITSChipEvtTree->Branch("zdctag", &TZDCtag, "zdctag/I");
   ITSChipEvtTree->Branch("nhit", &Tnhit, "nhit/I");
   ITSChipEvtTree->Branch("nhit_no1pix", &Tnhit_no1pix, "nhit_no1pix/I");
@@ -273,14 +296,14 @@ void ITSBeamBackgroundStudy::run(ProcessingContext& pc)
 
   o2::globaltracking::RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest.get());
-  // updateTimeDependentParams(pc);
+  updateTimeDependentParams(pc);
   LOGP(info, "Calling process() for TF: {}", mTFn);
   process(recoData);
 }
 
 void ITSBeamBackgroundStudy::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 {
-  return;
+  o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
 }
 
 // Custom area
@@ -512,9 +535,11 @@ void ITSBeamBackgroundStudy::process(o2::globaltracking::RecoContainer& recoData
     std::set<int> AvailableChips{};
     std::map<int, std::vector<int>> MAPsize{}; // MAP[chip] = {list if sizes}
     std::map<int, std::vector<int>> MAPcols{}; // MAP[chip] = {list of column span}
-    std::map<int, int> MAPntarget{};           // MAP[chip] = number of bad clusters in chip
-    std::map<int, int> MAPcoo_mincol{};        // MAP[chip] = minimum of column coordinate
-    std::map<int, int> MAPcoo_maxcol{};        // MAP[chip] = maximum of (column coordinate + colspan)
+    std::map<int, std::vector<int>> MAProws{}; // MAP[chip] = {list of row span}
+    std::map<int, std::vector<o2::math_utils::Point3D<float>>> MAPcoordinates{};
+    std::map<int, int> MAPntarget{};    // MAP[chip] = number of bad clusters in chip
+    std::map<int, int> MAPcoo_mincol{}; // MAP[chip] = minimum of column coordinate
+    std::map<int, int> MAPcoo_maxcol{}; // MAP[chip] = maximum of (column coordinate + colspan)
 
     // Finally loop over clusters
     int ntarget_in_rof = 0;
@@ -525,7 +550,7 @@ void ITSBeamBackgroundStudy::process(o2::globaltracking::RecoContainer& recoData
       auto chipid = compClus.getSensorID();
 
       // Analyze only IB
-      if (ChipToLayer(chipid) > 2) {
+      if (o2::itsmft::ChipMappingITS::getLayer(chipid) > 2) {
         continue;
       }
 
@@ -534,7 +559,7 @@ void ITSBeamBackgroundStudy::process(o2::globaltracking::RecoContainer& recoData
       int coo_col = (int)compClus.getCol();
       int coo_row = (int)compClus.getRow();
 
-      auto patti = patternsInRof[iclus];
+      const auto& patti = patternsInRof[iclus];
       int npix = patti.getNPixels();
       int colspan = patti.getColumnSpan();
       int rowspan = patti.getRowSpan();
@@ -550,6 +575,17 @@ void ITSBeamBackgroundStudy::process(o2::globaltracking::RecoContainer& recoData
 
       MAPsize[chipid].push_back(npix);
       MAPcols[chipid].push_back(colspan);
+      if (mSaveClusterParameters) {
+        MAProws[chipid].push_back(rowspan);
+        // Grouped topologies store a rounded COG in the compact cluster; invalid
+        // pattern IDs store the bounding-box corner instead.
+        const auto pattID = compClus.getPatternID();
+        auto local = pattID == o2::itsmft::CompCluster::InvalidPatternID
+                       ? mDict->getClusterCoordinates<float>(compClus, patti, false)
+                       : (mDict->isGroup(pattID) ? mDict->getClusterCoordinates<float>(compClus, patti)
+                                                 : mDict->getClusterCoordinates<float>(compClus));
+        MAPcoordinates[chipid].push_back(mGeom->getMatrixL2G(chipid)(local));
+      }
       if (colspan >= targetClusterMinCol && rowspan <= targetClusterMaxRow) {
         // Anomalous cluster found
         MAPntarget[chipid] += 1;
@@ -560,7 +596,7 @@ void ITSBeamBackgroundStudy::process(o2::globaltracking::RecoContainer& recoData
 
     } // end of loop over clusters in rof
 
-    if (ntarget_in_rof == 0 && mTFn > mSkimmedOnlyAfterTF + 2) { // extra 2 to avoid edge effects?
+    if (ntarget_in_rof == 0 && static_cast<int64_t>(mTFn) > static_cast<int64_t>(mSkimmedOnlyAfterTF) + 2) { // extra 2 to avoid edge effects?
       // do not need extra computations for this rof since it will not be saved in any case
       continue;
     }
@@ -588,6 +624,19 @@ void ITSBeamBackgroundStudy::process(o2::globaltracking::RecoContainer& recoData
       Tphi = ChipToPhi(ic);
 
       Tnclus = MAPsize[ic].size();
+      if (mSaveClusterParameters) {
+        TclusterSize = MAPsize[ic]; // Save before sorting the sizes for the summaries.
+        TclusterColSpan = MAPcols[ic];
+        TclusterRowSpan = MAProws[ic];
+        TclusterPhi.clear();
+        TclusterR.clear();
+        TclusterZ.clear();
+        for (const auto& global : MAPcoordinates[ic]) {
+          TclusterPhi.push_back(std::atan2(global.Y(), global.X()));
+          TclusterR.push_back(std::hypot(global.X(), global.Y()));
+          TclusterZ.push_back(global.Z());
+        }
+      }
       Tmincol = MAPcoo_mincol[ic];
       Tmaxcol = MAPcoo_maxcol[ic];
 
@@ -644,38 +693,12 @@ void ITSBeamBackgroundStudy::process(o2::globaltracking::RecoContainer& recoData
   } // end of loop over ROFs
 }
 
-// TODO: To be improved using geometry tools
-int ITSBeamBackgroundStudy::ChipToLayer(int chip)
-{
-  if (chip < 108) {
-    return 0;
-  }
-  if (chip < 252) {
-    return 1;
-  }
-  if (chip < 432) {
-    return 2;
-  }
-  if (chip < 3120) {
-    return 3;
-  }
-  if (chip < 6480) {
-    return 4;
-  }
-  if (chip < 14712) {
-    return 5;
-  }
-  return 6;
-}
-
-// TODO: To be improved using geometry tools
 double ITSBeamBackgroundStudy::ChipToPhi(int chip)
 {
-  int staveinlayer = (int)(chip / 9);
-  for (int il = 0; il < ChipToLayer(chip); il++) {
-    staveinlayer -= NStaves[il];
-  }
-  return 2. * TMath::Pi() * (0.5 + staveinlayer) / NStaves[ChipToLayer(chip)];
+  int layer, stave, substave, module, chipInModule;
+  mChipMapping.expandChipInfoSW(chip, layer, stave, substave, module, chipInModule);
+  const int staveInLayer = stave - o2::itsmft::ChipMappingITS::getFirstStavesOnLr(layer);
+  return 2. * TMath::Pi() * (0.5 + staveInLayer) / o2::itsmft::ChipMappingITS::getNStavesOnLr(layer);
 }
 
 bool ITSBeamBackgroundStudy::searchBCfromMap(std::map<long, std::set<int>>& BCperorbit, long its_orbit, int its_bc)
@@ -729,16 +752,19 @@ DataProcessorSpec getITSBeamBackgroundStudy(mask_t srcTracksMask, mask_t srcClus
 
   dataRequest->requestTracks(srcTracksMask, useMC);
 
-  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
-                                                              true,                              // GRPECS=true
-                                                              false,                             // GRPLHCIF
-                                                              false,                             // GRPMagField
-                                                              false,                             // askMatLUT
-                                                              o2::base::GRPGeomRequest::Aligned, // geometry
+  const auto geometry = ITSBeamBackgroundStudyParamConfig::Instance().saveClusterParameters
+                          ? o2::base::GRPGeomRequest::Aligned
+                          : o2::base::GRPGeomRequest::None;
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false, // orbitResetTime
+                                                              true,  // GRPECS=true
+                                                              false, // GRPLHCIF
+                                                              false, // GRPMagField
+                                                              false, // askMatLUT
+                                                              geometry,
                                                               dataRequest->inputs,
                                                               true);
   return DataProcessorSpec{
-    "its-beambkg-study",
+    "its-beambkg-study-task",
     dataRequest->inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<ITSBeamBackgroundStudy>(dataRequest, ggRequest, useMC)},

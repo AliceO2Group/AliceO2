@@ -22,13 +22,14 @@ namespace o2::trkft3
 class Digit
 {
  public:
-  Digit(UShort_t chipindex = 0, UShort_t row = 0, UShort_t col = 0, Int_t charge = 0);
+  Digit(UShort_t chipindex = 0, UShort_t row = 0, UShort_t col = 0, Int_t charge = 0, float toa = 0);
   ~Digit() = default;
 
   UShort_t getChipIndex() const { return mChipIndex; }
   UShort_t getColumn() const { return mCol; }
   UShort_t getRow() const { return mRow; }
   Int_t getCharge() const { return mCharge; }
+  float getTimeOfArrival() const { return mToA; }
 
   void setChipIndex(UShort_t index) { mChipIndex = index; }
   void setPixelIndex(UShort_t row, UShort_t col)
@@ -38,6 +39,7 @@ class Digit
   }
   void setCharge(Int_t charge) { mCharge = charge < USHRT_MAX ? charge : USHRT_MAX; }
   void addCharge(int charge) { setCharge(charge + int(mCharge)); }
+  void setToA(float toa) { mToA = toa; }
 
   std::ostream& print(std::ostream& output) const;
   friend std::ostream& operator<<(std::ostream& output, const Digit& digi)
@@ -51,8 +53,9 @@ class Digit
   UShort_t mRow = 0;
   UShort_t mCol = 0;
   UShort_t mCharge = 0;
+  float mToA = 0; // TimeOfArrival, set to float at the moment. TODO: implement correctly the size https://indico.cern.ch/event/1724141/contributions/7252329/attachments/3336751/5980668/data_throughput_estimation.pdf
 
-  ClassDefNV(Digit, 1);
+  ClassDefNV(Digit, 2);
 };
 
 } // namespace o2::trkft3

@@ -130,6 +130,18 @@ std::vector<o2::its::TrackingParameters> TrackerDPL::createTrackingParamsFromCon
       if (paramConfig.contains("MinTrackLength")) {
         params.MinTrackLength = paramConfig["MinTrackLength"].get<int>();
       }
+      if (paramConfig.contains("MaxHoles")) {
+        params.MaxHoles = paramConfig["MaxHoles"].get<int>();
+      }
+      if (paramConfig.contains("HoleLayerMask")) {
+        params.HoleLayerMask = paramConfig["HoleLayerMask"].get<uint16_t>();
+      }
+      if (paramConfig.contains("InactiveLayerMask")) {
+        params.InactiveLayerMask = paramConfig["InactiveLayerMask"].get<uint16_t>();
+      }
+      if (paramConfig.contains("SeedingLayers")) {
+        params.SeedingLayers = paramConfig["SeedingLayers"].get<uint16_t>();
+      }
       if (paramConfig.contains("ReseedIfShorter")) {
         params.ReseedIfShorter = paramConfig["ReseedIfShorter"].get<int>();
       }

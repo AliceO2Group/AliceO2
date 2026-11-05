@@ -20,3 +20,9 @@ o2_add_test_root_macro(ALICE3FieldShortMagnet.C
 
 o2_add_test_root_macro(ALICE3Field.C
                        LABELS alice3)
+
+o2_add_test_root_macro(Fluence/ALICE3Field.C
+                       LABELS alice3)
+
+o2_add_test_root_macro(Fluence/make_geometry_csv.C
+                       LABELS alice3)

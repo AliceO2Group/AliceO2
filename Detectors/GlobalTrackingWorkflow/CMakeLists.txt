@@ -67,6 +67,11 @@ o2_add_executable(match-workflow
                   SOURCES src/cosmics-match-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow  O2::TOFWorkflowIO)
 
+o2_add_executable(reader-workflow
+                  COMPONENT_NAME cosmic-ext
+                  SOURCES src/cosmic-ext-reader-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow)
+
 o2_add_executable(vertexing-workflow
                   COMPONENT_NAME primary
                   SOURCES src/primary-vertexing-workflow.cxx

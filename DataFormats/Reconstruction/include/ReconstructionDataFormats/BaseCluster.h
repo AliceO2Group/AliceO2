@@ -34,9 +34,9 @@ class BaseCluster
 {
  private:
   math_utils::Point3D<T> mPos; // cartesian position
-  T mSigmaY2;                  // error in Y direction (usually rphi)
-  T mSigmaZ2;                  // error in Z direction (usually Z)
-  T mSigmaYZ;                  // non-diagonal term of error matrix
+  T mSigmaY2 = 0;              // error in Y direction (usually rphi)
+  T mSigmaZ2 = 0;              // error in Z direction (usually Z)
+  T mSigmaYZ = 0;              // non-diagonal term of error matrix
   std::uint16_t mSensorID = 0; // the sensor id
   std::int8_t mCount = 0;      // user field reserved for counting
   std::uint8_t mBits = 0;      // user field reserved for bit flags

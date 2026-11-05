@@ -913,7 +913,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
           auto dy = yv - trkWorkITS.getY();
           auto dz = zv - trkWorkITS.getZ();
           if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(trkWorkITS.getY()) < param::MaxY) && (std::abs(trkWorkITS.getZ()) < param::MaxZ) && std::abs(xv) < param::MaxVtxX) {
-            short compXV = static_cast<short>(xv * 0x7fff / param::MaxVtxX);
+            short compXV = UnbinnedResid::packToShort(xv, param::MaxVtxX);
             mClRes.emplace_back(dy, dz, alpha / TMath::Pi(), trkWorkITS.getY(), trkWorkITS.getZ(), 190, -1, compXV);
             if (!gidTable[GTrackID::ITSTPC].isIndexSet()) {
               LOGP(fatal, "ITS-TPC seed index is not set for TOF track");
@@ -985,7 +985,7 @@ int TrackInterpolation::processTRDLayer(const o2::trd::TrackTRD& trkTRD, int iLa
   if (trkData) {
     auto slope = trdSP.getDy();
     if (std::abs(slope) < param::MaxTRDSlope) {
-      trkData->TRDTrkltSlope[iLayer] = slope * 0x7fff / param::MaxTRDSlope;
+      trkData->TRDTrkltSlope[iLayer] = UnbinnedResid::packToShort(slope, param::MaxTRDSlope);
     }
   }
   if (trk64) {
@@ -1308,7 +1308,7 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
           auto dy = yv - trkWorkITS.getY();
           auto dz = zv - trkWorkITS.getZ();
           if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(trkWorkITS.getY()) < param::MaxY) && (std::abs(trkWorkITS.getZ()) < param::MaxZ) && std::abs(xv) < param::MaxVtxX) {
-            short compXV = static_cast<short>(xv * 0x7fff / param::MaxVtxX);
+            short compXV = UnbinnedResid::packToShort(xv, param::MaxVtxX);
             mClRes.emplace_back(dy, dz, alpha / TMath::Pi(), trkWorkITS.getY(), trkWorkITS.getZ(), 190, -1, compXV);
             if (!gidTableFull[GTrackID::ITSTPC].isIndexSet()) {
               LOGP(fatal, "ITS-TPC seed index is not set for TOF track");

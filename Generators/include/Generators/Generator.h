@@ -35,6 +35,8 @@ namespace eventgen
 {
 
 class GenTPCLoopers; // Forward declaration
+class EventDecayer;
+struct EventDecayerReport;
 
 /*****************************************************************/
 /*****************************************************************/
@@ -181,6 +183,11 @@ class Generator : public FairGenerator
 
   // Loopers generator instance
   o2::eventgen::GenTPCLoopers* mTPCLoopersGen = nullptr;
+
+  // decay step after the trigger, created on first use when EventDecayer.enable is set
+  o2::eventgen::EventDecayer* mEventDecayer = nullptr;             //!
+  o2::eventgen::EventDecayerReport* mEventDecayerReport = nullptr; //!
+  Bool_t decayParticles(o2::dataformats::MCEventHeader* header);
 #ifdef GENERATORS_WITH_TPCLOOPERS
   bool initTPCLoopersGen();
 #endif

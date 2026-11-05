@@ -28,4 +28,5 @@ o2_target_root_dictionary(TRKFT3Simulation
                                   include/TRKFT3Simulation/DigiParams.h
                                   include/TRKFT3Simulation/Digitizer.h
                                   include/TRKFT3Simulation/DPLDigitizerParam.h
+                                  include/TRKFT3Simulation/PreDigit.h
                           LINKDEF src/TRKFT3SimulationLinkDef.h)

@@ -107,6 +107,7 @@ class Detector : public o2::base::DetImpl<Detector>
  private:
   /// Container for hits
   std::vector<o2::fv0::Hit>* mHits = nullptr;
+  int mTrackRefLastTrackID = -1; //! last track that received a TrackReference in the current event
 
   /// Geometry pointer
   Geometry* mGeometry = nullptr; //!

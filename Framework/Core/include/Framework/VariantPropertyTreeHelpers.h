@@ -12,7 +12,6 @@
 #define FRAMEWORK_VARIANTPTREEHELPERS_H
 
 #include "Array2D.h"
-#include "Framework/Variant.h"
 #include <boost/property_tree/ptree.hpp>
 
 namespace o2::framework

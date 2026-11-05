@@ -101,12 +101,16 @@ void check(const std::vector<std::string>& arguments,
 
 TEST_CASE("test_prepareArguments")
 {
+  int lm[1][2] = {{1, 2}};
   std::vector<ConfigParamSpec> workflowOptions{
-    {"foo", VariantType::String, "bar", {"the famous foo option"}},
-    {"depth", VariantType::Int, 1, {"number of processors"}},
+    {"foo", VariantType::String, "bar", {"charlie foxtrot"}},
+    {"depth", VariantType::Int, 1, {"height"}},
+    {"labeled", VariantType::LabeledArrayInt, LabeledArray<int>{&lm[0][0], 1, 2, {"r"}, {"c1", "c2"}}, {"a labeled array"}},
   };
+  std::string labeledDefault = R"({"labels_rows":["r"],"labels_cols":["c1","c2"],"values":[[1,2]]})";
+  std::string labeledOther = R"({"labels_rows":["r"],"labels_cols":["c1","c2"],"values":[[3,4]]})";
 
-  auto algorithm = [](ProcessingContext& ctx) {};
+  auto algorithm = [](ProcessingContext& /*ctx*/) {};
 
   WorkflowSpec workflow{
     {"processor0",
@@ -177,6 +181,14 @@ TEST_CASE("test_prepareArguments")
   matrix["processor0"] = {{"--depth", "2"}, {"--foo", "bar"}, {"--mode", "silly"}};
   matrix["processor1"] = {{"--depth", "2"}, {"--foo", "bar"}, {"--mode", "default"}};
   check({"--depth", "2", "--processor0", "--mode silly"}, workflowOptions, deviceSpecs, matrix);
+
+  // a LabeledArray workflow option is forwarded as a single JSON argument, defaulted or set
+  matrix["processor0"] = {{"--depth", "1"}, {"--labeled", labeledDefault}};
+  matrix["processor1"] = matrix["processor0"];
+  check({}, workflowOptions, deviceSpecs, matrix);
+  matrix["processor0"] = {{"--depth", "1"}, {"--labeled", labeledOther}};
+  matrix["processor1"] = matrix["processor0"];
+  check({"--labeled", labeledOther}, workflowOptions, deviceSpecs, matrix);
 }
 
 TEST_CASE("CheckOptionReworking")

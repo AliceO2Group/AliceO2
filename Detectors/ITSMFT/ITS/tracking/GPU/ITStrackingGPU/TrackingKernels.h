@@ -16,7 +16,7 @@
 #include <array>
 #include <gsl/gsl>
 
-#include "ITSMFTTracking/BoundedAllocator.h"
+#include "GenericTracking/BoundedAllocator.h"
 #include "ITSMFTTracking/CapacityEstimator.h"
 #include "ITSMFTTracking/ROFLookupTables.h"
 #include "ITStracking/TrackingTopology.h"
@@ -28,7 +28,7 @@
 
 namespace o2::its
 {
-using o2::itsmft::tracking::bounded_vector;
+using o2::gtrk::bounded_vector;
 using o2::itsmft::tracking::CapacityEstimator;
 
 class CellSeed;
@@ -211,6 +211,8 @@ struct TrackingKernels {
                                            int* lineSlots,
                                            const float beamX,
                                            const float beamY,
+                                           const float bz,
+                                           const float curvatureScale,
                                            const float maxZ,
                                            const float minPt,
                                            float* linesZs,

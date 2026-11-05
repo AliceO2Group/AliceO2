@@ -91,17 +91,17 @@ TH1* HistoManager::getHisto(const std::string& name) const
 
 TH1F* HistoManager::getHisto1F(int id) const
 {
-  return dynamic_cast<TH1F*>(UncheckedAt(id));
+  return dynamic_cast<TH1F*>(getHisto(id));
 }
 
 TH2F* HistoManager::getHisto2F(int id) const
 {
-  return dynamic_cast<TH2F*>(UncheckedAt(id));
+  return dynamic_cast<TH2F*>(getHisto(id));
 }
 
 TProfile* HistoManager::getHistoP(int id) const
 {
-  return dynamic_cast<TProfile*>(UncheckedAt(id));
+  return dynamic_cast<TProfile*>(getHisto(id));
 }
 
 int HistoManager::addGraph(TGraph* gr, int at)

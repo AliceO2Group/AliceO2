@@ -35,6 +35,7 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   ~GPUDisplayBackendOpenGL() override = default;
   int32_t ExtInit() override;
   bool CoreProfile() override;
+  bool canLimitToVSync() const override; // Buffer swap blocks with VSync, if the frontend can set the swap interval
   uint32_t DepthBits() override;
 
  protected:
@@ -49,13 +50,14 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   void setFrameBuffer(uint32_t newID = 0);
   int32_t InitBackendA() override;
   int32_t InitMagFieldVisualization();
+  bool mMagneticFieldFailed = false; // Initialization of the field drawing failed, do not retry
   void ExitBackendA() override;
   void ExitMagFieldVisualization();
   static int32_t checkShaderStatus(uint32_t shader);
   static int32_t checkProgramStatus(uint32_t program);
   void clearScreen(bool alphaOnly = false);
   void loadDataToGPU(size_t totalVertizes) override;
-  void prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot, bool toMixBuffer, float includeMixImage) override;
+  bool prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot, bool toMixBuffer, float includeMixImage) override;
   void resizeScene(uint32_t width, uint32_t height) override;
   void updateRenderer(bool withScreenshot);
   void ClearOffscreenBuffers();
@@ -64,13 +66,21 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   void prepareText() override;
   void finishText() override;
   void mixImages(float mixSlaveImage);
+  void drawDownsample(uint32_t srcTexture, uint32_t dstFramebuffer, uint32_t width, uint32_t height, int32_t factor); // Exact box filter (fragmentDownsample.frag) for FSAA factors other than 2
   void pointSizeFactor(float factor) override;
   void lineWidthFactor(float factor) override;
   size_t needMultiVBO() override { return 0x100000000ll; }
   void readImageToPixels();
+  static uint32_t loadShader(uint32_t type, const char* spirv, size_t size); // Create shader from SPIR-V
+  static constexpr int32_t UNIFORM_LOCATION_MATRIX = 0;                      // Explicit uniform locations in the OpenGL variant of the shaders (shaders/*.vert, *.frag)
+  static constexpr int32_t UNIFORM_LOCATION_COLOR = 4;                       // color, textColor, alpha
+  static constexpr int32_t UNIFORM_LOCATION_POINT_SIZE = 5;                  // vertexSmoothPoint.vert
+  static constexpr int32_t UNIFORM_LOCATION_VIEWPORT = 6;                    // vertexSmoothLine.vert
+  static constexpr int32_t UNIFORM_LOCATION_LINE_WIDTH = 7;                  // vertexSmoothLine.vert
 
   void addFontSymbol(int32_t symbol, int32_t sizex, int32_t sizey, int32_t offsetx, int32_t offsety, int32_t advance, void* data) override;
   void initializeTextDrawing() override;
+  void clearFontSymbols() override;
   void OpenGLPrint(const char* s, float x, float y, float* color, float scale) override;
 
   struct FontSymbolOpenGL : public FontSymbol {
@@ -79,28 +89,31 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
 
   uint32_t mVertexShader;
   uint32_t mFragmentShader;
+  uint32_t mVertexShaderSmoothPoint;
+  uint32_t mFragmentShaderSmoothPoint;
+  uint32_t mVertexShaderSmoothLine;
+  uint32_t mFragmentShaderSmoothLine;
   uint32_t mVertexShaderTexture;
   uint32_t mVertexShaderPassthrough;
   uint32_t mFragmentShaderTexture;
   uint32_t mFragmentShaderText;
+  uint32_t mVertexShaderFullscreen;
+  uint32_t mFragmentShaderDownsample;
   uint32_t mGeometryShader;
   uint32_t mShaderProgram;
+  uint32_t mShaderProgramSmoothPoint; // Points with fragmentSmoothPoint.frag, for smoothPoints with the shader path (not rendererCompatSmoothing / GL_POINT_SMOOTH)
+  bool mUseSmoothPointShader = false;
+  uint32_t mShaderProgramSmoothLine; // Lines with vertexSmoothLine.vert / fragmentSmoothLine.frag, for smoothLines with the shader path (not rendererCompatSmoothing / GL_LINE_SMOOTH)
+  bool mUseSmoothLineShader = false;
   uint32_t mShaderProgramText;
   uint32_t mShaderProgramTexture;
+  uint32_t mShaderProgramDownsample;
   uint32_t mShaderProgramField;
   uint32_t mVertexArray;
 
   uint32_t mIndirectId;
   std::vector<uint32_t> mVBOId;
   std::vector<FontSymbolOpenGL> mFontSymbols;
-  int32_t mModelViewProjId;
-  int32_t mColorId;
-  int32_t mModelViewProjIdTexture;
-  int32_t mAlphaIdTexture;
-  int32_t mModelViewProjIdText;
-  int32_t mColorIdText;
-  uint32_t mSPIRVModelViewBuffer;
-  uint32_t mSPIRVColorBuffer;
 
   uint32_t mFieldModelViewBuffer;
   uint32_t mFieldModelConstantsBuffer;
@@ -114,8 +127,6 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   uint32_t VAO_texture, VBO_texture;
 
   uint32_t VAO_field, VBO_field;
-
-  bool mSPIRVShaders = false;
 
   GLfb mMixBuffer;
   GLfb mOffscreenBufferMSAA, mOffscreenBuffer;

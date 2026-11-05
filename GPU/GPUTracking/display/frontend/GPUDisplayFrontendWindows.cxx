@@ -352,6 +352,7 @@ int32_t GPUDisplayFrontendWindows::FrontendMain()
         DispatchMessage(&msg);  // Dispatch The Message
       }
     } else {
+      HandleExternalGUISignals();
       if (active) // Program Active?
       {
         if (mKeys[VK_ESCAPE]) {
@@ -359,6 +360,7 @@ int32_t GPUDisplayFrontendWindows::FrontendMain()
         } else {
           DrawGLScene();    // Draw The Scene
           SwapBuffers(hDC); // Swap Buffers (Double Buffering)
+          waitForFPSLimit();
         }
       }
     }
@@ -370,7 +372,6 @@ int32_t GPUDisplayFrontendWindows::FrontendMain()
   return (0);
 }
 
-void DisplayExit() {}
 void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton) {}
 void SwitchFullscreen(bool set) {}
 void ToggleMaximized(bool set) {}

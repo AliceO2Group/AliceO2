@@ -21,11 +21,17 @@ struct Point {
   float dz = 0.f;
   float sig2y = 0.f;
   float sig2z = 0.f;
+  float dyIOB = 0.f; ///< residual wrt extrapolation of the IB (for OB points) or OB (for IB points) sub-track, no intermediate updates
+  float dzIOB = 0.f;
+  float sig2yIOB = 0.f; ///< <= 0 means IOB residual was not computed for this point
+  float sig2zIOB = 0.f;
   float phi = 0.f;
   float z = 0.f;
+  float snp = 0.f;
+  int16_t clSize = 0;
   int16_t sens = -1;
   int8_t lr = -1; // -1 = vtx
-  ClassDefNV(Point, 1)
+  ClassDefNV(Point, 3)
 };
 
 struct Track {

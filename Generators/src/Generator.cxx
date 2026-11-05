@@ -33,6 +33,10 @@
 #include "Generators/TPCLoopers.h"
 #include "Generators/TPCLoopersParam.h"
 #endif
+#ifdef GENERATORS_WITH_PYTHIA8
+#include "Generators/EventDecayer.h"
+#include "Generators/EventDecayerParam.h"
+#endif
 
 namespace o2
 {
@@ -117,6 +121,14 @@ Generator::~Generator()
     mTPCLoopersGen = nullptr;
   }
 #endif
+#ifdef GENERATORS_WITH_PYTHIA8
+  if (mEventDecayerReport) {
+    LOG(info) << "EventDecayer summary of generator " << GetName();
+    mEventDecayerReport->print();
+  }
+  delete mEventDecayer;
+  delete mEventDecayerReport;
+#endif
 }
 
 /*****************************************************************/
@@ -151,6 +163,14 @@ bool Generator::initTPCLoopersGen()
       LOG(warning) << "Loopers will be kept OFF.";
       return kFALSE;
     }
+  }
+  // Loopers are a detector background continuous in time, and a single simulation covers the whole
+  // timeframe: when several of them feed the same collision context (embedding), only the source
+  // owning a collision generates its loopers, otherwise each source will generate them for the same time intervals.
+  if (!o2::eventgen::GenTPCLoopers::ownsContextCollisions()) {
+    LOG(info) << "All collisions of this simulation are owned by another source of the collision context, which generates their loopers.";
+    LOG(info) << "Fast loopers generator will remain OFF.";
+    return kFALSE;
   }
   std::array<float, 2> multiplier = {loopersParam.multiplier[0], loopersParam.multiplier[1]};
   unsigned int nLoopersPairs = loopersParam.fixedNLoopers[0];
@@ -335,6 +355,19 @@ Bool_t
     }
   }
 
+  auto header = primGen->GetEvent();
+  auto o2header = dynamic_cast<o2::dataformats::MCEventHeader*>(header);
+  if (!header) {
+    LOG(fatal) << "MC event header is not a 'o2::dataformats::MCEventHeader' object";
+    return kFALSE;
+  }
+
+  /** decay particles before transport **/
+  if (!decayParticles(o2header)) {
+    LOG(error) << "ReadEvent failed in decayParticles";
+    return kFALSE;
+  }
+
   /** add tracks **/
   if (!addTracks(primGen)) {
     LOG(error) << "ReadEvent failed in addTracks";
@@ -342,16 +375,37 @@ Bool_t
   }
 
   /** update header **/
-  auto header = primGen->GetEvent();
-  auto o2header = dynamic_cast<o2::dataformats::MCEventHeader*>(header);
-  if (!header) {
-    LOG(fatal) << "MC event header is not a 'o2::dataformats::MCEventHeader' object";
-    return kFALSE;
-  }
   updateHeader(o2header);
   updateSubGeneratorInformation(o2header);
 
   /** success **/
+  return kTRUE;
+}
+
+/*****************************************************************/
+
+Bool_t
+  Generator::decayParticles(o2::dataformats::MCEventHeader* header)
+{
+#ifdef GENERATORS_WITH_PYTHIA8
+  if (!EventDecayerParam::Instance().enable) {
+    return kTRUE;
+  }
+  if (!mEventDecayer) {
+    mEventDecayer = new EventDecayer();
+    if (!mEventDecayer->init()) {
+      LOG(fatal) << "Could not initialise the EventDecayer of generator " << GetName();
+      return kFALSE;
+    }
+    mEventDecayerReport = new EventDecayerReport();
+  }
+  mEventDecayer->setUnits(mPositionUnit, mTimeUnit, mMomentumUnit, mEnergyUnit);
+  mEventDecayerReport->merge(mEventDecayer->decay(mParticles));
+  if (header) {
+    header->putInfo<std::string>("eventDecayer", mEventDecayer->configSummary());
+    header->putInfo<int>("eventDecayerSeed", mEventDecayer->seed());
+  }
+#endif
   return kTRUE;
 }
 

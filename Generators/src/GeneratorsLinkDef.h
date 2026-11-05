@@ -59,6 +59,8 @@
 #pragma link C++ class o2::eventgen::DecayerPythia8Param + ;
 #pragma link C++ class o2::conf::ConfigurableParamPromoter < o2::eventgen::GeneratorPythia8Param, o2::eventgen::Pythia8GenConfig> + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::DecayerPythia8Param> + ;
+#pragma link C++ class o2::eventgen::EventDecayerParam + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::EventDecayerParam> + ;
 
 #pragma link C++ class o2::eventgen::GeneratorFactory + ;
 #endif

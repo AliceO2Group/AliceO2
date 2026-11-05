@@ -79,19 +79,29 @@ struct Array2D {
 
   Array2D& operator=(Array2D<T> const& other)
   {
-    this->rows = other.rows;
-    this->cols = other.cols;
-    data = new T[rows * cols];
-    for (auto i = 0U; i < rows; ++i) {
-      for (auto j = 0U; j < cols; ++j) {
-        data[i * cols + j] = *(other.data + (i * cols + j));
+    if (this == &other) {
+      return *this;
+    }
+    // Copy into a new buffer first, so that a throwing copy leaves this array untouched
+    auto* newData = new T[other.rows * other.cols];
+    for (auto i = 0U; i < other.rows; ++i) {
+      for (auto j = 0U; j < other.cols; ++j) {
+        newData[i * other.cols + j] = other.data[i * other.cols + j];
       }
     }
+    delete[] data;
+    data = newData;
+    this->rows = other.rows;
+    this->cols = other.cols;
     return *this;
   }
 
   Array2D& operator=(Array2D<T>&& other)
   {
+    if (this == &other) {
+      return *this;
+    }
+    delete[] data;
     this->rows = other.rows;
     this->cols = other.cols;
     data = other.data;

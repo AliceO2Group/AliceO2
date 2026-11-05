@@ -91,13 +91,13 @@ void BoostOptionsRetriever::update(std::vector<ConfigParamSpec> const& specs,
       case VariantType::Array2DInt:
       case VariantType::Array2DFloat:
       case VariantType::Array2DDouble:
-        options = options(name, bpo::value<std::string>()->default_value(spec.defaultValue.asString()), help);
-        break;
-      case VariantType::Dict:
       case VariantType::LabeledArrayInt:
       case VariantType::LabeledArrayFloat:
       case VariantType::LabeledArrayDouble:
       case VariantType::LabeledArrayString:
+        options = options(name, bpo::value<std::string>()->default_value(spec.defaultValue.asString()), help);
+        break;
+      case VariantType::Dict:
       case VariantType::Unknown:
       case VariantType::Empty:
         break;

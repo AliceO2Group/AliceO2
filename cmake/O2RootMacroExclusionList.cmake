@@ -57,6 +57,12 @@ list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST
             macro/putCondition.C
             macro/rootlogon.C
             macro/CreateSampleIRFrames.C
+            Detectors/Upgrades/ITS3/macros/align/CheckHitResiduals.C
+            Detectors/Upgrades/ITS3/macros/align/CheckResidualsITS3.C
+            Detectors/Upgrades/ITS3/study/macros/PlotMisalignment.C
+            Detectors/Upgrades/ITS3/study/macros/PlotPulls.C
+            Detectors/Upgrades/ITS3/study/macros/PlotResiduals.C
+            Detectors/Upgrades/ITS3/study/macros/PlotDCA.C
             Detectors/Upgrades/ALICE3/macros/ALICE3Field.C)
 
 if(NOT BUILD_SIMULATION)
@@ -77,6 +83,13 @@ if(NOT ENABLE_UPGRADES)
   # exclude all the macros found under Detectors/Upgrades directory
   o2_get_list_of_macros(${CMAKE_SOURCE_DIR}/Detectors/Upgrades upgradeMacros)
   list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST ${upgradeMacros})
+endif()
+
+if(NOT Acts_FOUND)
+  # ACTS is an optional dependency: Detectors/Upgrades/ALICE3/ACTS is not added
+  # to the build without it, so its o2_add_test_root_macro is never called
+  o2_get_list_of_macros(${CMAKE_SOURCE_DIR}/Detectors/Upgrades/ALICE3/ACTS actsMacros)
+  list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST ${actsMacros})
 endif()
 
 list(REMOVE_DUPLICATES O2_ROOT_MACRO_EXCLUSION_LIST)

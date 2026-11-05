@@ -52,6 +52,12 @@ void TPCUnbinnedResidualReader::connectTree()
   if (mTrackInput) {
     mTreeIn->SetBranchAddress("tracks", &mTrackDataPtr);
   }
+  if (mMCInput) {
+    if (!mTreeIn->GetBranch("tracksMC")) {
+      LOG(fatal) << "No tracksMC branch found in the unbinned residuals tree, the interpolation workflow must run with --enable-mc";
+    }
+    mTreeIn->SetBranchAddress("tracksMC", &mTrackDataMCPtr);
+  }
   LOG(info) << "Loaded tree from " << mInFileName << " with " << mTreeIn->GetEntries() << " entries";
 }
 
@@ -68,6 +74,9 @@ void TPCUnbinnedResidualReader::run(ProcessingContext& pc)
     LOG(info) << "Pushing " << mTrackData.size() << " reference tracks for these residuals";
     pc.outputs().snapshot(Output{"GLO", "TRKDATA", 0}, mTrackData);
   }
+  if (mMCInput) {
+    pc.outputs().snapshot(Output{"GLO", "TRKDATAMC", 0}, mTrackDataMC);
+  }
 
   if (mTreeIn->GetReadEntry() + 1 >= mTreeIn->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
@@ -75,7 +84,7 @@ void TPCUnbinnedResidualReader::run(ProcessingContext& pc)
   }
 }
 
-DataProcessorSpec getUnbinnedTPCResidualsReaderSpec(bool trkInput)
+DataProcessorSpec getUnbinnedTPCResidualsReaderSpec(bool trkInput, bool mcInput)
 {
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("GLO", "UNBINNEDRES", 0, Lifetime::Timeframe);
@@ -84,12 +93,15 @@ DataProcessorSpec getUnbinnedTPCResidualsReaderSpec(bool trkInput)
   if (trkInput) {
     outputs.emplace_back("GLO", "TRKDATA", 0, Lifetime::Timeframe);
   }
+  if (mcInput) {
+    outputs.emplace_back("GLO", "TRKDATAMC", 0, Lifetime::Timeframe);
+  }
 
   return DataProcessorSpec{
     "TPCUnbinnedResidualReader",
     Inputs{},
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCUnbinnedResidualReader>(trkInput)},
+    AlgorithmSpec{adaptFromTask<TPCUnbinnedResidualReader>(trkInput, mcInput)},
     Options{
       {"input-filename", VariantType::String, "o2residuals_tpc.root", {"Name of the input file"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}},

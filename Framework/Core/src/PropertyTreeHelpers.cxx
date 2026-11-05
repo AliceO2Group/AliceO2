@@ -35,6 +35,32 @@ inline Variant fromString(std::string const& str)
   ss.str(str);
   return VariantJSONHelpers::read<T>(ss);
 }
+
+template <typename T>
+auto replaceLabels(LabeledArray<T>& input, LabeledArray<T>&& spec)
+{
+  if (!input.getLabelsCols().empty() || !input.getLabelsRows().empty()) {
+    return false;
+  }
+  if (spec.getLabelsCols().empty() == false) {
+    input.replaceLabelsCols(spec.getLabelsCols());
+  }
+  if (spec.getLabelsRows().empty() == false) {
+    input.replaceLabelsRows(spec.getLabelsRows());
+  }
+  return true;
+}
+
+/// Special case for a labeled array to restore default labels that were omitted
+template <typename T, VariantType V>
+boost::property_tree::ptree labeledArrayFromStringToBranch(std::string const& str, Variant const& defaultValue)
+{
+  auto v = fromString<V>(str).template get<LabeledArray<T>>();
+  if (defaultValue.type() == V) {
+    replaceLabels(v, defaultValue.get<LabeledArray<T>>());
+  }
+  return labeledArrayToBranch(std::move(v));
+}
 } // namespace
 void PropertyTreeHelpers::populateDefaults(std::vector<ConfigParamSpec> const& schema,
                                            boost::property_tree::ptree& pt,
@@ -233,22 +259,18 @@ void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema,
           auto v = fromString<VariantType::Array2DDouble>(vmap[key].as<std::string>());
           pt.put_child(key, array2DToBranch<double>(v.get<Array2D<double>>()));
         } break;
-        case VariantType::LabeledArrayInt: {
-          auto v = fromString<VariantType::LabeledArrayInt>(vmap[key].as<std::string>());
-          pt.put_child(key, labeledArrayToBranch(v.get<LabeledArray<int>>()));
-        } break;
-        case VariantType::LabeledArrayFloat: {
-          auto v = fromString<VariantType::LabeledArrayFloat>(vmap[key].as<std::string>());
-          pt.put_child(key, labeledArrayToBranch(v.get<LabeledArray<float>>()));
-        } break;
-        case VariantType::LabeledArrayDouble: {
-          auto v = fromString<VariantType::LabeledArrayDouble>(vmap[key].as<std::string>());
-          pt.put_child(key, labeledArrayToBranch(v.get<LabeledArray<double>>()));
-        } break;
-        case VariantType::LabeledArrayString: {
-          auto v = fromString<VariantType::LabeledArrayString>(vmap[key].as<std::string>());
-          pt.put_child(key, labeledArrayToBranch(v.get<LabeledArray<std::string>>()));
-        } break;
+        case VariantType::LabeledArrayInt:
+          pt.put_child(key, labeledArrayFromStringToBranch<int, VariantType::LabeledArrayInt>(vmap[key].as<std::string>(), spec.defaultValue));
+          break;
+        case VariantType::LabeledArrayFloat:
+          pt.put_child(key, labeledArrayFromStringToBranch<float, VariantType::LabeledArrayFloat>(vmap[key].as<std::string>(), spec.defaultValue));
+          break;
+        case VariantType::LabeledArrayDouble:
+          pt.put_child(key, labeledArrayFromStringToBranch<double, VariantType::LabeledArrayDouble>(vmap[key].as<std::string>(), spec.defaultValue));
+          break;
+        case VariantType::LabeledArrayString:
+          pt.put_child(key, labeledArrayFromStringToBranch<std::string, VariantType::LabeledArrayString>(vmap[key].as<std::string>(), spec.defaultValue));
+          break;
         case VariantType::Dict:
           pt.put_child(key, vmap[key].as<boost::property_tree::ptree>());
           break;
@@ -270,21 +292,6 @@ void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema,
     }
   }
   O2_SIGNPOST_END(configuration, cid, "populate", "Done");
-}
-
-template <typename T>
-auto replaceLabels(LabeledArray<T>& input, LabeledArray<T>&& spec)
-{
-  if (!input.getLabelsCols().empty() || !input.getLabelsRows().empty()) {
-    return false;
-  }
-  if (spec.getLabelsCols().empty() == false) {
-    input.replaceLabelsCols(spec.getLabelsCols());
-  }
-  if (spec.getLabelsRows().empty() == false) {
-    input.replaceLabelsRows(spec.getLabelsRows());
-  }
-  return true;
 }
 
 void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema,

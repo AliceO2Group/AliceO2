@@ -1,0 +1,30 @@
+# Geant4 scoring macro for the ALICE 3
+
+/score/verbose 1
+
+/score/create/cylinderMesh ALICE3
+
+# cylinderSize takes outer radius R and half-length dz.
+#/score/mesh/cylinderSize 135.0 136.0 cm
+/score/mesh/cylinderSize 320.0 500.0 cm
+
+# Cylinder bin order: nR nZ nPhi
+#/score/mesh/nBin 1350 544 1
+/score/mesh/nBin 640 1000 1
+
+# FLUKA 228: DOSE
+/score/quantity/doseDeposit dose Gy
+
+# FLUKA 236: SI1MEVNE
+# trailing "true" activates O2's fluence damage weighting
+/score/quantity/cellFlux neq percm2 true
+
+# FLUKA 237: HADGT20M
+#/score/quantity/cellFlux had20 percm2
+#/score/filter/particleWithKineticEnergy had20filter 20.0 10000000.0 MeV proton anti_proton neutron anti_neutron pi+ pi- kaon+ kaon- kaon0L kaon0S lambda anti_lambda sigma+ sigma- xi- xi0 omega-
+
+# FLUKA 202: ALL-CHAR
+#/score/quantity/cellFlux charged percm2
+#/score/filter/charged chargedfilter
+
+/score/close

@@ -1,0 +1,36 @@
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
+#
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
+
+
+o2_add_library(ACTSInterface
+               TARGETVARNAME targetName
+               SOURCES src/TrackingGeometryManager.cxx
+                       src/SurfaceIndexMap.cxx
+                       src/MagneticFieldAdapter.cxx
+               PUBLIC_LINK_LIBRARIES O2::DetectorsBase
+                                     O2::DetectorsCommonDataFormats
+                                     O2::Field
+                                     O2::Framework
+                                     ROOT::Geom
+                                     Acts::Core
+                                     Acts::PluginRoot
+                                     Acts::PluginJson)
+
+target_compile_definitions(${targetName} PUBLIC O2_WITH_ACTS)
+
+o2_add_library(ALICE3ACTS
+               SOURCES src/TrkTGeoBlueprintBuilder.cxx
+               PUBLIC_LINK_LIBRARIES O2::ACTSInterface
+                                     nlohmann_json::nlohmann_json)
+
+o2_target_root_dictionary(ALICE3ACTS
+                          HEADERS include/ALICE3ACTS/TrkTGeoBlueprintBuilder.h
+                                  )

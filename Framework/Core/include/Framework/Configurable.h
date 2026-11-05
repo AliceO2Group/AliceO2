@@ -12,6 +12,8 @@
 #define O2_FRAMEWORK_CONFIGURABLE_H_
 #include "Framework/ConfigurableKinds.h"
 #include "Framework/Traits.h"
+#include "Framework/TypeIdHelpers.h"
+#include <fmt/format.h>
 #include <string>
 #include <vector>
 namespace o2::framework
@@ -96,7 +98,7 @@ using MutableConfigurable = Configurable<T, K, ConfigurablePolicyMutable<T, K>>;
 template <typename Column>
 struct ConfigurableCCDBPath : Configurable<std::string> {
   ConfigurableCCDBPath()
-    : Configurable<std::string>{std::string{"ccdb:"} + Column::mLabel,
+    : Configurable<std::string>{fmt::format("ccdb:{}", o2::framework::with_namespace_prefix<Column>()),
                                 std::string{Column::query},
                                 std::string{"CCDB path for "} + Column::mLabel + " (default: " + Column::query + ")"}
   {

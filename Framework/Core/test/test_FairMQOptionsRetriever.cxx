@@ -13,6 +13,8 @@
 #include <boost/program_options.hpp>
 #include "Framework/FairOptionsRetriever.h"
 #include "Framework/ConfigParamStore.h"
+#include "Framework/ConfigParamsHelper.h"
+#include "Framework/VariantPropertyTreeHelpers.h"
 #include <fairmq/ProgOptions.h>
 #include <boost/property_tree/ptree.hpp>
 
@@ -129,4 +131,45 @@ TEST_CASE("TestOptionsDefaults")
   REQUIRE(store.provenance("aNested.int") == "fairmq");
   REQUIRE(store.provenance("aNested.float") == "fairmq");
   REQUIRE(store.provenance("aNested.double") == "default");
+}
+
+TEST_CASE("TestFairMQOptionsRetrieverLabeledArray")
+{
+  int m[2][2] = {{1, 2}, {3, 4}};
+  std::vector<ConfigParamSpec> specs{
+    ConfigParamSpec{"aLabeledArray", VariantType::LabeledArrayInt, LabeledArray<int>{&m[0][0], 2, 2, {"r1", "r2"}, {"c1", "c2"}}, {"a labeled array option"}},
+  };
+  // options registered as for a device
+  bpo::options_description testOptions("Test options");
+  ConfigParamsHelper::populateBoostProgramOptions(testOptions, specs);
+
+  auto storeFromCommandLine = [&](std::vector<std::string> const& args) {
+    auto options = std::make_unique<fair::mq::ProgOptions>();
+    options->AddToCmdLineOptions(testOptions);
+    options->ParseAll(args, true);
+    std::vector<std::unique_ptr<ParamRetriever>> retrievers;
+    retrievers.emplace_back(std::make_unique<FairOptionsRetriever>(options.get()));
+    auto store = std::make_unique<ConfigParamStore>(specs, std::move(retrievers));
+    store->preload();
+    store->activate();
+    return labeledArrayFromBranch<int>(store->store().get_child("aLabeledArray"));
+  };
+
+  // the full JSON, as forwarded by the driver
+  auto la = storeFromCommandLine({"cmd", "--aLabeledArray", R"({"labels_rows":["a","b"],"labels_cols":["x","y"],"values":[[5,6],[7,8]]})"});
+  REQUIRE(la.getLabelsRows() == std::vector<std::string>{"a", "b"});
+  REQUIRE(la.getLabelsCols() == std::vector<std::string>{"x", "y"});
+  REQUIRE(la.get("a", "y") == 6);
+
+  // no argument: the default
+  la = storeFromCommandLine({"cmd"});
+  REQUIRE(la.get("r1", "c2") == 2);
+
+  // only values: the default labels are used
+  la = storeFromCommandLine({"cmd", "--aLabeledArray", R"({"values":[[5,6],[7,8]]})"});
+  REQUIRE(la.getLabelsRows() == std::vector<std::string>{"r1", "r2"});
+  REQUIRE(la.get("r2", "c2") == 8);
+
+  // values which do not match the default labels
+  REQUIRE_THROWS(storeFromCommandLine({"cmd", "--aLabeledArray", R"({"values":[[5,6,7]]})"}));
 }

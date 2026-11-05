@@ -163,11 +163,15 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 
   if (isNewPartile) { // mark track to be kept by stack
     stack->addHit(GetDetId());
+    stack->addTrackReference(o2::TrackReference(*fMC, GetDetId())); // PHOS entry (new superparent)
   }
 
   Double_t lostenergy = fMC->Edep();
   if (lostenergy < DBL_EPSILON && !isNewPartile) {
     return false; // do not create hits with zero energy deposition
+  }
+  if (!isNewPartile) { // track deposits into a hit of its super-parent
+    stack->modifiesHit(GetDetId());
   }
 
   Int_t moduleNumber;

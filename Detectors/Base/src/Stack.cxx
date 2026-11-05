@@ -193,8 +193,8 @@ void Stack::PushTrack(Int_t toBeDone, Int_t parentId, Int_t pdgCode, Double_t px
                       TMCProcess proc2)
 {
   //  printf("Pushing %s toBeDone %5d parentId %5d pdgCode %5d is %5d entries %5d \n",
-  //	 proc == kPPrimary ? "Primary:   " : "Secondary: ",
-  //	 toBeDone, parentId, pdgCode, is, mNumberOfEntriesInParticles);
+  //   proc == kPPrimary ? "Primary:   " : "Secondary: ",
+  //   toBeDone, parentId, pdgCode, is, mNumberOfEntriesInParticles);
 
   //
   // This method is called
@@ -652,6 +652,16 @@ void Stack::addHit(int iDet)
   }
   mCurrentParticle.SetBit(ParticleStatus::kHasHits, 1);
   mHitCounter++;
+}
+void Stack::modifiesHit(int iDet)
+{
+  // flag only; hit mask, kHasHits and hit counter stay untouched
+  if (mIndexOfCurrentTrack < mNumberOfPrimaryParticles) {
+    mTracks->at(mIndexOfCurrentTrack).setContributesToAHit();
+  } else {
+    Int_t iTrack = mTrackIDtoParticlesEntry[mIndexOfCurrentTrack];
+    mParticles[iTrack].setContributesToAHit();
+  }
 }
 void Stack::addHit(int iDet, Int_t iTrack)
 {

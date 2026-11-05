@@ -92,7 +92,7 @@ std::vector<GPUChainTracking::InOutMemory> ioMemEvents;
 
 int32_t ReadConfiguration(int argc, char** argv)
 {
-  int32_t qcRet = qConfigParse(argc, (const char**)argv);
+  int32_t qcRet = qConfig::qConfigParse(argc, (const char**)argv);
   if (qcRet) {
     if (qcRet != qConfig::qcrHelp) {
       printf("Error parsing command line parameters\n");
@@ -107,7 +107,7 @@ int32_t ReadConfiguration(int argc, char** argv)
   }
   if (configStandalone.printSettings > 1) {
     printf("Config Dump before ReadConfiguration\n");
-    qConfigPrint();
+    qConfig::qConfigPrint();
   }
   if (configStandalone.proc.debugLevel == -1) {
     configStandalone.proc.debugLevel = 0;
@@ -295,7 +295,7 @@ int32_t ReadConfiguration(int argc, char** argv)
   }
   if (configStandalone.printSettings > 1) {
     printf("Config Dump after ReadConfiguration\n");
-    qConfigPrint();
+    qConfig::qConfigPrint();
   }
 
   return (0);
@@ -760,6 +760,7 @@ int32_t main(int argc, char** argv)
   if (ReadConfiguration(argc, argv)) {
     return 1;
   }
+  configStandalone.proc.runsStandalone = true;
   eventsDir = std::string(configStandalone.absoluteEventsDir ? "" : "events/") + configStandalone.eventsDir + "/";
 
   GPUSettingsDeviceBackend deviceSet;

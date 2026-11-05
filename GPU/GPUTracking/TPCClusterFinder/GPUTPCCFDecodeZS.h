@@ -45,7 +45,7 @@ class GPUTPCCFDecodeZS : public GPUKernelTemplate
     decodeZS,
   };
 
-  static GPUd() void decode(GPUTPCClusterFinder& clusterer, GPUSharedMemory& s, int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t firstHBF, int32_t tpcTimeBinCut);
+  static GPUd() void decode(GPUTPCClusterFinder& clusterer, GPUsharedref() GPUSharedMemory& s, int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t firstHBF, int32_t tpcTimeBinCut);
 
   typedef GPUTPCClusterFinder processorType;
   GPUhdi() static processorType* Processor(GPUConstantMem& processors)
@@ -59,7 +59,7 @@ class GPUTPCCFDecodeZS : public GPUKernelTemplate
   }
 
   template <int32_t iKernel = defaultKernel, typename... Args>
-  GPUd() static void Thread(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer, Args... args);
+  GPUd() static void Thread(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& clusterer, Args... args);
 };
 
 class GPUTPCCFDecodeZSLinkBase : public GPUKernelTemplate

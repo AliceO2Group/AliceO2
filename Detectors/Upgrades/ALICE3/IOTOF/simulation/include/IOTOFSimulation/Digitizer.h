@@ -75,6 +75,12 @@ class Digitizer : public TObject
   // Provide the common iotof::GeometryTGeo to access matrices and segmentation
   void setGeometry(const o2::iotof::GeometryTGeo* gm) { mGeometry = gm; }
 
+  void loadEfficiencyMap(TH2D* map) { mEfficiencyMap = map; }
+  void loadResolutionMap(TH2D* map) { mResolutionMap = map; }
+  void loadTimeOfArrivalMap(TH2D* map) { mTimeOfArrivalMap = map; }
+
+  void prepareScaledResolutionMap();
+
  private:
   /// Process a single hit
   void processHit(const o2::itsmft::Hit& hit, int evID, int srcID);
@@ -90,12 +96,6 @@ class Digitizer : public TObject
 
   /// Convert energy loss to charge
   int energyToCharge(float energyLoss) const;
-
-  /// Load a map from CCDB (path prefixed with "ccdb://") or from a ROOT file (any other path)
-  /// \param mapName Name of the histogram inside the ROOT file (ignored for CCDB)
-  void loadMap(TH2D*& map, const std::string& path, const char* mapName);
-
-  void prepareScaledResolutionMap();
 
   /// Check if the hit passes efficiency cut
   /// \param x Detector local coordinate x in cm with respect to the center of the sensitive volume.

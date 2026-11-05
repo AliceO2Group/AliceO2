@@ -148,23 +148,27 @@ concept has_filtered_policy = not_void<typename std::decay_t<T>::policy_t> && re
 template <typename T>
 concept is_filtered_iterator = is_iterator<T> && has_filtered_policy<T>;
 
-/// 13. require a filtered table
+/// 13. require not filtered table iterator
+template <typename T>
+concept is_not_filtered_iterator = is_iterator<T> && !has_filtered_policy<T>;
+
+/// 14. require a filtered table
 template <typename T>
 concept is_filtered_table = requires(T t) { t.isFilteredBase(); };
 
-/// 14. require a filtered table or iterator
+/// 15. require a filtered table or iterator
 template <typename T>
 concept is_filtered = is_filtered_table<T> || is_filtered_iterator<T>;
 
-/// 15. require not filtered table
+/// 16. require not filtered table
 template <typename T>
 concept is_not_filtered_table = is_table<T> && !is_filtered_table<T>;
 
-/// 16. require a join
+/// 17. require a join
 template <typename T>
 concept is_join = requires(T t) { t.isJoin(); };
 
-/// 17. require an enumerated iterator
+/// 18. require an enumerated iterator
 template <typename T>
 concept is_enumerated_iterator = requires(T t) { t.globalIndex(); };
 

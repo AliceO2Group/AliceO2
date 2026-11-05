@@ -250,6 +250,15 @@ class MCTrackT
 
   bool isTransported() const { return getToBeDone() && !getInhibited(); };
 
+  /// mark that this track deposited into a hit created by another track
+  void setContributesToAHit(bool f = true)
+  {
+    auto prop = ((PropEncoding)mProp);
+    prop.contributesToAHit = f;
+    mProp = prop.i;
+  }
+  bool getContributesToAHit() const { return ((PropEncoding)mProp).contributesToAHit; }
+
   /// get the string representation of the production process
   const char* getProdProcessAsString() const;
 
@@ -286,7 +295,7 @@ class MCTrackT
       int storage : 1;  // encoding whether to store this track to the output
       unsigned int process : 6; // encoding process that created this track (enough to store TMCProcess from ROOT)
       int hitmask : NHITBITS;   // encoding hits per detector
-      int reserved1 : 1;        // bit reserved for possible future purposes
+      int contributesToAHit : 1; // whether this track deposited into a hit created by another track
       int inhibited : 1; // whether tracking of this was inhibited
       int toBeDone : 1; // whether this (still) needs tracking --> we might more complete information to cover full ParticleStatus space
     };

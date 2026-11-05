@@ -75,6 +75,13 @@ void Detector::InitializeO2Detector()
 Bool_t Detector::ProcessHits(FairVolume* v)
 {
   // This method is called from the MC stepping for the sensitive volume only
+  if (fMC->IsTrackEntering() && !fMC->IsNewTrack() && fMC->TrackCharge() != 0) { // one reference per charged particle, first entry from outside
+    auto o2stack = static_cast<o2::data::Stack*>(fMC->GetStack());
+    if (o2stack->GetCurrentTrackNumber() != mTrackRefLastTrackID) {
+      mTrackRefLastTrackID = o2stack->GetCurrentTrackNumber();
+      o2stack->addTrackReference(o2::TrackReference(*fMC, GetDetId()));
+    }
+  }
   if (static_cast<int>(fMC->TrackCharge()) == 0) {
     // set a very large step size for neutral particles
     return kFALSE; // take only charged particles
@@ -130,6 +137,7 @@ void Detector::Reset()
     mHits->clear();
   }
   mLastChannelID = -1;
+  mTrackRefLastTrackID = -1;
 }
 
 void Detector::CreateMaterials()

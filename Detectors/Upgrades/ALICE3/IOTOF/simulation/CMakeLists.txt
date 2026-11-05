@@ -11,6 +11,7 @@
 
 o2_add_library(IOTOFSimulation
                SOURCES src/Layer.cxx
+                       src/TF3Chip.cxx
                        src/Chip.cxx
                        src/Detector.cxx
                        src/Digitizer.cxx
@@ -23,6 +24,7 @@ o2_add_library(IOTOFSimulation
 o2_target_root_dictionary(IOTOFSimulation
                           HEADERS include/IOTOFSimulation/Detector.h
                                   include/IOTOFSimulation/Chip.h
+                                  include/IOTOFSimulation/TF3Chip.h
                                   include/IOTOFSimulation/Layer.h
                                   include/IOTOFSimulation/Digitizer.h
                                   include/IOTOFSimulation/DPLDigitizerParam.h

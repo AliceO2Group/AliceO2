@@ -113,6 +113,12 @@ o2_add_executable(g4-determine-unknown-pdg-properties
                   SOURCES g4DetermineUnknownPdgProperties.cxx
                   PUBLIC_LINK_LIBRARIES O2::O2TrivialMC MC::Geant4 MC::Geant4VMC O2::SimConfig)
 
+# Writes the Geant4 particle table to a text file.
+o2_add_executable(g4-particle-table
+                  COMPONENT_NAME sim
+                  SOURCES o2sim_g4_particle_table.cxx
+                  PUBLIC_LINK_LIBRARIES O2::O2TrivialMC MC::Geant4 MC::Geant4VMC O2::SimConfig)
+
 # Reads a geometry file and a field and reports where the two do not fit together.
 # It needs neither the simulation engines nor any detector code -- the medium flags
 # it reasons about are GSTMED parameters stored in the geometry file itself -- so it

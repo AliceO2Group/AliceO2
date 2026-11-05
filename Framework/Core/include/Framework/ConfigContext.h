@@ -29,6 +29,9 @@ class ConfigContext
   [[nodiscard]] ServiceRegistryRef services() const { return mServices; }
 
   [[nodiscard]] bool helpOnCommandLine() const;
+  /// Whether this process may run @a processor. A device only runs its own;
+  /// it gets the specs of the others from the driver, so they need not be built.
+  [[nodiscard]] bool mayRun(std::string_view processor) const;
 
   [[nodiscard]] int argc() const { return mArgc; }
   [[nodiscard]] char* const* argv() const { return mArgv; }

@@ -28,7 +28,7 @@ using namespace o2::gpu;
 #include <cstring>
 #include <tuple>
 
-#include "utils/qconfigrtc.h"
+#include "utils/qconfig_rtc.h"
 
 void GPUParam::SetDefaults(float solenoidBz, bool assumeConstantBz)
 {

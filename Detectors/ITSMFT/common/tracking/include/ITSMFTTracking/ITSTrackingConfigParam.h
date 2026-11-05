@@ -42,15 +42,17 @@ struct VertexerParamConfig : public o2::conf::ConfigurableParamHelper<VertexerPa
   float maxZPositionAllowed = 25.f; // 4x sZ of the beam
 
   // Artefacts selections
-  int clusterContributorsCut = 2; // minimum number of contributors for an accepted final vertex
-  int suppressLowMultDebris = 16; // suppress all vertices below this threshold if a vertex was already found in a rof
-  float lineMinPt = 0.10f;        // drop soft lines before the density scan
-  float fineZWindow = 0.010f;     // second, narrow density pass (dip search); <=0 disables
+  int clusterContributorsCut = 2;  // minimum number of contributors for an accepted final vertex
+  int suppressLowMultDebris = 16;  // suppress all vertices below this threshold if a vertex was already found in a rof
+  float lineMinPt = 0.10f;         // drop soft lines before the density scan
+  float lineCurvatureScale = 0.5f; // q/pT scale when propagating a seeding line to its xy-DCA to the beam
+  float fineZWindow = 0.010f;      // second, narrow density pass (dip search); <=0 disables
   int fineMinDensity = 8;
   float fineMaxDrift = 0.005f; // |z_fit - z_seed| cap on fine-only candidates; <=0 disables
   float goodLineChi2Cut = 5.f;
   float goodLinePtCut = 0.5f;
-  float goodContributorsSignificance = 0.070f; // emit threshold k, scaled by sqrt(ROF load); <=0 disables
+  float goodContributorsSignificance = 0.070f; // emit threshold k, scaled by sqrt(ROF load) and clamped to [constants::VtxMinGoodThreshold (2), suppressLowMultDebris], bounds included; <=0 disables
+  float overpopulatedRofNSigma = -1.f;         // a ROF with more seeding vertices than mean + overpopulatedRofNSigma*sqrt(mean+1) of its TF keeps its largest vertex and those with >= suppressLowMultDebris contributors (not in the UPC pass); <=0 disables
   float duplicateZScale = 0.7f;                // per-candidate dedup radius scale/sqrt(size); <=0 uses duplicateZCut
   int seedMemberRadiusTime = 0;
   int seedMemberRadiusZ = 2;

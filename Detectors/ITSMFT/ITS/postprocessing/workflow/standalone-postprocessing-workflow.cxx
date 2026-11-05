@@ -24,6 +24,7 @@
 #include "ITSStudies/PIDStudy.h"
 #include "ITSStudies/AnomalyStudy.h"
 #include "ITSStudies/ITSBeamBackgroundStudy.h"
+#include "ITSStudies/ITSStudiesConfigParam.h"
 #include "ITSStudies/Efficiency.h"
 #include "ITSStudies/TrackCheck.h"
 #include "ITSStudies/TrackExtension.h"
@@ -41,6 +42,19 @@ void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
+  const auto& beamParams = o2::its::study::ITSBeamBackgroundStudyParamConfig::Instance();
+  const std::string configHelp =
+    "Semicolon-separated key=value strings. ITS beam-background study parameters:\n"
+    "Key prefix: ITSBeamBackgroundStudyParam.\n"
+    "dumpEveryTF=<int> (default: " +
+    std::to_string(beamParams.dumpEveryTF) +
+    "): dump ROOT files every N TFs; <= 0 writes only at end of stream.\n"
+    "skimmedOnlyAfterTF=<int> (default: " +
+    std::to_string(beamParams.skimmedOnlyAfterTF) +
+    "): TF threshold above which only the skimmed output file is written.\n"
+    "saveClusterParameters=<true|false> (default: " +
+    (beamParams.saveClusterParameters ? "true" : "false") +
+    "): save cluster phi, r, z, size, colspan and rowspan vectors in output trees.";
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options{
     {"input-from-upstream", VariantType::Bool, false, {"read clusters from the clusterer"}},
@@ -56,7 +70,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"its-beambkg-study", VariantType::Bool, false, {"Perform the ITS beam background study"}},
     {"track-extension-study", VariantType::Bool, false, {"Perform the track extension study"}},
     {"efficiency-study", VariantType::Bool, false, {"Perform the efficiency study"}},
-    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
+    {"configKeyValues", VariantType::String, "", {configHelp}}};
   o2::itsmft::DPLAlpideParamInitializer::addITSConfigOption(options);
   // o2::raw::HBFUtilsInitializer::addConfigOption(options, "o2_tfidinfo.root");
   std::swap(workflowOptions, options);

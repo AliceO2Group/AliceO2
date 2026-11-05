@@ -25,11 +25,27 @@ o2_add_library(FrameworkOnDemandTablesSupport
 o2_add_library(FrameworkAnalysisSupport
                SOURCES src/Plugin.cxx
                        src/DataInputDirector.cxx
+                       src/AODInputFile.cxx
+                       src/NativeAOD.cxx
                        src/TableTreeHelpers.cxx
                        src/AODJAlienReaderHelpers.cxx
                        src/AODWriterHelpers.cxx
                PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
-               PUBLIC_LINK_LIBRARIES O2::Framework ${EXTRA_TARGETS} ROOT::TreePlayer)
+               PUBLIC_LINK_LIBRARIES O2::Framework O2::AODNative ${EXTRA_TARGETS} ROOT::TreePlayer)
+
+# Reads AO2D trees with the ROOT-free reader. Its sources must not use ROOT:
+# the check below fails the configuration on any direct ROOT include.
+o2_add_library(FrameworkAnalysisNativeAODSupport
+               SOURCES src/NativeAODPlugin.cxx
+               PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
+               PUBLIC_LINK_LIBRARIES O2::FrameworkAnalysisSupport O2::AODNative)
+
+foreach(source src/NativeAODPlugin.cxx src/NativeAOD.cxx src/NativeAOD.h)
+  file(STRINGS ${CMAKE_CURRENT_LIST_DIR}/${source} rootIncludes REGEX "^#include [<\"]T[A-Z][A-Za-z]*\\.h")
+  if(rootIncludes)
+    message(FATAL_ERROR "${source} must not include ROOT headers: ${rootIncludes}")
+  endif()
+endforeach()
 
 o2_add_library(FrameworkAnalysisRNTupleSupport
                SOURCES src/RNTuplePlugin.cxx
@@ -55,6 +71,12 @@ get_filename_component(outdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/../tests ABSOLUT
 set_property(TARGET o2-test-framework-analysis-support PROPERTY RUNTIME_OUTPUT_DIRECTORY ${outdir})
 
 add_test(NAME framework:analysis-support COMMAND o2-test-framework-analysis-support)
+
+# Compares, byte for byte, what the native reader and the TTree plugin
+# send for every tree of the AO2Ds given on the command line.
+add_executable(o2-test-framework-aod-native-vs-root test/compareNativeToRoot.cxx)
+target_link_libraries(o2-test-framework-aod-native-vs-root PRIVATE O2::FrameworkAnalysisSupport)
+set_property(TARGET o2-test-framework-aod-native-vs-root PROPERTY RUNTIME_OUTPUT_DIRECTORY ${outdir})
 
 o2_add_test(TableToTree NAME benchmark_TableToTree
                SOURCES test/benchmark_TableToTree.cxx

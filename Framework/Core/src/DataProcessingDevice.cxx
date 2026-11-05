@@ -1377,11 +1377,47 @@ void DataProcessingDevice::Run()
       bool enough = ref.get<ComputingQuotaEvaluator>().selectOffer(streamRef.index, spec.resourcePolicy.request, uv_now(state.loop), &accumulated);
 
       struct SchedulingStats {
+        // minWarnDelay: stalls shorter than this are never worth warning about.
+        // healthToForget: uninterrupted health needed to halve the threshold, as a
+        // multiple of the threshold itself.
+        // minHealthToForget: no decay at all below this much health, so a storm of
+        // short hiccups separated by short recoveries never re-arms the warning.
+        enum : size_t { minWarnDelay = 50,
+                        healthToForget = 3,
+                        minHealthToForget = 60000 };
         std::atomic<size_t> lastScheduled = 0;
         std::atomic<size_t> numberOfUnscheduledSinceLastScheduled = 0;
         std::atomic<size_t> numberOfUnscheduled = 0;
         std::atomic<size_t> numberOfScheduled = 0;
-        std::atomic<size_t> nextWarnAt = 1;
+        // Longest stall already warned about, doubled, so a stall no worse than an
+        // earlier one stays silent.
+        std::atomic<size_t> warnAboveDelay = minWarnDelay;
+        // Start of the current uninterrupted healthy stretch, 0 until we first
+        // recover from a stall.
+        std::atomic<size_t> healthySince = 0;
+
+        // Halve the threshold for every healthToForget x threshold of health, down
+        // to minWarnDelay, so a later and smaller stall is reported again instead
+        // of being hidden by an older and worse one. The healthy stretch is spent
+        // in one go at the start of a stall: letting it apply again mid-stall would
+        // undo each backoff step and warn on every poll.
+        void decayWarnThreshold(size_t now)
+        {
+          size_t const since = healthySince.exchange(0);
+          if (since == 0) {
+            return;
+          }
+          size_t healthy = now - since;
+          if (healthy < minHealthToForget) {
+            return;
+          }
+          size_t threshold = warnAboveDelay;
+          while (threshold > minWarnDelay && healthy >= healthToForget * threshold) {
+            healthy -= healthToForget * threshold;
+            threshold = std::max<size_t>(threshold / 2, minWarnDelay);
+          }
+          warnAboveDelay = threshold;
+        }
       };
       static SchedulingStats schedulingStats;
       O2_SIGNPOST_ID_GENERATE(sid, scheduling);
@@ -1391,8 +1427,10 @@ void DataProcessingDevice::Run()
         stream.registry = &mServiceRegistry;
         schedulingStats.lastScheduled = uv_now(state.loop);
         schedulingStats.numberOfScheduled++;
+        if (schedulingStats.numberOfUnscheduledSinceLastScheduled != 0) {
+          schedulingStats.healthySince = schedulingStats.lastScheduled.load();
+        }
         schedulingStats.numberOfUnscheduledSinceLastScheduled = 0;
-        schedulingStats.nextWarnAt = 1;
         O2_SIGNPOST_EVENT_EMIT(scheduling, sid, "Run", "Enough resources to schedule computation on stream %d", streamRef.index);
         if (dplEnableMultithreding) [[unlikely]] {
           stream.task = &handle;
@@ -1421,27 +1459,23 @@ void DataProcessingDevice::Run()
           }
           return missingInfo.empty() ? std::string(" (policy: ") + spec.resourcePolicy.name + ")" : " -" + missingInfo;
         };
-        auto const timeSinceLastScheduled = lastSched ? uv_now(state.loop) - lastSched : 0;
-        if (schedulingStats.numberOfUnscheduledSinceLastScheduled >= schedulingStats.nextWarnAt) {
-          auto const missingStr = buildMissingInfo();
-          if (timeSinceLastScheduled >= 50) {
-            O2_SIGNPOST_EVENT_EMIT_WARN(scheduling, sid, "Run",
-                                        "Not enough resources to schedule computation on stream %d. %zu consecutive skips%s. Missing:%s. Data is not lost and it will be scheduled again.",
-                                        streamRef.index,
-                                        schedulingStats.numberOfUnscheduledSinceLastScheduled.load(),
-                                        schedInfo.c_str(),
-                                        missingStr.c_str());
-          } else {
-            O2_SIGNPOST_EVENT_EMIT(scheduling, sid, "Run",
-                                   "Not enough resources to schedule computation on stream %d. %zu consecutive skips%s. Missing:%s. Data is not lost and it will be scheduled again.",
-                                   streamRef.index,
-                                   schedulingStats.numberOfUnscheduledSinceLastScheduled.load(),
-                                   schedInfo.c_str(),
-                                   missingStr.c_str());
-          }
-          schedulingStats.nextWarnAt = schedulingStats.nextWarnAt * 2;
+        size_t const now = uv_now(state.loop);
+        schedulingStats.decayWarnThreshold(now);
+        size_t const timeSinceLastScheduled = lastSched ? now - lastSched : 0;
+        // A single skip is the normal cadence of a rate limited reader, so a stall
+        // has to be seen at least twice before it is worth a warning.
+        bool const warn = schedulingStats.numberOfUnscheduledSinceLastScheduled != 0 &&
+                          timeSinceLastScheduled >= schedulingStats.warnAboveDelay;
+        auto const missingStr = buildMissingInfo();
+        if (warn) {
+          schedulingStats.warnAboveDelay = timeSinceLastScheduled * 2;
+          O2_SIGNPOST_EVENT_EMIT_WARN(scheduling, sid, "Run",
+                                      "Not enough resources to schedule computation on stream %d. %zu consecutive skips%s. Missing:%s. Data is not lost and it will be scheduled again.",
+                                      streamRef.index,
+                                      schedulingStats.numberOfUnscheduledSinceLastScheduled.load(),
+                                      schedInfo.c_str(),
+                                      missingStr.c_str());
         } else {
-          auto const missingStr = buildMissingInfo();
           O2_SIGNPOST_EVENT_EMIT(scheduling, sid, "Run",
                                  "Not enough resources to schedule computation on stream %d. %zu consecutive skips%s. Missing:%s. Data is not lost and it will be scheduled again.",
                                  streamRef.index,

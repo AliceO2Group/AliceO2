@@ -12,27 +12,14 @@
 /// \file CheckClusters.C
 /// \brief Macro to check TRK clusters and compare cluster positions to MC hit positions
 
-#ifndef ENABLE_UPGRADES
-#include <iostream>
-#include <string>
-
-void CheckClusters(const std::string& = "o2clus_trk.root",
-                   const std::string& = "o2sim_HitsTRK.root",
-                   const std::string& = "o2sim_geometry.root",
-                   const std::string& = "http://alice-ccdb.cern.ch",
-                   long = -1,
-                   bool = false)
-{
-  std::cerr << "CheckClusters requires a build with ENABLE_UPGRADES" << std::endl;
-}
-
-#else
+#define ENABLE_UPGRADES
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <TCanvas.h>
 #include <TFile.h>
 #include <TH1F.h>
 #include <TH2F.h>
+#include <TProfile.h>
 #include <TNtuple.h>
 #include <TString.h>
 #include <TTree.h>
@@ -58,6 +45,7 @@ void CheckClusters(const std::string& = "o2clus_trk.root",
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "Framework/Logger.h"
+#include <string>
 #endif
 
 void CheckClusters(const std::string& clusfile = "o2clus_trk.root",
@@ -65,76 +53,46 @@ void CheckClusters(const std::string& clusfile = "o2clus_trk.root",
                    const std::string& inputGeom = "o2sim_geometry.root",
                    const std::string& ccdbUrl = "http://alice-ccdb.cern.ch",
                    long ccdbTimestamp = -1,
-                   bool batch = false)
+                   bool batch = true,
+                   const std::string& localRespFile = "") // empty: APTS response from CCDB, as in the digitizer
 {
   gROOT->SetBatch(batch);
 
   using HitVec = std::vector<o2::trkft3::Hit>;
   using MC2HITS_map = std::unordered_map<uint64_t, std::vector<int>>; // maps (trackID << 32) + chipID -> hit indices
 
-  // ── Chip response (for hit-segment propagation to charge-collection plane) ──
-  // Fetches the same AlpideSimResponse from CCDB as the digitizer (IT3/Calib/APTSResponse)
-  // and computes Y-intersection planes with the same formulas from Digitizer::init()
-  auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
-  ccdbMgr.setURL(ccdbUrl);
-  if (ccdbTimestamp > 0) {
-    ccdbMgr.setTimestamp(ccdbTimestamp);
+  // ── Chip response (for hit-segment propagation to the reference plane) ──────
+  // Same choice as the digitizer (TRKDigitizerSpec): APTS from CCDB (IT3/Calib/APTSResponse)
+  // by default, the "response1" object of localRespFile if given (usually the ALICE3 one).
+  const o2::itsmft::AlpideSimResponse* alpResp = nullptr;
+  if (localRespFile.empty()) {
+    auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
+    ccdbMgr.setURL(ccdbUrl);
+    if (ccdbTimestamp > 0) {
+      ccdbMgr.setTimestamp(ccdbTimestamp);
+    }
+    alpResp = ccdbMgr.get<o2::itsmft::AlpideSimResponse>("IT3/Calib/APTSResponse");
+  } else {
+    TFile* respFile = TFile::Open(localRespFile.data());
+    alpResp = respFile ? (const o2::itsmft::AlpideSimResponse*)respFile->Get("response1") : nullptr;
   }
-  auto* alpResp = ccdbMgr.get<o2::itsmft::AlpideSimResponse>("IT3/Calib/APTSResponse");
   if (!alpResp) {
-    LOGP(fatal, "Cannot retrieve AlpideSimResponse from CCDB at {}", ccdbUrl);
+    LOGP(fatal, "Cannot load the chip response from {}", localRespFile.empty() ? "CCDB IT3/Calib/APTSResponse at " + ccdbUrl : localRespFile);
     return;
   }
   const float depthMax = alpResp->getDepthMax();
 
-  // ── Y-plane shifts: why VD and ML/OT need different values ────────────────
-  //
-  // The APTS pixel response (AlpideSimResponse) uses an internal Y axis where:
-  //
-  //        y = depthMax  ──  beam-entry (top) surface
-  //        y = 0         ──  charge-collection plane   ← where clusters form
-  //        y < 0         ──  substrate (no response)
-  //
-  // The digitizer (Digitizer::init()) brings hit Y coordinates into this frame
-  // by adding a per-sub-detector shift before querying the response:
-  //
-  //     y_APTS = y_local + shift                  [Digitizer.cxx ::processHit]
-  //
-  // The collection plane (y_APTS = 0) is therefore at  y_local = −shift
-  // in the detector local frame.  That is the Y value used here when
-  // propagating the MC hit segment to a single representative point.
-  //
-  // ── VD (vertex detector – curved sensors) ─────────────────────────────────
-  // After SegmentationChip::curvedToFlat() (convention: yFlat = dist − R):
-  //   outer face (beam-entry): yFlat = +halfThickVD = +10 µm
-  //   inner face (exit):       yFlat = −halfThickVD = −10 µm
-  // The digitizer uses:
-  //
-  //     mSimRespVDShift = depthMax − halfThickVD
-  //
-  // so the collection plane (y_APTS = 0) corresponds to:
-  //
-  //     yPlaneVD = alice3resp::responseYShift = +5 µm
-  //
-  // i.e. 5 µm inside from the outer (entry) face. ✓
-  //
-  // ── ML/OT (middle/outer tracker – flat sensors) ────────────────────────────
-  // The local Y origin is at the GEOMETRIC CENTRE of the sensor volume.
-  // The outer (entry) surface is at y_local = +SiliconThicknessMLOT/2.
-  // The digitizer uses:
-  //
-  //     mSimRespMLOTShift = depthMax − SiliconThicknessMLOT / 2
-  //
-  // so the collection plane (y_APTS = 0) is at:
-  //
-  //     yPlaneMLOT = SiliconThicknessMLOT/2 − depthMax
-  //
-  // ──────────────────────────────────────────────────────────────────────────
+  // ── Reference plane for the hits ──────────────────────────────────────────
+  // Middle of the 10 um epitaxial layer.
+  // Epi in response depth coordinates (y_resp): APTS +10..0 um, ALICE3 (local response file) 0..-10 um.
+  // Local y (flat frame for VD) = y_resp - shift, with the digitizer shifts (Digitizer::init):
+  // depthMax for VD, depthMax - SiliconThicknessMLOT/2 for ML/OT.
   const float halfThicknessMLOT = o2::trk::SegmentationChip::SiliconThicknessMLOT / 2.f;
-  const float yPlaneVD = (float)o2::trk::constants::alice3resp::responseYShift; // VD: collection plane 5 µm inside outer (entry) face in flat local frame
-  const float yPlaneMLOT = halfThicknessMLOT - depthMax;                        // MLOT: entry @ +halfThick, collection depthMax below entry
-  LOGP(info, "Response depthMax = {:.4f} cm  |  VD Y-plane = {:.4f} cm  |  ML/OT Y-plane = {:.4f} cm",
-       depthMax, yPlaneVD, yPlaneMLOT);
+  const float yEpiMidResp = localRespFile.empty() ? 5e-4f : -5e-4f;
+  const float yPlaneVD = yEpiMidResp - depthMax;
+  const float yPlaneMLOT = yEpiMidResp - (depthMax - halfThicknessMLOT);
+  LOGP(info, "Response {}: depthMax = {:.2f} um | VD Y-plane = {:.2f} um | ML/OT Y-plane = {:.2f} um",
+       localRespFile.empty() ? "APTS (CCDB)" : localRespFile, depthMax * 1e4, yPlaneVD * 1e4, yPlaneMLOT * 1e4);
 
   // ── Geometry ───────────────────────────────────────────────────────────────
   o2::base::GeometryManager::loadGeometry(inputGeom);
@@ -301,12 +259,19 @@ void CheckClusters(const std::string& clusfile = "o2clus_trk.root",
   // columns: event, MC track label,
   //   local hit x/z (flat frame), global hit x/y/z (midpoint),
   //   global cluster x/y/z, local cluster x/z,
-  //   ROF frame, cluster size, chipID, layer, disk, subDetID, row, col, pt
+  //   ROF frame, cluster size, chipID, layer, disk, subDetID, row, col, pt,
+  //   local track slopes dx/dy, dz/dy (flat frame for VD), track eta (from the hit momentum)
   TNtuple nt("ntc", "TRK cluster ntuple",
-             "event:mcTrackID:hitLocX:hitLocZ:hitGlobX:hitGlobY:hitGlobZ:clusGlobX:clusGlobY:clusGlobZ:clusLocX:clusLocZ:rofFrame:clusSize:chipID:layer:disk:subdet:row:col:pt");
+             "event:mcTrackID:hitLocX:hitLocZ:hitGlobX:hitGlobY:hitGlobZ:clusGlobX:clusGlobY:clusGlobZ:clusLocX:clusLocZ:rofFrame:clusSize:chipID:layer:disk:subdet:row:col:pt:slX:slZ:eta");
 
   // ── Counters ───────────────────────────────────────────────────────────────
   long nTot{0}, nInvalidLabel{0}, nInvalidEvent{0}, nNoMCHit{0}, nValid{0};
+
+  // Check of the reference plane: if the clusters sit at y_eff, residual = (y_eff - yPlane) * track slope.
+  // y_eff is fitted (least squares through the origin) and printed at the end. Very inclined tracks are excluded;
+  // in the VD the x slopes are small, so the z estimate is the reliable one.
+  const float maxSlope[2] = {30.f, 5.f};
+  double sumResSl[2][2]{}, sumSl2[2][2]{};
 
   // ── Main loop ──────────────────────────────────────────────────────────────
   for (unsigned int irof = 0; irof < nROFRec; irof++) {
@@ -387,14 +352,14 @@ void CheckClusters(const std::string& clusfile = "o2clus_trk.root",
 
         if (!hasAnyMC || clusLabArr == nullptr) {
           // No MC info: just fill geometry columns, leave residuals as 0
-          std::array<float, 21> data = {
+          std::array<float, 24> data = {
             -1.f, -1.f,
             0.f, 0.f, 0.f, 0.f, 0.f,
             (float)gloC.X(), (float)gloC.Y(), (float)gloC.Z(),
             clLocX, clLocZ,
             (float)rofRec.getROFrame(), (float)cluster.size, (float)cluster.chipID,
             (float)cluster.layer, -1.f, (float)cluster.subDetID,
-            (float)cluster.row, (float)cluster.col, -1.f};
+            (float)cluster.row, (float)cluster.col, -1.f, 0.f, 0.f, 0.f};
           nt.Fill(data.data());
           continue;
         }
@@ -421,7 +386,7 @@ void CheckClusters(const std::string& clusfile = "o2clus_trk.root",
           nNoMCHit++;
           continue;
         }
-        auto projectHitToResponsePlane = [&](const o2::trkft3::Hit& hit, float& hitLocX, float& hitLocZ) {
+        auto projectHitToResponsePlane = [&](const o2::trkft3::Hit& hit, float& hitLocX, float& hitLocZ, float& slX, float& slZ) {
           const auto& gloHend = hit.GetPos();
           const auto& gloHsta = hit.GetPosStart();
           o2::math_utils::Point3D<float> locHsta = gman->getMatrixL2G(cluster.chipID) ^ (gloHsta); // inverse L2G
@@ -437,22 +402,26 @@ void CheckClusters(const std::string& clusfile = "o2clus_trk.root",
             float r = (std::abs(dlty) > 1e-9f) ? (yPlaneVD - y0) / dlty : 0.5f;
             hitLocX = x0 + r * dltx;
             hitLocZ = z0 + r * dltz;
+            slX = (std::abs(dlty) > 1e-9f) ? dltx / dlty : 0.f;
+            slZ = (std::abs(dlty) > 1e-9f) ? dltz / dlty : 0.f;
           } else {
             float x0 = locHsta.X(), y0 = locHsta.Y(), z0 = locHsta.Z();
             float dltx = locHend.X() - x0, dlty = locHend.Y() - y0, dltz = locHend.Z() - z0;
             float r = (std::abs(dlty) > 1e-9f) ? (yPlaneMLOT - y0) / dlty : 0.5f;
             hitLocX = x0 + r * dltx;
             hitLocZ = z0 + r * dltz;
+            slX = (std::abs(dlty) > 1e-9f) ? dltx / dlty : 0.f;
+            slZ = (std::abs(dlty) > 1e-9f) ? dltz / dlty : 0.f;
           }
         };
 
         const o2::trkft3::Hit* bestHit = nullptr;
-        float hitLocX{0.f}, hitLocZ{0.f};
+        float hitLocX{0.f}, hitLocZ{0.f}, slX{0.f}, slZ{0.f};
         float bestDist2 = std::numeric_limits<float>::max();
         for (const auto ih : hitEntry->second) {
           const auto& candHit = (*hitVecPool[evID])[ih];
-          float candLocX{0.f}, candLocZ{0.f};
-          projectHitToResponsePlane(candHit, candLocX, candLocZ);
+          float candLocX{0.f}, candLocZ{0.f}, candSlX{0.f}, candSlZ{0.f};
+          projectHitToResponsePlane(candHit, candLocX, candLocZ, candSlX, candSlZ);
           const float dx = clLocX - candLocX;
           const float dz = clLocZ - candLocZ;
           const float dist2 = dx * dx + dz * dz;
@@ -461,6 +430,8 @@ void CheckClusters(const std::string& clusfile = "o2clus_trk.root",
             bestHit = &candHit;
             hitLocX = candLocX;
             hitLocZ = candLocZ;
+            slX = candSlX;
+            slZ = candSlZ;
           }
         }
         if (bestHit == nullptr) {
@@ -469,6 +440,7 @@ void CheckClusters(const std::string& clusfile = "o2clus_trk.root",
         }
         const auto& hit = *bestHit;
         const float pt = TMath::Hypot(hit.GetPx(), hit.GetPy());
+        const float eta = pt > 0.f ? std::asinh(hit.GetPz() / pt) : 0.f;
 
         // ── Hit global midpoint ────────────────────────────────────────────
         const auto& gloHend = hit.GetPos();
@@ -479,7 +451,15 @@ void CheckClusters(const std::string& clusfile = "o2clus_trk.root",
           0.5f * (gloHend.Z() + gloHsta.Z()));
 
         nValid++;
-        std::array<float, 21> data = {
+        const int iSub = (cluster.subDetID == 0) ? 0 : 1;
+        const float res[2] = {clLocX - hitLocX, clLocZ - hitLocZ}, sl[2] = {slX, slZ};
+        for (int c = 0; c < 2; c++) {
+          if (std::abs(res[c]) < 0.03f && std::abs(sl[c]) < maxSlope[iSub]) { // drop gross mismatches (> 300 um)
+            sumResSl[iSub][c] += res[c] * sl[c];
+            sumSl2[iSub][c] += sl[c] * sl[c];
+          }
+        }
+        std::array<float, 24> data = {
           (float)evID, (float)trID,
           hitLocX, hitLocZ,
           (float)gloHmid.X(), (float)gloHmid.Y(), (float)gloHmid.Z(),
@@ -487,7 +467,7 @@ void CheckClusters(const std::string& clusfile = "o2clus_trk.root",
           clLocX, clLocZ,
           (float)rofRec.getROFrame(), (float)cluster.size, (float)cluster.chipID,
           (float)cluster.layer, -1.f, (float)cluster.subDetID,
-          (float)cluster.row, (float)cluster.col, pt};
+          (float)cluster.row, (float)cluster.col, pt, slX, slZ, eta};
         nt.Fill(data.data());
       }
     }
@@ -500,6 +480,18 @@ void CheckClusters(const std::string& clusfile = "o2clus_trk.root",
   LOGP(info, "Invalid/noise MC labels: {}", nInvalidLabel);
   LOGP(info, "Invalid MC event IDs:    {}", nInvalidEvent);
   LOGP(info, "MC hit not found:        {}", nNoMCHit);
+  for (int iSub = 0; iSub < 2; iSub++) {
+    const float yPlane = iSub == 0 ? yPlaneVD : yPlaneMLOT;
+    const float shift = iSub == 0 ? depthMax : depthMax - halfThicknessMLOT;
+    for (int c = 0; c < 2; c++) {
+      if (sumSl2[iSub][c] <= 0.) {
+        continue;
+      }
+      const float yEff = yPlane + sumResSl[iSub][c] / sumSl2[iSub][c];
+      LOGP(info, "{} {}: y-plane used {:.2f} um, measured from residual vs slope {:.2f} um (y_resp = {:.2f} um)",
+           iSub == 0 ? "VD   " : "ML/OT", c == 0 ? "x" : "z", yPlane * 1e4, yEff * 1e4, (yEff + shift) * 1e4);
+    }
+  }
   // ── Visualisation ──────────────────────────────────────────────────────────
   auto canvGlobal = new TCanvas("canvGlobal", "Cluster global positions", 1600, 800);
   canvGlobal->Divide(2, 1);
@@ -509,29 +501,64 @@ void CheckClusters(const std::string& clusfile = "o2clus_trk.root",
   nt.Draw("clusGlobY:clusGlobZ>>h_yz(500,-100,100,500,-50,50)", "", "colz");
   canvGlobal->SaveAs("trk_clusters_global.png");
 
-  auto canvRes = new TCanvas("canvRes", "Residuals (cluster - hit) [cm]", 1600, 1200);
-  canvRes->Divide(2, 3);
-  canvRes->cd(1)->SetLogy();
-  nt.Draw("clusLocX-hitLocX>>h_dx_VD(200,-0.02,0.02)", "subdet==0&&event>=0");
-  canvRes->cd(2)->SetLogy();
-  nt.Draw("clusLocZ-hitLocZ>>h_dz_VD(200,-0.02,0.02)", "subdet==0&&event>=0");
-  canvRes->cd(3)->SetLogy();
-  nt.Draw("clusLocX-hitLocX>>h_dx_MLOT(200,-0.02,0.02)", "subdet==1&&event>=0");
-  canvRes->cd(4)->SetLogy();
-  nt.Draw("clusLocZ-hitLocZ>>h_dz_MLOT(200,-0.02,0.02)", "subdet==1&&event>=0");
-  canvRes->cd(5)->SetLogz();
-  nt.Draw("clusLocX-hitLocX:clusLocZ-hitLocZ>>h_dxdz_VD(200,-0.02,0.02,200,-0.02,0.02)", "subdet==0&&event>=0", "colz");
-  canvRes->cd(6);
-  nt.Draw("clusLocX-hitLocX:clusLocZ-hitLocZ>>h_dxdz_MLOT(200,-0.02,0.02,200,-0.02,0.02)", "subdet==1&&event>=0", "colz");
-  canvRes->SaveAs("trk_residuals.png");
+  // residual distributions; called for all clusters and for |z| < 0.5 cm (hit global z), where tracks from
+  // the interaction point are nearly perpendicular to the sensors
+  auto drawResiduals = [&](const char* sfx, const char* extraCut, const char* title, const char* outFile) {
+    const TString vd = TString("subdet==0&&event>=0") + extraCut, mlot = TString("subdet==1&&event>=0") + extraCut;
+    auto canvRes = new TCanvas(Form("canvRes%s", sfx), title, 1600, 1200);
+    canvRes->Divide(2, 3);
+    canvRes->cd(1)->SetLogy();
+    nt.Draw(Form("clusLocX-hitLocX>>h_dx_VD%s(200,-0.02,0.02)", sfx), vd);
+    canvRes->cd(2)->SetLogy();
+    nt.Draw(Form("clusLocZ-hitLocZ>>h_dz_VD%s(200,-0.02,0.02)", sfx), vd);
+    canvRes->cd(3)->SetLogy();
+    nt.Draw(Form("clusLocX-hitLocX>>h_dx_MLOT%s(200,-0.02,0.02)", sfx), mlot);
+    canvRes->cd(4)->SetLogy();
+    nt.Draw(Form("clusLocZ-hitLocZ>>h_dz_MLOT%s(200,-0.02,0.02)", sfx), mlot);
+    canvRes->cd(5)->SetLogz();
+    nt.Draw(Form("clusLocX-hitLocX:clusLocZ-hitLocZ>>h_dxdz_VD%s(200,-0.02,0.02,200,-0.02,0.02)", sfx), vd, "colz");
+    canvRes->cd(6);
+    nt.Draw(Form("clusLocX-hitLocX:clusLocZ-hitLocZ>>h_dxdz_MLOT%s(200,-0.02,0.02,200,-0.02,0.02)", sfx), mlot, "colz");
+    canvRes->SaveAs(outFile);
+  };
+  drawResiduals("", "", "Residuals (cluster - hit) [cm]", "trk_residuals.png");
+  drawResiduals("_z05", "&&abs(hitGlobZ)<0.5", "Residuals (cluster - hit), |z| < 0.5 cm [cm]", "trk_residuals_z05.png");
 
+  // The "layer" column is the layer within the sub-detector (GeometryTGeo::getLayer): convert it to the global
+  // TRK layer (VD first, then ML/OT), as GeometryTGeo::getLayerTRK does, so that VD and ML/OT layers do not overlap.
+  const int nVDLayers = gman->extractNumberOfLayersVD();
+  const int nTRKLayers = nVDLayers + gman->getNumberOfLayersMLOT();
+  const TString layerTRK = TString::Format("layer+%d*subdet", nVDLayers);
   auto canvResVsLayer = new TCanvas("canvResVsLayer", "Residuals vs layer", 1600, 600);
   canvResVsLayer->Divide(2, 1);
   canvResVsLayer->cd(1);
-  nt.Draw("clusLocX-hitLocX:layer>>h_dx_vs_lay(20,0,20,200,-0.02,0.02)", "event>=0", "prof");
+  nt.Draw(Form("clusLocX-hitLocX:%s>>h_dx_vs_lay(%d,-0.5,%f,200,-0.02,0.02)", layerTRK.Data(), nTRKLayers, nTRKLayers - 0.5), "event>=0", "prof");
   canvResVsLayer->cd(2);
-  nt.Draw("clusLocZ-hitLocZ:layer>>h_dz_vs_lay(20,0,20,200,-0.02,0.02)", "event>=0", "prof");
+  nt.Draw(Form("clusLocZ-hitLocZ:%s>>h_dz_vs_lay(%d,-0.5,%f,200,-0.02,0.02)", layerTRK.Data(), nTRKLayers, nTRKLayers - 0.5), "event>=0", "prof");
   canvResVsLayer->SaveAs("trk_residuals_vs_layer.png");
+
+  // z residual vs track eta and vs hit global z, with the profile (mean residual) on top; one canvas per sub-detector
+  auto drawWithProfile = [&](TVirtualPad* pad, const char* var, const char* name, const char* bins, const char* cut) {
+    pad->cd();
+    pad->SetLogz();
+    nt.Draw(Form("%s>>%s%s", var, name, bins), cut, "colz");
+    if (auto* h2 = (TH2F*)pad->GetPrimitive(name)) {
+      auto* prof = h2->ProfileX();
+      prof->SetLineColor(kRed);
+      prof->SetMarkerColor(kRed);
+      prof->Draw("same");
+    }
+  };
+  auto canvResZVD = new TCanvas("canvResZVD", "VD: z residual vs eta and z [cm]", 1600, 600);
+  canvResZVD->Divide(2, 1);
+  drawWithProfile(canvResZVD->cd(1), "clusLocZ-hitLocZ:eta", "h_dz_vs_eta_VD", "(100,-5,5,200,-0.02,0.02)", "subdet==0&&event>=0");
+  drawWithProfile(canvResZVD->cd(2), "clusLocZ-hitLocZ:hitGlobZ", "h_dz_vs_z_VD", "(120,-30,30,200,-0.02,0.02)", "subdet==0&&event>=0");
+  canvResZVD->SaveAs("trk_residuals_dz_vs_eta_z_VD.png");
+  auto canvResZMLOT = new TCanvas("canvResZMLOT", "ML/OT: z residual vs eta and z [cm]", 1600, 600);
+  canvResZMLOT->Divide(2, 1);
+  drawWithProfile(canvResZMLOT->cd(1), "clusLocZ-hitLocZ:eta", "h_dz_vs_eta_MLOT", "(100,-5,5,200,-0.02,0.02)", "subdet==1&&event>=0");
+  drawWithProfile(canvResZMLOT->cd(2), "clusLocZ-hitLocZ:hitGlobZ", "h_dz_vs_z_MLOT", "(130,-130,130,200,-0.02,0.02)", "subdet==1&&event>=0");
+  canvResZMLOT->SaveAs("trk_residuals_dz_vs_eta_z_MLOT.png");
 
   fout.cd();
   nt.Write();
@@ -539,5 +566,3 @@ void CheckClusters(const std::string& clusfile = "o2clus_trk.root",
 
   LOGP(info, "Output saved to CheckClusters.root and PNG files");
 }
-
-#endif

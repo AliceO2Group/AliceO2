@@ -34,6 +34,9 @@ struct CfChargePos {
     : gpad(tpcGlobalPadIdx(row, pad)), timePadded(t + GPUCF_PADDING_TIME)
   {
   }
+#ifdef __METAL__
+  constexpr GPUhdi() CfChargePos(tpccf::Row row, tpccf::Pad pad, tpccf::TPCFragmentTime t) constant : gpad(tpcGlobalPadIdx(row, pad)), timePadded(t + GPUCF_PADDING_TIME) {}
+#endif
 
   GPUdi() CfChargePos(const tpccf::GlobalPad& p, const tpccf::TPCFragmentTime& t) : gpad(p), timePadded(t) {}
 

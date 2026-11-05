@@ -24,7 +24,7 @@ struct ArrowRange {
 
   bool operator!=(ArrowRange const& other) const
   {
-    return (offset != other.offset) && (size != other.size);
+    return (offset != other.offset) || (size != other.size);
   }
 };
 

@@ -22,10 +22,6 @@
 #include <memory>
 #include <vector>
 
-#if defined(GPUCA_DISPLAY_GL3W) && !defined(GPUCA_DISPLAY_OPENGL_CORE)
-#define GPUCA_DISPLAY_OPENGL_CORE
-#endif
-
 union hmm_mat4;
 
 namespace o2::gpu
@@ -81,14 +77,20 @@ class GPUDisplayBackend
   virtual void ActivateColor(std::array<float, 4>& color) = 0;
   virtual void setQuality() {};
   virtual void SetVSync(bool enable) {};
+  enum fpsLimitModes : int32_t { FPS_LIMIT_NONE = 0,
+                                 FPS_LIMIT_VSYNC = 1,
+                                 FPS_LIMIT_RATE = 2 };   // Values of GPUSettingsDisplayRenderer::fpsLimit
+  virtual bool canLimitToVSync() const { return false; } // Rendering is throttled to the refresh rate with VSync (blocking buffer swap / present wait)
+  int32_t fpsLimitMode() const;                          // Effective mode: VSync limit without VSync = none, VSync limit not supported by the backend = fpsRate
   virtual bool backendNeedRedraw() { return true; }
   virtual void setDepthBuffer() = 0;
   virtual int32_t InitBackendA() = 0;
   virtual void ExitBackendA() = 0;
   int32_t InitBackend();
+  void updateFontScale(float scale); // Rasterize the font again if the display (HiDPI) scale changed
   void ExitBackend();
   virtual void loadDataToGPU(size_t totalVertizes) = 0;
-  virtual void prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot = false, bool toMixBuffer = false, float includeMixImage = 0.f) = 0;
+  virtual bool prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot = false, bool toMixBuffer = false, float includeMixImage = 0.f) = 0; // Returns false if the frame must be skipped (no swapchain image available)
   virtual void finishDraw(bool doScreenshot, bool toMixBuffer = false, float includeMixImage = 0.f) = 0;
   virtual void finishFrame(bool doScreenshot, bool toMixBuffer = false, float includeMixImage = 0.f) = 0;
   virtual void prepareText() = 0;
@@ -108,6 +110,8 @@ class GPUDisplayBackend
  protected:
   virtual void addFontSymbol(int32_t symbol, int32_t sizex, int32_t sizey, int32_t offsetx, int32_t offsety, int32_t advance, void* data) = 0;
   virtual void initializeTextDrawing() = 0;
+  virtual void clearFontSymbols() {} // Release glyphs / font atlas before loading the font again
+  void loadFont();
 
   float getDownsampleFactor(bool screenshot = false);
   void fillIndirectCmdBuffer();
@@ -117,13 +121,17 @@ class GPUDisplayBackend
   std::vector<int32_t> mIndirectSectorOffset;
   vecpod<DrawArraysIndirectCommand> mCmdBuffer;
   bool mFreetypeInitialized = false;
+  float mFontRasterScale = 1.f; // Display scale the font was rasterized for
   bool mFrontendCompatTextDraw = false;
   std::vector<char> mScreenshotPixels;
 
+  static constexpr float SMOOTH_POINT_EXTRA_SIZE = 0.6f;
+  static constexpr float SMOOTH_LINE_EXTRA_WIDTH = 0.8f;
   int32_t mDownsampleFactor = 1;
 
   uint32_t mRenderWidth = 0;
   uint32_t mRenderHeight = 0;
+  uint32_t mMaxRenderSize = UINT32_MAX; // Maximum width / height of render targets, set by the backend
   uint32_t mScreenWidth = 0;
   uint32_t mScreenHeight = 0;
 

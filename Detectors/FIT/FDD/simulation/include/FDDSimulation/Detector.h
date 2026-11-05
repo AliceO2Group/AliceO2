@@ -71,6 +71,7 @@ class Detector : public o2::base::DetImpl<Detector>
 
   /// Container for data points
   std::vector<o2::fdd::Hit>* mHits = nullptr;
+  int mTrackRefLastTrackID = -1; //! last track that received a TrackReference in the current event
 
   Detector& operator=(const Detector&);
 

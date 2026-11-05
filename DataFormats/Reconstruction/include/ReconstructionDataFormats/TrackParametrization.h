@@ -402,7 +402,7 @@ GPUdi() auto TrackParametrization<value_T>::getR2() const -> value_t
 template <typename value_T>
 GPUdi() auto TrackParametrization<value_T>::getR() const -> value_t
 {
-  return gpu::CAMath::Sqrt(getR2());
+  return math_utils::detail::sqrt<value_t>(getR2());
 }
 
 //____________________________________________________________
@@ -441,7 +441,7 @@ GPUdi() auto TrackParametrization<value_T>::getCsp2() const -> value_t
 template <typename value_T>
 GPUdi() auto TrackParametrization<value_T>::getCsp() const -> value_t
 {
-  return gpu::CAMath::Sqrt(getCsp2());
+  return math_utils::detail::sqrt<value_t>(getCsp2());
 }
 
 //____________________________________________________________
@@ -518,7 +518,7 @@ GPUdi() void TrackParametrization<value_T>::getCircleParamsLoc(value_t bz, o2::m
   constexpr value_t MinSagitta = 0.01f, TPCMidR = 160.f, MinCurv = 8 * MinSagitta / (TPCMidR * TPCMidR);
   if (gpu::CAMath::Abs(c.rC) > MinCurv) {
     c.rC = 1.f / getCurvature(bz);
-    value_t sn = getSnp(), cs = gpu::CAMath::Sqrt((1.f - sn) * (1.f + sn));
+    value_t sn = getSnp(), cs = math_utils::detail::sqrt<value_t>((1.f - sn) * (1.f + sn));
     c.xC = getX() - sn * c.rC; // center in tracking
     c.yC = getY() + cs * c.rC; // frame. Note: r is signed!!!
     c.rC = gpu::CAMath::Abs(c.rC);
@@ -546,7 +546,7 @@ GPUdi() void TrackParametrization<value_T>::getLineParams(o2::math_utils::Interv
   // get line parameterization as { x = x0 + xSlp*t, y = y0 + ySlp*t }
   o2::math_utils::detail::sincos(getAlpha(), sna, csa);
   o2::math_utils::detail::rotateZ<value_t>(getX(), getY(), ln.getX0(), ln.getY0(), sna, csa); // reference point in global frame
-  value_t snp = getSnp(), csp = gpu::CAMath::Sqrt((1.f - snp) * (1.f + snp));
+  value_t snp = getSnp(), csp = math_utils::detail::sqrt<value_t>((1.f - snp) * (1.f + snp));
   ln.setDX(csp * csa - snp * sna);
   ln.setDY(snp * csa + csp * sna);
 }
@@ -577,7 +577,7 @@ template <typename value_T>
 GPUdi() auto TrackParametrization<value_T>::getPhi() const -> value_t
 {
   // track pt direction phi (in 0:2pi range)
-  value_t phi = gpu::CAMath::ASin(getSnp()) + getAlpha();
+  value_t phi = math_utils::detail::asin<value_t>(getSnp()) + getAlpha();
   math_utils::detail::bringTo02Pi<value_t>(phi);
   return phi;
 }
@@ -587,7 +587,7 @@ template <typename value_T>
 GPUdi() auto TrackParametrization<value_T>::getPhiPos() const -> value_t
 {
   // angle of track position (in -pi:pi range)
-  value_t phi = gpu::CAMath::ATan2(getY(), getX()) + getAlpha();
+  value_t phi = math_utils::detail::atan2<value_t>(getY(), getX()) + getAlpha();
   math_utils::detail::bringTo02Pi<value_t>(phi);
   return phi;
 }
@@ -638,7 +638,7 @@ template <typename value_T>
 GPUdi() auto TrackParametrization<value_T>::getPInv() const -> value_t
 {
   // return the inverted track momentum
-  return getPtInv() / gpu::CAMath::Sqrt(1.f + getTgl() * getTgl()); // getPtInv() is protected against being 0, full charge accounted
+  return getPtInv() / math_utils::detail::sqrt<value_t>(1.f + getTgl() * getTgl()); // getPtInv() is protected against being 0, full charge accounted
 }
 
 //____________________________________________________________
@@ -662,7 +662,7 @@ template <typename value_T>
 GPUdi() auto TrackParametrization<value_T>::getE() const -> value_t
 {
   // return the track energy
-  return gpu::CAMath::Sqrt(getE2());
+  return math_utils::detail::sqrt<value_t>(getE2());
 }
 
 //____________________________________________________________
@@ -677,14 +677,14 @@ GPUdi() auto TrackParametrization<value_T>::getPt() const -> value_t
 template <typename value_T>
 GPUdi() auto TrackParametrization<value_T>::getTheta() const -> value_t
 {
-  return constants::math::PIHalf - gpu::CAMath::ATan(mP[3]);
+  return constants::math::PIHalf - math_utils::detail::atan<value_t>(mP[3]);
 }
 
 //____________________________________________________________
 template <typename value_T>
 GPUdi() auto TrackParametrization<value_T>::getEta() const -> value_t
 {
-  return -gpu::CAMath::Log(gpu::CAMath::Tan(0.5f * getTheta()));
+  return -math_utils::detail::log<value_t>(math_utils::detail::tan<value_t>(0.5f * getTheta()));
 }
 
 //_______________________________________________________

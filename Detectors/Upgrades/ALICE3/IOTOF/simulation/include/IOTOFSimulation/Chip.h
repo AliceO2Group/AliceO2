@@ -78,7 +78,10 @@ class Chip
 
   /// Resize the vector of tdc states
   void resizeTDCStates(int const size) { mTDCStates.resize(size); }
-  std::vector<std::array<double, 2>>& getTDCStates() { return mTDCStates; }
+  std::vector<std::array<double, 4>>& getTDCStates() { return mTDCStates; }
+
+  void resizeMaskStates(int const size) { mMaskStates.resize(size); }
+  std::vector<double>& getMaskStates() { return mMaskStates; }
 
   void addDigit(UShort_t row, UShort_t col, Int_t charge, double time, ULong64_t bc, Int_t tdc, o2::MCCompLabel label);
 
@@ -86,7 +89,8 @@ class Chip
   Int_t mChipIndex = -1;                                ///< Chip ID
   bool mDisabled = false;                               ///< Flag to indicate if the chip is disabled (e.g. due to dead channels)
   std::map<DigitKey, o2::iotof::LabeledDigit> mDigits;  ///< Map of fired digits, possibly in multiple frames
-  std::vector<std::array<double, 2>> mTDCStates;        ///< Vector of the last times the TDC pairs went busy
+  std::vector<std::array<double, 4>> mTDCStates;        ///< Vector of the last times the TDC pairs went busy
+  std::vector<double> mMaskStates;                      ///< Vector of the last time the RO column was masked
 
   ClassDefNV(Chip, 1);
 };

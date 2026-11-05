@@ -233,15 +233,30 @@ std::pair<float, float> TRKSegmentedLayer::getBoundingRadii(double staveWidth) c
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-TRKMLLayer::TRKMLLayer(int layerNumber, std::string layerName, float rInn, float staggerOffset, float tiltAngle, int numberOfStaves, int numberOfModules, float thickOrX2X0, MatBudgetParamMode mode)
-  : TRKSegmentedLayer(layerNumber, layerName, rInn, tiltAngle, numberOfStaves, numberOfModules, thickOrX2X0, mode), mStaggerOffset(staggerOffset)
+TRKMLLayer::TRKMLLayer(int layerNumber, std::string layerName, float rInn, float staggerOffset, float tiltAngle, int numberOfStaves, int numberOfModules, float thickOrX2X0, MatBudgetParamMode mode, int rInnRow, float phiOffset)
+  : TRKSegmentedLayer(layerNumber, layerName, rInn, tiltAngle, numberOfStaves, numberOfModules, thickOrX2X0, mode), mStaggerOffset(staggerOffset), mRInnRow(rInnRow), mPhiOffset(phiOffset)
 {
+  if (mPhiOffset != 0.f) {
+    LOGP(info, "Layer {}: staves rotated by {} deg about the beam axis (phiOffset)", mLayerNumber, mPhiOffset);
+  }
   if (mLayerNumber == sFlippedLayerNumber) {
     mOuterRadius = rInn;
     mInnerRadius = rInn - mChipThickness;
     mIsFlipped = true;
     mStaggerOffset = -staggerOffset;
     LOGP(info, "Layer {} is flipped: sensor and metal stack positions are switched", mLayerNumber);
+  }
+  if (mRInnRow != 0 && mRInnRow != 1) {
+    LOGP(fatal, "Layer {}: rInnRow = {}, use 0 (even staves at rInn) or 1 (odd staves at rInn)", mLayerNumber, mRInnRow);
+  }
+  if (mRInnRow != 0) {
+    if (mLayerNumber == 3 || mLayerNumber == 4) {
+      // even staves (stave 0) go to the shifted row: inside the rInn row in the flipped layer, outside
+      // otherwise (stagOffset >= 0; a negative stagOffset is not handled by getBoundingRadii)
+      LOGP(info, "Layer {} (staggered): even staves in the {} row (rInnRow = {})", mLayerNumber, mIsFlipped ? "inner" : "outer", mRInnRow);
+    } else {
+      LOGP(info, "Layer {} is not staggered: rInnRow = {} has no effect", mLayerNumber, mRInnRow);
+    }
   }
 }
 
@@ -336,13 +351,14 @@ void TRKMLLayer::createLayer(TGeoVolume* motherVolume)
   for (int iStave = 0; iStave < mNumberOfStaves; iStave++) {
     TGeoVolume* staveVol = createStave();
     TGeoCombiTrans* trans = new TGeoCombiTrans();
-    // If the number of staves is a multiple of 4, rotate by half a stave to avoid having the first one exactly on the x
-    double phi = (mNumberOfStaves % 4 == 0) ? theta * (iStave + 0.5) : theta * iStave;
+    // If the number of staves is a multiple of 4, rotate by half a stave to avoid having the first one exactly on the x;
+    // mPhiOffset rotates the whole layer (position and orientation of every stave) about the beam axis
+    double phi = ((mNumberOfStaves % 4 == 0) ? theta * (iStave + 0.5) : theta * iStave) + mPhiOffset * TMath::DegToRad();
     double phiDeg = phi * TMath::RadToDeg();
     TGeoRotation* rot = new TGeoRotation("rot", phiDeg + 90 + mTiltAngle, 0, 0);
     trans->SetRotation(rot);
     // float trueRadius = (mLayerNumber == 3 || mLayerNumber == 4) ? (iStave % 2 == 0 ? mInnerRadius : mInnerRadius + mStaggerOffset) : mInnerRadius;
-    float trueRadius = (mLayerNumber == 3 || mLayerNumber == 4) ? (iStave % 2 == 0 ? avgRadiusInner : avgRadiusOuter) : avgRadiusInner;
+    float trueRadius = (mLayerNumber == 3 || mLayerNumber == 4) ? (iStave % 2 == mRInnRow ? avgRadiusInner : avgRadiusOuter) : avgRadiusInner;
     trans->SetTranslation(trueRadius * std::cos(phi), trueRadius * std::sin(phi), 0);
     LOGP(debug, "Inserting {} in {} ", staveVol->GetName(), layerVol->GetName());
     layerVol->AddNode(staveVol, iStave, trans);
@@ -739,7 +755,7 @@ TGeoVolume* TRKOTLayerRealistic::createStave()
   // Two rows overlapping in phi and staggered in r. They straddle the stave origin, so the
   // stave is tangent to the barrel circle at its centre and every row-to-row radial step,
   // within a stave and between neighbours, is rowRadialStagger.
-  const double edgeDead = constants::moduleMLOT::gaps::outerEdgeLongSide + constants::moduleMLOT::chip::passiveEdgeReadOut;
+  const double edgeDead = constants::OT::fpc::wireBondMargin + constants::moduleMLOT::chip::passiveEdgeReadOut;
   const double inStaveOverlap = 2 * edgeDead + constants::OT::rowActiveOverlap;
   const double rowOffset = constants::OT::fpc::width - inStaveOverlap;
 
@@ -765,7 +781,7 @@ TGeoVolume* TRKOTLayerRealistic::createStave()
 
 void TRKOTLayerRealistic::createLayer(TGeoVolume* motherVolume)
 {
-  const double edgeDead = constants::moduleMLOT::gaps::outerEdgeLongSide + constants::moduleMLOT::chip::passiveEdgeReadOut;
+  const double edgeDead = constants::OT::fpc::wireBondMargin + constants::moduleMLOT::chip::passiveEdgeReadOut;
   const double inStaveOverlap = 2 * edgeDead + constants::OT::rowActiveOverlap;
   const double staveWidth = 2 * constants::OT::fpc::width - inStaveOverlap;
 
@@ -812,12 +828,18 @@ void TRKOTLayerRealistic::createLayer(TGeoVolume* motherVolume)
   const double accGap = std::max(constants::OT::halfBarrelChipGap + 2 * constants::moduleMLOT::chip::passiveEdgeReadOut,
                                  2 * (wallThickness / 2 + constants::OT::barrelWallClearance + edgeDead));
 
-  // Smallest even count still leaving rowActiveOverlap between neighbours: the two boundary
-  // staves take activeStaveWidth + accGap each, so only nStaves - 2 junctions share the rest.
+  // Staves per ring: configured, or else the smallest even count leaving rowActiveOverlap between
+  // neighbours (the two boundary staves take activeStaveWidth + accGap, nStaves - 2 junctions share the rest).
   const double activeStaveWidth = staveWidth - 2 * edgeDead;
-  int nStavesHalfBarrel = (int)std::ceil(2. + (avgRadius * 2 * TMath::Pi() - 2 * (activeStaveWidth + accGap)) /
-                                                (activeStaveWidth - constants::OT::rowActiveOverlap));
-  nStavesHalfBarrel += nStavesHalfBarrel % 2;
+  int nStavesHalfBarrel = mNumberOfStaves;
+  if (nStavesHalfBarrel <= 0) {
+    nStavesHalfBarrel = (int)std::ceil(2. + (avgRadius * 2 * TMath::Pi() - 2 * (activeStaveWidth + accGap)) /
+                                              (activeStaveWidth - constants::OT::rowActiveOverlap));
+    nStavesHalfBarrel += nStavesHalfBarrel % 2;
+  }
+  if (nStavesHalfBarrel % 2) {
+    LOGP(fatal, "OT layer {}: {} staves per ring, must be even (two azimuthal halves)", mLayerNumber, nStavesHalfBarrel);
+  }
 
   const int nHalf = nStavesHalfBarrel / 2;
   const double thetaGap = (activeStaveWidth + accGap) / avgRadius;
@@ -825,6 +847,10 @@ void TRKOTLayerRealistic::createLayer(TGeoVolume* motherVolume)
   const double overlap = activeStaveWidth - avgRadius * thetaInt;
   LOGP(info, "Creating realistic OT layer {}: {} staves/half-barrel, internal overlap {} mm, boundary gap {} mm, flipped={}",
        mLayerNumber, nStavesHalfBarrel, overlap * 10, accGap * 10, mIsFlipped);
+  if (overlap < constants::OT::rowActiveOverlap) {
+    LOGP(warning, "OT layer {}: active neighbour overlap {} mm is below the required {} mm",
+         mLayerNumber, overlap * 10, constants::OT::rowActiveOverlap * 10);
+  }
 
   const int nStaves = nStavesHalfBarrel * 2;
 

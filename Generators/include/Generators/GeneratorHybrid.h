@@ -64,6 +64,7 @@ class GeneratorHybrid : public Generator
   Bool_t generateEvent() override;
   Bool_t importParticles() override;
   void updateHeader(o2::dataformats::MCEventHeader* eventHeader) override;
+  void stop() override; // end-of-stream hook that joins the TBB task pool
 
   Bool_t parseJSON(const std::string& path);
   Bool_t confSetter(const auto& gen);
@@ -118,6 +119,9 @@ class GeneratorHybrid : public Generator
   tbb::task_arena mTaskArena;
   std::atomic<bool> mStopFlag;
   bool mIsInitialized = false;
+
+  // Hyperloop flag
+  const bool mIsHyperloop = Generator::isHyperloop();
 
   o2::dataformats::MCEventHeader mMCEventHeader; // to capture event headers
   int mHeaderGeneratorIndex = -1;                // index of the generator that updated the header in current event

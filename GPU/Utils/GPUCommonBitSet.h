@@ -47,6 +47,9 @@ class bitset
   GPUdDefault() constexpr bitset(const __constant bitset&) = default;
 #endif // __OPENCL__
   GPUd() constexpr bitset(uint32_t vv) : v(vv) {};
+#ifdef __METAL__
+  GPUd() constexpr bitset(uint32_t vv) constant : v(vv) {};
+#endif
   static GPUglobalconstexpr() uint32_t full_set = ((1ul << N) - 1ul);
 
   GPUd() constexpr bool all() const { return (v & full_set) == full_set; }

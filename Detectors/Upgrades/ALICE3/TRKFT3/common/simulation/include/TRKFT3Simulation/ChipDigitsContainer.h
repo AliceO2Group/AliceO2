@@ -12,8 +12,9 @@
 #ifndef ALICEO2_TRK_CHIPDIGITSCONTAINER_
 #define ALICEO2_TRK_CHIPDIGITSCONTAINER_
 
-#include "ITSMFTBase/SegmentationAlpide.h"
-#include "ITSMFTSimulation/ChipDigitsContainer.h"
+#include "TRKFT3Simulation/PreDigit.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "DataFormatsITSMFT/NoiseMap.h"
 #include "TRKBase/SegmentationChip.h"
 #include "TRKBase/Specs.h"
 #include "TRKFT3Simulation/DigiParams.h"
@@ -23,12 +24,29 @@
 namespace o2::trkft3
 {
 
-class ChipDigitsContainer : public o2::itsmft::ChipDigitsContainer
+/// @class ChipDigitsContainer
+/// @brief Container for simulated points connected to a given chip
+
+class ChipDigitsContainer
 {
  public:
+  /// Default constructor
   explicit ChipDigitsContainer(UShort_t idx = 0);
 
-  using Segmentation = o2::trk::SegmentationChip;
+  /// Destructor
+  ~ChipDigitsContainer() = default;
+
+  std::map<ULong64_t, o2::trkft3::PreDigit>& getPreDigits() { return mDigits; }
+  bool isEmpty() const { return mDigits.empty(); }
+  void setNoiseMap(const o2::itsmft::NoiseMap* mp) { mNoiseMap = mp; }
+  void setDeadChanMap(const o2::itsmft::NoiseMap* mp) { mDeadChanMap = mp; }
+  void setChipIndex(UShort_t ind) { mChipIndex = ind; }
+  UShort_t getChipIndex() const { return mChipIndex; }
+
+  o2::trkft3::PreDigit* findDigit(ULong64_t key);
+  void addDigit(ULong64_t key, UInt_t roframe, UShort_t row, UShort_t col, int charge, o2::MCCompLabel lbl, float toa = 0.f);
+  template <int DetID>
+  void addNoise(UInt_t rofMin, UInt_t rofMax, const o2::trkft3::DigiParams<DetID>* params, int subDetID, int layer);
 
   /// Get global ordering key made of readout frame, column and row
   static ULong64_t getOrderingKey(UInt_t roframe, UShort_t row, UShort_t col)
@@ -36,13 +54,33 @@ class ChipDigitsContainer : public o2::itsmft::ChipDigitsContainer
     return (static_cast<ULong64_t>(roframe) << (8 * sizeof(UInt_t))) + (static_cast<ULong64_t>(col) << (8 * sizeof(Short_t))) + row;
   }
 
-  /// Adds noise digits, deleted the one using the itsmft::DigiParams interface
-  void addNoise(UInt_t rofMin, UInt_t rofMax, const o2::itsmft::DigiParams* params, int maxRows = o2::itsmft::SegmentationAlpide::NRows, int maxCols = o2::itsmft::SegmentationAlpide::NCols) = delete;
-  template <int DetID>
-  void addNoise(UInt_t rofMin, UInt_t rofMax, const o2::trkft3::DigiParams<DetID>* params, int subDetID, int layer);
+  bool isDisabled() const { return mDisabled; }
+  void disable(bool v) { mDisabled = v; }
 
-  ClassDefNV(ChipDigitsContainer, 1);
+ protected:
+  UShort_t mChipIndex = 0; ///< chip index
+  bool mDisabled = false;
+  const o2::itsmft::NoiseMap* mNoiseMap = nullptr;
+  const o2::itsmft::NoiseMap* mDeadChanMap = nullptr;
+  std::map<ULong64_t, o2::trkft3::PreDigit> mDigits; ///< Map of fired pixels, possibly in multiple frames
+
+  ClassDefNV(ChipDigitsContainer, 2);
 };
+
+//_______________________________________________________________________
+inline o2::trkft3::PreDigit* ChipDigitsContainer::findDigit(ULong64_t key)
+{
+  // finds the digit corresponding to global key
+  auto digitentry = mDigits.find(key);
+  return digitentry != mDigits.end() ? &(digitentry->second) : nullptr;
+}
+
+//_______________________________________________________________________
+inline void ChipDigitsContainer::addDigit(ULong64_t key, UInt_t roframe, UShort_t row, UShort_t col,
+                                          int charge, o2::MCCompLabel lbl, float toa)
+{
+  mDigits.emplace(key, o2::trkft3::PreDigit(roframe, row, col, charge, lbl, toa));
+}
 
 } // namespace o2::trkft3
 
@@ -83,10 +121,10 @@ void o2::trkft3::ChipDigitsContainer::addNoise(UInt_t rofMin, UInt_t rofMax, con
       }
       auto key = getOrderingKey(rof, row, col);
       if (!findDigit(key)) {
-        addDigit(key, rof, row, col, nel, o2::MCCompLabel(true));
+        addDigit(key, rof, row, col, nel, o2::MCCompLabel(true), 0.f); /// TODO: find a better ToA for noise
       }
     }
   }
 }
 
-#endif // ALICEO2_TRK_CHIPDIGITSCONTAINER_
+#endif /* defined(ALICEO2_TRK_CHIPDIGITSCONTAINER_) */

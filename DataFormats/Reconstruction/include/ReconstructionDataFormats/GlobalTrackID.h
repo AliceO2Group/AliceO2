@@ -165,7 +165,7 @@ GPUconstexpr() GlobalTrackID::mask_t sMasks[GlobalTrackID::NSources] = ///< dete
     GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::MCHMID)) // Temporary ordering
 };
 
-#ifndef __OPENCL__
+#if !defined(__OPENCL__) && !defined(__METAL__)
 GPUconstexpr() GlobalTrackID::mask_t sTrackSources =
   sMasks[GlobalTrackID::ITS] | sMasks[GlobalTrackID::TPC] | sMasks[GlobalTrackID::MFT] | sMasks[GlobalTrackID::MCH] | sMasks[GlobalTrackID::ITSTPC] | sMasks[GlobalTrackID::TPCTOF] |
   sMasks[GlobalTrackID::TPCTRD] | sMasks[GlobalTrackID::MFTMCH] | sMasks[GlobalTrackID::ITSTPCTRD] | sMasks[GlobalTrackID::ITSTPCTOF] | sMasks[GlobalTrackID::TPCTRDTOF] |
@@ -177,7 +177,7 @@ GPUconstexpr() GlobalTrackID::mask_t sTrackSources =
 GPUdi() constexpr GlobalTrackID::DetID::mask_t GlobalTrackID::getSourceDetectorsMask(int i) { return globaltrackid_internal::SourceDetectorsMasks[i]; }
 GPUdi() constexpr GlobalTrackID::mask_t GlobalTrackID::getSourceMask(int s) { return globaltrackid_internal::sMasks[s]; }
 
-#ifndef __OPENCL__
+#if !defined(__OPENCL__) && !defined(__METAL__)
 GPUdi() bool GlobalTrackID::isTrackSource(int s)
 {
   return globaltrackid_internal::sTrackSources[s];

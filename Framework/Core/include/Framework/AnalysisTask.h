@@ -19,6 +19,7 @@
 #include "Framework/ConfigParamsHelper.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/DataProcessorSpecHelpers.h"
 #include "Framework/Expressions.h"
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/GroupSlicer.h"
@@ -75,6 +76,17 @@ concept is_table_iterator_or_enumeration = soa::is_table_or_iterator<T> || is_en
 // the contents of an AnalysisTask...
 namespace
 {
+// One closure type for every argument index. Written inline inside the pack
+// expansion in bindAssociatedTables() below, the predicate lambda would get a
+// fresh closure type per Args, and with it its own std::ranges::filter_view,
+// __bind_back and __perfect_forward_impl instantiation -- paid once per
+// associated table per process function. Taking the index as a runtime capture
+// instead lets every call site share a single filter_view specialisation.
+inline auto matchersForArgument(int argumentIndex)
+{
+  return std::views::filter([argumentIndex](auto const& pair) { return pair.first == argumentIndex; });
+}
+
 struct AnalysisDataProcessorBuilder {
   template <soa::is_iterator G, soa::is_table... Args>
   static void addGroupingCandidates(Cache& bk, Cache& bku, bool enabled)
@@ -286,7 +298,7 @@ struct AnalysisDataProcessorBuilder {
     requires(!std::same_as<Grouping, void>)
   {
     constexpr auto hash = o2::framework::TypeIdHelpers::uniqueId<void (C::*)(Grouping, Args...)>();
-    return extract<std::decay_t<Grouping>, 0>(record, matchers | std::views::filter([](auto const& pair) { return pair.first == 0; }), infos, hash);
+    return extract<std::decay_t<Grouping>, 0>(record, matchers | matchersForArgument(0), infos, hash);
   }
 
   template <std::ranges::input_range R, typename C, is_table_iterator_or_enumeration Grouping, soa::is_table... Args>
@@ -294,7 +306,7 @@ struct AnalysisDataProcessorBuilder {
     requires(!std::same_as<Grouping, void> && sizeof...(Args) > 0)
   {
     constexpr auto hash = o2::framework::TypeIdHelpers::uniqueId<void (C::*)(Grouping, Args...)>();
-    return std::make_tuple(extract<std::decay_t<Args>, has_type_at_v<Args>(pack<Args...>{}) + 1>(record, matchers | std::views::filter([](auto const& pair) { return pair.first == has_type_at_v<Args>(pack<Args...>{}) + 1; }), infos, hash)...);
+    return std::make_tuple(extract<std::decay_t<Args>, has_type_at_v<Args>(pack<Args...>{}) + 1>(record, matchers | matchersForArgument(has_type_at_v<Args>(pack<Args...>{}) + 1), infos, hash)...);
   }
 
   template <soa::is_table... As>
@@ -440,6 +452,24 @@ struct TaskName {
 namespace
 {
 template <typename T, typename... A>
+std::string getTaskName(TaskName const& first, A const&...)
+{
+  return first.value;
+}
+
+template <typename T, typename... A>
+std::string getTaskName(SetDefaultProcesses const&, TaskName const& second, A const&...)
+{
+  return second.value;
+}
+
+template <typename T, typename... A>
+std::string getTaskName(A const&...)
+{
+  return type_to_task_name(type_name<T>());
+}
+
+template <typename T, typename... A>
 auto getTaskNameSetProcesses(std::string& outputName, TaskName first, SetDefaultProcesses second, A... args)
 {
   auto task = std::make_shared<T>(std::forward<A>(args)...);
@@ -508,6 +538,10 @@ auto getTaskNameSetProcesses(std::string& outputName, A... args)
 template <typename T, typename... Args>
 DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
 {
+  if (auto name = getTaskName<T>(args...) + ctx.options().get<std::string>("workflow-suffix"); !ctx.mayRun(name)) {
+    return DataProcessorSpecHelpers::placeholder(name);
+  }
+
   TH1::AddDirectory(false);
 
   std::string name_str;
@@ -595,8 +629,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
   // replace origins in Preslice declarations
   homogeneous_apply_refs_sized<numElements>([&newOrigin](auto& element) { return analysis_task_parsers::replaceOrigin(element, newOrigin); }, *task.get());
 
-  auto algo = AlgorithmSpec::InitCallback
-  {
+  auto algo = AlgorithmSpec::InitCallback{
     [task = task, expressionInfos, inputInfos, newOrigin, newOriginStr](InitContext& ic) mutable {
       Cache bindingsKeys;
       Cache bindingsKeysUnsorted;
@@ -715,8 +748,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
         // finalize outputs
         homogeneous_apply_refs_sized<numElements>([&pc](auto& element) { return analysis_task_parsers::finalizeOutput(pc, element); }, *task.get());
       };
-    }
-  };
+    }};
 
   return {
     name,

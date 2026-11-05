@@ -527,6 +527,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
       curHit.SetEnergyLoss(incenloss);
       curHit.setPMCLightYield(curHit.getPMCLightYield() + nPMC);
       curHit.setPMQLightYield(curHit.getPMQLightYield() + nPMQ);
+      stack->modifiesHit(GetDetId());
       //printf("  >>> Hit updated in vol %d %d  for track %d (mother: %d) \t light %1.0f %1.0f \n",
       //detector, sector, trackn, stack->GetCurrentTrack()->GetFirstMother(), curHit.getPMCLightYield(), curHit.getPMQLightYield());
     }

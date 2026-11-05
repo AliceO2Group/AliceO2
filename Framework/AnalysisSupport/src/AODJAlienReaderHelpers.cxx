@@ -39,6 +39,7 @@
 #include "Framework/StringContext.h"
 #include "Framework/ConfigContext.h"
 #include "DataInputDirector.h"
+#include "NativeAOD.h"
 #include "Framework/SourceInfoHeader.h"
 #include "Framework/ChannelInfo.h"
 #include "Framework/Logger.h"
@@ -198,7 +199,22 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
     auto maxRate = options.get<float>("aod-max-io-rate");
 
     // create a DataInputDirector
-    auto didir = std::make_shared<DataInputDirector>(std::vector<std::string>{filename}, DataInputDirectorContext{&monitoring, parentAccessLevel, parentFileReplacement, originLevelMapping});
+    DataInputDirectorContext context{&monitoring, parentAccessLevel, parentFileReplacement, originLevelMapping};
+    context.readerBackend = options.get<std::string>("aod-reader-backend");
+    if (context.readerBackend != "root" && context.readerBackend != "native" && context.readerBackend != "auto") {
+      LOGP(fatal, "Invalid --aod-reader-backend \"{}\": use root, native or auto.", context.readerBackend);
+    }
+    context.nativeOptions.threads = std::max(1, options.get<int>("aod-reader-threads"));
+    context.nativeOptions.prefetchDepth = std::max(0, options.get<int>("aod-reader-prefetch"));
+    if (auto mb = options.get<int>("aod-reader-buffer-mb"); mb >= 0) {
+      context.nativeOptions.bufferBudget = mb * size_t{1024 * 1024};
+    }
+    auto localIO = options.get<std::string>("aod-reader-local-io");
+    if (localIO != "mmap" && localIO != "pread") {
+      LOGP(fatal, "Invalid --aod-reader-local-io \"{}\": use mmap or pread.", localIO);
+    }
+    context.nativeOptions.localIO = localIO == "pread" ? o2::aod::native::Options::LocalIO::PRead : o2::aod::native::Options::LocalIO::MMap;
+    auto didir = std::make_shared<DataInputDirector>(std::vector<std::string>{filename}, std::move(context));
     if (options.isSet("aod-reader-json")) {
       auto jsonFile = options.get<std::string>("aod-reader-json");
       if (!didir->readJson(jsonFile)) {
@@ -260,6 +276,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
       static size_t totalSizeCompressed = 0;
       static uint64_t totalDFSent = 0;
       static uint64_t totalInvalidReadSkipped = 0;
+      static uint64_t totalFileOpenSkipped = 0;
 
       // check if RuntimeLimit is reached
       if (!watchdog->update()) {
@@ -274,15 +291,18 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
 
       int64_t startTime = uv_hrtime();
       int64_t startSize = totalSizeCompressed;
-      auto skipInvalidRead = [&](ConcreteDataMatcher const& concrete, InvalidAODReadError const& e) {
-        auto skippedTimeframes = ++totalInvalidReadSkipped;
-        LOGP(error, "Invalid AOD read for table {}: fileCounter {}, timeFrame {}. Skipping timeframe (skipped timeframes: {}). Reason: {}",
-             concrete.origin.as<std::string>(), fcnt, ntf, skippedTimeframes, describeException(e));
+      auto discardTimeframe = [&didir, &arrowContext, &messageContext, &stringContext]() {
         clean_all_runtime_errors();
         didir->finishTimeFrame(true);
         arrowContext.clear();
         messageContext.discard();
         stringContext.clear();
+      };
+      auto skipInvalidRead = [&fcnt, &ntf, &discardTimeframe, &dpstats, &fileCounter, &numTF, &device](ConcreteDataMatcher const& concrete, AODReadError const& e) {
+        auto skippedTimeframes = ++totalInvalidReadSkipped;
+        LOGP(error, "Invalid AOD read for table {}: fileCounter {}, timeFrame {}. Skipping timeframe (skipped timeframes: {}). Reason: {}",
+             concrete.origin.as<std::string>(), fcnt, ntf, skippedTimeframes, describeException(e));
+        discardTimeframe();
         dpstats.updateStats({static_cast<short>(ProcessingStatsId::AOD_INVALID_READ_SKIPPED_TIMEFRAMES), DataProcessingStats::Op::Add, 1});
         *fileCounter = (fcnt - device.inputTimesliceId) / device.maxInputTimeslices;
         *numTF = ntf;
@@ -294,6 +314,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
         TRY_NEXT_FILE,
         TIMEFRAME_READ,
         INVALID_TIMEFRAME,
+        INVALID_FILE,
       };
       auto readState = TFReaderState::READ_FIRST_TABLE;
       [[maybe_unused]] auto stateName = [](TFReaderState state) -> char const* {
@@ -310,6 +331,8 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
             return "TIMEFRAME_READ";
           case TFReaderState::INVALID_TIMEFRAME:
             return "INVALID_TIMEFRAME";
+          case TFReaderState::INVALID_FILE:
+            return "INVALID_FILE";
         }
         return "UNKNOWN";
       };
@@ -333,18 +356,27 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
           // Origin file name for derived output map
           auto o2 = Output(TFFileNameHeader);
           auto fileAndFolder = didir->getFileFolder(dh, fcnt, ntf);
-          auto rootFS = std::dynamic_pointer_cast<TFileFileSystem>(fileAndFolder.filesystem());
-          auto* f = dynamic_cast<TFile*>(rootFS->GetFile());
-          std::string currentFilename(f->GetFile()->GetName());
-          if (strcmp(f->GetEndpointUrl()->GetProtocol(), "file") == 0 && f->GetEndpointUrl()->GetFile()[0] != '/') {
-            // This is not an absolute local path. Make it absolute.
-            static std::string pwd = gSystem->pwd() + std::string("/");
-            currentFilename = pwd + std::string(f->GetName());
+          static std::string pwd = gSystem->pwd() + std::string("/");
+          std::string currentFilename;
+          if (auto nativeFS = std::dynamic_pointer_cast<NativeAODFileSystem>(fileAndFolder.filesystem())) {
+            currentFilename = nativeFS->name();
+            // Only a relative local path needs to be made absolute; URLs are kept as they are.
+            if (!currentFilename.starts_with("/") && currentFilename.find("://") == std::string::npos) {
+              currentFilename = pwd + currentFilename;
+            }
+          } else {
+            auto rootFS = std::dynamic_pointer_cast<TFileFileSystem>(fileAndFolder.filesystem());
+            auto* f = dynamic_cast<TFile*>(rootFS->GetFile());
+            currentFilename = f->GetFile()->GetName();
+            if (strcmp(f->GetEndpointUrl()->GetProtocol(), "file") == 0 && f->GetEndpointUrl()->GetFile()[0] != '/') {
+              // This is not an absolute local path. Make it absolute.
+              currentFilename = pwd + std::string(f->GetName());
+            }
           }
           outputs.make<std::string>(o2) = currentFilename;
         }
       };
-      auto tryReadTable = [&device, &didir, &fcnt, &ntf, &outputs, &reportTimeframe, &requestedTables, &routeIndex, &skipInvalidRead, skipInvalidReads](TFReaderState currentState) -> TFReaderState {
+      auto tryReadTable = [&device, &didir, &fcnt, &ntf, &outputs, &reportTimeframe, &requestedTables, &routeIndex, &skipInvalidRead, &discardTimeframe, &dpstats, skipInvalidReads](TFReaderState currentState) -> TFReaderState {
         while (routeIndex < requestedTables.size() &&
                (device.inputTimesliceId % requestedTables[routeIndex].maxTimeslices) != requestedTables[routeIndex].timeslice) {
           ++routeIndex;
@@ -365,12 +397,24 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
           if (!didir->readTree(outputs, dh, fcnt, ntf, totalSizeCompressed, totalSizeUncompressed, wasAOD)) {
             return TFReaderState::TRY_NEXT_FILE;
           }
-        } catch (InvalidAODReadError const& e) {
+        } catch (AODReadError const& e) {
           if (!skipInvalidReads) {
-            throw;
+            throw AODReadError(e.getKind(), describeException(e));
           }
-          skipInvalidRead(concrete, e);
-          return TFReaderState::INVALID_TIMEFRAME;
+          switch (e.getKind()) {
+            case AODReadError::Kind::InvalidTimeframe:
+              skipInvalidRead(concrete, e);
+              return TFReaderState::INVALID_TIMEFRAME;
+            case AODReadError::Kind::FileOpen: {
+              auto skippedFiles = ++totalFileOpenSkipped;
+              LOGP(error, "Unable to open AOD input for table {}: fileCounter {}, timeFrame {}. Skipping file (skipped files: {}). Reason: {}",
+                   concrete.origin.as<std::string>(), fcnt, ntf, skippedFiles, describeException(e));
+              discardTimeframe();
+              dpstats.updateStats({static_cast<short>(ProcessingStatsId::AOD_FILE_OPEN_SKIPPED_FILES), DataProcessingStats::Op::Add, 1});
+              return TFReaderState::INVALID_FILE;
+            }
+          }
+          throw;
         }
 
         if (currentState == TFReaderState::READ_FIRST_TABLE || currentState == TFReaderState::READ_FIRST_TABLE_FROM_NEXT_FILE) {
@@ -394,6 +438,10 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
               throw std::runtime_error("Processing is stopped!");
             }
             break;
+          case TFReaderState::INVALID_FILE:
+            // Undo the discard so outputs read from the next file are checked as usual
+            messageContext.clear();
+            [[fallthrough]];
           case TFReaderState::TRY_NEXT_FILE:
             didir->finishTimeFrame();
             fcnt += device.maxInputTimeslices;
@@ -410,7 +458,12 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
             transitionTo(TFReaderState::READ_FIRST_TABLE_FROM_NEXT_FILE);
             break;
           case TFReaderState::INVALID_TIMEFRAME:
-            return;
+            // Returning would leak this callback's timeslice offer, so read the next timeframe.
+            messageContext.clear();
+            ++ntf;
+            routeIndex = 0;
+            transitionTo(TFReaderState::READ_FIRST_TABLE);
+            break;
           case TFReaderState::TIMEFRAME_READ:
             break;
         }

@@ -60,7 +60,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   bool drawOnly = configcontext.options().get<bool>("draw-external-only");
   bool postProcOnly = configcontext.options().get<bool>("postproc-external-only");
   bool doStag = o2::itsmft::DPLAlpideParamInitializer::isITSStaggeringEnabled(configcontext);
-  GID::mask_t allowedSourcesTrc = GID::getSourcesMask("ITS,TPC,ITS-TPC,ITS-TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
+  GID::mask_t allowedSourcesTrc = GID::getSourcesMask("ITS,ITS-TPC,ITS-TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
   GID::mask_t allowedSourcesClus = GID::getSourcesMask("ITS");
 
   // Update the (declared) parameters if changed from the command line

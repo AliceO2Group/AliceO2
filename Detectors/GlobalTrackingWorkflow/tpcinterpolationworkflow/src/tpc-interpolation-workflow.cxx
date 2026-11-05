@@ -113,7 +113,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   specs.emplace_back(o2::tpc::getTPCInterpolationSpec(srcClusters, srcVtx, srcTracks, srcTracksMap, useMC, processITSTPConly, sendTrackData, debugOutput, extDetResid, doStag));
   if (!configcontext.options().get<bool>("disable-root-output")) {
-    specs.emplace_back(o2::tpc::getTPCResidualWriterSpec(sendTrackData, debugOutput));
+    specs.emplace_back(o2::tpc::getTPCResidualWriterSpec(sendTrackData, debugOutput, useMC && sendTrackData));
   }
 
   // MC labels only for the ITS-TPC tracks and their ITS and TPC parts (see getTPCInterpolationSpec)

@@ -94,6 +94,14 @@ struct AnomalyStudyParamConfig : public o2::conf::ConfigurableParamHelper<Anomal
   O2ParamDef(AnomalyStudyParamConfig, "AnomalyStudyParam");
 };
 
+struct ITSBeamBackgroundStudyParamConfig : public o2::conf::ConfigurableParamHelper<ITSBeamBackgroundStudyParamConfig> {
+  int dumpEveryTF = 5;               // <= 0: write only at end of stream
+  int skimmedOnlyAfterTF = 150;      // TF threshold above which only the skimmed output file is written
+  bool saveClusterParameters = true; // Write per-cluster coordinates, size and row/column spans
+
+  O2ParamDef(ITSBeamBackgroundStudyParamConfig, "ITSBeamBackgroundStudyParam");
+};
+
 struct ITSEfficiencyParamConfig : public o2::conf::ConfigurableParamHelper<ITSEfficiencyParamConfig> {
   std::string outFileName = "ITS_efficiencyStudy.root";
   double b = 0; // Solenoid field in kG (+/-)

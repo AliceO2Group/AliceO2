@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/DataProcessorSpecHelpers.h"
+#include "Framework/Logger.h"
 #include <string>
 #include <algorithm>
 
@@ -19,5 +20,21 @@ bool DataProcessorSpecHelpers::hasLabel(DataProcessorSpec const& spec, char cons
 {
   auto sameLabel = [other = DataProcessorLabel{{label}}](DataProcessorLabel const& label) { return label == other; };
   return std::find_if(spec.labels.begin(), spec.labels.end(), sameLabel) != spec.labels.end();
+}
+
+DataProcessorSpec DataProcessorSpecHelpers::placeholder(std::string name)
+{
+  return DataProcessorSpec{
+    .name = name,
+    .algorithm = AlgorithmSpec::InitCallback{[name](InitContext&) -> AlgorithmSpec::ProcessCallback {
+      LOGP(fatal, "{} was not built in this process, which therefore cannot run it.", name);
+      return {};
+    }},
+    .metadata = {{"dpl-placeholder", "true"}}};
+}
+
+bool DataProcessorSpecHelpers::isPlaceholder(DataProcessorSpec const& spec)
+{
+  return std::ranges::any_of(spec.metadata, [](auto const& m) { return m.key == "dpl-placeholder"; });
 }
 } // namespace o2::framework

@@ -64,7 +64,7 @@ class TRKServices : public FairModule
   // Carbon fibre shells bounding the OT barrel in r; the separation walls span between them.
   static constexpr float sMLOTShellRMax = 39.5f;     // cm, outer radius of the ML/OT separation shell
   static constexpr float sMLOTShellThickness = 0.2f; // cm
-  static constexpr float sOTShellRMin = 82.0f;       // cm, inner radius of the OT outer shell
+  static constexpr float sOTShellRMin = 83.0f;       // cm, inner radius of the OT outer shell
   static constexpr float sOTShellThickness = 0.4f;   // cm, load bearing, hence thicker
 
   // Vacuum

@@ -24,7 +24,6 @@
 #include "Framework/Task.h"
 #include "Headers/DataHeader.h"
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "TRKBase/AlmiraParam.h"
 
 using namespace o2::framework;
 
@@ -48,7 +47,7 @@ class DigitReader : public Task
   void setBranchAddress(const std::string& base, Ptr& addr, int layer = -1);
   std::string getBranchName(const std::string& base, int index) const;
 
-  static constexpr int mLayers = o2::trk::AlmiraParam::kNLayers;
+  int mLayers = 0; ///< TRK's AlmiraParam entries or FT3's discs
 
   std::vector<std::vector<o2::trkft3::Digit>*> mDigits{nullptr};
   std::vector<o2::itsmft::GBTCalibData> mCalib, *mCalibPtr = &mCalib;
@@ -84,9 +83,20 @@ class TRKDigitReader : public DigitReader
   }
 };
 
+class FT3DigitReader : public DigitReader
+{
+ public:
+  FT3DigitReader(bool useMC = true, bool useCalib = false)
+    : DigitReader(o2::detectors::DetID::FT3, useMC, useCalib)
+  {
+    mOrigin = o2::header::gDataOriginFT3;
+  }
+};
+
 /// create a processor spec
-/// read ITS/MFT Digit data from a root file
+/// read TRK/FT3 Digit data from a root file
 framework::DataProcessorSpec getTRKDigitReaderSpec(bool useMC = true, bool useCalib = false, std::string defname = "trkdigits.root");
+framework::DataProcessorSpec getFT3DigitReaderSpec(bool useMC = true, bool useCalib = false, std::string defname = "ft3digits.root");
 
 } // namespace trk
 } // namespace o2

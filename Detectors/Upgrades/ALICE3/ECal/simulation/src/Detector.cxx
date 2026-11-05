@@ -383,6 +383,7 @@ bool Detector::ProcessHits(FairVolume* vol)
     stack->addHit(GetDetId());
   } else {
     hit->SetEnergyLoss(hit->GetEnergyLoss() + eloss);
+    stack->modifiesHit(GetDetId());
   }
   return true;
 }

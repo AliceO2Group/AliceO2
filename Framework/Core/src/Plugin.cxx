@@ -24,6 +24,7 @@
 #include <TClass.h>
 #include <arrow/dataset/file_base.h>
 #include <arrow/filesystem/filesystem.h>
+#include <atomic>
 #include <cstddef>
 #include <memory>
 #include <string_view>
@@ -191,12 +192,20 @@ struct ImplementationContext {
 
 std::function<void*(std::shared_ptr<arrow::fs::FileSystem>, std::string const&)> getHandleByClass(char const* classname)
 {
-  return [c = TClass::GetClass(classname)](std::shared_ptr<arrow::fs::FileSystem> fs, std::string const& path) -> void* {
+  return [classname, cache = std::make_shared<std::atomic<TClass*>>(nullptr)](std::shared_ptr<arrow::fs::FileSystem> fs, std::string const& path) -> void* {
+    auto getClass = [&]() {
+      auto* c = cache->load();
+      if (c == nullptr) {
+        c = TClass::GetClass(classname);
+        cache->store(c);
+      }
+      return c;
+    };
     if (auto tfileFS = std::dynamic_pointer_cast<TFileFileSystem>(fs)) {
-      return tfileFS->GetFile()->GetObjectChecked(path.c_str(), c);
+      return tfileFS->GetFile()->GetObjectChecked(path.c_str(), getClass());
     } else if (auto tbufferFS = std::dynamic_pointer_cast<TBufferFileFS>(fs)) {
       tbufferFS->GetBuffer()->Reset();
-      return tbufferFS->GetBuffer()->ReadObjectAny(c);
+      return tbufferFS->GetBuffer()->ReadObjectAny(getClass());
     }
     return nullptr;
   };

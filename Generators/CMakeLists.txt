@@ -47,6 +47,8 @@ o2_add_library(Generators
                        $<$<BOOL:${pythia_FOUND}>:src/DecayerPythia8.cxx>
                        $<$<BOOL:${pythia_FOUND}>:src/GeneratorPythia8Param.cxx>
                        $<$<BOOL:${pythia_FOUND}>:src/DecayerPythia8Param.cxx>
+                       $<$<BOOL:${pythia_FOUND}>:src/EventDecayer.cxx>
+                       $<$<BOOL:${pythia_FOUND}>:src/EventDecayerParam.cxx>
                        $<$<BOOL:${HepMC3_FOUND}>:src/GeneratorHepMC.cxx>
                        $<$<BOOL:${HepMC3_FOUND}>:src/GeneratorHepMCParam.cxx>
                        $<$<BOOL:${HepMC3_FOUND}>:src/AODToHepMC.cxx>
@@ -103,6 +105,7 @@ if(pythia_FOUND)
               include/Generators/DecayerPythia8.h
               include/Generators/GeneratorPythia8Param.h
               include/Generators/DecayerPythia8Param.h
+              include/Generators/EventDecayerParam.h
               include/Generators/GeneratorFactory.h)
 endif()
 
@@ -143,6 +146,22 @@ if(doBuildSimulation)
     o2_add_test(GeneratorHepMCIndexed NAME test_Generator_test_GeneratorHepMCIndexed
                 SOURCES test/test_GeneratorHepMCIndexed.cxx
                 COMPONENT_NAME Generator
+                LABELS generator
+                PUBLIC_LINK_LIBRARIES O2::Generators)
+  endif()
+
+  if(pythia_FOUND)
+    o2_add_test(EventDecayer NAME test_Generator_test_EventDecayer
+                SOURCES test/test_EventDecayer.cxx
+                COMPONENT_NAME Generator
+                ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
+                LABELS generator
+                PUBLIC_LINK_LIBRARIES O2::Generators)
+
+    o2_add_test(GeneratorEventDecayer NAME test_Generator_test_GeneratorEventDecayer
+                SOURCES test/test_GeneratorEventDecayer.cxx
+                COMPONENT_NAME Generator
+                ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
                 LABELS generator
                 PUBLIC_LINK_LIBRARIES O2::Generators)
   endif()

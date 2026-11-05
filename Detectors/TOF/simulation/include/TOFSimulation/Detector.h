@@ -158,8 +158,9 @@ class Detector : public o2::base::DetImpl<Detector>
 
   Int_t mEventNr; // event count
   Int_t mTOFSectors[o2::tof::Geo::NSECTORS];
-  Bool_t mTOFHoles;          // flag to allow for holes in front of the PHOS
-  Int_t mLastChannelID = -1; ///< Last channel seen by the hit
+  Bool_t mTOFHoles;                // flag to allow for holes in front of the PHOS
+  Int_t mLastChannelID = -1;       ///< Last channel seen by the hit
+  Int_t mTrackRefLastTrackID = -1; //! last track that received a TrackReference in the current event
 
   /// container for data points
   std::vector<HitType>* mHits; //!

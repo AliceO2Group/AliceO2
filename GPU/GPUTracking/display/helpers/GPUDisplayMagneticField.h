@@ -16,6 +16,7 @@
 #define GPUDISPLAYMAGNETICFIELD_H
 
 #include "GPUCommonDef.h"
+#include "GPUDisplayMagneticFieldConstants.h" // Shared with the field shader
 #include <memory>
 #include <vector>
 
@@ -33,22 +34,22 @@ class GPUDisplayMagneticField
   GPUDisplayMagneticField(o2::field::MagneticField* field);
 #endif
 
-  static constexpr std::size_t DIMENSIONS = 3;
-  static constexpr std::size_t MAX_SOLENOID_Z_SEGMENTS = 32;
-  static constexpr std::size_t MAX_SOLENOID_P_SEGMENTS = 512;
-  static constexpr std::size_t MAX_SOLENOID_R_SEGMENTS = 4096;
-  static constexpr std::size_t MAX_DIPOLE_Z_SEGMENTS = 128;
-  static constexpr std::size_t MAX_DIPOLE_Y_SEGMENTS = 2048;
-  static constexpr std::size_t MAX_DIPOLE_X_SEGMENTS = 16384;
-  static constexpr std::size_t MAX_SOLENOID_PARAMETERIZATIONS = 2048;
-  static constexpr std::size_t MAX_SOLENOID_ROWS = 16384;
-  static constexpr std::size_t MAX_SOLENOID_COLUMNS = 65536;
-  static constexpr std::size_t MAX_SOLENOID_COEFFICIENTS = 131072;
-  static constexpr std::size_t MAX_DIPOLE_PARAMETERIZATIONS = 2048;
-  static constexpr std::size_t MAX_DIPOLE_ROWS = 16384;
-  static constexpr std::size_t MAX_DIPOLE_COLUMNS = 65536;
-  static constexpr std::size_t MAX_DIPOLE_COEFFICIENTS = 262144;
-  static constexpr std::size_t MAX_CHEBYSHEV_ORDER = 32;
+  static constexpr std::size_t DIMENSIONS = GPUCA_DISPLAY_FIELD_DIMENSIONS;
+  static constexpr std::size_t MAX_SOLENOID_Z_SEGMENTS = GPUCA_DISPLAY_FIELD_MAX_SOLENOID_Z_SEGMENTS;
+  static constexpr std::size_t MAX_SOLENOID_P_SEGMENTS = GPUCA_DISPLAY_FIELD_MAX_SOLENOID_P_SEGMENTS;
+  static constexpr std::size_t MAX_SOLENOID_R_SEGMENTS = GPUCA_DISPLAY_FIELD_MAX_SOLENOID_R_SEGMENTS;
+  static constexpr std::size_t MAX_DIPOLE_Z_SEGMENTS = GPUCA_DISPLAY_FIELD_MAX_DIPOLE_Z_SEGMENTS;
+  static constexpr std::size_t MAX_DIPOLE_Y_SEGMENTS = GPUCA_DISPLAY_FIELD_MAX_DIPOLE_Y_SEGMENTS;
+  static constexpr std::size_t MAX_DIPOLE_X_SEGMENTS = GPUCA_DISPLAY_FIELD_MAX_DIPOLE_X_SEGMENTS;
+  static constexpr std::size_t MAX_SOLENOID_PARAMETERIZATIONS = GPUCA_DISPLAY_FIELD_MAX_SOLENOID_PARAMETERIZATIONS;
+  static constexpr std::size_t MAX_SOLENOID_ROWS = GPUCA_DISPLAY_FIELD_MAX_SOLENOID_ROWS;
+  static constexpr std::size_t MAX_SOLENOID_COLUMNS = GPUCA_DISPLAY_FIELD_MAX_SOLENOID_COLUMNS;
+  static constexpr std::size_t MAX_SOLENOID_COEFFICIENTS = GPUCA_DISPLAY_FIELD_MAX_SOLENOID_COEFFICIENTS;
+  static constexpr std::size_t MAX_DIPOLE_PARAMETERIZATIONS = GPUCA_DISPLAY_FIELD_MAX_DIPOLE_PARAMETERIZATIONS;
+  static constexpr std::size_t MAX_DIPOLE_ROWS = GPUCA_DISPLAY_FIELD_MAX_DIPOLE_ROWS;
+  static constexpr std::size_t MAX_DIPOLE_COLUMNS = GPUCA_DISPLAY_FIELD_MAX_DIPOLE_COLUMNS;
+  static constexpr std::size_t MAX_DIPOLE_COEFFICIENTS = GPUCA_DISPLAY_FIELD_MAX_DIPOLE_COEFFICIENTS;
+  static constexpr std::size_t MAX_CHEBYSHEV_ORDER = GPUCA_DISPLAY_FIELD_MAX_CHEBYSHEV_ORDER;
 
   struct RenderConstantsUniform {
     uint32_t StepCount;
@@ -134,6 +135,7 @@ class GPUDisplayMagneticField
   std::size_t mDipColumns;
   std::size_t mDipCoefficients;
 
+  bool mValid = false; // Field data loaded, buffers below filled
   std::unique_ptr<RenderConstantsUniform> mRenderConstantsUniform;
   std::unique_ptr<SolenoidSegmentsUniform> mSolenoidSegments;
   std::unique_ptr<DipoleSegmentsUniform> mDipoleSegments;

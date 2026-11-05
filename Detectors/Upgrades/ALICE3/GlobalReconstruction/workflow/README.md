@@ -93,6 +93,30 @@ The tracking configuration is provided via a JSON file that specifies:
 ```
 Note that the `trackingparams` field can contain multiple sets of parameters for different iterations of the tracking algorithm. The example above shows a single iteration with 11 layers and it is **not** optimized.
 
+### Restricting CA seeding to selected layers
+
+Each entry in `trackingparams` accepts the following optional parameters for both hit and cluster input:
+
+| Parameter | Default | Meaning |
+| --- | --- | --- |
+| `SeedingLayers` | `0` | Bit mask of layers used to build CA tracklets and cells. Zero uses all active layers. |
+| `InactiveLayerMask` | `0` | Bit mask of inactive layers, excluded from CA seeding and from the effective track-length calculation. |
+| `MaxHoles` | `0` | Maximum number of missing seeding-layer hits allowed within a seed. |
+| `HoleLayerMask` | `0` | Bit mask of seeding layers on which holes are allowed. |
+| `StartLayerMask` | `127` | Bit mask of layers from which CA seed extraction may start; it does not select the layers used to build the CA. |
+
+Masks are integer values with bit `i` corresponding to layer `i` (numbering starts at zero). `SeedingLayers` is intersected with the active layers within `NLayers`; at least three seeding layers are required. Layers excluded from seeding do not count as holes. Active layers outside `SeedingLayers` can still receive clusters through the track follower.
+
+For example, add these fields to an 11-layer iteration to seed on layers 3 through 10 and then extend tracks inward to layers 0 through 2:
+
+```json
+"SeedingLayers": 2040,
+"StartLayerMask": 2047,
+"TrackFollower": "inward"
+```
+
+Keep `NLayers` and the per-layer geometry and error arrays describing the full detector. `MinTrackLength` still applies to the final track; the minimum number of seeding clusters is capped at the number of selected seeding layers. Omitting the new parameters preserves the existing defaults.
+
 ## Complete Workflow Example
 
 ### 1. Run Simulation
