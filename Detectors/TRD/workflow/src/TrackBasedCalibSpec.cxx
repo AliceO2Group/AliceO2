@@ -62,7 +62,7 @@ class TRDTrackBasedCalibDevice : public Task
 void TRDTrackBasedCalibDevice::init(InitContext& ic)
 {
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
-  if (getenv("ALIEN_JDL_LPMPRODUCTIONTYPE") && std::strcmp(getenv("ALIEN_JDL_LPMPRODUCTIONTYPE"), "MC") == 0) {
+  if ((getenv("ALIEN_JDL_LPMPRODUCTIONTYPE") && std::strcmp(getenv("ALIEN_JDL_LPMPRODUCTIONTYPE"), "MC") == 0) || !ic.options().get<bool>("apply-shift")) {
     // apply artificial pad shift in case non-ideal alignment is used to compensate for shift in current alignment from real data
     mCalibrator.setApplyShift(false);
   }
@@ -182,7 +182,7 @@ DataProcessorSpec getTRDTrackBasedCalibSpec(o2::dataformats::GlobalTrackID::mask
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<TRDTrackBasedCalibDevice>(dataRequest, ggRequest, vdexb, gain)},
-    Options{}};
+    Options{{"apply-shift", o2::framework::VariantType::Bool, true, {"whether we apply the one pad shift in data (never applied in MC)"}}}};
 }
 
 } // namespace trd

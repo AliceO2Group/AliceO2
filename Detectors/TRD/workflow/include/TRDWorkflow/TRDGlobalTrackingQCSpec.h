@@ -57,7 +57,7 @@ class TRDGlobalTrackingQC : public Task
     if (!mTPCavailable) {
       mQC.disablePID();
     }
-    if (getenv("ALIEN_JDL_LPMPRODUCTIONTYPE") && std::strcmp(getenv("ALIEN_JDL_LPMPRODUCTIONTYPE"), "MC") == 0) {
+    if ((getenv("ALIEN_JDL_LPMPRODUCTIONTYPE") && std::strcmp(getenv("ALIEN_JDL_LPMPRODUCTIONTYPE"), "MC") == 0) || !ic.options().get<bool>("apply-shift")) {
       // apply artificial pad shift in case non-ideal alignment is used to compensate for shift in current alignment from real data
       mQC.setApplyShift(false);
     }
@@ -153,7 +153,7 @@ DataProcessorSpec getTRDGlobalTrackingQCSpec(o2::dataformats::GlobalTrackID::mas
     dataRequest->inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<TRDGlobalTrackingQC>(dataRequest, ggRequest, isTPCavailable, src)},
-    Options{}};
+    Options{{"apply-shift", o2::framework::VariantType::Bool, true, {"whether we apply the one pad shift in data (never applied in MC)"}}}};
 }
 
 template <typename T>

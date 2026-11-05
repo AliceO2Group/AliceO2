@@ -62,9 +62,8 @@ float TrackletTransformer::calculateDy(int detector, int slope, const PadPlane* 
 float TrackletTransformer::calibrateX(double x) const
 {
   // Hard-coded value will be replaced once t0 calibration is available from CCDB
-  //float t0Correction = -0.279;
-  //return x += t0Correction;
-  return x;
+  float t0Correction = -0.230;
+  return x += t0Correction;
 }
 
 std::array<float, 3> TrackletTransformer::transformL2T(int detector, std::array<double, 3> point) const
@@ -106,17 +105,12 @@ CalibratedTracklet TrackletTransformer::transformTracklet(Tracklet64 tracklet, b
   float x = mGeo->cdrHght() - 0.5;
   float y = tracklet.getUncalibratedY(mApplyShift);
   float z = calculateZ(padrow, padPlane);
+  
+  //LOGF(info, "apply shift: %d", mApplyShift);
 
   float dy = calculateDy(detector, slope, padPlane);
 
   float calibratedX = calibrateX(x);
-  
-  // calibrate y using t0 and raw slope in pad per timebin
-  //float t0 = -1.8; // in time bins
-  float t0 = -2.79/mCalVdriftExB->getVdrift(detector); // in time bins
-  y -= t0 * tracklet.getSlopeFloat() * mGeo->getPadPlane(tracklet.getDetector())->getWidthIPad();
-  
-  LOGF(info, "vdrift: %f old: %f %f  new1: %f %f  new2: %f %f diff: %f slope wo corr: %f %f slope with corr: %f", mCalVdriftExB->getVdrift(detector), x - 0.279, tracklet.getUncalibratedY(mApplyShift), x, y, x - 0.279, y-dy*0.279/3, y-dy*0.279/3-tracklet.getUncalibratedY(mApplyShift), tracklet.getSlopeFloat(), slope * ((mGeo->cdrHght() / mCalVdriftExB->getVdrift(detector)) * 10.) * mGeo->getPadPlane(tracklet.getDetector())->getWidthIPad() * GRANULARITYTRKLSLOPE / ADDBITSHIFTSLOPE, dy);
 
   if (trackingFrame) {
     std::array<float, 3> sectorSpacePoint = transformL2T(detector, std::array<double, 3>{calibratedX, y, z});

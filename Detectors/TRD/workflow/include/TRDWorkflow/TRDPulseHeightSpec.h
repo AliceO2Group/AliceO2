@@ -43,7 +43,7 @@ class PuseHeightDevice : public o2::framework::Task
     if (ic.options().get<bool>("enable-root-output")) {
       mPulseHeight->createOutputFile();
     }
-    if (getenv("ALIEN_JDL_LPMPRODUCTIONTYPE") && std::strcmp(getenv("ALIEN_JDL_LPMPRODUCTIONTYPE"), "MC") == 0) {
+    if ((getenv("ALIEN_JDL_LPMPRODUCTIONTYPE") && std::strcmp(getenv("ALIEN_JDL_LPMPRODUCTIONTYPE"), "MC") == 0) || !ic.options().get<bool>("apply-shift")) {
       // apply artificial pad shift in case non-ideal alignment is used to compensate for shift in current alignment from real data
       mPulseHeight->setApplyShift(false);
     }
@@ -129,7 +129,8 @@ DataProcessorSpec getTRDPulseHeightSpec(GID::mask_t src, bool digitsFromReader)
     outputs,
     AlgorithmSpec{adaptFromTask<o2::trd::PuseHeightDevice>(dataRequest)},
     Options{
-      {"enable-root-output", VariantType::Bool, false, {"output PH and debug data to root file"}}}};
+      {"enable-root-output", VariantType::Bool, false, {"output PH and debug data to root file"}},
+      {"apply-shift", o2::framework::VariantType::Bool, true, {"whether we apply the one pad shift in data (never applied in MC)"}}}};
 }
 } // namespace framework
 } // namespace o2
