@@ -291,10 +291,14 @@ size_t GPUReconstructionMetal::WriteToConstantMemory(size_t offset, const void* 
 
 void GPUReconstructionMetal::ReleaseEvent(deviceEvent ev)
 {
-  // FIXME: is this supposed to reset the event for it to be repurposed
-  //        or to decrease the ref count?
-  auto mtlEvent = (__bridge id<MTLSharedEvent>)(ev.get<void*>());
-  [mtlEvent setSignaledValue:0];
+  // Nothing to do, as in CUDA: the next RecordMarker supersedes the last one.
+}
+
+uint64_t GPUReconstructionMetal::EventValue(deviceEvent ev, bool next)
+{
+  std::lock_guard<std::mutex> lock(mInternals->eventMutex);
+  auto& value = mInternals->eventValues[ev.get<void*>()];
+  return next ? ++value : value;
 }
 
 void GPUReconstructionMetal::RecordMarker(deviceEvent* ev, int32_t stream)
@@ -303,7 +307,7 @@ void GPUReconstructionMetal::RecordMarker(deviceEvent* ev, int32_t stream)
   // Does not change the retain count, so it's important we manage
   // the lifetime of the events outside here.
   auto mtlEvent = (__bridge id<MTLSharedEvent>)(ev->get<void*>());
-  [cb encodeSignalEvent:mtlEvent value:1];
+  [cb encodeSignalEvent:mtlEvent value:EventValue(*ev, true)];
   CommitStream(stream);
 }
 
@@ -353,7 +357,9 @@ void GPUReconstructionMetal::StreamWaitForEvents(int32_t stream, deviceEvent* ev
   id<MTLCommandBuffer> cb = mInternals->commandBuffers[stream];
   for (int32_t ei = 0; ei < nEvents; ei++) {
     auto mtlEvent = (__bridge id<MTLSharedEvent>)(evList[ei].get<void*>());
-    [cb encodeWaitForEvent:mtlEvent value:1];
+    if (const uint64_t value = EventValue(evList[ei], false)) {
+      [cb encodeWaitForEvent:mtlEvent value:value];
+    }
   }
   CommitStream(stream);
   DrainStream(stream);
@@ -363,7 +369,7 @@ bool GPUReconstructionMetal::IsEventDone(deviceEvent* evList, int32_t nEvents)
 {
   for (int32_t i = 0; i < nEvents; i++) {
     auto mtlEvent = (__bridge id<MTLSharedEvent>)(evList[i].get<void*>());
-    if (mtlEvent.signaledValue == 0) {
+    if (mtlEvent.signaledValue < EventValue(evList[i], false)) {
       return false;
     }
   }
