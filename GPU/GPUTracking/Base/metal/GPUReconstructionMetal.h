@@ -59,6 +59,7 @@ class GPUReconstructionMetal : public GPUReconstructionProcessing::KernelInterfa
 
   void CommitStream(int32_t stream);
   void DrainStream(int32_t stream);
+  uint64_t EventValue(deviceEvent ev, bool next);
 
  private:
   int32_t AddKernels();

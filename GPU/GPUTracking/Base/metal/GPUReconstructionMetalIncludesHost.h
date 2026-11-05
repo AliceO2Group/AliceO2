@@ -32,6 +32,8 @@ using half = _Float16;
 #include <vector>
 #include <string>
 #include <memory>
+#include <mutex>
+#include <unordered_map>
 #include "GPULogging.h"
 
 #include "GPUReconstructionMetal.h"
@@ -67,6 +69,12 @@ struct GPUReconstructionMetalInternals {
   id<MTLBuffer> mem_host;
 
   id<MTLLibrary> library;
+
+  // The value each event was last recorded with. An MTLSharedEvent only counts
+  // up, so recording signals the next value and waiting asks for the last one,
+  // which makes waiting for a never recorded event a no-op, as in CUDA.
+  std::unordered_map<void*, uint64_t> eventValues;
+  std::mutex eventMutex;
 };
 } // namespace o2::gpu
 
