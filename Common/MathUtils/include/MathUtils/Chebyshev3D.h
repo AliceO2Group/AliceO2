@@ -292,52 +292,57 @@ inline Bool_t Chebyshev3D::isInside(const Double_t* par) const
 /// Evaluates Chebyshev parameterization for 3d->DimOut function
 inline void Chebyshev3D::Eval(const Float_t* par, Float_t* res)
 {
+  Float_t coef[3]; // mapped arguments, local so that evaluation is reentrant
   for (int i = 3; i--;) {
-    mTemporaryCoefficient[i] = mapToInternal(par[i], i);
+    coef[i] = mapToInternal(par[i], i);
   }
   for (int i = mOutputArrayDimension; i--;) {
-    res[i] = getChebyshevCalc(i)->Eval(mTemporaryCoefficient);
+    res[i] = getChebyshevCalc(i)->Eval(coef);
   }
 }
 
 /// Evaluates Chebyshev parameterization for 3d->DimOut function
 inline void Chebyshev3D::Eval(const Double_t* par, Double_t* res)
 {
+  Float_t coef[3]; // mapped arguments, local so that evaluation is reentrant
   for (int i = 3; i--;) {
-    mTemporaryCoefficient[i] = mapToInternal(par[i], i);
+    coef[i] = mapToInternal(par[i], i);
   }
   for (int i = mOutputArrayDimension; i--;) {
-    res[i] = getChebyshevCalc(i)->Eval(mTemporaryCoefficient);
+    res[i] = getChebyshevCalc(i)->Eval(coef);
   }
 }
 
 /// Evaluates Chebyshev parameterization for idim-th output dimension of 3d->DimOut function
 inline Double_t Chebyshev3D::Eval(const Double_t* par, int idim)
 {
+  Float_t coef[3]; // mapped arguments, local so that evaluation is reentrant
   for (int i = 3; i--;) {
-    mTemporaryCoefficient[i] = mapToInternal(par[i], i);
+    coef[i] = mapToInternal(par[i], i);
   }
-  return getChebyshevCalc(idim)->Eval(mTemporaryCoefficient);
+  return getChebyshevCalc(idim)->Eval(coef);
 }
 
 /// Evaluates Chebyshev parameterization for idim-th output dimension of 3d->DimOut function
 inline Float_t Chebyshev3D::Eval(const Float_t* par, int idim)
 {
+  Float_t coef[3]; // mapped arguments, local so that evaluation is reentrant
   for (int i = 3; i--;) {
-    mTemporaryCoefficient[i] = mapToInternal(par[i], i);
+    coef[i] = mapToInternal(par[i], i);
   }
-  return getChebyshevCalc(idim)->Eval(mTemporaryCoefficient);
+  return getChebyshevCalc(idim)->Eval(coef);
 }
 
 /// Returns the gradient matrix
 inline void Chebyshev3D::evaluateDerivative3D(const Float_t* par, Float_t dbdr[3][3])
 {
+  Float_t coef[3]; // mapped arguments, local so that evaluation is reentrant
   for (int i = 3; i--;) {
-    mTemporaryCoefficient[i] = mapToInternal(par[i], i);
+    coef[i] = mapToInternal(par[i], i);
   }
   for (int ib = 3; ib--;) {
     for (int id = 3; id--;) {
-      dbdr[ib][id] = getChebyshevCalc(ib)->evaluateDerivative(id, mTemporaryCoefficient) * mBoundaryMappingScale[id];
+      dbdr[ib][id] = getChebyshevCalc(ib)->evaluateDerivative(id, coef) * mBoundaryMappingScale[id];
     }
   }
 }
@@ -345,13 +350,14 @@ inline void Chebyshev3D::evaluateDerivative3D(const Float_t* par, Float_t dbdr[3
 /// Returns the gradient matrix
 inline void Chebyshev3D::evaluateDerivative3D2(const Float_t* par, Float_t dbdrdr[3][3][3])
 {
+  Float_t coef[3]; // mapped arguments, local so that evaluation is reentrant
   for (int i = 3; i--;) {
-    mTemporaryCoefficient[i] = mapToInternal(par[i], i);
+    coef[i] = mapToInternal(par[i], i);
   }
   for (int ib = 3; ib--;) {
     for (int id = 3; id--;) {
       for (int id1 = 3; id1--;) {
-        dbdrdr[ib][id][id1] = getChebyshevCalc(ib)->evaluateDerivative2(id, id1, mTemporaryCoefficient) *
+        dbdrdr[ib][id][id1] = getChebyshevCalc(ib)->evaluateDerivative2(id, id1, coef) *
                               mBoundaryMappingScale[id] * mBoundaryMappingScale[id1];
       }
     }
@@ -361,22 +367,24 @@ inline void Chebyshev3D::evaluateDerivative3D2(const Float_t* par, Float_t dbdrd
 // Evaluates Chebyshev parameterization derivative for 3d->DimOut function
 inline void Chebyshev3D::evaluateDerivative(int dimd, const Float_t* par, Float_t* res)
 {
+  Float_t coef[3]; // mapped arguments, local so that evaluation is reentrant
   for (int i = 3; i--;) {
-    mTemporaryCoefficient[i] = mapToInternal(par[i], i);
+    coef[i] = mapToInternal(par[i], i);
   }
   for (int i = mOutputArrayDimension; i--;) {
-    res[i] = getChebyshevCalc(i)->evaluateDerivative(dimd, mTemporaryCoefficient) * mBoundaryMappingScale[dimd];
+    res[i] = getChebyshevCalc(i)->evaluateDerivative(dimd, coef) * mBoundaryMappingScale[dimd];
   };
 }
 
 // Evaluates Chebyshev parameterization 2nd derivative over dimd1 and dimd2 dimensions for 3d->DimOut function
 inline void Chebyshev3D::evaluateDerivative2(int dimd1, int dimd2, const Float_t* par, Float_t* res)
 {
+  Float_t coef[3]; // mapped arguments, local so that evaluation is reentrant
   for (int i = 3; i--;) {
-    mTemporaryCoefficient[i] = mapToInternal(par[i], i);
+    coef[i] = mapToInternal(par[i], i);
   }
   for (int i = mOutputArrayDimension; i--;) {
-    res[i] = getChebyshevCalc(i)->evaluateDerivative2(dimd1, dimd2, mTemporaryCoefficient) *
+    res[i] = getChebyshevCalc(i)->evaluateDerivative2(dimd1, dimd2, coef) *
              mBoundaryMappingScale[dimd1] * mBoundaryMappingScale[dimd2];
   }
 }
@@ -385,20 +393,22 @@ inline void Chebyshev3D::evaluateDerivative2(int dimd1, int dimd2, const Float_t
 /// function
 inline Float_t Chebyshev3D::evaluateDerivative(int dimd, const Float_t* par, int idim)
 {
+  Float_t coef[3]; // mapped arguments, local so that evaluation is reentrant
   for (int i = 3; i--;) {
-    mTemporaryCoefficient[i] = mapToInternal(par[i], i);
+    coef[i] = mapToInternal(par[i], i);
   }
-  return getChebyshevCalc(idim)->evaluateDerivative(dimd, mTemporaryCoefficient) * mBoundaryMappingScale[dimd];
+  return getChebyshevCalc(idim)->evaluateDerivative(dimd, coef) * mBoundaryMappingScale[dimd];
 }
 
 /// Evaluates Chebyshev parameterization 2ns derivative over dimd1 and dimd2 dimensions for idim-th output dimension of
 /// 3d->DimOut function
 inline Float_t Chebyshev3D::evaluateDerivative2(int dimd1, int dimd2, const Float_t* par, int idim)
 {
+  Float_t coef[3]; // mapped arguments, local so that evaluation is reentrant
   for (int i = 3; i--;) {
-    mTemporaryCoefficient[i] = mapToInternal(par[i], i);
+    coef[i] = mapToInternal(par[i], i);
   }
-  return getChebyshevCalc(idim)->evaluateDerivative2(dimd1, dimd2, mTemporaryCoefficient) *
+  return getChebyshevCalc(idim)->evaluateDerivative2(dimd1, dimd2, coef) *
          mBoundaryMappingScale[dimd1] * mBoundaryMappingScale[dimd2];
 }
 

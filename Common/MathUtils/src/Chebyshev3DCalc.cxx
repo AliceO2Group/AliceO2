@@ -205,11 +205,14 @@ void Chebyshev3DCalc::Print(const Option_t*) const
 
 Float_t Chebyshev3DCalc::evaluateDerivative(int dim, const Float_t* par) const
 {
+  EvalScratch scratch(mNumberOfRows, mNumberOfColumns);
+  Float_t* coefs2D = scratch.cols();
+  Float_t* coefs1D = scratch.rows();
   int ncfRC;
   for (int id0 = mNumberOfRows; id0--;) {
     int nCLoc = mNumberOfColumnsAtRow[id0]; // number of significant coefs on this row
     if (!nCLoc) {
-      mTemporaryCoefficients1D[id0] = 0;
+      coefs1D[id0] = 0;
       continue;
     }
     //
@@ -217,62 +220,65 @@ Float_t Chebyshev3DCalc::evaluateDerivative(int dim, const Float_t* par) const
     for (int id1 = nCLoc; id1--;) {
       int id = id1 + col0;
       if (!(ncfRC = mCoefficientBound2D0[id])) {
-        mTemporaryCoefficients2D[id1] = 0;
+        coefs2D[id1] = 0;
         continue;
       }
       if (dim == 2) {
-        mTemporaryCoefficients2D[id1] =
+        coefs2D[id1] =
           chebyshevEvaluation1Derivative(par[2], mCoefficients + mCoefficientBound2D1[id], ncfRC);
       } else {
-        mTemporaryCoefficients2D[id1] = chebyshevEvaluation1D(par[2], mCoefficients + mCoefficientBound2D1[id], ncfRC);
+        coefs2D[id1] = chebyshevEvaluation1D(par[2], mCoefficients + mCoefficientBound2D1[id], ncfRC);
       }
     }
     if (dim == 1) {
-      mTemporaryCoefficients1D[id0] = chebyshevEvaluation1Derivative(par[1], mTemporaryCoefficients2D, nCLoc);
+      coefs1D[id0] = chebyshevEvaluation1Derivative(par[1], coefs2D, nCLoc);
     } else {
-      mTemporaryCoefficients1D[id0] = chebyshevEvaluation1D(par[1], mTemporaryCoefficients2D, nCLoc);
+      coefs1D[id0] = chebyshevEvaluation1D(par[1], coefs2D, nCLoc);
     }
   }
-  return (dim == 0) ? chebyshevEvaluation1Derivative(par[0], mTemporaryCoefficients1D, mNumberOfRows)
-                    : chebyshevEvaluation1D(par[0], mTemporaryCoefficients1D, mNumberOfRows);
+  return (dim == 0) ? chebyshevEvaluation1Derivative(par[0], coefs1D, mNumberOfRows)
+                    : chebyshevEvaluation1D(par[0], coefs1D, mNumberOfRows);
 }
 
 Float_t Chebyshev3DCalc::evaluateDerivative2(int dim1, int dim2, const Float_t* par) const
 {
+  EvalScratch scratch(mNumberOfRows, mNumberOfColumns);
+  Float_t* coefs2D = scratch.cols();
+  Float_t* coefs1D = scratch.rows();
   Bool_t same = dim1 == dim2;
   int ncfRC;
   for (int id0 = mNumberOfRows; id0--;) {
     int nCLoc = mNumberOfColumnsAtRow[id0]; // number of significant coefs on this row
     if (!nCLoc) {
-      mTemporaryCoefficients1D[id0] = 0;
+      coefs1D[id0] = 0;
       continue;
     }
     int col0 = mColumnAtRowBeginning[id0]; // beginning of local column in the 2D boundary matrix
     for (int id1 = nCLoc; id1--;) {
       int id = id1 + col0;
       if (!(ncfRC = mCoefficientBound2D0[id])) {
-        mTemporaryCoefficients2D[id1] = 0;
+        coefs2D[id1] = 0;
         continue;
       }
       if (dim1 == 2 || dim2 == 2) {
-        mTemporaryCoefficients2D[id1] =
+        coefs2D[id1] =
           same ? chebyshevEvaluation1Derivative2(par[2], mCoefficients + mCoefficientBound2D1[id], ncfRC)
                : chebyshevEvaluation1Derivative(par[2], mCoefficients + mCoefficientBound2D1[id], ncfRC);
       } else {
-        mTemporaryCoefficients2D[id1] = chebyshevEvaluation1D(par[2], mCoefficients + mCoefficientBound2D1[id], ncfRC);
+        coefs2D[id1] = chebyshevEvaluation1D(par[2], mCoefficients + mCoefficientBound2D1[id], ncfRC);
       }
     }
     if (dim1 == 1 || dim2 == 1) {
-      mTemporaryCoefficients1D[id0] = same ? chebyshevEvaluation1Derivative2(par[1], mTemporaryCoefficients2D, nCLoc)
-                                           : chebyshevEvaluation1Derivative(par[1], mTemporaryCoefficients2D, nCLoc);
+      coefs1D[id0] = same ? chebyshevEvaluation1Derivative2(par[1], coefs2D, nCLoc)
+                          : chebyshevEvaluation1Derivative(par[1], coefs2D, nCLoc);
     } else {
-      mTemporaryCoefficients1D[id0] = chebyshevEvaluation1D(par[1], mTemporaryCoefficients2D, nCLoc);
+      coefs1D[id0] = chebyshevEvaluation1D(par[1], coefs2D, nCLoc);
     }
   }
   return (dim1 == 0 || dim2 == 0)
-           ? (same ? chebyshevEvaluation1Derivative2(par[0], mTemporaryCoefficients1D, mNumberOfRows)
-                   : chebyshevEvaluation1Derivative(par[0], mTemporaryCoefficients1D, mNumberOfRows))
-           : chebyshevEvaluation1D(par[0], mTemporaryCoefficients1D, mNumberOfRows);
+           ? (same ? chebyshevEvaluation1Derivative2(par[0], coefs1D, mNumberOfRows)
+                   : chebyshevEvaluation1Derivative(par[0], coefs1D, mNumberOfRows))
+           : chebyshevEvaluation1D(par[0], coefs1D, mNumberOfRows);
 }
 
 #ifdef _INC_CREATION_Chebyshev3D_
