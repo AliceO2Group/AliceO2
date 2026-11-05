@@ -44,68 +44,90 @@ class BoundTrackParameters;
 namespace o2::trk
 {
 
-/// Configuration for the ACTS-based tracker
+/// Configuration for ACTS seeding, track finding, and optional diagnostic output.
+///
+/// Length and momentum-valued cuts use ACTS units (mm and GeV, respectively).
 struct TrackerACTSConfig {
-  // Seeding parameters
+  /// Minimum transverse momentum accepted by the seeding algorithms.
   float minPt = 0.4f * Acts::UnitConstants::GeV;             ///< Minimum pT for seeds
-  float maxImpactParameter = 10.f * Acts::UnitConstants::mm; ///< Maximum impact parameter
-  float cotThetaMax = std::sinh(4.0f);                       ///< Maximum cot(theta), corresponds to eta ~4
+  /// Maximum transverse distance of closest approach used in seeding.
+  float maxImpactParameter = 10.f * Acts::UnitConstants::mm;
+  /// Maximum absolute cot(theta); the default corresponds approximately to |eta| = 4.
+  float cotThetaMax = std::sinh(4.0f);
 
-  // Delta R cuts for doublet/triplet formation
+  /// Minimum and maximum radial separation for bottom-to-middle space-point pairs.
   float deltaRMinBottom = 5.f * Acts::UnitConstants::mm;   ///< Min deltaR for bottom-middle
   float deltaRMaxBottom = 200.f * Acts::UnitConstants::mm; ///< Max deltaR for bottom-middle
+  /// Minimum and maximum radial separation for middle-to-top space-point pairs.
   float deltaRMinTop = 5.f * Acts::UnitConstants::mm;      ///< Min deltaR for middle-top
   float deltaRMaxTop = 200.f * Acts::UnitConstants::mm;    ///< Max deltaR for middle-top
 
-  // Z cuts
+  /// Longitudinal range used to select space points for seeding.
   float zMin = -3000.f * Acts::UnitConstants::mm;
   float zMax = 3000.f * Acts::UnitConstants::mm;
 
-  // Collision region
+  /// Longitudinal range of the collision region used when constructing seeds.
   float collisionRegionMin = -150.f * Acts::UnitConstants::mm;
   float collisionRegionMax = 150.f * Acts::UnitConstants::mm;
 
-  // Quality cuts
+  /// Maximum number of seeds retained for each middle space point.
   float maxSeedsPerMiddleSP = 2;
-  float deltaPhiMax = 0.1f; ///< Maximum phi difference for doublets
-  // Optional debug output. No ROOT file or histogram is created by default.
-  bool writeDebugTrees = false;             ///< Cluster, seed and ROF summary trees
-  bool dumpTrackingGeometry = false;        ///< Write a JSON volume/surface snapshot on first use
-  int debugMaxTimeFrames = 1;               ///< 1 by default, -1 for all TFs
+  /// Reserved maximum azimuthal angle difference for doublets (radians); currently unused.
+  float deltaPhiMax = 0.1f;
+
+  /// Enable diagnostic ROOT trees and histograms; disabled by default.
+  bool writeDebugTrees = false;
+  /// Write a JSON snapshot of the tracking geometry on the first use.
+  bool dumpTrackingGeometry = false;
+  /// Number of time frames with debug output; 0 disables it and -1 means all.
+  int debugMaxTimeFrames = 1;
+  /// Destination ROOT file for diagnostic output.
   std::string debugFileName = "TrackerACTS_debug.root";
+  /// Destination JSON file for the tracking-geometry snapshot.
   std::string geometryDumpFileName = "TrackerACTS_geometry.json";
 };
 
-/// Space point representation for tracking
+/// Cluster-derived space point passed to the ACTS seeding algorithms.
 struct SpacePoint {
+  /// Cartesian position in the global tracking frame, in mm.
   float x{0.f};
   float y{0.f};
   float z{0.f};
+  /// Detector layer and cluster indices identifying the source measurement.
   int layer{-1};
   int clusterId{-1};
+  /// Readout-frame and sensor indices identifying the source measurement.
   int rof{-1};
   int sensorId{-1};
+  /// Geometry surface associated with this measurement; not owned by the space point.
   const Acts::Surface* surface{nullptr};
 
-  // Derived quantities
+  /// Transverse radius in mm.
   float r() const { return std::hypot(x, y); }
-  float radius() const { return r(); } // required by Acts::CylindricalGridElement concept
+  /// Radius accessor required by the ACTS cylindrical-grid element concept.
+  float radius() const { return r(); }
+  /// Azimuthal angle in radians.
   float phi() const { return std::atan2(y, x); }
 
-  // Variance estimates (can be refined based on cluster properties)
-  float varianceR{0.01f}; // ~100 um resolution squared
+  /// Estimated radial and longitudinal position variances, in mm^2.
+  float varianceR{0.01f};
   float varianceZ{0.01f};
 };
 
-/// Seed (triplet of space points)
+/// Three-space-point seed ordered from the innermost to outermost measurement.
 struct SeedACTS {
   const SpacePoint* bottom{nullptr};
   const SpacePoint* middle{nullptr};
   const SpacePoint* top{nullptr};
+  /// ACTS seed quality value.
   float quality{0.f};
 };
 
-/// TRK Tracker using ACTS algorithms for seeding and track finding
+/// TRK tracker using ACTS algorithms for seeding and track finding.
+///
+/// The caller supplies a TimeFrame and, optionally, sensor-ID mappings before
+/// calling clustersToTracks(). The adopted data is referenced rather than
+/// copied, so it must remain alive while the tracker processes it.
 template <int nLayers>
 class TrackerACTS
 {
@@ -113,28 +135,33 @@ class TrackerACTS
   TrackerACTS();
   ~TrackerACTS();
 
-  /// Adopt a TimeFrame for processing
+  /// Set the TimeFrame whose clusters will be reconstructed.
+  /// The TimeFrame is borrowed and must outlive its use by this tracker.
   void adoptTimeFrame(o2::its::TimeFrame<nLayers>& tf);
+  /// Set per-layer sensor-ID mappings used to associate clusters with geometry.
+  /// The mapping array is borrowed and must remain alive while it is used.
   void adoptSensorIDs(const std::array<std::vector<int>, nLayers>& sensorIDs)
   {
     mSensorIDs = &sensorIDs;
   }
 
-  /// Main tracking entry point: convert clusters to tracks
+  /// Build space points, find tracks, and publish accepted tracks in the TimeFrame.
   void clustersToTracks();
 
-  /// Configuration
+  /// Replace the current tracker configuration.
   void setConfig(const TrackerACTSConfig& cfg) { mConfig = cfg; }
+  /// Access the tracker configuration for modification.
   TrackerACTSConfig& getConfig() { return mConfig; }
+  /// Read-only access to the tracker configuration.
   const TrackerACTSConfig& getConfig() const { return mConfig; }
 
-  /// Set the magnetic field strength
+  /// Set the magnetic field along z, in Tesla.
   void setBz(float bz) { mBz = bz; }
 
-  /// Get the magnetic field strength
+  /// Get the magnetic field along z, in Tesla.
   float getBz() const { return mBz; }
 
-  /// Print tracking summary
+  /// Print the accumulated tracking timing and processing summary.
   void printSummary() const;
 
  private:

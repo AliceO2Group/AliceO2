@@ -15,6 +15,26 @@
 /// \author Nicolò Jacazio, Università del Piemonte Orientale (IT)
 /// \since 2026-04-01
 ///
+/// \details
+/// The tracker processes one readout frame (ROF) at a time. For each ROF it
+/// maps clusters to ACTS surfaces, creates ACTS space-point triplet seeds,
+/// fits each seed with the ACTS Kalman fitter, and publishes accepted tracks
+/// in the O2 TimeFrame. Optional ROOT and JSON output records intermediate
+/// information for diagnostics; neither output is required for reconstruction.
+///
+/// ACTS geometry is supplied by the process-wide
+/// o2::acts::TrackingGeometryManager. Before its first build, the workflow
+/// must make the aligned O2 TGeo geometry available and install the
+/// detector-specific ACTS geometry builder. The manager builds the geometry
+/// lazily and keeps it immutable; surface pointers stored in space points are
+/// non-owning references to that manager-owned geometry.
+///
+/// Cluster coordinates from the TimeFrame are in cm and are converted to
+/// ACTS mm when space points are created. ACTS contexts, local coordinates,
+/// field values, and fit parameters must therefore use ACTS units. Conversion
+/// back to the O2 track representation is performed only when a track is
+/// accepted.
+///
 
 #include "ALICE3GlobalReconstruction/TrackerACTS.h"
 
@@ -24,6 +44,7 @@
 
 #include <Acts/Geometry/TrackingGeometry.hpp>
 #include <Acts/Geometry/TrackingVolume.hpp>
+#include <Acts/Geometry/VolumeBounds.hpp>
 #include <Acts/Definitions/Direction.hpp>
 #include <Acts/Definitions/TrackParametrization.hpp>
 #include <Acts/EventData/BoundTrackParameters.hpp>
@@ -75,10 +96,14 @@ namespace o2::trk
 
 namespace
 {
-// Convert ACTS surface-bound parameters to the O2 tracking frame
-// (x, alpha; y, z, sin(phi-alpha), tan(lambda), q/pT).
-// The covariance is transformed by a numerical Jacobian evaluated at the
-// fitted state. Position units are converted from ACTS mm to O2 cm.
+/// Convert an ACTS bound state into O2's local track parameterization.
+///
+/// O2 stores (x, alpha; y, z, sin(phi-alpha), tan(lambda), q/pT), whereas
+/// ACTS stores surface-local coordinates and bound direction/momentum
+/// parameters. The covariance is propagated through the same conversion with
+/// a central-difference Jacobian. Positions are converted from ACTS mm to O2
+/// cm and q/p is converted to q/pT. ACTS has a time coordinate but
+/// TrackParCov does not, so the time row/column is not included in the output.
 bool convertTrackParameters(const Acts::BoundTrackParameters& actsTrack,
                             const Acts::GeometryContext& gctx,
                             o2::track::TrackParCov& output)
@@ -203,6 +228,7 @@ TrackerACTS<nLayers>::~TrackerACTS()
 template <int nLayers>
 bool TrackerACTS<nLayers>::isDebugTimeFrame() const
 {
+  // A negative limit means unlimited debug output; zero disables it.
   return mDebugFile && (mConfig.debugMaxTimeFrames < 0 ||
                         mTimeFrameCounter < static_cast<unsigned int>(mConfig.debugMaxTimeFrames));
 }
@@ -220,6 +246,8 @@ void TrackerACTS<nLayers>::initDebugOutput()
     return;
   }
   mDebugFile->cd();
+  // The tree branches point into these member records, which are refilled for
+  // each entry. The file owns the trees; the tracker owns the histogram.
   mClusterTree = new TTree("clusters", "ACTS input clusters and surface mapping; positions in cm; variances in ACTS units");
   mClusterTree->Branch("tf", &mDebugCluster.tf, "tf/I");
   mClusterTree->Branch("rof", &mDebugCluster.rof, "rof/I");
@@ -273,9 +301,15 @@ void TrackerACTS<nLayers>::dumpGeometryOnce()
   }
   mGeometryDumped = true; // Even on I/O failure, do not retry on every TF.
   auto& manager = o2::acts::TrackingGeometryManager::instance();
+  // get() builds the shared geometry on first access if necessary. Its
+  // nominal context is appropriate because O2 alignment was already applied
+  // to the TGeo matrices from which this ACTS geometry was built.
   const auto& geometry = manager.get();
   const auto& gctx = manager.getNominalContext();
   auto* trkGeometry = o2::trk::GeometryTGeo::Instance();
+  // Build/reuse the sensor-to-surface map. The matrix cache is populated in
+  // clustersToTracks(); the path provider makes matching use the TGeo sensor
+  // path as an identity instead of relying only on transform proximity.
   const auto& surfaceIndex = manager.getIndex(*trkGeometry, 1.e-3, [trkGeometry](int sensorID) {
     return std::string(trkGeometry->getMatrixPath(sensorID).Data());
   });
@@ -285,19 +319,25 @@ void TrackerACTS<nLayers>::dumpGeometryOnce()
     LOG(error) << "Cannot open ACTS geometry dump: " << mConfig.geometryDumpFileName;
     return;
   }
-  out << "{\n  \"description\": \"ACTS volumes and surfaces snapshot, not a complete ACTS geometry serialization\",\n"
+  out << "{\n  \"description\": \"ACTS volumes and sensitive surfaces snapshot, not a complete ACTS geometry serialization\",\n"
          "  \"lengthUnits\": \"mm (angles in rad)\",\n  \"volumes\": [\n";
   bool first = true;
   int nVolumes = 0;
-  geometry.visitVolumes([&](const Acts::TrackingVolume& volume) {
-    const auto& transform = volume.localToGlobalTransform(gctx);
+  // ACTS visitor callbacks receive non-owning pointers. The snapshot records
+  // global transforms in the nominal context and basic bounds/material
+  // metadata; it is intended for inspection, not for rebuilding the geometry.
+  geometry.visitVolumes([&](const Acts::TrackingVolume* volume) {
+    if (volume == nullptr) {
+      return;
+    }
+    const auto& transform = volume->localToGlobalTransform(gctx);
     nlohmann::json item;
-    item["geometryId"] = volume.geometryId().value();
-    item["motherGeometryId"] = volume.motherVolume() ? volume.motherVolume()->geometryId().value() : 0;
-    item["name"] = volume.volumeName();
-    item["boundsType"] = static_cast<int>(volume.volumeBounds().type());
-    item["boundsValues"] = volume.volumeBounds().values();
-    item["hasMaterial"] = volume.volumeMaterial() != nullptr;
+    item["geometryId"] = volume->geometryId().value();
+    item["motherGeometryId"] = volume->motherVolume() ? volume->motherVolume()->geometryId().value() : 0;
+    item["name"] = volume->volumeName();
+    item["boundsType"] = static_cast<int>(volume->volumeBounds().type());
+    item["boundsValues"] = volume->volumeBounds().values();
+    item["hasMaterial"] = volume->volumeMaterial() != nullptr;
     item["translation"] = {transform.translation().x(), transform.translation().y(), transform.translation().z()};
     item["rotation"] = nlohmann::json::array();
     for (int row = 0; row < 3; ++row) {
@@ -313,27 +353,33 @@ void TrackerACTS<nLayers>::dumpGeometryOnce()
   out << "\n  ],\n  \"surfaces\": [\n";
   first = true;
   int nSurfaces = 0;
-  geometry.visitSurfaces([&](const Acts::Surface& surface) {
-    const auto& transform = surface.localToGlobalTransform(gctx);
+  // The one-argument TrackingGeometry visitor visits sensitive surfaces.
+  // Associate each geometry identifier with the O2 sensor IDs known to the
+  // detector-specific index; a surface can have no matching sensor ID.
+  geometry.visitSurfaces([&](const Acts::Surface* surface) {
+    if (surface == nullptr) {
+      return;
+    }
+    const auto& transform = surface->localToGlobalTransform(gctx);
     nlohmann::json item;
-    item["geometryId"] = surface.geometryId().value();
-    item["surfaceType"] = static_cast<int>(surface.type());
-    item["boundsType"] = static_cast<int>(surface.bounds().type());
-    item["boundsValues"] = surface.bounds().values();
-    item["hasMaterial"] = surface.hasMaterial();
+    item["geometryId"] = surface->geometryId().value();
+    item["surfaceType"] = static_cast<int>(surface->type());
+    item["boundsType"] = static_cast<int>(surface->bounds().type());
+    item["boundsValues"] = surface->bounds().values();
+    item["hasMaterial"] = surface->hasMaterial();
     item["translation"] = {transform.translation().x(), transform.translation().y(), transform.translation().z()};
     item["rotation"] = nlohmann::json::array();
     for (int row = 0; row < 3; ++row) {
       item["rotation"].push_back({transform.rotation()(row, 0), transform.rotation()(row, 1), transform.rotation()(row, 2)});
     }
-    item["sensorIds"] = surfaceIndex.getSensorIDs(surface.geometryId());
+    item["sensorIds"] = surfaceIndex.getSensorIDs(surface->geometryId());
     if (!first) {
       out << ",\n";
     }
     out << item.dump();
     first = false;
     ++nSurfaces;
-  }, false); // Also include passive/non-sensitive surfaces where reachable.
+  });
   out << "\n  ]\n}\n";
   if (!out.good()) {
     LOG(error) << "Error while writing ACTS geometry dump " << mConfig.geometryDumpFileName;
@@ -357,6 +403,8 @@ void TrackerACTS<nLayers>::fillDebugSeeds(int rof)
     mDebugSeed.seedId = static_cast<int>(iSeed);
     mDebugSeed.quality = seed.quality;
     const std::array<const SpacePoint*, 3> points{seed.bottom, seed.middle, seed.top};
+    // Keep the output order consistent with the seeder and seed-triplet
+    // convention: innermost (bottom), middle, then outermost (top).
     for (int i = 0; i < 3; ++i) {
       const auto& sp = *points[i];
       mDebugSeed.layer[i] = sp.layer;
@@ -376,6 +424,7 @@ void TrackerACTS<nLayers>::fillDebugSeeds(int rof)
 template <int nLayers>
 void TrackerACTS<nLayers>::adoptTimeFrame(o2::its::TimeFrame<nLayers>& tf)
 {
+  // Borrow the TimeFrame; its lifetime must cover all calls that use it.
   mTimeFrame = &tf;
 }
 
@@ -395,8 +444,13 @@ void TrackerACTS<nLayers>::buildSpacePoints(int rof)
   auto& actsGeometryManager = o2::acts::TrackingGeometryManager::instance();
   auto* trkGeometry = o2::trk::GeometryTGeo::Instance();
 
+  // Surface matching needs global-to-local transforms from O2's geometry
+  // helper. Build its L2G cache before requesting the manager's detector index.
   trkGeometry->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G));
 
+  // mSensorIDs is parallel to each layer's cluster ordering. Its sensor ID
+  // selects the corresponding ACTS surface; missing IDs or surfaces cannot be
+  // used by seeding/fitting and are skipped below.
   const auto& surfaceIndex = actsGeometryManager.getIndex(*trkGeometry, 1.e-3, [trkGeometry](int sensorID) {
     return std::string(trkGeometry->getMatrixPath(sensorID).Data());
   });
@@ -450,6 +504,8 @@ void TrackerACTS<nLayers>::buildSpacePoints(int rof)
       }
 
       SpacePoint sp;
+      // SpacePoint and all subsequent ACTS calculations use mm, while the
+      // TimeFrame cluster coordinates are stored in cm.
       sp.x = cluster.xCoordinate * Acts::UnitConstants::cm;
       sp.y = cluster.yCoordinate * Acts::UnitConstants::cm;
       sp.z = cluster.zCoordinate * Acts::UnitConstants::cm;
@@ -491,6 +547,9 @@ void TrackerACTS<nLayers>::createSeeds()
 
   const float bFieldInZ = mBz * Acts::UnitConstants::T;
 
+  // ACTS seeding consumes cylindrical (phi, z, r) bins in ACTS units. The
+  // bins are populated from the owned space-point vector, whose indices are
+  // retained so ACTS seeds can be translated back to SpacePoint pointers.
   Acts::CylindricalSpacePointGrid::Config gridConfig;
   gridConfig.minPt = mConfig.minPt;
   gridConfig.rMin = 0.f;
@@ -630,12 +689,15 @@ void TrackerACTS<nLayers>::findTracks()
   }
 
   auto& actsGeometryManager = o2::acts::TrackingGeometryManager::instance();
+  // The same nominal context used to construct/map the geometry must be used
+  // for surface transforms and propagation.
   const auto& geometryContext = actsGeometryManager.getNominalContext();
 
   Acts::MagneticFieldContext magneticFieldContext;
   Acts::CalibrationContext calibrationContext;
 
-  // Initial implementation with a constant magnetic field
+  // Initial implementation with a constant magnetic field; the ACTS geometry
+  // is used for surface navigation, while this field is uniform in z.
   auto magneticField = std::make_shared<Acts::ConstantBField>(
     Acts::Vector3{0., 0., mBz * Acts::UnitConstants::T});
 
@@ -674,6 +736,8 @@ void TrackerACTS<nLayers>::findTracks()
     {
       const auto& hit = *sourceLink.get<HitSourceLink>().hit;
 
+      // The hit was converted to this ACTS surface's local coordinates before
+      // fitting. Calibrate only the two measured local position coordinates.
       trackState.setUncalibratedSourceLink(Acts::SourceLink{sourceLink});
       trackState.allocateCalibrated(2);
       trackState.calibrated<2>() = hit.local;
@@ -789,6 +853,8 @@ void TrackerACTS<nLayers>::findTracks()
       const auto* surface = sp->surface;
       Acts::Vector3 position{sp->x, sp->y, sp->z};
 
+      // Convert the cluster's global position to the coordinates expected by
+      // a measurement on this ACTS surface.
       auto localResult = surface->globalToLocal(
         geometryContext, position, direction,
         1. * Acts::UnitConstants::mm);
@@ -803,6 +869,8 @@ void TrackerACTS<nLayers>::findTracks()
       measurement.local = localResult.value();
 
       const double sigma = 100. * Acts::UnitConstants::um;
+      // This initial fitter uses a common 100 um diagonal resolution for all
+      // three measurements; detector-specific covariances are not yet passed.
       measurement.covariance.setZero();
       measurement.covariance(0, 0) = sigma * sigma;
       measurement.covariance(1, 1) = sigma * sigma;
@@ -906,6 +974,9 @@ bool TrackerACTS<nLayers>::acceptTrack(const Acts::BoundTrackParameters& inner,
   uint32_t pattern = 0;
   std::array<uint64_t, 3> keys{};
 
+  // TrackITSExt has one cluster slot per detector layer. Retain the internal
+  // TimeFrame cluster index for MC lookup, but publish its external index in
+  // the O2 track.
   for (int i = 0; i < 3; ++i) {
     const auto* hit = hits[i];
     if (!hit || hit->layer < 0 || hit->layer >= nLayers || hit->clusterId < 0 ||
@@ -931,12 +1002,17 @@ bool TrackerACTS<nLayers>::acceptTrack(const Acts::BoundTrackParameters& inner,
   }
 
   o2::track::TrackParCov innerO2, outerO2;
+  // Convert the smoothed ACTS parameters at both ends of the fitted
+  // trajectory. Conversion uses the nominal geometry context so that bound
+  // local parameters are interpreted on their associated surfaces.
   const auto& gctx = o2::acts::TrackingGeometryManager::instance().getNominalContext();
   if (!convertTrackParameters(inner, gctx, innerO2) || !convertTrackParameters(outer, gctx, outerO2)) {
     return false;
   }
 
-  // Intersect the ROF timing intervals exactly as in ITS track acceptance.
+  // Require the three source clusters to have compatible readout timing. Use
+  // the nominal overlap when possible, otherwise the widened overlap, exactly
+  // as in ITS track acceptance.
   const auto& timing = mTimeFrame->getROFOverlapTableView();
   auto nominal = timing.getLayer(hits[0]->layer).getROFTimeBounds(hits[0]->rof);
   auto expanded = timing.getLayer(hits[0]->layer).getROFTimeBounds(hits[0]->rof, true);
@@ -1028,6 +1104,8 @@ void TrackerACTS<nLayers>::computeTracksMClabels()
         }
       }
     }
+    // Choose the truth label occurring in the largest number of attached
+    // clusters. Mark it fake unless it is represented on every hit.
     o2::MCCompLabel winner;
     uint32_t pattern = track.getPattern() & 0x0000ffffu;
     if (counts.empty()) {
@@ -1073,14 +1151,20 @@ void TrackerACTS<nLayers>::clustersToTracks()
   mAcceptedTrackClusterIndices.clear();
   LOG(info) << "==== TRK ACTS Tracking ====";
 
-  // Verify tracking geometry usage
+  // Trigger (or retrieve) the process-wide immutable ACTS geometry. A builder
+  // must already have been installed and the aligned O2 geometry must be
+  // available before this first access.
   auto& actsGeometryManager = o2::acts::TrackingGeometryManager::instance();
   const auto& trackingGeometry = actsGeometryManager.get();
 
-  // Dump tracking geometry to json file for debugging
+  // Keep the geometry alive and make the explicit initialization step clear;
+  // detailed lookups are done through the detector-specific surface index.
   (void)trackingGeometry;
 
   auto* trkGeometry = o2::trk::GeometryTGeo::Instance();
+  // The index uses this L2G cache and an exact TGeo path provider to map each
+  // TRK sensor ID to the ACTS surface built for that sensor. It is cached by
+  // TrackingGeometryManager and reused by the ROF processing below.
   trkGeometry->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G));
   const auto& surfaceIndex = actsGeometryManager.getIndex(*trkGeometry, 1.e-3, [trkGeometry](int sensorID) {
     return std::string(trkGeometry->getMatrixPath(sensorID).Data());
@@ -1097,6 +1181,8 @@ void TrackerACTS<nLayers>::clustersToTracks()
     initDebugOutput();
   }
 
+  // Each ROF is processed independently for space-point creation, seeding,
+  // and fitting. Accepted tracks accumulate in the TimeFrame across ROFs.
   for (int iROF = 0; iROF < mTimeFrame->getNrof(0); ++iROF) {
     LOG(info) << "Processing ROF " << iROF;
 
