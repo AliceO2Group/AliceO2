@@ -138,6 +138,8 @@ int32_t GPUReconstructionMetal::InitDevice_Runtime()
       }
       mInternals->streamOrder[i] = [mInternals->device newSharedEvent];
       mInternals->streamOrderValue[i] = 0;
+      mInternals->streamFence[i] = [mInternals->device newFence];
+      mInternals->streamHasWork[i] = false;
     }
 
     mInternals->mem_host = [mInternals->device newBufferWithLength:mHostMemorySize options:MTLResourceStorageModeShared];
@@ -213,6 +215,7 @@ int32_t GPUReconstructionMetal::ExitDevice_Runtime()
         [mInternals->commandBuffers[i] release];
         [mInternals->commandQueues[i] release];
         [mInternals->streamOrder[i] release];
+        [mInternals->streamFence[i] release];
       }
       [mInternals->mem_host release];
     }
@@ -281,13 +284,13 @@ size_t GPUReconstructionMetal::GPUMemCpy(void* dst, const void* src, size_t size
   } else {
     id<MTLCommandBuffer> cb = mInternals->commandBuffers[realStream];
     id<MTLBlitCommandEncoder> blit = [cb blitCommandEncoder];
+    metalBeginEncoder(mInternals, blit, realStream);
     [blit copyFromBuffer:s.buffer
             sourceOffset:s.offset
                 toBuffer:d.buffer
        destinationOffset:d.offset
                     size:sizeBytes];
-    [blit endEncoding];
-    CommitStream(realStream);
+    metalEndEncoder(mInternals, blit, realStream);
   }
   if (ev) {
     RecordMarker(ev, realStream);
@@ -314,13 +317,13 @@ size_t GPUReconstructionMetal::WriteToConstantMemory(size_t offset, const void* 
   } else {
     id<MTLCommandBuffer> cb = mInternals->commandBuffers[realStream];
     id<MTLBlitCommandEncoder> blit = [cb blitCommandEncoder];
+    metalBeginEncoder(mInternals, blit, realStream);
     [blit copyFromBuffer:s.buffer
             sourceOffset:s.offset
                 toBuffer:mInternals->mem_constant
        destinationOffset:offset
                     size:size];
-    [blit endEncoding];
-    CommitStream(realStream);
+    metalEndEncoder(mInternals, blit, realStream);
   }
   if (ev) {
     RecordMarker(ev, realStream);
@@ -366,12 +369,16 @@ void GPUReconstructionMetal::CommitStream(int32_t stream)
   // Hand the committed buffer over to the stream's submission list, which owns
   // it until it is waited for, and open a fresh one to encode the next work in.
   mInternals->submittedBuffers[stream].emplace_back(cb);
+  mInternals->streamHasWork[stream] = false;
   mInternals->commandBuffers[stream] = [[mInternals->commandQueues[stream] commandBuffer] retain];
   [mInternals->commandBuffers[stream] encodeWaitForEvent:mInternals->streamOrder[stream] value:value];
 }
 
 void GPUReconstructionMetal::DrainStream(int32_t stream)
 {
+  if (mInternals->streamHasWork[stream]) {
+    CommitStream(stream);
+  }
   // Waiting on the buffer that is currently open would block forever: it is not
   // committed, so it never completes. Only what was submitted can be waited for.
   for (id<MTLCommandBuffer> cb : mInternals->submittedBuffers[stream]) {

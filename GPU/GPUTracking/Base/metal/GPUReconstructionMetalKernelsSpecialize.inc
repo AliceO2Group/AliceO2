@@ -22,11 +22,10 @@ inline void GPUReconstructionMetal::runKernelBackend<GPUMemClean16, 0>(const krn
 
   id<MTLCommandBuffer> cb = mInternals->commandBuffers[_xyz.x.stream];
   id<MTLBlitCommandEncoder> blit = [cb blitCommandEncoder];
+  metalBeginEncoder(mInternals, blit, _xyz.x.stream);
 
   [blit fillBuffer:mInternals->mem_gpu range:NSMakeRange(offset, length) value:0];
-  [blit endEncoding];
-
-  CommitStream(_xyz.x.stream);
+  metalEndEncoder(mInternals, blit, _xyz.x.stream);
   if (_xyz.z.ev) {
     RecordMarker(_xyz.z.ev, _xyz.x.stream);
   }
