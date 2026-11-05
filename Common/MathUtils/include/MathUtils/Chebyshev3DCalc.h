@@ -19,6 +19,8 @@
 #include <TNamed.h> // for TNamed
 #include <cstdio>   // for FILE, stdout
 #include <cmath>    // for std::fma
+#include <algorithm>
+#include <vector>
 #include "Rtypes.h" // for Float_t, UShort_t, Int_t, Double_t, etc
 
 class TString;
@@ -171,6 +173,37 @@ class Chebyshev3DCalc : public TNamed
   Double_t Eval(const Double_t* par) const;
 
  private:
+  /// Scratch arrays for one evaluation: on the stack for the usual sizes, thread-local beyond them,
+  /// so that evaluation is reentrant. The ALICE field maps use at most 14 rows and columns.
+  class EvalScratch
+  {
+   public:
+    EvalScratch(int nrows, int ncols)
+    {
+      if (nrows <= kStackSize && ncols <= kStackSize) {
+        mRows = mStackRows;
+        mCols = mStackCols;
+      } else {
+        thread_local std::vector<Float_t> rows, cols;
+        rows.resize(std::max<size_t>(nrows, rows.size()));
+        cols.resize(std::max<size_t>(ncols, cols.size()));
+        mRows = rows.data();
+        mCols = cols.data();
+      }
+    }
+    EvalScratch(const EvalScratch&) = delete;
+    EvalScratch& operator=(const EvalScratch&) = delete;
+    Float_t* rows() { return mRows; }
+    Float_t* cols() { return mCols; }
+
+   private:
+    static constexpr int kStackSize = 64;
+    Float_t mStackRows[kStackSize];
+    Float_t mStackCols[kStackSize];
+    Float_t* mRows;
+    Float_t* mCols;
+  };
+
   Int_t mNumberOfCoefficients;    ///< total number of coeeficients
   Int_t mNumberOfRows;            ///< number of significant rows in the 3D coeffs matrix
   Int_t mNumberOfColumns;         ///< max number of significant cols in the 3D coeffs matrix
@@ -188,8 +221,8 @@ class Chebyshev3DCalc : public TNamed
   // coeffs for col/row
   Float_t* mCoefficients; //[mNumberOfCoefficients] array of Chebyshev coefficients
 
-  Float_t* mTemporaryCoefficients2D; //[mNumberOfColumns] temp. coeffs for 2d summation
-  Float_t* mTemporaryCoefficients1D; //[mNumberOfRows] temp. coeffs for 1d summation
+  Float_t* mTemporaryCoefficients2D; //[mNumberOfColumns] no longer used for evaluation
+  Float_t* mTemporaryCoefficients1D; //[mNumberOfRows] no longer used for evaluation
 
   ClassDefOverride(o2::math_utils::Chebyshev3DCalc,
                    2) // Class for interpolation of 3D->1 function by Chebyshev parametrization
@@ -223,32 +256,38 @@ inline Float_t Chebyshev3DCalc::chebyshevEvaluation1D(Float_t x, const Float_t* 
 /// VERY IMPORTANT: par must contain the function arguments ALREADY MAPPED to [-1:1] interval
 inline Float_t Chebyshev3DCalc::Eval(const Float_t* par) const
 {
+  EvalScratch scratch(mNumberOfRows, mNumberOfColumns);
+  Float_t* coefs2D = scratch.cols();
+  Float_t* coefs1D = scratch.rows();
   for (int id0 = mNumberOfRows; id0--;) {
     int nCLoc = mNumberOfColumnsAtRow[id0]; // number of significant coefs on this row
     int col0 = mColumnAtRowBeginning[id0];  // beginning of local column in the 2D boundary matrix
     for (int id1 = nCLoc; id1--;) {
       int id = id1 + col0;
-      mTemporaryCoefficients2D[id1] = chebyshevEvaluation1D(par[2], mCoefficients + mCoefficientBound2D1[id], mCoefficientBound2D0[id]);
+      coefs2D[id1] = chebyshevEvaluation1D(par[2], mCoefficients + mCoefficientBound2D1[id], mCoefficientBound2D0[id]);
     }
-    mTemporaryCoefficients1D[id0] = chebyshevEvaluation1D(par[1], mTemporaryCoefficients2D, nCLoc);
+    coefs1D[id0] = chebyshevEvaluation1D(par[1], coefs2D, nCLoc);
   }
-  return chebyshevEvaluation1D(par[0], mTemporaryCoefficients1D, mNumberOfRows);
+  return chebyshevEvaluation1D(par[0], coefs1D, mNumberOfRows);
 }
 
 /// Evaluates Chebyshev parameterization for 3D function.
 /// VERY IMPORTANT: par must contain the function arguments ALREADY MAPPED to [-1:1] interval
 inline Double_t Chebyshev3DCalc::Eval(const Double_t* par) const
 {
+  EvalScratch scratch(mNumberOfRows, mNumberOfColumns);
+  Float_t* coefs2D = scratch.cols();
+  Float_t* coefs1D = scratch.rows();
   for (int id0 = mNumberOfRows; id0--;) {
     int nCLoc = mNumberOfColumnsAtRow[id0]; // number of significant coefs on this row
     int col0 = mColumnAtRowBeginning[id0];  // beginning of local column in the 2D boundary matrix
     for (int id1 = nCLoc; id1--;) {
       int id = id1 + col0;
-      mTemporaryCoefficients2D[id1] = chebyshevEvaluation1D(par[2], mCoefficients + mCoefficientBound2D1[id], mCoefficientBound2D0[id]);
+      coefs2D[id1] = chebyshevEvaluation1D(par[2], mCoefficients + mCoefficientBound2D1[id], mCoefficientBound2D0[id]);
     }
-    mTemporaryCoefficients1D[id0] = chebyshevEvaluation1D(par[1], mTemporaryCoefficients2D, nCLoc);
+    coefs1D[id0] = chebyshevEvaluation1D(par[1], coefs2D, nCLoc);
   }
-  return chebyshevEvaluation1D(par[0], mTemporaryCoefficients1D, mNumberOfRows);
+  return chebyshevEvaluation1D(par[0], coefs1D, mNumberOfRows);
 }
 } // namespace math_utils
 } // namespace o2

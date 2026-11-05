@@ -21,6 +21,10 @@
 #include <TFile.h>
 #include <TStopwatch.h>
 #include <TRandom.h>
+#include <algorithm>
+#include <array>
+#include <thread>
+#include <vector>
 
 using namespace o2::field;
 
@@ -142,5 +146,42 @@ BOOST_AUTO_TEST_CASE(MagneticField_reinitialization_test)
     for (int i = 0; i < 3; i++) {
       BOOST_CHECK_SMALL(b[i] - bref[ip][i], tolerance);
     }
+  }
+}
+
+BOOST_AUTO_TEST_CASE(MagneticField_threads)
+{
+  // evaluating one field from several threads at once gives bit-identical values to a sequential pass
+  MagneticField fld("Maps", "Maps", 1., 1., o2::field::MagFieldParam::k5kG);
+  constexpr int npoints = 20000;
+  constexpr int nthreads = 8;
+  std::vector<std::array<double, 3>> xyz(npoints);
+  for (auto& p : xyz) {
+    p = {gRandom->Uniform(-450., 450.), gRandom->Uniform(-450., 450.), gRandom->Uniform(-1500., 1500.)};
+  }
+  // field, Bz, TPC integral and TPC ratio integral for every point
+  constexpr int nval = 10;
+  auto evaluate = [&fld, &xyz](std::vector<double>& out) {
+    out.resize(npoints * nval);
+    for (int i = 0; i < npoints; ++i) {
+      fld.Field(xyz[i].data(), &out[i * nval]);
+      out[i * nval + 3] = fld.getBz(xyz[i].data());
+      fld.getTPCIntegral(xyz[i].data(), &out[i * nval + 4]);
+      fld.getTPCRatIntegral(xyz[i].data(), &out[i * nval + 7]);
+    }
+  };
+  std::vector<double> reference;
+  evaluate(reference);
+  std::vector<std::vector<double>> results(nthreads);
+  std::vector<std::thread> threads;
+  for (int t = 0; t < nthreads; ++t) {
+    threads.emplace_back(evaluate, std::ref(results[t]));
+  }
+  for (auto& th : threads) {
+    th.join();
+  }
+  for (int t = 0; t < nthreads; ++t) {
+    auto diff = std::mismatch(reference.begin(), reference.end(), results[t].begin());
+    BOOST_CHECK_MESSAGE(diff.first == reference.end(), "thread " << t << " differs at value " << (diff.first - reference.begin()));
   }
 }

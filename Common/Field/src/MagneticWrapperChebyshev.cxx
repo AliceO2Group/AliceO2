@@ -690,7 +690,7 @@ Int_t MagneticWrapperChebyshev::findTPCRatSegment(const Double_t* rpz) const
 
 void MagneticWrapperChebyshev::getTPCIntegral(const Double_t* xyz, Double_t* b) const
 {
-  static Double_t rphiz[3];
+  Double_t rphiz[3];
 
   // TPCInt region
   // convert coordinates to cyl system
@@ -712,7 +712,7 @@ void MagneticWrapperChebyshev::getTPCIntegral(const Double_t* xyz, Double_t* b) 
 
 void MagneticWrapperChebyshev::getTPCRatIntegral(const Double_t* xyz, Double_t* b) const
 {
-  static Double_t rphiz[3];
+  Double_t rphiz[3];
 
   // TPCRatIntegral region
   // convert coordinates to cylindrical system
