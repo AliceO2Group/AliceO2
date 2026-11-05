@@ -327,6 +327,9 @@ void GPUReconstructionMetal::DrainStream(int32_t stream)
   // committed, so it never completes. Only what was submitted can be waited for.
   for (id<MTLCommandBuffer> cb : mInternals->submittedBuffers[stream]) {
     [cb waitUntilCompleted];
+    if (cb.status == MTLCommandBufferStatusError) {
+      GPUError("Metal command buffer on stream %d failed: %s", stream, [[cb.error description] UTF8String]);
+    }
     [cb release];
   }
   mInternals->submittedBuffers[stream].clear();
