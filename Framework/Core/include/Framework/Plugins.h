@@ -44,6 +44,9 @@ enum struct DplPluginKind : int {
   // using the arrow dataset API
   RootObjectReadingImplementation,
 
+  // A plugin which defines a whole workflow. This will be used to separate
+  // workflows in shared libraries and run them via a separate loader.
+  Workflow,
   // A plugin which was not initialised properly.
   Unknown
 };

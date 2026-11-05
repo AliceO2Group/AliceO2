@@ -65,6 +65,7 @@
 #include "Framework/DeviceContext.h"
 #include "Framework/ServiceMetricsInfo.h"
 #include "Framework/DataTakingContext.h"
+#include "Framework/WorkflowDefinitionContext.h"
 #include "Framework/CommonServices.h"
 #include "Framework/DefaultsHelpers.h"
 #include "ProcessingPoliciesHelpers.h"
@@ -196,8 +197,26 @@ char* getIdString(int argc, char** argv)
   return nullptr;
 }
 
-int callMain(int argc, char** argv, int (*mainNoCatch)(int, char**))
+int doMain(int argc, char** argv, o2::framework::WorkflowDefinitionContext& workflowContext);
+
+int callMain(int argc, char** argv, char const* pluginSpec, DPLPluginHandle* (*embeddedPlugins)(DPLPluginHandle*))
 {
+  auto mainNoCatch = [pluginSpec, embeddedPlugins](int argc, char** argv) {
+    auto plugins = PluginManager::parsePluginSpecString(pluginSpec);
+    std::vector<WorkflowDefinition> workflows;
+    if (plugins.size() == 1 && plugins[0].library.empty()) {
+      if (auto* plugin = PluginManager::getByName<WorkflowPlugin>(embeddedPlugins(nullptr), plugins[0].name.c_str())) {
+        workflows.push_back(*plugin->create());
+      }
+    } else {
+      PluginManager::loadFromPlugin<WorkflowDefinition, WorkflowPlugin>(plugins, workflows);
+    }
+    if (workflows.size() != 1) {
+      throw runtime_error_f("Expected exactly one workflow plugin in %s, found %zu.", pluginSpec, workflows.size());
+    }
+    auto workflowContext = workflows.back().defineWorkflow(argc, argv);
+    return doMain(argc, argv, workflowContext);
+  };
   static bool noCatch = getenv("O2_NO_CATCHALL_EXCEPTIONS") && strcmp(getenv("O2_NO_CATCHALL_EXCEPTIONS"), "0");
   int result = 1;
   if (noCatch) {
@@ -2882,10 +2901,10 @@ void overrideAll(o2::framework::ConfigContext& ctx, std::vector<o2::framework::D
   overrideLabels(ctx, workflow);
 }
 
-o2::framework::ConfigContext createConfigContext(std::unique_ptr<ConfigParamRegistry>& workflowOptionsRegistry,
-                                                 o2::framework::ServiceRegistry& configRegistry,
-                                                 std::vector<o2::framework::ConfigParamSpec>& workflowOptions,
-                                                 std::vector<o2::framework::ConfigParamSpec>& extraOptions, int argc, char** argv)
+std::unique_ptr<o2::framework::ConfigContext> createConfigContext(std::unique_ptr<ConfigParamRegistry>& workflowOptionsRegistry,
+                                                                  o2::framework::ServiceRegistry& configRegistry,
+                                                                  std::vector<o2::framework::ConfigParamSpec>& workflowOptions,
+                                                                  std::vector<o2::framework::ConfigParamSpec>& extraOptions, int argc, char** argv)
 {
   std::vector<std::unique_ptr<o2::framework::ParamRetriever>> retrievers;
   std::unique_ptr<o2::framework::ParamRetriever> retriever{new o2::framework::BoostOptionsRetriever(true, argc, argv)};
@@ -2899,7 +2918,7 @@ o2::framework::ConfigContext createConfigContext(std::unique_ptr<ConfigParamRegi
     workflowOptions.push_back(extra);
   }
 
-  return o2::framework::ConfigContext(*workflowOptionsRegistry, o2::framework::ServiceRegistryRef{configRegistry}, argc, argv);
+  return std::make_unique<o2::framework::ConfigContext>(*workflowOptionsRegistry, o2::framework::ServiceRegistryRef{configRegistry}, argc, argv);
 }
 
 std::unique_ptr<o2::framework::ServiceRegistry> createRegistry()
@@ -2916,17 +2935,18 @@ std::unique_ptr<o2::framework::ServiceRegistry> createRegistry()
 //     killing them all on ctrl-c).
 //   - Child, pick the data-processor ID and start a O2DataProcessorDevice for
 //     each DataProcessorSpec
-int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
-           std::vector<ChannelConfigurationPolicy> const& channelPolicies,
-           std::vector<CompletionPolicy> const& completionPolicies,
-           std::vector<DispatchPolicy> const& dispatchPolicies,
-           std::vector<ResourcePolicy> const& resourcePolicies,
-           std::vector<CallbacksPolicy> const& callbacksPolicies,
-           std::vector<SendingPolicy> const& sendingPolicies,
-           std::vector<ConfigParamSpec> const& currentWorkflowOptions,
-           std::vector<ConfigParamSpec> const& detectedParams,
-           o2::framework::ConfigContext& configContext)
+int doMain(int argc, char** argv, o2::framework::WorkflowDefinitionContext& workflowContext)
 {
+  auto const& workflow = workflowContext.specs;
+  auto const& channelPolicies = workflowContext.channelPolicies;
+  auto const& completionPolicies = workflowContext.completionPolicies;
+  auto const& dispatchPolicies = workflowContext.dispatchPolicies;
+  auto const& resourcePolicies = workflowContext.resourcePolicies;
+  auto const& callbacksPolicies = workflowContext.callbacksPolicies;
+  auto const& sendingPolicies = workflowContext.sendingPolicies;
+  auto const& currentWorkflowOptions = workflowContext.workflowOptions;
+  auto const& detectedParams = workflowContext.extraOptions;
+  auto& configContext = *workflowContext.configContext;
   // Peek very early in the driver options and look for
   // signposts, so the we can enable it without going through the whole dance
   if (getenv("DPL_DRIVER_SIGNPOSTS")) {
