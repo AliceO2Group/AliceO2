@@ -634,6 +634,64 @@ int main(int argc, char* argv[])
     sleep(1); // otherwise wait until server is initialized
   }
 
+  int mergerpid = -1;
+  // the hit merger, spawned before the workers so that it listens when they send hits
+  int pipe_mergerdriver_fd[2];
+  if (pipe(pipe_mergerdriver_fd) != 0) {
+    perror("problem in creating pipe");
+  }
+
+  pid = fork();
+
+  std::atomic<bool> shutdown_initiated = false;
+  std::function<bool(std::vector<int> const&)> finishCallback;
+  if (pid == 0) {
+    int fd = open(getMergerLogName().c_str(), O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+    dup2(fd, 1); // make stdout go to file
+    dup2(fd, 2); // make stderr go to file - you may choose to not do this
+                 // or perhaps send stderr to another file
+    close(fd);   // fd no longer needed - the dup'ed handles are sufficient
+    close(pipe_mergerdriver_fd[0]);
+    setenv("ALICE_O2SIMMERGERTODRIVER_PIPE", std::to_string(pipe_mergerdriver_fd[1]).c_str(), 1);
+    const std::string name("o2-sim-hit-merger-runner");
+    const std::string path = installpath + "/" + name;
+    execl(path.c_str(), name.c_str(), "--control", "static", "--catch-signals", "0", "--id", "hitmerger", "--mq-config", localconfig.c_str(), "--color", "false",
+          (char*)nullptr);
+    return 0;
+  } else {
+    std::cout << "Spawning hit merger on PID " << pid << "; Redirect output to " << getMergerLogName() << "\n";
+    setpgid(pid, pid);
+    gChildProcesses.push_back(pid);
+    mergerpid = pid;
+    close(pipe_mergerdriver_fd[1]);
+
+    // A simple callback that determines if the simulation is complete and triggers
+    // a shutdown of all child processes. This appears to be more robust than leaving
+    // that decision upon the children (sometimes there are problems with that).
+    finishCallback = [&shutdown_initiated, &conf, &externalpublishchannel](std::vector<int> const& v) {
+      std::stringstream str;
+      str << "EVENT " << v.back() << " FINISHED " << gAskedEvents << " " << v.size();
+      o2::simpubsub::publishMessage(externalpublishchannel, o2::simpubsub::simStatusString("O2SIM", "INFO", str.str()));
+      if (gAskedEvents == v.size()) {
+        o2::simpubsub::publishMessage(externalpublishchannel, o2::simpubsub::simStatusString("O2SIM", "STATE", "DONE"));
+        if (!conf.asService()) {
+          LOG(info) << "SIMULATION IS DONE. INITIATING SHUTDOWN.";
+          if (!shutdown_initiated) {
+            shutdown_initiated = true;
+            for (auto p : gChildProcesses) {
+              if (killpg(p, 0) == 0) {
+                killpg(p, SIGTERM);
+              }
+            }
+          }
+        } else {
+          LOG(info) << "SIMULATION DONE. STAYING AS DAEMON.";
+        }
+      }
+      return true;
+    };
+  }
+
   auto internalfork = getenv("ALICE_SIMFORKINTERNAL");
   if (internalfork) {
     // forking will be done internally to profit from copy-on-write
@@ -670,66 +728,10 @@ int main(int argc, char* argv[])
     }
   }
 
-  // the hit merger
-  int pipe_mergerdriver_fd[2];
-  if (pipe(pipe_mergerdriver_fd) != 0) {
-    perror("problem in creating pipe");
-  }
-
-  pid = fork();
-
-  std::atomic<bool> shutdown_initiated = false;
-  if (pid == 0) {
-    int fd = open(getMergerLogName().c_str(), O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
-    dup2(fd, 1); // make stdout go to file
-    dup2(fd, 2); // make stderr go to file - you may choose to not do this
-                 // or perhaps send stderr to another file
-    close(fd);   // fd no longer needed - the dup'ed handles are sufficient
-    close(pipe_mergerdriver_fd[0]);
-    setenv("ALICE_O2SIMMERGERTODRIVER_PIPE", std::to_string(pipe_mergerdriver_fd[1]).c_str(), 1);
-    const std::string name("o2-sim-hit-merger-runner");
-    const std::string path = installpath + "/" + name;
-    execl(path.c_str(), name.c_str(), "--control", "static", "--catch-signals", "0", "--id", "hitmerger", "--mq-config", localconfig.c_str(), "--color", "false",
-          (char*)nullptr);
-    return 0;
-  } else {
-    std::cout << "Spawning hit merger on PID " << pid << "; Redirect output to " << getMergerLogName() << "\n";
-    setpgid(pid, pid);
-    gChildProcesses.push_back(pid);
-    close(pipe_mergerdriver_fd[1]);
-
-    // A simple callback that determines if the simulation is complete and triggers
-    // a shutdown of all child processes. This appears to be more robust than leaving
-    // that decision upon the children (sometimes there are problems with that).
-    auto finishCallback = [&shutdown_initiated, &conf, &externalpublishchannel](std::vector<int> const& v) {
-      std::stringstream str;
-      str << "EVENT " << v.back() << " FINISHED " << gAskedEvents << " " << v.size();
-      o2::simpubsub::publishMessage(externalpublishchannel, o2::simpubsub::simStatusString("O2SIM", "INFO", str.str()));
-      if (gAskedEvents == v.size()) {
-        o2::simpubsub::publishMessage(externalpublishchannel, o2::simpubsub::simStatusString("O2SIM", "STATE", "DONE"));
-        if (!conf.asService()) {
-          LOG(info) << "SIMULATION IS DONE. INITIATING SHUTDOWN.";
-          if (!shutdown_initiated) {
-            shutdown_initiated = true;
-            for (auto p : gChildProcesses) {
-              if (killpg(p, 0) == 0) {
-                killpg(p, SIGTERM);
-              }
-            }
-          }
-        } else {
-          LOG(info) << "SIMULATION DONE. STAYING AS DAEMON.";
-        }
-      }
-      return true;
-    };
-
-    launchThreadMonitoringEvents(pipe_mergerdriver_fd[0], "EVENT FINISHED : ", gFinishedEvents, finishCallback);
-  }
+  // monitor the merger only once all child pids are known to the shutdown callback
+  launchThreadMonitoringEvents(pipe_mergerdriver_fd[0], "EVENT FINISHED : ", gFinishedEvents, finishCallback);
 
   // wait on merger (which when exiting completes the workflow)
-  auto mergerpid = gChildProcesses.back();
-
   int status, cpid;
   // wait just blocks and waits until any child returns; but we make sure to wait until merger is here
   bool errored = false;
