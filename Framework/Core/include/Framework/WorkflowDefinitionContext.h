@@ -50,12 +50,23 @@ struct WorkflowDefinitionContext {
 };
 
 struct WorkflowDefinition {
-  std::function<o2::framework::WorkflowDefinitionContext(int argc, char** argv)> defineWorkflow;
+  /// Fills the workflow options and the policies the plugin customises.
+  std::function<void(o2::framework::WorkflowDefinitionContext& context)> customize;
+  /// Fills the data processors and the channel policies of the plugin,
+  /// using the workflow options parsed in @a configContext.
+  std::function<void(o2::framework::WorkflowDefinitionContext& context, o2::framework::ConfigContext& configContext)> defineWorkflow;
 };
 
 struct WorkflowPlugin {
   virtual o2::framework::WorkflowDefinition* create() = 0;
 };
+
+/// Defines the workflow made of all the @a definitions, called @a names in errors.
+/// The workflow options of all of them are parsed once from @a argc / @a argv, then
+/// their data processors and policies are merged, in the order of @a definitions.
+/// An option may be declared by several definitions only with the same type and default,
+/// and a data processor name may not be used by more than one definition.
+WorkflowDefinitionContext defineWorkflow(std::vector<WorkflowDefinition> const& definitions, std::vector<std::string> const& names, int argc, char** argv);
 
 } // namespace o2::framework
 #endif // O2_FRAMEWORK_WORKFLOWDEFINITIONCONTEXT_H_

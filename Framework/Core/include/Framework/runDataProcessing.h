@@ -185,33 +185,22 @@ struct DPL_WORKFLOW_PLUGIN_NAME : o2::framework::WorkflowPlugin {
   o2::framework::WorkflowDefinition* create() override
   {
     return new o2::framework::WorkflowDefinition{
-      .defineWorkflow = [](int argc, char** argv) -> o2::framework::WorkflowDefinitionContext {
+      .customize = [](o2::framework::WorkflowDefinitionContext& workflowContext) {
         using namespace o2::framework;
-        WorkflowDefinitionContext workflowContext;
-
         UserCustomizationsHelper::userDefinedCustomization(workflowContext.workflowOptions);
-        auto requiredWorkflowOptions = WorkflowCustomizationHelpers::requiredWorkflowOptions();
-        workflowContext.workflowOptions.insert(std::end(workflowContext.workflowOptions), std::begin(requiredWorkflowOptions), std::end(requiredWorkflowOptions));
-
-        workflowContext.completionPolicies = injectCustomizations<CompletionPolicy>();
-        workflowContext.dispatchPolicies = injectCustomizations<DispatchPolicy>();
-        workflowContext.resourcePolicies = injectCustomizations<ResourcePolicy>();
-        workflowContext.callbacksPolicies = injectCustomizations<CallbacksPolicy>();
-        workflowContext.sendingPolicies = injectCustomizations<SendingPolicy>();
-
-        workflowContext.configRegistry = createRegistry();
-        workflowContext.configContext = createConfigContext(workflowContext.workflowOptionsRegistry, *workflowContext.configRegistry, workflowContext.workflowOptions, workflowContext.extraOptions, argc, argv);
-
-        workflowContext.specs = defineDataProcessing(*workflowContext.configContext);
-        overrideAll(*workflowContext.configContext, workflowContext.specs);
+        UserCustomizationsHelper::userDefinedCustomization(workflowContext.completionPolicies);
+        UserCustomizationsHelper::userDefinedCustomization(workflowContext.dispatchPolicies);
+        UserCustomizationsHelper::userDefinedCustomization(workflowContext.resourcePolicies);
+        UserCustomizationsHelper::userDefinedCustomization(workflowContext.callbacksPolicies);
+        UserCustomizationsHelper::userDefinedCustomization(workflowContext.sendingPolicies); },
+      .defineWorkflow = [](o2::framework::WorkflowDefinitionContext& workflowContext, o2::framework::ConfigContext& configContext) {
+        using namespace o2::framework;
+        workflowContext.specs = defineDataProcessing(configContext);
+        overrideAll(configContext, workflowContext.specs);
         for (auto& spec : workflowContext.specs) {
           UserCustomizationsHelper::userDefinedCustomization(spec.requiredServices);
         }
-        UserCustomizationsHelper::userDefinedCustomization(workflowContext.channelPolicies);
-        auto defaultChannelPolicies = ChannelConfigurationPolicy::createDefaultPolicies(*workflowContext.configContext);
-        workflowContext.channelPolicies.insert(std::end(workflowContext.channelPolicies), std::begin(defaultChannelPolicies), std::end(defaultChannelPolicies));
-        return workflowContext;
-      }};
+        UserCustomizationsHelper::userDefinedCustomization(workflowContext.channelPolicies); }};
   }
 };
 

@@ -66,6 +66,7 @@
 #include "Framework/ServiceMetricsInfo.h"
 #include "Framework/DataTakingContext.h"
 #include "Framework/WorkflowDefinitionContext.h"
+#include "Framework/WorkflowCustomizationHelpers.h"
 #include "Framework/CommonServices.h"
 #include "Framework/DefaultsHelpers.h"
 #include "ProcessingPoliciesHelpers.h"
@@ -202,19 +203,35 @@ int doMain(int argc, char** argv, o2::framework::WorkflowDefinitionContext& work
 int callMain(int argc, char** argv, char const* pluginSpec, DPLPluginHandle* (*embeddedPlugins)(DPLPluginHandle*))
 {
   auto mainNoCatch = [pluginSpec, embeddedPlugins](int argc, char** argv) {
-    auto plugins = PluginManager::parsePluginSpecString(pluginSpec);
-    std::vector<WorkflowDefinition> workflows;
-    if (plugins.size() == 1 && plugins[0].library.empty()) {
-      if (auto* plugin = PluginManager::getByName<WorkflowPlugin>(embeddedPlugins(nullptr), plugins[0].name.c_str())) {
-        workflows.push_back(*plugin->create());
+    // --workflow-plugin replaces the plugin embedded in the executable.
+    char const* spec = pluginSpec;
+    for (int ai = 1; ai < argc; ++ai) {
+      if (strcmp(argv[ai], "--workflow-plugin") == 0 && ai + 1 < argc) {
+        spec = argv[ai + 1];
+      } else if (strncmp(argv[ai], "--workflow-plugin=", 18) == 0) {
+        spec = argv[ai] + 18;
       }
-    } else {
-      PluginManager::loadFromPlugin<WorkflowDefinition, WorkflowPlugin>(plugins, workflows);
     }
-    if (workflows.size() != 1) {
-      throw runtime_error_f("Expected exactly one workflow plugin in %s, found %zu.", pluginSpec, workflows.size());
+    auto plugins = PluginManager::parsePluginSpecString(spec);
+    std::vector<WorkflowDefinition> workflows;
+    std::vector<std::string> names;
+    for (auto& plugin : plugins) {
+      if (plugin.library.empty()) {
+        if (auto* embedded = PluginManager::getByName<WorkflowPlugin>(embeddedPlugins(nullptr), plugin.name.c_str())) {
+          workflows.push_back(*embedded->create());
+        }
+      } else {
+        PluginManager::loadFromPlugin<WorkflowDefinition, WorkflowPlugin>({plugin}, workflows);
+      }
+      names.push_back(plugin.library + ":" + plugin.name);
+      if (workflows.size() != names.size()) {
+        throw runtime_error_f("Could not load the workflow plugin %s.", names.back().c_str());
+      }
     }
-    auto workflowContext = workflows.back().defineWorkflow(argc, argv);
+    if (workflows.empty()) {
+      throw runtime_error_f("No workflow plugin in %s.", spec);
+    }
+    auto workflowContext = defineWorkflow(workflows, names, argc, argv);
     return doMain(argc, argv, workflowContext);
   };
   static bool noCatch = getenv("O2_NO_CATCHALL_EXCEPTIONS") && strcmp(getenv("O2_NO_CATCHALL_EXCEPTIONS"), "0");
@@ -1085,6 +1102,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
       ("data-processing-timeout", bpo::value<std::string>()->default_value(defaultDataProcessingTimeout), "how many second to wait before stopping data processing and allowing data calibration") //
       ("timeframes-rate-limit", bpo::value<std::string>()->default_value("0"), "how many timeframe can be in flight at the same moment (0 disables)")                                              //
       ("configuration,cfg", bpo::value<std::string>()->default_value("command-line"), "configuration backend")                                                                                     //
+      ("workflow-plugin", bpo::value<std::string>(), "workflow plugins to load")                                                                                                                   //
       ("infologger-mode", bpo::value<std::string>()->default_value(defaultInfologgerMode), "O2_INFOLOGGER_MODE override")                                                                          //
       ("log-timestamp-us", bpo::value<bool>()->zero_tokens()->default_value(false), "enable microsecond timestamps in log messages");
     r.fConfig.AddToCmdLineOptions(optsDesc, true);
@@ -2926,6 +2944,59 @@ std::unique_ptr<o2::framework::ServiceRegistry> createRegistry()
   return std::make_unique<o2::framework::ServiceRegistry>();
 }
 
+o2::framework::WorkflowDefinitionContext o2::framework::defineWorkflow(std::vector<WorkflowDefinition> const& definitions, std::vector<std::string> const& names, int argc, char** argv)
+{
+  auto append = [](auto& to, auto const& from) { to.insert(to.end(), from.begin(), from.end()); };
+  auto toString = [](Variant const& value) { std::ostringstream oss; oss << value; return oss.str(); };
+  WorkflowDefinitionContext result;
+  std::vector<WorkflowDefinitionContext> contexts(definitions.size());
+  for (size_t di = 0; di < definitions.size(); ++di) {
+    auto& context = contexts[di];
+    definitions[di].customize(context);
+    // Options already declared by a previous definition are shared, if they agree.
+    auto previous = result.workflowOptions.size();
+    for (auto& option : context.workflowOptions) {
+      auto end = result.workflowOptions.begin() + previous;
+      auto found = std::find_if(result.workflowOptions.begin(), end, [&option](auto const& other) { return other.name == option.name; });
+      if (found == end) {
+        result.workflowOptions.push_back(option);
+      } else if (found->type != option.type || toString(found->defaultValue) != toString(option.defaultValue)) {
+        throw runtime_error_f("Workflow option %s of %s has a different type or default than in a previous plugin.", option.name.c_str(), names[di].c_str());
+      }
+    }
+    append(result.completionPolicies, context.completionPolicies);
+    append(result.dispatchPolicies, context.dispatchPolicies);
+    append(result.resourcePolicies, context.resourcePolicies);
+    append(result.callbacksPolicies, context.callbacksPolicies);
+    append(result.sendingPolicies, context.sendingPolicies);
+  }
+  append(result.workflowOptions, WorkflowCustomizationHelpers::requiredWorkflowOptions());
+  append(result.completionPolicies, CompletionPolicy::createDefaultPolicies());
+  append(result.dispatchPolicies, DispatchPolicy::createDefaultPolicies());
+  append(result.resourcePolicies, ResourcePolicy::createDefaultPolicies());
+  append(result.callbacksPolicies, CallbacksPolicy::createDefaultPolicies());
+  append(result.sendingPolicies, SendingPolicy::createDefaultPolicies());
+
+  result.configRegistry = createRegistry();
+  result.configContext = createConfigContext(result.workflowOptionsRegistry, *result.configRegistry, result.workflowOptions, result.extraOptions, argc, argv);
+
+  std::map<std::string, size_t> definedBy;
+  for (size_t di = 0; di < definitions.size(); ++di) {
+    auto& context = contexts[di];
+    definitions[di].defineWorkflow(context, *result.configContext);
+    for (auto& spec : context.specs) {
+      auto [it, inserted] = definedBy.try_emplace(spec.name, di);
+      if (!inserted && it->second != di) {
+        throw runtime_error_f("Data processor %s is defined by both %s and %s.", spec.name.c_str(), names[it->second].c_str(), names[di].c_str());
+      }
+    }
+    append(result.specs, context.specs);
+    append(result.channelPolicies, context.channelPolicies);
+  }
+  append(result.channelPolicies, ChannelConfigurationPolicy::createDefaultPolicies(*result.configContext));
+  return result;
+}
+
 // This is a toy executor for the workflow spec
 // What it needs to do is:
 //
@@ -3010,6 +3081,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowDefinitionContext& work
     ("id,i", bpo::value<std::string>(), "device id for child spawning")                 //
     ("channel-config", bpo::value<std::vector<std::string>>(), "channel configuration") //
     ("control", "control plugin")                                                       //
+    ("workflow-plugin", bpo::value<std::string>(), "workflow plugins to load")          //
     ("log-color", "logging color scheme")("color", "logging color scheme");
 
   bpo::options_description visibleOptions;
