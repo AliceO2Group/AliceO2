@@ -188,8 +188,14 @@ void doBoostException(boost::exception& e, const char*);
 void doDPLException(o2::framework::RuntimeErrorRef& ref, char const*);
 void doUnknownException(std::string const& s, char const*);
 
+// The id of a device which was forked without exec, since its argv is the driver's.
+static std::string gForkedDeviceId;
+
 char* getIdString(int argc, char** argv)
 {
+  if (!gForkedDeviceId.empty()) {
+    return gForkedDeviceId.data();
+  }
   for (int argi = 0; argi < argc; argi++) {
     if (strcmp(argv[argi], "--id") == 0 && argi + 1 < argc) {
       return argv[argi + 1];
@@ -710,8 +716,9 @@ void handle_crash(int sig)
 }
 
 /// This will start a new device by forking and executing a
-/// new child
-void spawnDevice(uv_loop_t* loop,
+/// new child, or only forking it if @a noExec.
+/// @return true in a child which did not exec, and has to run the device.
+bool spawnDevice(uv_loop_t* loop,
                  DeviceRef ref,
                  std::vector<DeviceSpec> const& specs,
                  DriverInfo& driverInfo,
@@ -723,7 +730,8 @@ void spawnDevice(uv_loop_t* loop,
                  boost::program_options::variables_map& varmap,
                  std::vector<DeviceStdioContext>& childFds,
                  unsigned parentCPU,
-                 unsigned parentNode)
+                 unsigned parentNode,
+                 bool noExec)
 {
   // FIXME: this might not work when more than one DPL driver on the same
   // machine. Hopefully we do not care.
@@ -735,6 +743,10 @@ void spawnDevice(uv_loop_t* loop,
     if (service.preFork != nullptr) {
       service.preFork(serviceRegistry, DeviceConfig{varmap});
     }
+  }
+  if (noExec) {
+    // Otherwise what is buffered is printed by both processes.
+    fflush(nullptr);
   }
   // If we have a framework id, it means we have already been respawned
   // and that we are in a child. If not, we need to fork and re-exec, adding
@@ -765,7 +777,21 @@ void spawnDevice(uv_loop_t* loop,
     // idea in the first place, because rlim_cur could be huge
     // FIXME: I should understand which one is really to be closed and use
     // CLOEXEC on it.
-    int rlim_cur = std::min((int)rlim.rlim_cur, 10000);
+    // Without exec the child keeps using what the driver opened (e.g. libuv's
+    // internals), so we only close the driver's end of the pipes and reset the
+    // handlers the driver installed, as exec would do.
+    int rlim_cur = noExec ? 0 : std::min((int)rlim.rlim_cur, 10000);
+    for (int i = 0; noExec && i <= ref.index; ++i) {
+      if (i == ref.index || deviceInfos[i].active) {
+        close(childFds[i].childstdin[1]);
+        close(childFds[i].childstdout[0]);
+      }
+    }
+    if (noExec) {
+      signal(SIGINT, SIG_DFL);
+      signal(SIGTERM, SIG_DFL);
+      signal(SIGCHLD, SIG_DFL);
+    }
     for (int i = 0; i < rlim_cur; ++i) {
       if (childFds[ref.index].childstdin[0] == i) {
         continue;
@@ -786,6 +812,9 @@ void spawnDevice(uv_loop_t* loop,
     }
     for (auto& env : execution.environ) {
       putenv(strdup(DeviceSpecHelpers::reworkTimeslicePlaceholder(env, spec).data()));
+    }
+    if (noExec) {
+      return true;
     }
     int err = execvp(execution.args[0], execution.args.data());
     if (err) {
@@ -876,6 +905,7 @@ void spawnDevice(uv_loop_t* loop,
 
   // Let's add also metrics information for the given device
   gDeviceMetricsInfos.emplace_back(DeviceMetricsInfo{});
+  return false;
 }
 
 void processChildrenOutput(uv_loop_t* loop,
@@ -1598,6 +1628,13 @@ int runStateMachine(DataProcessorSpecs const& workflow,
     }
   });
 
+  // Which steps were done before forking a child which does not exec.
+  struct {
+    bool childDidMergeConfig = false;
+    bool childDidImportWorkflow = false;
+    bool childDidMaterialiseWorkflow = false;
+  } childState;
+
   while (true) {
     // If control forced some transition on us, we push it to the queue.
     if (driverControl.forcedTransitions.empty() == false) {
@@ -1674,6 +1711,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
 #endif
         break;
       case DriverState::IMPORT_CURRENT_WORKFLOW:
+        childState.childDidImportWorkflow = true;
         // This state is needed to fill the metadata structure
         // which contains how to run the current workflow
         dataProcessorInfos = previousDataProcessorInfos;
@@ -1702,6 +1740,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         }
         break;
       case DriverState::MATERIALISE_WORKFLOW:
+        childState.childDidMaterialiseWorkflow = true;
         try {
           auto workflowState = WorkflowHelpers::verifyWorkflow(workflow);
           if (driverConfig.batch == true && varmap["dds"].as<std::string>().empty() && !varmap["dump-workflow"].as<bool>() && workflowState == WorkflowParsingState::Empty) {
@@ -2100,6 +2139,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         }
         break;
       case DriverState::MERGE_CONFIGS: {
+        childState.childDidMergeConfig = true;
         try {
           controls.resize(runningWorkflow.devices.size());
           /// Set the default value for tracingFlags of each control
@@ -2204,14 +2244,66 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                               runningWorkflow.devices[di], controls[di], deviceExecutions[di], infos, allStates);
           } else {
             DeviceRef ref{di};
-            spawnDevice(loop,
-                        ref,
-                        runningWorkflow.devices, driverInfo,
-                        controls, deviceExecutions, infos,
-                        allStates,
-                        serviceRegistry, varmap,
-                        childFds, parentCPU, parentNode);
+            // With DPL_FORK_WITHOUT_EXEC set, the data processors defined in this process
+            // are only forked. Those imported from upstream workflows still need their executable.
+            static bool forkWithoutExec = getenv("DPL_FORK_WITHOUT_EXEC") && strcmp(getenv("DPL_FORK_WITHOUT_EXEC"), "0");
+            bool imported = std::any_of(previousDataProcessorInfos.begin(), previousDataProcessorInfos.end(), [&id = runningWorkflow.devices[di].id](auto const& info) { return info.name == id; });
+            bool noExec = forkWithoutExec && !imported;
+            if (spawnDevice(loop,
+                            ref,
+                            runningWorkflow.devices, driverInfo,
+                            controls, deviceExecutions, infos,
+                            allStates,
+                            serviceRegistry, varmap,
+                            childFds, parentCPU, parentNode, noExec)) {
+              // We are a child which did not exec: from now on it behaves
+              // like one which did, with a loop of its own and without the
+              // driver's listening socket.
+              int serverFd = -1;
+              if (uv_fileno((uv_handle_t*)&serverContext.serverHandle, &serverFd) == 0) {
+                close(serverFd);
+              }
+#ifdef __APPLE__
+              // After a fork without exec, os_signpost_enabled() reports every os_log as
+              // enabled, which a fresh process does not. --signposts still works, since
+              // it does not go through os_log.
+              o2_walk_logs([](char const*, void* l, void*) { ((_o2_log_t*)l)->os_log = OS_LOG_DISABLED; return true; }, nullptr);
+#endif
+              loop = uv_loop_new();
+              serverContext.loop = loop;
+              serverContext.isDriver = false;
+              frameworkId = runningWorkflow.devices[di].id;
+              gForkedDeviceId = frameworkId;
+              driverInfo.defaultDriverClient = "stdout://";
+              driverInfo.timeout = 0;
+              driverInfo.argc = deviceExecutions[di].args.size() - 1;
+              driverInfo.argv = deviceExecutions[di].args.data();
+              driverInfo.states.clear();
+              // Like one which did exec, consume the workflow the driver streams on stdin,
+              // so that the driver does not block on, or get SIGPIPE from, the pipe.
+              char buffer[4096];
+              ssize_t bytes = 0;
+              while ((bytes = read(STDIN_FILENO, buffer, sizeof(buffer))) > 0 || (bytes < 0 && errno == EINTR)) {
+              }
+              // Only redo the steps which the driver did not already perform before forking.
+              driverControl.forcedTransitions = {
+                DriverState::DO_CHILD,
+                DriverState::BIND_GUI_PORT};
+              if (!childState.childDidMergeConfig) {
+                driverControl.forcedTransitions.push_back(DriverState::MERGE_CONFIGS);
+              }
+              if (!childState.childDidImportWorkflow) {
+                driverControl.forcedTransitions.push_back(DriverState::IMPORT_CURRENT_WORKFLOW);
+              }
+              if (!childState.childDidMaterialiseWorkflow) {
+                driverControl.forcedTransitions.push_back(DriverState::MATERIALISE_WORKFLOW);
+              }
+              break;
+            }
           }
+        }
+        if (!frameworkId.empty()) {
+          break;
         }
         handleSignals();
         handleChildrenStdio(&serverContext, forwardedStdin.str(), childFds, pollHandles);
