@@ -253,7 +253,7 @@ void qConfigPrint(const T& qconfig_tmp_object, const std::string& blockName); //
     out << "struct " << qon_mxstr(name) << " {\n";
 #define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr, ...) BeginConfig(name, instance)
 #define EndConfig() \
-  out << "};";      \
+  out << "};\n";    \
   }
 #define BeginNamespace(name) out << "namespace " << qon_mxstr(name) << " {\n";
 #define EndNamespace() out << "}\n";
