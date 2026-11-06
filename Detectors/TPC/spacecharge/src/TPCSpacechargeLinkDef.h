@@ -30,6 +30,8 @@
 #pragma link C++ class o2::tpc::DataContainer3D < double> + ;
 #pragma link C++ class o2::tpc::PoissonSolver < double> + ;
 #pragma link C++ class o2::tpc::SpaceCharge < double> + ;
+// set up the transient grid properties from the number of vertices read from the file
+#pragma read sourceClass = "o2::tpc::SpaceCharge<double>" targetClass = "o2::tpc::SpaceCharge<double>" version = "[1-]" source = "" target = "" code = "{ newObj->initAfterReadingFromFile(); }"
 #pragma link C++ class o2::tpc::NumericalFields < double> + ;
 #pragma link C++ class o2::tpc::DistCorrInterpolator < double> + ;
 #pragma link C++ class o2::tpc::GridProperties < double> + ;
@@ -41,6 +43,8 @@
 #pragma link C++ class o2::tpc::DataContainer3D < float> + ;
 #pragma link C++ class o2::tpc::PoissonSolver < float> + ;
 #pragma link C++ class o2::tpc::SpaceCharge < float> + ;
+// set up the transient grid properties from the number of vertices read from the file
+#pragma read sourceClass = "o2::tpc::SpaceCharge<float>" targetClass = "o2::tpc::SpaceCharge<float>" version = "[1-]" source = "" target = "" code = "{ newObj->initAfterReadingFromFile(); }"
 #pragma link C++ class o2::tpc::NumericalFields < float> + ;
 #pragma link C++ class o2::tpc::DistCorrInterpolator < float> + ;
 #pragma link C++ class o2::tpc::GridProperties < float> + ;

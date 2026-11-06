@@ -17,9 +17,10 @@
 #ifndef ALICEO2_TPC_REGULARGRID3D_H_
 #define ALICEO2_TPC_REGULARGRID3D_H_
 
-#include "TPCSpaceCharge/Vector.h"
 #include "Rtypes.h" // for ClassDefNV
 #include "TPCSpaceCharge/SpaceChargeParameter.h"
+#include <array>
+#include <cmath>
 #include <vector>
 
 namespace o2
@@ -90,17 +91,17 @@ struct RegularGrid3D {
   static constexpr unsigned int getFR() { return FR; }     /// \return returns the index for dimension y (1)
   static constexpr unsigned int getFPhi() { return FPHI; } /// \return returns the index for dimension z (2)
 
-  const Vector<DataT, 3>& getGridMin() const { return mMin; } /// \return returns the minimum coordinates of the grid in all dimensions
-  DataT getGridMinZ() const { return mMin[FZ]; }              /// \return returns the minimum coordinate of the grid in x dimension
-  DataT getGridMinR() const { return mMin[FR]; }              /// \return returns the minimum coordinate of the grid in y dimension
-  DataT getGridMinPhi() const { return mMin[FPHI]; }          /// \return returns the minimum coordinate of the grid in z dimension
+  const std::array<DataT, 3>& getGridMin() const { return mMin; } /// \return returns the minimum coordinates of the grid in all dimensions
+  DataT getGridMinZ() const { return mMin[FZ]; }                  /// \return returns the minimum coordinate of the grid in x dimension
+  DataT getGridMinR() const { return mMin[FR]; }                  /// \return returns the minimum coordinate of the grid in y dimension
+  DataT getGridMinPhi() const { return mMin[FPHI]; }              /// \return returns the minimum coordinate of the grid in z dimension
 
   DataT getGridMaxZ() const { return mMax[FZ]; }
   DataT getGridMaxR() const { return mMax[FR]; }
   DataT getGridMaxPhi() const { return mMax[FPHI]; }
 
   /// \return returns the inversed spacing of the grid for all dimensions
-  const Vector<DataT, 3>& getInvSpacing() const { return mInvSpacing; }
+  const std::array<DataT, 3>& getInvSpacing() const { return mInvSpacing; }
   DataT getInvSpacingZ() const { return mInvSpacing[FZ]; }
   DataT getInvSpacingR() const { return mInvSpacing[FR]; }
   DataT getInvSpacingPhi() const { return mInvSpacing[FPHI]; }
@@ -141,7 +142,7 @@ struct RegularGrid3D {
   /// \return returns the z positon for given vertex
   DataT getPhiVertex(const size_t vertexZ) const { return mPhiVertices[vertexZ]; }
 
-  const Vector<DataT, 3>& getMaxIndices() const { return sMaxIndex; } /// get max indices for all dimensions
+  const std::array<DataT, 3>& getMaxIndices() const { return sMaxIndex; } /// get max indices for all dimensions
 
   DataT getMaxIndexZ() const { return sMaxIndex[0]; }   /// get max index in x direction
   DataT getMaxIndexR() const { return sMaxIndex[1]; }   /// get max index in y direction
@@ -159,19 +160,19 @@ struct RegularGrid3D {
 
  private:
   ParamSpaceCharge mParamGrid{};
-  static constexpr unsigned int FDIM = 3;                                                                                                                                          ///< dimensions of the grid (only 3 supported)
-  static constexpr unsigned int FZ = 0;                                                                                                                                            ///< index for x coordinate
-  static constexpr unsigned int FR = 1;                                                                                                                                            ///< index for y coordinate
-  static constexpr unsigned int FPHI = 2;                                                                                                                                          ///< index for z coordinate
-  Vector<DataT, FDIM> mMin{};                                                                                                                                                      ///<! min vertices positions of the grid
-  Vector<DataT, FDIM> mMax{};                                                                                                                                                      ///<! max vertices positions of the grid
-  Vector<DataT, FDIM> mSpacing{};                                                                                                                                                  ///<! spacing of the grid
-  Vector<DataT, FDIM> mInvSpacing{};                                                                                                                                               ///<! inverse spacing of grid
-  Vector<DataT, FDIM> sMaxIndex{{static_cast<DataT>(mParamGrid.NZVertices - 1.), static_cast<DataT>(mParamGrid.NRVertices - 1), static_cast<DataT>(mParamGrid.NPhiVertices - 1)}}; ///<! max index which is on the grid in all dimensions
-  Vector<int, FDIM> sNdim{{static_cast<int>(mParamGrid.NZVertices), static_cast<int>(mParamGrid.NRVertices), static_cast<int>(mParamGrid.NPhiVertices)}};                          ///<! number of vertices for each dimension
-  std::vector<DataT> mZVertices{};                                                                                                                                                 ///< positions of vertices in x direction
-  std::vector<DataT> mRVertices{};                                                                                                                                                 ///< positions of vertices in y direction
-  std::vector<DataT> mPhiVertices{};                                                                                                                                               ///< positions of vertices in z direction
+  static constexpr unsigned int FDIM = 3;                                                                                                                                              ///< dimensions of the grid (only 3 supported)
+  static constexpr unsigned int FZ = 0;                                                                                                                                                ///< index for x coordinate
+  static constexpr unsigned int FR = 1;                                                                                                                                                ///< index for y coordinate
+  static constexpr unsigned int FPHI = 2;                                                                                                                                              ///< index for z coordinate
+  std::array<DataT, FDIM> mMin{};                                                                                                                                                      ///<! min vertices positions of the grid
+  std::array<DataT, FDIM> mMax{};                                                                                                                                                      ///<! max vertices positions of the grid
+  std::array<DataT, FDIM> mSpacing{};                                                                                                                                                  ///<! spacing of the grid
+  std::array<DataT, FDIM> mInvSpacing{};                                                                                                                                               ///<! inverse spacing of grid
+  std::array<DataT, FDIM> sMaxIndex{{static_cast<DataT>(mParamGrid.NZVertices - 1.), static_cast<DataT>(mParamGrid.NRVertices - 1), static_cast<DataT>(mParamGrid.NPhiVertices - 1)}}; ///<! max index which is on the grid in all dimensions
+  std::array<int, FDIM> sNdim{{static_cast<int>(mParamGrid.NZVertices), static_cast<int>(mParamGrid.NRVertices), static_cast<int>(mParamGrid.NPhiVertices)}};                          ///<! number of vertices for each dimension
+  std::vector<DataT> mZVertices{};                                                                                                                                                     ///< positions of vertices in x direction
+  std::vector<DataT> mRVertices{};                                                                                                                                                     ///< positions of vertices in y direction
+  std::vector<DataT> mPhiVertices{};                                                                                                                                                   ///< positions of vertices in z direction
 
   void initLists();
 
@@ -217,6 +218,11 @@ DataT RegularGrid3D<DataT>::clampToGridRel(const DataT pos, const unsigned int d
 template <typename DataT>
 DataT RegularGrid3D<DataT>::clampToGridCircular(DataT pos, const unsigned int dim) const
 {
+  const DataT period = mMax[dim] - mMin[dim] + mSpacing[dim];
+  if (!(std::abs(pos - mMin[dim]) < 4 * period)) {
+    // far outside of the grid or not finite: wrap directly with the exact remainder instead of looping (a non-finite position becomes NaN)
+    pos = mMin[dim] + std::fmod(pos - mMin[dim], period);
+  }
   while (pos < mMin[dim]) {
     pos += mMax[dim] - mMin[dim] + mSpacing[dim];
   }
@@ -229,6 +235,11 @@ DataT RegularGrid3D<DataT>::clampToGridCircular(DataT pos, const unsigned int di
 template <typename DataT>
 DataT RegularGrid3D<DataT>::clampToGridCircularRel(DataT pos, const unsigned int dim) const
 {
+  const DataT period = sNdim[dim];
+  if (!(std::abs(pos) < 4 * period)) {
+    // far outside of the grid or not finite: wrap directly with the exact remainder instead of looping (a non-finite position becomes NaN)
+    pos = std::fmod(pos, period);
+  }
   while (pos < 0) {
     pos += sNdim[dim];
   }

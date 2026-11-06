@@ -131,9 +131,26 @@ DataContainer3D<DataT>& DataContainer3D<DataT>::operator*=(const DataT value)
   return *this;
 }
 
+namespace
+{
+/// \return returns true if both containers have the same grid and the same number of stored values (otherwise the element-wise operations would access the data of the other container out of bounds)
+template <typename DataT>
+bool isSameGrid(const DataContainer3D<DataT>& a, const DataContainer3D<DataT>& b, const char* operation)
+{
+  if ((a.getNZ() != b.getNZ()) || (a.getNR() != b.getNR()) || (a.getNPhi() != b.getNPhi()) || (a.getNDataPoints() != b.getNDataPoints())) {
+    LOGP(error, "DataContainer3D::operator{}: different grids or number of values ({}x{}x{} with {} values and {}x{}x{} with {} values). Data is not modified!", operation, a.getNZ(), a.getNR(), a.getNPhi(), a.getNDataPoints(), b.getNZ(), b.getNR(), b.getNPhi(), b.getNDataPoints());
+    return false;
+  }
+  return true;
+}
+} // namespace
+
 template <typename DataT>
 DataContainer3D<DataT>& DataContainer3D<DataT>::operator+=(const DataContainer3D<DataT>& other)
 {
+  if (!isSameGrid(*this, other, "+=")) {
+    return *this;
+  }
   std::transform(mData.begin(), mData.end(), other.mData.begin(), mData.begin(), std::plus<>());
   return *this;
 }
@@ -141,6 +158,9 @@ DataContainer3D<DataT>& DataContainer3D<DataT>::operator+=(const DataContainer3D
 template <typename DataT>
 DataContainer3D<DataT>& DataContainer3D<DataT>::operator-=(const DataContainer3D<DataT>& other)
 {
+  if (!isSameGrid(*this, other, "-=")) {
+    return *this;
+  }
   std::transform(mData.begin(), mData.end(), other.mData.begin(), mData.begin(), std::minus<>());
   return *this;
 }
@@ -148,6 +168,9 @@ DataContainer3D<DataT>& DataContainer3D<DataT>::operator-=(const DataContainer3D
 template <typename DataT>
 DataContainer3D<DataT>& DataContainer3D<DataT>::operator*=(const DataContainer3D<DataT>& other)
 {
+  if (!isSameGrid(*this, other, "*=")) {
+    return *this;
+  }
   std::transform(mData.begin(), mData.end(), other.mData.begin(), mData.begin(), std::multiplies<>());
   return *this;
 }

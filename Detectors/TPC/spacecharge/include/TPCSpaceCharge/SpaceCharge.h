@@ -26,8 +26,10 @@
 #include "TPCSpaceCharge/DataContainer3D.h"
 #include "TPCSpaceCharge/SpaceChargeParameter.h"
 #include "DataFormatsTPC/Defs.h"
+#include <type_traits>
 
 class TH3;
+class TAxis;
 class TH3D;
 class TH3F;
 class TH2F;
@@ -282,14 +284,12 @@ class SpaceCharge
 
   /// step 1: use the O2TPCPoissonSolver class to numerically calculate the potential with set space charge density and boundary conditions from potential
   /// \param side side of the TPC
-  /// \param stoppingConvergence stopping criterion used in the poisson solver
-  /// \param symmetry use symmetry or not in the poisson solver
-  void poissonSolver(const Side side, const DataT stoppingConvergence = 1e-6, const int symmetry = 0);
+  /// \param stoppingConvergence stopping criterion used in the poisson solver (relative change of the potential between two multi grid V cycles, see MGParameters::relativeConvergence; default 1e-8 for double, 1e-6 for float)
+  void poissonSolver(const Side side, const DataT stoppingConvergence = std::is_same_v<DataT, float> ? DataT(1e-6) : DataT(1e-8));
 
   /// step 1: use the O2TPCPoissonSolver class to numerically calculate the potential with set space charge density and boundary conditions from potential for A and C side in parallel
-  /// \param stoppingConvergence stopping criterion used in the poisson solver
-  /// \param symmetry use symmetry or not in the poisson solver
-  void poissonSolver(const DataT stoppingConvergence = 1e-6, const int symmetry = 0);
+  /// \param stoppingConvergence stopping criterion used in the poisson solver (relative change of the potential between two multi grid V cycles, see MGParameters::relativeConvergence; default 1e-8 for double, 1e-6 for float)
+  void poissonSolver(const DataT stoppingConvergence = std::is_same_v<DataT, float> ? DataT(1e-6) : DataT(1e-8));
 
   /// step 2: calculate numerically the electric field from the potential
   /// \param side side of the TPC
@@ -865,7 +865,7 @@ class SpaceCharge
   DataT getPotential(const size_t iz, const size_t ir, const size_t iphi, const Side side) const { return mPotential[side](iz, ir, iphi); }
 
   /// Get the step width which is used for the calculation of the correction/distortions in units of the z-bin
-  static int getStepWidth() { return 1 / sSteps; }
+  static DataT getStepWidth() { return DataT(1) / sSteps; }
 
   /// Get phi vertex position for index in phi direction
   /// \param indexPhi index in phi direction
@@ -1365,8 +1365,9 @@ class SpaceCharge
   void integrateEFieldsSimpson(const DataT p1r, const DataT p1phi, const DataT p1z, const DataT p2z, DataT& localIntErOverEz, DataT& localIntEPhiOverEz, DataT& localIntDeltaEz, const Fields& formulaStruct, const DataT ezField, const Side side) const;
 
   /// integrate electrical fields using simpson integration method with non straight drift of electrons
+  /// \param fieldsStart fields (z, r, phi) at the start point p1
   template <typename Fields = AnalyticalFields<DataT>>
-  void integrateEFieldsSimpsonIterative(const DataT p1r, const DataT p2r, const DataT p1phi, const DataT p2phi, const DataT p1z, const DataT p2z, DataT& localIntErOverEz, DataT& localIntEPhiOverEz, DataT& localIntDeltaEz, const Fields& formulaStruct, const DataT ezField, const Side side) const;
+  void integrateEFieldsSimpsonIterative(const DataT p1r, const DataT p2r, const DataT p1phi, const DataT p2phi, const DataT p1z, const DataT p2z, const DataT (&fieldsStart)[3], DataT& localIntErOverEz, DataT& localIntEPhiOverEz, DataT& localIntDeltaEz, const Fields& formulaStruct, const DataT ezField, const Side side) const;
 
   /// calculate distortions/corrections using analytical electric fields
   void processGlobalDistCorr(const DataT radius, const DataT phi, const DataT z0Tmp, const DataT z1Tmp, DataT& ddR, DataT& ddPhi, DataT& ddZ, const AnalyticalFields<DataT>& formulaStruct) const { calcDistCorr(radius, phi, z0Tmp, z1Tmp, ddR, ddPhi, ddZ, formulaStruct, false, formulaStruct.getSide()); }
@@ -1377,9 +1378,9 @@ class SpaceCharge
   /// calculate distortions/corrections by interpolation of local distortions/corrections
   void processGlobalDistCorr(const DataT radius, const DataT phi, const DataT z0Tmp, [[maybe_unused]] const DataT z1Tmp, DataT& ddR, DataT& ddPhi, DataT& ddZ, const DistCorrInterpolator<DataT>& localDistCorr) const
   {
-    ddR = localDistCorr.evaldR(z0Tmp, radius, phi);
-    ddZ = localDistCorr.evaldZ(z0Tmp, radius, phi);
-    ddPhi = localDistCorr.evaldRPhi(z0Tmp, radius, phi) / radius;
+    DataT ddRPhi;
+    localDistCorr.evalDistCorr(z0Tmp, radius, phi, ddZ, ddR, ddRPhi);
+    ddPhi = ddRPhi / radius;
   }
 
   /// dump the created electron tracks with calculateElectronDriftPath function to a tree
@@ -1393,6 +1394,14 @@ class SpaceCharge
   void setBFields(o2::parameters::GRPMagField& magField);
 
   void initContainer(DataContainer& data, const bool initMem = true);
+
+  /// initialize several containers concurrently (allocation and first access to the memory of large containers)
+  void initContainers(const std::vector<DataContainer*>& containers);
+
+  /// rebin the space-charge density of a histogram (phi, r, z with z in [-zMax, zMax]) to the grid of both sides
+  /// \param getBinContentOrig function (iPhi, iR, iZ) returning the bin content of the original histogram (ROOT bin numbering)
+  template <typename BinContent>
+  void fillChargeDensityFromHisto(const TAxis& axisPhiOrig, const TAxis& axisROrig, const TAxis& axisZOrig, const BinContent& getBinContentOrig);
 
   void initAllBuffers();
 
