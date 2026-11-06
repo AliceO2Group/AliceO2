@@ -146,22 +146,19 @@ void Cave::FinishPrimary()
 // setting
 void Cave::BeginPrimary()
 {
-  static int primcounter = 0;
-
   // only do it, if not in pure trackSeeding mode
   if (!o2::conf::SimCutParams::Instance().trackSeed) {
     auto& conf = o2::conf::SimConfig::Instance();
     auto chunks = conf.getInternalChunkSize();
     if (chunks != -1) {
-      if (primcounter % chunks == 0) {
-        static int counter = 1;
-        auto seed = counter + 10;
+      if (mPrimaryCounter % chunks == 0) {
+        auto seed = mChunkSeedCounter + 10;
         gRandom->SetSeed(seed);
-        counter++;
+        mChunkSeedCounter++;
       }
     }
   }
-  primcounter++;
+  mPrimaryCounter++;
 }
 
 bool Cave::ProcessHits(FairVolume*)

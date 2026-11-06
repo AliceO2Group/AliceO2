@@ -77,6 +77,8 @@ class Cave : public FairDetector
 
   bool mHasZDC = true;  //! flag indicating if ZDC will be included
   bool mHasRB24 = true; //! flag indicating if RB24 will be included
+  int mPrimaryCounter = 0;   //! primaries started, for the internal chunk seeding
+  int mChunkSeedCounter = 1; //! next seed index of the internal chunk seeding
   ClassDefOverride(o2::passive::Cave, 1);
 };
 } // namespace passive
