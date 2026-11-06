@@ -17,6 +17,7 @@
 
 #include "FairRunSim.h" // for FairRunSim
 #include "Rtypes.h"     // for Bool_t, Double_t, UInt_t, etc
+#include <TGeoManager.h>
 #include <iostream>
 
 #include "FairField.h"            // for FairField
@@ -49,9 +50,8 @@ class O2RunSim : public FairRunSim
 
     fRootManager->InitSink();
 
-    // No FairGeoLoader here: ALICE never loads an ASCII media file, and the one
-    // consumer that forced the singleton to exist - the media loop in
-    // FairMCApplication::ConstructOpGeometry() - has been removed.
+    // the geometry manager that FairGeoLoader used to create here (its ASCII media part is not used by ALICE)
+    new TGeoManager("FAIRGeom", "FAIR geometry");
 
     if (mDeviceMode) {
       fApp = new O2MCApplication("Fair", "The Fair VMC App", ListOfModules, MatFname);
