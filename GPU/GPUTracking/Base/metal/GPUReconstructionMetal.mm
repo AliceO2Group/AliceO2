@@ -116,14 +116,14 @@ int32_t GPUReconstructionMetal::InitDevice_Runtime()
     }
 
     // We only support internal GPUs, so the ownership of the memory is always shared
-    mInternals->mem_gpu = [mInternals->device newBufferWithLength:mDeviceMemorySize options:MTLResourceStorageModeShared];
+    mInternals->mem_gpu = [mInternals->device newBufferWithLength:mDeviceMemorySize options:MTLResourceStorageModeShared | MTLResourceHazardTrackingModeUntracked];
     if (mInternals->mem_gpu == nil) {
       GPUErrorReturn("Metal Memory Allocation Error");
     }
 
     // FIXME: until I understand how to enable the gGPUConstantMemBufferSize constexpr
     int32_t tmpGPUConstantMemBufferSize = 100000;  // gGPUConstantMemBufferSize
-    mInternals->mem_constant = [mInternals->device newBufferWithLength:tmpGPUConstantMemBufferSize options:MTLResourceStorageModeShared];
+    mInternals->mem_constant = [mInternals->device newBufferWithLength:tmpGPUConstantMemBufferSize options:MTLResourceStorageModeShared | MTLResourceHazardTrackingModeUntracked];
     if (mInternals->mem_constant == nil) {
       GPUErrorReturn("Metal Constant Memory Allocation Error");
     }
@@ -143,7 +143,7 @@ int32_t GPUReconstructionMetal::InitDevice_Runtime()
       mInternals->streamHasWork[i] = false;
     }
 
-    mInternals->mem_host = [mInternals->device newBufferWithLength:mHostMemorySize options:MTLResourceStorageModeShared];
+    mInternals->mem_host = [mInternals->device newBufferWithLength:mHostMemorySize options:MTLResourceStorageModeShared | MTLResourceHazardTrackingModeUntracked];
     if (mInternals->mem_host == nil) {
       GPUErrorReturn("Error allocating pinned host memory");
     }
