@@ -292,4 +292,6 @@ void qConfigPrint(const T& qconfig_tmp_object, const std::string& blockName); //
 
 #endif
 
+#define QCONFIG_INTERNAL
 #include "qconfig_wrapinclude.h"
+#undef QCONFIG_INTERNAL

@@ -20,9 +20,6 @@
 // Create static constexpr with default values for GPU run time compilation
 
 #ifdef BeginConfig // File should not be included without defining the macros, but rootcling will do for dictionary generation
-#ifndef GPUSETTINGS_H
-#error Please include GPUSettings.h!
-#endif
 
 // clang-format off
 
