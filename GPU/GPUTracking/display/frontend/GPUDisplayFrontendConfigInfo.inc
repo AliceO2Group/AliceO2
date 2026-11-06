@@ -20,6 +20,13 @@
 void GPUDisplay::buildConfigInfo()
 {
   auto addInfo = [this](std::pair<uint32_t, configKeyCallback>&& info) { mFrontend->mConfigRTTI->configInfos[info.first] = std::move(info.second); };
+  addInfo(INFO_LAMBDA(mCfgC, mDisplayControl, if (val == 2) { SetInfo("Exiting", 1); }));
+  addInfo(INFO_LAMBDA(mCfgC, mResetScene, SetInfo("View reset", 1);));
+  addInfo(INFO_LAMBDA(mCfgC, mRequestScreenshot, SetInfo("Taking screenshot (%s)", mScreenshotFile.c_str());));
+  addInfo(INFO_LAMBDA(mCfgC, mAnimateScreenshot, SetInfo("Writing screenshots from animation set to %d", val);));
+  addInfo(INFO_LAMBDA(mCfgC, mAnimationChangeConfig, SetInfo("Interpolating visualization settings during Animation %s", val ? "enabled" : "disabled");));
+  addInfo(INFO_LAMBDA(mCfgC, mPrintInfoTextAlways, SetInfo(val ? "Showing help text until disabled" : (mInfoHelpTimer.IsRunning() ? "Showing help text" : "Showing help text disabled"), 1);));
+  addInfo(INFO_LAMBDA(mCfgC, mPrintInfoText, SetInfo("Info text display - console: %s, onscreen %s", (val & 2) ? "enabled" : "disabled", (val & 1) ? "enabled" : "disabled");));
   addInfo(INFO_LAMBDA(mCfgL, colorClusters, SetInfo("Color coding for seed / trrack attachmend %s", val ? "enabled" : "disabled");));
   addInfo(INFO_LAMBDA(mCfgL, drawSector, {
     if (val == -1) {

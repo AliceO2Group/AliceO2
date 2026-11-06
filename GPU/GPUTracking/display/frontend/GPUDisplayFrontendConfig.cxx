@@ -48,7 +48,7 @@ struct GPUDisplayFrontend::configKey {
 };
 
 struct GPUDisplayFrontend::configRTTIInfo {
-  static constexpr std::tuple configStructs{&GPUDisplay::mCfgL, &GPUDisplay::mCfgH, &GPUDisplay::mCfgR}; // Config structs with RTTI, as members of GPUDisplay
+  static constexpr std::tuple configStructs{&GPUDisplay::mCfgL, &GPUDisplay::mCfgH, &GPUDisplay::mCfgR, &GPUDisplay::mCfgC}; // Config structs with RTTI, as members of GPUDisplay
   std::vector<configRTTIExt> rttiEntries;
   std::vector<configKeyCallback> configInfos;       // SetInfo callback for an option, indexed like rttiEntries, called after the callback of a key bound to it
   std::vector<std::vector<uint32_t>> rttiReverseId; // [configStructIndex][offset] -> index in rttiEntries, INVALID_INDEX if no member at that offset
@@ -108,18 +108,21 @@ struct GPUDisplayFrontend::configRTTIInfo {
       return qConfig::print_type(*(const int32_t*)ptr);
     } else if (e.type == "uint32_t") {
       return qConfig::print_type(*(const uint32_t*)ptr);
+    } else if (e.type == "std::string") {
+      return *(const std::string*)ptr;
     }
     return std::nullopt;
   }
   template <class T, class M>
   uint32_t getRTTIIndex(GPUDisplay& display, M T::* member) // RTTI index of a direct member of a config struct
   {
-    if constexpr (std::is_same_v<T, GPUDisplayControl>) {
-      return INVALID_INDEX;
-    } else {
-      const T& obj = configStruct<T>(display);
-      return rttiReverseId[configStructIndex<T>()][(const char*)&(obj.*member) - (const char*)&obj];
+    if constexpr (std::is_same_v<T, GPUDisplayControl> && std::is_same_v<M, bool>) {
+      if (member == &GPUDisplayControl::dummy) { // Keys / buttons that do not change a setting
+        return INVALID_INDEX;
+      }
     }
+    const T& obj = configStruct<T>(display);
+    return rttiReverseId[configStructIndex<T>()][(const char*)&(obj.*member) - (const char*)&obj];
   }
   void buildHelpText() // Keys left-aligned, the ':' aligned after the longest keys
   {
