@@ -305,9 +305,9 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
       runKernel<GPUTPCGMO2Output, GPUTPCGMO2Output::prepare>(GetGridAuto(0, deviceType));
     }
     TransferMemoryResourceLinkToHost(RecoStep::TPCMerging, Merger.MemoryResMemory(), 0, &mEvents->single);
+    SynchronizeEventAndRelease(mEvents->single, doGPU); // The CUDA / HIP specialization of the sort reads nO2Tracks on the host
     runKernel<GPUTPCGMO2Output, GPUTPCGMO2Output::sort>(GetGridAuto(0, deviceType));
     mRec->ReturnVolatileDeviceMemory();
-    SynchronizeEventAndRelease(mEvents->single, doGPU);
 
     if (GetProcessingSettings().clearO2OutputFromGPU) {
       mRec->MakeFutureDeviceMemoryAllocationsVolatile();
