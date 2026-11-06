@@ -12,11 +12,19 @@
 /// \file qconfigoptions.h
 /// \author David Rohr
 
-#include "GPUSettings.h" // Usually we are included from GPUSettings.h, so this doesn't do anything.
-                         // But ROOT or qconfig.cpp will include us directly, so load the settings first.
+#ifndef QCONFIG_INTERNAL
+#include "GPUSettingsTypes.h"
+#endif
 
 // clang-format off
 BeginNamespace(o2::gpu)
+#if !defined(QCONFIGOPTIONS_H_LIST) || defined(QCONFIG_INTERNAL)
+#define QCONFIGOPTIONS_H_LIST
 #include "GPUSettingsList.h"
+#endif
+
+#if !defined(QCONFIGOPTIONS_H_PARAM) || defined(QCONFIG_INTERNAL)
+#define QCONFIGOPTIONS_H_PARAM
 #include "GPUSettingsParam.h"
+#endif
 EndNamespace() // o2::gpu

@@ -13,13 +13,7 @@
 /// \author David Rohr
 
 #include "qconfig_general.h"
-
-#if !defined(QCONFIG_HEADER_GUARD_NO_INCLUDE) || defined(QCONFIG_GENRTC)
-
-#if defined(QCONFIG_HEADER_GUARD) && !defined(QCONFIG_GENRTC)
-#define QCONFIG_HEADER_GUARD_NO_INCLUDE
-#else
-#define QCONFIG_HEADER_GUARD
+#define QCONFIG_H
 
 #ifndef BeginNamespace
 #define BeginNamespace(name) \
@@ -66,8 +60,4 @@
   };
 // clang-format on
 
-#endif
-
 #include "qconfig_wrapinclude.h"
-
-#endif // QCONFIG_HEADER_GUARD_NO_INCLUDE
