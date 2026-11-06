@@ -33,6 +33,7 @@
 #include "TGeoPgon.h"
 #include "TGeoTube.h"
 #include "TGeoCompositeShape.h"
+#include "DetectorsBase/SimRandom.h"
 using namespace o2::passive;
 
 void Cave::createMaterials()
@@ -153,7 +154,7 @@ void Cave::BeginPrimary()
     if (chunks != -1) {
       if (mPrimaryCounter % chunks == 0) {
         auto seed = mChunkSeedCounter + 10;
-        gRandom->SetSeed(seed);
+        o2::base::simRandom()->SetSeed(seed);
         mChunkSeedCounter++;
       }
     }
