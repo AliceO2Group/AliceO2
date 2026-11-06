@@ -223,16 +223,15 @@ struct DiscoverMetadataInAOD : o2::framework::ConfigDiscoveryPlugin {
           return results;
         }
 
-        // Lets try in parent file.
-        auto parentFiles = currentFile->parentFiles();
-        if (parentFiles.empty()) {
-          LOGP(info, "No metadata found in file \"{}\"", filename);
-          results.push_back(ConfigParamSpec{"aod-metadata-disable", VariantType::String, "1", {"Metadata not found in AOD"}});
-          return results;
-        }
-        LOGP(info, "No metadata found in file \"{}\", checking in its parents.", filename);
-        for (auto& [df, parentFilenameInFile] : parentFiles) {
-          std::string parentFilename = parentFilenameInFile;
+        // Lets try in the parent files, up to the allowed parent level.
+        auto childFile = currentFile;
+        for (int level = 1; level <= registry.get<int>("aod-parent-access-level"); ++level) {
+          auto parentFiles = childFile->parentFiles();
+          if (parentFiles.empty()) {
+            break;
+          }
+          LOGP(info, "No metadata found in file \"{}\", checking in its parents.", childFile->name());
+          std::string parentFilename = parentFiles.begin()->second;
           // Do the replacement. Notice this will require changing aod-parent-base-path-replacement to be
           // a workflow option (because the metadata itself is potentially changing the topology).
           if (registry.isSet("aod-parent-base-path-replacement")) {
@@ -267,9 +266,10 @@ struct DiscoverMetadataInAOD : o2::framework::ConfigDiscoveryPlugin {
             results.push_back(ConfigParamSpec{"aod-metadata-source", VariantType::String, filename, {"File from which the metadata was extracted."}});
             return results;
           }
-          LOGP(info, "No metadata found in file \"{}\" nor in its parent file \"{}\"", filename, parentFilename);
-          break;
+          LOGP(info, "No metadata found in parent file \"{}\" at level {}", parentFilename, level);
+          childFile = parentFile;
         }
+        LOGP(info, "No metadata found in file \"{}\" nor in its parents", filename);
         results.push_back(ConfigParamSpec{"aod-metadata-disable", VariantType::String, "1", {"Metadata not found in AOD"}});
         return results;
       }};
