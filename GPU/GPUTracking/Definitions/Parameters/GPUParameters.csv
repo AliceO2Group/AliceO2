@@ -16,7 +16,7 @@ GPUTPCCreateOccupancyMap_fill,256,,,,,,,,,256,,256,256,,256,,,256,
 GPUTPCCreateOccupancyMap_fold,256,,,,,,,,,256,,256,256,,256,,,256,
 GPUTRDTrackerKernels_o2Version,512,,,,,,,,,512,,512,512,,512,,,512,
 GPUTPCCompressionKernels_step0attached,256,,"[128, 1]","[64, 2]",,,,,,"[160, 2]",128,"[448, 1]",352,,"[1024, 1]",,"[96, 3]","[128, 4]",
-GPUTPCCompressionKernels_step1unattached,256,,"[512, 2]","[512, 2]",,,,,,"[288, 4]","[512, 2]","[256, 4]","[512, 2]",,"[512, 3]",,"[512, 2]","[512, 3]",
+GPUTPCCompressionKernels_step1unattached,256,,"[512, 2]","[512, 2]",,,,,,"[288, 4]","[512, 2]","[256, 4]","[512, 2]",,"[512, 3]",,"[512, 2]","[512, 3]","[256, 8]"
 GPUTPCDecompressionKernels_step0attached,256,,"[128, 2]","[128, 2]",,,,,,"[32, 1]","[32, 1]","[32, 1]","[32, 1]",,"[128, 1]",,"[32, 1]","[128, 1]",
 GPUTPCDecompressionKernels_step1unattached,256,,"[64, 2]","[64, 2]",,,,,,"[32, 1]","[32, 1]","[32, 1]","[32, 1]",,"[64, 1]",,"[32, 1]","[64, 1]",
 GPUTPCDecompressionUtilKernels_sortPerSectorRow,256,,,,,,,,,256,,256,256,,256,,,256,
