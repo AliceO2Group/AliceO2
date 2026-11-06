@@ -17,7 +17,6 @@ o2_add_library(TPCSpaceCharge
                        src/DataContainer3D.cxx
                PUBLIC_LINK_LIBRARIES O2::TPCBaseRecSim
                                      O2::Field
-                                     Vc::Vc
                                      ROOT::Core
                                      O2::DataFormatsParameters)
 
@@ -35,7 +34,6 @@ o2_target_root_dictionary(TPCSpaceCharge
                                   include/TPCSpaceCharge/PoissonSolverHelpers.h
                                   include/TPCSpaceCharge/SpaceChargeHelpers.h
                                   include/TPCSpaceCharge/TriCubic.h
-                                  include/TPCSpaceCharge/Vector.h
                                   include/TPCSpaceCharge/Vector3D.h
                                   include/TPCSpaceCharge/SpaceChargeParameter.h
                           LINKDEF src/TPCSpacechargeLinkDef.h)
@@ -49,7 +47,7 @@ o2_add_test_root_macro(macro/createResidualDistortionObject.C
                       PUBLIC_LINK_LIBRARIES O2::TPCSpaceCharge
                                             O2::TPCSpaceChargeIO
                                             O2::CommonUtils
-                      LABELS tpc)
+                      LABELS tpc COMPILE_ONLY)
 
 
 install(FILES macro/createSCHistosFromHits.C
@@ -77,6 +75,14 @@ o2_add_test(TriCubic
             COMPONENT_NAME spacecharge
             PUBLIC_LINK_LIBRARIES O2::TPCSpaceCharge
             SOURCES test/testO2TPCTricubic.cxx
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
+            LABELS tpc
+            CONFIGURATIONS RelWithDebInfo Release MinSizeRel)
+
+o2_add_test(SpaceCharge
+            COMPONENT_NAME spacecharge
+            PUBLIC_LINK_LIBRARIES O2::TPCSpaceCharge
+            SOURCES test/testO2TPCSpaceCharge.cxx
             ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
             LABELS tpc
             CONFIGURATIONS RelWithDebInfo Release MinSizeRel)

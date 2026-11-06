@@ -28,6 +28,8 @@
 #include "fmt/core.h"
 #include "TFile.h"
 #include "TTree.h"
+#include "TSystem.h"
+#include "TString.h"
 #include "TStopwatch.h"
 #include "ROOT/RDataFrame.hxx"
 #include <numeric>
@@ -95,6 +97,15 @@ int DataContainer3D<DataT>::writeToFile(std::string_view file, std::string_view 
   ROOT::RDF::RSnapshotOptions opt;
   opt.fMode = option;
   opt.fOverwriteIfExists = true; // overwrite if already exists
+  // ZSTD: same file size as the default ZLIB (the data are not well compressible) but ~3 times faster reading
+  opt.fCompressionAlgorithm = ROOT::RCompressionSetting::EAlgorithm::kZSTD;
+  opt.fCompressionLevel = 1;
+  TString mode(option.data());
+  mode.ToUpper();
+  if ((mode == "UPDATE") && gSystem->AccessPathName(file.data())) {
+    // a file opened in UPDATE mode keeps its compression setting: create a missing file with the same compression as for RECREATE
+    TFile fNew(file.data(), "RECREATE", "", ROOT::CompressionSettings(opt.fCompressionAlgorithm, opt.fCompressionLevel));
+  }
 
   TStopwatch timer;
   // note: first call has some overhead (~2s)

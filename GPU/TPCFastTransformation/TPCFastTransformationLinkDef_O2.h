@@ -53,6 +53,7 @@
 #pragma read sourceClass = "o2::gpu::TPCFastSpaceChargeCorrection" targetClass = "o2::gpu::TPCFastSpaceChargeCorrection" source = "size_t mSliceDataSizeBytes[3]" version = "[-3]" target = "mSectorDataSizeBytes" code = "{ for (int i=0; i<3; i++) mSectorDataSizeBytes[i] = onfile.mSliceDataSizeBytes[i]; }";
 #pragma read sourceClass = "o2::gpu::TPCFastSpaceChargeCorrection" targetClass = "o2::gpu::TPCFastSpaceChargeCorrection" source = "float fInterpolationSafetyMargin" version = "[-3]" target = "" code = "{}";
 
+// empty stub of the removed class, only kept to read old TPCFastTransform objects without a missing-dictionary warning (see TPCFastTransform.h)
 #pragma link C++ struct o2::gpu::TPCSlowSpaceChargeCorrection + ;
 #pragma link C++ class o2::gpu::TPCFastTransformPOD + ;
 
