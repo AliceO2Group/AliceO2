@@ -23,6 +23,8 @@
 #include <mach-o/dyld.h>
 #include <mach-o/getsect.h>
 #include <mach-o/ldsyms.h>  // _mh_execute_header
+#include <sys/mman.h>
+#include <unistd.h>
 
 #define GPUErrorReturn(...) \
   {                         \
@@ -49,6 +51,30 @@ uint32_t metalGPUCoreCount()
     IOObjectRelease(service);
   }
   return n;
+}
+
+// A shared buffer around anonymous memory rather than one Metal allocates. After
+// the GPU has been idle for a few seconds, the first command buffer waits until
+// the driver has made the memory pools resident again, which for 6 GB takes about
+// 75 ms instead of 125 ms on an M1 Max, and the full system test idles between
+// all its time frames.
+id<MTLBuffer> metalNewSharedBuffer(id<MTLDevice> device, size_t size)
+{
+  const size_t length = (size + getpagesize() - 1) & ~(size_t)(getpagesize() - 1);
+  void* p = mmap(nullptr, length, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
+  if (p == MAP_FAILED) {
+    return nil;
+  }
+  id<MTLBuffer> buffer = [device newBufferWithBytesNoCopy:p
+                                                   length:length
+                                                  options:MTLResourceStorageModeShared | MTLResourceHazardTrackingModeUntracked
+                                              deallocator:^(void* ptr, NSUInteger l) {
+                                                munmap(ptr, l);
+                                              }];
+  if (buffer == nil) {
+    munmap(p, length);
+  }
+  return buffer;
 }
 }  // namespace
 
@@ -116,7 +142,7 @@ int32_t GPUReconstructionMetal::InitDevice_Runtime()
     }
 
     // We only support internal GPUs, so the ownership of the memory is always shared
-    mInternals->mem_gpu = [mInternals->device newBufferWithLength:mDeviceMemorySize options:MTLResourceStorageModeShared | MTLResourceHazardTrackingModeUntracked];
+    mInternals->mem_gpu = metalNewSharedBuffer(mInternals->device, mDeviceMemorySize);
     if (mInternals->mem_gpu == nil) {
       GPUErrorReturn("Metal Memory Allocation Error");
     }
@@ -143,7 +169,7 @@ int32_t GPUReconstructionMetal::InitDevice_Runtime()
       mInternals->streamHasWork[i] = false;
     }
 
-    mInternals->mem_host = [mInternals->device newBufferWithLength:mHostMemorySize options:MTLResourceStorageModeShared | MTLResourceHazardTrackingModeUntracked];
+    mInternals->mem_host = metalNewSharedBuffer(mInternals->device, mHostMemorySize);
     if (mInternals->mem_host == nil) {
       GPUErrorReturn("Error allocating pinned host memory");
     }
