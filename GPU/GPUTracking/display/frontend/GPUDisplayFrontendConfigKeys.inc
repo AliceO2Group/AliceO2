@@ -38,9 +38,9 @@ void GPUDisplay::buildConfigKeys()
     "Strafe up / down / Rotate left / right");
 
   mFrontend->add_key_binding(
-    KEY_LAMBDA(mFrontend->KEY_ESCAPE, mCfgC, mDisplayControl, val.store(2); SetInfo("Exiting", 1);),
+    KEY_LAMBDA(mFrontend->KEY_ESCAPE, mCfgC, mDisplayControl, val.store(2);),
     KEY_LAMBDA('n', mCfgC, mDisplayControl, val.store(1);),
-    KEY_LAMBDA('r', mCfgC, mResetScene, val.store(true); SetInfo("View reset", 1);), //
+    KEY_LAMBDA('r', mCfgC, mResetScene, val.store(true);), //
     KEY_LAMBDA('q', mCfgC, dummy, {
       if (mFrontend->isGUIRunning()) {
         SetInfo("Stopping GUI", 1);
@@ -229,7 +229,7 @@ void GPUDisplay::buildConfigKeys()
 
   mFrontend->add_key_binding(
     KEY_LAMBDA('t', mCfgC, mRequestScreenshot, takeScreenshot();),
-    KEY_LAMBDA('T', mCfgC, mAnimateScreenshot, val ^= 1; SetInfo("Writing screenshots from animation set to %d", mCfgC.mAnimateScreenshot);), //
+    KEY_LAMBDA('T', mCfgC, mAnimateScreenshot, val ^= 1;), //
     KEY_LAMBDA('Z', mCfgR, screenshotScaleFactor, {
       val += 1;
       if (val > 4) {
@@ -252,7 +252,7 @@ void GPUDisplay::buildConfigKeys()
     "Start Animation, Add / remove Animation point, Reset Points, Cycle animation camera mode (resets)");
 
   mFrontend->add_key_binding(
-    KEY_LAMBDA('>', mCfgC, mAnimationChangeConfig, val ^= 1; SetInfo("Interpolating visualization settings during Animation %s", mCfgC.mAnimationChangeConfig ? "enabled" : "disabled");),
+    KEY_LAMBDA('>', mCfgC, mAnimationChangeConfig, val ^= 1;),
     KEY_DOWN_MAP('<', CHANGE_ANIMATION_INTERVAL), //
     "Toggle config interpolation during Animation / change Animation interval (via movement)");
 
@@ -296,20 +296,16 @@ void GPUDisplay::buildConfigKeys()
     KEY_LAMBDA('h', mCfgC, mPrintInfoTextAlways, {
       if (val) {
         val = false;
-        SetInfo("Showing help text disabled", 1);
       } else if (mInfoHelpTimer.IsRunning()) {
         val = true;
         mInfoHelpTimer.Reset();
-        SetInfo("Showing help text until disabled", 1);
       } else {
         PrintHelp();
-        SetInfo("Showing help text", 1);
       }
     }),
     KEY_LAMBDA('H', mCfgC, mPrintInfoText, {
       val += 1;
       val &= 3;
-      SetInfo("Info text display - console: %s, onscreen %s", (val & 2) ? "enabled" : "disabled", (val & 1) ? "enabled" : "disabled");
     }), //
     "Print Help / Show info texts");
 }

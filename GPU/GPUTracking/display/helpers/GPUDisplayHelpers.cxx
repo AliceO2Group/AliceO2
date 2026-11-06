@@ -61,7 +61,6 @@ void GPUDisplay::takeScreenshot()
   static int32_t nScreenshot = 1;
   mCfgC.mRequestScreenshot = true;
   mScreenshotFile = mCfgC.mScreenShotname + std::to_string(nScreenshot++) + ".bmp";
-  SetInfo("Taking screenshot (%s)", mScreenshotFile.c_str());
 }
 
 void GPUDisplay::SaveGLPos()
