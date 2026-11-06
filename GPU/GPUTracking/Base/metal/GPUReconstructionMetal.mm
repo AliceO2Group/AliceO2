@@ -15,6 +15,7 @@
 #include "GPUDefParametersLoad.inc"
 #include "GPUReconstructionMetal.h"
 
+#include <chrono>
 #include <cstddef>
 #include <map>
 
@@ -376,13 +377,27 @@ void GPUReconstructionMetal::CommitStream(int32_t stream)
 
 void GPUReconstructionMetal::DrainStream(int32_t stream)
 {
-  if (mInternals->streamHasWork[stream]) {
-    CommitStream(stream);
+  // Hand the GPU what the other streams have encoded too, so it has work
+  // while the host waits and then works on what it waited for.
+  for (int32_t i = 0; i < mNStreams; i++) {
+    if (mInternals->streamHasWork[i]) {
+      CommitStream(i);
+    }
   }
   // Waiting on the buffer that is currently open would block forever: it is not
   // committed, so it never completes. Only what was submitted can be waited for.
+  // The last submitted buffer ends by signalling the stream's order event, once
+  // all the work before it is done. Watching the event returns sooner than
+  // waitUntilCompleted, which sleeps until the completion has been processed.
+  // Only short waits are worth a busy core, so give up after a while.
+  bool done = false;
+  const auto t0 = std::chrono::steady_clock::now();
+  while (!mInternals->submittedBuffers[stream].empty() && !(done = mInternals->streamOrder[stream].signaledValue >= mInternals->streamOrderValue[stream]) && std::chrono::steady_clock::now() - t0 < std::chrono::milliseconds(20)) {
+  }
   for (id<MTLCommandBuffer> cb : mInternals->submittedBuffers[stream]) {
-    [cb waitUntilCompleted];
+    if (!done) {
+      [cb waitUntilCompleted];
+    }
     if (cb.status == MTLCommandBufferStatusError) {
       GPUError("Metal command buffer on stream %d failed: %s", stream, [[cb.error description] UTF8String]);
     }
