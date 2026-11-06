@@ -376,8 +376,12 @@ void GPUReconstructionMetal::CommitStream(int32_t stream)
 
 void GPUReconstructionMetal::DrainStream(int32_t stream)
 {
-  if (mInternals->streamHasWork[stream]) {
-    CommitStream(stream);
+  // Hand the GPU what the other streams have encoded too, so it has work
+  // while the host waits and then works on what it waited for.
+  for (int32_t i = 0; i < mNStreams; i++) {
+    if (mInternals->streamHasWork[i]) {
+      CommitStream(i);
+    }
   }
   // Waiting on the buffer that is currently open would block forever: it is not
   // committed, so it never completes. Only what was submitted can be waited for.
