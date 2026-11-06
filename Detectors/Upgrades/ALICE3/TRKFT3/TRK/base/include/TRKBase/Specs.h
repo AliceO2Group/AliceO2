@@ -48,15 +48,13 @@ constexpr int nLayers{3}; // number of layers in each VD petal
 constexpr int nDisks{6};  // number of disks in each VD petal
 namespace layer
 {
-constexpr double pitchX{10 * mu};                                                                                                                        // pitch of the row
-constexpr double pitchZ{10 * mu};                                                                                                                        // pitch of the column
-constexpr double totalThickness{silicon::thickness + metalstack::thickness};                                                                             // total thickness of the chip
-constexpr std::array<double, nLayers> gaps{1.63 * mm, 1.2 * mm, 1.2 * mm};                                                                               // gaps between two consecutive petals
-constexpr std::array<double, nLayers> radii{0.5 * cm, 1.2 * cm, 2.5 * cm};                                                                               // radius of layer in cm
-constexpr std::array<double, nLayers> width{radii[0] * 2 * M_PI / 4 - gaps[0], radii[1] * 2 * M_PI / 4 - gaps[1], radii[2] * 2 * M_PI / 4 - gaps[2]};    // width of the quarter of layer in cm
-constexpr double length{50 * cm};                                                                                                                        // length of the layer
-constexpr int nCols{static_cast<int>(length / pitchZ)};                                                                                                  // number of columns in the chip
-constexpr std::array<int, nLayers> nRows{static_cast<int>(width[0] / pitchX), static_cast<int>(width[1] / pitchX), static_cast<int>(width[2] / pitchX)}; // number of rows in the chip. For the moment is different for each layer since a siner segmentation in repetitive units is stil to be implemented
+constexpr double pitchX{10 * mu};                                            // pitch of the row
+constexpr double pitchZ{10 * mu};                                            // pitch of the column
+constexpr double totalThickness{silicon::thickness + metalstack::thickness}; // total thickness of the chip
+constexpr std::array<double, nLayers> gaps{1.63 * mm, 1.2 * mm, 1.2 * mm};   // gaps between two consecutive petals
+constexpr std::array<double, nLayers> radii{0.5 * cm, 1.2 * cm, 2.5 * cm};   // radius of layer in cm
+constexpr double length{50 * cm};                                            // length of the layer
+constexpr int nCols{static_cast<int>(length / pitchZ)};                      // number of columns in the chip
 
 } // namespace layer
 namespace disk
@@ -222,6 +220,14 @@ constexpr double pitchZ{10.0 * mu};
 constexpr double responseYShift{5 * mu}; /// center of the epitaxial layer
 constexpr double thickness{20 * mu};
 } // namespace alice3resp
+
+namespace alpideresp /// parameters for the alpide chip response
+{
+constexpr double pitchX{26.88 * mu};
+constexpr double pitchZ{29.24 * mu};
+constexpr double responseYShift{5 * mu}; /// center of the epitaxial layer
+constexpr double thickness{45 * mu};
+} // namespace alpideresp
 
 namespace MLOTDisks
 {
