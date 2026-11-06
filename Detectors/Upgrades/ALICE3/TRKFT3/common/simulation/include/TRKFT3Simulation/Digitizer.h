@@ -130,7 +130,7 @@ class Digitizer
   int getNRows(int subDetID, int layer)
   {
     if (subDetID == 0) { // VD
-      return o2::trk::constants::VD::petal::layer::nRows[layer];
+      return o2::trk::SegmentationChip::getNRowsVD(layer);
     } else if (subDetID == 1 || subDetID == 2) { // ML/OT
       return o2::trk::constants::moduleMLOT::chip::nRows;
     }
