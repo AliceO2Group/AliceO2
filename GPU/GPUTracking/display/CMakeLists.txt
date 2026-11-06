@@ -132,7 +132,7 @@ set(SRCS_NO_H helpers/GPUDisplayLoader.cxx
               frontend/GPUDisplayHelp.cxx
               frontend/GPUDisplayFrontendConfig.cxx)
 
-set(HDRS_INSTALL helpers/GPUDisplayMagneticFieldConstants.h frontend/GPUDisplayFrontendKeys.h frontend/GPUDisplayControl.h)
+set(HDRS_INSTALL helpers/GPUDisplayMagneticFieldConstants.h frontend/GPUDisplayFrontendKeys.h GPUDisplayControl.h GPUDisplayTypes.h)
 
 if(GPUCA_EVENT_DISPLAY_VULKAN)
   set(SRCS ${SRCS} backend/GPUDisplayBackendVulkan.cxx)

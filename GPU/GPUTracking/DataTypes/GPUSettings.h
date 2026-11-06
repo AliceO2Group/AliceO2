@@ -16,8 +16,10 @@
 #define GPUSETTINGS_H
 
 #include "GPUCommonDef.h"
-#include "GPUSettingsTypes.h"
 
+#endif // GPUSETTINGS_H
+
+// Outside of header guard, since might run it multiple times for different config structs
 #ifdef GPUCA_GPUCODE_DEVICE
 #define QCONFIG_GPU
 #endif
@@ -25,5 +27,3 @@
 #ifndef GPUCA_GPUCODE_GENRTC
 #include "utils/qconfig.h"
 #endif
-
-#endif // GPUSETTINGS_H

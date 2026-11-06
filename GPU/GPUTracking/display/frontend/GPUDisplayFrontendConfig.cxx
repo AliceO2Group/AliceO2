@@ -17,6 +17,8 @@
 #include "frontend/GPUDisplayInfo.inc"
 #include "GPULogging.h"
 #include "GPUDisplayGUIChannel.h"
+#define GPUSETTINGS_ALL
+#include "GPUSettings.h"
 #include "utils/qconfig_rtti.h"
 #include "utils/qconfig_internal_helpers.h"
 

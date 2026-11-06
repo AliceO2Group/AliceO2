@@ -14,6 +14,7 @@
 
 #include "GPUConfigDump.h"
 #include "GPUDataTypesIO.h"
+#define GPUSETTINGS_ALL
 #include "GPUSettings.h"
 
 #include <functional>

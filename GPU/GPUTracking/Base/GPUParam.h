@@ -18,6 +18,7 @@
 #include "GPUCommonDef.h"
 #include "GPUCommonMath.h"
 #include "GPUDef.h"
+#define GPUSETTINGS_PARAM
 #include "GPUSettings.h"
 #include "GPUTPCGMPolynomialField.h"
 #include "DataFormatsTPC/Constants.h"

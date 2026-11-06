@@ -14,6 +14,8 @@
 
 // clang-format off
 
+// No include guard: included multiple times by qconfig with different macro definitions
+
 // Derrived parameters used in GPUParam
 BeginHiddenConfig(GPUSettingsParam, param)
 AddVariableRTC(continuousTracking, int8_t, 0) // Continuous tracking, estimate bz and errors for abs(z) = 125cm during seeding
