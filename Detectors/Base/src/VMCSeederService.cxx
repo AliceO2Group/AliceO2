@@ -12,9 +12,7 @@
 #include "DetectorsBase/VMCSeederService.h"
 #include "DetectorsBase/SimRandom.h"
 #include "TVirtualMC.h"
-#include <fairlogger/Logger.h>                    // for FairLogger
-#include <CommonUtils/ConfigurationMacroHelper.h> // for ROOT JIT helpers
-#include <TInterpreter.h>
+#include <fairlogger/Logger.h> // for FairLogger
 #include <TRandom.h>
 
 using namespace o2::base;
@@ -25,13 +23,11 @@ void VMCSeederService::initSeederFunction(TVirtualMC const* vmc)
     // Geant3 doesn't need anything special in our context
     mSeederFcn = [](TRandom*) {};
   } else if (strcmp(vmc->GetName(), "TGeant4") == 0) {
-    // Seed the Geant4 engine of the calling thread from the given generator, with the same recipe as
-    // TG4RunManager::SetRandomSeed (which always reads gRandom). JIT-compiled to avoid linking against Geant4.
-    if (!gInterpreter->Declare("#include <CLHEP/Random/Random.h>")) {
-      LOG(fatal) << "CLHEP/Random/Random.h not found on ROOT_INCLUDE_PATH; cannot seed Geant4";
+    // installed by the Geant4 configuration, so that this library does not link against Geant4
+    mSeederFcn = geant4Seeder();
+    if (!mSeederFcn) {
+      LOG(fatal) << "No Geant4 seeding function installed (VMCSeederService::setGeant4Seeder)";
     }
-    std::string G4func("std::function<void(TRandom*)> G4func() { gSystem->Load(\"libgeant4vmc\"); return [](TRandom* r){ long seeds[10]; seeds[0] = r->GetSeed(); seeds[1] = r->GetSeed(); seeds[2] = 0; CLHEP::HepRandom::setTheSeeds(seeds); };}");
-    mSeederFcn = o2::conf::JITAndEvalFunction<SeederFcn>(G4func, "G4func()", "std::function<void(TRandom*)>", "VMCSEEDERFUNC123");
   } else {
     LOG(warn) << "Unknown VMC engine or unimplemented VMC seeding function";
     mSeederFcn = [](TRandom*) {};
