@@ -12,7 +12,10 @@
 /// \file qconfig_wrapinclude.h
 /// \author David Rohr
 
-#ifndef QCONFIG_HEADER_GUARD_NO_INCLUDE
+#ifndef QCONFIG_H
+#error Must include qconfig.h before using qconfig_internal.h, etc...
+#endif
+
 #ifndef AddHelp
 #define AddHelp(cmd, cmdshort)
 #endif
@@ -53,6 +56,10 @@
 #define BeginHiddenConfig(name, instance) BeginSubConfig(name, instance, , , , )
 #endif
 
+#ifdef QCONFIG_GENRTC
+#define QCONFIG_INTERNAL
+#endif
+
 #include "qconfigoptions.h"
 
 #undef AddOption
@@ -79,7 +86,6 @@
 #ifdef QCONFIG_COMPARE
 #undef QCONFIG_COMPARE
 #endif
-
-#else
-#undef QCONFIG_HEADER_GUARD_NO_INCLUDE
+#ifdef QCONFIG_INTERNAL
+#undef QCONFIG_INTERNAL
 #endif
