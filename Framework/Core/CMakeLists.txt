@@ -459,18 +459,16 @@ o2_add_test(
   TARGETVARNAME workflowPluginsTest
   NO_BOOST_TEST
   COMMAND_LINE_ARGS
-    --workflow-plugin O2FrameworkTestWorkflowPluginA:TestWorkflowPluginA,O2FrameworkTestWorkflowPluginB:TestWorkflowPluginB
+    --workflow-plugin O2TestFrameworkWorkflowPluginAPlugin:TestFrameworkWorkflowPluginA,O2TestFrameworkWorkflowPluginBPlugin:TestFrameworkWorkflowPluginB
     --shared 3 --run --shm-segment-size 20000000 ${DPL_WORKFLOW_TESTS_EXTRA_OPTIONS}
   ENVIRONMENT "DYLD_LIBRARY_PATH=${CMAKE_LIBRARY_OUTPUT_DIRECTORY}:$ENV{DYLD_LIBRARY_PATH};LD_LIBRARY_PATH=${CMAKE_LIBRARY_OUTPUT_DIRECTORY}:$ENV{LD_LIBRARY_PATH}"
   )
 if(workflowPluginsTest)
   foreach(p A B)
-    add_library(O2FrameworkTestWorkflowPlugin${p} SHARED test/test_WorkflowPlugin${p}.cxx)
-    target_link_libraries(O2FrameworkTestWorkflowPlugin${p} PRIVATE O2::Framework)
-    target_compile_definitions(O2FrameworkTestWorkflowPlugin${p} PRIVATE
-                               DPL_WORKFLOW_PLUGIN_NAME=TestWorkflowPlugin${p}
-                               DPL_WORKFLOW_PLUGIN_LIBRARY=O2FrameworkTestWorkflowPlugin${p})
-    add_dependencies(${workflowPluginsTest} O2FrameworkTestWorkflowPlugin${p})
+    o2_add_executable(WorkflowPlugin${p} SOURCES test/test_WorkflowPlugin${p}.cxx
+                      COMPONENT_NAME Framework PUBLIC_LINK_LIBRARIES O2::Framework
+                      IS_TEST NO_INSTALL WORKFLOW_PLUGIN TARGETVARNAME workflowPlugin)
+    add_dependencies(${workflowPluginsTest} ${workflowPlugin})
   endforeach()
   add_test(NAME test_Framework_test_WorkflowPluginsDump
            COMMAND ${CMAKE_CURRENT_LIST_DIR}/test/test_WorkflowPluginsDump.sh $<TARGET_FILE:${workflowPluginsTest}>)

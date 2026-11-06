@@ -170,15 +170,12 @@ char* getIdString(int argc, char** argv);
 #define DPL_STRINGIZE(A) DPL_STRINGIZE_NX(A)
 
 // The workflow definition is a plugin. By default it is embedded in the
-// executable as DPL_WORKFLOW_PLUGIN_NAME, with an empty library name.
-// To build it in a DSO instead, both DPL_WORKFLOW_PLUGIN_NAME and
-// DPL_WORKFLOW_PLUGIN_LIBRARY must be specified at build time.
+// executable as DPL_WORKFLOW_PLUGIN_NAME, and main() runs it. A workflow built
+// as a plugin library gets DPL_WORKFLOW_PLUGIN_NAME at build time: it has no
+// main(), and the executable which links it calls dpl_workflow_main() instead.
 #ifndef DPL_WORKFLOW_PLUGIN_NAME
 #define DPL_WORKFLOW_PLUGIN_NAME InternalCustomWorkflow
-#ifdef DPL_WORKFLOW_PLUGIN_LIBRARY
-#error Missing DPL_WORKFLOW_PLUGIN_NAME
-#endif
-#define DPL_WORKFLOW_PLUGIN_LIBRARY
+#define DPL_WORKFLOW_PLUGIN_EMBEDDED
 #endif
 
 struct DPL_WORKFLOW_PLUGIN_NAME : o2::framework::WorkflowPlugin {
@@ -216,11 +213,15 @@ DPLPluginHandle* dpl_plugin_callback(DPLPluginHandle* previous)
 // An empty library means the plugin embedded in the executable, found via @a embeddedPlugins.
 int callMain(int argc, char** argv, char const* pluginSpec, DPLPluginHandle* (*embeddedPlugins)(DPLPluginHandle*));
 
+#ifdef DPL_WORKFLOW_PLUGIN_EMBEDDED
 int main(int argc, char** argv)
+#else
+extern "C" int dpl_workflow_main(int argc, char** argv)
+#endif
 {
   using namespace o2::framework;
 
-  int result = callMain(argc, argv, DPL_STRINGIZE(DPL_WORKFLOW_PLUGIN_LIBRARY) ":" DPL_STRINGIZE(DPL_WORKFLOW_PLUGIN_NAME), dpl_plugin_callback);
+  int result = callMain(argc, argv, ":" DPL_STRINGIZE(DPL_WORKFLOW_PLUGIN_NAME), dpl_plugin_callback);
 
   char* idstring = getIdString(argc, argv);
   o2::framework::OnWorkflowTerminationHook onWorkflowTerminationHook;
