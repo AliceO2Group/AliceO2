@@ -46,6 +46,10 @@ class GPUReconstructionMetal : public GPUReconstructionProcessing::KernelInterfa
   size_t GPUMemCpy(void* dst, const void* src, size_t size, int32_t stream, int32_t toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int32_t nEvents = 1) override;
   void ReleaseEvent(deviceEvent ev) override;
   void RecordMarker(deviceEvent* ev, int32_t stream) override;
+  // The memory is shared with the host, and GPUMemCpy copies from memory outside the Metal buffers on the
+  // host, so there is nothing to pin.
+  int32_t registerMemoryForGPU_internal(const void* ptr, size_t size) override { return 0; }
+  int32_t unregisterMemoryForGPU_internal(const void* ptr) override { return 0; }
 
   template <class T, int32_t I = 0>
   int32_t AddKernel();
