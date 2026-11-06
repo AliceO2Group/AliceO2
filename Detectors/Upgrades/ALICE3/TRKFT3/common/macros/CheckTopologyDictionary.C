@@ -39,6 +39,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "TRKBase/GeometryTGeo.h"
+#include "TRKBase/SegmentationChip.h"
 #include "TRKBase/Specs.h"
 #include "TRKReconstruction/BuildTopologyDictionary.h"
 #include <TFile.h>
