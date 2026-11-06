@@ -31,12 +31,14 @@
 
 #include "TGrid.h"
 #include "TFile.h"
+#include "TError.h"
 
 #include <arrow/dataset/file_base.h>
 #include <arrow/dataset/dataset.h>
 #include <uv.h>
 #include <exception>
 #include <memory>
+#include <string_view>
 #include <utility>
 
 #include <dlfcn.h>
@@ -53,6 +55,42 @@ FileNameHolder makeFileNameHolder(std::string fileName)
   holder.fileName = fileName;
   return holder;
 }
+
+namespace
+{
+// ROOT reports a failed key read (a folder's key list or the object itself) and carries on,
+// so the lookup returns nullptr, or an object built from whatever was in the buffer, and a
+// failed read looks like a missing object. Count the reports while the watch is alive.
+struct RootReadErrorWatch {
+  RootReadErrorWatch()
+    : mPrevious(SetErrorHandler(handler))
+  {
+    sPrevious = mPrevious;
+    sErrors = 0;
+  }
+  ~RootReadErrorWatch()
+  {
+    SetErrorHandler(mPrevious);
+  }
+  RootReadErrorWatch(RootReadErrorWatch const&) = delete;
+  RootReadErrorWatch& operator=(RootReadErrorWatch const&) = delete;
+
+  [[nodiscard]] bool failed() const { return sErrors > 0; }
+
+  static void handler(int level, Bool_t abort, char const* location, char const* msg)
+  {
+    if (level >= kError && location && std::string_view{location} == "TKey::ReadFile") {
+      ++sErrors;
+    }
+    (sPrevious ? sPrevious : DefaultErrorHandler)(level, abort, location, msg);
+  }
+
+  ErrorHandlerFunc_t mPrevious;
+  // Errors from other threads are passed on but not counted.
+  static inline thread_local int sErrors = 0;
+  static inline ErrorHandlerFunc_t sPrevious = nullptr;
+};
+} // namespace
 
 DataInputDescriptor::DataInputDescriptor(bool alienSupport, int level, DataInputDirectorContext& context)
   : mAlienSupport(alienSupport),
@@ -603,7 +641,19 @@ try {
 
   for (auto& capability : mFactory.capabilities) {
     auto objectPath = capability.lfn2objectPath(fullpath.path());
-    void* handle = capability.getHandle(rootFS, objectPath);
+    void* handle = nullptr;
+    bool readFailed = false;
+    try {
+      RootReadErrorWatch watch;
+      handle = capability.getHandle(rootFS, objectPath);
+      readFailed = watch.failed();
+    } catch (...) {
+      // Sizes from a partial read can be garbage, e.g. giving std::bad_alloc.
+      std::throw_with_nested(AODReadError(AODReadError::Kind::InvalidTimeframe, fmt::format(R"(Unable to look up "{}" in "{}")", objectPath, mCurrentFile->name())));
+    }
+    if (readFailed) {
+      throw AODReadError(AODReadError::Kind::InvalidTimeframe, fmt::format(R"(Unable to read "{}" from "{}")", objectPath, mCurrentFile->name()));
+    }
     if (handle) {
       format = capability.factory().format();
       creator = capability.factory().deferredOutputStreamer;
