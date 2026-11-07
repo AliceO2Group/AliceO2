@@ -51,6 +51,9 @@
 #include <string_view>
 #include <utility>
 #include <TAlienUserAgent.h>
+#if defined(_LIBCPP_VERSION)
+#include "Framework/DataRefUtils.h"
+#endif
 #include <unordered_set>
 #include "rapidjson/document.h"
 #include "rapidjson/writer.h"
@@ -986,6 +989,9 @@ void* CcdbApi::extractFromTFile(TFile& file, TClass const* cl, const char* what)
   if (!cl) {
     return nullptr;
   }
+#if defined(_LIBCPP_VERSION)
+  o2::framework::DataRefUtils::registerLibstdcxxStdArray(file, cl);
+#endif
   auto object = file.GetObjectChecked(what, cl);
   if (!object) {
     // it could be that object was stored with previous convention
