@@ -29,39 +29,14 @@
 #include <string>
 #endif // !GPUCA_GPUCODE
 
-namespace o2::tpc
-{
-template <class T>
-class SpaceCharge;
-}
-
 namespace o2::gpu
 {
 
-/// simple struct to hold the space charge object which can be used for CPU reconstruction only
+/// Empty stub of the removed slow space-charge correction. TPCFastTransform objects written with ClassDef version <= 5 (e.g. the existing CCDB correction maps)
+/// contain the streamer info of this class. Without a dictionary for it, ROOT prints "no dictionary for class o2::gpu::TPCSlowSpaceChargeCorrection is available" when opening such a file.
+/// Do not use, only kept for reading old files.
 struct TPCSlowSpaceChargeCorrection {
-
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
-  /// destructor
-  ~TPCSlowSpaceChargeCorrection();
-
-  /// getting the corrections for global coordinates
-  void getCorrections(const float gx, const float gy, const float gz, const int32_t sector, float& gdxC, float& gdyC, float& gdzC) const;
-
-  o2::tpc::SpaceCharge<float>* mCorr{nullptr}; ///< reference space charge corrections
-#else
-  ~TPCSlowSpaceChargeCorrection() = default;
-
-  /// setting dummy corrections for GPU
-  GPUdi() void getCorrections(const float gx, const float gy, const float gz, const int32_t sector, float& gdxC, float& gdyC, float& gdzC) const
-  {
-    gdxC = 0;
-    gdyC = 0;
-    gdzC = 0;
-  }
-#endif
-
-  ClassDefNV(TPCSlowSpaceChargeCorrection, 2);
+  ClassDefNV(TPCSlowSpaceChargeCorrection, 3);
 };
 
 ///
@@ -116,15 +91,8 @@ class TPCFastTransform : public FlatObject
     FlatObject::destroy();
   }
 
-/// Destructor
-#if !defined(GPUCA_GPUCODE)
-  ~TPCFastTransform()
-  {
-    delete mCorrectionSlow;
-  }
-#else
+  /// Destructor
   ~TPCFastTransform() = default;
-#endif
 
   /// _____________  FlatObject functionality, see FlatObject class for description  ____________
 
@@ -279,12 +247,6 @@ class TPCFastTransform : public FlatObject
 
   static TPCFastTransform* loadFromFile(std::string inpFName = "", std::string name = "");
 
-  /// setting the reference corrections
-  void setSlowTPCSCCorrection(TFile& inpf);
-
-  /// \return returns the space charge object which is used for the slow correction
-  const auto& getCorrectionSlow() const { return *mCorrectionSlow; }
-
 #endif // !GPUCA_GPUCODE
 
   /// Print method
@@ -332,12 +294,9 @@ class TPCFastTransform : public FlatObject
   float mIDCError;                 ///< error on IDC
   float mCTP2IDCFallBackThreshold; ///< if IDC is not set but requested, use Lumi if it does not exceed this threshold
 
-  /// Correction of (x,u,v) with tricubic interpolator on a regular grid
-  TPCSlowSpaceChargeCorrection* mCorrectionSlow{nullptr}; ///< reference space charge corrections
-
   GPUd() void TransformLocal(int32_t sector, int32_t row, float& x, float& y, float& z, const TPCFastTransform* ref, const TPCFastTransform* ref2, float scale, float scale2, int32_t scaleMode) const;
 
-  ClassDefNV(TPCFastTransform, 5);
+  ClassDefNV(TPCFastTransform, 6);
 };
 
 // =======================================================================
@@ -412,15 +371,6 @@ GPUdi() void TPCFastTransform::TransformLocal(int32_t sector, int32_t row, float
   float dx = 0.f, dy = 0.f, dz = 0.f;
 
   if ((scale >= 0.f) || (scaleMode == 1) || (scaleMode == 2)) {
-#ifndef GPUCA_GPUCODE
-    if (mCorrectionSlow) {
-      float gx, gy, gz;
-      getGeometry().convLocalToGlobal(sector, x, y, z, gx, gy, gz);
-      float gdxC, gdyC, gdzC;
-      mCorrectionSlow->getCorrections(gx, gy, gz, sector, gdxC, gdyC, gdzC);
-      getGeometry().convGlobalToLocal(sector, gdxC, gdyC, gdzC, dx, dy, dz);
-    } else
-#endif // GPUCA_GPUCODE
     {
       mCorrection.getCorrectionLocal(sector, row, y, z, dx, dy, dz);
       if (ref) {

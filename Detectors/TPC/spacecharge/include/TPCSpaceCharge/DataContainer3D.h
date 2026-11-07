@@ -20,6 +20,8 @@
 
 #include "Rtypes.h"
 #include <vector>
+#include <string_view>
+#include <utility>
 
 class TFile;
 class TTree;

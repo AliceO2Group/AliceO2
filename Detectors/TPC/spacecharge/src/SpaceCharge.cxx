@@ -41,7 +41,9 @@
 #include "TCanvas.h"
 #include "TROOT.h"
 #include "TStopwatch.h"
-#include "THnSparse.h"
+#include <functional>
+#include <algorithm>
+#include <string_view>
 #include "TRandom.h"
 
 #include <random>
@@ -56,6 +58,22 @@ static inline int omp_get_max_threads() { return 1; }
 templateClassImp(o2::tpc::SpaceCharge);
 
 using namespace o2::tpc;
+
+namespace
+{
+/// print a warning if the global distortions/corrections contain non-finite values (the drift of the electrons left the grid, e.g. for unphysically large fields)
+template <typename DataT>
+void warnNonFinite(const DataContainer3D<DataT>& dR, const DataContainer3D<DataT>& dRPhi, const DataContainer3D<DataT>& dZ, const std::string_view name, const o2::tpc::Side side)
+{
+  size_t nNonFinite = 0;
+  for (const auto* data : {&dR, &dRPhi, &dZ}) {
+    nNonFinite += std::count_if(data->getData().begin(), data->getData().end(), [](const DataT val) { return !std::isfinite(val); });
+  }
+  if (nNonFinite) {
+    LOGP(warning, "{} for side {}: {} non-finite values (the electron drift left the grid)", name, (side == o2::tpc::Side::A) ? "A" : "C", nNonFinite);
+  }
+}
+} // namespace
 
 template <typename DataT>
 SpaceCharge<DataT>::SpaceCharge(const int bfield, const unsigned short nZVertices, const unsigned short nRVertices, const unsigned short nPhiVertices, const bool initBuffers) : mParamGrid{nRVertices, nZVertices, nPhiVertices}
@@ -76,28 +94,25 @@ SpaceCharge<DataT>::SpaceCharge()
 template <typename DataT>
 void SpaceCharge<DataT>::initAllBuffers()
 {
+  std::vector<DataContainer*> containers;
   for (int iside = 0; iside < SIDES; ++iside) {
     const Side side = (iside == 0) ? Side::A : Side::C;
-    initContainer(mLocalDistdR[side], true);
-    initContainer(mLocalDistdZ[side], true);
-    initContainer(mLocalDistdRPhi[side], true);
-    initContainer(mLocalVecDistdR[side], true);
-    initContainer(mLocalVecDistdZ[side], true);
-    initContainer(mLocalVecDistdRPhi[side], true);
-    initContainer(mLocalCorrdR[side], true);
-    initContainer(mLocalCorrdZ[side], true);
-    initContainer(mLocalCorrdRPhi[side], true);
-    initContainer(mGlobalDistdR[side], true);
-    initContainer(mGlobalDistdZ[side], true);
-    initContainer(mGlobalDistdRPhi[side], true);
-    initContainer(mGlobalCorrdR[side], true);
-    initContainer(mGlobalCorrdZ[side], true);
-    initContainer(mGlobalCorrdRPhi[side], true);
-    initContainer(mDensity[side], true);
-    initContainer(mPotential[side], true);
-    initContainer(mElectricFieldEr[side], true);
-    initContainer(mElectricFieldEz[side], true);
-    initContainer(mElectricFieldEphi[side], true);
+    containers.insert(containers.end(), {&mLocalDistdR[side], &mLocalDistdZ[side], &mLocalDistdRPhi[side], &mLocalVecDistdR[side], &mLocalVecDistdZ[side], &mLocalVecDistdRPhi[side],
+                                         &mLocalCorrdR[side], &mLocalCorrdZ[side], &mLocalCorrdRPhi[side], &mGlobalDistdR[side], &mGlobalDistdZ[side], &mGlobalDistdRPhi[side],
+                                         &mGlobalCorrdR[side], &mGlobalCorrdZ[side], &mGlobalCorrdRPhi[side], &mDensity[side], &mPotential[side],
+                                         &mElectricFieldEr[side], &mElectricFieldEz[side], &mElectricFieldEphi[side]});
+  }
+  initContainers(containers);
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::initContainers(const std::vector<DataContainer*>& containers)
+{
+  // the memory of a new container is zeroed by a single thread. For large grids the first access to the memory (page faults) dominates,
+  // which is done concurrently for different containers
+#pragma omp parallel for num_threads(sNThreads) schedule(dynamic, 1)
+  for (size_t i = 0; i < containers.size(); ++i) {
+    initContainer(*containers[i], true);
   }
 }
 
@@ -121,6 +136,20 @@ void SpaceCharge<DataT>::calculateDistortionsCorrections(const o2::tpc::Side sid
   const std::array<std::string, 2> sideName{"A", "C"};
 
   LOGP(info, "====== starting calculation of distortions and corrections for Side {} ======", sideName[side]);
+
+  // allocate all containers which are filled during the calculation at once (concurrently)
+  std::vector<DataContainer*> containers{&mPotential[side], &mElectricFieldEr[side], &mElectricFieldEz[side], &mElectricFieldEphi[side],
+                                         &mLocalCorrdR[side], &mLocalCorrdZ[side], &mLocalCorrdRPhi[side], &mGlobalCorrdR[side], &mGlobalCorrdZ[side], &mGlobalCorrdRPhi[side]};
+  if (getGlobalDistType() != SC::GlobalDistType::None) {
+    containers.insert(containers.end(), {&mGlobalDistdR[side], &mGlobalDistdZ[side], &mGlobalDistdRPhi[side]});
+  }
+  if (getGlobalDistType() == SC::GlobalDistType::Standard) {
+    containers.insert(containers.end(), {&mLocalDistdR[side], &mLocalDistdZ[side], &mLocalDistdRPhi[side]});
+  }
+  if (calcVectors) {
+    containers.insert(containers.end(), {&mLocalVecDistdR[side], &mLocalVecDistdZ[side], &mLocalVecDistdRPhi[side]});
+  }
+  initContainers(containers);
   LOGP(info, "Using {} threads", getNThreads());
 
   if (getGlobalDistCorrMethod() == SC::GlobalDistCorrMethod::LocalDistCorr) {
@@ -599,22 +628,23 @@ void SpaceCharge<DataT>::setPotentialBoundaryFromFormula(const AnalyticalFields<
 }
 
 template <typename DataT>
-void SpaceCharge<DataT>::poissonSolver(const Side side, const DataT stoppingConvergence, const int symmetry)
+void SpaceCharge<DataT>::poissonSolver(const Side side, const DataT stoppingConvergence)
 {
   initContainer(mDensity[side], true);
   initContainer(mPotential[side], true);
   PoissonSolver<DataT>::setConvergenceError(stoppingConvergence);
+  PoissonSolver<DataT>::setNThreads(sNThreads);
   PoissonSolver<DataT> poissonSolver(mGrid3D[0]);
-  poissonSolver.poissonSolver3D(mPotential[side], mDensity[side], symmetry);
+  poissonSolver.poissonSolver3D(mPotential[side], mDensity[side]);
 }
 
 template <typename DataT>
-void SpaceCharge<DataT>::poissonSolver(const DataT stoppingConvergence, const int symmetry)
+void SpaceCharge<DataT>::poissonSolver(const DataT stoppingConvergence)
 {
-#pragma omp parallel for num_threads(2)
+  // the sides are processed one after the other: the calculation for each side is parallelised (nested OpenMP regions are not active by default, so a parallel loop over the two sides would use only two threads in total)
   for (int iside = 0; iside < FNSIDES; ++iside) {
     const o2::tpc::Side side = (iside == 0) ? Side::A : Side::C;
-    poissonSolver(side, stoppingConvergence, symmetry);
+    poissonSolver(side, stoppingConvergence);
   }
 }
 
@@ -650,32 +680,9 @@ void SpaceCharge<DataT>::calcEField(const Side side)
   initContainer(mElectricFieldEphi[side], true);
 #pragma omp parallel for num_threads(sNThreads)
   for (size_t iPhi = 0; iPhi < mParamGrid.NPhiVertices; ++iPhi) {
-    const int symmetry = 0;
-    size_t tmpPlus = iPhi + 1;
-    int signPlus = 1;
-    int tmpMinus = static_cast<int>(iPhi - 1);
-    int signMinus = 1;
-    if (symmetry == 1 || symmetry == -1) { // Reflection symmetry in phi (e.g. symmetry at sector boundaries, or half sectors, etc.)
-      if (tmpPlus > mParamGrid.NPhiVertices - 1) {
-        if (symmetry == -1) {
-          signPlus = -1;
-        }
-        tmpPlus = mParamGrid.NPhiVertices - 2;
-      }
-      if (tmpMinus < 0) {
-        tmpMinus = 1; // SHOULD IT BE =0?
-        if (symmetry == -1) {
-          signMinus = -1;
-        }
-      }
-    } else { // No Symmetries in phi, no boundaries, the calculations is continuous across all phi
-      if (tmpPlus > mParamGrid.NPhiVertices - 1) {
-        tmpPlus = iPhi + 1 - mParamGrid.NPhiVertices;
-      }
-      if (tmpMinus < 0) {
-        tmpMinus = static_cast<int>(iPhi - 1 + mParamGrid.NPhiVertices);
-      }
-    }
+    // neighbouring phi slices (periodic boundary in phi)
+    const size_t tmpPlus = (iPhi + 1 > mParamGrid.NPhiVertices - 1) ? (iPhi + 1 - mParamGrid.NPhiVertices) : (iPhi + 1);
+    const size_t tmpMinus = (iPhi == 0) ? (mParamGrid.NPhiVertices - 1) : (iPhi - 1);
 
     // for non-boundary V
     for (size_t iR = 1; iR < mParamGrid.NRVertices - 1; iR++) {
@@ -683,7 +690,7 @@ void SpaceCharge<DataT>::calcEField(const Side side)
       for (size_t iZ = 1; iZ < mParamGrid.NZVertices - 1; iZ++) {
         mElectricFieldEr[side](iZ, iR, iPhi) = -1 * (mPotential[side](iZ, iR + 1, iPhi) - mPotential[side](iZ, iR - 1, iPhi)) * static_cast<DataT>(0.5) * getInvSpacingR(side);                                    // r direction
         mElectricFieldEz[side](iZ, iR, iPhi) = -1 * (mPotential[side](iZ + 1, iR, iPhi) - mPotential[side](iZ - 1, iR, iPhi)) * static_cast<DataT>(0.5) * getInvSpacingZ(side);                                    // z direction
-        mElectricFieldEphi[side](iZ, iR, iPhi) = -1 * (signPlus * mPotential[side](iZ, iR, tmpPlus) - signMinus * mPotential[side](iZ, iR, tmpMinus)) * static_cast<DataT>(0.5) * getInvSpacingPhi(side) / radius; // phi direction
+        mElectricFieldEphi[side](iZ, iR, iPhi) = -1 * (mPotential[side](iZ, iR, tmpPlus) - mPotential[side](iZ, iR, tmpMinus)) * static_cast<DataT>(0.5) * getInvSpacingPhi(side) / radius;                        // phi direction
       }
     }
 
@@ -697,7 +704,7 @@ void SpaceCharge<DataT>::calcEField(const Side side)
       const DataT radius = getRVertex(iR, side);
       for (size_t iZ = 1; iZ < mParamGrid.NZVertices - 1; iZ++) {
         mElectricFieldEz[side](iZ, iR, iPhi) = -1 * (mPotential[side](iZ + 1, iR, iPhi) - mPotential[side](iZ - 1, iR, iPhi)) * static_cast<DataT>(0.5) * getInvSpacingZ(side);                                    // z direction
-        mElectricFieldEphi[side](iZ, iR, iPhi) = -1 * (signPlus * mPotential[side](iZ, iR, tmpPlus) - signMinus * mPotential[side](iZ, iR, tmpMinus)) * static_cast<DataT>(0.5) * getInvSpacingPhi(side) / radius; // phi direction
+        mElectricFieldEphi[side](iZ, iR, iPhi) = -1 * (mPotential[side](iZ, iR, tmpPlus) - mPotential[side](iZ, iR, tmpMinus)) * static_cast<DataT>(0.5) * getInvSpacingPhi(side) / radius;                        // phi direction
       }
     }
 
@@ -711,7 +718,7 @@ void SpaceCharge<DataT>::calcEField(const Side side)
       const DataT radius = getRVertex(iR, side);
       for (size_t iZ = 0; iZ < mParamGrid.NZVertices; iZ += mParamGrid.NZVertices - 1) {
         mElectricFieldEr[side](iZ, iR, iPhi) = -1 * (mPotential[side](iZ, iR + 1, iPhi) - mPotential[side](iZ, iR - 1, iPhi)) * static_cast<DataT>(0.5) * getInvSpacingR(side);                                    // r direction
-        mElectricFieldEphi[side](iZ, iR, iPhi) = -1 * (signPlus * mPotential[side](iZ, iR, tmpPlus) - signMinus * mPotential[side](iZ, iR, tmpMinus)) * static_cast<DataT>(0.5) * getInvSpacingPhi(side) / radius; // phi direction
+        mElectricFieldEphi[side](iZ, iR, iPhi) = -1 * (mPotential[side](iZ, iR, tmpPlus) - mPotential[side](iZ, iR, tmpMinus)) * static_cast<DataT>(0.5) * getInvSpacingPhi(side) / radius;                        // phi direction
       }
     }
 
@@ -719,7 +726,7 @@ void SpaceCharge<DataT>::calcEField(const Side side)
     for (size_t iR = 0; iR < mParamGrid.NRVertices; iR += mParamGrid.NRVertices - 1) {
       const DataT radius = getRVertex(iR, side);
       for (size_t iZ = 0; iZ < mParamGrid.NZVertices; iZ += mParamGrid.NZVertices - 1) {
-        mElectricFieldEphi[side](iZ, iR, iPhi) = -1 * (signPlus * mPotential[side](iZ, iR, tmpPlus) - signMinus * mPotential[side](iZ, iR, tmpMinus)) * static_cast<DataT>(0.5) * getInvSpacingPhi(side) / radius; // phi direction
+        mElectricFieldEphi[side](iZ, iR, iPhi) = -1 * (mPotential[side](iZ, iR, tmpPlus) - mPotential[side](iZ, iR, tmpMinus)) * static_cast<DataT>(0.5) * getInvSpacingPhi(side) / radius; // phi direction
       }
     }
   }
@@ -744,7 +751,7 @@ void SpaceCharge<DataT>::calcGlobalDistWithGlobalCorrIterative(const Side side, 
 template <typename DataT>
 void SpaceCharge<DataT>::calcGlobalDistWithGlobalCorrIterative(const SpaceCharge<DataT>* scSCale, float scale, const int maxIter, const DataT approachZ, const DataT approachR, const DataT approachPhi, const DataT diffCorr)
 {
-#pragma omp parallel for num_threads(sNThreads)
+  // the sides are processed one after the other: the calculation for each side is parallelised (nested OpenMP regions are not active by default, so a parallel loop over the two sides would use only two threads in total)
   for (int iside = 0; iside < FNSIDES; ++iside) {
     const o2::tpc::Side side = (iside == 0) ? Side::A : Side::C;
     calcGlobalDistWithGlobalCorrIterative(side, scSCale, scale, maxIter, approachZ, approachR, approachPhi, diffCorr);
@@ -760,7 +767,7 @@ void SpaceCharge<DataT>::calcGlobalCorrWithGlobalDistIterative(const Side side, 
 template <typename DataT>
 void SpaceCharge<DataT>::calcGlobalCorrWithGlobalDistIterative(const SpaceCharge<DataT>* scSCale, float scale, const int maxIter, const DataT approachZ, const DataT approachR, const DataT approachPhi, const DataT diffCorr)
 {
-#pragma omp parallel for num_threads(sNThreads)
+  // the sides are processed one after the other: the calculation for each side is parallelised (nested OpenMP regions are not active by default, so a parallel loop over the two sides would use only two threads in total)
   for (int iside = 0; iside < FNSIDES; ++iside) {
     const o2::tpc::Side side = (iside == 0) ? Side::A : Side::C;
     calcGlobalCorrWithGlobalDistIterative(side, scSCale, scale, maxIter, approachZ, approachR, approachPhi, diffCorr);
@@ -781,7 +788,9 @@ void SpaceCharge<DataT>::calcGlobalDistCorrIterative(const DistCorrInterpolator<
     initContainer(mGlobalCorrdRPhi[side], true);
   }
 
-  const auto& scSCaleInterpolator = (type == Type::Distortions) ? scSCale->mInterpolatorGlobalCorr[side] : scSCale->mInterpolatorGlobalDist[side];
+  // interpolator of the object used for scaling (only used if scSCale is set and scale != 0)
+  const bool useScaling = scSCale && (scale != 0);
+  const DistCorrInterpolator<DataT>* scSCaleInterpolator = useScaling ? ((type == Type::Distortions) ? &scSCale->mInterpolatorGlobalCorr[side] : &scSCale->mInterpolatorGlobalDist[side]) : nullptr;
 
 #pragma omp parallel for num_threads(sNThreads)
   for (unsigned int iPhi = 0; iPhi < mParamGrid.NPhiVertices; ++iPhi) {
@@ -824,25 +833,34 @@ void SpaceCharge<DataT>::calcGlobalDistCorrIterative(const DistCorrInterpolator<
           }
 
           // interpolate global correction at new point and calculate position of global correction
-          corrdR = globCorr.evaldR(zCurrPos, rCurrPos, phiCurrPos);
-          if (scSCale && scale != 0) {
-            corrdR += scale * scSCaleInterpolator.evaldR(zCurrPos, rCurrPos, phiCurrPos);
+          DataT globCorrdZ, globCorrdR, globCorrdRPhi;
+          globCorr.evalDistCorr(zCurrPos, rCurrPos, phiCurrPos, globCorrdZ, globCorrdR, globCorrdRPhi);
+          DataT scaleCorrdZ = 0;
+          DataT scaleCorrdR = 0;
+          DataT scaleCorrdRPhi = 0;
+          if (useScaling) {
+            scSCaleInterpolator->evalDistCorr(zCurrPos, rCurrPos, phiCurrPos, scaleCorrdZ, scaleCorrdR, scaleCorrdRPhi);
+          }
+
+          corrdR = globCorrdR;
+          if (useScaling) {
+            corrdR += scale * scaleCorrdR;
           }
           const DataT rNewPos = rCurrPos + corrdR;
 
           DataT corrPhi = 0;
-          if (scSCale && scale != 0) {
-            corrPhi = scale * scSCaleInterpolator.evaldRPhi(zCurrPos, rCurrPos, phiCurrPos);
+          if (useScaling) {
+            corrPhi = scale * scaleCorrdRPhi;
           }
-          corrPhi += globCorr.evaldRPhi(zCurrPos, rCurrPos, phiCurrPos);
+          corrPhi += globCorrdRPhi;
           corrPhi /= rCurrPos;
 
           corrdRPhi = corrPhi * rNewPos; // normalize to new r coordinate
           const DataT phiNewPos = phiCurrPos + corrPhi;
 
-          corrdZ = globCorr.evaldZ(zCurrPos, rCurrPos, phiCurrPos);
-          if (scSCale && scale != 0) {
-            corrdZ += scale * scSCaleInterpolator.evaldZ(zCurrPos, rCurrPos, phiCurrPos);
+          corrdZ = globCorrdZ;
+          if (useScaling) {
+            corrdZ += scale * scaleCorrdZ;
           }
           const DataT zNewPos = zCurrPos + corrdZ;
 
@@ -889,6 +907,11 @@ void SpaceCharge<DataT>::calcGlobalDistCorrIterative(const DistCorrInterpolator<
       }
     }
   }
+  if (type == Type::Distortions) {
+    warnNonFinite(mGlobalDistdR[side], mGlobalDistdRPhi[side], mGlobalDistdZ[side], "global distortions", side);
+  } else {
+    warnNonFinite(mGlobalCorrdR[side], mGlobalCorrdRPhi[side], mGlobalCorrdZ[side], "global corrections", side);
+  }
 }
 
 template <typename DataT>
@@ -900,7 +923,7 @@ void SpaceCharge<DataT>::calcGlobalDistWithGlobalCorrIterativeLinearCartesian(co
 template <typename DataT>
 void SpaceCharge<DataT>::calcGlobalDistWithGlobalCorrIterativeLinearCartesian(const SpaceCharge<DataT>* scSCale, float scale, const int maxIter, const DataT approachX, const DataT approachY, const DataT approachZ, const DataT diffCorr)
 {
-#pragma omp parallel for num_threads(sNThreads)
+  // the sides are processed one after the other: the calculation for each side is parallelised (nested OpenMP regions are not active by default, so a parallel loop over the two sides would use only two threads in total)
   for (int iside = 0; iside < FNSIDES; ++iside) {
     const o2::tpc::Side side = (iside == 0) ? Side::A : Side::C;
     calcGlobalDistWithGlobalCorrIterativeLinearCartesian(side, scSCale, scale, maxIter, approachX, approachY, approachZ, diffCorr);
@@ -916,7 +939,7 @@ void SpaceCharge<DataT>::calcGlobalCorrWithGlobalDistIterativeLinearCartesian(co
 template <typename DataT>
 void SpaceCharge<DataT>::calcGlobalCorrWithGlobalDistIterativeLinearCartesian(const SpaceCharge<DataT>* scSCale, float scale, const int maxIter, const DataT approachX, const DataT approachY, const DataT approachZ, const DataT diffCorr)
 {
-#pragma omp parallel for num_threads(sNThreads)
+  // the sides are processed one after the other: the calculation for each side is parallelised (nested OpenMP regions are not active by default, so a parallel loop over the two sides would use only two threads in total)
   for (int iside = 0; iside < FNSIDES; ++iside) {
     const o2::tpc::Side side = (iside == 0) ? Side::A : Side::C;
     calcGlobalCorrWithGlobalDistIterativeLinearCartesian(side, scSCale, scale, maxIter, approachX, approachY, approachZ, diffCorr);
@@ -936,8 +959,6 @@ void SpaceCharge<DataT>::calcGlobalDistCorrIterativeLinearCartesian(const DistCo
     initContainer(mGlobalCorrdZ[side], true);
     initContainer(mGlobalCorrdRPhi[side], true);
   }
-
-  const auto& scSCaleInterpolator = (type == Type::Distortions) ? scSCale->mInterpolatorGlobalCorr[side] : scSCale->mInterpolatorGlobalDist[side];
 
 #pragma omp parallel for num_threads(sNThreads)
   for (unsigned int iPhi = 0; iPhi < mParamGrid.NPhiVertices; ++iPhi) {
@@ -983,7 +1004,7 @@ void SpaceCharge<DataT>::calcGlobalDistCorrIterativeLinearCartesian(const DistCo
             DataT corrXScale = 0;
             DataT corrYScale = 0;
             DataT corrZScale = 0;
-            (type == Type::Distortions) ? scSCale->getCorrections(xCurrPos, yCurrPos, zCurrPos, side, corrXScale, corrYScale, corrZScale) : getDistortions(xCurrPos, yCurrPos, zCurrPos, side, corrX, corrY, corrZ);
+            (type == Type::Distortions) ? scSCale->getCorrections(xCurrPos, yCurrPos, zCurrPos, side, corrXScale, corrYScale, corrZScale) : scSCale->getDistortions(xCurrPos, yCurrPos, zCurrPos, side, corrXScale, corrYScale, corrZScale);
             corrX += scale * corrXScale;
             corrY += scale * corrYScale;
             corrZ += scale * corrZScale;
@@ -1021,11 +1042,11 @@ void SpaceCharge<DataT>::calcGlobalDistCorrIterativeLinearCartesian(const DistCo
         const DataT radiusNew = getRadiusFromCartesian(xNew, yNew);
         const DataT corrdR = -(radiusNew - getRadiusFromCartesian(lastX, lastY));
 
-        float phiNew = getPhiFromCartesian(xNew, yNew);
-        o2::math_utils::bringTo02PiGen(phiNew);
+        DataT phiNew = getPhiFromCartesian(xNew, yNew);
+        o2::math_utils::detail::bringTo02PiGen(phiNew);
 
-        float phiLast = getPhiFromCartesian(lastX, lastY);
-        o2::math_utils::bringTo02PiGen(phiLast);
+        DataT phiLast = getPhiFromCartesian(lastX, lastY);
+        o2::math_utils::detail::bringTo02PiGen(phiLast);
 
         DataT deltaPhi = (phiNew - phiLast);
         // handle edge cases
@@ -1135,8 +1156,36 @@ void SpaceCharge<DataT>::fillChargeFromCalDet(const std::vector<CalDet<float>>& 
   fillChargeDensityFromHisto(hConverted);
 }
 
+namespace
+{
+/// call func with an accessor (iPhi, iR, iZ) -> bin content of the histogram. Direct access to the bin array for TH3F and TH3D
+/// (exact class: derived classes such as TProfile3D compute the bin content differently and use GetBinContent())
+template <typename Func>
+void withBinContentAccessor(const TH3& h, Func&& func)
+{
+  const int nx = h.GetNbinsX() + 2;
+  const int ny = h.GetNbinsY() + 2;
+  if (h.IsA() == TH3F::Class()) {
+    const float* data = static_cast<const TH3F&>(h).GetArray();
+    func([data, nx, ny](int ix, int iy, int iz) { return static_cast<double>(data[ix + nx * (iy + ny * iz)]); });
+  } else if (h.IsA() == TH3D::Class()) {
+    const double* data = static_cast<const TH3D&>(h).GetArray();
+    func([data, nx, ny](int ix, int iy, int iz) { return data[ix + nx * (iy + ny * iz)]; });
+  } else {
+    func([&h](int ix, int iy, int iz) { return h.GetBinContent(ix, iy, iz); });
+  }
+}
+} // namespace
+
 template <typename DataT>
 void SpaceCharge<DataT>::fillChargeDensityFromHisto(const TH3& hOrig)
+{
+  withBinContentAccessor(hOrig, [&](const auto& getBinContent) { fillChargeDensityFromHisto(*hOrig.GetXaxis(), *hOrig.GetYaxis(), *hOrig.GetZaxis(), getBinContent); });
+}
+
+template <typename DataT>
+template <typename BinContent>
+void SpaceCharge<DataT>::fillChargeDensityFromHisto(const TAxis& axisPhiOrig, const TAxis& axisROrig, const TAxis& axisZOrig, const BinContent& getBinContentOrig)
 {
   const unsigned short nBinsZNew = mParamGrid.NZVertices;
   const unsigned short nBinsRNew = mParamGrid.NRVertices;
@@ -1146,55 +1195,46 @@ void SpaceCharge<DataT>::fillChargeDensityFromHisto(const TH3& hOrig)
   initContainer(mDensity[Side::C], true);
 
   const int nBinsZNewTwo = 2 * nBinsZNew;
-  const auto phiLow = hOrig.GetXaxis()->GetBinLowEdge(1);
-  const auto phiUp = hOrig.GetXaxis()->GetBinUpEdge(hOrig.GetNbinsX());
-  const auto rLow = hOrig.GetYaxis()->GetBinLowEdge(1);
-  const auto rUp = hOrig.GetYaxis()->GetBinUpEdge(hOrig.GetNbinsY());
-  const auto zLow = hOrig.GetZaxis()->GetBinLowEdge(1);
-  const auto zUp = hOrig.GetZaxis()->GetBinUpEdge(hOrig.GetNbinsZ());
-
-  const int dim = 3;
-  int bins[dim]{nBinsPhiNew, nBinsRNew, nBinsZNewTwo};
-  double xmin[dim]{phiLow, rLow, zLow};
-  double xmax[dim]{phiUp, rUp, zUp};
-  const THnSparseF hRebin("hTmp", "hTmp", dim, bins, xmin, xmax);
+  const TAxis axisPhiNew(nBinsPhiNew, axisPhiOrig.GetBinLowEdge(1), axisPhiOrig.GetBinUpEdge(axisPhiOrig.GetNbins()));
+  const TAxis axisRNew(nBinsRNew, axisROrig.GetBinLowEdge(1), axisROrig.GetBinUpEdge(axisROrig.GetNbins()));
+  const TAxis axisZNew(nBinsZNewTwo, axisZOrig.GetBinLowEdge(1), axisZOrig.GetBinUpEdge(axisZOrig.GetNbins()));
 
 #pragma omp parallel for num_threads(sNThreads)
   for (int iBinPhi = 1; iBinPhi <= nBinsPhiNew; ++iBinPhi) {
-    const auto phiLowEdge = hRebin.GetAxis(0)->GetBinLowEdge(iBinPhi);
-    const auto phiUpEdge = hRebin.GetAxis(0)->GetBinUpEdge(iBinPhi);
+    const auto phiLowEdge = axisPhiNew.GetBinLowEdge(iBinPhi);
+    const auto phiUpEdge = axisPhiNew.GetBinUpEdge(iBinPhi);
 
-    const int phiLowBinOrig = hOrig.GetXaxis()->FindBin(phiLowEdge);
-    const int phiUpBinOrig = hOrig.GetXaxis()->FindBin(phiUpEdge);
+    const int phiLowBinOrig = axisPhiOrig.FindBin(phiLowEdge);
+    const int phiUpBinOrig = axisPhiOrig.FindBin(phiUpEdge);
 
     // calculate the weights (area of original bin lies in the new bin / binwidthOrig) of the first and last bins
-    const auto binWidthPhiOrig = hOrig.GetXaxis()->GetBinWidth(phiLowBinOrig);
-    const auto lowerBinWeightPhi = std::abs(phiLowEdge - hOrig.GetXaxis()->GetBinUpEdge(phiLowBinOrig)) / binWidthPhiOrig;
-    const auto upperBinWeightPhi = std::abs(phiUpEdge - hOrig.GetXaxis()->GetBinLowEdge(phiUpBinOrig)) / binWidthPhiOrig;
+    const auto binWidthPhiOrig = axisPhiOrig.GetBinWidth(phiLowBinOrig);
+    const auto lowerBinWeightPhi = std::abs(phiLowEdge - axisPhiOrig.GetBinUpEdge(phiLowBinOrig)) / binWidthPhiOrig;
+    const auto upperBinWeightPhi = std::abs(phiUpEdge - axisPhiOrig.GetBinLowEdge(phiUpBinOrig)) / binWidthPhiOrig;
 
     for (int iBinR = 1; iBinR <= nBinsRNew; ++iBinR) {
-      const auto rLowEdge = hRebin.GetAxis(1)->GetBinLowEdge(iBinR);
-      const auto rUpEdge = hRebin.GetAxis(1)->GetBinUpEdge(iBinR);
+      const auto rLowEdge = axisRNew.GetBinLowEdge(iBinR);
+      const auto rUpEdge = axisRNew.GetBinUpEdge(iBinR);
 
-      const int rLowBinOrig = hOrig.GetYaxis()->FindBin(rLowEdge);
-      const int rUpBinOrig = hOrig.GetYaxis()->FindBin(rUpEdge);
+      const int rLowBinOrig = axisROrig.FindBin(rLowEdge);
+      const int rUpBinOrig = axisROrig.FindBin(rUpEdge);
 
       // calculate the weights (area of original bin lies in the new bin / binwidthOrig) of the first and last bins
-      const auto binWidthROrig = hOrig.GetYaxis()->GetBinWidth(rLowBinOrig);
-      const auto lowerBinWeightR = std::abs(rLowEdge - hOrig.GetYaxis()->GetBinUpEdge(rLowBinOrig)) / binWidthROrig;
-      const auto upperBinWeightR = std::abs(rUpEdge - hOrig.GetYaxis()->GetBinLowEdge(rUpBinOrig)) / binWidthROrig;
+      const auto binWidthROrig = axisROrig.GetBinWidth(rLowBinOrig);
+      const auto lowerBinWeightR = std::abs(rLowEdge - axisROrig.GetBinUpEdge(rLowBinOrig)) / binWidthROrig;
+      const auto upperBinWeightR = std::abs(rUpEdge - axisROrig.GetBinLowEdge(rUpBinOrig)) / binWidthROrig;
 
       for (int iBinZ = 1; iBinZ <= nBinsZNewTwo; ++iBinZ) {
-        const auto zLowEdge = hRebin.GetAxis(2)->GetBinLowEdge(iBinZ);
-        const auto zUpEdge = hRebin.GetAxis(2)->GetBinUpEdge(iBinZ);
-        const auto zCenter = hRebin.GetAxis(2)->GetBinCenter(iBinZ);
+        const auto zLowEdge = axisZNew.GetBinLowEdge(iBinZ);
+        const auto zUpEdge = axisZNew.GetBinUpEdge(iBinZ);
+        const auto zCenter = axisZNew.GetBinCenter(iBinZ);
 
-        int zLowBinOrig = hOrig.GetZaxis()->FindBin(zLowEdge);
-        int zUpBinOrig = hOrig.GetZaxis()->FindBin(zUpEdge);
+        int zLowBinOrig = axisZOrig.FindBin(zLowEdge);
+        int zUpBinOrig = axisZOrig.FindBin(zUpEdge);
         const int currside = getSide(zCenter); // set the side of the current z-bin
         // get the side of the lowest and uppest bin from the orig histo
-        const int sideLowOrig = getSide(hOrig.GetZaxis()->GetBinCenter(zLowBinOrig));
-        const int sideUpOrig = getSide(hOrig.GetZaxis()->GetBinCenter(zUpBinOrig));
+        const int sideLowOrig = getSide(axisZOrig.GetBinCenter(zLowBinOrig));
+        const int sideUpOrig = getSide(axisZOrig.GetBinCenter(zUpBinOrig));
 
         // make bounds/side check of the zLowBinOrig and zUpBinOrig bins. They must be on the same side as the currside!!!
         if (currside != sideLowOrig && zLowBinOrig != zUpBinOrig) {
@@ -1207,7 +1247,7 @@ void SpaceCharge<DataT>::fillChargeDensityFromHisto(const TH3& hOrig)
               zLowBinOrig = zUpBinOrig;
               notequal = false;
             }
-            const int sideTmp = getSide(hOrig.GetZaxis()->GetBinCenter(zLowBinOrig));
+            const int sideTmp = getSide(axisZOrig.GetBinCenter(zLowBinOrig));
             if (sideTmp == currside) {
               notequal = false;
             }
@@ -1224,16 +1264,16 @@ void SpaceCharge<DataT>::fillChargeDensityFromHisto(const TH3& hOrig)
               zUpBinOrig = zLowBinOrig;
               notequal = false;
             }
-            const int sideTmp = getSide(hOrig.GetZaxis()->GetBinCenter(zUpBinOrig));
+            const int sideTmp = getSide(axisZOrig.GetBinCenter(zUpBinOrig));
             if (sideTmp == currside) {
               notequal = false;
             }
           } while (notequal);
         }
 
-        const auto binWidthZOrig = hOrig.GetZaxis()->GetBinWidth(zLowBinOrig);
-        const auto lowerBinWeightZ = std::abs(zLowEdge - hOrig.GetZaxis()->GetBinUpEdge(zLowBinOrig)) / binWidthZOrig;
-        const auto upperBinWeightZ = std::abs(zUpEdge - hOrig.GetZaxis()->GetBinLowEdge(zUpBinOrig)) / binWidthZOrig;
+        const auto binWidthZOrig = axisZOrig.GetBinWidth(zLowBinOrig);
+        const auto lowerBinWeightZ = std::abs(zLowEdge - axisZOrig.GetBinUpEdge(zLowBinOrig)) / binWidthZOrig;
+        const auto upperBinWeightZ = std::abs(zUpEdge - axisZOrig.GetBinLowEdge(zUpBinOrig)) / binWidthZOrig;
 
         // get the mean value of the original histogram of the found bin range
         DataT sum = 0;
@@ -1261,7 +1301,7 @@ void SpaceCharge<DataT>::fillChargeDensityFromHisto(const TH3& hOrig)
               } else if (iZ == zUpBinOrig) {
                 weightZ = upperBinWeightZ;
               }
-              const auto val = hOrig.GetBinContent(iPhi, iR, iZ);
+              const auto val = getBinContentOrig(iPhi, iR, iZ);
               // if(val==0){
               // what to do now???
               // }
@@ -1580,11 +1620,13 @@ void SpaceCharge<DataT>::calcGlobalDistortions(const Fields& formulaStruct, cons
           // if one uses local distortions the interpolated value for the last bin has to be scaled.
           // This has to be done because of the interpolated value is defined for a drift length of one z bin, but in the last bin the distance to the readout can be smaller than one z bin.
           const bool checkReached = side == Side::A ? z1Tmp >= getZMax(side) : z1Tmp <= getZMax(side);
+          DataT z1Drift = z1Tmp; // end of the drift step without distortion
           if (formulaStruct.getID() == 2 && checkReached) {
             const DataT fac = std::abs((getZMax(side) - z0Tmp) * getInvSpacingZ(side));
             ddR *= fac;
             ddZ *= fac;
             ddPhi *= fac;
+            z1Drift = getZMax(side); // the local distortions are scaled to the drift up to the readout
           }
 
           // add local distortions to global distortions
@@ -1592,13 +1634,13 @@ void SpaceCharge<DataT>::calcGlobalDistortions(const Fields& formulaStruct, cons
           dPhiDist += ddPhi;
           dzDist += ddZ;
 
-          // set loop to exit if the readout is reached and approximate distortion of 'missing' (one never ends exactly on the readout: z1Tmp + ddZ != ZMAX) drift distance.
-          // approximation is done by the current calculated values of the distortions and scaled linear to the 'missing' distance.
+          // set loop to exit if the readout is reached and approximate distortion of 'missing' (one never ends exactly on the readout: z1Drift + ddZ != ZMAX) drift distance.
+          // approximation is done by the current calculated values of the distortions and scaled linear to the 'missing' distance (negative if the readout was passed).
           if (checkReached) {
-            const DataT endPoint = z1Tmp + ddZ;
+            const DataT endPoint = z1Drift + ddZ;
             const DataT deltaZ = getZMax(side) - endPoint; // distance from last point to read out
             const DataT diff = endPoint - z0Tmp;
-            const DataT fac = diff != 0 ? std::abs(deltaZ / diff) : 0; // approximate the distortions for the 'missing' distance deltaZ
+            const DataT fac = diff != 0 ? deltaZ / diff : 0; // approximate the distortions for the 'missing' distance deltaZ
             drDist += ddR * fac;
             dPhiDist += ddPhi * fac;
             dzDist += ddZ * fac;
@@ -1613,6 +1655,7 @@ void SpaceCharge<DataT>::calcGlobalDistortions(const Fields& formulaStruct, cons
       }
     }
   }
+  warnNonFinite(mGlobalDistdR[side], mGlobalDistdRPhi[side], mGlobalDistdZ[side], "global distortions", side);
 }
 
 template <typename DataT>
@@ -1729,8 +1772,8 @@ void SpaceCharge<DataT>::calcGlobalCorrections(const Formulas& formulaStruct, co
             if (type == 1) {
               // just replace with last valid number (assumption: values at iR==mParamGrid.NRVertices / 2 are valid)
               mGlobalCorrdR[side](iZ, iR, iPhi) = mGlobalCorrdR[side](iZ, iRUp, iPhi);
-              mGlobalCorrdRPhi[side](iZ, iR, iPhi) = mGlobalCorrdR[side](iZ, iRUp, iPhi);
-              mGlobalCorrdZ[side](iZ, iR, iPhi) = mGlobalCorrdR[side](iZ, iRUp, iPhi);
+              mGlobalCorrdRPhi[side](iZ, iR, iPhi) = mGlobalCorrdRPhi[side](iZ, iRUp, iPhi);
+              mGlobalCorrdZ[side](iZ, iR, iPhi) = mGlobalCorrdZ[side](iZ, iRUp, iPhi);
             } else if (type == 2) {
               // extrapolate values
               const size_t iRUpTwo = iR + 2;
@@ -1748,8 +1791,8 @@ void SpaceCharge<DataT>::calcGlobalCorrections(const Formulas& formulaStruct, co
             if (type == 1) {
               // just replace with last valid number (assumption: values at iR==mParamGrid.NRVertices / 2 are valid)
               mGlobalCorrdR[side](iZ, iR, iPhi) = mGlobalCorrdR[side](iZ, iRUp, iPhi);
-              mGlobalCorrdRPhi[side](iZ, iR, iPhi) = mGlobalCorrdR[side](iZ, iRUp, iPhi);
-              mGlobalCorrdZ[side](iZ, iR, iPhi) = mGlobalCorrdR[side](iZ, iRUp, iPhi);
+              mGlobalCorrdRPhi[side](iZ, iR, iPhi) = mGlobalCorrdRPhi[side](iZ, iRUp, iPhi);
+              mGlobalCorrdZ[side](iZ, iR, iPhi) = mGlobalCorrdZ[side](iZ, iRUp, iPhi);
             } else if (type == 2) {
               // extrapolate values
               const size_t iRUpTwo = iR - 2;
@@ -1763,7 +1806,7 @@ void SpaceCharge<DataT>::calcGlobalCorrections(const Formulas& formulaStruct, co
       }
     }
   }
-  // set flag that global corrections are set to true
+  warnNonFinite(mGlobalCorrdR[side], mGlobalCorrdRPhi[side], mGlobalCorrdZ[side], "global corrections", side);
   auto stop = timer::now();
   std::chrono::duration<float> time = stop - start;
   const float totalTime = time.count();
@@ -1781,8 +1824,8 @@ void SpaceCharge<DataT>::correctElectron(GlobalPosition3D& point)
   // get the distortions for input coordinate
   getCorrections(point.X(), point.Y(), point.Z(), side, corrX, corrY, corrZ);
 
-  // set distorted coordinates
-  point.SetXYZ(point.X() + corrX, point.Y() + corrY, point.Y() + corrY);
+  // set corrected coordinates
+  point.SetXYZ(point.X() + corrX, point.Y() + corrY, point.Z() + corrZ);
 }
 
 template <typename DataT>
@@ -1875,17 +1918,13 @@ std::vector<float> SpaceCharge<DataT>::getPotentialCyl(const std::vector<DataT>&
 template <typename DataT>
 void SpaceCharge<DataT>::getElectricFieldsCyl(const DataT z, const DataT r, const DataT phi, const Side side, DataT& eZ, DataT& eR, DataT& ePhi) const
 {
-  eZ = mInterpolatorEField[side].evalFieldZ(z, r, phi);
-  eR = mInterpolatorEField[side].evalFieldR(z, r, phi);
-  ePhi = mInterpolatorEField[side].evalFieldPhi(z, r, phi);
+  mInterpolatorEField[side].evalFields(z, r, phi, eZ, eR, ePhi);
 }
 
 template <typename DataT>
 void SpaceCharge<DataT>::getLocalCorrectionsCyl(const DataT z, const DataT r, const DataT phi, const Side side, DataT& lcorrZ, DataT& lcorrR, DataT& lcorrRPhi) const
 {
-  lcorrZ = mInterpolatorLocalCorr[side].evaldZ(z, r, phi);
-  lcorrR = mInterpolatorLocalCorr[side].evaldR(z, r, phi);
-  lcorrRPhi = mInterpolatorLocalCorr[side].evaldRPhi(z, r, phi);
+  mInterpolatorLocalCorr[side].evalDistCorr(z, r, phi, lcorrZ, lcorrR, lcorrRPhi);
 }
 
 template <typename DataT>
@@ -1904,9 +1943,7 @@ void SpaceCharge<DataT>::getLocalCorrectionsCyl(const std::vector<DataT>& z, con
 template <typename DataT>
 void SpaceCharge<DataT>::getCorrectionsCyl(const DataT z, const DataT r, const DataT phi, const Side side, DataT& corrZ, DataT& corrR, DataT& corrRPhi) const
 {
-  corrZ = mInterpolatorGlobalCorr[side].evaldZ(z, r, phi);
-  corrR = mInterpolatorGlobalCorr[side].evaldR(z, r, phi);
-  corrRPhi = mInterpolatorGlobalCorr[side].evaldRPhi(z, r, phi);
+  mInterpolatorGlobalCorr[side].evalDistCorr(z, r, phi, corrZ, corrR, corrRPhi);
 }
 
 template <typename DataT>
@@ -1949,9 +1986,7 @@ void SpaceCharge<DataT>::getCorrections(const DataT x, const DataT y, const Data
 template <typename DataT>
 void SpaceCharge<DataT>::getLocalDistortionsCyl(const DataT z, const DataT r, const DataT phi, const Side side, DataT& ldistZ, DataT& ldistR, DataT& ldistRPhi) const
 {
-  ldistZ = mInterpolatorLocalDist[side].evaldZ(z, r, phi);
-  ldistR = mInterpolatorLocalDist[side].evaldR(z, r, phi);
-  ldistRPhi = mInterpolatorLocalDist[side].evaldRPhi(z, r, phi);
+  mInterpolatorLocalDist[side].evalDistCorr(z, r, phi, ldistZ, ldistR, ldistRPhi);
 }
 
 template <typename DataT>
@@ -1970,9 +2005,7 @@ void SpaceCharge<DataT>::getLocalDistortionsCyl(const std::vector<DataT>& z, con
 template <typename DataT>
 void SpaceCharge<DataT>::getLocalDistortionVectorCyl(const DataT z, const DataT r, const DataT phi, const Side side, DataT& lvecdistZ, DataT& lvecdistR, DataT& lvecdistRPhi) const
 {
-  lvecdistZ = mInterpolatorLocalVecDist[side].evaldZ(z, r, phi);
-  lvecdistR = mInterpolatorLocalVecDist[side].evaldR(z, r, phi);
-  lvecdistRPhi = mInterpolatorLocalVecDist[side].evaldRPhi(z, r, phi);
+  mInterpolatorLocalVecDist[side].evalDistCorr(z, r, phi, lvecdistZ, lvecdistR, lvecdistRPhi);
 }
 
 template <typename DataT>
@@ -1991,9 +2024,10 @@ void SpaceCharge<DataT>::getLocalDistortionVectorCyl(const std::vector<DataT>& z
 template <typename DataT>
 void SpaceCharge<DataT>::getLocalCorrectionVectorCyl(const DataT z, const DataT r, const DataT phi, const Side side, DataT& lveccorrZ, DataT& lveccorrR, DataT& lveccorrRPhi) const
 {
-  lveccorrZ = -mInterpolatorLocalVecDist[side].evaldZ(z, r, phi);
-  lveccorrR = -mInterpolatorLocalVecDist[side].evaldR(z, r, phi);
-  lveccorrRPhi = -mInterpolatorLocalVecDist[side].evaldRPhi(z, r, phi);
+  mInterpolatorLocalVecDist[side].evalDistCorr(z, r, phi, lveccorrZ, lveccorrR, lveccorrRPhi);
+  lveccorrZ = -lveccorrZ;
+  lveccorrR = -lveccorrR;
+  lveccorrRPhi = -lveccorrRPhi;
 }
 
 template <typename DataT>
@@ -2012,9 +2046,7 @@ void SpaceCharge<DataT>::getLocalCorrectionVectorCyl(const std::vector<DataT>& z
 template <typename DataT>
 void SpaceCharge<DataT>::getDistortionsCyl(const DataT z, const DataT r, const DataT phi, const Side side, DataT& distZ, DataT& distR, DataT& distRPhi) const
 {
-  distZ = mInterpolatorGlobalDist[side].evaldZ(z, r, phi);
-  distR = mInterpolatorGlobalDist[side].evaldR(z, r, phi);
-  distRPhi = mInterpolatorGlobalDist[side].evaldRPhi(z, r, phi);
+  mInterpolatorGlobalDist[side].evalDistCorr(z, r, phi, distZ, distR, distRPhi);
 }
 
 template <typename DataT>
@@ -2156,13 +2188,11 @@ template <typename Fields>
 void SpaceCharge<DataT>::integrateEFieldsTrapezoidal(const DataT p1r, const DataT p1phi, const DataT p1z, const DataT p2z, DataT& localIntErOverEz, DataT& localIntEPhiOverEz, DataT& localIntDeltaEz, const Fields& formulaStruct, const DataT ezField, const Side side) const
 {
   //========trapezoidal rule see: https://en.wikipedia.org/wiki/Trapezoidal_rule ==============
-  const DataT fielder0 = formulaStruct.evalFieldR(p1z, p1r, p1phi);
-  const DataT fieldez0 = formulaStruct.evalFieldZ(p1z, p1r, p1phi);
-  const DataT fieldephi0 = formulaStruct.evalFieldPhi(p1z, p1r, p1phi);
+  DataT fieldez0, fielder0, fieldephi0;
+  formulaStruct.evalFields(p1z, p1r, p1phi, fieldez0, fielder0, fieldephi0);
 
-  const DataT fielder1 = formulaStruct.evalFieldR(p2z, p1r, p1phi);
-  const DataT fieldez1 = formulaStruct.evalFieldZ(p2z, p1r, p1phi);
-  const DataT fieldephi1 = formulaStruct.evalFieldPhi(p2z, p1r, p1phi);
+  DataT fieldez1, fielder1, fieldephi1;
+  formulaStruct.evalFields(p2z, p1r, p1phi, fieldez1, fielder1, fieldephi1);
 
   const DataT eZ0 = isCloseToZero(ezField, fieldez0) ? 0 : 1. / (ezField + fieldez0);
   const DataT eZ1 = isCloseToZero(ezField, fieldez1) ? 0 : 1. / (ezField + fieldez1);
@@ -2178,20 +2208,19 @@ template <typename Fields>
 void SpaceCharge<DataT>::integrateEFieldsSimpson(const DataT p1r, const DataT p1phi, const DataT p1z, const DataT p2z, DataT& localIntErOverEz, DataT& localIntEPhiOverEz, DataT& localIntDeltaEz, const Fields& formulaStruct, const DataT ezField, const Side side) const
 {
   //==========simpsons rule see: https://en.wikipedia.org/wiki/Simpson%27s_rule =============================
-  const DataT fielder0 = formulaStruct.evalFieldR(p1z, p1r, p1phi);
-  const DataT fieldez0 = formulaStruct.evalFieldZ(p1z, p1r, p1phi);
-  const DataT fieldephi0 = formulaStruct.evalFieldPhi(p1z, p1r, p1phi);
+  DataT fieldez0, fielder0, fieldephi0;
+  formulaStruct.evalFields(p1z, p1r, p1phi, fieldez0, fielder0, fieldephi0);
 
-  const DataT fielder1 = formulaStruct.evalFieldR(p2z, p1r, p1phi);
-  const DataT fieldez1 = formulaStruct.evalFieldZ(p2z, p1r, p1phi);
-  const DataT fieldephi1 = formulaStruct.evalFieldPhi(p2z, p1r, p1phi);
+  DataT fieldez1, fielder1, fieldephi1;
+  formulaStruct.evalFields(p2z, p1r, p1phi, fieldez1, fielder1, fieldephi1);
 
   const DataT deltaX = p2z - p1z;
   const DataT xk2N = (p2z - static_cast<DataT>(0.5) * deltaX);
-  const DataT ezField2 = formulaStruct.evalFieldZ(xk2N, p1r, p1phi);
+  DataT ezField2, erField2, ephiField2;
+  formulaStruct.evalFields(xk2N, p1r, p1phi, ezField2, erField2, ephiField2);
   const DataT ezField2Denominator = isCloseToZero(ezField, ezField2) ? 0 : 1. / (ezField + ezField2);
-  const DataT fieldSum2ErOverEz = formulaStruct.evalFieldR(xk2N, p1r, p1phi) * ezField2Denominator;
-  const DataT fieldSum2EphiOverEz = formulaStruct.evalFieldPhi(xk2N, p1r, p1phi) * ezField2Denominator;
+  const DataT fieldSum2ErOverEz = erField2 * ezField2Denominator;
+  const DataT fieldSum2EphiOverEz = ephiField2 * ezField2Denominator;
 
   const DataT eZ0 = isCloseToZero(ezField, fieldez0) ? 0 : 1. / (ezField + fieldez0);
   const DataT eZ1 = isCloseToZero(ezField, fieldez1) ? 0 : 1. / (ezField + fieldez1);
@@ -2204,20 +2233,20 @@ void SpaceCharge<DataT>::integrateEFieldsSimpson(const DataT p1r, const DataT p1
 
 template <typename DataT>
 template <typename Fields>
-void SpaceCharge<DataT>::integrateEFieldsSimpsonIterative(const DataT p1r, const DataT p2r, const DataT p1phi, const DataT p2phi, const DataT p1z, const DataT p2z, DataT& localIntErOverEz, DataT& localIntEPhiOverEz, DataT& localIntDeltaEz, const Fields& formulaStruct, const DataT ezField, const Side side) const
+void SpaceCharge<DataT>::integrateEFieldsSimpsonIterative(const DataT p1r, const DataT p2r, const DataT p1phi, const DataT p2phi, const DataT p1z, const DataT p2z, const DataT (&fieldsStart)[3], DataT& localIntErOverEz, DataT& localIntEPhiOverEz, DataT& localIntDeltaEz, const Fields& formulaStruct, const DataT ezField, const Side side) const
 {
   //==========simpsons rule see: https://en.wikipedia.org/wiki/Simpson%27s_rule =============================
   // const Side side = formulaStruct.getSide();
   // const DataT ezField = getEzField(side);
   const DataT p2phiSave = regulatePhi(p2phi, side);
 
-  const DataT fielder0 = formulaStruct.evalFieldR(p1z, p1r, p1phi);
-  const DataT fieldez0 = formulaStruct.evalFieldZ(p1z, p1r, p1phi);
-  const DataT fieldephi0 = formulaStruct.evalFieldPhi(p1z, p1r, p1phi);
+  // fields at the start point (the same for all iterations, evaluated by the caller)
+  const DataT fieldez0 = fieldsStart[0];
+  const DataT fielder0 = fieldsStart[1];
+  const DataT fieldephi0 = fieldsStart[2];
 
-  const DataT fielder1 = formulaStruct.evalFieldR(p2z, p2r, p2phiSave);
-  const DataT fieldez1 = formulaStruct.evalFieldZ(p2z, p2r, p2phiSave);
-  const DataT fieldephi1 = formulaStruct.evalFieldPhi(p2z, p2r, p2phiSave);
+  DataT fieldez1, fielder1, fieldephi1;
+  formulaStruct.evalFields(p2z, p2r, p2phiSave, fieldez1, fielder1, fieldephi1);
 
   const DataT eZ0Inv = isCloseToZero(ezField, fieldez0) ? 0 : 1. / (ezField + fieldez0);
   const DataT eZ1Inv = isCloseToZero(ezField, fieldez1) ? 0 : 1. / (ezField + fieldez1);
@@ -2226,10 +2255,9 @@ void SpaceCharge<DataT>::integrateEFieldsSimpsonIterative(const DataT p1r, const
   const DataT pHalfPhiSave = regulatePhi(0.5 * (p1phi + p2phi), side); // needs to be regulated since p2phi is not regulated
   const DataT pHalfR = 0.5 * (p1r + p2r);
 
-  const DataT ezField2 = formulaStruct.evalFieldZ(pHalfZ, pHalfR, pHalfPhiSave);
+  DataT ezField2, fieldSum2ErOverEz, fieldSum2EphiOverEz;
+  formulaStruct.evalFields(pHalfZ, pHalfR, pHalfPhiSave, ezField2, fieldSum2ErOverEz, fieldSum2EphiOverEz);
   const DataT eZHalfInv = (isCloseToZero(ezField, ezField2) | isCloseToZero(ezField, fieldez0) | isCloseToZero(ezField, fieldez1)) ? 0 : 1. / (ezField + ezField2);
-  const DataT fieldSum2ErOverEz = formulaStruct.evalFieldR(pHalfZ, pHalfR, pHalfPhiSave);
-  const DataT fieldSum2EphiOverEz = formulaStruct.evalFieldPhi(pHalfZ, pHalfR, pHalfPhiSave);
 
   const DataT deltaXSimpsonSixth = (p2z - p1z) / 6;
   localIntErOverEz = deltaXSimpsonSixth * (4 * fieldSum2ErOverEz * eZHalfInv + fielder0 * eZ0Inv + fielder1 * eZ1Inv);
@@ -2580,19 +2608,29 @@ void SpaceCharge<DataT>::calcDistCorr(const DataT p1r, const DataT p1phi, const 
 
   // there are differentnumerical integration strategys implements. for details see each function.
   switch (sNumericalIntegrationStrategy) {
-    case IntegrationStrategy::SimpsonIterative:                                                         // iterative simpson integration (should be more precise at least for the analytical E-Field case but takes alot more time than normal simpson integration)
+    case IntegrationStrategy::SimpsonIterative: { // iterative simpson integration (should be more precise at least for the analytical E-Field case but takes alot more time than normal simpson integration)
+      // the fields at the start point do not change between the iterations
+      DataT fieldsStartE[3]{};
+      DataT fieldsStartB[3]{};
+      if (mSimEDistortions) {
+        formulaStruct.evalFields(p1z, p1r, p1phi, fieldsStartE[0], fieldsStartE[1], fieldsStartE[2]);
+      }
+      if (mSimExBMisalignment) {
+        mBField.evalFields(p1z, p1r, p1phi, fieldsStartB[0], fieldsStartB[1], fieldsStartB[2]);
+      }
       for (int i = 0; i < sSimpsonNIteratives; ++i) {                                                   // TODO define a convergence criterion to abort the algorithm earlier for speed up.
         const DataT tmpZ = localDistCorr ? (p2z + ddZ) : regulateZ(p2z + ddZ, formulaStruct.getSide()); // dont regulate for local distortions/corrections! (to get same result as using electric field at last/first bin)
         if (mSimEDistortions) {
-          integrateEFieldsSimpsonIterative(p1r, p1r + ddR + ddRExB, p1phi, p1phi + ddPhi + ddPhiExB, p1z, tmpZ, localIntErOverEz, localIntEPhiOverEz, localIntDeltaEz, formulaStruct, getEzField(side), side);
+          integrateEFieldsSimpsonIterative(p1r, p1r + ddR + ddRExB, p1phi, p1phi + ddPhi + ddPhiExB, p1z, tmpZ, fieldsStartE, localIntErOverEz, localIntEPhiOverEz, localIntDeltaEz, formulaStruct, getEzField(side), side);
           langevinCylindricalE(ddR, ddPhi, ddZ, (p1r + 0.5 * (ddR + ddRExB)), localIntErOverEz, localIntEPhiOverEz, localIntDeltaEz); // using the mean radius '(p1r + 0.5 * ddR)' for calculation of distortions/corections
         }
         if (mSimExBMisalignment) {
-          integrateEFieldsSimpsonIterative(p1r, p1r + ddR + ddRExB, p1phi, p1phi + ddPhi + ddPhiExB, p1z, tmpZ, localIntBrOverBz, localIntBPhiOverBz, localIntDeltaBz, mBField, 0, side);
+          integrateEFieldsSimpsonIterative(p1r, p1r + ddR + ddRExB, p1phi, p1phi + ddPhi + ddPhiExB, p1z, tmpZ, fieldsStartB, localIntBrOverBz, localIntBPhiOverBz, localIntDeltaBz, mBField, 0, side);
           langevinCylindricalB(ddRExB, ddPhiExB, (p1r + 0.5 * (ddR + ddRExB)), localIntBrOverBz, localIntBPhiOverBz);
         }
       }
       break;
+    }
     case IntegrationStrategy::Simpson: // simpson integration
       if (mSimEDistortions) {
         integrateEFieldsSimpson(p1r, p1phi, p1z, p2z, localIntErOverEz, localIntEPhiOverEz, localIntDeltaEz, formulaStruct, getEzField(side), side);
@@ -2815,36 +2853,26 @@ void SpaceCharge<DataT>::fillChargeDensityFromHisto(const char* file, const char
   if (!hSCC) {
     LOGP(error, "Histogram {} not found", nameC);
   }
+  if (!hSCA || !hSCC) {
+    return;
+  }
   fillChargeDensityFromHisto(*hSCA, *hSCC);
 }
 
 template <typename DataT>
 void SpaceCharge<DataT>::fillChargeDensityFromHisto(const TH3& hisSCDensity3D_A, const TH3& hisSCDensity3D_C)
 {
-  const int nPhiBinsTmp = hisSCDensity3D_A.GetXaxis()->GetNbins();
-  const int nRBinsTmp = hisSCDensity3D_A.GetYaxis()->GetNbins();
+  // the C-side histogram is mapped to z in [-zMax, 0] and the A-side histogram to z in [0, zMax] (z bin number of the C-side
+  // histogram = z bin number of the merged axis). The rebinning reads both histograms directly without creating a merged copy.
   const int nZBins = hisSCDensity3D_A.GetZaxis()->GetNbins();
-  const auto phiLow = hisSCDensity3D_A.GetXaxis()->GetBinLowEdge(1);
-  const auto phiUp = hisSCDensity3D_A.GetXaxis()->GetBinUpEdge(nPhiBinsTmp);
-  const auto rLow = hisSCDensity3D_A.GetYaxis()->GetBinLowEdge(1);
-  const auto rUp = hisSCDensity3D_A.GetYaxis()->GetBinUpEdge(nRBinsTmp);
   const auto zUp = hisSCDensity3D_A.GetZaxis()->GetBinUpEdge(nZBins);
-
-  TH3F hisSCMerged("hisMerged", "hisMerged", nPhiBinsTmp, phiLow, phiUp, nRBinsTmp, rLow, rUp, 2 * nZBins, -zUp, zUp);
-
-  for (int iside = 0; iside < FNSIDES; ++iside) {
-    const auto& hSC = (iside == 0) ? hisSCDensity3D_A : hisSCDensity3D_C;
-#pragma omp parallel for num_threads(sNThreads)
-    for (int iz = 1; iz <= nZBins; ++iz) {
-      const int izTmp = (iside == 0) ? (nZBins + iz) : iz;
-      for (int ir = 1; ir <= nRBinsTmp; ++ir) {
-        for (int iphi = 1; iphi <= nPhiBinsTmp; ++iphi) {
-          hisSCMerged.SetBinContent(iphi, ir, izTmp, hSC.GetBinContent(iphi, ir, iz));
-        }
-      }
-    }
-  }
-  fillChargeDensityFromHisto(hisSCMerged);
+  const TAxis axisZMerged(2 * nZBins, -zUp, zUp);
+  withBinContentAccessor(hisSCDensity3D_A, [&](const auto& getA) {
+    withBinContentAccessor(hisSCDensity3D_C, [&](const auto& getC) {
+      const auto getBinContent = [&getA, &getC, nZBins](int iPhi, int iR, int iZ) { return (iZ > nZBins) ? getA(iPhi, iR, iZ - nZBins) : getC(iPhi, iR, iZ); };
+      fillChargeDensityFromHisto(*hisSCDensity3D_A.GetXaxis(), *hisSCDensity3D_A.GetYaxis(), axisZMerged, getBinContent);
+    });
+  });
 }
 
 template <typename DataT>
@@ -3366,7 +3394,7 @@ void SpaceCharge<DataT>::scaleChargeDensityStack(const float scalingFactor, cons
   for (unsigned int iR = 0; iR < mParamGrid.NRVertices; ++iR) {
     const DataT radius = getRVertex(iR, side);
     for (unsigned int iPhi = iPhiFirst; iPhi < iPhiLast; ++iPhi) {
-      const DataT phi = getPhiVertex(iR, side);
+      const DataT phi = getPhiVertex(iPhi, side);
       const GlobalPosition3D pos(getXFromPolar(radius, phi), getYFromPolar(radius, phi), ((side == Side::A) ? 10 : -10));
       const auto& mapper = o2::tpc::Mapper::instance();
       const o2::tpc::DigitPos digiPadPos = mapper.findDigitPosFromGlobalPosition(pos);
