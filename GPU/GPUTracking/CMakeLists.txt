@@ -509,9 +509,7 @@ if(CPUDEVICE_ENABLED)
 endif()
 
 if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR ALIGPU_BUILD_TYPE STREQUAL "Standalone")
-  if(NOT ${CMAKE_SYSTEM} MATCHES Darwin)
-    add_subdirectory(Standalone/Benchmark)
-  endif()
+  add_subdirectory(Standalone/Benchmark)
 endif()
 
 if(GPUCA_DETERMINISTIC_MODE GREATER_EQUAL ${GPUCA_DETERMINISTIC_MODE_MAP_GPU})

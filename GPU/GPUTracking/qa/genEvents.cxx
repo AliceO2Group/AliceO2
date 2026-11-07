@@ -357,7 +357,7 @@ void genEvents::RunEventGenerator(GPUChainTracking* rec, const std::string& dir)
 {
   std::unique_ptr<genEvents> gen(new genEvents(rec));
   mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-  rec->DumpSettings(dir.c_str());
+  rec->rec()->DumpSettings(dir.c_str()); // the chain's own override does not write settings.dump
 
   gen->InitEventGenerator();
 
