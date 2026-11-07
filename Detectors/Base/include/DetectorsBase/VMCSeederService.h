@@ -13,7 +13,9 @@
 #define ALICEO2_VMC_SEEDERSERVICE_H
 
 class TVirtualMC;
+class TRandom;
 
+#include <atomic>
 #include <functional>
 
 namespace o2
@@ -33,19 +35,27 @@ class VMCSeederService
     return inst;
   }
 
-  void setSeed() const; // will propagate seed to the VMC engines
+  void setSeed() const; // will propagate the seed of o2::base::simRandom() to the VMC engine of this thread
 
   /// how often a seed was propagated; lets callers detect a silent no-op
   unsigned long long getSeedCount() const { return mSeedCount; }
 
-  typedef std::function<void()> SeederFcn;
+  typedef std::function<void(TRandom*)> SeederFcn;
+
+  /// installs the function that seeds Geant4 from a generator; called by the Geant4 configuration, which links Geant4
+  static void setGeant4Seeder(SeederFcn fcn) { geant4Seeder() = std::move(fcn); }
 
  private:
   VMCSeederService();
+  static SeederFcn& geant4Seeder()
+  {
+    static SeederFcn fcn;
+    return fcn;
+  }
   void initSeederFunction(TVirtualMC const*);
 
-  SeederFcn mSeederFcn;                     // the just-in-time compiled function talking to the VMC engines
-  mutable unsigned long long mSeedCount{0}; // number of setSeed() calls
+  SeederFcn mSeederFcn;                                  // the function talking to the VMC engine
+  mutable std::atomic<unsigned long long> mSeedCount{0}; // number of setSeed() calls
 };
 
 } // namespace base

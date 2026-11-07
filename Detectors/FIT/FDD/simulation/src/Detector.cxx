@@ -33,6 +33,7 @@
 #include "FairRootManager.h"
 #include "FairVolume.h"
 #include "FairRootManager.h"
+#include "DetectorsBase/SimRandom.h"
 
 using namespace o2::fdd;
 using o2::fdd::Geometry;
@@ -149,7 +150,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 
   Float_t destep_ad = fMC->Edep();
   Int_t nPhotonsInStep_ad = Int_t(fFDDLightYield * destep_ad);
-  nPhotonsInStep_ad = gRandom->Poisson(nPhotonsInStep_ad);
+  nPhotonsInStep_ad = o2::base::simRandom()->Poisson(nPhotonsInStep_ad);
 
   mElossAD += destep_ad;
 

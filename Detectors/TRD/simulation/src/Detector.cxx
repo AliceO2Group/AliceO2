@@ -29,6 +29,7 @@
 #include <vector>
 #include <stdexcept>
 #include <string>
+#include "DetectorsBase/SimRandom.h"
 
 using namespace o2::trd;
 using namespace o2::trd::constants;
@@ -277,7 +278,7 @@ void Detector::createTRhit(int det)
     double muMy = mTR->getMuMy(energyMeV);
     sigma = muMy * mFoilDensity;
     if (sigma > 0.0) {
-      absLength = gRandom->Exp(1.0 / sigma);
+      absLength = o2::base::simRandom()->Exp(1.0 / sigma);
       if (absLength < Geometry::myThick()) {
         continue;
       }
@@ -300,7 +301,7 @@ void Detector::createTRhit(int det)
     // The distance after which the energy of the TR photon
     // is deposited.
     if (sigma > 0.0) {
-      absLength = gRandom->Exp(1.0 / sigma);
+      absLength = o2::base::simRandom()->Exp(1.0 / sigma);
       if (absLength > (Geometry::drThick() + Geometry::amThick())) {
         continue;
       }

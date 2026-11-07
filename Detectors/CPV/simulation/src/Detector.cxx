@@ -32,6 +32,7 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/range/irange.hpp>
+#include "DetectorsBase/SimRandom.h"
 
 using namespace o2::cpv;
 
@@ -171,7 +172,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   float dZY = pZ / pNorm * cpvparam.mCPVGasThickness;
   float dXY = pX / pNorm * cpvparam.mCPVGasThickness;
   float rnor1 = 0., rnor2 = 0.;
-  gRandom->Rannor(rnor1, rnor2);
+  o2::base::simRandom()->Rannor(rnor1, rnor2);
   float eloss = cpvparam.mdEdx * (1 + cpvparam.mDetR * rnor1) *
                 TMath::Sqrt((1. + (pow(dZY, 2) + pow(dXY, 2)) / pow(cpvparam.mCPVGasThickness, 2)));
   float zhit1 = hitZ + cpvparam.mPadSizeZ * cpvparam.mnCellZ / 2 - dZY / 2;

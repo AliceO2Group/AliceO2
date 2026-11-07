@@ -16,6 +16,7 @@
 #include "DetectorsBase/MaterialManager.h"
 #include "DetectorsBase/Stack.h"
 #include "ZDCSimulation/Detector.h"
+#include "DetectorsBase/SimRandom.h"
 #include "DataFormatsZDC/Hit.h"
 
 #include "TMath.h"
@@ -460,7 +461,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
             //printf("  \t ZPtableEntry[%d %d %d] = %1.5f -> lightoutput %f\n", ibeta, iangle, iradius, mLightTableZP[ibeta][iangle][iradius], lightoutput);
           }
           if (lightoutput > 0) {
-            nphe = gRandom->Poisson(lightoutput);
+            nphe = o2::base::simRandom()->Poisson(lightoutput);
             //printf("  \t\t-> nphe %d  \n", nphe);
           }
         }

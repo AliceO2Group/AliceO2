@@ -68,6 +68,9 @@ R__LOAD_LIBRARY(libgeant4vmc)
 #include <unistd.h>
 #include "SimSetup/G4RunConfiguration.h"
 #include "SimSetup/VecGeomNavigation.h"
+#include "DetectorsBase/VMCSeederService.h"
+#include "CLHEP/Random/Random.h"
+#include "TRandom.h"
 #endif
 #include "commonConfig.C"
 
@@ -152,6 +155,15 @@ void Config()
   /// Create the G4 VMC
   TGeant4* geant4 = new TGeant4("TGeant4", "The Geant4 Monte Carlo", runConfiguration);
   std::cout << "Geant4 has been created." << std::endl;
+
+  // seeds the Geant4 engine of the calling thread from a ROOT generator, as TG4RunManager::SetRandomSeed does from gRandom
+  o2::base::VMCSeederService::setGeant4Seeder([](TRandom* r) {
+    long seeds[10];
+    seeds[0] = r->GetSeed();
+    seeds[1] = r->GetSeed();
+    seeds[2] = 0;
+    CLHEP::HepRandom::setTheSeeds(seeds);
+  });
 
   if (g4Params.navmode == o2::conf::EG4Nav::kVecGeom) {
     o2::simsetup::installVecGeomNavigator();
