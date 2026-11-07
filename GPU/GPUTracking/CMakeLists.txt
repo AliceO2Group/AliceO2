@@ -145,6 +145,7 @@ set(HDRS_INSTALL
     Global/GPUChainTrackingGetters.inc
     Global/GPUErrorCodes.h
     Merger/GPUTPCGMMergerTypes.h
+    Merger/GPUTPCGMMergerSortComp.h
     qa/GPUQAHelper.h
     qconfigoptions.h
     Refit/GPUTrackParamConvert.h
