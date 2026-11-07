@@ -112,7 +112,7 @@ struct ServiceRegistry {
   // the service.
   struct Meta {
     ServiceKind kind = ServiceKind::Serial;
-    char const* name = nullptr;
+    std::string name;
     // The index in the
     SpecIndex specIndex{};
   };

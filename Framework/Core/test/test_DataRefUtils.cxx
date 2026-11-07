@@ -38,6 +38,7 @@ TEST_CASE("PureRootTest")
   auto* outS = (TObjString*)buffer2.ReadObjectAny(storedClass);
   REQUIRE(outS != nullptr);
   REQUIRE(outS->GetString() == "test");
+  delete outS;
 }
 
 // Simple test to do root deserialization.
@@ -92,4 +93,5 @@ TEST_CASE("TestRootContainerSerialization")
   // the extracted object must be owning to avoid memory leaks
   // the get method takes care of this
   REQUIRE(s->IsOwner());
+  delete tm;
 }
