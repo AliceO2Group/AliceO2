@@ -103,6 +103,9 @@ if(METAL_ENABLED) # BUILD Metal source code for runtime compilation target
   target_link_options(${targetName}
                       PRIVATE
                       "-Wl,-sectcreate,__DATA,__gpu_resource,${METAL_BIN}.ir")
+  # The linker reads the IR, so relink when it changes: otherwise a change to the
+  # kernels alone leaves the old code in the library.
+  set_property(TARGET ${targetName} APPEND PROPERTY LINK_DEPENDS ${METAL_BIN}.ir)
   add_dependencies(${targetName} metal_preprocessed_code)
   add_dependencies(${targetName} metal_intermediate_representation)
 endif()
