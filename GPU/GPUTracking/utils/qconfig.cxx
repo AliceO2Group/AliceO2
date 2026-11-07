@@ -25,7 +25,9 @@
 #include <optional>
 #include <stdexcept>
 #include <tuple>
+#define QCONFIG_INTERNAL
 #include "qconfig.h"
+#undef QCONFIG_INTERNAL
 #include "qconfig_helpers.h"
 #include "qconfig_rtti.h"
 #include "qconfig_internal_helpers.h"

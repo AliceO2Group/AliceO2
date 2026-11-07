@@ -15,8 +15,8 @@
 #ifndef GPUDISPLAYGUICHANNEL_H
 #define GPUDISPLAYGUICHANNEL_H
 
+#define GPUSETTINGS_DISPLAYCONTROL
 #include "GPUSettings.h"
-#include "GPUDisplayControl.h"
 #include <algorithm>
 #include <chrono>
 #include <condition_variable>

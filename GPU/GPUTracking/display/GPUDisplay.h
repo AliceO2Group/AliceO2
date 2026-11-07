@@ -15,11 +15,11 @@
 #ifndef GPUDISPLAY_H
 #define GPUDISPLAY_H
 
+#define GPUSETTINGS_DISPLAYCONTROL
+#include "GPUSettings.h"
 #include "frontend/GPUDisplayFrontend.h"
-#include "frontend/GPUDisplayControl.h"
 #include "backend/GPUDisplayBackend.h"
 #include "GPUDisplayInterface.h"
-#include "GPUSettings.h"
 #include "DataFormatsTPC/Constants.h"
 
 #include <atomic>
