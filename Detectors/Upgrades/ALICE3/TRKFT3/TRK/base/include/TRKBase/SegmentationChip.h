@@ -72,6 +72,20 @@ class SegmentationChip
 
   static constexpr std::array<double, constants::VD::petal::nLayers> radiiVD = constants::VD::petal::layer::radii;
 
+  static inline int sNPetalsVD = -1; // not set
+  static void setNumberOfPetalsVD(int n) { sNPetalsVD = n; }
+  static float getWidthVD(int layer) // get the width of the petal according to the simulated geometry (supported: kIRIS4 (4 petals), kIRIS4a (3 petals), kIRISFullCyl)
+  {
+    if (sNPetalsVD < 1) {
+      LOGP(fatal, "SegmentationChip: VD number of petals not set. GeometryTGeo::Build() must be called before using the VD segmentation");
+    }
+    if (sNPetalsVD == 1) { // FullCyl: 360°, no gap
+      return 2 * M_PI * constants::VD::petal::layer::radii[layer];
+    }
+    return constants::VD::petal::layer::radii[layer] * 2 * M_PI / sNPetalsVD - constants::VD::petal::layer::gaps[layer];
+  }
+  static int getNRowsVD(int layer) { return static_cast<int>(getWidthVD(layer) / PitchRowVD); }
+
   /// Transformation from Geant detector centered local coordinates (cm) to
   /// Pixel cell numbers iRow and iCol.
   /// Returns kTRUE if point x,z is inside sensitive volume, kFALSE otherwise.
@@ -113,7 +127,7 @@ class SegmentationChip
     if (subDetID == 0) {
       pitchRow = PitchRowVD;
       pitchCol = PitchColVD;
-      maxWidth = constants::VD::petal::layer::width[layer];
+      maxWidth = getWidthVD(layer);
       maxLength = constants::VD::petal::layer::length;
       // TODO: change this to use the layer and disk
     } else if (subDetID == 1 || subDetID == 2) {
@@ -128,11 +142,11 @@ class SegmentationChip
   };
 
   // Check local coordinates (cm) validity.
-  static constexpr bool isValidLoc(float x, float z, int subDetID, int layer) noexcept
+  static bool isValidLoc(float x, float z, int subDetID, int layer) noexcept
   {
     float maxWidth(0), maxLength(0);
     if (subDetID == 0) {
-      maxWidth = constants::VD::petal::layer::width[layer];
+      maxWidth = getWidthVD(layer);
       maxLength = constants::VD::petal::layer::length;
       // TODO: change this to use the layer and disk
     } else if (subDetID == 1 || subDetID == 2) { // ML/OT
@@ -143,12 +157,12 @@ class SegmentationChip
   }
 
   // Check detector coordinates validity.
-  static constexpr bool isValidDet(int row, int col, int subDetID, int layer) noexcept
+  static bool isValidDet(int row, int col, int subDetID, int layer) noexcept
   {
     // Check if the row and column are within the valid range
     int nRows(0), nCols(0);
     if (subDetID == 0) {
-      nRows = constants::VD::petal::layer::nRows[layer];
+      nRows = getNRowsVD(layer);
       nCols = constants::VD::petal::layer::nCols;
       // TODO: change this to use the layer and disk
     } else if (subDetID == 1 || subDetID == 2) {
@@ -171,7 +185,7 @@ class SegmentationChip
   /// \param int subDetID Sub-detector ID (0 for VD, 1 for ML/OT)
   /// \param int layer Layer number (0 to 2 for VD, 0 to 7 for ML/OT)
   /// \param int disk Disk number (0 to 5 for VD)
-  static constexpr bool detectorToLocal(int iRow, int iCol, float& xRow, float& zCol, int subDetID, int layer, int disk) noexcept
+  static bool detectorToLocal(int iRow, int iCol, float& xRow, float& zCol, int subDetID, int layer, int disk) noexcept
   {
     if (!isValidDet(iRow, iCol, subDetID, layer)) {
       LOGP(debug, "Detector coordinates not valid: iRow = {}, iCol = {}", iRow, iCol);
@@ -194,7 +208,7 @@ class SegmentationChip
     /// xRow = half chip width - iRow(center) * pitch
     /// zCol = iCol * pitch - half chip lenght
     if (subDetID == 0) {
-      xRow = 0.5 * (constants::VD::petal::layer::width[layer] - PitchRowVD) - (row * PitchRowVD);
+      xRow = 0.5 * (getWidthVD(layer) - PitchRowVD) - (row * PitchRowVD);
       zCol = col * PitchColVD + 0.5 * (PitchColVD - constants::VD::petal::layer::length);
     } else if (subDetID == 1 || subDetID == 2) { // ML/OT
       xRow = 0.5 * (constants::moduleMLOT::chip::width - constants::moduleMLOT::chip::passiveEdgeReadOut - PitchRowMLOT) - (row * PitchRowMLOT);
@@ -251,9 +265,9 @@ class SegmentationChip
   /// Print segmentation info
   static void Print() noexcept
   {
-    LOG(info) << "Number of rows:\nVD L0: " << constants::VD::petal::layer::nRows[0]
-              << "\nVD L1: " << constants::VD::petal::layer::nRows[1]
-              << "\nVD L2: " << constants::VD::petal::layer::nRows[2]
+    LOG(info) << "Number of rows:\nVD L0: " << getNRowsVD(0)
+              << "\nVD L1: " << getNRowsVD(1)
+              << "\nVD L2: " << getNRowsVD(2)
               << "\nML/OT chip: " << constants::moduleMLOT::chip::nRows;
 
     LOG(info) << "Number of cols:\nVD: " << constants::VD::petal::layer::nCols

@@ -39,6 +39,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "TRKBase/GeometryTGeo.h"
+#include "TRKBase/SegmentationChip.h"
 #include "TRKBase/Specs.h"
 #include "TRKReconstruction/BuildTopologyDictionary.h"
 #include <TFile.h>
@@ -190,7 +191,7 @@ void forEachCluster(const std::string& directory, F&& f)
       const auto* pattern = candidate.pattern;
       // Left out: at the matrix's edge, or one of several pieces of a crossing.
       const bool vd = cluster.subDetID == 0;
-      const int nRows = vd ? o2::trk::constants::VD::petal::layer::nRows[cluster.layer] : o2::trk::constants::moduleMLOT::chip::nRows;
+      const int nRows = vd ? o2::trk::SegmentationChip::getNRowsVD(cluster.layer) : o2::trk::constants::moduleMLOT::chip::nRows;
       const int nCols = vd ? o2::trk::constants::VD::petal::layer::nCols : o2::trk::constants::moduleMLOT::chip::nCols;
       if (cluster.row == 0 || cluster.col == 0 || cluster.row + pattern[0] >= nRows || cluster.col + pattern[1] >= nCols ||
           nClusters[candidate.key] > static_cast<int>(candidate.segments.size())) {

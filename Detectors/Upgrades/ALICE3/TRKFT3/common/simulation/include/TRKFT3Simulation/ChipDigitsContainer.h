@@ -96,7 +96,7 @@ void o2::trkft3::ChipDigitsContainer::addNoise(UInt_t rofMin, UInt_t rofMax, con
   int maxCols = 0;
 
   if (subDetID == 0) {
-    maxRows = o2::trk::constants::VD::petal::layer::nRows[layer];
+    maxRows = o2::trk::SegmentationChip::getNRowsVD(layer);
     maxCols = o2::trk::constants::VD::petal::layer::nCols;
   } else {
     maxRows = o2::trk::constants::moduleMLOT::chip::nRows;

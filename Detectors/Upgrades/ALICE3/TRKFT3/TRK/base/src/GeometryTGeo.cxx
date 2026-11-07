@@ -84,6 +84,9 @@ void GeometryTGeo::Build(int loadTrans)
 
   mNumberOfLayersMLOT = extractNumberOfLayersMLOT();
   mNumberOfPetalsVD = extractNumberOfPetalsVD();
+  SegmentationChip::setNumberOfPetalsVD(mNumberOfPetalsVD);
+  LOGP(info, "VD segmentation set for {} petals", mNumberOfPetalsVD);
+
   mNumberOfActivePartsVD = extractNumberOfActivePartsVD();
   mNumberOfLayersVD = extractNumberOfLayersVD();
   mNumberOfDisksVD = extractNumberOfDisksVD();

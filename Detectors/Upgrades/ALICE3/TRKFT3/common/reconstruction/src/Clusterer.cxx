@@ -181,7 +181,7 @@ void Clusterer<DetID>::ClustererThread::initChip(gsl::span<const Digit> digits, 
   if (geom) {
     if (geom->getSubDetID(chipID) == 0) { // VD
       const int layer = geom->getLayer(chipID);
-      size = constants::VD::petal::layer::nRows[layer] + 2;
+      size = SegmentationChip::getNRowsVD(layer) + 2;
     }
   }
 
