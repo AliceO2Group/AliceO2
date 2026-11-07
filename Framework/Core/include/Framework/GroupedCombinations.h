@@ -21,6 +21,18 @@
 namespace o2::framework
 {
 
+enum class GroupedSlicePolicy { IncludeEmpty,
+                                SkipEmpty };
+
+template <typename T>
+struct SupportsEmptyAssociatedGate : std::false_type {
+};
+
+template <aod::is_aod_hash L, aod::is_aod_hash D, aod::is_origin_hash O, typename... C>
+struct SupportsEmptyAssociatedGate<soa::Table<L, D, O, C...>>
+  : std::bool_constant<O::hash != "JOIN"_h && O::hash != "CONC"_h> {
+};
+
 // Create an instance of a tuple interleaved from given tuples
 template <typename... T1s, typename... T2s, std::size_t... Is>
 auto interleaveTuplesImpl(std::tuple<T1s...>& t1, std::tuple<T2s...>& t2, std::index_sequence<Is...>)
@@ -66,6 +78,12 @@ struct GroupedCombinationsGenerator {
     GroupedIterator(const GroupingPolicy& groupingPolicy, SliceCache* cache_)
       : GroupingPolicy(groupingPolicy), mIndexColumns{getMatchingIndexNode<G, As>()...}, cache{cache_}
     {
+    }
+    GroupedIterator(const GroupingPolicy& groupingPolicy, SliceCache* cache_, GroupedSlicePolicy slicePolicy)
+      requires((SupportsEmptyAssociatedGate<As>::value && ...))
+      : GroupedIterator(groupingPolicy, cache_)
+    {
+      mSlicePolicy = slicePolicy;
     }
     template <typename... T2s>
     GroupedIterator(const GroupingPolicy& groupingPolicy, const G& grouping, const std::tuple<T2s...>& associated, SliceCache* cache_)
@@ -172,8 +190,39 @@ struct GroupedCombinationsGenerator {
       return std::get<I>(*mAssociated).sliceByCached(mIndexColumns[I], ind, *cache);
     }
 
+    template <std::size_t I>
+    bool associatedHasRows() const
+    {
+      using A = std::tuple_element_t<I, std::tuple<As...>>;
+      auto const& associated = std::get<I>(*mAssociated);
+      if (associated.size() == 0) {
+        return false;
+      }
+      auto const& node = mIndexColumns[I];
+      auto localCache = cache->ptr->getCacheFor({"", soa::originReplacement(cache->ptr->newOrigin)(soa::getMatcherFromTypeForKey<A>(node.name)), node.name});
+      uint64_t index = *std::get<0>(std::get<I>(this->mCurrent).getIndices());
+      return localCache.getSliceFor(index).second != 0;
+    }
+
+    template <std::size_t... I>
+    bool allAssociatedHaveRows(std::index_sequence<I...>) const
+    {
+      return (associatedHasRows<I>() && ...);
+    }
+
     void setCurrentGroupedCombination()
     {
+      if constexpr ((SupportsEmptyAssociatedGate<As>::value && ...)) {
+        if (mSlicePolicy == GroupedSlicePolicy::SkipEmpty && !this->mIsEnd) {
+          if (std::apply([](auto const&... tables) { return ((tables.size() == 0) || ...); }, *mAssociated)) {
+            GroupingPolicy::moveToEnd();
+            return;
+          }
+          while (!this->mIsEnd && !allAssociatedHaveRows(std::index_sequence_for<As...>{})) {
+            this->addOne();
+          }
+        }
+      }
       if (!this->mIsEnd) {
         auto& currentGrouping = GroupingPolicy::mCurrent;
         mSlices.emplace(getAssociatedTables());
@@ -187,6 +236,7 @@ struct GroupedCombinationsGenerator {
     std::optional<std::tuple<As...>> mSlices;
     std::optional<GroupedIteratorType> mCurrentGrouped;
     SliceCache* cache = nullptr;
+    GroupedSlicePolicy mSlicePolicy = GroupedSlicePolicy::IncludeEmpty;
   };
 
   using iterator = GroupedIterator;
@@ -218,6 +268,15 @@ struct GroupedCombinationsGenerator {
   {
     setTables(grouping, associated);
   }
+  template <typename... T2s>
+  GroupedCombinationsGenerator(const BP& binningPolicy, int catNeighbours, const T1& outsider, const G& grouping, const std::tuple<T2s...>& associated, SliceCache* cache, GroupedSlicePolicy slicePolicy)
+    requires((SupportsEmptyAssociatedGate<As>::value && ...))
+    : mBegin(GroupingPolicy(binningPolicy, catNeighbours, outsider), cache, slicePolicy),
+      mEnd(GroupingPolicy(binningPolicy, catNeighbours, outsider), cache, slicePolicy)
+  {
+    setTables(grouping, associated);
+  }
+
   GroupedCombinationsGenerator(GroupedCombinationsGenerator const&) = default;
   GroupedCombinationsGenerator& operator=(GroupedCombinationsGenerator const&) = default;
   ~GroupedCombinationsGenerator() = default;
