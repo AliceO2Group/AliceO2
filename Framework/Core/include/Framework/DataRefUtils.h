@@ -31,6 +31,10 @@ namespace o2::conf
 {
 class ConfigurableParam;
 }
+#if defined(_LIBCPP_VERSION)
+class TClass;
+class TFile;
+#endif
 
 namespace o2::framework
 {
@@ -185,6 +189,10 @@ struct DataRefUtils {
   // Decode a CCDB object using the CcdbApi.
   static void* decodeCCDB(DataRef const& ref, std::type_info const& info);
   static std::map<std::string, std::string> extractCCDBHeaders(DataRef const& ref);
+#if defined(_LIBCPP_VERSION)
+  /// Make a std::array<T,N> written with libstdc++ readable from file by this libc++ build.
+  static void registerLibstdcxxStdArray(TFile& file, TClass const* cl);
+#endif
   /// Return a span over the raw CCDB payload bytes, stripping the flattened HTTP
   /// headers footer that CCDBFetcherHelper appends. Use this when the CCDB entry is
   /// a binary blob rather than a ROOT-serialised object.

@@ -20,6 +20,11 @@
 #include <TH1.h>
 #include <TError.h>
 #include <algorithm>
+#if defined(_LIBCPP_VERSION)
+#include <TList.h>
+#include <TStreamerElement.h>
+#include <TStreamerInfo.h>
+#endif
 
 namespace o2::framework
 {
@@ -31,6 +36,9 @@ void* extractFromTFile(TFile& file, TClass const* cl, const char* what)
   if (!cl) {
     return nullptr;
   }
+#if defined(_LIBCPP_VERSION)
+  DataRefUtils::registerLibstdcxxStdArray(file, cl);
+#endif
   auto object = file.GetObjectChecked(what, cl);
   if (!object) {
     // it could be that object was stored with previous convention
@@ -73,6 +81,37 @@ void* extractFromTFile(TFile& file, TClass const* cl, const char* what)
   return result;
 }
 } // namespace
+
+#if defined(_LIBCPP_VERSION)
+// The only member of std::array<T,N> is T _M_elems[N] in libstdc++, T __elems_[N] in libc++, so
+// objects written on Linux carry a StreamerInfo with a checksum the libc++ class does not have.
+// When opening the file, ROOT drops that StreamerInfo as an alias of the in-memory one
+// (TStreamerInfo::BuildCheck), and the read fails with "Could not find the StreamerInfo with a
+// checksum", leaving the array zero-filled. Register the on-file layout as a version of its own,
+// under the in-memory member name, so that the payload, T[N] for both, is read as usual.
+void DataRefUtils::registerLibstdcxxStdArray(TFile& file, TClass const* cl)
+{
+  auto* infos = std::strncmp(cl->GetName(), "array<", 6) == 0 ? file.GetStreamerInfoCache() : nullptr;
+  auto* onfile = infos ? dynamic_cast<TStreamerInfo*>(infos->FindObject(cl->GetName())) : nullptr;
+  if (!onfile || onfile->GetNelement() != 1 || std::strcmp(onfile->GetElement(0)->GetName(), "_M_elems") != 0) {
+    return;
+  }
+  // Exists before BuildCheck, so that the on-file layout gets a version of its own
+  auto* current = static_cast<TStreamerInfo*>(const_cast<TClass*>(cl)->GetStreamerInfo());
+  auto* info = static_cast<TStreamerInfo*>(cl->FindStreamerInfo(onfile->GetCheckSum()));
+  if (!info) {
+    info = static_cast<TStreamerInfo*>(onfile->Clone());
+    info->BuildCheck(&file);
+  }
+  // Also when ROOT registered it itself: it then reads nothing, without any error
+  if (std::strcmp(info->GetElement(0)->GetName(), current->GetElement(0)->GetName()) != 0) {
+    info->GetElement(0)->SetName(current->GetElement(0)->GetName());
+    info->Clear("build");
+    info->BuildOld();
+  }
+}
+#endif
+
 // Adapted from CcdbApi private method interpretAsTMemFileAndExtract
 // If the former is moved to public, throws on error and could be changed to
 // not require a mutex we could use it.
