@@ -16,6 +16,8 @@
 #define GPUPARAMRTC_H
 
 #include "GPUParam.h"
+#define GPUSETTINGS_ALL
+#include "GPUSettings.h"
 #include <string>
 
 namespace o2::gpu

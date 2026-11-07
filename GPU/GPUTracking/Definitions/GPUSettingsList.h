@@ -19,9 +19,12 @@
 // Create plain-C struct for GPU code.
 // Create static constexpr with default values for GPU run time compilation
 
-#ifdef BeginConfig // File should not be included without defining the macros, but rootcling will do for dictionary generation
+#include "GPUSettingsTypes.h"
+
+#if (!defined(__CLING__) && !defined(G__DICTIONARY)) || defined(BeginSubConfig) // File should not be included without defining the macros, but rootcling will do for dictionary generation
 
 // clang-format off
+BeginNamespace(o2::gpu)
 
 // Settings concerning the reconstruction, stored as parameters in GPU constant memory
 // There must be no bool in here, use int8_t, as sizeof(bool) is compiler dependent and fails on GPUs!!!!!!
@@ -709,4 +712,6 @@ EndConfig()
 #endif // !GPUCA_STANDALONE
 #endif // !GPUCA_GPUCODE_DEVICE
 
-#endif // #ifndef __CLING__
+EndNamespace() // o2::gpu
+
+#endif // (!defined(__CLING__) && !defined(G__DICTIONARY)) || defined(BeginSubConfig)
