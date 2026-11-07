@@ -1,0 +1,4763 @@
+{
+  "repository": {
+    "pullRequests": {
+      "edges": [
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-17T09:45:12Z",
+            "title": "DPL: hoist std::views::filter to speedup compilation",
+            "number": 15976,
+            "author": {
+              "login": "ktf"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Framework/Core/include/Framework/AnalysisTask.h"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-19T11:52:10Z",
+            "title": "Silence importing task line on hyperloop",
+            "number": 15977,
+            "author": {
+              "login": "jackal1-66"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Generators/include/Generators/GeneratorHybrid.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Generators/src/GeneratorHybrid.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-11-06T10:03:48Z",
+            "title": "Detect failed reads when a tree is missing from a DF",
+            "number": 15978,
+            "author": {
+              "login": "autumn-mck"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Framework/AnalysisSupport/src/DataInputDirector.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-20T13:18:17Z",
+            "title": "[ALICE3] TRK: modified macros to check digits and clusters. ",
+            "number": 15979,
+            "author": {
+              "login": "atriolo"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/TRK/macros/test/CheckClusters.C"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/TRK/macros/test/CheckDigitsTRK.C"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-17T07:00:06Z",
+            "title": "DPL: out of line HistogramSpec related destructors",
+            "number": 15980,
+            "author": {
+              "login": "ktf"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Framework/Core/include/Framework/HistogramSpec.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/Core/src/HistogramSpec.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-26T10:36:00Z",
+            "title": "[ALICE3] TF3: double number of TDC pairs + add RO column masking",
+            "number": 15981,
+            "author": {
+              "login": "maciacco"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/IOTOF/simulation/include/IOTOFSimulation/Chip.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/IOTOF/simulation/include/IOTOFSimulation/DPLDigitizerParam.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/IOTOF/simulation/src/Digitizer.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "OPEN",
+            "mergedAt": null,
+            "title": "Enable Metal if available",
+            "number": 15982,
+            "author": {
+              "login": "ktf"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/Definitions/GPUSettingsList.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/Standalone/Benchmark/standalone.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/qa/genEvents.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/documentation/build-standalone.md"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "dependencies/FindO2GPU.cmake"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "OPEN",
+            "mergedAt": null,
+            "title": "Reuse same instances in hybrid generator",
+            "number": 15983,
+            "author": {
+              "login": "jackal1-66"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Generators/include/Generators/GeneratorHybrid.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Generators/include/Generators/GeneratorHybridParam.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Generators/src/GeneratorHybrid.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-19T11:26:28Z",
+            "title": "GPU Display: require GLFW >= 3.4",
+            "number": 15984,
+            "author": {
+              "login": "mconcas"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/Standalone/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "dependencies/FindGLFW.cmake"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-20T01:40:20Z",
+            "title": "GPUCommonAlgorithm: partitionPoint",
+            "number": 15985,
+            "author": {
+              "login": "f3sch"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "GPU/Common/GPUCommonAlgorithm.h"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-20T15:18:08Z",
+            "title": "GPUCommonMath: double functions, 64-bit bit counts, atomic load/store…",
+            "number": 15986,
+            "author": {
+              "login": "f3sch"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Common/MathUtils/include/MathUtils/detail/basicMath.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Common/MathUtils/include/MathUtils/detail/trigonometric.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/Common/GPUCommonMath.h"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-20T12:00:16Z",
+            "title": "Cosmics cluster collector: store TPC occupancy per cosmic and per TF",
+            "number": 15987,
+            "author": {
+              "login": "matthias-kleiner"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "DataFormats/Detectors/GlobalTracking/include/DataFormatsGlobalTracking/TrackCosmicsExtended.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/GlobalTrackingWorkflow/src/CosmicsClusterCollectorSpec.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-20T09:37:01Z",
+            "title": "BaseCluster: initialise errors to 0 by default",
+            "number": 15988,
+            "author": {
+              "login": "hyungjun-lee"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "DataFormats/Reconstruction/include/ReconstructionDataFormats/BaseCluster.h"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-21T08:06:17Z",
+            "title": "TPC: store run and time range in the voxRes UserInfo",
+            "number": 15989,
+            "author": {
+              "login": "matthias-kleiner"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/TPC/calibration/SpacePoints/macro/staticMapCreatorCPM.C"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/TPCFastTransformation/macro/TPCFastTransformInitCPM.C"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-21T14:51:25Z",
+            "title": "TrackParametrization: use double math functions for TrackParD",
+            "number": 15990,
+            "author": {
+              "login": "matthias-kleiner"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Common/MathUtils/include/MathUtils/detail/basicMath.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "DataFormats/Reconstruction/include/ReconstructionDataFormats/TrackParametrization.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "DataFormats/Reconstruction/include/ReconstructionDataFormats/TrackParametrizationWithError.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "DataFormats/Reconstruction/include/ReconstructionDataFormats/TrackUtils.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "DataFormats/Reconstruction/src/TrackParametrization.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "DataFormats/Reconstruction/src/TrackParametrizationWithError.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/Common/GPUCommonMath.h"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-22T04:36:13Z",
+            "title": "GPUCommonDefAPI: add GPUhdii()",
+            "number": 15991,
+            "author": {
+              "login": "f3sch"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "GPU/Common/GPUCommonDefAPI.h"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-22T07:15:18Z",
+            "title": "[ALICE3] TRK: rInnRow column for staggered ML layers in the config file",
+            "number": 15992,
+            "author": {
+              "login": "lorber98"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/TRK/README.md"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/TRK/simulation/include/TRKSimulation/TRKLayer.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/TRK/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/TRK/simulation/src/TRKLayer.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "CLOSED",
+            "mergedAt": null,
+            "title": "TPC MC monopoles and extended track references",
+            "number": 15993,
+            "author": {
+              "login": "tubagundem"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Common/SimConfig/include/SimConfig/G4Params.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "DataFormats/simulation/include/SimulationDataFormat/MonopoleParticles.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "DataFormats/simulation/include/SimulationDataFormat/O2DatabasePDG.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/CPV/simulation/include/CPVSimulation/Detector.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/CPV/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/FIT/FDD/simulation/include/FDDSimulation/Detector.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/FIT/FDD/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/FIT/FT0/simulation/include/FT0Simulation/Detector.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/FIT/FT0/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/FIT/FV0/simulation/include/FV0Simulation/Detector.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/FIT/FV0/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/ITS/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/MFT/simulation/include/MFTSimulation/Detector.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/MFT/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/PHOS/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TOF/simulation/include/TOFSimulation/Detector.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TOF/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TPC/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/gconfig/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/gconfig/g4Config.C"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/gconfig/include/SimSetup/O2MonopolePhysics.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/gconfig/src/O2MonopolePhysics.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Generators/src/GeneratorFactory.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Steer/src/O2MCApplication.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "macro/o2sim.C"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-21T20:55:50Z",
+            "title": "TPC: fix the weight and grid scaling of the spline derivatives in addCorrections",
+            "number": 15994,
+            "author": {
+              "login": "matthias-kleiner"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/TPC/calibration/src/TPCFastSpaceChargeCorrectionHelper.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-22T19:07:27Z",
+            "title": "Decay generator particles before transport",
+            "number": 15995,
+            "author": {
+              "login": "sawenzel"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Generators/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Generators/include/Generators/EventDecayer.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Generators/include/Generators/EventDecayerParam.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Generators/include/Generators/Generator.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Generators/share/pythia8/decays/base.cfg"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Generators/src/EventDecayer.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Generators/src/EventDecayerParam.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Generators/src/Generator.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Generators/src/GeneratorsLinkDef.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Generators/test/test_EventDecayer.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Generators/test/test_GeneratorEventDecayer.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "run/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "run/o2sim_g4_particle_table.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-22T19:55:12Z",
+            "title": "Add contributesToAHit flag to MCTrack",
+            "number": 15996,
+            "author": {
+              "login": "sawenzel"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "DataFormats/simulation/include/SimulationDataFormat/MCTrack.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Base/include/DetectorsBase/Stack.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Base/src/Stack.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Base/test/testStack.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/EMCAL/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/FIT/FT0/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/FOCAL/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/PHOS/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/ECal/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ZDC/simulation/src/Detector.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-23T09:04:30Z",
+            "title": "Extending track references to other detectors",
+            "number": 15997,
+            "author": {
+              "login": "tubagundem"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/CPV/simulation/include/CPVSimulation/Detector.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/CPV/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/FIT/FDD/simulation/include/FDDSimulation/Detector.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/FIT/FDD/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/FIT/FT0/simulation/include/FT0Simulation/Detector.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/FIT/FT0/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/FIT/FV0/simulation/include/FV0Simulation/Detector.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/FIT/FV0/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/MFT/simulation/include/MFTSimulation/Detector.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/MFT/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/PHOS/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TOF/simulation/include/TOFSimulation/Detector.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TOF/simulation/src/Detector.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-26T22:48:08Z",
+            "title": "[ALICE3] TF3: geometry update steered by the final definition of the chip size and module architecture",
+            "number": 15998,
+            "author": {
+              "login": "maciacco"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/IOTOF/base/include/IOTOFBase/IOTOFBaseParam.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/IOTOF/macros/CheckDigitsIOTOF.C"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/IOTOF/simulation/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/IOTOF/simulation/include/IOTOFSimulation/Layer.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/IOTOF/simulation/include/IOTOFSimulation/TF3Chip.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/IOTOF/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/IOTOF/simulation/src/IOTOFSimulationLinkDef.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/IOTOF/simulation/src/Layer.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/IOTOF/simulation/src/TF3Chip.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-24T21:47:49Z",
+            "title": "TrackTools: shared TrackGeometry utilities for track acceptance and PID studies\"",
+            "number": 15999,
+            "author": {
+              "login": "miranov25"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Common/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Common/TrackTools/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Common/TrackTools/README.md"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Common/TrackTools/docs/figures/trackgeometry_synthetic_5d_available_rows.png"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Common/TrackTools/include/TrackTools/TrackGeometry.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Common/TrackTools/test/README_TESTS.md"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Common/TrackTools/test/python/conftest.py"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Common/TrackTools/test/python/test_full_state_radius.py"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Common/TrackTools/test/python/test_sector_rows_primary_baseline.py"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-23T23:18:20Z",
+            "title": "CheckResid stores cl.size and track snp for points",
+            "number": 16000,
+            "author": {
+              "login": "shahor02"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/GlobalTrackingWorkflow/study/include/GlobalTrackingStudy/CheckResidTypes.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/GlobalTrackingWorkflow/study/src/CheckResidSpec.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-24T10:10:09Z",
+            "title": "DPL CCDB fetcher was ignorint condition-timestamp option",
+            "number": 16001,
+            "author": {
+              "login": "shahor02"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Framework/CCDBSupport/src/CCDBHelpers.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/Core/src/WorkflowHelpers.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-24T18:05:38Z",
+            "title": "[ALICE3] TF3: fetch pixel maps inside digitizer workflow",
+            "number": 16002,
+            "author": {
+              "login": "maciacco"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/IOTOF/simulation/include/IOTOFSimulation/DPLDigitizerParam.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/IOTOF/simulation/include/IOTOFSimulation/Digitizer.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/IOTOF/simulation/src/Digitizer.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Steer/DigitizerWorkflow/src/IOTOFDigitizerSpec.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-24T23:03:50Z",
+            "title": "Add optional residuals from IB/OB tracks extrapolations to OB/IB clusters",
+            "number": 16003,
+            "author": {
+              "login": "shahor02"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/GlobalTrackingWorkflow/study/include/GlobalTrackingStudy/CheckResidConfig.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/GlobalTrackingWorkflow/study/include/GlobalTrackingStudy/CheckResidTypes.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/GlobalTrackingWorkflow/study/src/CheckResidSpec.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-25T12:34:50Z",
+            "title": "Protect HistoManager from OOB access",
+            "number": 16004,
+            "author": {
+              "login": "shahor02"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/GlobalTrackingWorkflow/study/src/HistoManager.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "OPEN",
+            "mergedAt": null,
+            "title": "[Framework] Add opt-in skipping of empty associated slices in grouped combinations",
+            "number": 16005,
+            "author": {
+              "login": "BongHwi"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Framework/Core/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/Core/include/Framework/GroupedCombinations.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/Core/test/test_GroupedCombinations.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-25T22:21:44Z",
+            "title": "CheckResid: add per layer chip residuals and pulls",
+            "number": 16006,
+            "author": {
+              "login": "shahor02"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/GlobalTrackingWorkflow/study/include/GlobalTrackingStudy/CheckResidConfig.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/GlobalTrackingWorkflow/study/src/CheckResidSpec.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-27T14:42:13Z",
+            "title": "Allow use of CA on limited amount of layers",
+            "number": 16007,
+            "author": {
+              "login": "mpuccio"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/GlobalReconstruction/workflow/README.md"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/GlobalReconstruction/workflow/src/TrackerSpec.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-27T15:47:52Z",
+            "title": "Apply correct TBB shutdown mechanism",
+            "number": 16008,
+            "author": {
+              "login": "jackal1-66"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Generators/include/Generators/GeneratorHybrid.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Generators/src/GeneratorHybrid.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-26T15:33:49Z",
+            "title": "[ALICE3] TRK update: New radii for the simplified-realistic OT paving",
+            "number": 16009,
+            "author": {
+              "login": "bulukutlu"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/TRK/README.md"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/TRK/base/include/TRKBase/Specs.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/TRK/simulation/include/TRKSimulation/TRKServices.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/TRK/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/TRK/simulation/src/TRKLayer.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-26T19:17:26Z",
+            "title": "Fix display fans across wire-trimmed quadric patches",
+            "number": 16010,
+            "author": {
+              "login": "sawenzel"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/CADSupport/src/BoundedSurface.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/CADSupport/test/testBVHSurfaceSolid.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-27T09:09:46Z",
+            "title": "ITS/MFT digi: fix for late hits seen by the next ROF",
+            "number": 16011,
+            "author": {
+              "login": "shahor02"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/common/simulation/src/Digitizer.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ITS3/simulation/src/Digitizer.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-27T09:22:07Z",
+            "title": "[ALICE3] TRKFT3: first implementation to store Time of Arrival into digits",
+            "number": 16012,
+            "author": {
+              "login": "atriolo"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "DataFormats/Detectors/Upgrades/ALICE3/TRKFT3/common/include/DataFormatsTRKFT3/Digit.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "DataFormats/Detectors/Upgrades/ALICE3/TRKFT3/common/src/Digit.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/common/simulation/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/common/simulation/include/TRKFT3Simulation/ChipDigitsContainer.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/common/simulation/include/TRKFT3Simulation/Digitizer.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/common/simulation/include/TRKFT3Simulation/PreDigit.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/common/simulation/src/ChipDigitsContainer.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/common/simulation/src/Digitizer.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/common/simulation/src/TRKFT3SimulationLinkDef.h"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-27T11:56:08Z",
+            "title": "Leave holes open in the CADSupport display mesh",
+            "number": 16013,
+            "author": {
+              "login": "sawenzel"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/CADSupport/src/BoundedSurface.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/CADSupport/test/testBVHSurfaceSolid.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-27T17:28:10Z",
+            "title": "Add CODEOWNERS for ALICE3 detector in DataFormats",
+            "number": 16014,
+            "author": {
+              "login": "mconcas"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "CODEOWNERS"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-30T23:39:28Z",
+            "title": "Avoid multi-loopers generation when using embedding",
+            "number": 16015,
+            "author": {
+              "login": "jackal1-66"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Generators/include/Generators/TPCLoopers.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Generators/src/Generator.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Generators/src/TPCLoopers.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-29T12:34:09Z",
+            "title": "ITS/MFT digi: account BC reassignment in time wrt BC",
+            "number": 16016,
+            "author": {
+              "login": "shahor02"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/common/simulation/src/Digitizer.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ITS3/simulation/src/Digitizer.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-28T14:40:25Z",
+            "title": "TrackCosmicExtended reader, attach to InputHelper and RecoContainer",
+            "number": 16017,
+            "author": {
+              "login": "shahor02"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "DataFormats/Detectors/GlobalTracking/include/DataFormatsGlobalTracking/RecoContainer.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "DataFormats/Detectors/GlobalTracking/src/RecoContainer.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/GlobalTrackingWorkflow/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/GlobalTrackingWorkflow/helpers/include/GlobalTrackingWorkflowHelpers/InputHelper.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/GlobalTrackingWorkflow/helpers/src/GlobalTrackClusterReader.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/GlobalTrackingWorkflow/helpers/src/InputHelper.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/GlobalTrackingWorkflow/readers/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/GlobalTrackingWorkflow/readers/include/GlobalTrackingWorkflowReaders/TrackCosmicsExtendedReaderSpec.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/GlobalTrackingWorkflow/readers/src/TrackCosmicsExtendedReaderSpec.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/GlobalTrackingWorkflow/src/cosmic-ext-reader-workflow.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-28T17:51:41Z",
+            "title": "TPC TimeSeries: TRD − TPC residuals at a common plane, optional track parameters, TRD readout flag",
+            "number": 16018,
+            "author": {
+              "login": "miranov25"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/TPC/workflow/src/TPCTimeSeriesSpec.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-11-01T20:53:35Z",
+            "title": "DPL Analysis: standalone AOD reader which by-passes root",
+            "number": 16019,
+            "author": {
+              "login": "ktf"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Framework/AODNative/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/DEVELOPMENT.md"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/include/AODNative/ArrowTable.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/include/AODNative/ByteSource.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/include/AODNative/Codecs.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/include/AODNative/Container.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/include/AODNative/Decoder.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/include/AODNative/Errors.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/include/AODNative/Objects.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/include/AODNative/ReadPlan.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/src/ArrowTable.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/src/ByteSource.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/src/Codecs.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/src/Container.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/src/Cursor.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/src/Decoder.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/src/Endian.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/src/HttpByteSource.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/src/HttpByteSource.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/src/LocalByteSource.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/src/LocalByteSource.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/src/Objects.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/src/ReadPlan.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/src/XRootDByteSource.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/src/XRootDByteSource.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/test/RootFraming.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/test/fuzz/fuzz_RootFile.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/test/standalone/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/test/test_Codecs.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/test/test_Decoder.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/test/test_Memory.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/test/test_Objects.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/test/test_ReadPlan.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/test/tools/check_corpus.py"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/test/tools/make_corpus.py"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/test/tools/reference_inspect.py"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/tools/dump.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/tools/inspect.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AnalysisSupport/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AnalysisSupport/src/AODInputFile.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AnalysisSupport/src/AODInputFile.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AnalysisSupport/src/AODJAlienReaderHelpers.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AnalysisSupport/src/DataInputDirector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AnalysisSupport/src/DataInputDirector.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AnalysisSupport/src/NativeAOD.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AnalysisSupport/src/NativeAOD.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AnalysisSupport/src/NativeAODPlugin.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AnalysisSupport/src/Plugin.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AnalysisSupport/test/compareNativeToRoot.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/Core/src/Plugin.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/Core/src/WorkflowHelpers.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/Core/src/runDataProcessing.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "dependencies/O2Dependencies.cmake"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-28T23:58:58Z",
+            "title": "Temporarily disable ITS3 alignment-related stuff",
+            "number": 16020,
+            "author": {
+              "login": "shahor02"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ITS3/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ITS3/macros/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "cmake/O2RootMacroExclusionList.cmake"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "OPEN",
+            "mergedAt": null,
+            "title": "[WIP] Switch to new GBL API in ITS3 alignment",
+            "number": 16021,
+            "author": {
+              "login": "shahor02"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ITS3/alignment/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ITS3/alignment/src/AlignmentSpec.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "dependencies/O2Dependencies.cmake"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "OPEN",
+            "mergedAt": null,
+            "title": "GPUDisplay: Cleanup and improvements (DO NOT MERGE)",
+            "number": 16022,
+            "author": {
+              "login": "davidrohr"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/Base/GPUParam.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/Base/GPUParamRTC.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/DataTypes/GPUConfigDump.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/DataTypes/GPUSettings.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/DataTypes/GPUSettingsParam.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/DataTypes/GPUSettingsTypes.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/Definitions/GPUSettingsList.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/Global/GPUChainTracking.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/GPUDisplay.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/GPUDisplay.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/GPUDisplayControl.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/GPUDisplayTypes.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/backend/GPUDisplayBackend.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/backend/GPUDisplayBackend.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/backend/GPUDisplayBackendNone.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/backend/GPUDisplayBackendOpenGL.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/backend/GPUDisplayBackendOpenGL.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/backend/GPUDisplayBackendVulkan.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/backend/GPUDisplayBackendVulkan.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/frontend/GPUDisplayFrontend.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/frontend/GPUDisplayFrontend.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/frontend/GPUDisplayFrontendConfig.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/frontend/GPUDisplayFrontendConfigInfo.inc"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/frontend/GPUDisplayFrontendConfigKeys.inc"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/frontend/GPUDisplayFrontendConfigQtGUI.inc"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/frontend/GPUDisplayFrontendGlfw.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/frontend/GPUDisplayFrontendGlfw.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/frontend/GPUDisplayFrontendGlut.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/frontend/GPUDisplayFrontendGlut.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/frontend/GPUDisplayFrontendKeys.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/frontend/GPUDisplayFrontendNone.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/frontend/GPUDisplayFrontendNone.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/frontend/GPUDisplayFrontendWayland.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/frontend/GPUDisplayFrontendWayland.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/frontend/GPUDisplayFrontendWaylandEv.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/frontend/GPUDisplayFrontendWindows.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/frontend/GPUDisplayFrontendWindows.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/frontend/GPUDisplayFrontendX11.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/frontend/GPUDisplayFrontendX11.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/frontend/GPUDisplayGUI.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/frontend/GPUDisplayGUI.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/frontend/GPUDisplayGUI.ui"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/frontend/GPUDisplayGUIChannel.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/frontend/GPUDisplayHelp.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/frontend/GPUDisplayInfo.inc"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/frontend/GPUDisplayKeys.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/helpers/GPUDisplayAnimation.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/helpers/GPUDisplayHelpers.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/helpers/GPUDisplayROOT.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/render/GPUDisplayDraw.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/display/render/GPUDisplayImportEvent.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/qconfigoptions.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/utils/linux_helpers.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/utils/qconfig.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/utils/qconfig.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/utils/qconfig_general.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/utils/qconfig_genrtti.inc"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/utils/qconfig_internal.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/utils/qconfig_internal_helpers.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/utils/qconfig_print.inc"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/utils/qconfig_rtc.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/utils/qconfig_rtti.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/utils/qconfig_wrapinclude.h"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-30T07:43:42Z",
+            "title": "DPL: add support to retrieve smaps of running processes",
+            "number": 16023,
+            "author": {
+              "login": "ktf"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Framework/Core/scripts/dpl-mcp-server/dpl_mcp_server.py"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/Core/src/StatusWebSocketHandler.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/Core/src/StatusWebSocketHandler.h"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-29T19:12:24Z",
+            "title": "AI: add skill on how to connect to the DPL mcp",
+            "number": 16024,
+            "author": {
+              "login": "ktf"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": ".skills/dpl-mcp/SKILL.md"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-30T11:50:19Z",
+            "title": "Drop CCDBDownloader.h from the CCDB dictionary",
+            "number": 16025,
+            "author": {
+              "login": "sawenzel"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "CCDB/CMakeLists.txt"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-10-30T14:43:15Z",
+            "title": "calib-workflow: cosmics matching settings for cosmics runs",
+            "number": 16026,
+            "author": {
+              "login": "matthias-kleiner"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "prodtests/full-system-test/calib-workflow.sh"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "OPEN",
+            "mergedAt": null,
+            "title": "TPC: rate-limit TPCScaler weight errors",
+            "number": 16027,
+            "author": {
+              "login": "matthias-kleiner"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/TPC/calibration/include/TPCCalibration/TPCScaler.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TPC/calibration/src/TPCScaler.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "OPEN",
+            "mergedAt": null,
+            "title": "TPC: createFromLocalCorrection with irregular spline knots",
+            "number": 16028,
+            "author": {
+              "login": "matthias-kleiner"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/TPC/calibration/include/TPCCalibration/TPCFastSpaceChargeCorrectionHelper.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TPC/calibration/src/TPCFastSpaceChargeCorrectionHelper.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-11-01T16:51:06Z",
+            "title": "CheckResidSpec prints its config from 1st lane",
+            "number": 16029,
+            "author": {
+              "login": "shahor02"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/GlobalTrackingWorkflow/study/src/CheckResidSpec.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-11-01T20:44:34Z",
+            "title": "TPC SCD: fix getDXI off-by-one for row 127",
+            "number": 16030,
+            "author": {
+              "login": "matthias-kleiner"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/TPC/calibration/SpacePoints/include/SpacePoints/TrackResiduals.h"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-11-02T07:43:16Z",
+            "title": "DPL Analysis: harden the native AOD reader against corrupt input",
+            "number": 16031,
+            "author": {
+              "login": "ktf"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Framework/AODNative/src/Container.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/src/Cursor.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/src/Decoder.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/src/Objects.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/test/RootFraming.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/test/test_Decoder.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AnalysisSupport/src/DataInputDirector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AnalysisSupport/src/NativeAOD.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AnalysisSupport/src/NativeAODPlugin.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-11-03T15:52:35Z",
+            "title": "DPL Analysis: cap the read buffers of the native AOD reader",
+            "number": 16032,
+            "author": {
+              "login": "ktf"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Framework/AODNative/include/AODNative/ByteSource.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/include/AODNative/ReadPlan.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/src/ReadPlan.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/test/test_ReadPlan.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AnalysisSupport/src/AODJAlienReaderHelpers.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AnalysisSupport/src/NativeAOD.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AnalysisSupport/src/NativeAOD.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/Core/src/WorkflowHelpers.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/Core/src/runDataProcessing.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-11-04T15:02:16Z",
+            "title": "ALICE3: TRK/FT3 digitizer response matrix on the heap, not the stack",
+            "number": 16033,
+            "author": {
+              "login": "f3sch"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/common/simulation/include/ITSMFTSimulation/Digitizer.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/common/simulation/src/Digitizer.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/common/simulation/include/TRKFT3Simulation/Digitizer.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/common/simulation/src/Digitizer.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ITS3/simulation/include/ITS3Simulation/Digitizer.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ITS3/simulation/src/Digitizer.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-11-02T14:12:47Z",
+            "title": "AODNative: link Threads::Threads publicly",
+            "number": 16034,
+            "author": {
+              "login": "mhemmer-cern"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Framework/AODNative/CMakeLists.txt"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-11-03T00:00:37Z",
+            "title": "TrackCosmicsExt.Reader pushes TF ID info only if explicitly requested",
+            "number": 16035,
+            "author": {
+              "login": "shahor02"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "DataFormats/Detectors/GlobalTracking/include/DataFormatsGlobalTracking/RecoContainer.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "DataFormats/Detectors/GlobalTracking/src/RecoContainer.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/GlobalTrackingWorkflow/readers/include/GlobalTrackingWorkflowReaders/TrackCosmicsExtendedReaderSpec.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/GlobalTrackingWorkflow/readers/src/TrackCosmicsExtendedReaderSpec.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-11-03T21:32:18Z",
+            "title": "DPL Analysis: do not build the tasks a device does not run",
+            "number": 16036,
+            "author": {
+              "login": "ktf"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Framework/Core/include/Framework/AnalysisTask.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/Core/include/Framework/ConfigContext.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/Core/include/Framework/DataProcessorSpecHelpers.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/Core/src/ConfigContext.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/Core/src/DataProcessorSpecHelpers.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/Core/src/runDataProcessing.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/Core/test/test_AnalysisTask.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-11-04T12:50:43Z",
+            "title": "GenericTracking: start and import BoundedAllocator",
+            "number": 16037,
+            "author": {
+              "login": "mpuccio"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/GenericTracking/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/GenericTracking/include/GenericTracking/BoundedAllocator.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/GenericTracking/src/BoundedAllocator.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/GenericTracking/test/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/GenericTracking/test/testBoundedAllocator.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/ITS/tracking/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/ITS/tracking/GPU/ITStrackingGPU/TimeFrameGPU.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/ITS/tracking/GPU/ITStrackingGPU/TrackingKernels.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/ITS/tracking/GPU/cuda/TimeFrameGPU.cu"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/ITS/tracking/include/ITStracking/LineVertexerHelpers.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/ITS/tracking/include/ITStracking/TimeFrame.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/ITS/tracking/include/ITStracking/Tracker.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/ITS/tracking/include/ITStracking/TrackerTraits.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/ITS/tracking/include/ITStracking/TrackingInterface.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/ITS/tracking/include/ITStracking/Vertexer.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/ITS/tracking/include/ITStracking/VertexerTraits.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/ITS/tracking/src/TimeFrame.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/ITS/tracking/src/Tracker.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/ITS/tracking/src/TrackerTraits.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/ITS/tracking/src/TrackingInterface.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/ITS/tracking/src/Vertexer.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/ITS/tracking/src/VertexerTraits.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/common/tracking/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/common/tracking/include/ITSMFTTracking/BoundedAllocator.h"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-11-02T20:51:09Z",
+            "title": "Update CODEOWNERS for Detectors/GenericTracking",
+            "number": 16038,
+            "author": {
+              "login": "mpuccio"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "CODEOWNERS"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-11-03T08:59:30Z",
+            "title": "ALICE3: TRK and FT3 topology dictionaries per layer, their builder an…",
+            "number": 16039,
+            "author": {
+              "login": "f3sch"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/common/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/common/macros/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/common/macros/CheckTopologyDictionary.C"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/common/reconstruction/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/common/reconstruction/include/TRKReconstruction/BuildTopologyDictionary.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/common/reconstruction/include/TRKReconstruction/TopologyDictionary.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/common/reconstruction/src/BuildTopologyDictionary.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/common/reconstruction/src/TRKReconstructionLinkDef.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/common/reconstruction/src/TopologyDictionary.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-11-03T16:55:23Z",
+            "title": "TPC SCD: TrackResiduals y/x grid edge from the pad plane",
+            "number": 16040,
+            "author": {
+              "login": "matthias-kleiner"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/TPC/calibration/SpacePoints/include/SpacePoints/TrackResiduals.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TPC/calibration/SpacePoints/src/TrackResiduals.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TPC/calibration/SpacePoints/test/testTrackResiduals.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-11-03T18:26:54Z",
+            "title": "[ALICE3] TRKFT3 digitizer: compensate for the shift of the reference BC when mCollisionTimeWrtROF < 0",
+            "number": 16041,
+            "author": {
+              "login": "atriolo"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/common/simulation/src/Digitizer.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "OPEN",
+            "mergedAt": null,
+            "title": "[AFIT-77] FDD reconstruction refactor",
+            "number": 16042,
+            "author": {
+              "login": "wpierozak"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "DataFormats/Detectors/FIT/FDD/include/DataFormatsFDD/FDDRecoConfig.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "DataFormats/Detectors/FIT/FDD/include/DataFormatsFDD/RecPoint.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/FIT/FDD/reconstruction/include/FDDReconstruction/Reconstructor.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/FIT/FDD/reconstruction/src/Reconstructor.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-11-03T17:09:23Z",
+            "title": "suppress completely tfidinfo from TrackCosmicsExtendedReaderSpec",
+            "number": 16043,
+            "author": {
+              "login": "shahor02"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/GlobalTrackingWorkflow/readers/include/GlobalTrackingWorkflowReaders/TrackCosmicsExtendedReaderSpec.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/GlobalTrackingWorkflow/readers/src/TrackCosmicsExtendedReaderSpec.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-11-03T17:13:18Z",
+            "title": "Remove TPC-only tracks from allowed sources of CheckResid",
+            "number": 16044,
+            "author": {
+              "login": "shahor02"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/GlobalTrackingWorkflow/study/src/check-resid-workflow.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "OPEN",
+            "mergedAt": null,
+            "title": "Framework: key HIST() names by a fixed-string template argument",
+            "number": 16045,
+            "author": {
+              "login": "ktf"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Framework/Core/include/Framework/HistogramRegistry.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/Core/include/Framework/StringHelpers.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/Core/test/test_StringHelpers.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-11-04T20:52:53Z",
+            "title": "TPC SCD: round instead of truncate when packing the unbinned residuals",
+            "number": 16046,
+            "author": {
+              "login": "matthias-kleiner"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/TPC/calibration/SpacePoints/include/SpacePoints/TrackInterpolation.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TPC/calibration/SpacePoints/src/TrackInterpolation.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-11-04T17:43:06Z",
+            "title": "Avoid having OpenMP as a dependency of the whole O2",
+            "number": 16047,
+            "author": {
+              "login": "ktf"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Utilities/rANS/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Utilities/rANS/include/rANS/internal/containers/DenseHistogram.h"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-11-06T08:21:48Z",
+            "title": "Fix o2-sim hang when the hit merger starts after the workers",
+            "number": 16048,
+            "author": {
+              "login": "sawenzel"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "run/O2SimDeviceRunner.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "run/o2sim_parallel.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "OPEN",
+            "mergedAt": null,
+            "title": "DPL Analysis: bind partitions without walking every task member",
+            "number": 16049,
+            "author": {
+              "login": "ktf"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Framework/Core/include/Framework/AnalysisTask.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/Foundation/include/Framework/StructToTuple.h"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-11-05T16:41:04Z",
+            "title": "[ALICE3] TRK/FT3 digitizer: noise rate set in hits/px/s instead of hits/px/ROF + uniform ToA for noise digits within ROF ",
+            "number": 16050,
+            "author": {
+              "login": "atriolo"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/common/simulation/include/TRKFT3Simulation/ChipDigitsContainer.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/common/simulation/include/TRKFT3Simulation/DPLDigitizerParam.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/common/simulation/include/TRKFT3Simulation/DigiParams.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/common/simulation/src/DigiParams.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/common/simulation/src/Digitizer.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Steer/DigitizerWorkflow/src/TRKDigitizerSpec.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-11-05T16:55:32Z",
+            "title": "DPL Analysis: retry remote reads and fail over to other replicas in the native AOD reader",
+            "number": 16051,
+            "author": {
+              "login": "ktf"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Framework/AODNative/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/DEVELOPMENT.md"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/include/AODNative/ByteSource.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/src/ByteSource.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/src/FailoverByteSource.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/src/FailoverByteSource.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/src/XRootDByteSource.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/src/XRootDByteSource.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AODNative/test/test_Failover.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AnalysisSupport/src/AODInputFile.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AnalysisSupport/src/NativeAOD.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/AnalysisSupport/src/NativeAOD.h"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-11-05T19:59:53Z",
+            "title": "GPU Metal: reconstruction on Metal bringup",
+            "number": 16052,
+            "author": {
+              "login": "ktf"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/Base/metal/GPUReconstructionMetal.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/Base/metal/GPUReconstructionMetal.mm"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/Base/metal/GPUReconstructionMetalIncludesHost.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/Base/metal/GPUReconstructionMetalKernels.mm"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/Base/metal/GPUReconstructionMetalKernelsSpecialize.inc"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-11-05T17:04:48Z",
+            "title": "HBFUtilsInitializer throws if tfidinfo vector is empty",
+            "number": 16053,
+            "author": {
+              "login": "shahor02"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/Raw/src/HBFUtilsInitializer.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-11-07T08:31:27Z",
+            "title": "Move the FairRoot simulation base into O2",
+            "number": 16054,
+            "author": {
+              "login": "sawenzel"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairGeoSphe.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairGeoTorus.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairGeoTransform.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairGeoTrap.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairGeoTrd1.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairGeoTube.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairGeoTubs.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairGeoVector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairGeoVolume.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairIon.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairLink.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairLinkManager.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairLogger.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairMCApplication.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairMCEventHeader.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairMCPoint.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairMesh.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairModule.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairMonitor.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairMultiLinkedData.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairMultiLinkedData_Interface.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairParticle.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairPrimaryGenerator.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairRadGridManager.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairRadLenManager.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairRadLenPoint.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairRadMapManager.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairRadMapPoint.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairRootBaseLinkDef.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairRootFileSink.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairRootManager.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairRun.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairRunIdGenerator.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairRunInfo.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairRunSim.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairSink.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairSource.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairSystemInfo.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairTSBufferFunctional.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairTask.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairTimeStamp.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairTrajFilter.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairVolume.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairVolumeList.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/3rdparty/FairRootBase/src/FairWriteoutBuffer.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Base/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Base/src/Propagator.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/CPV/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/CPV/testsimulation/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/CPV/testsimulation/plot_clu_cpv.C"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/CPV/testsimulation/plot_dig_cpv.C"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/CPV/testsimulation/plot_hit_cpv.C"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/EMCAL/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/EMCAL/testsimulation/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/EMCAL/testsimulation/run_sim_emcal.C"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/FIT/FDD/base/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/FIT/FT0/base/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/FIT/FV0/base/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/ITS/base/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/ITS/base/include/ITSBase/ContainerFactory.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/ITS/base/include/ITSBase/MisalignmentParameter.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/ITS/base/src/ContainerFactory.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/ITS/base/src/DescriptorInnerBarrel.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/ITS/base/src/ITSBaseLinkDef.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/ITS/base/src/MisalignmentParameter.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/ITS/simulation/src/DescriptorInnerBarrelITS2.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/ITS/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/test/HitAnalysis/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/MUON/MID/Simulation/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/PHOS/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/PHOS/testsimulation/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Passive/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Passive/include/DetectorsPassive/PassiveContFact.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Passive/src/PassiveContFact.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Passive/src/PassiveLinkDef.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Raw/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Raw/TFReaderDD/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TOF/base/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TPC/base/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TPC/base/include/TPCBase/ContainerFactory.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TPC/base/src/ContainerFactory.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TPC/base/src/TPCBaseLinkDef.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TPC/reconstruction/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TPC/simulation/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TPC/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/FCT/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/FD3/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/FT3/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ZDC/base/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/gconfig/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Generators/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Steer/include/Steer/O2RunSim.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "dependencies/FindFairRoot.cmake"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "dependencies/O2Dependencies.cmake"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "doc/CMakeMigration.md"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "macro/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "macro/o2sim.C"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "macro/run_clus_tof.C"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "macro/run_clus_tpc.C"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "OPEN",
+            "mergedAt": null,
+            "title": "Draw transport random numbers from a per-thread generator",
+            "number": 16055,
+            "author": {
+              "login": "sawenzel"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/Base/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Base/include/DetectorsBase/SimRandom.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Base/include/DetectorsBase/VMCSeederService.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Base/src/SimRandom.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Base/src/Stack.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Base/src/VMCSeederService.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Base/test/testSimRandom.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/CPV/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/FIT/FDD/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/FIT/FT0/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/HMPID/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/PHOS/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Passive/src/Cave.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TPC/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TRD/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TRD/simulation/src/TRsim.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ZDC/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/gconfig/g4Config.C"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Steer/src/O2MCApplication.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "run/O2SimDevice.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-11-07T08:21:03Z",
+            "title": "Keep stepping state in detector members instead of statics",
+            "number": 16056,
+            "author": {
+              "login": "sawenzel"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/FIT/FDD/simulation/include/FDDSimulation/Detector.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/FIT/FDD/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/HMPID/simulation/include/HMPIDSimulation/Detector.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/HMPID/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Passive/include/DetectorsPassive/Cave.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Passive/src/Cave.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TPC/simulation/include/TPCSimulation/Detector.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TPC/simulation/src/Detector.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Steer/include/Steer/MaterialBudgetMap.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Steer/src/MaterialBudgetMap.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Steer/src/O2MCApplication.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-11-07T08:21:27Z",
+            "title": "Make the magnetic field evaluation reentrant",
+            "number": 16057,
+            "author": {
+              "login": "sawenzel"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Common/Field/src/MagneticWrapperChebyshev.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Common/Field/test/testMagneticField.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Common/MathUtils/include/MathUtils/Chebyshev3D.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Common/MathUtils/include/MathUtils/Chebyshev3DCalc.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Common/MathUtils/src/Chebyshev3DCalc.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-11-06T05:57:48Z",
+            "title": "Factor the primary request out of the sim worker kernel",
+            "number": 16058,
+            "author": {
+              "login": "sawenzel"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "run/O2SimDevice.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "run/O2SimDevice.h"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-11-06T07:42:51Z",
+            "title": "GPU: smaller thread groups for the merger track fit and the tracking data on Metal",
+            "number": 16059,
+            "author": {
+              "login": "ktf"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/Base/metal/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/Base/metal/GPUReconstructionMetal.mm"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/Base/metal/GPUReconstructionMetalIncludesHost.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/Base/metal/GPUReconstructionMetalKernels.mm"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/Base/metal/GPUReconstructionMetalKernelsSpecialize.inc"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/Definitions/Parameters/GPUParameters.csv"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-11-07T13:25:29Z",
+            "title": "MFT: track writer",
+            "number": 16060,
+            "author": {
+              "login": "f3sch"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/MFT/workflow/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/ITSMFT/MFT/workflow/src/mft-track-writer-workflow.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-11-06T14:23:58Z",
+            "title": "DPL Analysis: look for AOD metadata up to the allowed parent level",
+            "number": 16061,
+            "author": {
+              "login": "ktf"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Framework/AnalysisSupport/src/Plugin.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-11-07T08:19:40Z",
+            "title": "GPU: wait for the O2 track count before sorting the O2 output tracks",
+            "number": 16062,
+            "author": {
+              "login": "ktf"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/Global/GPUChainTrackingMerger.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-11-07T02:56:02Z",
+            "title": "[ALICE3] VD: fixed digitization for the kIRIS4a and kIRISFullCyl geometries",
+            "number": 16063,
+            "author": {
+              "login": "atriolo"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/TRK/base/include/TRKBase/SegmentationChip.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/TRK/base/include/TRKBase/Specs.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/TRK/base/src/GeometryTGeo.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/common/macros/CheckTopologyDictionary.C"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/common/reconstruction/src/Clusterer.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/common/simulation/include/TRKFT3Simulation/ChipDigitsContainer.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/Upgrades/ALICE3/TRKFT3/common/simulation/include/TRKFT3Simulation/Digitizer.h"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-11-06T14:28:00Z",
+            "title": "GPU: more Metal bringup changes",
+            "number": 16064,
+            "author": {
+              "login": "ktf"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/Base/metal/GPUReconstructionMetal.mm"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/Definitions/Parameters/GPUParameters.csv"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "CLOSED",
+            "mergedAt": null,
+            "title": "GPU: make Metal's cluster widths round as on the CPU",
+            "number": 16065,
+            "author": {
+              "login": "ktf"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/TPCClusterFinder/ClusterAccumulator.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "OPEN",
+            "mergedAt": null,
+            "title": "DPL: optionally fork data processors without exec",
+            "number": 16066,
+            "author": {
+              "login": "ktf"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Framework/Core/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/Core/include/Framework/DataProcessorInfo.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/Core/include/Framework/DeviceExecution.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/Core/include/Framework/Plugins.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/Core/include/Framework/WorkflowDefinitionContext.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/Core/include/Framework/runDataProcessing.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/Core/src/DeviceSpecHelpers.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/Core/src/WorkflowSerializationHelpers.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/Core/src/runDataProcessing.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/Core/test/test_WorkflowDefinition.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/Core/test/test_WorkflowPluginA.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/Core/test/test_WorkflowPluginB.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/Core/test/test_WorkflowPlugins.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/Core/test/test_WorkflowPluginsDump.sh"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/Core/test/test_WorkflowSerialization.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/TestWorkflows/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/TestWorkflows/test/test_WorkflowPluginDump.sh"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "cmake/O2AddExecutable.cmake"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "cmake/O2AddWorkflow.cmake"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-11-06T18:56:30Z",
+            "title": "GPU Metal: accept the registration of host memory",
+            "number": 16067,
+            "author": {
+              "login": "ktf"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/Base/metal/GPUReconstructionMetal.h"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-11-06T21:28:53Z",
+            "title": "GPU Metal: do not let Metal track hazards on the memory buffers",
+            "number": 16068,
+            "author": {
+              "login": "ktf"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/Base/metal/GPUReconstructionMetal.mm"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-11-07T06:26:49Z",
+            "title": "GPU Metal: allocate the memory pools from anonymous memory",
+            "number": 16069,
+            "author": {
+              "login": "ktf"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/Base/metal/GPUReconstructionMetal.mm"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "OPEN",
+            "mergedAt": null,
+            "title": "TPC SC: faster and more robust space-charge distortion calculation",
+            "number": 16070,
+            "author": {
+              "login": "matthias-kleiner"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/TPC/spacecharge/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TPC/spacecharge/include/TPCSpaceCharge/DataContainer3D.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TPC/spacecharge/include/TPCSpaceCharge/PoissonSolver.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TPC/spacecharge/include/TPCSpaceCharge/PoissonSolverHelpers.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TPC/spacecharge/include/TPCSpaceCharge/RegularGrid3D.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TPC/spacecharge/include/TPCSpaceCharge/SpaceCharge.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TPC/spacecharge/include/TPCSpaceCharge/SpaceChargeHelpers.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TPC/spacecharge/include/TPCSpaceCharge/TriCubic.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TPC/spacecharge/include/TPCSpaceCharge/Vector.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TPC/spacecharge/include/TPCSpaceCharge/Vector3D.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TPC/spacecharge/src/DataContainer3D.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TPC/spacecharge/src/PoissonSolver.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TPC/spacecharge/src/SpaceCharge.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TPC/spacecharge/src/SpaceChargeIO.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TPC/spacecharge/src/TPCSpacechargeLinkDef.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TPC/spacecharge/src/TriCubic.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TPC/spacecharge/test/testO2TPCPoissonSolver.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TPC/spacecharge/test/testO2TPCSpaceCharge.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Detectors/TPC/spacecharge/test/testO2TPCTricubic.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/TPCFastTransformation/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/TPCFastTransformation/TPCFastTransform.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/TPCFastTransformation/TPCFastTransform.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/TPCFastTransformation/TPCFastTransformationLinkDef_O2.h"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "OPEN",
+            "mergedAt": null,
+            "title": "GPU Metal: also run the border-range sorts on the host",
+            "number": 16071,
+            "author": {
+              "login": "ktf"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/Base/metal/GPUReconstructionMetal.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/Base/metal/GPUReconstructionMetalKernelsSpecialize.inc"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/CMakeLists.txt"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/Merger/GPUTPCGMMerger.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/Merger/GPUTPCGMMergerSortComp.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/Merger/GPUTPCGMO2Output.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/TPCClusterFinder/ClusterAccumulator.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "OPEN",
+            "mergedAt": null,
+            "title": "CCDB: read std::array objects written by libstdc++ on libc++ builds",
+            "number": 16072,
+            "author": {
+              "login": "ktf"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "CCDB/src/CcdbApi.cxx"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/Core/include/Framework/DataRefUtils.h"
+                  }
+                },
+                {
+                  "node": {
+                    "path": "Framework/Core/src/DataRefUtils.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "MERGED",
+            "mergedAt": "2026-11-07T13:10:39Z",
+            "title": "EMCAL: initialise the MC kinematics reader pointer in the digitizer",
+            "number": 16073,
+            "author": {
+              "login": "ktf"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "Detectors/EMCAL/workflow/include/EMCALWorkflow/EMCALDigitizerSpec.h"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "OPEN",
+            "mergedAt": null,
+            "title": "GPU: write settings.dump from the standalone event generator",
+            "number": 16074,
+            "author": {
+              "login": "ktf"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "GPU/GPUTracking/qa/genEvents.cxx"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "state": "OPEN",
+            "mergedAt": null,
+            "title": "FST: measure the AO2D size portably",
+            "number": 16075,
+            "author": {
+              "login": "ktf"
+            },
+            "files": {
+              "edges": [
+                {
+                  "node": {
+                    "path": "prodtests/full_system_test.sh"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  }
+}
