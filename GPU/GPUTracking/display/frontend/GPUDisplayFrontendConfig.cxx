@@ -116,11 +116,6 @@ struct GPUDisplayFrontend::configRTTIInfo {
   template <class T, class M>
   uint32_t getRTTIIndex(GPUDisplay& display, M T::* member) // RTTI index of a direct member of a config struct
   {
-    if constexpr (std::is_same_v<T, GPUDisplayControl> && std::is_same_v<M, bool>) {
-      if (member == &GPUDisplayControl::dummy) { // Keys / buttons that do not change a setting
-        return INVALID_INDEX;
-      }
-    }
     const T& obj = configStruct<T>(display);
     return rttiReverseId[configStructIndex<T>()][(const char*)&(obj.*member) - (const char*)&obj];
   }
