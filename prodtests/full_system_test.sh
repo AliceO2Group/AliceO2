@@ -337,7 +337,7 @@ for STAGE in $STAGES; do
    # Check AOD production for ASYNC stage
   if [[ "$STAGE" = "ASYNC" ]]; then
     if [[ -f "AO2D.root" ]]; then
-      aod_size=`stat -c%s AO2D.root`
+      aod_size=$(wc -c < AO2D.root)
       if [[ $aod_size -gt 0 ]]; then
         echo "AO2D file produced: AO2D.root (size: ${aod_size} bytes)"
         echo "aod_size_${STAGE},${TAG} value=${aod_size}" >> ${METRICFILE}
