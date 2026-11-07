@@ -41,7 +41,14 @@ inline void expandConstantBinning(std::vector<double> const& bins, std::vector<d
 
 template <std::size_t N>
 struct BinningPolicyBase {
-  BinningPolicyBase(std::array<std::vector<double>, N> bins, bool ignoreOverflows = true) : mBins(bins), mIgnoreOverflows(ignoreOverflows)
+  /// Values outside the outermost edges of any axis are dropped: getBin() maps them
+  /// to -1, which groupTable() treats as the outsider category. Giving them bins of
+  /// their own used to be selectable per instance, but no analysis ever did, and for
+  /// event mixing it is the wrong default anyway -- it pairs collisions that the
+  /// vertex or centrality cut deliberately excluded. If it is ever genuinely wanted,
+  /// add a BinningPolicyWithOverflow rather than a flag, so the two numberings cannot
+  /// be confused at a call site.
+  BinningPolicyBase(std::array<std::vector<double>, N> bins) : mBins(bins)
   {
     static_assert(N <= 3, "No default binning for more than 3 columns, you need to implement a binning class yourself");
     for (int i = 0; i < N; i++) {
@@ -54,104 +61,54 @@ struct BinningPolicyBase {
   {
     static_assert(sizeof...(Ts) == N, "There must be the same number of binning axes and data values/columns");
 
+    // mBins[d][0] is a dummy VARIABLE_WIDTH marker and mBins[d][1] is the lower edge,
+    // so the first candidate edge is 2. A value below the lower edge, or above the
+    // last one, puts the row outside the binning altogether.
     unsigned int i = 2, j = 2, k = 2;
-    if (this->mIgnoreOverflows) {
-      // underflow
-      if (std::get<0>(data) < this->mBins[0][1]) { // mBins[0][0] is a dummy VARIABLE_WIDTH
+
+    if (std::get<0>(data) < this->mBins[0][1]) {
+      return -1;
+    }
+    if constexpr (N > 1) {
+      if (std::get<1>(data) < this->mBins[1][1]) {
         return -1;
       }
-      if constexpr (N > 1) {
-        if (std::get<1>(data) < this->mBins[1][1]) { // mBins[1][0] is a dummy VARIABLE_WIDTH
-          return -1;
-        }
+    }
+    if constexpr (N > 2) {
+      if (std::get<2>(data) < this->mBins[2][1]) {
+        return -1;
       }
-      if constexpr (N > 2) {
-        if (std::get<2>(data) < this->mBins[2][1]) { // mBins[2][0] is a dummy VARIABLE_WIDTH
-          return -1;
-        }
-      }
-    } else {
-      i = 1;
-      j = 1;
-      k = 1;
     }
 
     for (; i < this->mBins[0].size(); i++) {
       if (std::get<0>(data) < this->mBins[0][i]) {
-
-        if constexpr (N > 1) {
-          for (; j < this->mBins[1].size(); j++) {
-            if (std::get<1>(data) < this->mBins[1][j]) {
-
-              if constexpr (N > 2) {
-                for (; k < this->mBins[2].size(); k++) {
-                  if (std::get<2>(data) < this->mBins[2][k]) {
-                    return getBinAt(i, j, k);
-                  }
-                }
-                if (this->mIgnoreOverflows) {
-                  return -1;
-                }
-              }
-
-              // overflow for mBins[2] only
-              return getBinAt(i, j, k);
-            }
-          }
-
-          if (this->mIgnoreOverflows) {
-            return -1;
-          }
-
-          // overflow for mBins[1] only
-          if constexpr (N > 2) {
-            for (k = 2; k < this->mBins[2].size(); k++) {
-              if (std::get<2>(data) < this->mBins[2][k]) {
-                return getBinAt(i, j, k);
-              }
-            }
-          }
-        }
-
-        // overflow for mBins[2] and mBins[1]
-        return getBinAt(i, j, k);
+        break;
       }
     }
-
-    if (this->mIgnoreOverflows) {
-      // overflow
+    if (i == this->mBins[0].size()) {
       return -1;
     }
-
-    // overflow for mBins[0] only
     if constexpr (N > 1) {
-      for (j = 2; j < this->mBins[1].size(); j++) {
+      for (; j < this->mBins[1].size(); j++) {
         if (std::get<1>(data) < this->mBins[1][j]) {
-
-          if constexpr (N > 2) {
-            for (k = 2; k < this->mBins[2].size(); k++) {
-              if (std::get<2>(data) < this->mBins[2][k]) {
-                return getBinAt(i, j, k);
-              }
-            }
-          }
-
-          // overflow for mBins[0] and mBins[2]
-          return getBinAt(i, j, k);
+          break;
         }
       }
+      if (j == this->mBins[1].size()) {
+        return -1;
+      }
     }
-
-    // overflow for mBins[0] and mBins[1]
     if constexpr (N > 2) {
-      for (k = 2; k < this->mBins[2].size(); k++) {
+      for (; k < this->mBins[2].size(); k++) {
         if (std::get<2>(data) < this->mBins[2][k]) {
-          return getBinAt(i, j, k);
+          break;
         }
+      }
+      if (k == this->mBins[2].size()) {
+        return -1;
       }
     }
 
-    // overflow for all bins
     return getBinAt(i, j, k);
   }
 
@@ -195,18 +152,15 @@ struct BinningPolicyBase {
   }
 
   std::array<std::vector<double>, N> mBins;
-  bool mIgnoreOverflows;
 
  private:
-  // We substract 1 to account for VARIABLE_WIDTH in the bins vector
-  // We substract second 1 if we omit values below minima (underflow, mapped to -1)
-  // Otherwise we add 1 and we get the number of bins including those below and over the outer edges
+  // Two are subtracted: one for the dummy VARIABLE_WIDTH at mBins[d][0], one because
+  // values below the first edge are dropped rather than given a bin of their own.
   int getBinAt(unsigned int iRaw, unsigned int jRaw, unsigned int kRaw) const
   {
-    int shiftBinsWithoutOverflow = getOverflowShift();
-    unsigned int i = iRaw - 1 - shiftBinsWithoutOverflow;
-    unsigned int j = jRaw - 1 - shiftBinsWithoutOverflow;
-    unsigned int k = kRaw - 1 - shiftBinsWithoutOverflow;
+    unsigned int i = iRaw - 2;
+    unsigned int j = jRaw - 2;
+    unsigned int k = kRaw - 2;
     auto xBinsCount = getXBinsCount();
     if constexpr (N == 1) {
       return i;
@@ -219,15 +173,10 @@ struct BinningPolicyBase {
     }
   }
 
-  int getOverflowShift() const
-  {
-    return mIgnoreOverflows ? 1 : -1;
-  }
-
   // Note: Overflow / underflow bin -1 is not included
   int getBinsCount(std::vector<double> const& bins) const
   {
-    return bins.size() - 1 - getOverflowShift();
+    return bins.size() - 2;
   }
 };
 
@@ -236,7 +185,7 @@ struct FlexibleBinningPolicy;
 
 template <typename... Ts, typename... Ls>
 struct FlexibleBinningPolicy<std::tuple<Ls...>, Ts...> : BinningPolicyBase<sizeof...(Ts)> {
-  FlexibleBinningPolicy(std::tuple<Ls...> const& lambdaPtrs, std::array<std::vector<double>, sizeof...(Ts)> bins, bool ignoreOverflows = true) : BinningPolicyBase<sizeof...(Ts)>(bins, ignoreOverflows), mBinningFunctions{lambdaPtrs}
+  FlexibleBinningPolicy(std::tuple<Ls...> const& lambdaPtrs, std::array<std::vector<double>, sizeof...(Ts)> bins) : BinningPolicyBase<sizeof...(Ts)>(bins), mBinningFunctions{lambdaPtrs}
   {
   }
 
@@ -279,7 +228,7 @@ struct FlexibleBinningPolicy<std::tuple<Ls...>, Ts...> : BinningPolicyBase<sizeo
 
 template <typename... Ts>
 struct ColumnBinningPolicy : BinningPolicyBase<sizeof...(Ts)> {
-  ColumnBinningPolicy(std::array<std::vector<double>, sizeof...(Ts)> bins, bool ignoreOverflows = true) : BinningPolicyBase<sizeof...(Ts)>(bins, ignoreOverflows)
+  ColumnBinningPolicy(std::array<std::vector<double>, sizeof...(Ts)> bins) : BinningPolicyBase<sizeof...(Ts)>(bins)
   {
   }
 
