@@ -19,6 +19,9 @@
 
 using namespace o2::gpu;
 
+const std::array<std::string, 7> GPUDisplay::ANIMATION_MODE_NAMES_SHORT = {"Cartesian, quaternion", "Cartesian, Euler angles", "Spherical Rotation, quaternion", "Spherical Rotation, Euler angles", "Spherical, quaternion", "Spherical, Euler angles", "Spherical, centered on origin"};
+const std::array<std::string, 7> GPUDisplay::ANIMATION_MODE_NAMES_LONG = {"Position: Cartesian, Direction: Quaternion", "Position: Cartesian, Direction: Euler angles", "Position: Spherical (spherical rotation), Direction: Quaternion", "Position: Spherical (spherical rotation), Direction: Euler angles", "Position: Spherical (Euler angles), Direction: Quaternion", "Position: Spherical (Euler angles), Direction: Euler angles", "Position: Spherical (Euler angles), Direction: Centered on origin"};
+
 constexpr hmm_mat4 MY_HMM_FROM(float (&v)[16]) { return {{{v[0], v[1], v[2], v[3]}, {v[4], v[5], v[6], v[7]}, {v[8], v[9], v[10], v[11]}, {v[12], v[13], v[14], v[15]}}}; }
 
 void GPUDisplay::setAnimationPoint()
@@ -67,7 +70,7 @@ void GPUDisplay::setAnimationPoint()
   }
   float delay = 0.f;
   if (mAnimateVectors[0].size()) {
-    delay = mAnimateVectors[0].back() + ((int32_t)(mAnimationDelay * 20)) / 20.f;
+    delay = mAnimateVectors[0].back() + ((int32_t)(mCfgC.mAnimationDelay * 20)) / 20.f;
   }
   mAnimateVectors[0].emplace_back(delay);
   mAnimateConfig.emplace_back(mCfgL);
@@ -93,6 +96,19 @@ void GPUDisplay::removeAnimationPoint()
   mAnimateConfig.pop_back();
 }
 
+void GPUDisplay::runAnimation()
+{
+  if (mAnimateVectors[0].size() > 1) {
+    if (mCfgC.mAnimateScreenshot) {
+      mAnimationExport++;
+    }
+    startAnimation();
+    SetInfo("Starting Animation", 1);
+  } else {
+    SetInfo("Insufficient Animation points to start Animation", 1);
+  }
+}
+
 void GPUDisplay::startAnimation()
 {
   for (int32_t i = 0; i < 8; i++) {
@@ -105,11 +121,11 @@ void GPUDisplay::startAnimation()
   mAnimationMixBase = -1;
 }
 
-int32_t GPUDisplay::animateCamera(float& animateTime, float& mixSlaveImage, hmm_mat4& nextViewMatrix)
+int32_t GPUDisplay::animateCamera(bool suspended, float& animateTime, float& mixSlaveImage, hmm_mat4& nextViewMatrix)
 {
   float time = animateTime;
   if (mAnimate && time < 0) {
-    if (mAnimateScreenshot) {
+    if (mCfgC.mAnimateScreenshot) {
       time = mAnimationFrame / 30.f;
     } else {
       time = mAnimationTimer.GetCurrentElapsedTime();
@@ -118,7 +134,7 @@ int32_t GPUDisplay::animateCamera(float& animateTime, float& mixSlaveImage, hmm_
     float maxTime = mAnimateVectors[0].back();
     if (time >= maxTime) {
       time = maxTime;
-      mAnimate = mAnimateScreenshot = 0;
+      mAnimate = mCfgC.mAnimateScreenshot = 0;
       SetInfo("Animation finished. (%1.2f seconds, %d frames)", time, mAnimationFrame);
     } else {
       SetInfo("Running mAnimation: time %1.2f/%1.2f, frames %d", time, maxTime, mAnimationFrame);
@@ -132,7 +148,7 @@ int32_t GPUDisplay::animateCamera(float& animateTime, float& mixSlaveImage, hmm_
   for (int32_t i = 0; i < 8; i++) {
     vals[i] = mAnimationSplines[i].evaluate(time);
   }
-  if (mAnimationChangeConfig && animateTime < 0) {
+  if (mCfgC.mAnimationChangeConfig && animateTime < 0) {
     int32_t base = 0;
     int32_t k = mAnimateVectors[0].size() - 1;
     while (base < k && time > mAnimateVectors[0][base]) {
@@ -152,7 +168,7 @@ int32_t GPUDisplay::animateCamera(float& animateTime, float& mixSlaveImage, hmm_
       if (mixSlaveImage > 0) {
         mCfgL = mAnimateConfig[mAnimationLastBase];
         updateConfig();
-        DrawGLScene_internal(time, true);
+        DrawGLScene_internal(suspended, time, true);
       }
     }
 

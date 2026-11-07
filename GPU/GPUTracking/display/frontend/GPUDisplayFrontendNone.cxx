@@ -27,10 +27,19 @@ int32_t GPUDisplayFrontendNone::FrontendMain()
   if (InitDisplay()) {
     return 1;
   }
+  {
+    std::lock_guard lock(mExitStateMutex);
+    mDisplayRunning = true;
+  }
   do {
-    HandleExternalGUISignals();
-    DrawGLScene();
+    HandleUpdatesAndDrawGLScene();
     waitForFPSLimit();
-  } while (mDisplayControl != 2);
+  } while (getDisplayControl() != 2);
+  ExitDisplay();
+  {
+    std::lock_guard lock(mExitStateMutex);
+    mDisplayRunning = false;
+    mDisplayStoppedCV.notify_all();
+  }
   return 0;
 }

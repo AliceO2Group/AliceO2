@@ -27,6 +27,10 @@ using namespace o2::gpu;
 #include "TROOT.h"
 #include "TSystem.h"
 #include "TMethodCall.h"
+#include "TInterpreter.h"
+#include <filesystem>
+#include <fstream>
+#include <unistd.h>
 
 int32_t GPUDisplay::buildTrackFilter()
 {
@@ -34,13 +38,38 @@ int32_t GPUDisplay::buildTrackFilter()
     return 0;
   }
   if (mUpdateTrackFilter) {
-    std::string name = "displayTrackFilter/";
-    name += mConfig.filterMacros[mCfgH.trackFilter - 1];
+    std::string name = trackFilterName();
+    const bool custom = (uint32_t)mCfgH.trackFilter > mConfig.filterMacros.size();
+    if (custom) { // Code from the Qt GUI, written to a temporary file with a new name for every change, so that ROOT loads it again
+      if (mCfgC.mFilterMacroCustom.empty()) {
+        GPUError("No custom track filter macro set");
+        return 1;
+      }
+      static uint32_t nCustomMacro = 0;
+      name = (std::filesystem::temp_directory_path() / ("o2_gpu_display_track_filter_" + std::to_string(getpid()) + "_" + std::to_string(nCustomMacro++) + ".C")).string();
+      std::ofstream(name) << mCfgC.mFilterMacroCustom << "\n";
+    }
+    if (!mTrackFilterMacroLoaded.empty()) {                                    // All macros define gpuDisplayTrackFilter, the previous one must be unloaded
+      const bool recreate = !std::filesystem::exists(mTrackFilterMacroLoaded); // ROOT cannot unload a macro if its file no longer exists, the content does not matter
+      if (recreate) {
+        std::ofstream{mTrackFilterMacroLoaded};
+      }
+      gInterpreter->UnloadFile(mTrackFilterMacroLoaded.c_str());
+      if (recreate) {
+        std::filesystem::remove(mTrackFilterMacroLoaded);
+      }
+      mTrackFilterMacroLoaded.clear();
+    }
     gROOT->Reset();
-    if (gROOT->LoadMacro(name.c_str())) {
+    const int32_t loadError = gROOT->LoadMacro(name.c_str());
+    if (custom) {
+      std::filesystem::remove(name);
+    }
+    if (loadError) {
       GPUError("Error loading trackFilter macro %s", name.c_str());
       return 1;
     }
+    mTrackFilterMacroLoaded = name;
   }
   TMethodCall call;
   call.InitWithPrototype("gpuDisplayTrackFilter", "std::vector<bool>*, const o2::gpu::GPUTrackingInOutPointers*, const o2::gpu::GPUConstantMem*");

@@ -19,19 +19,12 @@
 // Create plain-C struct for GPU code.
 // Create static constexpr with default values for GPU run time compilation
 
-#include "GPUCommonDef.h"
-#ifndef GPUSETTINGS_H
-#error Please include GPUSettings.h!
-#endif
+#include "GPUSettingsTypes.h"
+
+#if (!defined(__CLING__) && !defined(G__DICTIONARY)) || defined(BeginSubConfig) // File should not be included without defining the macros, but rootcling will do for dictionary generation
 
 // clang-format off
-
-#ifdef QCONFIG_INSTANCE
-using namespace o2::gpu;
-#endif
-#ifdef BeginNamespace // File should not be included without defining the macros, but rootcling will do for dictionary generation
-BeginNamespace(o2)
-BeginNamespace(gpu)
+BeginNamespace(o2::gpu)
 
 // Settings concerning the reconstruction, stored as parameters in GPU constant memory
 // There must be no bool in here, use int8_t, as sizeof(bool) is compiler dependent and fails on GPUs!!!!!!
@@ -436,7 +429,7 @@ EndConfig()
 #ifndef GPUCA_GPUCODE_DEVICE
 // Light settings concerning the event display (can be changed without rebuilding vertices)
 BeginSubConfig(GPUSettingsDisplayLight, light, configStandalone.display, "GLL", 'g', "Light OpenGL display settings", display_light)
-AddOption(animationMode, int32_t, 0, "", 0, "")
+AddOption(animationMode, int32_t, 0, "", 0, "", min(0), max(6))
 AddOption(smoothPoints, bool, true, "", 0, "Apply smoothing to points")
 AddOption(smoothLines, bool, false, "", 0, "Apply smoothing to lines")
 AddOption(depthBuffer, bool, false, "", 0, "Enable Z-buffer")
@@ -449,19 +442,19 @@ AddOption(drawTracks, bool, false, "", 0, "Highlight sector tracks")
 AddOption(drawExtrapolatedTracks, bool, false, "", 0, "Highlight global sector tracks prolonged into adjacent sector")
 AddOption(drawFinal, bool, false, "", 0, "Highlight final tracks")
 AddOption(excludeClusters, int32_t, 0, "", 0, "Exclude clusters from selected draw objects from display, (2 = exclude clusters but still show tracks)")
-AddOption(drawSector, int32_t,  -1, "", 0, "Show individual sector")
+AddOption(drawSector, int32_t,  -1, "", 0, "Show individual sector", min(-1), max(35))
 AddOption(drawRelatedSectors, int32_t, 0, "", 0, "Show related sectors (if drawSector != -1)")
 AddOption(drawGrid, int32_t, 0, "", 0, "Highlight grid")
 AddOption(propagateTracks, int32_t, 0, "", 0, "Propagate final tracks further (inward / outward / show MC tracks)")
 AddOption(showCollision, int32_t, -1, "", 0, "Show only individual collision")
 AddOption(colorCollisions, int32_t, 0, "", 0, "Distinguish collisions in timeframe by color")
 AddOption(colorClusters, int32_t, 1, "", 0, "Color clusters belonging to track objects")
-AddOption(pointSize, float, 2.0f, "", 0, "Set point size")
-AddOption(lineWidth, float, 1.4f, "", 0, "Set line width")
+AddOption(pointSize, float, 2.0f, "", 0, "Set point size", min(0.8f), max(20.f))
+AddOption(lineWidth, float, 1.4f, "", 0, "Set line width", min(0.4f), max(20.f))
 AddOption(drawTPC, bool, true, "", 0, "Enable drawing TPC data")
-AddOption(drawTRD, bool, true, "", 0, "Enabale drawing TRD data")
-AddOption(drawTOF, bool, true, "", 0, "Enabale drawing TOF data")
-AddOption(drawITS, bool, true, "", 0, "Enabale drawing ITS data")
+AddOption(drawTRD, bool, true, "", 0, "Enable drawing TRD data")
+AddOption(drawTOF, bool, true, "", 0, "Enable drawing TOF data")
+AddOption(drawITS, bool, true, "", 0, "Enable drawing ITS data")
 AddOption(drawField, bool, false, "", 0, "Enable drawing magnetic field")
 AddOption(bFieldStepSize, float, 5.0f, "", 0, "Set field line step size")
 AddOption(bFieldStepCount, int32_t, 100, "", 0, "Set field line step count")
@@ -477,7 +470,7 @@ AddOption(drawITSTracks, bool, true, "", 0, "Show tracks with ITS contribution")
 AddOption(drawTRDTracks, bool, true, "", 0, "Show tracks with TRD contribution")
 AddOption(drawTOFTracks, bool, true, "", 0, "Show tracks with TOF contribution")
 AddOption(drawTracksAndFilter, bool, false, "", 0, "Use AND filter instead of OR filter for selecting tracks")
-AddOption(propagateLoopers, bool, false, "", 0, "Enabale propagation of loopers")
+AddOption(propagateLoopers, bool, false, "", 0, "Enable propagation of loopers")
 AddOption(clustersOnly, bool, false, "", 0, "Visualize clusters only")
 AddOption(clustersOnNominalRow, bool, false, "", 0, "Show clusters at nominal x of pad row for early-transformed data")
 AddOption(separateExtrapolatedTracks, bool, false, "", 0, "Draw track segments propagated to adjacent sectors separately")
@@ -490,8 +483,7 @@ AddOption(hideRejectedTracks, int32_t, 1, "", 0, "Hide rejected tracks")
 AddOption(hideUnmatchedClusters, int32_t, 0, "", 0, "Hide unmatched clusters")
 AddOption(trackFilter, int32_t, 0, "", 0, "Apply filter on tracks to be displayed")
 AddOption(projectXY, int32_t, 0, "", 0, "Project everything on the XY-plane")
-AddOption(xAdd, float, 0, "", 0, "Separate sectors, increase X coordinate")
-AddOption(zAdd, float, 0, "", 0, "Separate sides, increase Z coordinate")
+AddOption(xzAdd, float, 0, "", 0, "Separate sectors, increase X coordinate", min(0.f), max(300.f))
 AddHelp("help", 'h')
 EndConfig()
 
@@ -502,15 +494,14 @@ AddOption(camYUp, bool, false, "", 0, "Orient the camera such that the y-axis is
 AddOption(cameraMode, int32_t, 0, "", 0, "Camera mode")
 AddOption(fullScreen, bool, false, "", 0, "Full Screen")
 AddOption(maximized, bool, true, "", 0, "Maximized window")
-AddOption(rendererCompatSmoothing, bool, false, "", 0, "Use compat smoothing (if available) instead of shader for smooth lines / points")
-AddOption(drawQualityMSAA, int32_t, 0, "", 0, "MultiSample Anti Aliasing")
-AddOption(drawQualityDownsampleFSAA, int32_t, 0, "", 0, "Downsampling Anti Aliasing")
+AddOption(drawQualityMSAA, int32_t, 0, "", 0, "MultiSample Anti Aliasing", min(0), max(8))
+AddOption(drawQualityDownsampleFSAA, int32_t, 0, "", 0, "Downsampling Anti Aliasing", min(0), max(4))
 AddOption(drawQualityVSync, bool, true, "", 0, "Enable Vertical Sync")
 AddOption(fpsLimit, int32_t, 1, "", 0, "FPS limit: 0 = none (maximum rate), 1 = display refresh rate (no limit without VSync), 2 = fpsRate")
-AddOption(fpsRate, int32_t, 100, "", 0, "Target frame rate (frames per second) for fpsLimit 2, or if the backend cannot limit to the refresh rate (0 = no limit)")
+AddOption(fpsRate, int32_t, 100, "", 0, "Target frame rate (frames per second) for fpsLimit 2, or if the backend cannot limit to the refresh rate", min(1), max(9999))
 AddOption(useGLIndirectDraw, bool, true, "", 0, "Use OpenGL indirect draws to reduce number of draw calls")
-AddOption(screenshotScaleFactor, int32_t, 1, "", 0, "Resolution scale factor when taking screenshots")
-AddOption(fov, int32_t, 45, "", 0, "Display FOV")
+AddOption(screenshotScaleFactor, int32_t, 1, "", 0, "Resolution scale factor when taking screenshots", min(1), max(4))
+AddOption(fov, float, 45.f, "", 0, "Display FOV", min(5.f), max(175.f))
 AddHelp("help", 'h')
 EndConfig()
 
@@ -534,6 +525,7 @@ AddOption(displayFrontend, std::string, "auto", "displayFrontend", 0, "Frontend 
 AddOptionVec(filterMacros, std::string, "", 0, "ROOT macros used as track filter")
 AddOption(guiReplyTimeout, uint32_t, 100, "", 0, "Time in ms the Qt GUI waits at most for the display to process its update")
 AddOption(guiMaxUpdatesAhead, uint32_t, 3, "", 0, "Number of updates the Qt GUI may send ahead of the last one the display has processed, before it waits for the display")
+AddOption(listFrontendOptionHandling, bool, false, "", 0, "List all assigned keys in frontend, Configurable settings in Qt GUI, and missing configuration options")
 AddSubConfig(GPUSettingsDisplayLight, light)
 AddSubConfig(GPUSettingsDisplayHeavy, heavy)
 AddSubConfig(GPUSettingsDisplayRenderer, renderer)
@@ -720,14 +712,6 @@ EndConfig()
 #endif // !GPUCA_STANDALONE
 #endif // !GPUCA_GPUCODE_DEVICE
 
-// Derrived parameters used in GPUParam
-BeginHiddenConfig(GPUSettingsParam, param)
-AddVariableRTC(continuousTracking, int8_t, 0) // Continuous tracking, estimate bz and errors for abs(z) = 125cm during seeding
-AddVariableRTC(dodEdx, int8_t, 0)             // Do dEdx computation
-EndConfig()
+EndNamespace() // o2::gpu
 
-EndNamespace() // gpu
-EndNamespace() // o2
-#endif // #ifdef BeginNamespace
-
-  // clang-format on
+#endif // (!defined(__CLING__) && !defined(G__DICTIONARY)) || defined(BeginSubConfig)

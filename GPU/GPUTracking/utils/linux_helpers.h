@@ -26,7 +26,8 @@ static inline int32_t getch()
   newt = oldt;
   newt.c_lflag &= ~(ICANON | ECHO);
   tcsetattr(STDIN_FILENO, TCSANOW, &newt);
-  int32_t retVal = getchar();
+  unsigned char c;
+  int32_t retVal = read(STDIN_FILENO, &c, 1) == 1 ? c : -1; // Not getchar(): its buffer would hide the remaining bytes from kbhit()
   tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
   return (retVal);
 }

@@ -260,13 +260,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     case WM_KEYDOWN: // Is A Key Being Held Down?
       wParam = GetKey(wParam);
       mKeys[wParam] = TRUE;
-      mKeysShift[wParam] = mKeys[KEY_SHIFT];
       HandleKey(wParam);
       return 0;
 
     case WM_KEYUP:
       wParam = GetKey(wParam);
-      mKeysShift[wParam] = false;
       mKeys[wParam] = false;
       GPUInfo("Key: %d", wParam);
       return 0;
@@ -352,13 +350,11 @@ int32_t GPUDisplayFrontendWindows::FrontendMain()
         DispatchMessage(&msg);  // Dispatch The Message
       }
     } else {
-      HandleExternalGUISignals();
-      if (active) // Program Active?
-      {
-        if (mKeys[VK_ESCAPE]) {
-          done = TRUE;
-        } else {
-          DrawGLScene();    // Draw The Scene
+      if (active && mKeys[VK_ESCAPE]) {
+        done = TRUE;
+      } else {
+        HandleUpdatesAndDrawGLScene(!active); // Only draw if the program is active
+        if (active) {
           SwapBuffers(hDC); // Swap Buffers (Double Buffering)
           waitForFPSLimit();
         }
@@ -372,7 +368,6 @@ int32_t GPUDisplayFrontendWindows::FrontendMain()
   return (0);
 }
 
-void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton) {}
 void SwitchFullscreen(bool set) {}
 void ToggleMaximized(bool set) {}
 void SetVSync(bool enable) {}

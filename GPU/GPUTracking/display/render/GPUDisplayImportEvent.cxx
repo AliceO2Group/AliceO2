@@ -40,6 +40,7 @@ using namespace o2::gpu;
 
 void GPUDisplay::DrawGLScene_updateEventData()
 {
+  mUpdateGUIOptions = true; // E.g. number of collisions
   HighResTimer timer(mChain->GetProcessingSettings().debugLevel >= 2);
   if (mIOPtrs->clustersNative) {
     mCurrentClusters = mIOPtrs->clustersNative->nClustersTotal;
@@ -119,14 +120,14 @@ void GPUDisplay::DrawGLScene_updateEventData()
     mTrackFilter.resize(nTracks);
     std::fill(mTrackFilter.begin(), mTrackFilter.end(), true);
     if (buildTrackFilter()) {
-      SetInfo("Error running track filter from %s", mConfig.filterMacros[mCfgH.trackFilter - 1].c_str());
+      SetInfo("Error running track filter from %s", trackFilterName().c_str());
     } else {
       uint32_t nFiltered = 0;
       for (uint32_t i = 0; i < mTrackFilter.size(); i++) {
         nFiltered += !mTrackFilter[i];
       }
       if (mUpdateTrackFilter) {
-        SetInfo("Applied track filter %s - filtered %u / %u", mConfig.filterMacros[mCfgH.trackFilter - 1].c_str(), nFiltered, (uint32_t)mTrackFilter.size());
+        SetInfo("Applied track filter %s - filtered %u / %u", trackFilterName().c_str(), nFiltered, (uint32_t)mTrackFilter.size());
       }
     }
   }
@@ -155,12 +156,12 @@ void GPUDisplay::DrawGLScene_updateEventData()
         if (mCfgH.clustersOnNominalRow) {
           x = GPUTPCGeometry::Row2X(row);
         }
-        mParam->Sector2Global(iSector, x + mCfgH.xAdd, y, z, &ptr->x, &ptr->y, &ptr->z);
+        mParam->Sector2Global(iSector, x + mCfgH.xzAdd, y, z, &ptr->x, &ptr->y, &ptr->z);
 
         if (fabsf(ptr->z) > maxClusterZ) {
           maxClusterZ = fabsf(ptr->z);
         }
-        ptr->z += iSector < 18 ? mCfgH.zAdd : -mCfgH.zAdd;
+        ptr->z += iSector < 18 ? mCfgH.xzAdd : -mCfgH.xzAdd;
         ptr->x *= GL_SCALE_FACTOR;
         ptr->y *= GL_SCALE_FACTOR;
         ptr->z *= GL_SCALE_FACTOR;
@@ -185,7 +186,7 @@ void GPUDisplay::DrawGLScene_updateEventData()
       const auto& sp = mIOPtrs->trdSpacePoints[i];
       int32_t iSec = trdGeometry()->GetSector(mIOPtrs->trdTracklets[i].GetDetector());
       float4* ptr = &mGlobalPosTRD[i];
-      mParam->Sector2Global(iSec, sp.getX() + mCfgH.xAdd, sp.getY(), sp.getZ(), &ptr->x, &ptr->y, &ptr->z);
+      mParam->Sector2Global(iSec, sp.getX() + mCfgH.xzAdd, sp.getY(), sp.getZ(), &ptr->x, &ptr->y, &ptr->z);
       ptr->z += ptr->z > 0 ? trdZoffset : -trdZoffset;
       if (fabsf(ptr->z) > maxClusterZ) {
         maxClusterZ = fabsf(ptr->z);
@@ -195,7 +196,7 @@ void GPUDisplay::DrawGLScene_updateEventData()
       ptr->z *= GL_SCALE_FACTOR;
       ptr->w = tTRDCLUSTER;
       ptr = &mGlobalPosTRD2[i];
-      mParam->Sector2Global(iSec, sp.getX() + mCfgH.xAdd + 4.5f, sp.getY() + 1.5f * sp.getDy(), sp.getZ(), &ptr->x, &ptr->y, &ptr->z);
+      mParam->Sector2Global(iSec, sp.getX() + mCfgH.xzAdd + 4.5f, sp.getY() + 1.5f * sp.getDy(), sp.getZ(), &ptr->x, &ptr->y, &ptr->z);
       ptr->z += ptr->z > 0 ? trdZoffset : -trdZoffset;
       if (fabsf(ptr->z) > maxClusterZ) {
         maxClusterZ = fabsf(ptr->z);
@@ -214,7 +215,7 @@ void GPUDisplay::DrawGLScene_updateEventData()
   mMaxClusterZ = tbb::parallel_reduce(tbb::blocked_range<int32_t>(0, mCurrentClustersTOF, 32), float(mMaxClusterZ), [&](const tbb::blocked_range<int32_t>& r, float maxClusterZ) {
     for (int32_t i = r.begin(); i < r.end(); i++) {
       float4* ptr = &mGlobalPosTOF[i];
-      mParam->Sector2Global(mIOPtrs->tofClusters[i].getSector(), mIOPtrs->tofClusters[i].getX() + mCfgH.xAdd, mIOPtrs->tofClusters[i].getY(), mIOPtrs->tofClusters[i].getZ(), &ptr->x, &ptr->y, &ptr->z);
+      mParam->Sector2Global(mIOPtrs->tofClusters[i].getSector(), mIOPtrs->tofClusters[i].getX() + mCfgH.xzAdd, mIOPtrs->tofClusters[i].getY(), mIOPtrs->tofClusters[i].getZ(), &ptr->x, &ptr->y, &ptr->z);
       float ZOffset = 0;
       if (mParam->par.continuousTracking) {
         float tofTime = mIOPtrs->tofClusters[i].getTime() * 1e-3 / o2::constants::lhc::LHCBunchSpacingNS / o2::tpc::constants::LHCBCPERTIMEBIN;

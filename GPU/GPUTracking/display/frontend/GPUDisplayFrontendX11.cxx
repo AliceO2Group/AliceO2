@@ -163,28 +163,6 @@ void GPUDisplayFrontendX11::GetKey(XEvent& event, int32_t& keyOut, int32_t& keyP
   }
 }
 
-void GPUDisplayFrontendX11::OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton)
-{
-#ifndef GPUCA_DISPLAY_OPENGL_CORE
-  if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
-    if (!fromBotton) {
-      y = mDisplayHeight - y;
-    }
-    glColor4f(r, g, b, a);
-    glRasterPos2f(x, y);
-    if (!glIsList(mFontBase)) {
-      GPUError("print string: Bad display list.");
-      exit(1);
-    } else if (s && strlen(s)) {
-      glPushAttrib(GL_LIST_BIT);
-      glListBase(mFontBase);
-      glCallLists(strlen(s), GL_UNSIGNED_BYTE, (GLubyte*)s);
-      glPopAttrib();
-    }
-  }
-#endif
-}
-
 int32_t GPUDisplayFrontendX11::FrontendMain()
 {
   XSetWindowAttributes windowAttributes;
@@ -261,7 +239,7 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
       int32_t context_attribs[] = {
         GLX_CONTEXT_MAJOR_VERSION_ARB, GL_MIN_VERSION_MAJOR,
         GLX_CONTEXT_MINOR_VERSION_ARB, GL_MIN_VERSION_MINOR,
-        GLX_CONTEXT_PROFILE_MASK_ARB, mBackend->CoreProfile() ? GLX_CONTEXT_CORE_PROFILE_BIT_ARB : GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB,
+        GLX_CONTEXT_PROFILE_MASK_ARB, GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
         None};
       glxContext = glXCreateContextAttribsARB(mXDisplay, fbconfig, nullptr, GL_TRUE, context_attribs);
     } else {
@@ -300,31 +278,6 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
   // Receive signal when window closed
   Atom WM_DELETE_WINDOW = XInternAtom(mXDisplay, "WM_DELETE_WINDOW", False);
   XSetWMProtocols(mXDisplay, mWindow, &WM_DELETE_WINDOW, 1);
-#ifndef GPUCA_DISPLAY_OPENGL_CORE
-  XFontStruct* font_info = nullptr;
-  if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
-    // Prepare fonts
-    mFontBase = glGenLists(256);
-    if (!glIsList(mFontBase)) {
-      GPUError("Out of display lists.");
-      return (-1);
-    }
-    const char* f = "fixed";
-    font_info = XLoadQueryFont(mXDisplay, f);
-    if (!font_info) {
-      GPUError("XLoadQueryFont failed.");
-      return (-1);
-    } else {
-      int32_t first = font_info->min_char_or_byte2;
-      int32_t last = font_info->max_char_or_byte2;
-      glXUseXFont(font_info->fid, first, last - first + 1, mFontBase + first);
-    }
-  }
-  mCanDrawText = 1;
-  if (drawTextFontSize() == 0) {
-    drawTextFontSize() = 12;
-  }
-#endif
 
   if (mBackend->ExtInit()) {
     fprintf(stderr, "Error initializing backend\n");
@@ -355,7 +308,7 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
 
   while (1) {
     do {
-      if (mDisplayControl == 2) {
+      if (getDisplayControl() == 2) {
         break;
       }
       if (!XPending(mXDisplay)) {
@@ -399,7 +352,6 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
         case KeyPress: {
           int32_t handleKey = 0, keyPress = 0;
           GetKey(event, handleKey, keyPress);
-          mKeysShift[keyPress] = mKeys[KEY_SHIFT];
           mKeys[keyPress] = true;
           HandleKey(handleKey);
           break;
@@ -409,7 +361,6 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
           int32_t handleKey = 0, keyPress = 0;
           GetKey(event, handleKey, keyPress);
           mKeys[keyPress] = false;
-          mKeysShift[keyPress] = false;
           break;
         }
 
@@ -444,30 +395,23 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
           if (event.xclient.message_type == XInternAtom(mXDisplay, "_NET_WM_STATE", False)) {
             XFlush(mXDisplay);
           } else {
-            mDisplayControl = 2;
+            setDisplayControl(2);
           }
           break;
         }
       }
     } while (XPending(mXDisplay)); // Loop to compress events
-    if (mDisplayControl == 2) {
+    if (getDisplayControl() == 2) {
       break;
     }
 
-    HandleExternalGUISignals();
-    DrawGLScene();
+    HandleUpdatesAndDrawGLScene();
     if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
       glXSwapBuffers(mXDisplay, mWindow);
     }
     waitForFPSLimit();
   }
 
-#ifndef GPUCA_DISPLAY_OPENGL_CORE
-  if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
-    glDeleteLists(mFontBase, 256);
-    XUnloadFont(mXDisplay, font_info->fid);
-  }
-#endif
   ExitDisplay();
   if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
     glXDestroyContext(mXDisplay, glxContext);
@@ -479,6 +423,7 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
   {
     std::lock_guard lock(mExitStateMutex);
     mDisplayRunning = false;
+    mDisplayStoppedCV.notify_all();
   }
 
   return (0);
@@ -513,8 +458,8 @@ void GPUDisplayFrontendX11::SwitchFullscreen(bool set)
   xev.xclient.window = mWindow;
   xev.xclient.message_type = XInternAtom(mXDisplay, "_NET_WM_STATE", False);
   xev.xclient.format = 32;
-  xev.xclient.data.l[0] = 2; // _NET_WM_STATE_TOGGLE
-  xev.xclient.data.l[1] = XInternAtom(mXDisplay, "_NET_WM_STATE_FULLSCREEN", True);
+  xev.xclient.data.l[0] = set ? 1 : 0; // _NET_WM_STATE_ADD / _NET_WM_STATE_REMOVE
+  xev.xclient.data.l[1] = XInternAtom(mXDisplay, "_NET_WM_STATE_FULLSCREEN", False);
   xev.xclient.data.l[2] = 0;
   XSendEvent(mXDisplay, DefaultRootWindow(mXDisplay), False, SubstructureNotifyMask, &xev);
 }

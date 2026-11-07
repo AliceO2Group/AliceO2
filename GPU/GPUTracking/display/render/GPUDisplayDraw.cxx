@@ -654,7 +654,7 @@ void GPUDisplay::DrawFinal(int32_t iSector, int32_t /*iCol*/, const GPUTPCGMProp
             break;
           }
           float sa = sinf(alpha), ca = cosf(alpha);
-          float drawX = trkParam.X() + mCfgH.xAdd;
+          float drawX = trkParam.X() + mCfgH.xzAdd;
           useBuffer.emplace_back((ca * drawX - sa * trkParam.Y()) * GL_SCALE_FACTOR, (ca * trkParam.Y() + sa * drawX) * mYFactor * GL_SCALE_FACTOR, mCfgH.projectXY ? 0 : (trkParam.Z() + ZOffset) * GL_SCALE_FACTOR);
           x += inFlyDirection ? 1 : -1;
         }
@@ -685,17 +685,17 @@ GPUDisplay::vboList GPUDisplay::DrawGrid(const GPUTPCTracker& tracker)
     for (int32_t j = 0; j <= (signed)row.Grid().Ny(); j++) {
       float z1 = row.Grid().ZMin();
       float z2 = row.Grid().ZMax();
-      float x = row.X() + mCfgH.xAdd;
+      float x = row.X() + mCfgH.xzAdd;
       float y = row.Grid().YMin() + (float)j / row.Grid().StepYInv();
       float zz1, zz2, yy1, yy2, xx1, xx2;
       mParam->Sector2Global(tracker.ISector(), x, y, z1, &xx1, &yy1, &zz1);
       mParam->Sector2Global(tracker.ISector(), x, y, z2, &xx2, &yy2, &zz2);
       if (iSector < 18) {
-        zz1 += mCfgH.zAdd;
-        zz2 += mCfgH.zAdd;
+        zz1 += mCfgH.xzAdd;
+        zz2 += mCfgH.xzAdd;
       } else {
-        zz1 -= mCfgH.zAdd;
-        zz2 -= mCfgH.zAdd;
+        zz1 -= mCfgH.xzAdd;
+        zz2 -= mCfgH.xzAdd;
       }
       mVertexBuffer[iSector].emplace_back(xx1 * GL_SCALE_FACTOR, yy1 * GL_SCALE_FACTOR * mYFactor, zz1 * GL_SCALE_FACTOR);
       mVertexBuffer[iSector].emplace_back(xx2 * GL_SCALE_FACTOR, yy2 * GL_SCALE_FACTOR * mYFactor, zz2 * GL_SCALE_FACTOR);
@@ -703,17 +703,17 @@ GPUDisplay::vboList GPUDisplay::DrawGrid(const GPUTPCTracker& tracker)
     for (int32_t j = 0; j <= (signed)row.Grid().Nz(); j++) {
       float y1 = row.Grid().YMin();
       float y2 = row.Grid().YMax();
-      float x = row.X() + mCfgH.xAdd;
+      float x = row.X() + mCfgH.xzAdd;
       float z = row.Grid().ZMin() + (float)j / row.Grid().StepZInv();
       float zz1, zz2, yy1, yy2, xx1, xx2;
       mParam->Sector2Global(tracker.ISector(), x, y1, z, &xx1, &yy1, &zz1);
       mParam->Sector2Global(tracker.ISector(), x, y2, z, &xx2, &yy2, &zz2);
       if (iSector < 18) {
-        zz1 += mCfgH.zAdd;
-        zz2 += mCfgH.zAdd;
+        zz1 += mCfgH.xzAdd;
+        zz2 += mCfgH.xzAdd;
       } else {
-        zz1 -= mCfgH.zAdd;
-        zz2 -= mCfgH.zAdd;
+        zz1 -= mCfgH.xzAdd;
+        zz2 -= mCfgH.xzAdd;
       }
       mVertexBuffer[iSector].emplace_back(xx1 * GL_SCALE_FACTOR, yy1 * GL_SCALE_FACTOR * mYFactor, zz1 * GL_SCALE_FACTOR);
       mVertexBuffer[iSector].emplace_back(xx2 * GL_SCALE_FACTOR, yy2 * GL_SCALE_FACTOR * mYFactor, zz2 * GL_SCALE_FACTOR);
