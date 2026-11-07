@@ -48,6 +48,9 @@ struct AnalysisSupportHelpers {
   static DataProcessorSpec getOutputObjHistSink(ConfigContext const&);
   /// writes inputs of kind AOD to file
   static DataProcessorSpec getGlobalAODSink(ConfigContext const&);
+  /// Match all inputs of kind META, merge them and republish as the AOD
+  /// metadata keys/vals consumed by the AOD writer.
+  static DataProcessorSpec getMetadataCollectorSink(ConfigContext const&);
   /// Get the data director
   static std::shared_ptr<DataOutputDirector> getDataOutputDirector(ConfigContext const& ctx);
 };
