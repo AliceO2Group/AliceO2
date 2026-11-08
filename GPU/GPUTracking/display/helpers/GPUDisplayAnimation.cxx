@@ -76,6 +76,50 @@ void GPUDisplay::setAnimationPoint()
   mAnimateConfig.emplace_back(mCfgL);
 }
 
+static hmm_mat4 lookAtMatrix(const float (&eye)[3], const float (&target)[3]) // HMM_LookAt with y up, z up when looking along y (the cross product with y would be 0)
+{
+  const float d[3] = {target[0] - eye[0], target[1] - eye[1], target[2] - eye[2]};
+  const bool alongY = d[0] * d[0] + d[2] * d[2] <= 1e-10f * (d[0] * d[0] + d[1] * d[1] + d[2] * d[2]);
+  return HMM_LookAt({{eye[0], eye[1], eye[2]}}, {{target[0], target[1], target[2]}}, alongY ? hmm_vec3{{0, 0, 1}} : hmm_vec3{{0, 1, 0}});
+}
+
+void GPUDisplay::setCamera(const float (&xyz)[3], const float (&angles)[3])
+{
+  const float toDeg = 180.f / CAMath::Pi();
+  *mViewMatrix = HMM_Rotate(-angles[2] * toDeg, {{0, 0, 1}}) * HMM_Rotate(-angles[0] * toDeg, {{1, 0, 0}}) * HMM_Rotate(angles[1] * toDeg, {{0, 1, 0}}) * HMM_Translate({{-xyz[0], -xyz[1], -xyz[2]}}); // Inverse of calcXYZ
+  calcXYZ(&mViewMatrix->Elements[0][0]);
+}
+
+bool GPUDisplay::lookAt(const float (&target)[3])
+{
+  if (target[0] == mXYZ[0] && target[1] == mXYZ[1] && target[2] == mXYZ[2]) {
+    return false;
+  }
+  *mViewMatrix = lookAtMatrix(mXYZ, target);
+  calcXYZ(&mViewMatrix->Elements[0][0]);
+  return true;
+}
+
+void GPUDisplay::rotateCamera(const float (&angles)[3])
+{
+  *mViewMatrix = cameraRotation(angles) * *mViewMatrix;
+  calcXYZ(&mViewMatrix->Elements[0][0]);
+}
+
+hmm_mat4 GPUDisplay::cameraRotation(const float (&angles)[3]) const
+{
+  return HMM_Rotate(angles[0], {{0, 1, 0}}) * HMM_Rotate(angles[1] * mYFactor, {{1, 0, 0}}) * HMM_Rotate(angles[2] * mYFactor, {{0, 0, 1}});
+}
+
+void GPUDisplay::addAnimationPoint(const float (&xyz)[3], const float (&angles)[3])
+{
+  const hmm_mat4 oldViewMatrix = *mViewMatrix;
+  setCamera(xyz, angles);
+  setAnimationPoint(); // From mXYZ / mAngle / mViewMatrix, as for the current camera
+  *mViewMatrix = oldViewMatrix;
+  calcXYZ(&mViewMatrix->Elements[0][0]);
+}
+
 void GPUDisplay::resetAnimation()
 {
   for (int32_t i = 0; i < 9; i++) {
@@ -214,7 +258,7 @@ int32_t GPUDisplay::animateCamera(bool suspended, float& animateTime, float& mix
     }
   }
   if (mCfgL.animationMode == 6) {
-    nextViewMatrix = HMM_LookAt({{vals[0], vals[1], vals[2]}}, {{0, 0, 0}}, {{0, 1, 0}});
+    nextViewMatrix = lookAtMatrix({vals[0], vals[1], vals[2]}, {0.f, 0.f, 0.f});
   } else {
     nextViewMatrix = nextViewMatrix * HMM_Translate({{-vals[0], -vals[1], -vals[2]}});
   }

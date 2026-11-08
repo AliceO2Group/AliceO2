@@ -13,6 +13,7 @@
 /// \author David Rohr
 
 #include "GPUDisplayConsole.h"
+#include "GPULogging.h"
 #include <algorithm>
 #include <charconv>
 #include <stdexcept>
@@ -85,12 +86,17 @@ void GPUDisplayConsole::handleConsoleKey(uint8_t key)
 
 void GPUDisplayConsole::consolePrint(const char* format, ...)
 {
-  char buffer[1024];
-  va_list args;
+  va_list args, argsCopy;
   va_start(args, format);
-  vsnprintf(buffer, sizeof(buffer), format, args);
+  va_copy(argsCopy, args);
+  std::string buffer(std::max(0, vsnprintf(nullptr, 0, format, args)), '\0');
   va_end(args);
-  consoleAppend(std::string("  ") + buffer); // Indented: output, not a command, skipped by up / down
+  vsnprintf(buffer.data(), buffer.size() + 1, format, argsCopy);
+  va_end(argsCopy);
+  consoleAppend("  " + buffer); // Indented: output, not a command, skipped by up / down
+  if (mPrintToTerminal) {
+    GPUInfo("%s", buffer.c_str());
+  }
 }
 
 void GPUDisplayConsole::consoleInfo(const char* format, const char* text)
@@ -180,16 +186,15 @@ std::tuple<const GPUDisplayConsole::GPUDisplayConsoleCommand&, std::vector<GPUDi
   if (nArgs < nFixed || (!more && nArgs > nFixed)) {
     throw std::runtime_error(name + ": " + std::to_string(nFixed) + (more ? " or more" : "") + " arguments expected, got " + std::to_string(nArgs));
   }
-  auto autoType = [](const std::string& text, bool plain) -> consoleArg { // int64_t for [+-]digits, double for [+-]digits with one '.', string otherwise or if plain text
+  auto autoType = [](const std::string& text, bool plain) -> consoleArg { // int64_t for [+-]digits, double for other decimal numbers (also with exponent, as saveSettings writes them), string otherwise or if plain text
     const char *begin = text.c_str() + (text[0] == '+' || text[0] == '-'), *end = text.c_str() + text.size();
-    const size_t nDigits = std::count_if(begin, end, [](char c) { return c >= '0' && c <= '9'; });
-    const size_t nDots = std::count(begin, end, '.');
-    const bool number = !plain && nDigits && nDigits + nDots == (size_t)(end - begin);
+    const bool number = !plain && begin < end && ((*begin >= '0' && *begin <= '9') || *begin == '.') && std::all_of(begin, end, [](char c) { return (c >= '0' && c <= '9') || c == '.' || c == 'e' || c == 'E' || c == '+' || c == '-'; });
     int64_t intValue = 0;
-    if (number && nDots == 0 && std::from_chars(begin, end, intValue).ec == std::errc()) {
+    double doubleValue = 0.;
+    if (const auto rInt = std::from_chars(begin, end, intValue); number && rInt.ec == std::errc() && rInt.ptr == end) {
       return text[0] == '-' ? -intValue : intValue;
-    } else if (number && nDots <= 1) {
-      return std::stod(text); // Also integers out of the int64_t range
+    } else if (const auto rDouble = std::from_chars(begin, end, doubleValue); number && rDouble.ec == std::errc() && rDouble.ptr == end) {
+      return text[0] == '-' ? -doubleValue : doubleValue; // Also integers out of the int64_t range
     }
     return text;
   };
@@ -206,7 +211,7 @@ std::tuple<const GPUDisplayConsole::GPUDisplayConsoleCommand&, std::vector<GPUDi
       } else if (!std::holds_alternative<double>(value)) {
         throw std::runtime_error(name + ": argument " + std::to_string(i + 1) + " (" + text + ") must be a number");
       }
-    } else if (type != 's' && type != 'i' && type != '+') {
+    } else if (type != 's' && type != 'i' && type != 'a' && type != '+') {
       throw std::runtime_error(name + ": invalid argument types " + types);
     }
     args.emplace_back(std::move(value));
@@ -229,7 +234,11 @@ void GPUDisplayConsole::handleConsoleCommand(std::string_view cmd)
     consolePrint("Invalid command: %s", e.what());
     return;
   }
-  command->func(args);
+  try { // A failing command must not end the display
+    command->func(args);
+  } catch (const std::exception& e) {
+    consolePrint("Error in command %.*s: %s", (int32_t)cmd.size(), cmd.data(), e.what());
+  }
 }
 
 void GPUDisplayConsole::runScript(std::string_view script)
@@ -238,13 +247,44 @@ void GPUDisplayConsole::runScript(std::string_view script)
     consolePrint("Scripts nested too deeply");
     return;
   }
-  mScriptDepth++;
+  std::vector<ScriptLine> lines;
   for (size_t pos = 0; pos < script.size();) {
     const size_t end = std::min(script.find_first_of("\r\n", pos), script.size());
-    handleConsoleCommand(script.substr(pos, end - pos)); // Empty lines (consecutive \r / \n) are ignored
+    if (end > pos) { // Empty lines (consecutive \r / \n) are ignored
+      lines.push_back({std::string(script.substr(pos, end - pos)), mScriptDepth + 1});
+    }
     pos = end + 1;
   }
-  mScriptDepth--;
+  mScriptQueue.insert(mScriptQueue.begin(), lines.begin(), lines.end()); // Before the remaining lines of a script running this one
+  processScripts(false);
+}
+
+void GPUDisplayConsole::processScripts(bool newFrame)
+{
+  if (newFrame) {
+    mWaitFrames -= mWaitFrames > 0;
+    if (mBenchmarkLeft && --mBenchmarkLeft == 0) {
+      const double time = std::chrono::duration<double>(std::chrono::steady_clock::now() - mBenchmarkStart).count();
+      consolePrint("benchmark: %u frames in %.3f s, %.2f fps, %.3f ms per frame", mBenchmarkFrames, time, mBenchmarkFrames / time, time * 1000. / mBenchmarkFrames);
+    }
+  }
+  if (mWaitCondition && mWaitCondition()) {
+    mWaitCondition = nullptr;
+  }
+  const uint32_t outerDepth = mScriptDepth;
+  for (uint32_t n = 0; n < 100000 && mScriptQueue.size() && !mWaitFrames && !mBenchmarkLeft && !mWaitCondition && std::chrono::steady_clock::now() >= mWaitUntil; n++) { // Limit per call: a script must not block the display
+    ScriptLine line = std::move(mScriptQueue.front());
+    mScriptQueue.pop_front();
+    mScriptDepth = line.depth;
+    handleConsoleCommand(line.text);
+  }
+  mScriptDepth = outerDepth;
+}
+
+void GPUDisplayConsole::startBenchmark(uint32_t n)
+{
+  mBenchmarkFrames = mBenchmarkLeft = n;
+  mBenchmarkStart = std::chrono::steady_clock::now();
 }
 
 void GPUDisplayConsole::runScriptFile(const std::string& filename)
@@ -266,7 +306,7 @@ void GPUDisplayConsole::printCommands(const std::function<void(const std::string
     names.emplace_back(name);
   }
   std::sort(names.begin(), names.end());
-  print("Console commands (argument types: s string, i integer, d number, + further arguments):");
+  print("Console commands (argument types: s string, i integer, d number, a any, + further arguments):");
   for (const auto& name : names) {
     const auto& command = mConsoleCommands[name];
     print("  " + name + (command.args.empty() ? "" : " ") + command.args + ": " + command.description);

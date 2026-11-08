@@ -198,6 +198,8 @@ int32_t GPUDisplayFrontend::HandleUpdatesAndDrawGLScene(bool suspended)
   if (startupScript) {
     mStartupScriptDone = true;
     mConsole->runScriptFile(mDisplay->cfg().runScript); // Settings it changes are applied with the next frame
+  } else {
+    mConsole->processScripts(true); // Waiting script lines, wait / benchmark
   }
   return retVal;
 }

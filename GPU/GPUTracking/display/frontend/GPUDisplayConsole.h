@@ -18,6 +18,7 @@
 #include "GPUDisplayFrontendKeyVars.h"
 #include <chrono>
 #include <cstdint>
+#include <deque>
 #include <functional>
 #include <span>
 #include <string>
@@ -35,15 +36,20 @@ class GPUDisplayConsole : public GPUDisplayFrontendKeyVars // Text console of th
   using consoleArg = std::variant<int64_t, double, std::string>; // Argument of a console command
   struct GPUDisplayConsoleCommand {
     std::function<void(std::span<const consoleArg>)> func;
-    std::string args;        // One character per argument: s string, i int64_t, d double (also from an integer), + at the end: any further arguments (type from the text)
+    std::string args;        // One character per argument: s string, i int64_t, d double (also from an integer), a any (type from the text), + at the end: any further arguments (type from the text)
     std::string description; // For help
   };
   GPUDisplayConsole(const std::string& title); // First history entry, not selectable
 
-  void handleConsoleKey(uint8_t key);                                                                                   // Key typed while the console is shown
-  void handleConsoleCommand(std::string_view cmd);                                                                      // Runs the command named by the first token, error if unknown
-  void runScript(std::string_view script);                                                                              // Runs each line (separated by \n / \r) as console command
-  void runScriptFile(const std::string& filename);                                                                      // runScript with the content of the file
+  void handleConsoleKey(uint8_t key);              // Key typed while the console is shown
+  void handleConsoleCommand(std::string_view cmd); // Runs the command named by the first token, error if unknown
+  void runScript(std::string_view script);         // Queues the lines (separated by \n / \r) as console commands before the remaining script lines, runs them up to a wait
+  void runScriptFile(const std::string& filename); // runScript with the content of the file
+  void processScripts(bool newFrame);              // Runs queued script lines until a wait; newFrame: called once per frame, counts the frames of wait / benchmark
+  void waitFrames(uint32_t n) { mWaitFrames = n; } // The following script lines run after n frames
+  void waitSeconds(double t) { mWaitUntil = std::chrono::steady_clock::now() + std::chrono::duration_cast<std::chrono::steady_clock::duration>(std::chrono::duration<double>(t)); }
+  void waitFor(std::function<bool()> condition) { mWaitCondition = std::move(condition); }                              // The following script lines run once the condition is true
+  void startBenchmark(uint32_t n);                                                                                      // Measures the next n frames, the following script lines run afterwards
   void printCommands(const std::function<void(const std::string&)>& print);                                             // List of the commands with argument types and description, one line per call
   std::tuple<const GPUDisplayConsoleCommand&, std::vector<consoleArg>> parseConsoleCommand(std::string_view cmd) const; // Command and its arguments with the types it requests, throws std::runtime_error for syntax errors, unknown commands, wrong arguments
   void consolePrint(const char* format, ...);                                                                           // printf-like output to the console, indented by 2 spaces in mConsoleHistory
@@ -53,13 +59,24 @@ class GPUDisplayConsole : public GPUDisplayFrontendKeyVars // Text console of th
   const std::string& shownText() const { return mConsoleTextCurrent ? mConsoleHistory[mConsoleTextCurrent] : mConsoleText; }
 
   std::unordered_map<std::string, GPUDisplayConsoleCommand> mConsoleCommands; // Console commands by name, filled by GPUDisplayFrontend::buildConsoleCommands
-  uint32_t mScriptDepth = 0;                                                  // Scripts running scripts
-  std::string mConsoleInfoLastMessage;                                        // Format of the SetInfo that wrote the last console line, empty if something else came after it
-  std::chrono::steady_clock::time_point mConsoleInfoLastTime;                 //
-  std::vector<std::string> mConsoleHistory;                                   // Title, then commands entered in the console and their output (indented)
-  std::string mConsoleText;                                                   // Text being typed in the console
-  uint32_t mConsoleTextCurrent = 0;                                           // Entry of mConsoleHistory shown in the console (selected with up / down, the title entry 0 is not selectable), 0 for mConsoleText
-  uint32_t mConsoleTextPos = 0;                                               // Cursor position in the shown text (left / right), the character there is the current one
+  struct ScriptLine {
+    std::string text;
+    uint32_t depth; // Nesting of runScript
+  };
+  std::deque<ScriptLine> mScriptQueue; // Script lines not yet run
+  uint32_t mScriptDepth = 0;           // Nesting of the script line running now
+  uint32_t mWaitFrames = 0;
+  std::chrono::steady_clock::time_point mWaitUntil;
+  std::function<bool()> mWaitCondition;
+  uint32_t mBenchmarkFrames = 0, mBenchmarkLeft = 0;
+  std::chrono::steady_clock::time_point mBenchmarkStart;
+  bool mPrintToTerminal = false;                              // consolePrint also with GPUInfo (consolePrintToTerminal)
+  std::string mConsoleInfoLastMessage;                        // Format of the SetInfo that wrote the last console line, empty if something else came after it
+  std::chrono::steady_clock::time_point mConsoleInfoLastTime; //
+  std::vector<std::string> mConsoleHistory;                   // Title, then commands entered in the console and their output (indented)
+  std::string mConsoleText;                                   // Text being typed in the console
+  uint32_t mConsoleTextCurrent = 0;                           // Entry of mConsoleHistory shown in the console (selected with up / down, the title entry 0 is not selectable), 0 for mConsoleText
+  uint32_t mConsoleTextPos = 0;                               // Cursor position in the shown text (left / right), the character there is the current one
 };
 } // namespace o2::gpu
 

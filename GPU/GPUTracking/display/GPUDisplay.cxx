@@ -245,6 +245,7 @@ int32_t GPUDisplay::DrawGLScene(bool suspended)
       mLoadAndShowEvent = false;
     }
     mCVLoadAndShowEvent.notify_one();
+    mNEventsShown++;
   }
   mSemLockDisplay.Unlock();
 
@@ -376,15 +377,7 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(bool suspended, float animateTim
     } else {
       nextViewMatrix = nextViewMatrix * HMM_Translate({{moveX, moveY * mYFactor, moveZ}});
       if (!rotateModel) {
-        if (rotYaw != 0.f) {
-          nextViewMatrix = nextViewMatrix * HMM_Rotate(rotYaw, {{0, 1, 0}});
-        }
-        if (rotPitch != 0.f) {
-          nextViewMatrix = nextViewMatrix * HMM_Rotate(rotPitch * mYFactor, {{1, 0, 0}});
-        }
-        if (!yUp && rotRoll != 0.f) {
-          nextViewMatrix = nextViewMatrix * HMM_Rotate(rotRoll * mYFactor, {{0, 0, 1}});
-        }
+        nextViewMatrix = nextViewMatrix * cameraRotation({rotYaw, rotPitch, yUp ? 0.f : rotRoll}); // Keyboard and mouse, as rotateCamera
       }
       nextViewMatrix = nextViewMatrix * *mViewMatrix; // Apply previous translation / rotation
       if (yUp) {
