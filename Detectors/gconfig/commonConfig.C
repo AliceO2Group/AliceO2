@@ -45,9 +45,14 @@ void stackSetup(T* vmc, R* run)
 */
 }
 
-void decayerSetup(TVirtualMC* vmc)
+TVirtualMCDecayer* makeDecayer()
 {
   auto decayer = new o2::eventgen::DecayerPythia8;
   decayer->Init();
-  vmc->SetExternalDecayer(decayer);
+  return decayer;
+}
+
+void decayerSetup(TVirtualMC* vmc)
+{
+  vmc->SetExternalDecayer(makeDecayer());
 }

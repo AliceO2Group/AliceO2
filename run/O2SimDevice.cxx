@@ -12,6 +12,7 @@
 /// @author Sandro Wenzel
 
 #include "O2SimDevice.h"
+#include "Steer/O2MCApplication.h"
 #include "../macro/o2sim.C"
 #include "TVirtualMC.h"
 #include <fairmq/Message.h>
@@ -22,6 +23,7 @@
 #include <TRandom.h>
 #include <SimConfig/SimConfig.h>
 #include <cstring>
+#include <atomic>
 #include "DetectorsBase/SimRandom.h"
 
 void doLogInfo(int workerID, std::string const& message)
@@ -135,28 +137,6 @@ bool O2SimDevice::Kernel(int workerID, fair::mq::Channel& requestchannel, fair::
     reproducibleSim = false;
   }
 
-  // Mainly for debugging reasons, we allow to transport
-  // a specific event + eventpart. This allows to reproduce and debug bugs faster, once
-  // we know in which precise chunk they occur. The expected format for the environment variable
-  // is "eventnum:partid".
-  auto eventselection = getenv("O2SIM_RESTRICT_EVENTPART");
-  int focus_on_event = -1;
-  int focus_on_part = -1;
-  if (eventselection) {
-    auto splitString = [](const std::string& str) {
-      std::pair<std::string, std::string> parts;
-      size_t pos = str.find(':');
-      if (pos != std::string::npos) {
-        parts.first = str.substr(0, pos);
-        parts.second = str.substr(pos + 1);
-      }
-      return parts;
-    };
-    auto p = splitString(eventselection);
-    focus_on_event = std::atoi(p.first.c_str());
-    focus_on_part = std::atoi(p.second.c_str());
-  }
-
   mVMCApp->setSimDataChannel(&dataoutchannel);
 
   // we log info with workerID prepended
@@ -181,7 +161,8 @@ bool O2SimDevice::Kernel(int workerID, fair::mq::Channel& requestchannel, fair::
             << "for event " << info.eventID << "/" << info.maxEvents << " "
             << "part " << info.part << "/" << info.nparts;
 
-  if (eventselection == nullptr || (focus_on_event == info.eventID && focus_on_part == info.part)) {
+  // for debugging, O2SIM_RESTRICT_EVENTPART="event:part" transports only that sub-event
+  if (o2::steer::O2MCApplication::isSelectedSubEvent(info.eventID, info.part)) {
     mVMCApp->setPrimaries(chunk->mParticles);
   } else {
     // nothing to transport here
@@ -219,7 +200,7 @@ bool O2SimDevice::Kernel(int workerID, fair::mq::Channel& requestchannel, fair::
 
 O2SimDevice::FetchedChunk O2SimDevice::fetchChunk(int workerID, fair::mq::Channel& requestchannel)
 {
-  static int counter = 0;
+  static std::atomic<int> counter{0};                                                                          // shared by the transport threads in multithreaded mode
   fair::mq::MessagePtr request(requestchannel.NewSimpleMessage(PrimaryChunkRequest{workerID, -1, counter++})); // <-- don't need content; channel means -> give primaries
   fair::mq::Parts reply;
 

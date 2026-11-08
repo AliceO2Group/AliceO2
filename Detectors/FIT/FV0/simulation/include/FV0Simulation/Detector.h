@@ -50,6 +50,7 @@ class Detector : public o2::base::DetImpl<Detector>
 
   /// Initializes the detector (adds sensitive volume)
   void InitializeO2Detector() override;
+  bool isMTSafe() const override { return true; }
 
   /// This method is called for each step during simulation (see FairMCApplication::Stepping())
   Bool_t ProcessHits(FairVolume* v = nullptr) override;

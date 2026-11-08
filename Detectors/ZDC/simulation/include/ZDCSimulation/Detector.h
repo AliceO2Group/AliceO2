@@ -82,6 +82,7 @@ class Detector : public o2::base::DetImpl<Detector>
 #endif
 
   void InitializeO2Detector() final;
+  bool isMTSafe() const override { return true; }
 
   Bool_t ProcessHits(FairVolume* v = nullptr) final;
 
@@ -139,6 +140,9 @@ class Detector : public o2::base::DetImpl<Detector>
   Bool_t calculateTableIndexes(int& ibeta, int& iangle, int& iradius);
 
   void resetHitIndices();
+
+  /// Builds the fast simulation models, if they are enabled
+  void setupFastSim();
 
   // common function for hit creation (can be called from multiple interfaces)
   bool createOrAddHit(int detector,

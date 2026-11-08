@@ -68,11 +68,21 @@ R__LOAD_LIBRARY(libgeant4vmc)
 #include <unistd.h>
 #include "SimSetup/G4RunConfiguration.h"
 #include "SimSetup/VecGeomNavigation.h"
+#include "SimSetup/G4FieldCache.h"
 #include "DetectorsBase/VMCSeederService.h"
 #include "CLHEP/Random/Random.h"
 #include "TRandom.h"
+#include "DetectorsBase/MTWorkerHooks.h"
+#include "G4RunManager.hh"
+#include "G4Threading.hh"
+#include "G4UImanager.hh"
+#include "G4RegionStore.hh"
+#include "G4ProductionCuts.hh"
 #endif
 #include "commonConfig.C"
+
+// skips particles unknown to Geant4 (e.g. some ions) with a warning instead of a crash
+constexpr const char* kSkipUnknownParticles = "/mcPrimaryGenerator/skipUnknownParticles true";
 
 // Configuration macro for Geant4 VirtualMC
 void Config()
@@ -108,6 +118,11 @@ void Config()
 
   //Geant4 VMC 3.x
   Bool_t mtMode = FairRunSim::Instance()->IsMT();
+#ifndef G4MULTITHREADED
+  if (mtMode) {
+    LOG(fatal) << "Multithreaded mode (--isMT) needs Geant4 built with GEANT4_BUILD_MULTITHREADED=ON";
+  }
+#endif
   Bool_t specialStacking = true; // leads to default stack behaviour in which new primaries are only started if the previous
                                  // one and all of its secondaries have been transported
                                  // any other choice is dangerously inconsistent with the FinishPrimary() interface of VMCApp
@@ -152,6 +167,11 @@ void Config()
   }
   /// avoid the use of G4BACKTRACE (it seems to inferfere with process logic in o2-sim)
   setenv("G4BACKTRACE", "none", 1);
+  if (mtMode) {
+    // one transport thread per worker, read by the TGeant4 constructor
+    const char* nthreads = getenv("ALICE_NSIMWORKERS");
+    setenv("G4FORCENUMBEROFTHREADS", nthreads ? nthreads : "1", 1);
+  }
   /// Create the G4 VMC
   TGeant4* geant4 = new TGeant4("TGeant4", "The Geant4 Monte Carlo", runConfiguration);
   std::cout << "Geant4 has been created." << std::endl;
@@ -164,6 +184,33 @@ void Config()
     seeds[2] = 0;
     CLHEP::HepRandom::setTheSeeds(seeds);
   });
+
+  if (mtMode) {
+    if (g4Params.navmode == o2::conf::EG4Nav::kVecGeom) {
+      LOG(fatal) << "G4.navmode=kVecGeom is not yet supported in multithreaded mode (--isMT)";
+    }
+    // each thread takes one sub-event at a time
+    geant4->ProcessGeantCommand("/run/eventModulo 1");
+    // a thread without more work ends its own event loop after the current (empty) event
+    o2::base::MTWorkerHooks::instance().stopWorker = []() { G4RunManager::GetRunManager()->AbortRun(true); };
+    // each worker thread creates its own external decayer
+    o2::base::MTWorkerHooks::instance().makeDecayer = &makeDecayer;
+    // the field seen by a track must not depend on the previous track of the thread
+    o2::base::MTWorkerHooks::instance().beginTrack = &o2::simsetup::invalidateFieldCache;
+    // the primary generator exists only on the worker threads, so its commands are applied there
+    o2::base::MTWorkerHooks::instance().beginRunOnWorker = []() { G4UImanager::GetUIpointer()->ApplyCommand(kSkipUnknownParticles); };
+    // makes the first run apply the media energy cuts
+    o2::base::MTWorkerHooks::instance().beforeTransport = []() {
+      for (auto region : *G4RegionStore::GetInstance()) {
+        if (auto cuts = region->GetProductionCuts()) {
+          for (int i = 0; i < NumberOfG4CutIndex; ++i) {
+            cuts->SetProductionCut(cuts->GetProductionCut(i), i);
+          }
+        }
+      }
+      G4UImanager::GetUIpointer()->ApplyCommand("/run/physicsModified");
+    };
+  }
 
   if (g4Params.navmode == o2::conf::EG4Nav::kVecGeom) {
     o2::simsetup::installVecGeomNavigator();
@@ -186,6 +233,9 @@ void Config()
     /// Customise Geant4 setting
     /// (verbose level, global range cut, ..)
     geant4->ProcessGeantMacro(configm1.Data());
+  }
+  if (!mtMode) {
+    geant4->ProcessGeantCommand(kSkipUnknownParticles);
   }
 
   // Enter in Geant4 Interactive mode

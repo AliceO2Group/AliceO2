@@ -27,7 +27,7 @@ if(TGeo2VecGeom_FOUND)
   endif()
 endif()
 
-set(G4SETUP_SOURCES src/G4Config.cxx src/G4RunConfiguration.cxx src/G4LocalFieldConstruction.cxx
+set(G4SETUP_SOURCES src/G4Config.cxx src/G4RunConfiguration.cxx src/G4LocalFieldConstruction.cxx src/G4FieldCache.cxx
                     src/VecGeomNavigation.cxx src/O2MonopolePhysics.cxx)
 if(G4SETUP_WITH_VECGEOM)
   list(APPEND G4SETUP_SOURCES src/VecGeomG4Map.cxx src/VecGeomChecks.cxx src/VecGeomG4NavigatorBase.cxx

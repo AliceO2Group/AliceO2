@@ -22,6 +22,7 @@
 #include <list>
 #include <cstddef>
 #include <atomic>
+#include <mutex>
 
 #if !defined(__CINT__) && !defined(__MAKECINT__) && !defined(__ROOTCLING__) && !defined(__CLING__)
 #include <boost/interprocess/managed_external_buffer.hpp>
@@ -70,7 +71,8 @@ class ShmManager
 
   // create the local segment
   // this will occupy a subregion of an already created global shared mem segment
-  void occupySegment();
+  // (all of it for the single process of multithreaded Geant4, whose threads share it)
+  void occupySegment(bool wholeRegion = false);
 
   // simply attaches to the global segment
   bool attachToGlobalSegment();
@@ -88,7 +90,7 @@ class ShmManager
   // returns if pointer is part of the shm region under control of this manager
   bool isPointerOk(void* ptr) const
   {
-    return mBufferPtr && getPointerOffset(ptr) < SHMPOOLSIZE;
+    return mBufferPtr && getPointerOffset(ptr) < mPoolSize;
   }
 
   // returns if shared mem setup is correctly setup/operational
@@ -114,6 +116,8 @@ class ShmManager
   ShmMetaInfo* mSegInfoPtr = nullptr; // pointing to the meta information object
   bool mIsMaster = false;             // true if the manager who allocated the region
   bool mIsOperational = false;
+  size_t mPoolSize = SHMPOOLSIZE; // size of the region occupied by this process
+  std::mutex mAllocMutex;         // the boost buffer has no locking of its own; threads of multithreaded Geant4 share it
   // helper function
   void* tryAttach(bool& success);
   size_t getPointerOffset(void* ptr) const { return (size_t)((char*)ptr - (char*)mBufferPtr); }

@@ -24,6 +24,8 @@
 #include <FairDetector.h>
 
 #include <fairmq/FwdDecls.h>
+#include <TRandom.h>
+#include <memory>
 
 namespace o2
 {
@@ -39,6 +41,16 @@ class O2MCApplication : public O2MCApplicationBase
   using O2MCApplicationBase::O2MCApplicationBase;
   ~O2MCApplication() override = default;
 
+  // multithreaded Geant4: each worker thread gets its own copy of the application
+  O2MCApplication(const O2MCApplication& rhs);
+  TVirtualMCApplication* CloneForWorker() const override;
+  void InitOnWorker() override;
+  void BeginRunOnWorker() override;
+  void FinishRunOnWorker() override;
+
+  /// a worker thread asks the primary server for its sub-event here, as a worker process does before ProcessEvent
+  void BeginEvent() override;
+
   // triggers data sending/io
   void SendData();
 
@@ -47,6 +59,14 @@ class O2MCApplication : public O2MCApplicationBase
   /** Define actions at the end of event */
   void FinishEvent() override
   {
+    if (mIsEndOfWork) {
+      // the empty event that ends a worker thread's loop: nothing to send
+      for (auto det : listActiveDetectors) {
+        det->EndOfEvent();
+      }
+      fStack->Reset();
+      return;
+    }
     // update the stack
     fStack->FillTrackArray();
     fStack->UpdateTrackIndex(fActiveDetectors);
@@ -89,15 +109,30 @@ class O2MCApplication : public O2MCApplicationBase
   {
     mPrimaries = p;
   }
+  void setPrimaries(std::vector<TParticle>&& p)
+  {
+    mPrimaries = std::move(p);
+  }
+
+  /// whether a sub-event passes the O2SIM_RESTRICT_EVENTPART ("event:part") selection, a debugging aid
+  static bool isSelectedSubEvent(int eventID, int part);
 
   void setSimDataChannel(fair::mq::Channel* channel) { mSimDataChannel = channel; }
   void setSubEventInfo(o2::data::SubEventInfo* i);
 
   std::vector<TParticle> mPrimaries; //!
 
-  fair::mq::Channel* mSimDataChannel;                  //! generic channel on which to send sim data
+  fair::mq::Channel* mSimDataChannel = nullptr;        //! generic channel on which to send sim data
   o2::data::SubEventInfo* mSubEventInfo = nullptr;     //! what are we currently processing?
   std::vector<o2::base::Detector*> mActiveO2Detectors; //! active (data taking) o2 detectors
+
+ private:
+  void fetchWorkerChunk();
+  bool mIsMTWorker = false;                   //! this is the application of a multithreaded Geant4 worker
+  bool mIsEndOfWork = false;                  //! the current event is the empty one ending the worker's loop
+  bool mWorkerInitialized = false;            //! this worker's detectors and data channel are set up
+  o2::data::SubEventInfo mWorkerSubEventInfo; //! sub-event being transported by this worker
+  std::unique_ptr<TRandom> mWorkerRandom;     //! this worker's transport random generator
 
   ClassDefOverride(O2MCApplication, 1); //Interface to MonteCarlo application
 };

@@ -49,7 +49,12 @@ Detector::Detector(bool active, std::string geofilename)
 }
 
 Detector::Detector(const Detector& rhs)
-  : o2::base::DetImpl<Detector>(rhs)
+  : o2::base::DetImpl<Detector>(rhs),
+    mHits(o2::utils::createSimVector<Hit>()),
+    mCurrentSuperparent(nullptr),
+    mCurrentTrack(-1),
+    mCurrentPrimaryID(-1),
+    mCurrentParentID(-1)
 {
   mGeometry = rhs.mGeometry;
   mMedSensHCal = rhs.mMedSensHCal;

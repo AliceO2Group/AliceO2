@@ -77,6 +77,7 @@ class Detector : public o2::base::DetImpl<Detector>
   /// Initializing detector
   ///
   void InitializeO2Detector() final;
+  bool isMTSafe() const override { return true; }
 
   ///
   /// Processing hit creation in the PHOS crystalls

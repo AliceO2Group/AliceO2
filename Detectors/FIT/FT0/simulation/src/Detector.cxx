@@ -38,6 +38,7 @@
 #include "FT0Simulation/Detector.h"
 #include "DetectorsBase/Stack.h"
 #include "DetectorsBase/SimRandom.h"
+#include <algorithm>
 
 using namespace o2::ft0;
 using o2::ft0::Geometry;
@@ -55,6 +56,8 @@ Detector::Detector(Bool_t Active)
 Detector::Detector(const Detector& rhs)
   : o2::base::DetImpl<Detector>(rhs), mIdSens1(rhs.mIdSens1), mPMTeff(rhs.mPMTeff), mHits(o2::utils::createSimVector<o2::ft0::HitType>()), mTrackIdTop(-1), mTrackIdMCPtop(-1)
 {
+  // the channel lookup is built with the optical geometry, which only the master constructs
+  std::copy(std::begin(rhs.mSim2LUT), std::end(rhs.mSim2LUT), mSim2LUT);
 }
 
 Detector::~Detector()

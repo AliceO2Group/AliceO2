@@ -69,7 +69,31 @@ Detector::Detector(Bool_t active)
   mMediumPMCid = -1; // minus for unitialized
   mMediumPMQid = -2; // different to PMC in any case
   resetHitIndices();
+  setupFastSim();
+}
 
+//_____________________________________________________________________________
+Detector::Detector(const Detector& rhs)
+  : o2::base::DetImpl<Detector>(rhs),
+    mXImpact(-999, -999, -999),
+    // the medium ids are set while the geometry is built, which only the master does
+    mMediumPMCid(rhs.mMediumPMCid),
+    mMediumPMQid(rhs.mMediumPMQid),
+    mHits(new std::vector<o2::zdc::Hit>),
+    mNeutronResponseImage(rhs.mNeutronResponseImage),
+    mProtonResponseImage(rhs.mProtonResponseImage)
+{
+  mTrackEta = 999;
+  mTotLightPMC = 0;
+  mTotLightPMQ = 0;
+  resetHitIndices();
+  // each copy has its own fast simulation models, since running a model changes its state
+  setupFastSim();
+}
+
+//_____________________________________________________________________________
+void Detector::setupFastSim()
+{
 #ifdef ZDC_FASTSIM_ONNX
   // If FastSim module was disabled, log appropriate message
   // otherwise check if all necessary parameters were passed, if so try build objects
@@ -125,13 +149,6 @@ Detector::Detector(Bool_t active)
     }
   }
 #endif
-}
-
-//_____________________________________________________________________________
-Detector::Detector(const Detector& rhs)
-  : o2::base::DetImpl<Detector>(rhs),
-    mHits(new std::vector<o2::zdc::Hit>)
-{
 }
 
 //_____________________________________________________________________________

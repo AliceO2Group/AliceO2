@@ -229,6 +229,8 @@ class Detector : public o2::base::DetImpl<Detector>
   /// Returns the number of layers
   Int_t getNumberOfLayers() const { return mNumberLayers; }
 
+  bool isMTSafe() const override { return true; }
+
   GeometryTGeo* mGeometryTGeo; //! access to geometry details
 
  protected:

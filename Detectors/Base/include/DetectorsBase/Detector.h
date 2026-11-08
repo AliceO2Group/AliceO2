@@ -219,6 +219,9 @@ class Detector : public FairDetector
   // ... for things that should be setup in each simulation worker separately)
   virtual void initializeLate() = 0;
 
+  /// whether this detector may run in multithreaded Geant4, with one clone per worker thread
+  virtual bool isMTSafe() const { return false; }
+
   /// helper wrapper function to register a geometry volume given by name with FairRoot
   /// @returns The MonteCarlo ID for the volume
   int registerSensitiveVolumeAndGetVolID(std::string const& name);
@@ -333,6 +336,10 @@ class DetImpl : public o2::base::Detector
  public:
   // offer same constructors as base
   using Detector::Detector;
+
+  /// copy for a worker thread of multithreaded Geant4; the copy creates its own hit buffers in initializeLate
+  DetImpl(const DetImpl& rhs) : Detector(rhs) {}
+  DetImpl& operator=(const DetImpl&) = delete;
 
   // default implementation for getHitBranchNames
   std::string getHitBranchNames(int probe) const override

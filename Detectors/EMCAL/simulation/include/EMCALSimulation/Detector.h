@@ -71,6 +71,7 @@ class Detector : public o2::base::DetImpl<Detector>
 
   /// \brief Initializing detector
   void InitializeO2Detector() override;
+  bool isMTSafe() const override { return true; }
 
   /// \brief Processing hit creation in the EMCAL scintillator volume
   /// \param v Current sensitive volume
