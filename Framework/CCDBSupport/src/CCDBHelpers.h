@@ -39,6 +39,7 @@ struct CCDBHelpers {
   /// @a output DPL Output matcher
   /// @a v freshly-fetched CCDB payload; consumed by the call, leaving @a v empty
   /// @a method serialization-method tag written into the message header
+  /// @a strategy CacheOnly to cache the message without sending it
   /// @return the new CacheId; the caller must record it in its map
   static DataAllocator::CacheId adoptAndReplaceCachedMessage(
     DataAllocator& allocator,
@@ -46,7 +47,8 @@ struct CCDBHelpers {
     std::string const& path,
     Output const& output,
     o2::pmr::vector<char>&& v,
-    o2::header::SerializationMethod method);
+    o2::header::SerializationMethod method,
+    DataAllocator::CacheStrategy strategy = DataAllocator::CacheStrategy::Always);
 };
 
 } // namespace o2::framework

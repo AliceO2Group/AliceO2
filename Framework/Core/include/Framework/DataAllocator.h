@@ -528,7 +528,9 @@ class DataAllocator
 
   enum struct CacheStrategy : int {
     Never = 0,
-    Always = 1
+    Always = 1,
+    /// Cache the message without sending it. Use adoptFromCache to send it.
+    CacheOnly = 2
   };
 
   template <typename ContainerT>
@@ -628,7 +630,7 @@ DataAllocator::CacheId DataAllocator::adoptContainer(const Output& spec, Contain
   );
 
   CacheId cacheId{0, 0, 0}; //
-  if (cache == CacheStrategy::Always) {
+  if (cache != CacheStrategy::Never) {
     // The message will be shallow cloned in the cache. Since the
     // clone is indistinguishable from the original, we can keep sending
     // the original.
@@ -636,6 +638,9 @@ DataAllocator::CacheId DataAllocator::adoptContainer(const Output& spec, Contain
     auto meta = dynamic_cast<fair::mq::shmem::Message*>(payloadMessage.get())->GetMeta();
     cacheId.handle = meta.fHandle;
     cacheId.segment = meta.fSegmentId;
+  }
+  if (cache == CacheStrategy::CacheOnly) {
+    return cacheId;
   }
 
   context.add<MessageContext::TrivialObject>(std::move(headerMessage), std::move(payloadMessage), routeIndex);
