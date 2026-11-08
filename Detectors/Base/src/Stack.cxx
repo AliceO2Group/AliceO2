@@ -120,6 +120,7 @@ Stack::Stack(const Stack& rhs)
   : FairGenericStack(rhs),
     mStack(),
     mParticles(),
+    mTrackIDtoParticlesEntry(rhs.mTrackIDtoParticlesEntry.size(), -1),
     mTracks(nullptr),
     mIndexMap(),
     mIndexOfCurrentTrack(-1),
@@ -131,10 +132,15 @@ Stack::Stack(const Stack& rhs)
     mNumberOfPrimariesPopped(0),
     mStoreMothers(rhs.mStoreMothers),
     mStoreSecondaries(rhs.mStoreSecondaries),
+    mPruneKinematics(rhs.mPruneKinematics),
     mMinHits(rhs.mMinHits),
     mEnergyCut(rhs.mEnergyCut),
-    mTrackRefs(new std::vector<o2::TrackReference>),
-    mIsG4Like(rhs.mIsG4Like)
+    mCleanupThreshold(rhs.mCleanupThreshold),
+    mIsG4Like(rhs.mIsG4Like),
+    mIsExternalMode(rhs.mIsExternalMode),
+    mDoTrackSeeding(rhs.mDoTrackSeeding),
+    mTransportPrimary(rhs.mTransportPrimary),
+    mTrackRefs(new std::vector<o2::TrackReference>)
 {
   LOG(debug) << "copy constructor called";
   mTracks = new std::vector<MCTrack>();

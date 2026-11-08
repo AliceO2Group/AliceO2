@@ -614,6 +614,20 @@ TVirtualMCApplication* FairMCApplication::CloneForWorker() const
 }
 
 //_____________________________________________________________________________
+FairModule* FairMCApplication::OwnModule(FairModule* module) const
+{
+    // the worker's clone of a module, found by name
+    if (!module || IsMasterApplication() || fModules->IndexOf(module) >= 0) {
+        return module;
+    }
+    auto clone = static_cast<FairModule*>(fModules->FindObject(module->GetName()));
+    if (!clone) {
+        LOG(fatal) << "FairMCApplication: no worker clone for module " << module->GetName();
+    }
+    return clone;
+}
+
+//_____________________________________________________________________________
 void FairMCApplication::InitOnWorker()
 {
     // Create Root manager
@@ -1014,7 +1028,8 @@ void FairMCApplication::InitGeometry()
     while ((obj = fModIter->Next())) {
         detector = dynamic_cast<FairDetector*>(obj);
         module = dynamic_cast<FairModule*>(obj);
-        if (module) {
+        if (module && IsMasterApplication()) {
+            // media cuts are set once on the master; multithreaded Geant4 workers share them
             module->SetSpecialPhysicsCuts();
         }
         if (detector) {
@@ -1101,7 +1116,7 @@ void FairMCApplication::InitGeometry()
                     }
                     FairVolume* fNewV = new FairVolume(fv->GetName(), id);
                     fNewV->setModId(fv->getModId());
-                    fNewV->SetModule(fv->GetModule());
+                    fNewV->SetModule(OwnModule(fv->GetModule()));
                     fNewV->setCopyNo(fN->GetNumber());
                     fNewV->setMCid(id);
                     fVolMap.insert(pair<Int_t, FairVolume*>(id, fNewV));
@@ -1109,13 +1124,22 @@ void FairMCApplication::InitGeometry()
             } else {
                 FairVolume* fNewV = new FairVolume(fv->GetName(), id);
                 fNewV->setModId(fv->getModId());
-                fNewV->SetModule(fv->GetModule());
+                fNewV->SetModule(OwnModule(fv->GetModule()));
                 fNewV->setCopyNo(1);
                 fNewV->setMCid(id);
                 fVolMap.insert(pair<Int_t, FairVolume*>(id, fNewV));
             }
-        } else {
+        } else if (IsMasterApplication()) {
             fVolMap.insert(pair<Int_t, FairVolume*>(id, fv));
+        } else {
+            // the volume object is shared with the master; a worker needs its own, pointing at its own module
+            FairVolume* fNewV = new FairVolume(fv->GetName(), id);
+            fNewV->setModId(fv->getModId());
+            fNewV->SetModule(OwnModule(fv->GetModule()));
+            fNewV->setCopyNo(fv->getCopyNo());
+            fNewV->setMCid(id);
+            fNewV->setGeoNode(fv->getGeoNode());
+            fVolMap.insert(pair<Int_t, FairVolume*>(id, fNewV));
         }
     }   // end off loop Fill sensitive volumes
 

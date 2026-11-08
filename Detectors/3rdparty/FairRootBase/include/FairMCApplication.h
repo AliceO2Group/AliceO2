@@ -57,6 +57,7 @@ enum class FairMCApplicationState
  * @since 12.01.04
  */
 
+class FairModule;
 class FairMCApplication : public TVirtualMCApplication
 {
   public:
@@ -304,9 +305,11 @@ class FairMCApplication : public TVirtualMCApplication
 
     ClassDef(FairMCApplication, 4);
 
-  private:
-    /** Protected copy constructor */
+  protected:
+    /** Copy constructor, used to create the application of a worker thread */
     FairMCApplication(const FairMCApplication&);
+
+  private:
     /** Protected assignment operator */
     FairMCApplication& operator=(const FairMCApplication&);
 
@@ -314,6 +317,12 @@ class FairMCApplication : public TVirtualMCApplication
     Bool_t fGeometryIsInitialized;
 
     static FairMCApplication* fgMasterInstance;
+
+  protected:
+    /** True for the application on the master thread, false for a worker clone */
+    Bool_t IsMasterApplication() const { return !fgMasterInstance || fgMasterInstance == this; }
+    /** The worker clone of a module of the master application (the module itself on the master) */
+    FairModule* OwnModule(FairModule* module) const;
 };
 
 // inline functions

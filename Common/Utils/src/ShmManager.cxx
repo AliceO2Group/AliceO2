@@ -178,7 +178,7 @@ bool ShmManager::attachToGlobalSegment()
   return b;
 }
 
-void ShmManager::occupySegment()
+void ShmManager::occupySegment(bool wholeRegion)
 {
   LOG(info) << "OCCUPYING A SEGMENT IN A SHARED REGION";
   // get information about the global shared mem in which to occupy a region
@@ -197,15 +197,17 @@ void ShmManager::occupySegment()
   if (b) {
     // read meta information in the segment to determine the id of this segment
     auto info = static_cast<o2::utils::ShmMetaInfo*>(addr);
-    const int segmentcounter = info->counter.fetch_add(1);
+    const int npools = wholeRegion ? (info->allocedbytes - sizeof(ShmMetaInfo)) / SHMPOOLSIZE : 1;
+    const int segmentcounter = info->counter.fetch_add(npools);
     LOG(info) << "SEGMENTCOUNT " << segmentcounter;
 
     const auto offset_in_bytes = sizeof(ShmMetaInfo) + segmentcounter * SHMPOOLSIZE;
     mBufferPtr = (void*)(((char*)addr) + offset_in_bytes);
+    mPoolSize = npools * SHMPOOLSIZE;
 
-    assert((unsigned long long)((char*)mBufferPtr - (char*)addr) + SHMPOOLSIZE <= info->allocedbytes);
+    assert((unsigned long long)((char*)mBufferPtr - (char*)addr) + mPoolSize <= info->allocedbytes);
 
-    boostmanagedbuffer = new boost::interprocess::wmanaged_external_buffer(create_only, mBufferPtr, SHMPOOLSIZE);
+    boostmanagedbuffer = new boost::interprocess::wmanaged_external_buffer(create_only, mBufferPtr, mPoolSize);
     boostallocator = new boost::interprocess::allocator<char, wmanaged_external_buffer::segment_manager>(
       boostmanagedbuffer->get_segment_manager());
 
@@ -225,6 +227,7 @@ ShmManager::~ShmManager()
 void* ShmManager::getmemblock(size_t size)
 {
   void* addr = nullptr;
+  std::lock_guard<std::mutex> lock(mAllocMutex);
   try {
     addr = (void*)boostallocator->allocate(size).get();
   } catch (const std::exception& e) {
@@ -235,6 +238,7 @@ void* ShmManager::getmemblock(size_t size)
 
 void ShmManager::freememblock(void* ptr, size_t s)
 {
+  std::lock_guard<std::mutex> lock(mAllocMutex);
   boostallocator->deallocate((char*)ptr, s);
 }
 

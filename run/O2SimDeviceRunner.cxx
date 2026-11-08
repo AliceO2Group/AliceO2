@@ -22,6 +22,8 @@
 #include <memory>
 #include <string>
 #include <fairmq/Channel.h>
+#include <mutex>
+#include <vector>
 #include <fairlogger/Logger.h>
 #include <fairmq/Parts.h>
 #include <fairmq/TransportFactory.h>
@@ -35,6 +37,10 @@
 #include <sys/prctl.h>
 #endif
 #include "SimPublishChannelHelper.h"
+#include "DetectorsBase/MTWorkerHooks.h"
+#include <SimulationDataFormat/PrimaryChunk.h>
+#include <TROOT.h>
+#include <atomic>
 
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
@@ -266,6 +272,133 @@ bool waitForControlInput(int workerID)
   return true;
 }
 
+// Multithreaded Geant4: one process whose Geant4 worker threads each ask the primary server for sub-events
+// and send their hits to the merger, as the forked worker processes do otherwise.
+std::atomic<bool> gServerDone{false};
+std::atomic<int> gNextWorkerID{0};
+std::atomic<int> gChunkRequests{0}; // requests for work in the current run
+
+// The channels of the transport threads, kept here so that they can be closed before the process exits
+struct MTChannels {
+  std::shared_ptr<fair::mq::TransportFactory> factory;
+  std::mutex setupMutex;   // serialises the channel creation in the shared factory
+  std::mutex requestMutex; // one request channel for all threads (with one per thread, only one got work)
+  std::unique_ptr<fair::mq::Channel> request;
+  std::vector<std::unique_ptr<fair::mq::Channel>> data; // one per thread
+};
+MTChannels gMTChannels;
+
+fair::mq::Channel* makeWorkerChannel(std::unique_ptr<fair::mq::Channel>& owner, char const* name, char const* type, std::string const& address)
+{
+  std::lock_guard<std::mutex> lock(gMTChannels.setupMutex);
+  owner = std::make_unique<fair::mq::Channel>(name, type, gMTChannels.factory);
+  if (!owner->Connect(address) || !owner->Validate()) {
+    LOG(fatal) << "Could not connect channel " << name << " of a transport thread to " << address;
+  }
+  return owner.get();
+}
+
+// Closes the channels of the transport threads; with linger -1 this waits until the merger has taken all queued hits
+void closeMTChannels()
+{
+  auto& hooks = o2::base::MTWorkerHooks::instance();
+  hooks.fetchChunk = nullptr;
+  hooks.dataChannel = nullptr;
+  gMTChannels.request.reset();
+  gMTChannels.data.clear();
+  gMTChannels.factory.reset();
+}
+
+// The Geant4 worker threads already exist when this is called; they use these hooks from the first real ProcessRun.
+void installMTWorkerHooks(std::string const& serveraddress, std::string const& mergeraddress)
+{
+  gMTChannels.factory = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
+  auto& hooks = o2::base::MTWorkerHooks::instance();
+  hooks.fetchChunk = [serveraddress]() -> std::unique_ptr<o2::data::PrimaryChunk> {
+    thread_local int workerID = gNextWorkerID++;
+    ++gChunkRequests;
+    std::lock_guard<std::mutex> lock(gMTChannels.requestMutex);
+    if (!gMTChannels.request) {
+      makeWorkerChannel(gMTChannels.request, "primary-get", "req", serveraddress);
+    }
+    using Status = o2::devices::O2SimDevice::ChunkStatus;
+    while (true) {
+      auto fetched = o2::devices::O2SimDevice::fetchChunk(workerID, *gMTChannels.request);
+      if (fetched.status == Status::Work) {
+        return std::move(fetched.chunk);
+      }
+      if (fetched.status == Status::Stop) {
+        gServerDone = true;
+        return nullptr;
+      }
+      // Retry and EndOfWork: ask again, as a worker process does; the server answers as idle once done
+    }
+  };
+  hooks.dataChannel = [mergeraddress]() -> fair::mq::Channel* {
+    thread_local fair::mq::Channel* channel = nullptr;
+    if (!channel) {
+      std::unique_ptr<fair::mq::Channel> owner;
+      channel = makeWorkerChannel(owner, "simdata", "push", mergeraddress);
+      channel->GetSocket().SetLinger(-1); // keep queued hits until the merger has taken them
+      std::lock_guard<std::mutex> lock(gMTChannels.setupMutex);
+      gMTChannels.data.push_back(std::move(owner));
+    }
+    return channel;
+  };
+}
+
+[[noreturn]] void runMT(std::string const& serveraddress, std::string const& mergeraddress, fair::mq::Channel& pubchannel)
+{
+  installMTWorkerHooks(serveraddress, mergeraddress);
+  auto sim = getDevice();
+  sim->lateInit();
+  auto pushchannel = o2::simpubsub::createPUBChannel(o2::simpubsub::getPublishAddress("o2sim-workerinternal", gDriverProcess), "push");
+  std::thread([&pubchannel]() {
+    auto collectorchannel = o2::simpubsub::createPUBChannel(o2::simpubsub::getPublishAddress("o2sim-workerinternal", gDriverProcess), "pull");
+    std::unique_ptr<fair::mq::Message> msg(collectorchannel.NewMessage());
+    while (true) {
+      if (collectorchannel.Receive(msg) > 0) {
+        std::string text(reinterpret_cast<char const*>(msg->GetData()), msg->GetSize());
+        o2::simpubsub::publishMessage(pubchannel, text);
+      }
+    }
+  }).detach();
+  o2::simpubsub::publishMessage(pushchannel, o2::simpubsub::simStatusString("WORKER0", "STATUS", "SETUP COMPLETED"));
+
+  // a run ends once every thread was told there is no more work; it is repeated if the events ran out first
+  constexpr int kEventBlock = 100000;
+  auto vmc = TVirtualMC::GetMC();
+  if (auto& beforeTransport = o2::base::MTWorkerHooks::instance().beforeTransport) {
+    beforeTransport();
+  }
+  auto& conf = o2::conf::SimConfig::Instance();
+  bool more = true;
+  while (more) {
+    gServerDone = false;
+    while (!gServerDone) {
+      gChunkRequests = 0;
+      vmc->ProcessRun(kEventBlock);
+      if (gChunkRequests == 0) {
+        LOG(fatal) << "No transport thread asked for work in this run; Geant4 did not start it";
+      }
+    }
+    doLogInfo(0, "simulation is done");
+    if (conf.asService()) {
+      LOG(info) << "IN SERVICE MODE WAITING";
+      o2::simpubsub::publishMessage(pushchannel, o2::simpubsub::simStatusString("WORKER0", "STATUS", "AWAITING INPUT"));
+      more = waitForControlInput(0);
+      usleep(100);
+    } else {
+      o2::simpubsub::publishMessage(pushchannel, o2::simpubsub::simStatusString("WORKER0", "STATUS", "TERMINATING"));
+      LOG(info) << "FINISHING";
+      more = false;
+    }
+  }
+  o2::SimSetup::shutdown();
+  closeMTChannels();
+  _exit(0);
+}
+
 int main(int argc, char* argv[])
 {
   // Geant4 is loaded by dlopen and may need a static TLS reserve, which glibc only takes at program start
@@ -377,12 +510,24 @@ int main(int argc, char* argv[])
     // many processes. Here we are not using fair::mq::Devices and just setup
     // some channels manually and do our own runloop.
 
+    // in multithreaded mode, Geant4 starts its worker threads while the simulation is initialised
+    const bool mtMode = getenv("ALICE_O2SIM_MT") != nullptr;
+    if (mtMode) {
+      ROOT::EnableThreadSafety();
+    }
+
     // we init the simulation first
     std::unique_ptr<FairRunSim> simrun;
     // TODO: take the addresses from somewhere else
     if (!initializeSim("zeromq", serverstatus_address, simrun)) {
       LOG(error) << "Could not initialize simulation";
       return 1;
+    }
+
+    if (mtMode) {
+      gMasterProcess = getpid();
+      gDriverProcess = getppid();
+      runMT(serveraddress, mergeraddress, pubchannel);
     }
 
     // should be factored out?

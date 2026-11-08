@@ -38,6 +38,7 @@ class Detector : public o2::base::DetImpl<Detector>
   }
 
   void InitializeO2Detector() override;
+  bool isMTSafe() const override { return true; }
   bool ProcessHits(FairVolume* v) override;
   o2::hmpid::HitType* AddHit(float x, float y, float z, float time, float energy, Int_t trackId, Int_t detId);
   void GenFee(float qtot);

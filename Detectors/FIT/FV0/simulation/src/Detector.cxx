@@ -45,9 +45,6 @@ Detector::~Detector()
   if (mHits) {
     o2::utils::freeSimVector(mHits); // delete mHits;
   }
-  if (mGeometry) {
-    delete mGeometry;
-  }
 }
 
 Detector::Detector(Bool_t isActive)

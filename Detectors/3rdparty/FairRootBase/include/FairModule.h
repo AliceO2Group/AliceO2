@@ -159,6 +159,10 @@ class FairModule : public TNamed
     Bool_t fGeoSaved;   //! flag for initialisation
     TVirtualMC* fMC;    //! cahed pointer to MC (available only after initialization)
 
+  public:
+    /** Sets the cached MC, for a module cloned for a worker thread before its MC existed */
+    void SetMC(TVirtualMC* mc) { fMC = mc; }
+
     ClassDef(FairModule, 4);
 };
 

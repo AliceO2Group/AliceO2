@@ -35,6 +35,7 @@ o2_add_library(DetectorsBase
                        src/Stack.cxx
                        src/VMCSeederService.cxx
                        src/SimRandom.cxx
+                       src/MTWorkerHooks.cxx
                        src/GlobalParams.cxx
                        src/O2Tessellated.cxx
                        src/TGeoGeometryUtils.cxx
@@ -93,6 +94,13 @@ o2_add_test(
 o2_add_test(
   SimRandom
   SOURCES test/testSimRandom.cxx
+  COMPONENT_NAME DetectorsBase
+  PUBLIC_LINK_LIBRARIES O2::DetectorsBase
+  LABELS detectorsbase)
+
+o2_add_test(
+  DetImplClone
+  SOURCES test/testDetImplClone.cxx
   COMPONENT_NAME DetectorsBase
   PUBLIC_LINK_LIBRARIES O2::DetectorsBase
   LABELS detectorsbase)

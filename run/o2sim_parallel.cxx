@@ -536,6 +536,14 @@ int main(int argc, char* argv[])
   int nworkers = conf.getNSimWorkers();
   setenv("ALICE_NSIMWORKERS", std::to_string(nworkers).c_str(), 1);
   LOG(info) << "Running with " << nworkers << " sim workers ";
+  if (conf.getIsMT()) {
+    if (conf.getMCEngine() != "TGeant4") {
+      LOG(fatal) << "Multithreaded mode (--isMT) is only available with TGeant4";
+    }
+    // one worker process with a Geant4 transport thread per sim worker
+    setenv("ALICE_O2SIM_MT", "ON", 1);
+    LOG(info) << "Multithreaded Geant4 with " << nworkers << " transport threads";
+  }
 
   o2::utils::ShmManager::Instance().createGlobalSegment(nworkers);
 
@@ -820,7 +828,7 @@ int main(int argc, char* argv[])
   }
 
   // sum the Geant4 scoring meshes written by the individual workers
-  if (!errored && o2::conf::mergeG4ScoringDumps(".", conf.getNSimWorkers()) < 0) {
+  if (!errored && o2::conf::mergeG4ScoringDumps(".", conf.getIsMT() ? 1 : conf.getNSimWorkers()) < 0) {
     errored = true;
   }
 

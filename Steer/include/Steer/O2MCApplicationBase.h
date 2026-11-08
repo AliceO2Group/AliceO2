@@ -46,6 +46,17 @@ class O2MCApplicationBase : public FairMCApplication
     initTrackRefHook();
   }
 
+  /// copy for a worker thread of multithreaded Geant4; the macro hooks are copied, not compiled again
+  O2MCApplicationBase(const O2MCApplicationBase& rhs)
+    : FairMCApplication(rhs),
+      mCutParams(rhs.mCutParams),
+      mModIdToName(rhs.mModIdToName),
+      mTrackRefFcn(rhs.mTrackRefFcn),
+      mKeepStepFcn(rhs.mKeepStepFcn),
+      mHasStepFilterMacro(rhs.mHasStepFilterMacro)
+  {
+  }
+
   ~O2MCApplicationBase() override = default;
 
   void Stepping() override;
