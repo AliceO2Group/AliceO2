@@ -503,15 +503,26 @@ void GPUDisplayFrontend::listConfig()
     GPUInfo("  %2u %-28s %s", i, rtti.keyMapNames[i].c_str(), mappedKeys[i].c_str());
   }
   GPUInfo("");
-  std::string available;
+  static constexpr std::string_view availablePrefix = "Available keys: ";
+  static constexpr size_t MAX_LINE_LENGTH = 240;
+  std::string available(availablePrefix);
   for (uint16_t k : availableKeys) {
-    available += (available.empty() ? "[" : " [") + rtti.getKeyName(k) + "]";
+    const std::string key = "[" + rtti.getKeyName(k) + "]";
+    if (available.size() > availablePrefix.size() && available.size() + 1 + key.size() > MAX_LINE_LENGTH) { // Wrap, without splitting a key
+      GPUInfo("%s", available.c_str());
+      available.assign(availablePrefix.size(), ' ');
+    } else if (available.size() > availablePrefix.size()) {
+      available += ' ';
+    }
+    available += key;
   }
-  GPUInfo("Available keys: %s", available.c_str());
+  GPUInfo("%s", available.c_str());
   GPUInfo("Help text:");
   for (const auto& line : rtti.helpText) {
     GPUInfo("  %s", line.c_str());
   }
+  GPUInfo("");
+  mConsole->printCommands([](const std::string& line) { GPUInfo("%s", line.c_str()); });
   GPUInfo("");
   GPUInfo("%zu options with RTTI, %u of them with a key, %u in the Qt GUI, %zu bound keys, %zu available keys", rtti.rttiEntries.size(), nOptionsWithKey, nOptionsInGUI, boundKeys.size(), availableKeys.size());
 }

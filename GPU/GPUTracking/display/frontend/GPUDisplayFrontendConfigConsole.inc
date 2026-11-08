@@ -17,31 +17,16 @@
 
 void GPUDisplayFrontend::buildConsoleCommands()
 {
+  using args = std::span<const GPUDisplayConsole::consoleArg>;
   auto& commands = mConsole->mConsoleCommands;
-  commands["help"] = [this](std::span<const GPUDisplayConsole::consoleArg> args) {
-    if (args.size()) {
-      mConsole->consolePrint("help: no arguments expected");
-      return;
-    }
-    std::vector<std::string> names;
-    for (const auto& [name, function] : mConsole->mConsoleCommands) {
-      names.emplace_back(name);
-    }
-    std::sort(names.begin(), names.end());
-    mConsole->consolePrint("Console commands:");
-    for (const auto& name : names) {
-      mConsole->consolePrint("  %s", name.c_str());
-    }
-  };
-  commands["clearHistory"] = [this](std::span<const GPUDisplayConsole::consoleArg> args) {
-    if (args.size()) {
-      mConsole->consolePrint("clearHistory: no arguments expected");
-      return;
-    }
-    mConsole->mConsoleHistory.resize(1); // Keep the title
-    mConsole->mConsoleTextCurrent = 0;
-    mConsole->mConsoleInfoLastMessage.clear();
-  };
+  commands["help"] = {[this](args) { mConsole->printCommands([this](const std::string& line) { mConsole->consolePrint("%s", line.c_str()); }); }, "", "List available console commands"};
+  commands["clearHistory"] = {[this](args) {
+                                mConsole->mConsoleHistory.resize(1); // Keep the title
+                                mConsole->mConsoleTextCurrent = 0;
+                                mConsole->mConsoleInfoLastMessage.clear();
+                              },
+                              "", "Clear the console history"};
+  commands["runScript"] = {[this](args a) { mConsole->runScriptFile(std::get<std::string>(a[0])); }, "s", "Execute script file"};
 }
 
 #endif // GPUDISPLAYFRONTENDCONFIGCONSOLE_INC

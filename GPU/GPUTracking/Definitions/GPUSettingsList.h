@@ -529,6 +529,7 @@ AddOption(listFrontendOptionHandling, bool, false, "", 0, "List all assigned key
 AddOption(consoleDelay, float, 0.5f, "", 0, "Time in seconds to open / close the console (^ key)")
 AddOption(consoleAlpha, float, 0.8f, "", 0, "Opacity of the console background")
 AddOption(consoleVertical, float, 0.5f, "", 0, "Fraction of the window height covered by the fully opened console")
+AddOption(runScript, std::string, "", "", 0, "Console script file, run before the first frame of the display")
 AddOption(consoleHistorySize, uint32_t, 1000000, "", 0, "Number of console lines kept, the history is shortened to this when it reaches twice the size")
 AddSubConfig(GPUSettingsDisplayLight, light)
 AddSubConfig(GPUSettingsDisplayHeavy, heavy)
