@@ -219,6 +219,12 @@ BOOL CreateGLWindow(char* title, int32_t width, int32_t height, int32_t bits, bo
 
 int32_t GetKey(int32_t key)
 {
+  if (key == VK_BACK) {
+    return (GPUDisplayFrontendKeyVars::KEY_BACKSPACE);
+  }
+  if (key == VK_DELETE) {
+    return (GPUDisplayFrontendKeyVars::KEY_DELETE);
+  }
   if (key == 107 || key == 187) {
     return ('+');
   }
@@ -257,14 +263,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
       PostQuitMessage(0);
       return 0;
 
-    case WM_KEYDOWN: // Is A Key Being Held Down?
-      wParam = GetKey(wParam);
-      mKeys[wParam] = TRUE;
+    case WM_KEYDOWN:                                                   // Is A Key Being Held Down?
+      wParam = ((lParam >> 16) & 0xFF) == 0x29 ? '^' : GetKey(wParam); // Scan code of the key left of 1: console key, independent of the layout
+      mKeys[wParam] = !consoleShown();
       HandleKey(wParam);
       return 0;
 
     case WM_KEYUP:
-      wParam = GetKey(wParam);
+      wParam = ((lParam >> 16) & 0xFF) == 0x29 ? '^' : GetKey(wParam);
       mKeys[wParam] = false;
       GPUInfo("Key: %d", wParam);
       return 0;

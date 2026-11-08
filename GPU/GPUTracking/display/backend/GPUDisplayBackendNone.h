@@ -40,6 +40,7 @@ class GPUDisplayBackendNone : public GPUDisplayBackend
   void pointSizeFactor(float factor) override {}
   void lineWidthFactor(float factor) override {}
   void GLPrintText(const char* s, float x, float y, float* color, float scale, uint32_t nCharacters) override {}
+  void GLDrawQuad(const float (&corners)[4][2], const float* color) override {}
   void addFontSymbol(int32_t symbol, int32_t sizex, int32_t sizey, int32_t offsetx, int32_t offsety, int32_t advance, void* data) override {}
   void initializeTextDrawing() override {}
 };

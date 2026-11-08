@@ -33,6 +33,7 @@ class GPUReconstruction;
 class GPUDisplay;
 class GPUDisplayBackend;
 class GPUDisplayGUIWrapper;
+class GPUDisplayConsole;
 struct GPUDisplayGUIChannel;
 
 class GPUDisplayFrontend : public GPUDisplayFrontendInterface, public GPUDisplayFrontendKeyVars
@@ -112,7 +113,7 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface, public GPUDisplay
   float mMouseDnX, mMouseDnY; // X/Y position where mouse button was pressed
   float mMouseMvX, mMouseMvY; // Current mouse pointer position
   int32_t mMouseWheel = 0;    // Incremental value of mouse wheel, ca +/- 100 per wheel tick
-  bool mKeys[256] = {false};  // Array of mKeys currently pressed
+  bool mKeys[256] = {false};  // Array of mKeys currently pressed (not while the console is shown)
   int32_t mDisplayHeight = INIT_HEIGHT;
   int32_t mDisplayWidth = INIT_WIDTH;
 
@@ -131,6 +132,7 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface, public GPUDisplay
   int32_t HandleUpdatesAndDrawGLScene(bool suspended = false); // Handle external GUI signals and config changes, then draw the scene (suspended: only update, no drawing, e.g. for a hidden window)
 
   void HandleKey(uint8_t key);                     // Callback for handling key presses
+  bool consoleShown() const;                       // Key presses go to the console, frontends do not set mKeys
   void HandleExternalGUISignals();                 // Callback to handle signals from external GUIs
   bool HasExternalGUISignals() const;              // Returns whether there are currently pending signals from external GUIs to be handled
   bool processKeyLambda(uint32_t key);             // Process key lambda callback
@@ -154,7 +156,9 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface, public GPUDisplay
 
   void HandleExternalGUIKeys();
   static int32_t translateExternalKey(uint32_t translationMode, uint64_t extendedKey); // Key code of an encoded key of sendExternalGUIKey (+ SPECIAL_KEYS_SHIFTED with SHIFT), -1 if unknown
-  bool mWindowFullScreen = false, mWindowMaximized = false;                            // Window state last requested or reported by the window system
+  void buildConsoleCommands();                                                         // Fills mConsole->mConsoleCommands, GPUDisplayFrontendConfigConsole.inc (commands need the config RTTI)
+  std::unique_ptr<GPUDisplayConsole> mConsole;
+  bool mWindowFullScreen = false, mWindowMaximized = false; // Window state last requested or reported by the window system
   template <typename... Args>
   void add_key_binding(Args&&... args); // KEY_LAMBDA(key, ...) entries, the help text, and optionally the keys to show in the help text, only used in GPUDisplayFrontendConfig.cxx
   template <typename... Args>

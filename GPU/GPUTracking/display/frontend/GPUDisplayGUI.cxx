@@ -827,6 +827,13 @@ void GPUDisplayGUI::keyPressEvent(QKeyEvent* event)
 
 int32_t GPUDisplayGUI::translateKey(const QKeyEvent* event)
 {
+#ifdef Q_OS_WIN
+  if (event->nativeScanCode() == 0x29) { // Key left of 1: console key (^), independent of the layout
+#else
+  if (event->nativeScanCode() == 49) { // Key left of 1 (XKB keycode): console key (^), independent of the layout
+#endif
+    return '^';
+  }
   switch (event->key()) {
     case Qt::Key_Up:
       return GPUDisplayFrontendKeyVars::KEY_UP;
@@ -848,6 +855,10 @@ int32_t GPUDisplayGUI::translateKey(const QKeyEvent* event)
       return GPUDisplayFrontendKeyVars::KEY_INSERT;
     case Qt::Key_Escape:
       return GPUDisplayFrontendKeyVars::KEY_ESCAPE;
+    case Qt::Key_Backspace:
+      return GPUDisplayFrontendKeyVars::KEY_BACKSPACE;
+    case Qt::Key_Delete:
+      return GPUDisplayFrontendKeyVars::KEY_DELETE;
     case Qt::Key_Return:
     case Qt::Key_Enter:
       return GPUDisplayFrontendKeyVars::KEY_ENTER;

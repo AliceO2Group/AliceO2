@@ -124,7 +124,8 @@ void GPUDisplayFrontendGlut::GetKey(int32_t key, int32_t& keyOut, int32_t& keyPr
   if (specialKey) {
     keyOut = keyPressOut = specialKey;
   } else {
-    keyOut = keyPressOut = key;
+    keyOut = keyPressOut = key == 8 ? KEY_BACKSPACE : key == 127 ? KEY_DELETE
+                                                                 : key; // Otherwise 8 = KEY_SHIFT
     if (keyPressOut >= 'a' && keyPressOut <= 'z') {
       keyPressOut += 'A' - 'a';
     }
@@ -135,7 +136,7 @@ void GPUDisplayFrontendGlut::keyboardFunc(int32_t key, bool special, bool down)
 {
   int32_t handleKey = 0, keyPress = 0;
   GetKey(key, handleKey, keyPress, special);
-  mKeys[keyPress] = down;
+  mKeys[keyPress] = down && !consoleShown();
   if (down) {
     HandleKey(handleKey);
   }

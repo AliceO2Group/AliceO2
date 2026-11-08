@@ -17,6 +17,7 @@
 
 #include "GPUDisplay.h"
 #include "GPULogging.h"
+#include "frontend/GPUDisplayConsole.h"
 
 namespace o2::gpu
 {
@@ -29,6 +30,7 @@ void GPUDisplay::SetInfo(Args... args)
   snprintf(mInfoText2, 1024, args...);
 #pragma GCC diagnostic pop
   GPUInfo("%s", mInfoText2);
+  mFrontend->mConsole->consoleInfo(std::get<0>(std::tuple<Args...>(args...)), mInfoText2);
   mGUIInfoText = mInfoText2;
   mGUIInfoTextCounter++;
   mInfoText2Timer.ResetStart();

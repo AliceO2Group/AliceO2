@@ -43,6 +43,8 @@ GPUDisplayFrontendAddKey(26, INSERT);
 GPUDisplayFrontendAddKey(27, ESCAPE); // fixed at 27
 GPUDisplayFrontendAddKey(28, HOME);
 GPUDisplayFrontendAddKey(29, END);
+GPUDisplayFrontendAddKey(30, BACKSPACE);
+GPUDisplayFrontendAddKey(31, DELETE);
 GPUDisplayFrontendAddKey(32, SPACE); // fixed at 32
 
 #ifndef GPUDisplayFrontendKeyDownMap

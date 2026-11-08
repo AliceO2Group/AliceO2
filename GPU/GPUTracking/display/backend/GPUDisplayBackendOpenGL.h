@@ -80,6 +80,8 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   void initializeTextDrawing() override;
   void clearFontSymbols() override;
   void GLPrintText(const char* s, float x, float y, float* color, float scale, uint32_t nCharacters) override;
+  void GLDrawQuad(const float (&corners)[4][2], const float* color) override;
+  void drawTextVertices(const float (&vertices)[6][4], uint32_t texId); // One quad with the text shader, after GLPrintText / GLDrawQuad set the color
 
   struct FontSymbolOpenGL : public FontSymbol {
     uint32_t texId;

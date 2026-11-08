@@ -308,6 +308,10 @@ void GPUDisplay::buildConfigKeys()
       val &= 3;
     }), //
     "Print Help / Show info texts");
+
+  mFrontend->add_key_binding(
+    KEY_LAMBDA('^', mCfgC, showConsole, val ^= 1;), //
+    "Show / hide the console");
 }
 
 #endif // GPUDISPLAYFRONTENDCONFIGKEYS_INC

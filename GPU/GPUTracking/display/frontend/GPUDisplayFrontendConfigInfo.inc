@@ -20,7 +20,7 @@
 void GPUDisplay::buildConfigInfo()
 {
   auto addInfo = [this](std::pair<uint32_t, configKeyCallback>&& info) { mFrontend->mConfigRTTI->configInfos[info.first] = std::move(info.second); };
-  static constexpr std::tuple noInfo{&GPUDisplayControl::dummy, &GPUSettingsDisplayLight::drawClusters, &GPUSettingsDisplayLight::drawInitLinks, &GPUSettingsDisplayLight::drawLinks, &GPUSettingsDisplayLight::drawSeeds,
+  static constexpr std::tuple noInfo{&GPUDisplayControl::dummy, &GPUDisplayControl::showConsole, &GPUSettingsDisplayLight::drawClusters, &GPUSettingsDisplayLight::drawInitLinks, &GPUSettingsDisplayLight::drawLinks, &GPUSettingsDisplayLight::drawSeeds,
                                      &GPUSettingsDisplayLight::drawTracklets, &GPUSettingsDisplayLight::drawTracks, &GPUSettingsDisplayLight::drawExtrapolatedTracks, &GPUSettingsDisplayLight::drawFinal}; // Options without info, not even the generic one
   std::apply([this](auto... member) { ((mFrontend->mConfigRTTI->configInfos[mFrontend->mConfigRTTI->getRTTIIndex(*this, member)] = []() {}), ...); }, noInfo);
   addInfo(INFO_LAMBDA(mCfgC, mDisplayControl, if (val == 2) { SetInfo("Exiting", 1); }));

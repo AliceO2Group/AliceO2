@@ -92,6 +92,15 @@ int32_t GPUDisplayFrontendGlfw::GetKey(int32_t key)
   if (key == GLFW_KEY_INSERT) {
     return (KEY_INSERT);
   }
+  if (key == GLFW_KEY_BACKSPACE) {
+    return (KEY_BACKSPACE);
+  }
+  if (key == GLFW_KEY_DELETE) {
+    return (KEY_DELETE);
+  }
+  if (key == GLFW_KEY_GRAVE_ACCENT) { // Key left of 1 (named after the US layout): console key (^), independent of the layout
+    return ('^');
+  }
   if (key == GLFW_KEY_ENTER) {
     return (KEY_ENTER);
   }
@@ -161,8 +170,8 @@ void GPUDisplayFrontendGlfw::key_callback(GLFWwindow* window, int32_t key, int32
   int32_t handleKey = 0, keyPress = 0;
   GetKey(key, scancode, mods, handleKey, keyPress);
   if (handleKey < 32) {
-    if (action == GLFW_PRESS) {
-      me->mKeys[keyPress] = true;
+    if (action == GLFW_PRESS || action == GLFW_REPEAT) { // Repeat as the other frontends (e.g. backspace in the console), characters are repeated by char_callback
+      me->mKeys[keyPress] = !me->consoleShown();
       me->HandleKey(handleKey);
     } else if (action == GLFW_RELEASE) {
       me->mKeys[keyPress] = false;
@@ -170,6 +179,10 @@ void GPUDisplayFrontendGlfw::key_callback(GLFWwindow* window, int32_t key, int32
   } else if (handleKey < 256) {
     if (action == GLFW_PRESS) {
       me->mLastKeyDown = handleKey;
+      if (key == GLFW_KEY_GRAVE_ACCENT) { // Console key, its character (if not a dead key) follows in the same glfwPollEvents
+        me->mConsoleKeyPressed = true;
+        me->HandleKey('^');
+      }
     } else if (action == GLFW_RELEASE) {
       keyPress = (uint8_t)me->mGLFWKeyDownMap[handleKey];
       me->mKeys[keyPress] = false;
@@ -180,13 +193,17 @@ void GPUDisplayFrontendGlfw::key_callback(GLFWwindow* window, int32_t key, int32
 void GPUDisplayFrontendGlfw::char_callback(GLFWwindow* window, uint32_t codepoint)
 {
   // GPUInfo("Key (char callback): %d %c - key: %d", codepoint, (char)codepoint, (int32_t)me->mLastKeyDown);
+  if (me->mConsoleKeyPressed) { // Character of the console key, handled in key_callback
+    me->mConsoleKeyPressed = false;
+    return;
+  }
   if (codepoint < 256) {
     uint8_t keyPress = codepoint;
     if (keyPress >= 'a' && keyPress <= 'z') {
       keyPress += 'A' - 'a';
     }
     me->mGLFWKeyDownMap[me->mLastKeyDown] = keyPress;
-    me->mKeys[keyPress] = true;
+    me->mKeys[keyPress] = !me->consoleShown();
     me->HandleKey(codepoint);
   }
 }
@@ -332,6 +349,7 @@ int32_t GPUDisplayFrontendGlfw::FrontendMain()
     }
     waitForFPSLimit();
     glfwPollEvents();
+    mConsoleKeyPressed = false; // No character followed (dead key)
     if (mRestoreWindowedSize) {
       mRestoreWindowedSize = false;
       if (mWindowedWidth > 0 && mWindowedHeight > 0 && !glfwGetWindowAttrib(mWindow, GLFW_MAXIMIZED)) {

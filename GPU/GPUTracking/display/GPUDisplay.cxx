@@ -727,9 +727,24 @@ void GPUDisplay::DrawGLScene_internal(bool suspended, float animateTime, bool re
       mFramesDoneFPS = 0;
     }
 
+    const float consoleFraction = consoleVerticalFraction();
+    const bool drawText = (mCfgC.mPrintInfoText & 1) || consoleFraction > 0.f;
+    if (drawText) {
+      mBackend->updateFontScale(mFrontend->getDisplayScale());
+      mBackend->prepareText();
+    }
     if (mCfgC.mPrintInfoText & 1 || mCfgC.mPrintInfoTextGUI) {
       showInfo(info);
     }
+    if (consoleFraction > 0.f) {
+      const double consoleTime = mConsoleTimer.GetCurrentElapsedTime();
+      const bool cursor = mCfgC.showConsole && consoleTime >= mConfig.consoleDelay && std::fmod(consoleTime - mConfig.consoleDelay, 1.0) < 0.5; // Only when fully open, blinking, the timer runs while the console is open
+      mBackend->GLDrawConsole(consoleFraction, mFrontend->mConsole->mConsoleHistory, mFrontend->mConsole->shownText(), cursor ? (int32_t)mFrontend->mConsole->mConsoleTextPos : -1);
+    }
+    if (drawText) {
+      mBackend->finishText();
+    }
+    mFrontend->mConsole->consoleLimitHistory(mConfig.consoleHistorySize);
   }
 
   mBackend->finishFrame(doScreenshot, renderToMixBuffer, mixSlaveImage);

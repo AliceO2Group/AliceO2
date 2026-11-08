@@ -61,7 +61,7 @@ class GPUDisplay : public GPUDisplayInterface
   void UpdateCalib(const GPUCalibObjectsConst* calib) override { mCalib = calib; }
   void UpdateParam(const GPUParam* param) override { mParam = param; }
 
-  void HandleKey(uint8_t key);
+  void HandleKey(uint8_t key, bool external = false); // external: from the Qt GUI or the console, not typed into the event display console
   int32_t DrawGLScene(bool suspended = false);
   void HandleExternalGUIKey(int32_t key);
   int32_t InitDisplay(bool initFailure = false);
@@ -198,6 +198,7 @@ class GPUDisplay : public GPUDisplayInterface
   void startAnimation();
   int32_t animateCamera(bool suspended, float& animateTime, float& mixSlaveImage, hmm_mat4& nextViewMatrix);
   void showInfo(const char* info);
+  float consoleVerticalFraction(); // Fraction of the window covered by the console (animated), 0 if hidden
   void ActivateColor();
   void SetColorTRD();
   void SetColorTOF();
@@ -321,10 +322,11 @@ class GPUDisplay : public GPUDisplayInterface
   opengl_spline mAnimationSplines[8];
 
   char mInfoText2[1024];
-  std::string mGUIInfoStatus;       // Latest status line (FPS etc.) for the Qt GUI
-  std::string mGUIInfoText;         // Latest info message (SetInfo) for the Qt GUI
-  uint64_t mGUIInfoTextCounter = 0; // Number of info messages, the GUI shows a new one for some seconds
-  HighResTimer mInfoText2Timer, mInfoHelpTimer;
+  std::string mGUIInfoStatus;                                  // Latest status line (FPS etc.) for the Qt GUI
+  std::string mGUIInfoText;                                    // Latest info message (SetInfo) for the Qt GUI
+  uint64_t mGUIInfoTextCounter = 0;                            // Number of info messages, the GUI shows a new one for some seconds
+  HighResTimer mInfoText2Timer, mInfoHelpTimer, mConsoleTimer; // mConsoleTimer: opening / closing animation of the console
+  bool mConsoleShown = false;                                  // showConsole of the last checkAndApplyConfigChanges
 
   std::vector<threadVertexBuffer> mThreadBuffers;
   std::vector<std::vector<std::array<std::array<vecpod<int32_t>, 2>, NSECTORS>>> mThreadTracks;

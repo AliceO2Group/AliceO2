@@ -206,8 +206,6 @@ void GPUDisplay::showInfo(const char* info)
   if (!(mCfgC.mPrintInfoText & 1)) {
     return;
   }
-  mBackend->updateFontScale(mFrontend->getDisplayScale());
-  mBackend->prepareText();
   float colorValue = mCfgL.invertColors ? 0.f : 1.f;
   GLPrintText(info, 40.f, 20.f + std::max(20, mDrawTextFontSize + 4), colorValue, colorValue, colorValue, 1);
   if (mInfoText2Timer.IsRunning()) {
@@ -224,7 +222,20 @@ void GPUDisplay::showInfo(const char* info)
       PrintGLHelpText(colorValue);
     }
   }
-  mBackend->finishText();
+}
+
+float GPUDisplay::consoleVerticalFraction()
+{
+  const bool running = mConsoleTimer.IsRunning();
+  if (!mCfgC.showConsole && !running) {
+    return 0.f;
+  }
+  const double time = mConsoleTimer.GetCurrentElapsedTime();
+  if (running && !mCfgC.showConsole && time >= mConfig.consoleDelay) { // Keeps running while open, for the blinking cursor
+    mConsoleTimer.Stop();
+  }
+  const float progress = running && mConfig.consoleDelay > 0.f ? std::min(1.f, (float)(time / mConfig.consoleDelay)) : 1.f;
+  return mConfig.consoleVertical * (mCfgC.showConsole ? progress : 1.f - progress);
 }
 
 void GPUDisplay::GLPrintText(const char* s, float x, float y, float r, float g, float b, float a, uint32_t nCharacters, bool fromBotton)

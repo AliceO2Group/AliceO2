@@ -117,6 +117,7 @@ set(SRCS ../utils/qsem.cxx
          GPUDisplay.cxx
          helpers/GPUDisplayMagneticField.cxx
          frontend/GPUDisplayFrontend.cxx
+         frontend/GPUDisplayConsole.cxx
          frontend/GPUDisplayFrontendNone.cxx
          backend/GPUDisplayBackend.cxx
          backend/GPUDisplayBackendNone.cxx)

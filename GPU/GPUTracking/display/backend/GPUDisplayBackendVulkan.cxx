@@ -1900,8 +1900,8 @@ void GPUDisplayBackendVulkan::GLPrintText(const char* s, float x, float y, float
   }
 
   for (const unsigned char* c = (const unsigned char*)s; *c && (nCharacters == 0 || c < (const unsigned char*)s + nCharacters); c++) {
-    if ((int32_t)*c >= (int32_t)mFontSymbols.size()) {
-      GPUError("Trying to draw unsupported symbol: %d > %d\n", (int32_t)*c, (int32_t)mFontSymbols.size());
+    if (*c < 32 || *c >= SOLID_GLYPH) { // Printable ASCII only, SOLID_GLYPH is not a character
+      GPUError("Trying to draw unsupported symbol: %d", (int32_t)*c);
       continue;
     }
     const FontSymbolVulkan& sym = mFontSymbols[*c];
@@ -1925,6 +1925,11 @@ void GPUDisplayBackendVulkan::GLPrintText(const char* s, float x, float y, float
     x += (sym.advance >> 6) * scale; // shift is in 1/64th of a pixel
   }
 
+  addTextDrawCommand(firstVertex, color);
+}
+
+void GPUDisplayBackendVulkan::addTextDrawCommand(size_t firstVertex, const float* color)
+{
   size_t nVertices = mFontVertexBufferHost.size() / 4 - firstVertex;
 
   if (nVertices) {
@@ -1935,6 +1940,21 @@ void GPUDisplayBackendVulkan::GLPrintText(const char* s, float x, float y, float
       c.emplace_back(TextDrawCommand{firstVertex, nVertices, {color[0], color[1], color[2], color[3]}});
     }
   }
+}
+
+void GPUDisplayBackendVulkan::GLDrawQuad(const float (&corners)[4][2], const float* color)
+{
+  if (!mFreetypeInitialized) {
+    return;
+  }
+  const FontSymbolVulkan& sym = mFontSymbols[SOLID_GLYPH];
+  const float u = (sym.x0 + sym.x1) * 0.5f, v = (sym.y0 + sym.y1) * 0.5f; // Center of the opaque glyph in the font atlas
+  const size_t firstVertex = mFontVertexBufferHost.size() / 4;
+  for (int32_t i : {0, 2, 1, 0, 3, 2}) { // Winding as the glyph quads of GLPrintText, the text pipeline culls back faces
+    mFontVertexBufferHost.insert(mFontVertexBufferHost.end(), {corners[i][0], mScreenHeight - 1 - corners[i][1], u, v});
+  }
+  mHasDrawnText = true;
+  addTextDrawCommand(firstVertex, color);
 }
 
 void GPUDisplayBackendVulkan::readImageToPixels(vk::Image image, vk::ImageView view, vk::ImageLayout layout, std::vector<char>& pixels)
