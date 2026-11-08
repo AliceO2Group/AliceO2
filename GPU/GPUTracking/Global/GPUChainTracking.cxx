@@ -860,10 +860,13 @@ int32_t GPUChainTracking::RunChainFinalize()
       usleep(10000);
       if (GetProcessingSettings().runsStandalone) {
         iKey = kbhit() ? getch() : 0;
-        if (iKey == 27 && kbhit()) { // Escape sequence (arrow keys, ...), not the ESC key
-          while (kbhit()) {
-            getch();
+        if (iKey == 27 && kbhit()) { // Escape sequence (arrow keys, ...), not the ESC key: the display translates up to 8 characters after the ESC
+          uint64_t extendedKey = 0;
+          for (uint32_t i = 0; kbhit(); i++) {
+            const int32_t c = getch();
+            extendedKey |= i < 8 ? (uint64_t)(uint8_t)c << (8 * i) : 0;
           }
+          GetProcessingSettings().eventDisplay->sendExternalGUIKey(0, 1, extendedKey);
           iKey = 0;
         }
         if (iKey == 27) {

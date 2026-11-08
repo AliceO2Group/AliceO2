@@ -73,7 +73,7 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface, public GPUDisplay
 
   int32_t getDisplayControl() const override;
   void setDisplayControl(int32_t v) override;
-  void sendExternalGUIKey(int32_t v) override;
+  void sendExternalGUIKey(int32_t v, uint32_t translationMode = 0, uint64_t extendedKey = 0) override;
 
   frontendTypes frontendType() const { return mFrontendType; }
   const char* frontendName() const override { return mFrontendName; }
@@ -153,7 +153,8 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface, public GPUDisplay
   std::unique_ptr<configRTTIInfo, void (*)(configRTTIInfo*)> mConfigRTTI{nullptr, nullptr}; // Deleter set in GPUDisplayFrontendConfig.cxx, the only place where configRTTIInfo is defined
 
   void HandleExternalGUIKeys();
-  bool mWindowFullScreen = false, mWindowMaximized = false; // Window state last requested or reported by the window system
+  static int32_t translateExternalKey(uint32_t translationMode, uint64_t extendedKey); // Key code of an encoded key of sendExternalGUIKey (+ SPECIAL_KEYS_SHIFTED with SHIFT), -1 if unknown
+  bool mWindowFullScreen = false, mWindowMaximized = false;                            // Window state last requested or reported by the window system
   template <typename... Args>
   void add_key_binding(Args&&... args); // KEY_LAMBDA(key, ...) entries, the help text, and optionally the keys to show in the help text, only used in GPUDisplayFrontendConfig.cxx
   template <typename... Args>
