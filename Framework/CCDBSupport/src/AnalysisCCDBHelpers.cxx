@@ -11,6 +11,7 @@
 
 #include "AnalysisCCDBHelpers.h"
 #include "CCDBFetcherHelper.h"
+#include "Framework/ArrowContext.h"
 #include "Framework/ArrowTypes.h"
 #include "Framework/DataProcessingStats.h"
 #include "Framework/DeviceSpec.h"
@@ -25,6 +26,8 @@
 #include "Framework/ConfigParamsHelper.h"
 #include <fairmq/Version.h>
 #include <arrow/array/builder_binary.h>
+#include <arrow/io/memory.h>
+#include <arrow/ipc/writer.h>
 #include <arrow/type.h>
 #include <arrow/type_fwd.h>
 #include <arrow/util/key_value_metadata.h>
@@ -161,7 +164,7 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
     std::unordered_map<std::string, int> bindings;
     fillValidRoutes(*helper, spec.outputs, bindings);
 
-    return adaptStateless([schemas, bindings, helper, allbuilders, pathTables](InputRecord& inputs, DataTakingContext& dtc, DataAllocator& allocator, TimingInfo& timingInfo, DataProcessingStats& stats) {
+    return adaptStateless([schemas, bindings, helper, allbuilders, pathTables](InputRecord& inputs, DataTakingContext& dtc, DataAllocator& allocator, ArrowContext& arrowContext, TimingInfo& timingInfo, DataProcessingStats& stats) {
       O2_SIGNPOST_ID_GENERATE(sid, ccdb);
       O2_SIGNPOST_START(ccdb, sid, "fetchFromAnalysisCCDB", "Fetching CCDB objects for analysis%" PRIu64, (uint64_t)timingInfo.timeslice);
       std::ranges::for_each(allbuilders, [](auto& builder) { builder.second->Reset(); });
@@ -232,6 +235,7 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
         }
 
         std::vector<DataAllocator::CacheId> lastIds(numBuilders, DataAllocator::CacheId{.value = -1, .handle = -1, .segment = -1});
+        std::vector<DataAllocator::CacheId> referenced;
 
         // Rows sharing a uniformity value resolve to the same objects, so the query is
         // issued once per distinct value and the resulting handles are repeated for the
@@ -323,7 +327,7 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
               auto& lastId = lastIds[bi];
               if (response.id.value != lastId.value) {
                 lastId.value = response.id.value;
-                allocator.adoptFromCache(output, response.id, header::gSerializationMethodCCDB);
+                referenced.push_back(response.id);
               }
               result &= builder.second->Append();
               auto* value_builder = dynamic_cast<arrow::Int64Builder*>(builder.second->value_builder());
@@ -340,8 +344,25 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
         }
         arrow::ArrayVector arrays;
         std::ranges::for_each(builders, [&arrays](auto& builder) { arrays.push_back(*builder.second->Finish()); });
-        auto outTable = arrow::Table::Make(schema, arrays);
-        allocator.adopt(output, outTable);
+        // The table is sent by the message backend, followed by the objects it refers to,
+        // so that they all leave in one multipart and the consumer relays them into the
+        // same slot. Through the arrow backend, the table would leave on its own first.
+        auto stream = arrow::io::BufferOutputStream::Create().ValueOrDie();
+        auto writer = arrow::ipc::MakeStreamWriter(stream, schema).ValueOrDie();
+        if (!writer->WriteRecordBatch(*arrow::RecordBatch::Make(schema, reserveSize, arrays)).ok()) {
+          LOGP(fatal, "Unable to serialise the table of {}", outBinding);
+        }
+        auto buffer = stream->Finish().ValueOrDie();
+        auto payload = allocator.makeVector<char>(output);
+        payload.assign(buffer->data(), buffer->data() + buffer->size());
+        allocator.adoptContainer(output, std::move(payload), DataAllocator::CacheStrategy::Never, header::gSerializationMethodArrow);
+        // Accounted for like the tables of the arrow backend, for the rate limiting.
+        allocator.findMessageHeader(output)->serialization = header::gSerializationMethodArrow;
+        arrowContext.updateBytesSent(buffer->size());
+        arrowContext.updateMessagesSent(1);
+        for (auto const& id : referenced) {
+          allocator.adoptFromCache(output, id, header::gSerializationMethodCCDB);
+        }
       }
 
       stats.updateStats({(int)ProcessingStatsId::CCDB_CACHE_FETCHED_BYTES, DataProcessingStats::Op::Set, (int64_t)helper->totalFetchedBytes});
