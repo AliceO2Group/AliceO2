@@ -684,8 +684,8 @@ void GPUDisplayBackendOpenGL::GLPrintText(const char* s, float x, float y, float
     scale *= 0.25f; // Font size is 48 to have nice bitmap, scale to size 12
   }
   for (const unsigned char* c = (const unsigned char*)s; *c && (nCharacters == 0 || c < (const unsigned char*)s + nCharacters); c++) {
-    if ((int32_t)*c >= (int32_t)mFontSymbols.size()) {
-      GPUError("Trying to draw unsupported symbol: %d > %d\n", (int32_t)*c, (int32_t)mFontSymbols.size());
+    if (*c < 32 || *c >= SOLID_GLYPH) { // Printable ASCII only, SOLID_GLYPH is not a character
+      GPUError("Trying to draw unsupported symbol: %d", (int32_t)*c);
       continue;
     }
     FontSymbolOpenGL sym = mFontSymbols[*c];
@@ -701,16 +701,40 @@ void GPUDisplayBackendOpenGL::GLPrintText(const char* s, float x, float y, float
         {xpos, ypos + h, 0.0f, 0.0f},
         {xpos + w, ypos, 1.0f, 1.0f},
         {xpos + w, ypos + h, 1.0f, 0.0f}};
-      CHKERR(glBindTexture(GL_TEXTURE_2D, sym.texId));
-      CHKERR(glBindBuffer(GL_ARRAY_BUFFER, VBO_text));
-      CHKERR(glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices));
-      CHKERR(glBindBuffer(GL_ARRAY_BUFFER, 0));
-      CHKERR(glDrawArrays(GL_TRIANGLES, 0, 6));
+      drawTextVertices(vertices, sym.texId);
     }
     x += (sym.advance >> 6) * scale; // shift is in 1/64th of a pixel
   }
   if (!mDisplay->useMultiVBO()) {
     CHKERR(glBindBuffer(GL_ARRAY_BUFFER, mVBOId[0])); // If we don't use multiple buffers, we keep the default buffer bound
+  }
+}
+
+void GPUDisplayBackendOpenGL::drawTextVertices(const float (&vertices)[6][4], uint32_t texId)
+{
+  CHKERR(glBindTexture(GL_TEXTURE_2D, texId));
+  CHKERR(glBindBuffer(GL_ARRAY_BUFFER, VBO_text));
+  CHKERR(glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices));
+  CHKERR(glBindBuffer(GL_ARRAY_BUFFER, 0));
+  CHKERR(glDrawArrays(GL_TRIANGLES, 0, 6));
+}
+
+void GPUDisplayBackendOpenGL::GLDrawQuad(const float (&corners)[4][2], const float* color)
+{
+  if (!mFreetypeInitialized) {
+    return;
+  }
+  CHKERR(glUniform4fv(UNIFORM_LOCATION_COLOR, 1, color));
+  static constexpr int32_t order[6] = {0, 1, 2, 0, 2, 3};
+  float vertices[6][4];
+  for (int32_t i = 0; i < 6; i++) {
+    vertices[i][0] = corners[order[i]][0];
+    vertices[i][1] = corners[order[i]][1];
+    vertices[i][2] = vertices[i][3] = 0.5f; // Center of the opaque glyph
+  }
+  drawTextVertices(vertices, mFontSymbols[SOLID_GLYPH].texId);
+  if (!mDisplay->useMultiVBO()) {
+    CHKERR(glBindBuffer(GL_ARRAY_BUFFER, mVBOId[0])); // As in GLPrintText
   }
 }
 

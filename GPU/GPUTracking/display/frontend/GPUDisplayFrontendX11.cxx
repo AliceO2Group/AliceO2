@@ -97,6 +97,12 @@ int32_t GPUDisplayFrontendX11::GetKey(int32_t key)
   if (key == 65379) {
     return (KEY_INSERT);
   }
+  if (key == 65288) {
+    return (KEY_BACKSPACE);
+  }
+  if (key == 65535) {
+    return (KEY_DELETE);
+  }
   if (key == 65470) {
     return (KEY_F1);
   }
@@ -144,6 +150,10 @@ int32_t GPUDisplayFrontendX11::GetKey(int32_t key)
 
 void GPUDisplayFrontendX11::GetKey(XEvent& event, int32_t& keyOut, int32_t& keyPressOut)
 {
+  if (event.xkey.keycode == 49) { // Key left of 1: console key (^), independent of the layout
+    keyOut = keyPressOut = '^';
+    return;
+  }
   char tmpString[9];
   KeySym sym;
   if (XLookupString(&event.xkey, tmpString, 8, &sym, nullptr) == 0) {
@@ -352,7 +362,7 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
         case KeyPress: {
           int32_t handleKey = 0, keyPress = 0;
           GetKey(event, handleKey, keyPress);
-          mKeys[keyPress] = true;
+          mKeys[keyPress] = !consoleShown();
           HandleKey(handleKey);
           break;
         }

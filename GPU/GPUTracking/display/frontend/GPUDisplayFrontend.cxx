@@ -13,6 +13,7 @@
 /// \author David Rohr
 
 #include "GPUDisplayFrontend.h"
+#include "GPUDisplayConsole.h"
 #include "GPUDisplay.h"
 
 #ifdef _WIN32
@@ -59,7 +60,7 @@ class GPUDisplayGUIWrapper
 
 using namespace o2::gpu;
 
-GPUDisplayFrontend::GPUDisplayFrontend() = default;
+GPUDisplayFrontend::GPUDisplayFrontend() : mConsole(std::make_unique<GPUDisplayConsole>(std::string(DISPLAY_WINDOW_NAME) + " Console")) {}
 GPUDisplayFrontend::~GPUDisplayFrontend() = default;
 
 void* GPUDisplayFrontend::FrontendThreadWrapper(void* ptr)
@@ -171,6 +172,8 @@ void GPUDisplayFrontend::sendExternalGUIKey(int32_t v, uint32_t translationMode,
   }
   signalConfigUpdate();
 }
+
+bool GPUDisplayFrontend::consoleShown() const { return mDisplay->mCfgC.showConsole; }
 
 int32_t GPUDisplayFrontend::getDisplayControl() const { return mDisplay->mCfgC.mDisplayControl.load(); }
 void GPUDisplayFrontend::setDisplayControl(int32_t v) { mDisplay->mCfgC.mDisplayControl.store(v); }

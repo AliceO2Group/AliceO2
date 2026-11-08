@@ -137,6 +137,8 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void initializeTextDrawing() override;
   void clearFontSymbols() override;
   void GLPrintText(const char* s, float x, float y, float* color, float scale, uint32_t nCharacters) override;
+  void GLDrawQuad(const float (&corners)[4][2], const float* color) override;
+  void addTextDrawCommand(size_t firstVertex, const float* color); // Draw the text vertices from firstVertex on with this color
 
   uint32_t mGraphicsFamily;
   SwapChainSupportDetails mSwapChainDetails;

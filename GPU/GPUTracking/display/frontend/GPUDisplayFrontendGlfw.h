@@ -68,6 +68,7 @@ class GPUDisplayFrontendGlfw : public GPUDisplayFrontend
   int32_t mWindowHeight = INIT_HEIGHT;
   uint8_t mGLFWKeyDownMap[256] = {0};
   uint8_t mLastKeyDown = 0;
+  bool mConsoleKeyPressed = false; // Console key pressed in this glfwPollEvents, skip its character in char_callback
 };
 } // namespace o2::gpu
 

@@ -40,6 +40,7 @@ BeginHiddenConfig(GPUDisplayControl, control)
   AddVariable(mGLAnimationFile, std::string, "glanimation.tmp")  // File for saving / loading the animation path
   AddVariable(mGuiDarkMode, int8_t, -1)                          // Dark mode of the Qt GUI, -1 = not yet set: the GUI reports the system scheme when it starts
   AddVariable(mGuiScale, float, 1.f)                             // Scale factor of text and elements of the Qt GUI (on top of the system scaling), Ctrl + mouse wheel / Ctrl + 0 in the GUI
+  AddVariable(showConsole, bool, false)                          // Console shown (^ key): all other keys go to the console
   AddVariable(dummy, bool, false)                                // dummy value to reference for keys that do not change variables
 EndConfig()
 EndNamespace() // o2::gpu

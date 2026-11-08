@@ -17,24 +17,31 @@
 #include "frontend/GPUDisplayInfo.inc"
 #include "GPULogging.h"
 #include "GPUDisplayGUIChannel.h"
+#include "GPUDisplayConsole.h"
 #define GPUSETTINGS_ALL
 #include "GPUSettings.h"
 #include "utils/qconfig_rtti.h"
 #include "utils/qconfig_internal_helpers.h"
 
 #include <algorithm>
+#include <charconv>
 #include <concepts>
+#include <cstdarg>
+#include <cstdio>
 #include <cstring>
 #include <limits>
 #include <optional>
+#include <span>
 #include <array>
 #include <functional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
 #include <tuple>
+#include <unordered_map>
 #include <utility>
 #include <variant>
+#include <vector>
 
 using namespace o2::gpu;
 struct GPUDisplayFrontend::configRTTIExt : public qConfig::qConfigRTTIentry {
@@ -180,6 +187,16 @@ void GPUDisplay::checkAndApplyConfigChanges()
     mUpdateTrackFilter = true;
   }
   mCfgC.mRotateModel |= mCfgC.mRotateAroundZ;
+  if (mCfgC.showConsole != mConsoleShown) {
+    mConsoleShown = mCfgC.showConsole;
+    const double start = mConsoleTimer.IsRunning() ? std::max(0., mConfig.consoleDelay - mConsoleTimer.GetCurrentElapsedTime()) : 0.; // Reverse a running animation from its current position
+    mConsoleTimer.Reset();
+    mConsoleTimer.AddTime(start);
+    mConsoleTimer.Start();
+    if (mCfgC.showConsole) {
+      std::fill(std::begin(mFrontend->mKeys), std::end(mFrontend->mKeys), false);
+    }
+  }
 }
 
 void GPUDisplay::HandleExternalGUIKey(int32_t key)
@@ -193,7 +210,7 @@ void GPUDisplay::HandleExternalGUIKey(int32_t key)
   }
   bool oldShift = mFrontend->mKeys[mFrontend->KEY_SHIFT];
   mFrontend->mKeys[mFrontend->KEY_SHIFT] = shifted;
-  HandleKey(key);
+  HandleKey(key, true);
   mFrontend->mKeys[mFrontend->KEY_SHIFT] = oldShift;
 }
 
@@ -502,6 +519,7 @@ void GPUDisplayFrontend::listConfig()
 #include "GPUDisplayFrontendConfigKeys.inc"
 #include "GPUDisplayFrontendConfigInfo.inc"
 #include "GPUDisplayFrontendConfigQtGUI.inc"
+#include "GPUDisplayFrontendConfigConsole.inc"
 
 void GPUDisplay::buildConfig()
 {
@@ -545,6 +563,7 @@ void GPUDisplay::buildConfig()
   }
   buildConfigInfo();
   buildConfigQtGUI();
+  mFrontend->buildConsoleCommands();
   rtti->buildHelpText();
 }
 
@@ -573,8 +592,14 @@ void GPUDisplayFrontend::showConfigInfo(uint32_t index)
   }
 }
 
-void GPUDisplay::HandleKey(uint8_t key)
+void GPUDisplay::HandleKey(uint8_t key, bool external)
 {
+  if (mCfgC.showConsole && mFrontend->mConfigRTTI->configKeys[key].configRTTIIndex != mFrontend->mConfigRTTI->getRTTIIndex(*this, &GPUDisplayControl::showConsole)) { // All keys except the one toggling the console go to the console
+    if (!external) {
+      mFrontend->mConsole->handleConsoleKey(key);
+    }
+    return;
+  }
   if (key == mFrontend->KEY_ALT) {
     mFrontend->mKeys[mFrontend->KEY_CTRL] = false; // Release CTRL with alt, to avoid orienting along y automatically!
   } else if (mFrontend->processKeyLambda(key)) {

@@ -52,6 +52,9 @@ GPUDisplayFrontendWayland::GPUDisplayFrontendWayland()
 int32_t GPUDisplayFrontendWayland::GetKey(uint32_t key, uint32_t state)
 {
   int32_t retVal = 0;
+  if (key == 41) { // evdev KEY_GRAVE, key left of 1: console key (^), independent of the layout (linux/input-event-codes.h must not be included here)
+    return ('^');
+  }
   if (mXKBkeymap) {
     xkb_keysym_t sym = xkb_state_key_get_one_sym(mXKBstate, key + 8);
     if (sym == XKB_KEY_KP_Subtract) {
@@ -90,6 +93,10 @@ int32_t GPUDisplayFrontendWayland::GetKey(uint32_t key, uint32_t state)
       return (KEY_HOME);
     } else if (sym == XKB_KEY_Insert) {
       return (KEY_INSERT);
+    } else if (sym == XKB_KEY_BackSpace) {
+      return (KEY_BACKSPACE);
+    } else if (sym == XKB_KEY_Delete) {
+      return (KEY_DELETE);
     } else if (sym == XKB_KEY_F1) {
       return (KEY_F1);
     } else if (sym == XKB_KEY_F2) {
@@ -237,7 +244,7 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
     int32_t symbol = me->GetKey(key, state);
     int32_t keyPress = (symbol >= 'a' && symbol <= 'z') ? symbol + 'A' - 'a' : symbol;
     if (state == WL_KEYBOARD_KEY_STATE_PRESSED) {
-      me->mKeys[keyPress] = true;
+      me->mKeys[keyPress] = !me->consoleShown();
       me->HandleKey(symbol);
       if (symbol && me->mRepeatRate > 0 && me->mXKBkeymap && xkb_keymap_key_repeats(me->mXKBkeymap, key + 8)) { // Wayland compositors do not repeat keys, the client must do it
         me->mRepeatKeyCode = key;
