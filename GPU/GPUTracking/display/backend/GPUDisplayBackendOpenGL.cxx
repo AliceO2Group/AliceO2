@@ -269,6 +269,11 @@ int32_t GPUDisplayBackendOpenGL::checkProgramStatus(uint32_t program)
 
 int32_t GPUDisplayBackendOpenGL::InitBackendA()
 {
+  for (GLenum err = glGetError(); err != GL_NO_ERROR; err = glGetError()) { // Left by the frontend (freeglut with a core profile context leaves GL_INVALID_ENUM), CHKERR below would report it for the wrong call
+    if (mDisplay->GetProcessingSettings().debugLevel >= 2) {
+      GPUInfo("Ignoring OpenGL error %d from before the backend initialization", (int32_t)err);
+    }
+  }
   if (mDisplay->GetProcessingSettings().debugLevel >= 2) {
     auto renderer = glGetString(GL_RENDERER);
     GPUInfo("Renderer: %s", (const char*)renderer);
