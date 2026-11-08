@@ -495,7 +495,7 @@ GPUd() bool GPUTPCGMSectorTrack::TransportToXAlpha(GPUTPCGMMerger* merger, float
 
 GPUd() void GPUTPCGMSectorTrack::CopyBaseTrackCov()
 {
-  const float* GPUrestrict() cov = mOrigTrack -> Param().mC;
+  const float* GPUrestrict() cov = mOrigTrack->Param().mC;
   mParam.mC0 = cov[0];
   mParam.mC2 = cov[2];
   mParam.mC3 = cov[3];

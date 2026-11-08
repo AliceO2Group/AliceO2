@@ -155,10 +155,10 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface, public GPUDisplay
   void requestMaximized(bool set);
 
  private:
-  struct configRTTIInfo;
+  struct GPUDisplayConfiguration;
   struct configRTTIExt;
   struct configKey;
-  std::unique_ptr<configRTTIInfo, void (*)(configRTTIInfo*)> mConfigRTTI{nullptr, nullptr}; // Deleter set in GPUDisplayFrontendConfig.cxx, the only place where configRTTIInfo is defined
+  std::unique_ptr<GPUDisplayConfiguration, void (*)(GPUDisplayConfiguration*)> mConfigRTTI{nullptr, nullptr}; // Deleter set in GPUDisplayFrontendConfig.cxx, the only place where GPUDisplayConfiguration is defined
 
   void HandleExternalGUIKeys();
   static int32_t translateExternalKey(uint32_t translationMode, uint64_t extendedKey); // Key code of an encoded key of sendExternalGUIKey (+ SPECIAL_KEYS_SHIFTED with SHIFT), -1 if unknown

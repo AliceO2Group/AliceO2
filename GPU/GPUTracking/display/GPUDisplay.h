@@ -62,9 +62,9 @@ class GPUDisplay : public GPUDisplayInterface
   void UpdateCalib(const GPUCalibObjectsConst* calib) override { mCalib = calib; }
   void UpdateParam(const GPUParam* param) override { mParam = param; }
 
-  void HandleKey(uint8_t key, bool external = false); // external: from the Qt GUI or the console, not typed into the event display console
+  void HandleKey(uint8_t key, bool external = false, bool bypassConsole = false); // external: from the Qt GUI or the console, not typed into the event display console; bypassConsole: handled as key also while the console is shown (injectKey)
   int32_t DrawGLScene(bool suspended = false);
-  void HandleExternalGUIKey(int32_t key);
+  void HandleExternalGUIKey(int32_t key, bool bypassConsole = false); // key >= 256: special key with SHIFT
   int32_t InitDisplay(bool initFailure = false);
   void ResizeScene(int32_t width, int32_t height, bool init = false);
   void checkAndApplyConfigChanges(); // Set update flags / apply the settings that changed compared to mOldCfg
@@ -194,6 +194,11 @@ class GPUDisplay : public GPUDisplayInterface
   void takeScreenshot();
   void runAnimation(); // Starts the animation if it has enough points
   void setAnimationPoint();
+  void setCamera(const float (&xyz)[3], const float (&angles)[3]);         // Position and angles (radians, as mAngle: pitch, yaw, roll)
+  void addAnimationPoint(const float (&xyz)[3], const float (&angles)[3]); // Animation point for this camera, the current camera is kept
+  bool lookAt(const float (&target)[3]);                                   // Turn the camera to the point, false if it is the camera position
+  void rotateCamera(const float (&angles)[3]);                             // Yaw, pitch, roll in degrees relative to the view, as the keyboard
+  hmm_mat4 cameraRotation(const float (&angles)[3]) const;                 // Rotation of rotateCamera, applied to the view matrix also for keyboard / mouse
   void resetAnimation();
   void removeAnimationPoint();
   void startAnimation();
@@ -310,6 +315,7 @@ class GPUDisplay : public GPUDisplayInterface
   volatile bool mUpdateDrawCommands = true;
   volatile bool mUpdateRenderPipeline = false;
   volatile bool mLoadAndShowEvent = false;
+  uint32_t mNEventsShown = 0; // Events loaded and drawn, in the frontend thread
   bool mTracksArePropagated = false;
 
   int32_t mAnimate = 0;

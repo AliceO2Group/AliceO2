@@ -122,6 +122,7 @@ AddOption(consoleVertical, float, 0.5f, "", 0, "Fraction of the window height co
 AddOption(consoleHistorySize, uint32_t, 1000000, "", 0, "Number of console lines kept, the history is shortened to this when it reaches twice the size")
 AddOption(setInfoTime, float, 5.0f, "", 0, "Time in seconds an info message (SetInfo) is shown fully opaque")
 AddOption(setInfoTransition, float, 1.0f, "", 0, "Time in seconds an info message fades out after setInfoTime")
+AddOption(consolePrintToTerminal, bool, false, "", 0, "Also write the replies of console commands to the terminal")
 AddHelp("help", 'h')
 EndConfig()
 

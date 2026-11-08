@@ -16,6 +16,7 @@
 #include "GPUDisplay.h"
 #include "frontend/GPUDisplayInfo.inc"
 #include "GPULogging.h"
+#include "GPUCommonMath.h"
 #include "GPUDisplayGUIChannel.h"
 #include "GPUDisplayConsole.h"
 #define GPUSETTINGS_ALL
@@ -25,6 +26,7 @@
 
 #include <algorithm>
 #include <charconv>
+#include <cmath>
 #include <concepts>
 #include <cstdarg>
 #include <cstdio>
@@ -32,8 +34,12 @@
 #include <limits>
 #include <optional>
 #include <span>
+#include <sstream>
 #include <array>
+#include <cctype>
+#include <fstream>
 #include <functional>
+#include <iomanip>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -54,7 +60,7 @@ struct GPUDisplayFrontend::configKey {
   configKeyCallback callback;
 };
 
-struct GPUDisplayFrontend::configRTTIInfo {
+struct GPUDisplayFrontend::GPUDisplayConfiguration {
   static constexpr std::tuple configStructs{&GPUDisplay::mCfgL, &GPUDisplay::mCfgH, &GPUDisplay::mCfgR, &GPUDisplay::mCfgC}; // Config structs with RTTI, as members of GPUDisplay
   std::vector<configRTTIExt> rttiEntries;
   std::vector<configKeyCallback> configInfos;       // SetInfo callback for an option, indexed like rttiEntries, called after the callback of a key bound to it
@@ -97,29 +103,8 @@ struct GPUDisplayFrontend::configRTTIInfo {
     std::apply([&](auto... s) { ((retVal = i++ == index ? reinterpret_cast<char*>(&(display.*s)) : retVal), ...); }, configStructs);
     return retVal;
   }
-  std::optional<std::string> valueString(GPUDisplay& display, uint32_t index) const // Current value of an option, printed with print_type as in qconfig.cxx, nullopt for unsupported types
-  {
-    const auto& e = rttiEntries[index];
-    const char* ptr = configStructPtr(display, e.configStructIndex) + e.offset;
-    if (e.isVector || e.arraySize) {
-      return std::nullopt;
-    } else if (e.type == "bool") {
-      return qConfig::print_type(*(const bool*)ptr);
-    } else if (e.type == "float") {
-      return qConfig::print_type(*(const float*)ptr);
-    } else if (e.type == "int8_t") {
-      return qConfig::print_type(*(const int8_t*)ptr);
-    } else if (e.type == "uint8_t") {
-      return qConfig::print_type(*(const uint8_t*)ptr);
-    } else if (e.type == "int32_t" || e.type == "int") {
-      return qConfig::print_type(*(const int32_t*)ptr);
-    } else if (e.type == "uint32_t") {
-      return qConfig::print_type(*(const uint32_t*)ptr);
-    } else if (e.type == "std::string") {
-      return *(const std::string*)ptr;
-    }
-    return std::nullopt;
-  }
+  std::string setValue(GPUDisplay& display, uint32_t index, const GPUDisplayConsole::consoleArg& value);   // Converted to the type of the option, empty string on success, otherwise the error
+  std::optional<std::string> valueString(GPUDisplay& display, uint32_t index, bool precise = false) const; // Current value of an option, printed with print_type as in qconfig.cxx, nullopt for unsupported types; precise: floats with all digits, to read them back exactly
   template <class T, class M>
   uint32_t getRTTIIndex(GPUDisplay& display, M T::* member) // RTTI index of a direct member of a config struct
   {
@@ -137,10 +122,10 @@ struct GPUDisplayFrontend::configRTTIInfo {
       helpText.emplace_back(e.first + std::string(width - e.first.size(), ' ') + ": " + e.second);
     }
   }
-  std::string getKeyName(uint16_t key) const // Name of a special key (KEY_*), the character otherwise, the code if neither, SHIFT+ for shifted special keys
+  std::string getKeyName(uint16_t key) const // Name of a special key (KEY_*), the character otherwise, the code if neither, SHIFT_ for shifted special keys
   {
     if (key >= 256) {
-      return "SHIFT+" + getKeyName(key - SPECIAL_KEYS_SHIFTED);
+      return "SHIFT_" + getKeyName(key - SPECIAL_KEYS_SHIFTED);
     }
     return key < keyNames.size() && !keyNames[key].empty() ? keyNames[key] : (key < 32 ? std::to_string(key) : std::string(1, (char)key));
   }
@@ -199,7 +184,7 @@ void GPUDisplay::checkAndApplyConfigChanges()
   }
 }
 
-void GPUDisplay::HandleExternalGUIKey(int32_t key)
+void GPUDisplay::HandleExternalGUIKey(int32_t key, bool bypassConsole)
 {
   // GPUError("key %d '%c'", key, (char) key);
 
@@ -210,7 +195,7 @@ void GPUDisplay::HandleExternalGUIKey(int32_t key)
   }
   bool oldShift = mFrontend->mKeys[mFrontend->KEY_SHIFT];
   mFrontend->mKeys[mFrontend->KEY_SHIFT] = shifted;
-  HandleKey(key, true);
+  HandleKey(key, true, bypassConsole);
   mFrontend->mKeys[mFrontend->KEY_SHIFT] = oldShift;
 }
 
@@ -239,7 +224,7 @@ void GPUDisplayFrontend::add_key_binding(Args&&... args)
     const uint16_t character = std::get<0>(key);
     const std::string name = mConfigRTTI->getKeyName(character);
     auto& entry = mConfigRTTI->configKeys[character];
-    if (entry.callback || entry.configRTTIIndex != configRTTIInfo::INVALID_INDEX) {
+    if (entry.callback || entry.configRTTIIndex != GPUDisplayConfiguration::INVALID_INDEX) {
       throw std::runtime_error("Key [" + name + "] assigned twice in display frontend");
     }
     if constexpr (std::is_same_v<std::remove_cvref_t<decltype(key)>, std::tuple<uint8_t, uint8_t>>) {
@@ -248,7 +233,7 @@ void GPUDisplayFrontend::add_key_binding(Args&&... args)
         throw std::runtime_error("Key down mapping " + mConfigRTTI->keyMapNames[id] + " assigned twice in display frontend");
       }
       mKeyDownMap[id] = character >= 'a' && character <= 'z' ? character + 'A' - 'a' : character; // mKeys stores letters in upper case
-      entry.configRTTIIndex = configRTTIInfo::KEY_MAP_INDEX + id;
+      entry.configRTTIIndex = GPUDisplayConfiguration::KEY_MAP_INDEX + id;
     } else {
       entry.configRTTIIndex = std::get<1>(key);
       entry.callback = std::move(std::get<2>(key));
@@ -401,7 +386,7 @@ void GPUDisplayFrontend::add_gui_binding(Args&&... args)
       throw std::runtime_error("GUI element " + element.name + ": choices are needed for radio buttons and dropdown menus, and only allowed for them and sliders");
     }
     el.horizontal = horizontal;
-    mConfigRTTI->guiElements.emplace_back(configRTTIInfo::guiElementCallbacks{element.rttiIndex, std::move(element.set)});
+    mConfigRTTI->guiElements.emplace_back(GPUDisplayConfiguration::guiElementCallbacks{element.rttiIndex, std::move(element.set)});
   };
   auto addArg = [&](auto& arg) {
     if constexpr (std::is_same_v<std::remove_cvref_t<decltype(arg)>, guiElement>) {
@@ -490,10 +475,10 @@ void GPUDisplayFrontend::listConfig()
   for (uint16_t k : boundKeys) {
     const uint32_t index = rtti.configKeys[k].configRTTIIndex;
     if (rtti.isKeyMap(index)) {
-      mappedKeys[index - configRTTIInfo::KEY_MAP_INDEX] = "[" + rtti.getKeyName(k) + "]";
-      GPUInfo("  %-*s %-28s %s", keyWidth, ("[" + rtti.getKeyName(k) + "]").c_str(), "(key down map)", rtti.keyMapNames[index - configRTTIInfo::KEY_MAP_INDEX].c_str());
+      mappedKeys[index - GPUDisplayConfiguration::KEY_MAP_INDEX] = "[" + rtti.getKeyName(k) + "]";
+      GPUInfo("  %-*s %-28s %s", keyWidth, ("[" + rtti.getKeyName(k) + "]").c_str(), "(key down map)", rtti.keyMapNames[index - GPUDisplayConfiguration::KEY_MAP_INDEX].c_str());
     } else {
-      const bool hasRTTI = index != configRTTIInfo::INVALID_INDEX;
+      const bool hasRTTI = index != GPUDisplayConfiguration::INVALID_INDEX;
       GPUInfo("  %-*s %-28s %s", keyWidth, ("[" + rtti.getKeyName(k) + "]").c_str(), hasRTTI ? rtti.rttiEntries[index].configStruct.c_str() : "(no config option)", hasRTTI ? rtti.rttiEntries[index].name.c_str() : "");
     }
   }
@@ -535,7 +520,7 @@ void GPUDisplayFrontend::listConfig()
 void GPUDisplay::buildConfig()
 {
   auto& rtti = mFrontend->mConfigRTTI;
-  rtti = {new GPUDisplayFrontend::configRTTIInfo, [](GPUDisplayFrontend::configRTTIInfo* p) { delete p; }};
+  rtti = {new GPUDisplayFrontend::GPUDisplayConfiguration, [](GPUDisplayFrontend::GPUDisplayConfiguration* p) { delete p; }};
 
   rtti->keyNames.resize(rtti->configKeys.size());
   rtti->keyMapNames.resize(GPUDisplayFrontend::KEY_MAP_MAX + 1); // Including MAX
@@ -544,7 +529,7 @@ void GPUDisplay::buildConfig()
 #include "frontend/GPUDisplayFrontendKeys.h"
 
   std::tie(rtti->rttiEntries, rtti->configStructNames) = std::apply([this](auto... s) { return qConfigGenRTTI<GPUDisplayFrontend::configRTTIExt, std::remove_reference_t<decltype(this->*s)>...>(); }, rtti->configStructs);
-  std::apply([&](auto... s) { (rtti->rttiReverseId.emplace_back(sizeof(this->*s), GPUDisplayFrontend::configRTTIInfo::INVALID_INDEX), ...); }, rtti->configStructs);
+  std::apply([&](auto... s) { (rtti->rttiReverseId.emplace_back(sizeof(this->*s), GPUDisplayFrontend::GPUDisplayConfiguration::INVALID_INDEX), ...); }, rtti->configStructs);
   for (uint32_t i = 0; i < rtti->rttiEntries.size(); i++) {
     const auto& entry = rtti->rttiEntries[i];
     rtti->rttiReverseId[entry.configStructIndex][entry.offset] = i;
@@ -575,6 +560,7 @@ void GPUDisplay::buildConfig()
   buildConfigInfo();
   buildConfigQtGUI();
   mFrontend->buildConsoleCommands();
+  mFrontend->mConsole->mPrintToTerminal = mConfig.internal.consolePrintToTerminal;
   rtti->buildHelpText();
 }
 
@@ -603,9 +589,9 @@ void GPUDisplayFrontend::showConfigInfo(uint32_t index)
   }
 }
 
-void GPUDisplay::HandleKey(uint8_t key, bool external)
+void GPUDisplay::HandleKey(uint8_t key, bool external, bool bypassConsole)
 {
-  if (mCfgC.showConsole && mFrontend->mConfigRTTI->configKeys[key].configRTTIIndex != mFrontend->mConfigRTTI->getRTTIIndex(*this, &GPUDisplayControl::showConsole)) { // All keys except the one toggling the console go to the console
+  if (mCfgC.showConsole && !bypassConsole && mFrontend->mConfigRTTI->configKeys[key].configRTTIIndex != mFrontend->mConfigRTTI->getRTTIIndex(*this, &GPUDisplayControl::showConsole)) { // All keys except the one toggling the console go to the console
     if (!external) {
       mFrontend->mConsole->handleConsoleKey(key);
     }
@@ -615,4 +601,102 @@ void GPUDisplay::HandleKey(uint8_t key, bool external)
     mFrontend->mKeys[mFrontend->KEY_CTRL] = false; // Release CTRL with alt, to avoid orienting along y automatically!
   } else if (mFrontend->processKeyLambda(key)) {
   }
+}
+
+std::string GPUDisplayFrontend::GPUDisplayConfiguration::setValue(GPUDisplay& display, uint32_t index, const GPUDisplayConsole::consoleArg& value)
+{
+  const auto& e = rttiEntries[index];
+  char* ptr = configStructPtr(display, e.configStructIndex) + e.offset;
+  if (e.type == "std::string") {
+    const std::string* str = std::get_if<std::string>(&value);
+    if (!str) {
+      return "string expected";
+    }
+    *(std::string*)ptr = *str;
+    return "";
+  }
+  if (e.isVector || e.arraySize) {
+    return "unsupported type " + e.type;
+  }
+  if (e.type == "float") { // Floating point: also from an integer
+    const double v = std::holds_alternative<int64_t>(value) ? (double)std::get<int64_t>(value) : std::holds_alternative<double>(value) ? std::get<double>(value)
+                                                                                                                                       : std::nan("");
+    if (std::isnan(v)) {
+      return "number expected";
+    } else if ((e.min.size() && v < std::stod(e.min)) || (e.max.size() && v > std::stod(e.max))) {
+      return "value out of range [" + e.min + ", " + e.max + "]";
+    }
+    *(float*)ptr = v;
+    return "";
+  }
+  int64_t v; // Integer types and bool, exactly, not through double
+  if (const std::string* str = std::get_if<std::string>(&value)) {
+    if (e.type != "bool" || (*str != "true" && *str != "false")) {
+      return "number expected";
+    }
+    v = *str == "true";
+  } else if (const int64_t* i = std::get_if<int64_t>(&value)) {
+    v = *i;
+  } else {
+    return "integer expected";
+  }
+  if ((e.min.size() && v < std::stoll(e.min)) || (e.max.size() && v > std::stoll(e.max))) {
+    return "value out of range [" + e.min + ", " + e.max + "]";
+  }
+  auto store = [&]<class T>(auto&& assign) -> std::string { // Within the range of the type T
+    if (v < (int64_t)std::numeric_limits<T>::min() || (v > 0 && (uint64_t)v > (uint64_t)std::numeric_limits<T>::max())) {
+      return "value out of range of " + e.type;
+    }
+    assign((T)v);
+    return "";
+  };
+  if (e.type == "bool") {
+    return store.template operator()<bool>([&](bool x) { *(bool*)ptr = x; });
+  } else if (e.type == "int8_t") {
+    return store.template operator()<int8_t>([&](int8_t x) { *(int8_t*)ptr = x; });
+  } else if (e.type == "uint8_t") {
+    return store.template operator()<uint8_t>([&](uint8_t x) { *(uint8_t*)ptr = x; });
+  } else if (e.type == "int32_t") {
+    return store.template operator()<int32_t>([&](int32_t x) { *(int32_t*)ptr = x; });
+  } else if (e.type == "uint32_t") {
+    return store.template operator()<uint32_t>([&](uint32_t x) { *(uint32_t*)ptr = x; });
+  } else if (e.type == "int64_t") {
+    return store.template operator()<int64_t>([&](int64_t x) { *(int64_t*)ptr = x; });
+  } else if (e.type == "uint64_t") {
+    return store.template operator()<uint64_t>([&](uint64_t x) { *(uint64_t*)ptr = x; });
+  } else if (e.type == "GPUDisplayCopyableAtomic<int32_t>") {
+    return store.template operator()<int32_t>([&](int32_t x) { ((GPUDisplayCopyableAtomic<int32_t>*)ptr)->store(x); });
+  } else if (e.type == "GPUDisplayCopyableAtomic<bool>") {
+    return store.template operator()<bool>([&](bool x) { ((GPUDisplayCopyableAtomic<bool>*)ptr)->store(x); });
+  }
+  return "unsupported type " + e.type;
+}
+
+std::optional<std::string> GPUDisplayFrontend::GPUDisplayConfiguration::valueString(GPUDisplay& display, uint32_t index, bool precise) const
+{
+  const auto& e = rttiEntries[index];
+  const char* ptr = configStructPtr(display, e.configStructIndex) + e.offset;
+  if (e.isVector || e.arraySize) {
+    return std::nullopt;
+  } else if (e.type == "bool") {
+    return qConfig::print_type(*(const bool*)ptr);
+  } else if (e.type == "float") {
+    if (precise) {
+      std::ostringstream s;
+      s << std::setprecision(std::numeric_limits<float>::max_digits10) << *(const float*)ptr;
+      return s.str();
+    }
+    return qConfig::print_type(*(const float*)ptr);
+  } else if (e.type == "int8_t") {
+    return qConfig::print_type(*(const int8_t*)ptr);
+  } else if (e.type == "uint8_t") {
+    return qConfig::print_type(*(const uint8_t*)ptr);
+  } else if (e.type == "int32_t") {
+    return qConfig::print_type(*(const int32_t*)ptr);
+  } else if (e.type == "uint32_t") {
+    return qConfig::print_type(*(const uint32_t*)ptr);
+  } else if (e.type == "std::string") {
+    return *(const std::string*)ptr;
+  }
+  return std::nullopt;
 }
