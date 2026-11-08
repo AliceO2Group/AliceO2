@@ -13,7 +13,7 @@
 /// \author David Rohr
 
 #include "GPUDisplayGUI.h"
-#include "GPUDisplayFrontend.h"
+#include "GPUDisplayFrontendKeyVars.h"
 
 #include <QButtonGroup>
 #include <QCheckBox>
@@ -829,34 +829,34 @@ int32_t GPUDisplayGUI::translateKey(const QKeyEvent* event)
 {
   switch (event->key()) {
     case Qt::Key_Up:
-      return GPUDisplayFrontend::KEY_UP;
+      return GPUDisplayFrontendKeyVars::KEY_UP;
     case Qt::Key_Down:
-      return GPUDisplayFrontend::KEY_DOWN;
+      return GPUDisplayFrontendKeyVars::KEY_DOWN;
     case Qt::Key_Left:
-      return GPUDisplayFrontend::KEY_LEFT;
+      return GPUDisplayFrontendKeyVars::KEY_LEFT;
     case Qt::Key_Right:
-      return GPUDisplayFrontend::KEY_RIGHT;
+      return GPUDisplayFrontendKeyVars::KEY_RIGHT;
     case Qt::Key_PageUp:
-      return GPUDisplayFrontend::KEY_PAGEUP;
+      return GPUDisplayFrontendKeyVars::KEY_PAGEUP;
     case Qt::Key_PageDown:
-      return GPUDisplayFrontend::KEY_PAGEDOWN;
+      return GPUDisplayFrontendKeyVars::KEY_PAGEDOWN;
     case Qt::Key_Home:
-      return GPUDisplayFrontend::KEY_HOME;
+      return GPUDisplayFrontendKeyVars::KEY_HOME;
     case Qt::Key_End:
-      return GPUDisplayFrontend::KEY_END;
+      return GPUDisplayFrontendKeyVars::KEY_END;
     case Qt::Key_Insert:
-      return GPUDisplayFrontend::KEY_INSERT;
+      return GPUDisplayFrontendKeyVars::KEY_INSERT;
     case Qt::Key_Escape:
-      return GPUDisplayFrontend::KEY_ESCAPE;
+      return GPUDisplayFrontendKeyVars::KEY_ESCAPE;
     case Qt::Key_Return:
     case Qt::Key_Enter:
-      return GPUDisplayFrontend::KEY_ENTER;
+      return GPUDisplayFrontendKeyVars::KEY_ENTER;
     default:
       break;
   }
   if (event->key() >= Qt::Key_F1 && event->key() <= Qt::Key_F12) {
-    static_assert(GPUDisplayFrontend::KEY_F12 - GPUDisplayFrontend::KEY_F1 == Qt::Key_F12 - Qt::Key_F1);
-    return GPUDisplayFrontend::KEY_F1 + (event->key() - Qt::Key_F1);
+    static_assert(GPUDisplayFrontendKeyVars::KEY_F12 - GPUDisplayFrontendKeyVars::KEY_F1 == Qt::Key_F12 - Qt::Key_F1);
+    return GPUDisplayFrontendKeyVars::KEY_F1 + (event->key() - Qt::Key_F1);
   }
   const QString text = event->text();
   if (text.size() == 1 && text[0].unicode() >= 32 && text[0].unicode() < 127) { // Printable ASCII, with shift applied

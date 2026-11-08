@@ -17,6 +17,7 @@
 
 #include "GPUCommonDef.h"
 #include "GPUDisplayInterface.h"
+#include "GPUDisplayFrontendKeyVars.h"
 #include <memory>
 #include <chrono>
 #include <mutex>
@@ -34,10 +35,9 @@ class GPUDisplayBackend;
 class GPUDisplayGUIWrapper;
 struct GPUDisplayGUIChannel;
 
-class GPUDisplayFrontend : public GPUDisplayFrontendInterface
+class GPUDisplayFrontend : public GPUDisplayFrontendInterface, public GPUDisplayFrontendKeyVars
 {
   friend class GPUDisplay;
-  friend class GPUDisplayGUI; // Key codes
 
  public:
   GPUDisplayFrontend();
@@ -92,10 +92,6 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   static constexpr int32_t INIT_WIDTH = 1024, INIT_HEIGHT = 768;                        // Initial window size, before maximizing
   static constexpr int32_t MIN_WIDTH = 200, MIN_HEIGHT = 150;                           // Minimum window size
   static constexpr const char* DISPLAY_WINDOW_NAME = "GPU CA Standalone Event Display"; // Title of event display set by backend
-  // Constant key codes for special mKeys (to unify different treatment in X11 / Windows / GLUT / etc.)
-#define GPUDisplayFrontendAddKey(code, key) static constexpr int32_t KEY_##key = code
-#define GPUDisplayFrontendKeyDownMap(code, key) static constexpr int32_t KEY_MAP_##key = code
-#include "GPUDisplayFrontendKeys.h"
   static constexpr uint32_t N_SPECIAL_KEYS = 32;
   static constexpr uint32_t SPECIAL_KEYS_SHIFTED = 255;
   static constexpr uint32_t N_TOTAL_KEYS = 256 + N_SPECIAL_KEYS;
