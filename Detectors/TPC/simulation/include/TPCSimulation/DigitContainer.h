@@ -52,6 +52,9 @@ class DigitContainer
     }
   }
 
+  DigitContainer(const DigitContainer&) = delete;
+  DigitContainer& operator=(const DigitContainer&) = delete;
+
   /// Reset the container
   void reset();
 
