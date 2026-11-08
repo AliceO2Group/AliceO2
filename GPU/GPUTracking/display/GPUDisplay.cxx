@@ -171,12 +171,22 @@ int32_t GPUDisplay::InitDisplay(bool initFailure)
     if (!initFailure) {
       retVal = InitDisplay_internal();
     }
+    if (retVal == 0) {
+      buildConfig();
+      if (mConfig.listFrontendOptionHandling) {
+        mFrontend->listConfig();
+      }
+    }
   } catch (const std::runtime_error& e) {
     GPUError("%s", e.what());
     retVal = 1;
   }
-  mInitResult = retVal == 0 ? 1 : -1;
   mOldCfg = {mCfgH, mCfgL, mCfgR};
+  std::unique_lock lock(mFrontend->mExitStateMutex);
+  mInitResult = retVal == 0 ? 1 : -1;
+  mFrontend->mDisplayRunning = retVal == 0; // Only after successful initialization, StopDisplay waits for it to become false again
+  mFrontend->mInitCV.notify_all();
+  mFrontend->mInitCV.wait(lock, [this] { return mFrontend->mStartDisplayDone; }); // Both threads have finished their initialization
   return (retVal);
 }
 
@@ -791,11 +801,5 @@ void GPUDisplay::WaitTillEventShown()
 int32_t GPUDisplay::StartDisplay()
 {
   mLoadAndShowEvent = true;
-  if (mFrontend->StartDisplay()) {
-    return (1);
-  }
-  while (mInitResult == 0) {
-    Sleep(10);
-  }
-  return (mInitResult != 1);
+  return mFrontend->StartDisplay();
 }

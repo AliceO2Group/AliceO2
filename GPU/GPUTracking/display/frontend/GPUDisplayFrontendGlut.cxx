@@ -28,7 +28,6 @@
 #include <X11/Xatom.h>
 #endif
 
-#include <pthread.h>
 using namespace o2::gpu;
 
 GPUDisplayFrontendGlut::GPUDisplayFrontendGlut()
@@ -230,11 +229,6 @@ int32_t GPUDisplayFrontendGlut::FrontendMain()
     fprintf(stderr, "Error initializing GL extension wrapper\n");
     return (-1);
   }
-  if (InitDisplay()) {
-    fprintf(stderr, "Error in OpenGL initialization\n");
-    return (1);
-  }
-
   auto mouseMoveFunc = [](int32_t x, int32_t y, void* p) { self(p)->mouseMoveFunc(x, y); };
   glutDisplayFuncUcall([](void* p) { self(p)->displayFunc(); }, this); // Callbacks with this as user data, freeglut >= 3.2
   glutIdleFuncUcall([](void* p) { self(p)->glutLoopFunc(); }, this);
@@ -250,9 +244,9 @@ int32_t GPUDisplayFrontendGlut::FrontendMain()
   applyInitialWindowState();
   SetVSync(vsyncEnabled());
 
-  {
-    std::lock_guard lock(mExitStateMutex);
-    mDisplayRunning = true;
+  if (InitDisplay()) {
+    fprintf(stderr, "Error in OpenGL initialization\n");
+    return (1);
   }
   glutMainLoop();
   {

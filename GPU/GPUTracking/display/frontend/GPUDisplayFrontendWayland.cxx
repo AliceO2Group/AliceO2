@@ -564,11 +564,6 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
     return (1);
   }
 
-  {
-    std::lock_guard lock(mExitStateMutex);
-    mDisplayRunning = true;
-  }
-
   while (mDisplay->mCfgC.mDisplayControl.load() != 2) {
     bool error = false;
     while (!error && wl_display_prepare_read(mWayland) != 0) {

@@ -311,11 +311,6 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
     return (1);
   }
 
-  {
-    std::lock_guard lock(mExitStateMutex);
-    mDisplayRunning = true;
-  }
-
   while (1) {
     do {
       if (getDisplayControl() == 2) {

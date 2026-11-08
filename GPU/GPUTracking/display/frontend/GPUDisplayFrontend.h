@@ -18,9 +18,11 @@
 #include "GPUCommonDef.h"
 #include "GPUDisplayInterface.h"
 #include "GPUDisplayFrontendKeyVars.h"
+#include <atomic>
 #include <memory>
 #include <chrono>
 #include <mutex>
+#include <thread>
 #include <condition_variable>
 #include <string>
 #include <utility>
@@ -86,9 +88,9 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface, public GPUDisplay
  protected:
   virtual int32_t FrontendMain() = 0;
   virtual void StopDisplayA();
-  static void* FrontendThreadWrapper(void*);
-  void waitForFPSLimit();    // Sleep until the next frame is due according to fpsRate (only in FPS_LIMIT_RATE mode, see GPUDisplayBackend::fpsLimitMode), or until an external config update is signalled
-  void signalConfigUpdate(); // Signal a config update from an external source (console keys, Qt GUI), wakes up waitForFPSLimit
+  void FrontendThreadWrapper(); // Runs FrontendMain in mFrontendThread
+  void waitForFPSLimit();       // Sleep until the next frame is due according to fpsRate (only in FPS_LIMIT_RATE mode, see GPUDisplayBackend::fpsLimitMode), or until an external config update is signalled
+  void signalConfigUpdate();    // Signal a config update from an external source (console keys, Qt GUI), wakes up waitForFPSLimit
 
   static constexpr int32_t INIT_WIDTH = 1024, INIT_HEIGHT = 768;                        // Initial window size, before maximizing
   static constexpr int32_t MIN_WIDTH = 200, MIN_HEIGHT = 150;                           // Minimum window size
@@ -104,6 +106,9 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface, public GPUDisplay
   bool mConfigUpdatePending = false;       // Protected by mConfigUpdateMutex, set by signalConfigUpdate, cleared by HandleExternalGUISignals
   std::mutex mExitStateMutex;
   std::condition_variable mDisplayStoppedCV; // Notified with mExitStateMutex held when the frontend sets mDisplayRunning to false, StopDisplay waits for it
+  std::condition_variable mInitCV;           // With mExitStateMutex: InitDisplay (frontend thread) and StartDisplay (main thread) wait for each other at their end
+  std::thread mFrontendThread;               // Started by StartDisplay, joined by StopDisplay
+  bool mStartDisplayDone = false;            // Protected by mExitStateMutex
   std::array<uint8_t, KEY_MAP_MAX> mKeyDownMap = {};
 
   // Keyboard / Mouse actions
@@ -124,7 +129,7 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface, public GPUDisplay
 
   frontendTypes mFrontendType = TYPE_INVALID;
   const char* mFrontendName = nullptr;
-  volatile bool mDisplayRunning = false;
+  std::atomic<bool> mDisplayRunning = false; // Set at the end of a successful InitDisplay, StopDisplay waits for it to become false again
 
   std::unique_ptr<GPUDisplayGUIChannel> mGUIChannel; // Must outlive mGUI
   std::unique_ptr<GPUDisplayGUIWrapper> mGUI;

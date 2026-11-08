@@ -332,11 +332,6 @@ int32_t GPUDisplayFrontendGlfw::FrontendMain()
     return (1);
   }
 
-  {
-    std::lock_guard lock(mExitStateMutex);
-    mDisplayRunning = true; // Only after successful initialization, StopDisplay waits for it to become false again
-  }
-
   int32_t retVal = 0;
   while (!glfwWindowShouldClose(mWindow)) {
     if (HandleUpdatesAndDrawGLScene()) {
