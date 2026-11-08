@@ -17,6 +17,7 @@
 #include "CommonUtils/FileSystemUtils.h"
 #include "Framework/Logger.h"
 #include <filesystem>
+#include <fmt/chrono.h>
 #include <fstream>
 #include <memory>
 #include <thread>
@@ -183,6 +184,7 @@ size_t FileFetcher::popFromQueue(bool discard)
   }
   auto id = mQueue.front();
   mQueue.pop();
+  LOGP(info, "removing processed {} from the queue, discard flag is {}", mInputFiles[id].getLocalName(), discard);
   if (discard) {
     discardFile(mInputFiles[id].getLocalName());
   }
@@ -234,6 +236,19 @@ void FileFetcher::cleanup()
     throw std::runtime_error("FileFetcher thread is still active, cannot cleanup");
   }
   if (mNRemote && o2::utils::Str::pathExists(mCopyDirName)) {
+    try {
+      LOGP(info, "FileFetcher scratch directory {} contents (modification date, size in bytes, name):", mCopyDirName);
+      for (const auto& entry : fs::directory_iterator(mCopyDirName)) {
+        const auto fileTime = entry.last_write_time();
+        const auto systemTime = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+          fileTime - fs::file_time_type::clock::now() + std::chrono::system_clock::now());
+        const auto modificationTime = std::chrono::system_clock::to_time_t(systemTime);
+        const auto size = entry.is_regular_file() ? std::to_string(entry.file_size()) : "-";
+        LOGP(info, "{:%Y-%m-%d %H:%M:%S} {} {}", fmt::localtime(modificationTime), size, entry.path().filename().string());
+      }
+    } catch (const std::exception& e) {
+      LOGP(error, "FileFetcher failed to list scratch directory {}: {}", mCopyDirName, e.what());
+    }
     try {
       fs::remove_all(mCopyDirName);
     } catch (...) {
@@ -319,6 +334,7 @@ void FileFetcher::discardFile(const std::string& fname)
     mInputFiles[ent->second - 1].copied = false;
     fs::remove(fname);
     mCopied.erase(fname);
+    LOGP(info, "removing processed file {} from the disk", fname);
   }
 }
 
