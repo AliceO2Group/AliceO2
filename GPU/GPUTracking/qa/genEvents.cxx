@@ -38,6 +38,8 @@
 #include "GPUTPCGMMerger.h"
 #include "GPUChainTracking.h"
 #include "GPUConstantMem.h"
+#define GPUSETTINGS_STANDALONE
+#define GPUSETTINGS_DISPLAY
 #include "GPUSettings.h"
 
 using namespace o2::gpu;

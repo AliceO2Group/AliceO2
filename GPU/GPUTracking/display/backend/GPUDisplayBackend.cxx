@@ -228,7 +228,7 @@ void GPUDisplayBackend::GLDrawConsole(float verticalFraction, std::span<const st
   const float scale = mDisplay->frontend()->getDisplayScale();
   const float colorValue = mDisplay->cfgL().invertColors ? 0.f : 1.f;
   float textColor[4] = {colorValue, colorValue, colorValue, 1.f};
-  const float backgroundColor[4] = {1.f - colorValue, 1.f - colorValue, 1.f - colorValue, mDisplay->cfg().consoleAlpha};
+  const float backgroundColor[4] = {1.f - colorValue, 1.f - colorValue, 1.f - colorValue, mDisplay->cfg().internal.consoleAlpha};
   const float width = mScreenWidth, top = mScreenHeight, bottom = top * (1.f - verticalFraction);
   GLDrawQuad({{0.f, bottom}, {width, bottom}, {width, top}, {0.f, top}}, backgroundColor);
   GLDrawLine(0.f, bottom, width, bottom, scale, textColor);

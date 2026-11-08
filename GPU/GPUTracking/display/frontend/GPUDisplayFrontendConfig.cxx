@@ -189,7 +189,7 @@ void GPUDisplay::checkAndApplyConfigChanges()
   mCfgC.mRotateModel |= mCfgC.mRotateAroundZ;
   if (mCfgC.showConsole != mConsoleShown) {
     mConsoleShown = mCfgC.showConsole;
-    const double start = mConsoleTimer.IsRunning() ? std::max(0., mConfig.consoleDelay - mConsoleTimer.GetCurrentElapsedTime()) : 0.; // Reverse a running animation from its current position
+    const double start = mConsoleTimer.IsRunning() ? std::max(0., mConfig.internal.consoleDelay - mConsoleTimer.GetCurrentElapsedTime()) : 0.; // Reverse a running animation from its current position
     mConsoleTimer.Reset();
     mConsoleTimer.AddTime(start);
     mConsoleTimer.Start();

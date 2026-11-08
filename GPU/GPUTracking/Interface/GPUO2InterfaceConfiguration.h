@@ -16,6 +16,7 @@
 #define GPUO2INTERFACECONFIGURATION_H
 
 #include "GPUO2ExternalUser.h"
+#define GPUSETTINGS_DISPLAY
 #include "GPUSettings.h"
 #include "GPUDataTypesIO.h"
 #include "GPUHostDataTypes.h"

@@ -431,7 +431,7 @@ void GPUDisplayGUI::timerTick()
     }
     if (mState.infoTextCounter != mInfoTextCounter) {
       mInfoTextCounter = mState.infoTextCounter;
-      mInfoTextTimer.start(std::chrono::seconds(5));
+      mInfoTextTimer.start(mChannel.infoTextTime);
     }
     updateInfoLabels();
   }

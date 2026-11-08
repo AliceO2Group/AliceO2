@@ -242,8 +242,9 @@ int32_t GPUDisplayFrontend::startGUI()
       mGUIChannel->guiSleeping = mGUIChannel->displayProcessingCurrentUpdate = mGUIChannel->stop = mGUIChannel->displayWaitingForOptions = false;
       mGUIChannel->optionsReadRevision = 0;
       mDisplay->mUpdateGUIOptions = true;
-      mGUIChannel->replyTimeout = std::chrono::milliseconds(mDisplay->cfg().guiReplyTimeout);
-      mGUIChannel->maxUpdatesAhead = std::max<uint32_t>(mDisplay->cfg().guiMaxUpdatesAhead, 1); // 0 would block all updates
+      mGUIChannel->replyTimeout = std::chrono::milliseconds(mDisplay->cfg().internal.guiReplyTimeout);
+      mGUIChannel->maxUpdatesAhead = std::max<uint32_t>(mDisplay->cfg().internal.guiMaxUpdatesAhead, 1); // 0 would block all updates
+      mGUIChannel->infoTextTime = std::chrono::milliseconds(std::lround((mDisplay->cfg().internal.setInfoTime + mDisplay->cfg().internal.setInfoTransition) * 1000.f));
       mGUIChannel->windowName = DISPLAY_WINDOW_NAME;
       setGUILayout(*mGUIChannel);
     }

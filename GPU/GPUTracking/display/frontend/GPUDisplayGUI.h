@@ -84,7 +84,7 @@ class GPUDisplayGUI : public QMainWindow
   std::vector<GUIElement> mElements;
   uint64_t mOptionsRevision = 0;                         // optionsRevision for which the option lambdas were called
   std::vector<std::function<void(float)>> mScaleSetters; // Sizes of widgets and layouts that depend on the GUI scale
-  QLabel* mStatusLabel = nullptr;                        // Status line and, for 5 seconds, info message from the display, at the bottom of the window
+  QLabel* mStatusLabel = nullptr;                        // Status line and, for infoTextTime of the channel, info message from the display, at the bottom of the window
   QTimer mInfoTextTimer;
   uint64_t mInfoTextCounter = 0;
   bool mDarkMode = false;

@@ -748,13 +748,13 @@ void GPUDisplay::DrawGLScene_internal(bool suspended, float animateTime, bool re
     }
     if (consoleFraction > 0.f) {
       const double consoleTime = mConsoleTimer.GetCurrentElapsedTime();
-      const bool cursor = mCfgC.showConsole && consoleTime >= mConfig.consoleDelay && std::fmod(consoleTime - mConfig.consoleDelay, 1.0) < 0.5; // Only when fully open, blinking, the timer runs while the console is open
+      const bool cursor = mCfgC.showConsole && consoleTime >= mConfig.internal.consoleDelay && std::fmod(consoleTime - mConfig.internal.consoleDelay, 1.0) < 0.5; // Only when fully open, blinking, the timer runs while the console is open
       mBackend->GLDrawConsole(consoleFraction, mFrontend->mConsole->mConsoleHistory, mFrontend->mConsole->shownText(), cursor ? (int32_t)mFrontend->mConsole->mConsoleTextPos : -1);
     }
     if (drawText) {
       mBackend->finishText();
     }
-    mFrontend->mConsole->consoleLimitHistory(mConfig.consoleHistorySize);
+    mFrontend->mConsole->consoleLimitHistory(mConfig.internal.consoleHistorySize);
   }
 
   mBackend->finishFrame(doScreenshot, renderToMixBuffer, mixSlaveImage);

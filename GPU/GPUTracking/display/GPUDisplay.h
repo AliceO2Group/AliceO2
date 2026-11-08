@@ -15,6 +15,7 @@
 #ifndef GPUDISPLAY_H
 #define GPUDISPLAY_H
 
+#define GPUSETTINGS_DISPLAY
 #define GPUSETTINGS_DISPLAYCONTROL
 #include "GPUSettings.h"
 #include "frontend/GPUDisplayFrontend.h"

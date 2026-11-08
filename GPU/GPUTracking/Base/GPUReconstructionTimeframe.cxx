@@ -24,6 +24,8 @@
 #include "AliHLTTPCRawCluster.h"
 #include "TPCFastTransformPOD.h"
 #include "GPUO2DataTypes.h"
+#define GPUSETTINGS_STANDALONE
+#define GPUSETTINGS_DISPLAY
 #include "GPUSettings.h"
 
 #include <cstdio>
