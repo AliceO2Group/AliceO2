@@ -13,13 +13,14 @@
 /// \author David Rohr
 
 #include "GPUDisplayConsole.h"
-#include "GPULogging.h"
 #include <algorithm>
 #include <charconv>
 #include <stdexcept>
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
+#include <fstream>
+#include <sstream>
 
 using namespace o2::gpu;
 
@@ -124,30 +125,19 @@ void GPUDisplayConsole::consoleLimitHistory(uint32_t historySize)
 
 // Tokens separated by spaces: text in single / double quotes and characters after a backslash are plain text (the token is a string),
 // otherwise a token is int64_t for [+-]digits, double for [+-]digits with one '.', a string otherwise. Throws std::runtime_error for an unterminated quote / trailing backslash.
-std::vector<GPUDisplayConsole::consoleArg> GPUDisplayConsole::parseConsoleCommand(const std::string& cmd)
+
+std::tuple<const GPUDisplayConsole::GPUDisplayConsoleCommand&, std::vector<GPUDisplayConsole::consoleArg>> GPUDisplayConsole::parseConsoleCommand(std::string_view cmd) const
 {
-  std::vector<consoleArg> retVal;
+  std::vector<std::pair<std::string, bool>> tokens; // Text, plain text (quoted / escaped)
   std::string token;
   bool inToken = false, plainText = false, escape = false;
   char quote = 0;
   auto finishToken = [&]() {
-    if (!inToken) {
-      return;
+    if (inToken) {
+      tokens.emplace_back(std::move(token), plainText);
+      token.clear();
+      inToken = plainText = false;
     }
-    const char* begin = token.c_str() + (token[0] == '+' || token[0] == '-');
-    const size_t nDigits = std::count_if(begin, token.c_str() + token.size(), [](char c) { return c >= '0' && c <= '9'; });
-    const size_t nDots = std::count(begin, token.c_str() + token.size(), '.');
-    const bool number = !plainText && nDigits && nDigits + nDots == (size_t)(token.c_str() + token.size() - begin);
-    int64_t intValue = 0;
-    if (number && nDots == 0 && std::from_chars(begin, token.c_str() + token.size(), intValue).ec == std::errc()) {
-      retVal.emplace_back(token[0] == '-' ? -intValue : intValue);
-    } else if (number && nDots <= 1) {
-      retVal.emplace_back(std::stod(token)); // Also integers out of the int64_t range
-    } else {
-      retVal.emplace_back(token);
-    }
-    token.clear();
-    inToken = plainText = false;
   };
   for (char c : cmd) {
     if (escape) {
@@ -175,26 +165,110 @@ std::vector<GPUDisplayConsole::consoleArg> GPUDisplayConsole::parseConsoleComman
     throw std::runtime_error(quote ? "unterminated quote" : "backslash at the end");
   }
   finishToken();
-  return retVal;
+  if (tokens.empty()) {
+    throw std::runtime_error("empty command");
+  }
+
+  const std::string& name = tokens[0].first;
+  const auto it = mConsoleCommands.find(name);
+  if (it == mConsoleCommands.end()) {
+    throw std::runtime_error("unknown command " + name);
+  }
+  const std::string& types = it->second.args;
+  const bool more = types.size() && types.back() == '+';
+  const size_t nFixed = types.size() - more, nArgs = tokens.size() - 1;
+  if (nArgs < nFixed || (!more && nArgs > nFixed)) {
+    throw std::runtime_error(name + ": " + std::to_string(nFixed) + (more ? " or more" : "") + " arguments expected, got " + std::to_string(nArgs));
+  }
+  auto autoType = [](const std::string& text, bool plain) -> consoleArg { // int64_t for [+-]digits, double for [+-]digits with one '.', string otherwise or if plain text
+    const char *begin = text.c_str() + (text[0] == '+' || text[0] == '-'), *end = text.c_str() + text.size();
+    const size_t nDigits = std::count_if(begin, end, [](char c) { return c >= '0' && c <= '9'; });
+    const size_t nDots = std::count(begin, end, '.');
+    const bool number = !plain && nDigits && nDigits + nDots == (size_t)(end - begin);
+    int64_t intValue = 0;
+    if (number && nDots == 0 && std::from_chars(begin, end, intValue).ec == std::errc()) {
+      return text[0] == '-' ? -intValue : intValue;
+    } else if (number && nDots <= 1) {
+      return std::stod(text); // Also integers out of the int64_t range
+    }
+    return text;
+  };
+  std::vector<consoleArg> args;
+  for (size_t i = 0; i < nArgs; i++) {
+    const auto& [text, plain] = tokens[i + 1];
+    const char type = i < nFixed ? types[i] : '+';
+    consoleArg value = type == 's' ? consoleArg(text) : autoType(text, plain);
+    if (type == 'i' && !std::holds_alternative<int64_t>(value)) {
+      throw std::runtime_error(name + ": argument " + std::to_string(i + 1) + " (" + text + ") must be an integer");
+    } else if (type == 'd') {
+      if (std::holds_alternative<int64_t>(value)) {
+        value = (double)std::get<int64_t>(value);
+      } else if (!std::holds_alternative<double>(value)) {
+        throw std::runtime_error(name + ": argument " + std::to_string(i + 1) + " (" + text + ") must be a number");
+      }
+    } else if (type != 's' && type != 'i' && type != '+') {
+      throw std::runtime_error(name + ": invalid argument types " + types);
+    }
+    args.emplace_back(std::move(value));
+  }
+  return {it->second, std::move(args)};
 }
 
-void GPUDisplayConsole::handleConsoleCommand(const std::string& cmd)
+void GPUDisplayConsole::handleConsoleCommand(std::string_view cmd)
 {
+  if (cmd.find_first_not_of(' ') == std::string_view::npos) { // Empty line
+    return;
+  }
+  const GPUDisplayConsoleCommand* command = nullptr;
   std::vector<consoleArg> args;
   try {
-    args = parseConsoleCommand(cmd);
+    auto parsed = parseConsoleCommand(cmd);
+    command = &std::get<0>(parsed);
+    args = std::move(std::get<1>(parsed));
   } catch (const std::runtime_error& e) {
     consolePrint("Invalid command: %s", e.what());
     return;
   }
-  if (args.empty()) {
+  command->func(args);
+}
+
+void GPUDisplayConsole::runScript(std::string_view script)
+{
+  if (mScriptDepth >= 16) {
+    consolePrint("Scripts nested too deeply");
     return;
   }
-  const std::string* name = std::get_if<std::string>(&args[0]);
-  const auto it = name ? mConsoleCommands.find(*name) : mConsoleCommands.end();
-  if (it == mConsoleCommands.end()) {
-    consolePrint("Unknown command: %s", cmd.c_str());
+  mScriptDepth++;
+  for (size_t pos = 0; pos < script.size();) {
+    const size_t end = std::min(script.find_first_of("\r\n", pos), script.size());
+    handleConsoleCommand(script.substr(pos, end - pos)); // Empty lines (consecutive \r / \n) are ignored
+    pos = end + 1;
+  }
+  mScriptDepth--;
+}
+
+void GPUDisplayConsole::runScriptFile(const std::string& filename)
+{
+  std::ifstream file(filename, std::ios::binary);
+  if (!file) {
+    consolePrint("Cannot open script file %s", filename.c_str());
     return;
   }
-  it->second(std::span(args).subspan(1));
+  std::stringstream content;
+  content << file.rdbuf();
+  runScript(content.str());
+}
+
+void GPUDisplayConsole::printCommands(const std::function<void(const std::string&)>& print)
+{
+  std::vector<std::string> names;
+  for (const auto& [name, command] : mConsoleCommands) {
+    names.emplace_back(name);
+  }
+  std::sort(names.begin(), names.end());
+  print("Console commands (argument types: s string, i integer, d number, + further arguments):");
+  for (const auto& name : names) {
+    const auto& command = mConsoleCommands[name];
+    print("  " + name + (command.args.empty() ? "" : " ") + command.args + ": " + command.description);
+  }
 }

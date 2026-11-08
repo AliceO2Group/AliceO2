@@ -21,6 +21,8 @@
 #include <functional>
 #include <span>
 #include <string>
+#include <string_view>
+#include <tuple>
 #include <unordered_map>
 #include <variant>
 #include <vector>
@@ -31,24 +33,33 @@ class GPUDisplayConsole : public GPUDisplayFrontendKeyVars // Text console of th
 {
  public:
   using consoleArg = std::variant<int64_t, double, std::string>; // Argument of a console command
-  GPUDisplayConsole(const std::string& title);                   // First history entry, not selectable
+  struct GPUDisplayConsoleCommand {
+    std::function<void(std::span<const consoleArg>)> func;
+    std::string args;        // One character per argument: s string, i int64_t, d double (also from an integer), + at the end: any further arguments (type from the text)
+    std::string description; // For help
+  };
+  GPUDisplayConsole(const std::string& title); // First history entry, not selectable
 
-  void handleConsoleKey(uint8_t key);                                         // Key typed while the console is shown
-  void handleConsoleCommand(const std::string& cmd);                          // Runs the command named by the first token, error if unknown
-  static std::vector<consoleArg> parseConsoleCommand(const std::string& cmd); // Split into arguments, throws std::runtime_error for invalid input
-  void consolePrint(const char* format, ...);                                 // printf-like output to the console, indented by 2 spaces in mConsoleHistory
-  void consoleInfo(const char* format, const char* text);                     // Output of SetInfo, updates the last line instead for the same message within 2 s
-  void consoleAppend(std::string line);                                       // Every other new line of the console
-  void consoleLimitHistory(uint32_t historySize);                             // Once per frame: keeps historySize lines when the history reaches twice that
+  void handleConsoleKey(uint8_t key);                                                                                   // Key typed while the console is shown
+  void handleConsoleCommand(std::string_view cmd);                                                                      // Runs the command named by the first token, error if unknown
+  void runScript(std::string_view script);                                                                              // Runs each line (separated by \n / \r) as console command
+  void runScriptFile(const std::string& filename);                                                                      // runScript with the content of the file
+  void printCommands(const std::function<void(const std::string&)>& print);                                             // List of the commands with argument types and description, one line per call
+  std::tuple<const GPUDisplayConsoleCommand&, std::vector<consoleArg>> parseConsoleCommand(std::string_view cmd) const; // Command and its arguments with the types it requests, throws std::runtime_error for syntax errors, unknown commands, wrong arguments
+  void consolePrint(const char* format, ...);                                                                           // printf-like output to the console, indented by 2 spaces in mConsoleHistory
+  void consoleInfo(const char* format, const char* text);                                                               // Output of SetInfo, updates the last line instead for the same message within 2 s
+  void consoleAppend(std::string line);                                                                                 // Every other new line of the console
+  void consoleLimitHistory(uint32_t historySize);                                                                       // Once per frame: keeps historySize lines when the history reaches twice that
   const std::string& shownText() const { return mConsoleTextCurrent ? mConsoleHistory[mConsoleTextCurrent] : mConsoleText; }
 
-  std::unordered_map<std::string, std::function<void(std::span<const consoleArg>)>> mConsoleCommands; // Console commands by name
-  std::string mConsoleInfoLastMessage;                                                                // Format of the SetInfo that wrote the last console line, empty if something else came after it
-  std::chrono::steady_clock::time_point mConsoleInfoLastTime;                                         //
-  std::vector<std::string> mConsoleHistory;                                                           // Title, then commands entered in the console and their output (indented)
-  std::string mConsoleText;                                                                           // Text being typed in the console
-  uint32_t mConsoleTextCurrent = 0;                                                                   // Entry of mConsoleHistory shown in the console (selected with up / down, the title entry 0 is not selectable), 0 for mConsoleText
-  uint32_t mConsoleTextPos = 0;                                                                       // Cursor position in the shown text (left / right), the character there is the current one
+  std::unordered_map<std::string, GPUDisplayConsoleCommand> mConsoleCommands; // Console commands by name, filled by GPUDisplayFrontend::buildConsoleCommands
+  uint32_t mScriptDepth = 0;                                                  // Scripts running scripts
+  std::string mConsoleInfoLastMessage;                                        // Format of the SetInfo that wrote the last console line, empty if something else came after it
+  std::chrono::steady_clock::time_point mConsoleInfoLastTime;                 //
+  std::vector<std::string> mConsoleHistory;                                   // Title, then commands entered in the console and their output (indented)
+  std::string mConsoleText;                                                   // Text being typed in the console
+  uint32_t mConsoleTextCurrent = 0;                                           // Entry of mConsoleHistory shown in the console (selected with up / down, the title entry 0 is not selectable), 0 for mConsoleText
+  uint32_t mConsoleTextPos = 0;                                               // Cursor position in the shown text (left / right), the character there is the current one
 };
 } // namespace o2::gpu
 

@@ -109,6 +109,7 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface, public GPUDisplay
   std::condition_variable mInitCV;           // With mExitStateMutex: InitDisplay (frontend thread) and StartDisplay (main thread) wait for each other at their end
   std::thread mFrontendThread;               // Started by StartDisplay, joined by StopDisplay
   bool mStartDisplayDone = false;            // Protected by mExitStateMutex
+  bool mStartupScriptDone = false;           // GPUSettingsDisplay::runScript runs after the first (suspended) frame
   std::array<uint8_t, KEY_MAP_MAX> mKeyDownMap = {};
 
   // Keyboard / Mouse actions

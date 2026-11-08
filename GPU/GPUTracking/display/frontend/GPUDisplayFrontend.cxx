@@ -192,8 +192,13 @@ int32_t GPUDisplayFrontend::HandleUpdatesAndDrawGLScene(bool suspended)
 {
   HandleExternalGUISignals();
   mDisplay->checkAndApplyConfigChanges();
-  const int32_t retVal = mDisplay->DrawGLScene(suspended);
-  mDisplay->mOldCfg = {mDisplay->mCfgH, mDisplay->mCfgL, mDisplay->mCfgR}; // Also includes the changes during drawing (animation, scene reset, ...), which set their update flags themselves
+  const bool startupScript = !mStartupScriptDone && !mDisplay->cfg().runScript.empty();
+  const int32_t retVal = mDisplay->DrawGLScene(suspended || startupScript); // Before the startup script, the first frame only loads the event, it is not rendered
+  mDisplay->mOldCfg = {mDisplay->mCfgH, mDisplay->mCfgL, mDisplay->mCfgR};  // Also includes the changes during drawing (animation, scene reset, ...), which set their update flags themselves
+  if (startupScript) {
+    mStartupScriptDone = true;
+    mConsole->runScriptFile(mDisplay->cfg().runScript); // Settings it changes are applied with the next frame
+  }
   return retVal;
 }
 
@@ -379,7 +384,7 @@ void GPUDisplayFrontend::StopDisplay()
   }
   std::lock_guard lock(mExitStateMutex);
   if (mDisplay->mInitResult == 1) { // For a new StartDisplay, not after a failed initialization or an error (undefined state)
-    mStartDisplayDone = false;
+    mStartDisplayDone = mStartupScriptDone = false;
     mDisplay->mInitResult = 0;
   }
 }
