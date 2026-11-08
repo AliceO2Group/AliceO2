@@ -1218,6 +1218,8 @@ void Detector::Reset()
     mHits->clear();
   }
   mTrackRefLastTrackID = -1;
+  mTrackIdTop = -1;
+  mTrackIdMCPtop = -1;
 }
 
 void Detector::CreateMaterials()
