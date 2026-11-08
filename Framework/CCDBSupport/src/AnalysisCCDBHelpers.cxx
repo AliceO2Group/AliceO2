@@ -235,8 +235,8 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
 
         // Rows sharing a uniformity value resolve to the same objects, so the query is
         // issued once per distinct value and the resulting handles are repeated for the
-        // rest of the run. When uniformity is the timestamp itself (the default) this
-        // degenerates to the previous behaviour, one query per row.
+        // rest of the run. When uniformity is the timestamp itself (the default) the
+        // query is issued once per run of consecutive rows with the same timestamp.
         std::vector<int64_t> uniformity;
         bool const shortCircuit = uniformityColumn.get() != timestampColumn.get();
         if (shortCircuit) {
@@ -273,15 +273,13 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
 
           for (int64_t ri = 0; ri < chunk->data()->length; ri++) {
             ++row;
-            bool const sameAsPrevious = shortCircuit && haveResponses && uniformity[row] == previousUniformity;
-            if (shortCircuit) {
-              previousUniformity = uniformity[row];
-            }
             ops.clear();
             int64_t timestamp = timestamps[ri];
             // Key the path lookup on the uniformity value; when uniformity is the
             // timestamp itself the mapping expresses validity intervals instead.
             int64_t const uniformityKey = shortCircuit ? uniformity[row] : timestamp;
+            bool const sameAsPrevious = haveResponses && uniformityKey == previousUniformity;
+            previousUniformity = uniformityKey;
             int fi = 0;
             for (auto& field : schema->fields()) {
               auto const& url = pathTables[i][fi++].resolve(uniformityKey, field->name());
