@@ -18,9 +18,9 @@
 
 #ifdef _WIN32
 #include "GPUDisplayFrontendWindows.h"
-#else
-#include <pthread.h>
 #endif
+#include <system_error>
+#include <thread>
 
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_X11
 #include "GPUDisplayFrontendX11.h"
@@ -61,22 +61,31 @@ class GPUDisplayGUIWrapper
 using namespace o2::gpu;
 
 GPUDisplayFrontend::GPUDisplayFrontend() : mConsole(std::make_unique<GPUDisplayConsole>(std::string(DISPLAY_WINDOW_NAME) + " Console")) {}
-GPUDisplayFrontend::~GPUDisplayFrontend() = default;
-
-void* GPUDisplayFrontend::FrontendThreadWrapper(void* ptr)
+GPUDisplayFrontend::~GPUDisplayFrontend()
 {
-  GPUDisplayFrontend* me = reinterpret_cast<GPUDisplayFrontend*>(ptr);
+  if (mFrontendThread.joinable()) { // Started but not stopped, as the detached thread before
+    mFrontendThread.detach();
+  }
+}
+
+void GPUDisplayFrontend::FrontendThreadWrapper()
+{
   int32_t retVal;
   try {
-    retVal = me->FrontendMain();
+    retVal = FrontendMain();
   } catch (const std::exception& e) {
     GPUError("Error in display frontend: %s", e.what());
     retVal = -1;
   }
-  if (retVal && me->mDisplay->mInitResult == 0) { // Failed before InitDisplay was called, report failure to StartDisplay(), which otherwise waits forever
-    me->InitDisplay(true);
+  if (retVal) {
+    std::unique_lock lock(mExitStateMutex);
+    if (mDisplay->mInitResult == 0) { // Failed before InitDisplay was called, report failure to StartDisplay(), which otherwise waits forever
+      lock.unlock();
+      InitDisplay(true);
+    } else {
+      mDisplay->mInitResult = -1; // Error after the initialization: StopDisplay does not reset the state for a new start
+    }
   }
-  return ((void*)(size_t)retVal);
 }
 
 void GPUDisplayFrontend::waitForFPSLimit()
@@ -341,35 +350,38 @@ int32_t& GPUDisplayFrontend::drawTextFontSize()
 
 int32_t GPUDisplayFrontend::StartDisplay()
 {
-#ifndef _WIN32
-  static pthread_t hThread;
-  if (pthread_create(&hThread, nullptr, FrontendThreadWrapper, this)) {
-    GPUError("Coult not Create frontend Thread...");
+  try {
+    mFrontendThread = std::thread(&GPUDisplayFrontend::FrontendThreadWrapper, this);
+  } catch (const std::system_error& e) {
+    GPUError("Could not create frontend thread: %s", e.what());
     return (1);
   }
-#else
-  HANDLE hThread;
-  if ((hThread = CreateThread(nullptr, nullptr, &OpenGLWrapper, this, nullptr, nullptr)) == nullptr) {
-    GPUError("Coult not Create GL Thread...");
-    return (1);
-  }
-#endif
-  mDisplay->buildConfig();
-  if (mDisplay->cfg().listFrontendOptionHandling) {
-    listConfig();
-  }
-  return (0);
+  std::unique_lock lock(mExitStateMutex);
+  mStartDisplayDone = true;
+  mInitCV.notify_all();
+  mInitCV.wait(lock, [this] { return mDisplay->mInitResult != 0; }); // Both threads have finished their initialization
+  return (mDisplay->mInitResult != 1);
 }
 
 void GPUDisplayFrontend::StopDisplay()
 {
-  std::unique_lock lock(mExitStateMutex);
-  if (mDisplayRunning) {
-    mDisplay->mCfgC.mDisplayControl.store(2);
-    StopDisplayA();
-    mDisplay->UnblockDisplay();
+  {
+    std::unique_lock lock(mExitStateMutex);
+    if (mDisplayRunning) {
+      mDisplay->mCfgC.mDisplayControl.store(2);
+      StopDisplayA();
+      mDisplay->UnblockDisplay();
+    }
+    mDisplayStoppedCV.wait(lock, [this] { return !mDisplayRunning; });
   }
-  mDisplayStoppedCV.wait(lock, [this] { return !mDisplayRunning; });
+  if (mFrontendThread.joinable()) { // Also the wrapper has finished (it sets mInitResult = -1 for errors after the initialization), not holding mExitStateMutex, which the wrapper uses
+    mFrontendThread.join();
+  }
+  std::lock_guard lock(mExitStateMutex);
+  if (mDisplay->mInitResult == 1) { // For a new StartDisplay, not after a failed initialization or an error (undefined state)
+    mStartDisplayDone = false;
+    mDisplay->mInitResult = 0;
+  }
 }
 
 void GPUDisplayFrontend::StopDisplayA() {}

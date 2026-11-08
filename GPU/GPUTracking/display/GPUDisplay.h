@@ -330,7 +330,7 @@ class GPUDisplay : public GPUDisplayInterface
 
   std::vector<threadVertexBuffer> mThreadBuffers;
   std::vector<std::vector<std::array<std::array<vecpod<int32_t>, 2>, NSECTORS>>> mThreadTracks;
-  volatile int32_t mInitResult = 0;
+  int32_t mInitResult = 0; // 1 success, -1 failure, protected by mFrontend->mExitStateMutex
 
   float mFPSScale = 1, mFPSScaleadjust = 0;
   int32_t mFramesDone = 0, mFramesDoneFPS = 0;

@@ -27,10 +27,6 @@ int32_t GPUDisplayFrontendNone::FrontendMain()
   if (InitDisplay()) {
     return 1;
   }
-  {
-    std::lock_guard lock(mExitStateMutex);
-    mDisplayRunning = true;
-  }
   do {
     HandleUpdatesAndDrawGLScene();
     waitForFPSLimit();
