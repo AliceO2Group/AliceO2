@@ -187,6 +187,10 @@ void GPUDisplay::HandleExternalGUIKey(int32_t key)
   // GPUError("key %d '%c'", key, (char) key);
 
   bool shifted = key >= 'A' && key <= 'Z';
+  if (key >= 256) { // Special key with SHIFT, from translateExternalKey
+    shifted = true;
+    key -= mFrontend->SPECIAL_KEYS_SHIFTED;
+  }
   bool oldShift = mFrontend->mKeys[mFrontend->KEY_SHIFT];
   mFrontend->mKeys[mFrontend->KEY_SHIFT] = shifted;
   HandleKey(key);

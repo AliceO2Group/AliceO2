@@ -160,8 +160,11 @@ void GPUDisplayFrontend::HandleExternalGUISignals()
   }
 }
 
-void GPUDisplayFrontend::sendExternalGUIKey(int32_t v)
+void GPUDisplayFrontend::sendExternalGUIKey(int32_t v, uint32_t translationMode, uint64_t extendedKey)
 {
+  if (translationMode && (v = translateExternalKey(translationMode, extendedKey)) < 0) {
+    return;
+  }
   {
     std::lock_guard lock(mExternalGUIKeyMutex);
     mExternalGUIKeys.emplace_back(v);

@@ -130,7 +130,8 @@ set(SRCS_NO_H helpers/GPUDisplayLoader.cxx
               helpers/GPUDisplayInterpolation.cxx
               helpers/GPUDisplayROOT.cxx
               frontend/GPUDisplayHelp.cxx
-              frontend/GPUDisplayFrontendConfig.cxx)
+              frontend/GPUDisplayFrontendConfig.cxx
+              frontend/GPUDisplayFrontendKeyTranslation.cxx)
 
 set(HDRS_INSTALL helpers/GPUDisplayMagneticFieldConstants.h frontend/GPUDisplayFrontendKeys.h frontend/GPUDisplayFrontendKeyVars.h GPUDisplayControl.h GPUDisplayTypes.h)
 
