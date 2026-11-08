@@ -16,6 +16,13 @@ o2_add_test(DigitContainer
             SOURCES testTPCDigitContainer.cxx
             ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
 
+o2_add_test(DigitContainerReset
+            LABELS tpc
+            PUBLIC_LINK_LIBRARIES O2::TPCSimulation
+            COMPONENT_NAME tpc
+            SOURCES testTPCDigitContainerReset.cxx
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
+
 o2_add_test(ElectronTransport
             LABELS tpc
             PUBLIC_LINK_LIBRARIES O2::TPCSimulation
