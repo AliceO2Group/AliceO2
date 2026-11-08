@@ -255,10 +255,11 @@ DataAllocator::CacheId CCDBHelpers::adoptAndReplaceCachedMessage(
   std::string const& path,
   Output const& output,
   o2::pmr::vector<char>&& v,
-  o2::header::SerializationMethod method)
+  o2::header::SerializationMethod method,
+  DataAllocator::CacheStrategy strategy)
 {
   auto oldIt = cache.find(path);
-  auto cacheId = allocator.adoptContainer(output, std::move(v), DataAllocator::CacheStrategy::Always, method);
+  auto cacheId = allocator.adoptContainer(output, std::move(v), strategy, method);
   if (oldIt != cache.end()) {
     allocator.pruneFromCache(oldIt->second);
   }

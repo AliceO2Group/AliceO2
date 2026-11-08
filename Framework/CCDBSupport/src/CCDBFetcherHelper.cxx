@@ -256,7 +256,7 @@ auto CCDBFetcherHelper::populateCacheWith(std::shared_ptr<CCDBFetcherHelper> con
         helper->totalFetchedBytes += size;
         helper->totalRequestedBytes += size;
         api.appendFlatHeader(v, headers);
-        auto cacheId = CCDBHelpers::adoptAndReplaceCachedMessage(allocator, helper->mapURL2DPLCache, path, output, std::move(v), header::gSerializationMethodCCDB);
+        auto cacheId = CCDBHelpers::adoptAndReplaceCachedMessage(allocator, helper->mapURL2DPLCache, path, output, std::move(v), header::gSerializationMethodCCDB, DataAllocator::CacheStrategy::CacheOnly);
         helper->mapURL2DPLCache[path] = cacheId;
         responses.emplace_back(Response{.id = cacheId, .size = size, .request = nullptr});
         O2_SIGNPOST_EVENT_EMIT(ccdb, sid, "populateCacheWith", "Caching %{public}s for %{public}s (DPL id %" PRIu64 ", size %zu)", path.data(), headers["ETag"].data(), cacheId.value, size);
@@ -274,7 +274,7 @@ auto CCDBFetcherHelper::populateCacheWith(std::shared_ptr<CCDBFetcherHelper> con
         helper->totalFetchedBytes += size;
         helper->totalRequestedBytes += size;
         api.appendFlatHeader(v, headers);
-        auto cacheId = CCDBHelpers::adoptAndReplaceCachedMessage(allocator, helper->mapURL2DPLCache, path, output, std::move(v), header::gSerializationMethodCCDB);
+        auto cacheId = CCDBHelpers::adoptAndReplaceCachedMessage(allocator, helper->mapURL2DPLCache, path, output, std::move(v), header::gSerializationMethodCCDB, DataAllocator::CacheStrategy::CacheOnly);
         helper->mapURL2DPLCache[path] = cacheId;
         responses.emplace_back(Response{.id = cacheId, .size = size, .request = nullptr});
         O2_SIGNPOST_EVENT_EMIT(ccdb, sid, "populateCacheWith", "Caching %{public}s for %{public}s (DPL id %" PRIu64 ")", path.data(), headers["ETag"].data(), cacheId.value);

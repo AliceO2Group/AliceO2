@@ -1105,6 +1105,91 @@ TEST_CASE("DataRelayer")
     checkContents();
   }
 
+  // The analysis CCDB fetcher sends a CCDB table followed by the objects it
+  // refers to, all for the same route. The consumer must get them in the same
+  // slot, with the table as the first part, which holds when they are relayed
+  // from one multipart, i.e. without checking for completion in between.
+  SECTION("CCDBTableAndObjectsCompleteTogether")
+  {
+    InputSpec spec0{"bcs", "AOD", "BC"};
+    InputSpec spec1{"ccdb", "AOD", "GLOCCDBOBJ", 1};
+
+    std::vector<InputRoute> inputs = {
+      InputRoute{spec0, 0, "Fake0", 0},
+      InputRoute{spec1, 1, "Fake1", 0},
+    };
+
+    std::vector<InputChannelInfo> infos{1};
+    TimesliceIndex index{1, infos};
+    ref.registerService(ServiceRegistryHelpers::handleForService<TimesliceIndex>(&index));
+
+    auto policy = CompletionPolicyHelpers::consumeWhenAll();
+    DataRelayer relayer(policy, inputs, index, {registry}, -1);
+    relayer.setPipelineLength(4);
+
+    auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
+    auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
+
+    auto relayOne = [&](o2::header::DataDescription description, uint32_t subSpec, o2::header::SerializationMethod method, size_t timeslice) {
+      DataHeader dh;
+      dh.dataOrigin = "AOD";
+      dh.dataDescription = description;
+      dh.subSpecification = subSpec;
+      dh.splitPayloadIndex = 0;
+      dh.splitPayloadParts = 1;
+      dh.payloadSerializationMethod = method;
+      std::array<fair::mq::MessagePtr, 2> msgs;
+      msgs[0] = o2::pmr::getMessage(Stack{channelAlloc, dh, DataProcessingHeader{timeslice, 1}});
+      msgs[1] = transport->CreateMessage(8);
+      DataRelayer::InputInfo info{0, 2, DataRelayer::InputType::Data, {ChannelIndex::INVALID}};
+      relayer.relay(msgs[0]->GetData(), msgs.data(), info, 2);
+    };
+    auto relayCCDB = [&](size_t timeslice) {
+      relayOne("GLOCCDBOBJ", 1, o2::header::gSerializationMethodArrow, timeslice);
+      relayOne("GLOCCDBOBJ", 1, o2::header::gSerializationMethodCCDB, timeslice);
+      relayOne("GLOCCDBOBJ", 1, o2::header::gSerializationMethodCCDB, timeslice);
+    };
+
+    // Table and objects in one multipart: one slot, with the table first.
+    relayOne("BC", 0, o2::header::gSerializationMethodArrow, 0);
+    relayCCDB(0);
+    std::vector<RecordAction> ready;
+    relayer.getReadyToProcess(ready);
+    REQUIRE(ready.size() == 1);
+    auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
+    REQUIRE((result[1] | count_parts{}) == 3);
+    for (size_t p = 0; p < 3; ++p) {
+      auto* dh = o2::header::get<DataHeader*>((result[1] | get_header{p})->GetData());
+      REQUIRE(dh->payloadSerializationMethod == (p == 0 ? o2::header::gSerializationMethodArrow : o2::header::gSerializationMethodCCDB));
+    }
+
+    // The same, with the CCDB parts arriving before the other input.
+    relayCCDB(1);
+    ready.clear();
+    relayer.getReadyToProcess(ready);
+    REQUIRE(ready.empty());
+    relayOne("BC", 0, o2::header::gSerializationMethodArrow, 1);
+    relayer.getReadyToProcess(ready);
+    REQUIRE(ready.size() == 1);
+    result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
+    REQUIRE((result[1] | count_parts{}) == 3);
+
+    // What happened when the table and the objects were sent separately: the
+    // slot completes on the table alone, and the objects open a new slot which
+    // can never complete.
+    relayOne("BC", 0, o2::header::gSerializationMethodArrow, 2);
+    relayOne("GLOCCDBOBJ", 1, o2::header::gSerializationMethodArrow, 2);
+    ready.clear();
+    relayer.getReadyToProcess(ready);
+    REQUIRE(ready.size() == 1);
+    result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
+    REQUIRE((result[1] | count_parts{}) == 1);
+    relayOne("GLOCCDBOBJ", 1, o2::header::gSerializationMethodCCDB, 2);
+    ready.clear();
+    relayer.getReadyToProcess(ready);
+    REQUIRE(ready.empty());
+  }
+
   // An expiring input is materialised straight into the slot, so with one
   // shared buffer per slot it lands *after* whatever the other inputs already
   // hold -- the cells are then no longer in input order. Check that the data
