@@ -45,7 +45,12 @@ class DigitContainer
   DigitContainer();
 
   /// Destructor
-  ~DigitContainer() = default;
+  ~DigitContainer()
+  {
+    for (auto time : mTimeBins) {
+      delete time;
+    }
+  }
 
   /// Reset the container
   void reset();
@@ -115,11 +120,11 @@ inline void DigitContainer::reset()
 {
   mFirstTimeBin = 0;
   mEffectiveTimeBin = 0;
-  for (auto& time : mTimeBins) {
-    if (time) {
-      time->reset();
-    }
+  // drop all time bins, including those beyond the timeframe limit, so that no MC labels survive
+  for (auto time : mTimeBins) {
+    delete time;
   }
+  mTimeBins.assign(mOffset, nullptr);
   if (mPrevDigArr) {
     std::fill(mPrevDigArr->begin(), mPrevDigArr->end(), PrevDigitInfo{});
   }
