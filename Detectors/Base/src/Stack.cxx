@@ -36,12 +36,40 @@
 #include <cassert>
 #include <cstddef> // for NULL
 #include <cmath>
+#include <unordered_map>
 #include "DetectorsBase/SimRandom.h"
 
 using std::cout;
 using std::endl;
 using std::pair;
 using namespace o2::data;
+
+namespace
+{
+// a TParticle copied from a per-thread prototype per PDG code, avoiding the ROOT-locked PDG lookup
+TParticle makeParticle(int pdg, int status, int mother1, int mother2, int daughter1, int daughter2,
+                       double px, double py, double pz, double e, double vx, double vy, double vz, double t)
+{
+  thread_local std::unordered_map<int, TParticle> prototypes;
+  auto it = prototypes.find(pdg);
+  if (it == prototypes.end()) {
+    TParticle p(pdg, status, mother1, mother2, daughter1, daughter2, px, py, pz, e, vx, vy, vz, t);
+    if (p.GetPDG(1)) { // unknown codes may still be added to TDatabasePDG later
+      prototypes.emplace(pdg, p);
+    }
+    return p;
+  }
+  TParticle p(it->second); // the copy keeps the PDG record and the mass
+  p.SetStatusCode(status);
+  p.SetFirstMother(mother1);
+  p.SetLastMother(mother2);
+  p.SetFirstDaughter(daughter1);
+  p.SetLastDaughter(daughter2);
+  p.SetMomentum(px, py, pz, e);
+  p.SetProductionVertex(vx, vy, vz, t);
+  return p;
+}
+} // namespace
 
 // small helper function to append to vector at arbitrary position
 template <typename T, typename I>
@@ -219,7 +247,7 @@ void Stack::PushTrack(Int_t toBeDone, Int_t parentId, Int_t pdgCode, Double_t px
   //  Int_t daughter1Id = -1;
   //  Int_t daughter2Id = -1;
   Int_t iStatus = (proc == kPPrimary) ? is : trackId;
-  TParticle p(pdgCode, iStatus, parentId, secondparentId, daughter1Id, daughter2Id, px, py, pz, e, vx, vy, vz, time);
+  TParticle p = makeParticle(pdgCode, iStatus, parentId, secondparentId, daughter1Id, daughter2Id, px, py, pz, e, vx, vy, vz, time);
   p.SetPolarisation(polx, poly, polz);
   p.SetWeight(weight);
   p.SetUniqueID(proc);                                           // using the unique ID to transfer process ID
