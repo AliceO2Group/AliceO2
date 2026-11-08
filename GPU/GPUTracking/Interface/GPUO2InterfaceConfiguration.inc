@@ -21,6 +21,8 @@
 #ifdef GPUCA_STANDALONE
 #define GPU_GET_CONFIG(configName) static_assert(false, "GPU_GET_CONFIG not available in standalone benchmark")
 #else
+#define GPUSETTINGS_DISPLAY
+#include "GPUSettings.h"
 #include "GPUO2ExternalUser.h"
 #include "GPUCommonRtypes.h"
 #include "GPUDefMacros.h"

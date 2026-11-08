@@ -15,6 +15,7 @@
 #ifndef GPUDISPLAYGUICHANNEL_H
 #define GPUDISPLAYGUICHANNEL_H
 
+#define GPUSETTINGS_DISPLAY
 #define GPUSETTINGS_DISPLAYCONTROL
 #include "GPUSettings.h"
 #include <algorithm>
@@ -113,21 +114,22 @@ struct GPUDisplayGUIChannel {
     uint64_t counter = 0;         // Incremented with every published state
   };
 
-  std::mutex mutex;                            // Protects all members below
-  std::condition_variable stateUpdated;        // Notified when a new state is published or the GUI shall stop
-  std::condition_variable optionsRead;         // Notified by the GUI when it called the dynamic option lambdas
-  uint64_t optionsReadRevision = 0;            // optionsRevision for which the GUI called the dynamic option lambdas
-  bool displayWaitingForOptions = false;       // Display waits until the GUI called the dynamic option lambdas, only then the GUI may call them
-  std::optional<Update> update;                // Pending update, not yet picked up by the display
-  State state;                                 // Latest state published by the display
-  bool guiSleeping = false;                    // GUI waits for its next timer tick with an update ready
-  bool displayProcessingCurrentUpdate = false; // Display processes the update the GUI went to sleep with, GUI waits for the reply
-  bool stop = false;                           // GUI shall close
-  std::chrono::milliseconds replyTimeout;      // Maximum time the GUI waits for a reply
-  uint32_t maxUpdatesAhead = 0;                // GUI waits for the reply if it is that many updates ahead of the last one it applied
-  std::string windowName;                      // Name of the display window, set when starting the GUI
-  std::vector<Frame> layout;                   // GUI elements, set when starting the GUI
-  std::function<void()> updatePosted;          // Set by the display, called by the GUI (without holding mutex) after posting an update, wakes up the display
+  std::mutex mutex;                             // Protects all members below
+  std::condition_variable stateUpdated;         // Notified when a new state is published or the GUI shall stop
+  std::condition_variable optionsRead;          // Notified by the GUI when it called the dynamic option lambdas
+  uint64_t optionsReadRevision = 0;             // optionsRevision for which the GUI called the dynamic option lambdas
+  bool displayWaitingForOptions = false;        // Display waits until the GUI called the dynamic option lambdas, only then the GUI may call them
+  std::optional<Update> update;                 // Pending update, not yet picked up by the display
+  State state;                                  // Latest state published by the display
+  bool guiSleeping = false;                     // GUI waits for its next timer tick with an update ready
+  bool displayProcessingCurrentUpdate = false;  // Display processes the update the GUI went to sleep with, GUI waits for the reply
+  bool stop = false;                            // GUI shall close
+  std::chrono::milliseconds replyTimeout;       // Maximum time the GUI waits for a reply
+  uint32_t maxUpdatesAhead = 0;                 // GUI waits for the reply if it is that many updates ahead of the last one it applied
+  std::chrono::milliseconds infoTextTime{5000}; // How long the GUI shows an info message: setInfoTime + setInfoTransition of the display
+  std::string windowName;                       // Name of the display window, set when starting the GUI
+  std::vector<Frame> layout;                    // GUI elements, set when starting the GUI
+  std::function<void()> updatePosted;           // Set by the display, called by the GUI (without holding mutex) after posting an update, wakes up the display
 };
 } // namespace o2::gpu
 

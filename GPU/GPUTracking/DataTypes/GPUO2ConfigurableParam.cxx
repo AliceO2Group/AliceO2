@@ -35,6 +35,7 @@ using namespace o2::gpu;
 #define AddCustomCPP(...)
 #define AddHelp(...)
 #define AddShortcut(...)
+#include "GPUSettingsListDisplay.h"
 #include "GPUSettingsList.h"
 #undef BeginNamespace
 #undef EndNamespace
@@ -80,6 +81,7 @@ GPUSettingsO2 GPUO2InterfaceConfiguration::ReadConfigurableParam(GPUO2InterfaceC
 #define AddCustomCPP(...)
 #define AddHelp(...)
 #define AddShortcut(...)
+#include "GPUSettingsListDisplay.h"
 #include "GPUSettingsList.h"
 #undef BeginNamespace
 #undef EndNamespace

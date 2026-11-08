@@ -58,6 +58,7 @@ namespace o2::gpu
 // class GPUTRDTrackerGPU;
 class GPUTPCGPUTracker;
 class GPUDisplayInterface;
+struct GPUSettingsDisplay;
 class GPUQA;
 class GPUTPCClusterStatistics;
 class GPUTRDGeometry;

@@ -25,6 +25,7 @@
 #include "GPUO2ExternalUser.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
+#define GPUSETTINGS_DISPLAY
 #include "GPUSettings.h"
 #include "GPUDefMacros.h"
 #include <vector>
@@ -59,6 +60,7 @@
 #define AddShortcut(...)
 #define AddOptionRTC(...) AddOption(__VA_ARGS__)
 #define AddOptionArrayRTC(...) AddOptionArray(__VA_ARGS__)
+#include "GPUSettingsListDisplay.h"
 #include "GPUSettingsList.h"
 #undef BeginNamespace
 #undef EndNamespace

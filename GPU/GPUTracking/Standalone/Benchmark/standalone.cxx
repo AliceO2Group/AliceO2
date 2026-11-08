@@ -25,6 +25,7 @@
 #include "genEvents.h"
 
 #include "GPUTPCGMMergedTrack.h"
+#define GPUSETTINGS_ALL
 #include "GPUSettings.h"
 #include "GPUConstantMem.h"
 

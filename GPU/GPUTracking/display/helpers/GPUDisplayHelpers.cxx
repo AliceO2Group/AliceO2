@@ -209,10 +209,11 @@ void GPUDisplay::showInfo(const char* info)
   float colorValue = mCfgL.invertColors ? 0.f : 1.f;
   GLPrintText(info, 40.f, 20.f + std::max(20, mDrawTextFontSize + 4), colorValue, colorValue, colorValue, 1);
   if (mInfoText2Timer.IsRunning()) {
-    if (mInfoText2Timer.GetCurrentElapsedTime() >= 6) {
+    const float time = mInfoText2Timer.GetCurrentElapsedTime(), shown = mConfig.internal.setInfoTime, transition = mConfig.internal.setInfoTransition;
+    if (time >= shown + transition) {
       mInfoText2Timer.Reset();
     } else {
-      GLPrintText(mInfoText2, 40.f, 20.f, colorValue, colorValue, colorValue, 6 - mInfoText2Timer.GetCurrentElapsedTime());
+      GLPrintText(mInfoText2, 40.f, 20.f, colorValue, colorValue, colorValue, time <= shown ? 1.f : 1.f - (time - shown) / transition); // Opaque, then fading out
     }
   }
   if (mInfoHelpTimer.IsRunning() || mCfgC.mPrintInfoTextAlways) {
@@ -231,11 +232,11 @@ float GPUDisplay::consoleVerticalFraction()
     return 0.f;
   }
   const double time = mConsoleTimer.GetCurrentElapsedTime();
-  if (running && !mCfgC.showConsole && time >= mConfig.consoleDelay) { // Keeps running while open, for the blinking cursor
+  if (running && !mCfgC.showConsole && time >= mConfig.internal.consoleDelay) { // Keeps running while open, for the blinking cursor
     mConsoleTimer.Stop();
   }
-  const float progress = running && mConfig.consoleDelay > 0.f ? std::min(1.f, (float)(time / mConfig.consoleDelay)) : 1.f;
-  return mConfig.consoleVertical * (mCfgC.showConsole ? progress : 1.f - progress);
+  const float progress = running && mConfig.internal.consoleDelay > 0.f ? std::min(1.f, (float)(time / mConfig.internal.consoleDelay)) : 1.f;
+  return mConfig.internal.consoleVertical * (mCfgC.showConsole ? progress : 1.f - progress);
 }
 
 void GPUDisplay::GLPrintText(const char* s, float x, float y, float r, float g, float b, float a, uint32_t nCharacters, bool fromBotton)
