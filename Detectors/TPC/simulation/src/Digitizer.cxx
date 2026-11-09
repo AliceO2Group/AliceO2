@@ -295,6 +295,16 @@ void Digitizer::setStartTime(double time)
   mDigitContainer.setStartTime(starttimebin);
 }
 
+void Digitizer::setSCDistortionsFrom(const Digitizer& other)
+{
+  mSpaceChargeOwned.reset();
+  mSpaceCharge = other.mSpaceCharge;
+  mSpaceChargeDer = other.mSpaceChargeDer;
+  mUseSCDistortions = other.mUseSCDistortions;
+  mLumiScaleFactor = other.mLumiScaleFactor;
+  mUseScaledDistortions = other.mUseScaledDistortions;
+}
+
 void Digitizer::setLumiScaleFactor()
 {
   mLumiScaleFactor = (CorrMapParam::Instance().lumiInst - mSpaceCharge->getMeanLumi()) / mSpaceChargeDer->getMeanLumi();

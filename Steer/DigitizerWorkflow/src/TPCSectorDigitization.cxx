@@ -42,8 +42,12 @@ std::string getBranchNameRight(int sector)
 
 std::vector<dataformats::RangeReference<int, int>> digitizeSector(Digitizer& digitizer, const steer::DigitizationContext& context,
                                                                   const std::vector<TChain*>& simChains, int sector, ULong64_t timeframe,
-                                                                  SectorFlushBuffers& buffers, const std::function<void()>& onFlush)
+                                                                  SectorFlushBuffers& buffers, const std::function<void()>& onFlush,
+                                                                  std::mutex* cdbMutex)
 {
+  // locks cdbMutex, if given, for calls that read calibrations through the CDBInterface
+  auto cdbLock = [cdbMutex]() { return cdbMutex ? std::unique_lock<std::mutex>(*cdbMutex) : std::unique_lock<std::mutex>(); };
+
   std::vector<dataformats::RangeReference<int, int>> events;
   const bool isContinuous = digitizer.isContinuousReadout();
   const auto& irecords = context.getEventRecords();
@@ -51,7 +55,10 @@ std::vector<dataformats::RangeReference<int, int>> digitizeSector(Digitizer& dig
 
   digitizer.setSector(sector);
   digitizer.setSeedingTimeframe(timeframe);
-  digitizer.init();
+  {
+    auto lock = cdbLock();
+    digitizer.init();
+  }
 
   size_t digitCounter = 0;
   auto flush = [&](bool finalFlush = false) {
@@ -69,6 +76,7 @@ std::vector<dataformats::RangeReference<int, int>> digitizeSector(Digitizer& dig
     double time = hbfu.getFirstIRofTF(o2::InteractionRecord(0, hbfu.orbitFirstSampled)).bc2ns() / 1000.;
     digitizer.setOutputDigitTimeOffset(time);
     if (!irecords.empty()) {
+      auto lock = cdbLock();
       digitizer.setStartTime(irecords[0].getTimeNS() / 1000.f);
     }
   }
@@ -80,6 +88,7 @@ std::vector<dataformats::RangeReference<int, int>> digitizeSector(Digitizer& dig
     LOG(info) << "TPC: Event time " << eventTime << " us";
     digitizer.setEventTime(eventTime);
     if (!isContinuous) {
+      auto lock = cdbLock();
       digitizer.setStartTime(eventTime);
     }
     size_t startSize = digitCounter;

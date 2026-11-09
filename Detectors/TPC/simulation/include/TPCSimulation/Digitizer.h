@@ -143,6 +143,9 @@ class Digitizer
   /// in case of scaled distortions, the distortions can be recalculated to ensure consistent distortions and corrections
   void recalculateDistortions();
 
+  /// Use the distortion maps and scaling of another digitizer, which keeps ownership of the maps
+  void setSCDistortionsFrom(const Digitizer& other);
+
   /// Use digitizer-owned random rings filled from seed and positioned per sector and timeframe in init(),
   /// so that the digits of a sector do not depend on which sectors were processed before
   /// \param seed base seed, typically DigiParams.seed

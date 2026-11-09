@@ -13,6 +13,7 @@
 #define STEER_DIGITIZERWORKFLOW_TPCSECTORDIGITIZATION_H_
 
 #include <functional>
+#include <mutex>
 #include <vector>
 #include <RtypesCore.h>
 #include "CommonDataFormat/RangeReference.h"
@@ -43,11 +44,12 @@ struct SectorFlushBuffers {
 /// Digitize all collisions of one sector of a timeframe.
 /// After each flush the new output is in buffers and onFlush is called on the calling thread.
 /// The function makes no DPL calls. Concurrent calls need one Digitizer with sector seeding and one set of chains
-/// per thread; Digitizer::init() is called here and is not thread-safe across Digitizer instances.
+/// per thread, and a common cdbMutex, which serialises the calls that read calibrations through the CDBInterface.
 /// \return the digit groups, one per collision part in triggered mode, one for the timeframe in continuous mode
 std::vector<dataformats::RangeReference<int, int>> digitizeSector(Digitizer& digitizer, const steer::DigitizationContext& context,
                                                                   const std::vector<TChain*>& simChains, int sector, ULong64_t timeframe,
-                                                                  SectorFlushBuffers& buffers, const std::function<void()>& onFlush);
+                                                                  SectorFlushBuffers& buffers, const std::function<void()>& onFlush,
+                                                                  std::mutex* cdbMutex = nullptr);
 
 } // namespace tpc
 } // namespace o2
