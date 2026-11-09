@@ -274,6 +274,9 @@ void Digitizer::recalculateDistortions()
     }
     // set new lumi of avg map
     mSpaceCharge->setMeanLumi(CorrMapParam::Instance().lumiInst);
+    // the corrections were only needed to compute the scaled distortions
+    mSpaceCharge->releaseGlobalCorrections();
+    mSpaceChargeDer->releaseGlobalCorrections();
   } else {
     LOGP(info, "Inst. lumi {} is same as mean lumi {}. Skip recalculation of distortions", CorrMapParam::Instance().lumiInst, mSpaceCharge->getMeanLumi());
   }

@@ -2127,6 +2127,16 @@ void SpaceCharge<DataT>::init()
 }
 
 template <typename DataT>
+void SpaceCharge<DataT>::releaseGlobalCorrections()
+{
+  for (int iside = 0; iside < FNSIDES; ++iside) {
+    mGlobalCorrdR[iside] = DataContainer();
+    mGlobalCorrdZ[iside] = DataContainer();
+    mGlobalCorrdRPhi[iside] = DataContainer();
+  }
+}
+
+template <typename DataT>
 void SpaceCharge<DataT>::setDistortionLookupTables(const DataContainer& distdZ, const DataContainer& distdR, const DataContainer& distdRPhi, const Side side)
 {
   mGlobalDistdR[side] = distdR;

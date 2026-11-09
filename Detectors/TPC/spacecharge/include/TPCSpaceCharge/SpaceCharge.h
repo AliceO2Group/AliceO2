@@ -638,6 +638,9 @@ class SpaceCharge
   /// \param side side of the TPC
   void setDistortionLookupTables(const DataContainer& distdZ, const DataContainer& distdR, const DataContainer& distdRPhi, const Side side);
 
+  /// release the memory of the global corrections of both sides
+  void releaseGlobalCorrections();
+
   /// set the density, potential, electric fields, local distortions/corrections, global distortions/corrections from a file. Missing objects in the file are ignored.
   /// \param file output file where the electrical fields will be written to
   /// \param side of the TPC
