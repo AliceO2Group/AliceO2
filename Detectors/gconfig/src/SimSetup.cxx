@@ -14,12 +14,9 @@
 #include "TVirtualMC.h"
 #include <fairlogger/Logger.h>
 #include "SetCuts.h"
+#include "CommonUtils/DLLoaderBase.h"
 #include <dlfcn.h>
-#ifdef NDEBUG
-#undef NDEBUG
-#endif
-#include <cassert>
-#include <sstream>
+#include <string>
 
 namespace o2
 {
@@ -28,23 +25,21 @@ typedef void (*setup_fnc)();
 
 void execFromPlugin(const char* libname, const char* funcname)
 {
-  auto libHandle = dlopen(libname, RTLD_NOW);
-  // try to make the library loading a bit more portable:
+  const std::string filename = std::string(libname) + DLLOADER_MAC_LINUX(".dylib", ".so");
+  auto libHandle = dlopen(filename.c_str(), RTLD_NOW);
   if (!libHandle) {
-    // try appending *.so
-    std::stringstream stream;
-    stream << libname << ".so";
-    libHandle = dlopen(stream.str().c_str(), RTLD_NOW);
+    const char* error = dlerror();
+    LOG(fatal) << "Cannot load " << filename << ": " << (error ? error : "unknown error");
+    // LOG(fatal) ends the process only when a fatal handler is installed
+    throw fair::FatalException("Cannot load " + filename);
   }
-  if (!libHandle) {
-    // try appending *.dylib
-    std::stringstream stream;
-    stream << libname << ".dylib";
-    libHandle = dlopen(stream.str().c_str(), RTLD_NOW);
-  }
-  assert(libHandle);
+  dlerror(); // clear any pending error before dlsym
   auto func = (setup_fnc)dlsym(libHandle, funcname);
-  assert(func);
+  if (!func) {
+    const char* error = dlerror();
+    LOG(fatal) << "Cannot find " << funcname << " in " << filename << ": " << (error ? error : "the symbol is null");
+    throw fair::FatalException("Cannot find " + std::string(funcname) + " in " + filename);
+  }
   func();
 }
 
