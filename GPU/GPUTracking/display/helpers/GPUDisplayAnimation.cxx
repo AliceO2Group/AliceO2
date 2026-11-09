@@ -179,9 +179,9 @@ int32_t GPUDisplay::animateCamera(bool suspended, float& animateTime, float& mix
   }
 
   if (mCfgL.animationMode != 6) {
-    if (mCfgL.animationMode & 1) // Rotation from euler angles
+    if (mCfgL.animationMode & 1) // Rotation from euler angles, same order as setCamera (inverse of calcXYZ)
     {
-      nextViewMatrix = nextViewMatrix * HMM_Rotate(-vals[4] * 180.f / CAMath::Pi(), {{1, 0, 0}}) * HMM_Rotate(vals[5] * 180.f / CAMath::Pi(), {{0, 1, 0}}) * HMM_Rotate(-vals[6] * 180.f / CAMath::Pi(), {{0, 0, 1}});
+      nextViewMatrix = nextViewMatrix * HMM_Rotate(-vals[6] * 180.f / CAMath::Pi(), {{0, 0, 1}}) * HMM_Rotate(-vals[4] * 180.f / CAMath::Pi(), {{1, 0, 0}}) * HMM_Rotate(vals[5] * 180.f / CAMath::Pi(), {{0, 1, 0}});
     } else { // Rotation from quaternion
       const float mag = sqrtf(vals[4] * vals[4] + vals[5] * vals[5] + vals[6] * vals[6] + vals[7] * vals[7]);
       if (mag < 0.0001f) {
