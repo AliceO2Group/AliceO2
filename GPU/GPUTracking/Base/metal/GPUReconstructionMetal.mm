@@ -212,7 +212,8 @@ int32_t GPUReconstructionMetal::InitDevice_Runtime()
 
 int32_t GPUReconstructionMetal::ExitDevice_Runtime()
 {
-  // Tear down Metal
+  // Tear down Metal, also after a failure, without failing again
+  mInternals->exiting = true;
   SynchronizeGPU();
 
   for (uint32_t i = 0; i < mEvents.size(); i++) {
@@ -380,7 +381,9 @@ void GPUReconstructionMetal::RecordMarker(deviceEvent* ev, int32_t stream)
   // Does not change the retain count, so it's important we manage
   // the lifetime of the events outside here.
   auto mtlEvent = (__bridge id<MTLSharedEvent>)(ev->get<void*>());
-  [cb encodeSignalEvent:mtlEvent value:EventValue(*ev, true)];
+  const uint64_t value = EventValue(*ev, true);
+  [cb encodeSignalEvent:mtlEvent value:value];
+  metalSignalOnError(cb, mtlEvent, value);
   CommitStream(stream);
 }
 
@@ -392,6 +395,7 @@ void GPUReconstructionMetal::CommitStream(int32_t stream)
   // in constant memory. So each buffer of a stream waits for the previous one.
   const uint64_t value = ++mInternals->streamOrderValue[stream];
   [cb encodeSignalEvent:mInternals->streamOrder[stream] value:value];
+  metalSignalOnError(cb, mInternals->streamOrder[stream], value);
   [cb commit];
   // Hand the committed buffer over to the stream's submission list, which owns
   // it until it is waited for, and open a fresh one to encode the next work in.
@@ -420,16 +424,22 @@ void GPUReconstructionMetal::DrainStream(int32_t stream)
   const auto t0 = std::chrono::steady_clock::now();
   while (!mInternals->submittedBuffers[stream].empty() && !(done = mInternals->streamOrder[stream].signaledValue >= mInternals->streamOrderValue[stream]) && std::chrono::steady_clock::now() - t0 < std::chrono::milliseconds(20)) {
   }
+  int64_t error = 0;
   for (id<MTLCommandBuffer> cb : mInternals->submittedBuffers[stream]) {
     if (!done) {
       [cb waitUntilCompleted];
     }
     if (cb.status == MTLCommandBufferStatusError) {
       GPUError("Metal command buffer on stream %d failed: %s", stream, [[cb.error description] UTF8String]);
+      error = error ? error : cb.error.code;
     }
     [cb release];
   }
   mInternals->submittedBuffers[stream].clear();
+  // The work of a failed buffer is lost, so the results are wrong: fail like the other backends.
+  if (error && !mInternals->exiting) {
+    GPUChkErr(error);
+  }
 }
 
 void GPUReconstructionMetal::SynchronizeGPU()
