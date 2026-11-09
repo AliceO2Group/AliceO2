@@ -15,14 +15,14 @@
 #ifndef GPUDISPLAYFRONTENDCONFIGINFO_INC
 #define GPUDISPLAYFRONTENDCONFIGINFO_INC
 
-#define INFO_LAMBDA(obj, value, ...) std::pair(mFrontend->mConfigRTTI->getRTTIIndex(*this, &std::remove_cvref_t<decltype(obj)>::value), configKeyCallback([=, this]() { [[maybe_unused]] auto& val = obj.value; __VA_ARGS__ })) // Info printed after the callback of a key bound to the option, same val as in KEY_LAMBDA, local helpers captured by copy
+#define INFO_LAMBDA(obj, value, ...) std::pair(mFrontend->mConfiguration->getRTTIIndex(*this, &std::remove_cvref_t<decltype(obj)>::value), configKeyCallback([=, this]() { [[maybe_unused]] auto& val = obj.value; __VA_ARGS__ })) // Info printed after the callback of a key bound to the option, same val as in KEY_LAMBDA, local helpers captured by copy
 
 void GPUDisplay::buildConfigInfo()
 {
-  auto addInfo = [this](std::pair<uint32_t, configKeyCallback>&& info) { mFrontend->mConfigRTTI->configInfos[info.first] = std::move(info.second); };
+  auto addInfo = [this](std::pair<uint32_t, configKeyCallback>&& info) { mFrontend->mConfiguration->configInfos[info.first] = std::move(info.second); };
   static constexpr std::tuple noInfo{&GPUDisplayControl::dummy, &GPUDisplayControl::showConsole, &GPUSettingsDisplayLight::drawClusters, &GPUSettingsDisplayLight::drawInitLinks, &GPUSettingsDisplayLight::drawLinks, &GPUSettingsDisplayLight::drawSeeds,
                                      &GPUSettingsDisplayLight::drawTracklets, &GPUSettingsDisplayLight::drawTracks, &GPUSettingsDisplayLight::drawExtrapolatedTracks, &GPUSettingsDisplayLight::drawFinal}; // Options without info, not even the generic one
-  std::apply([this](auto... member) { ((mFrontend->mConfigRTTI->configInfos[mFrontend->mConfigRTTI->getRTTIIndex(*this, member)] = []() {}), ...); }, noInfo);
+  std::apply([this](auto... member) { ((mFrontend->mConfiguration->configInfos[mFrontend->mConfiguration->getRTTIIndex(*this, member)] = []() {}), ...); }, noInfo);
   addInfo(INFO_LAMBDA(mCfgC, displayControl, if (val == 2) { SetInfo("Exiting", 1); }));
   addInfo(INFO_LAMBDA(mCfgC, resetScene, SetInfo("View reset", 1);));
   addInfo(INFO_LAMBDA(mCfgC, requestScreenshot, SetInfo("Taking screenshot (%s)", mScreenshotFile.c_str());));

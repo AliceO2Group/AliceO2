@@ -28,7 +28,7 @@
 #define GUI_DROPDOWN_DYNAMIC(...) guiType(GPUDisplayGUIChannel::ElementType::DROPDOWN, {}, __VA_ARGS__)        // Choices from a lambda returning GPUDisplayGUIChannel::Options{.choices = ...}, as GUI_SLIDER_DYNAMIC
 #define GUI_BUTTON guiType(GPUDisplayGUIChannel::ElementType::BUTTON)                                          // Body of GUI_LAMBDA runs when the button is clicked
 // GUI element for an option, type one of the GUI_* above. The optional body sets the value from the GUI: val is a reference to obj.value, guiVal the GPUDisplayGUIValue from the GUI (int64_t, double, or std::string). Without body, guiVal is assigned to val.
-#define GUI_LAMBDA(name, obj, value, type, ...) guiElement(std::string(name), mFrontend->mConfigRTTI->getRTTIIndex(*this, &std::remove_cvref_t<decltype(obj)>::value), type, [this](const GPUDisplayGUIValue& guiVal) { [[maybe_unused]] auto& val = obj.value; __VA_OPT__(if constexpr (true) { __VA_ARGS__ } else) guiAssign(val, guiVal); }, [](const GPUDisplayGUIChannel::Settings& cfg) { return toGUIValue(cfg.obj.value); })
+#define GUI_LAMBDA(name, obj, value, type, ...) guiElement(std::string(name), mFrontend->mConfiguration->getRTTIIndex(*this, &std::remove_cvref_t<decltype(obj)>::value), type, [this](const GPUDisplayGUIValue& guiVal) { [[maybe_unused]] auto& val = obj.value; __VA_OPT__(if constexpr (true) { __VA_ARGS__ } else) guiAssign(val, guiVal); }, [](const GPUDisplayGUIChannel::Settings& cfg) { return toGUIValue(cfg.obj.value); })
 
 void GPUDisplay::buildConfigQtGUI()
 {

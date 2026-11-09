@@ -42,7 +42,7 @@ void GPUDisplayFrontend::buildConsoleCommands()
       return (uint8_t)name[0];
     }
     const bool shift = name.starts_with("SHIFT_");
-    const auto& names = mConfigRTTI->keyNames;
+    const auto& names = mConfiguration->keyNames;
     const auto it = std::find(names.begin(), names.end(), shift ? name.substr(6) : name);
     const int32_t key = it == names.end() ? -1 : it - names.begin();
     return key < 0 || !shift ? key : (key < (int32_t)N_SPECIAL_KEYS ? key + (int32_t)SPECIAL_KEYS_SHIFTED : -1);
@@ -72,7 +72,7 @@ void GPUDisplayFrontend::buildConsoleCommands()
   commands["exit"] = {[this](args) {
                         mDisplay->mCfgC.displayControl.store(2);
                         mConsole->mScriptQueue.clear(); // No further script lines
-                        showConfigInfo(mConfigRTTI->getRTTIIndex(*mDisplay, &GPUDisplayControl::displayControl));
+                        showConfigInfo(mConfiguration->getRTTIIndex(*mDisplay, &GPUDisplayControl::displayControl));
                       },
                       "", "Exit"};
   commands["nextEvent"] = {[this](args) {
@@ -93,41 +93,50 @@ void GPUDisplayFrontend::buildConsoleCommands()
                                   mDisplay->takeScreenshot();
                                   mDisplay->mScreenshotFile = std::get<std::string>(a[0]);
                                   mConsole->waitFor([this] { return !mDisplay->mCfgC.requestScreenshot; }); // Otherwise further script lines would change the settings or the file before the screenshot is taken
-                                  showConfigInfo(mConfigRTTI->getRTTIIndex(*mDisplay, &GPUDisplayControl::requestScreenshot));
+                                  showConfigInfo(mConfiguration->getRTTIIndex(*mDisplay, &GPUDisplayControl::requestScreenshot));
                                 },
                                 "s", "Take a screenshot to the given file, a script continues after it is taken"};
-  commands["bindKey"] = {[this, parseKey](args a) {
-                           int32_t key = parseKey(a[0]);
-                           key += key >= 'A' && key <= 'Z' ? 'a' - 'A' : 0; // A key, not a character: entry of the lower case letter, as add_key_binding
-                           const auto& mapNames = mConfigRTTI->keyMapNames;
-                           const uint32_t id = std::find(mapNames.begin(), mapNames.end(), std::get<std::string>(a[1])) - mapNames.begin();
-                           if (key < 0 || key >= 256) {
-                             mConsole->consolePrint("bindKey: invalid key, expected a key code, a character, or a key name without SHIFT");
+  auto unbind = [this](int32_t key) { // Removes the binding of the key, returns the name of the previous binding, empty if none
+    const int32_t binding = mConfiguration->removeKeyBinding(key);
+    if (GPUDisplayConfiguration::isKeyMap(binding)) {
+      mKeyDownMap[binding - GPUDisplayConfiguration::KEY_MAP_INDEX] = 0;
+    }
+    return mConfiguration->bindingName(binding);
+  };
+  commands["bindKey"] = {[this, parseKey, unbind](args a) {
+                           auto& rtti = *mConfiguration;
+                           const std::string& name = std::get<std::string>(a[1]);
+                           const uint32_t mapId = std::find(rtti.keyMapNames.begin(), rtti.keyMapNames.begin() + KEY_MAP_MAX, name) - rtti.keyMapNames.begin();
+                           const auto action = rtti.keyActionsNames.find(name);
+                           const int32_t key = parseKey(a[0]);
+                           if (key < 0 || (mapId < KEY_MAP_MAX && key >= 256)) {
+                             mConsole->consolePrint("bindKey: invalid key, expected a key code, a character, or a key name (SHIFT_ only for actions)");
                              return;
-                           } else if (id >= KEY_MAP_MAX) {
-                             mConsole->consolePrint("bindKey: unknown key down mapping %s", std::get<std::string>(a[1]).c_str());
+                           } else if (mapId < KEY_MAP_MAX && key >= 'A' && key <= 'Z') { // Held letters use the entry of the lower case letter, as add_key_binding
+                             mConsole->consolePrint("bindKey: key down mappings need lower case letters, the upper case letter would be SHIFT + key");
+                             return;
+                           } else if (mapId >= KEY_MAP_MAX && action == rtti.keyActionsNames.end()) {
+                             mConsole->consolePrint("bindKey: unknown action or key down mapping %s (listKeys)", name.c_str());
                              return;
                            }
-                           auto& entry = mConfigRTTI->configKeys[key];
-                           if (entry.callback) { // Replaces the existing binding of the key
-                             mConsole->consolePrint("bindKey: key [%s] was bound to a key function, now unbound from it", mConfigRTTI->getKeyName(key).c_str());
-                             entry.callback = nullptr;
-                           } else if (GPUDisplayConfiguration::isKeyMap(entry.configRTTIIndex)) {
-                             mKeyDownMap[entry.configRTTIIndex - GPUDisplayConfiguration::KEY_MAP_INDEX] = 0;
+                           if (const std::string previous = unbind(key); previous.size() && previous != name) {
+                             mConsole->consolePrint("bindKey: key [%s] was bound to %s, now unbound from it", rtti.getKeyName(key).c_str(), previous.c_str());
                            }
-                           for (auto& k : mConfigRTTI->configKeys) { // The previous key of this mapping
-                             if (k.configRTTIIndex == GPUDisplayConfiguration::KEY_MAP_INDEX + id) {
-                               k.configRTTIIndex = GPUDisplayConfiguration::INVALID_INDEX;
+                           if (mapId < KEY_MAP_MAX) {
+                             if (const int32_t previousKey = rtti.currentMappedKeys[mapId]; previousKey >= 0) { // The previous key of this mapping
+                               rtti.removeKeyBinding(previousKey);
                              }
+                             rtti.setKeyBinding(key, GPUDisplayConfiguration::KEY_MAP_INDEX + mapId);
+                             mKeyDownMap[mapId] = key >= 'a' && key <= 'z' ? key + 'A' - 'a' : key; // mKeys stores letters in upper case, as add_key_binding
+                           } else {
+                             rtti.setKeyBinding(key, action->second);
                            }
-                           entry.configRTTIIndex = GPUDisplayConfiguration::KEY_MAP_INDEX + id;
-                           mKeyDownMap[id] = key >= 'a' && key <= 'z' ? key + 'A' - 'a' : key; // mKeys stores letters in upper case, as add_key_binding
                          },
-                         "as", "Bind a key (code, character (case insensitive), or name) to a key down mapping (FORWARD, ROTATE_YAW_LEFT, ...), replacing existing bindings of the key"};
+                         "as", "Bind a key (code, character, or name, SHIFT_ for special keys with SHIFT) to an action or a key down mapping (listKeys), replacing the binding of the key; a key down mapping has one key (letters in lower case), an action keeps its other keys"};
   commands["clearKeyBindings"] = {[this](args) {
-                                    for (auto& k : mConfigRTTI->configKeys) {
-                                      if (GPUDisplayConfiguration::isKeyMap(k.configRTTIIndex)) {
-                                        k.configRTTIIndex = GPUDisplayConfiguration::INVALID_INDEX;
+                                    for (int32_t key : mConfiguration->currentMappedKeys) {
+                                      if (key >= 0) {
+                                        mConfiguration->removeKeyBinding(key);
                                       }
                                     }
                                     mKeyDownMap.fill(0);
@@ -167,12 +176,12 @@ void GPUDisplayFrontend::buildConsoleCommands()
                         },
                         "ddd", "Turn the camera to the point x y z, keeping its position"};
   static constexpr std::string_view groups = "lhrc"; // Order of GPUDisplayConfiguration::configStructs
-  auto optionName = [this](uint32_t i) { return std::string(1, groups[mConfigRTTI->rttiEntries[i].configStructIndex]) + "." + mConfigRTTI->rttiEntries[i].name; };
+  auto optionName = [this](uint32_t i) { return std::string(1, groups[mConfiguration->rttiEntries[i].configStructIndex]) + "." + mConfiguration->rttiEntries[i].name; };
   auto findOptions = [this](const std::string& name, bool allowGroups) -> std::vector<uint32_t> { // Indices of the option l.name, with allowGroups also of the group l / h / r / c or all; empty if not found
     const size_t group = name.size() && (name.size() == 1 ? allowGroups : name[1] == '.') ? groups.find(name[0]) : std::string_view::npos;
     std::vector<uint32_t> retVal;
-    for (uint32_t i = 0; i < mConfigRTTI->rttiEntries.size(); i++) {
-      const auto& e = mConfigRTTI->rttiEntries[i];
+    for (uint32_t i = 0; i < mConfiguration->rttiEntries.size(); i++) {
+      const auto& e = mConfiguration->rttiEntries[i];
       if ((allowGroups && name == "all") || (e.configStructIndex == group && (name.size() == 1 || e.name == name.substr(2)))) {
         retVal.emplace_back(i);
       }
@@ -180,11 +189,11 @@ void GPUDisplayFrontend::buildConsoleCommands()
     return retVal;
   };
   auto transient = [this](uint32_t i) { // Control values that are actions / state, not settings: not saved, not reset with a group
-    const auto& e = mConfigRTTI->rttiEntries[i];
+    const auto& e = mConfiguration->rttiEntries[i];
     return e.type.starts_with("GPUDisplayCopyableAtomic") || e.name == "requestScreenshot" || e.name == "showConsole" || e.name == "dummy"; // TODO: Settings struct should be split in transient and none-transient, to get rid of these string compares
   };
   auto defaultValue = [this](uint32_t i) -> GPUDisplayConsole::consoleArg { // Default from the RTTI, as setValue expects it
-    const auto& e = mConfigRTTI->rttiEntries[i];
+    const auto& e = mConfiguration->rttiEntries[i];
     if (e.type == "std::string" || e.type == "bool") {
       return e.defaultValue;
     }
@@ -213,7 +222,7 @@ void GPUDisplayFrontend::buildConsoleCommands()
                          mConsole->consolePrint("set: unknown option %s, expected l. / h. / r. / c. and the name", name.c_str());
                          return;
                        }
-                       if (const std::string error = mConfigRTTI->setValue(*mDisplay, index[0], a[1]); error.size()) {
+                       if (const std::string error = mConfiguration->setValue(*mDisplay, index[0], a[1]); error.size()) {
                          mConsole->consolePrint("set %s: %s", name.c_str(), error.c_str());
                        } // Quiet: no info text, no GUI setter
                      },
@@ -225,7 +234,7 @@ void GPUDisplayFrontend::buildConsoleCommands()
                            mConsole->consolePrint("print: unknown option %s, expected all, l / h / r / c, or l. / h. / r. / c. and an option name", name.c_str());
                          }
                          for (uint32_t i : index) {
-                           const auto value = mConfigRTTI->valueString(*mDisplay, i);
+                           const auto value = mConfiguration->valueString(*mDisplay, i);
                            mConsole->consolePrint("%s = %s", optionName(i).c_str(), value ? value->c_str() : "(type not supported)");
                          }
                        },
@@ -240,7 +249,7 @@ void GPUDisplayFrontend::buildConsoleCommands()
                            if (index.size() > 1 && transient(i)) {
                              continue;
                            }
-                           if (const std::string error = mConfigRTTI->setValue(*mDisplay, i, defaultValue(i)); error.size()) {
+                           if (const std::string error = mConfiguration->setValue(*mDisplay, i, defaultValue(i)); error.size()) {
                              mConsole->consolePrint("reset %s: %s", optionName(i).c_str(), error.c_str());
                            } // Quiet as set
                          }
@@ -252,15 +261,15 @@ void GPUDisplayFrontend::buildConsoleCommands()
                               mConsole->consolePrint("describe: unknown option %s", std::get<std::string>(a[0]).c_str());
                               return;
                             }
-                            const auto& e = mConfigRTTI->rttiEntries[index[0]];
-                            const auto value = mConfigRTTI->valueString(*mDisplay, index[0]);
+                            const auto& e = mConfiguration->rttiEntries[index[0]];
+                            const auto value = mConfiguration->valueString(*mDisplay, index[0]);
                             std::string keys;
-                            for (uint32_t k = 0; k < mConfigRTTI->configKeys.size(); k++) {
-                              if (mConfigRTTI->configKeys[k].configRTTIIndex == index[0]) {
-                                keys += (keys.empty() ? "[" : " [") + mConfigRTTI->getKeyName(k) + "]";
+                            for (uint32_t k = 0; k < mConfiguration->configKeys.size(); k++) {
+                              if (mConfiguration->keyRTTIIndex(k) == index[0]) {
+                                keys += (keys.empty() ? "[" : " [") + mConfiguration->getKeyName(k) + "]";
                               }
                             }
-                            const bool inGUI = std::any_of(mConfigRTTI->guiElements.begin(), mConfigRTTI->guiElements.end(), [&](const auto& g) { return g.rttiIndex == index[0]; });
+                            const bool inGUI = std::any_of(mConfiguration->guiElements.begin(), mConfiguration->guiElements.end(), [&](const auto& g) { return g.rttiIndex == index[0]; });
                             mConsole->consolePrint("%s (%s): %s", optionName(index[0]).c_str(), e.type.c_str(), e.description.empty() ? "no description" : e.description.c_str());
                             mConsole->consolePrint("  value %s, default %s%s%s%s%s", value ? value->c_str() : "(type not supported)", e.defaultValue.c_str(), e.min.size() ? ", min " : "", e.min.c_str(), e.max.size() ? ", max " : "", e.max.c_str());
                             mConsole->consolePrint("  keys %s, %s", keys.empty() ? "none" : keys.c_str(), inGUI ? "in the Qt GUI" : "not in the Qt GUI");
@@ -273,8 +282,8 @@ void GPUDisplayFrontend::buildConsoleCommands()
                         };
                         const std::string text = lower(std::get<std::string>(a[0]));
                         uint32_t n = 0;
-                        for (uint32_t i = 0; i < mConfigRTTI->rttiEntries.size(); i++) {
-                          const auto& e = mConfigRTTI->rttiEntries[i];
+                        for (uint32_t i = 0; i < mConfiguration->rttiEntries.size(); i++) {
+                          const auto& e = mConfiguration->rttiEntries[i];
                           if (lower(e.name).find(text) != std::string::npos || lower(e.description).find(text) != std::string::npos) {
                             mConsole->consolePrint("%s: %s", optionName(i).c_str(), e.description.c_str());
                             n++;
@@ -290,15 +299,15 @@ void GPUDisplayFrontend::buildConsoleCommands()
                                   mConsole->consolePrint("saveSettings: cannot open file %s", file.c_str());
                                   return;
                                 }
-                                for (uint32_t i = 0; i < mConfigRTTI->rttiEntries.size(); i++) {
-                                  const auto value = mConfigRTTI->valueString(*mDisplay, i, true);
+                                for (uint32_t i = 0; i < mConfiguration->rttiEntries.size(); i++) {
+                                  const auto value = mConfiguration->valueString(*mDisplay, i, true);
                                   if (!value || transient(i)) {
                                     continue;
                                   } else if (value->find_first_of("\r\n") != std::string::npos) {
                                     mConsole->consolePrint("saveSettings: %s not saved, scripts cannot contain line breaks", optionName(i).c_str());
                                     continue;
                                   }
-                                  const bool isString = mConfigRTTI->rttiEntries[i].type == "std::string";
+                                  const bool isString = mConfiguration->rttiEntries[i].type == "std::string";
                                   std::string text = value->empty() ? "\"\"" : "";
                                   for (size_t k = 0; k < value->size(); k++) { // Escaped: a single argument, and plain text (a string) for string options also if it looks like a number
                                     const char c = (*value)[k];
@@ -330,26 +339,55 @@ void GPUDisplayFrontend::buildConsoleCommands()
                              },
                              "", "Print the camera position and direction (degrees)"};
   commands["printStatus"] = {[this](args) { mConsole->consolePrint("%s", mDisplay->mGUIInfoStatus.empty() ? "No status yet (c.printInfoText / c.printInfoTextGUI)" : mDisplay->mGUIInfoStatus.c_str()); }, "", "Print the status line (FPS, counts, camera), updated every second"};
-  commands["unbindKey"] = {[this, parseKey](args a) {
+  commands["unbindKey"] = {[this, parseKey, unbind](args a) {
                              const int32_t key = parseKey(a[0]);
                              if (key < 0) {
                                mConsole->consolePrint("unbindKey: invalid key, expected a key code, a character, or a key name");
                                return;
-                             }
-                             auto& entry = mConfigRTTI->configKeys[key];
-                             if (GPUDisplayConfiguration::isKeyMap(entry.configRTTIIndex)) {
-                               mKeyDownMap[entry.configRTTIIndex - GPUDisplayConfiguration::KEY_MAP_INDEX] = 0;
-                             } else if (!entry.callback) {
-                               mConsole->consolePrint("unbindKey: key [%s] is not bound", mConfigRTTI->getKeyName(key).c_str());
+                             } else if (mConfiguration->configKeys[key] == GPUDisplayConfiguration::KEY_UNBOUND) {
+                               mConsole->consolePrint("unbindKey: key [%s] is not bound", mConfiguration->getKeyName(key).c_str());
                                return;
                              }
-                             entry.callback = nullptr;
-                             entry.configRTTIIndex = GPUDisplayConfiguration::INVALID_INDEX;
+                             unbind(key);
                            },
-                           "a", "Remove the binding of a key (key function or key down mapping)"};
+                           "a", "Remove the binding of a key (action or key down mapping)"};
+  commands["listKeys"] = {[this](args) { listKeys([this](const std::string& line) { mConsole->consolePrint("%s", line.c_str()); }); }, "", "List the key bindings, and actions / key down mappings without key"};
+  commands["printHelpText"] = {[this](args) {
+                                 for (const auto& line : getHelpText()) {
+                                   mConsole->consolePrint("%s", line.c_str());
+                                 }
+                               },
+                               "", "Print the help text of the keys (as h), with the current key bindings"};
+  commands["unbindAll"] = {[this](args) {
+                             mConfiguration->configKeys.fill(GPUDisplayConfiguration::KEY_UNBOUND);
+                             mConfiguration->currentMappedKeys.assign(KEY_MAP_MAX, -1);
+                             for (auto& keys : mConfiguration->currentActionKeys) {
+                               keys.clear();
+                             }
+                             mKeyDownMap.fill(0);
+                             mConfiguration->helpTextUpToDate = false;
+                           },
+                           "", "Remove all key bindings (actions and key down mappings, also the key of the console)"};
+  commands["saveKeyBindings"] = {[this](args a) {
+                                   const std::string& file = std::get<std::string>(a[0]);
+                                   std::ofstream out(file);
+                                   if (!out) {
+                                     mConsole->consolePrint("saveKeyBindings: cannot open file %s", file.c_str());
+                                     return;
+                                   }
+                                   out << "unbindAll\n";
+                                   for (uint32_t k = 1; k < mConfiguration->configKeys.size(); k++) {
+                                     if (const int32_t binding = mConfiguration->configKeys[k]; binding != GPUDisplayConfiguration::KEY_UNBOUND) {
+                                       const std::string key = mConfiguration->getKeyName(k);
+                                       out << "bindKey " << (key.size() == 1 ? "\\" : "") << key << " " << mConfiguration->bindingName(binding) << "\n"; // Characters escaped: plain text, also digits, space, quotes
+                                     }
+                                   }
+                                   mConsole->consolePrint("Key bindings saved to %s", file.c_str());
+                                 },
+                                 "s", "Save all key bindings as console script: unbindAll, then bindKey for each key (run it with runScript)"};
   commands["resetView"] = {[this](args) {
                              mDisplay->mCfgC.resetScene.store(true);
-                             showConfigInfo(mConfigRTTI->getRTTIIndex(*mDisplay, &GPUDisplayControl::resetScene));
+                             showConfigInfo(mConfiguration->getRTTIIndex(*mDisplay, &GPUDisplayControl::resetScene));
                            },
                            "", "Reset the view"};
   commands["history"] = {[this](args a) {

@@ -52,8 +52,9 @@ GPUdii() void GPUTPCGlobalDebugSortKernels::Thread<GPUTPCGlobalDebugSortKernels:
     GPUCommonAlgorithm::sort(tmp, tmp + n, [&merger, offset](const int32_t& aa, const int32_t& bb) {
       const auto& a = merger.SectorTrackInfos()[offset + aa];
       const auto& b = merger.SectorTrackInfos()[offset + bb];
-      return (a.X() != b.X()) ? (a.X() < b.X()) : (a.Y() != b.Y()) ? (a.Y() < b.Y())
-                                                                   : (a.Z() < b.Z());
+      return (a.X() != b.X())   ? (a.X() < b.X())
+             : (a.Y() != b.Y()) ? (a.Y() < b.Y())
+                                : (a.Z() < b.Z());
     });
     for (int32_t j = 0; j < n; j++) {
       if (tmp[j] >= 0 && tmp[j] != j) {

@@ -813,8 +813,7 @@ void GPUDisplayBackendVulkan::createSwapChain(vk::SwapchainKHR oldSwapChain)
   { // Let the compositor scale the last image while resizing, until the new swapchain is presented
     const vk::SurfacePresentModeKHR surfacePresentMode{mPresentMode};
     const auto caps = mPhysicalDevice.getSurfaceCapabilities2KHR<vk::SurfaceCapabilities2KHR, vk::SurfacePresentScalingCapabilitiesKHR>(vk::PhysicalDeviceSurfaceInfo2KHR{mSurface, &surfacePresentMode}).get<vk::SurfacePresentScalingCapabilitiesKHR>();
-    auto gravity = [](vk::PresentGravityFlagsKHR f) { return (f & vk::PresentGravityFlagBitsKHR::eCentered) ? vk::PresentGravityFlagBitsKHR::eCentered : (f & vk::PresentGravityFlagBitsKHR::eMin) ? vk::PresentGravityFlagBitsKHR::eMin
-                                                                                                                                                                                                   : vk::PresentGravityFlagsKHR(f & vk::PresentGravityFlagBitsKHR::eMax); };
+    auto gravity = [](vk::PresentGravityFlagsKHR f) { return (f & vk::PresentGravityFlagBitsKHR::eCentered) ? vk::PresentGravityFlagBitsKHR::eCentered : (f & vk::PresentGravityFlagBitsKHR::eMin) ? vk::PresentGravityFlagBitsKHR::eMin : vk::PresentGravityFlagsKHR(f & vk::PresentGravityFlagBitsKHR::eMax); };
     scalingInfo.scalingBehavior = (caps.supportedPresentScaling & vk::PresentScalingFlagBitsKHR::eAspectRatioStretch) ? vk::PresentScalingFlagBitsKHR::eAspectRatioStretch : vk::PresentScalingFlagsKHR(caps.supportedPresentScaling & vk::PresentScalingFlagBitsKHR::eStretch);
     scalingInfo.presentGravityX = gravity(caps.supportedPresentGravityX);
     scalingInfo.presentGravityY = gravity(caps.supportedPresentGravityY);

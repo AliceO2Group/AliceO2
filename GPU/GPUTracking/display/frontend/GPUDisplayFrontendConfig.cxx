@@ -55,29 +55,36 @@ struct GPUDisplayFrontend::configRTTIExt : public qConfig::qConfigRTTIentry {
 
 using configKeyCallback = std::function<void()>;
 
-struct GPUDisplayFrontend::configKey {
-  uint32_t configRTTIIndex = std::numeric_limits<uint32_t>::max(); // Index in rttiEntries, KEY_MAP_INDEX + id for a key down mapping, INVALID_INDEX otherwise
-  configKeyCallback callback;
-};
-
 struct GPUDisplayFrontend::GPUDisplayConfiguration {
   static constexpr std::tuple configStructs{&GPUDisplay::mCfgL, &GPUDisplay::mCfgH, &GPUDisplay::mCfgR, &GPUDisplay::mCfgC}; // Config structs with RTTI, as members of GPUDisplay
-  std::vector<configRTTIExt> rttiEntries;
-  std::vector<configKeyCallback> configInfos;       // SetInfo callback for an option, indexed like rttiEntries, called after the callback of a key bound to it
-  std::vector<std::vector<uint32_t>> rttiReverseId; // [configStructIndex][offset] -> index in rttiEntries, INVALID_INDEX if no member at that offset
-  static constexpr uint32_t INVALID_INDEX = std::numeric_limits<uint32_t>::max();
-  static constexpr uint32_t KEY_MAP_INDEX = 0x80000000; // configRTTIIndex of keys mapped to mKeyDownMap[configRTTIIndex - KEY_MAP_INDEX]
-  static bool isKeyMap(uint32_t index) { return index >= KEY_MAP_INDEX && index != INVALID_INDEX; }
-  using keyDownMapEntry = std::tuple<uint8_t, uint8_t>;                     // KEY_DOWN_MAP: key, KEY_MAP_ id
-  using keyLambdaEntry = std::tuple<uint16_t, uint32_t, configKeyCallback>; // KEY_LAMBDA: key, index in rttiEntries, callback
-  std::vector<std::string> configStructNames;
-  std::array<configKey, N_TOTAL_KEYS> configKeys; // By key code, special keys with SHIFT at code + SPECIAL_KEYS_SHIFTED
-  std::vector<std::string> keyNames;
-  std::vector<std::string> keyMapNames;                             // Names of the key down mapping ids (KEY_MAP_*)
-  std::vector<std::pair<std::string, std::string>> helpTextEntries; // Keys and text of each add_key_binding call
-  std::vector<std::string> helpText;
+
+  std::vector<configRTTIExt> rttiEntries;                                                // qconfig RTTI of all options of configStructs (struct, name, type, offset, default, min / max, description, message), the index identifies an option
+  std::vector<configKeyCallback> configInfos;                                            // SetInfo callback for an option, indexed like rttiEntries, called after the callback of a key bound to it
+  std::vector<std::vector<uint32_t>> rttiReverseId;                                      // [configStructIndex][offset] -> index in rttiEntries, INVALID_INDEX if no member at that offset
+  static constexpr uint32_t INVALID_INDEX = std::numeric_limits<uint32_t>::max();        // No entry: option index (rttiEntries) or, for keyAction / guiElements, no option
+  static constexpr int32_t KEY_UNBOUND = -1;                                             // configKeys entry of a key without binding
+  static constexpr int32_t KEY_MAP_INDEX = 1 << 24;                                      // configKeys entry of keys mapped to mKeyDownMap[entry - KEY_MAP_INDEX], entries below are indices in keyActions
+  static bool isKeyMap(int32_t binding) { return binding >= KEY_MAP_INDEX; }             // configKeys entry of a key down mapping
+  using keyDownMapEntry = std::tuple<uint8_t, uint8_t>;                                  // KEY_DOWN_MAP: key, KEY_MAP_ id
+  using keyLambdaEntry = std::tuple<uint16_t, std::string, uint32_t, configKeyCallback>; // KEY_LAMBDA / KEY_ACTION: key, actionName, index in rttiEntries (INVALID_INDEX for KEY_ACTION), callback
+  struct keyAction {
+    std::string actionName;     // Unique, UPPER_SNAKE, used by bindKey
+    uint32_t rttiIndex;         // Option changed by the action, INVALID_INDEX if none
+    configKeyCallback callback; // Lambda of KEY_LAMBDA / KEY_ACTION
+  };
+  std::vector<keyAction> keyActions;                                                       // Key functions of KEY_LAMBDA / KEY_ACTION, keys can be bound to them by name (bindKey)
+  std::unordered_map<std::string, uint32_t> keyActionsNames;                               // actionName -> index in keyActions
+  std::vector<std::string> configStructNames;                                              // Names of the configStructs, by configStructIndex
+  std::vector<std::vector<int32_t>> currentActionKeys;                                     // Reverse lookup of configKeys: keys bound to each action, by index in keyActions, in the order of binding
+  std::vector<int32_t> currentMappedKeys;                                                  // Reverse lookup of configKeys: key of each key down mapping, by id, -1 if none
+  std::array<int32_t, N_TOTAL_KEYS> configKeys;                                            // By key code, special keys with SHIFT at code + SPECIAL_KEYS_SHIFTED: index in keyActions, KEY_MAP_INDEX + id, or KEY_UNBOUND (filled in buildConfig)
+  std::vector<std::string> keyNames;                                                       // Names of special keys (KEY_*) by key code < N_SPECIAL_KEYS, empty for other codes; for getKeyName and key names in console commands
+  std::vector<std::string> keyMapNames;                                                    // Names of the key down mapping ids (KEY_MAP_*)
+  std::vector<std::tuple<std::string, std::string, std::vector<int32_t>>> helpTextEntries; // Keys, text, and bindings (configKeys entries) of each add_key_binding call
+  std::vector<std::string> helpText;                                                       // Aligned lines from helpTextEntries, by buildHelpText; use getHelpText, which rebuilds them if needed
+  bool helpTextUpToDate = false;                                                           // Set by buildHelpText, reset when a key binding changes: getHelpText calls rebuildHelpText
   struct guiElementCallbacks {
-    uint32_t rttiIndex;
+    uint32_t rttiIndex;                                 // Option of the element
     std::function<void(const GPUDisplayGUIValue&)> set; // GUI_LAMBDA setter, applies a value from the GUI
   };
   std::vector<guiElementCallbacks> guiElements;                                                                               // By element id
@@ -116,13 +123,72 @@ struct GPUDisplayFrontend::GPUDisplayConfiguration {
   void buildHelpText() // Keys left-aligned, the ':' aligned after the longest keys
   {
     size_t width = 0;
-    for (const auto& e : helpTextEntries) {
-      width = std::max(width, e.first.size());
+    for (const auto& [keys, text, bindings] : helpTextEntries) {
+      width = std::max(width, keys.size());
     }
     helpText.clear();
-    for (const auto& e : helpTextEntries) {
-      helpText.emplace_back(e.first + std::string(width - e.first.size(), ' ') + ": " + e.second);
+    for (const auto& [keys, text, bindings] : helpTextEntries) {
+      helpText.emplace_back(keys + std::string(width - keys.size(), ' ') + ": " + text);
     }
+    helpTextUpToDate = true;
+  }
+  void rebuildHelpText() // Keys of each entry from the current bindings, in the order of add_key_binding: [N/A] if unbound, [a|b] for several keys; entries without bindings (mouse) keep their text
+  {
+    for (auto& [keys, text, bindings] : helpTextEntries) {
+      if (bindings.empty()) {
+        continue;
+      }
+      keys.clear();
+      for (int32_t binding : bindings) {
+        std::string bound;
+        std::vector<int32_t> keyCodes = boundKeys(binding);
+        std::sort(keyCodes.begin(), keyCodes.end()); // By key code, independent of the order of binding
+        for (int32_t k : keyCodes) {
+          bound += (bound.empty() ? "" : "|") + getKeyName(k);
+        }
+        keys += (keys.empty() ? "[" : " [") + (bound.empty() ? "N/A" : bound) + "]";
+      }
+    }
+    buildHelpText();
+  }
+  std::vector<int32_t> boundKeys(int32_t binding) const // Keys bound to the action or key down mapping
+  {
+    if (isKeyMap(binding)) {
+      const int32_t key = currentMappedKeys[binding - KEY_MAP_INDEX];
+      return key < 0 ? std::vector<int32_t>() : std::vector<int32_t>{key};
+    }
+    return currentActionKeys[binding];
+  }
+  void setKeyBinding(uint32_t key, int32_t binding) // Binds the unbound key, also in the reverse lookups (mKeyDownMap is set by the caller)
+  {
+    configKeys[key] = binding;
+    if (isKeyMap(binding)) {
+      currentMappedKeys[binding - KEY_MAP_INDEX] = key;
+    } else {
+      currentActionKeys[binding].emplace_back(key);
+    }
+    helpTextUpToDate = false;
+  }
+  int32_t removeKeyBinding(uint32_t key) // Unbinds the key, also in the reverse lookups (mKeyDownMap is reset by the caller), returns the previous binding
+  {
+    const int32_t binding = configKeys[key];
+    if (isKeyMap(binding)) {
+      currentMappedKeys[binding - KEY_MAP_INDEX] = -1;
+    } else if (binding != KEY_UNBOUND) {
+      std::erase(currentActionKeys[binding], key);
+    }
+    configKeys[key] = KEY_UNBOUND;
+    helpTextUpToDate = false;
+    return binding;
+  }
+  std::string bindingName(int32_t binding) const // Name of the action or key down mapping, empty if unbound
+  {
+    return isKeyMap(binding) ? keyMapNames[binding - KEY_MAP_INDEX] : binding >= 0 ? keyActions[binding].actionName : "";
+  }
+  uint32_t keyRTTIIndex(uint32_t key) const // Option changed by the action bound to the key, INVALID_INDEX if none
+  {
+    const int32_t binding = configKeys[key];
+    return binding != KEY_UNBOUND && !isKeyMap(binding) ? keyActions[binding].rttiIndex : INVALID_INDEX;
   }
   std::string getKeyName(uint16_t key) const // Name of a special key (KEY_*), the character otherwise, the code if neither, SHIFT_ for shifted special keys
   {
@@ -222,33 +288,43 @@ void GPUDisplayFrontend::add_key_binding(Args&&... args)
   static_assert(nKeys >= 1 && (sizeof...(Args) == nKeys + 1 || sizeof...(Args) == nKeys + 2), "add_key_binding needs at least one key, the help text, and optionally the keys to show in the help text");
   auto argTuple = std::forward_as_tuple(args...);
   std::string keys;
+  std::vector<int32_t> bindings;
   auto addKey = [&](auto& key) {
     const uint16_t character = std::get<0>(key);
-    const std::string name = mConfigRTTI->getKeyName(character);
-    auto& entry = mConfigRTTI->configKeys[character];
-    if (entry.callback || entry.configRTTIIndex != GPUDisplayConfiguration::INVALID_INDEX) {
+    const std::string name = mConfiguration->getKeyName(character);
+    int32_t binding;
+    if (mConfiguration->configKeys[character] != GPUDisplayConfiguration::KEY_UNBOUND) {
       throw std::runtime_error("Key [" + name + "] assigned twice in display frontend");
     }
     if constexpr (std::is_same_v<std::remove_cvref_t<decltype(key)>, GPUDisplayConfiguration::keyDownMapEntry>) {
       const uint8_t id = std::get<1>(key);
       if (mKeyDownMap[id]) {
-        throw std::runtime_error("Key down mapping " + mConfigRTTI->keyMapNames[id] + " assigned twice in display frontend");
+        throw std::runtime_error("Key down mapping " + mConfiguration->keyMapNames[id] + " assigned twice in display frontend");
       }
       mKeyDownMap[id] = character >= 'a' && character <= 'z' ? character + 'A' - 'a' : character; // mKeys stores letters in upper case
-      entry.configRTTIIndex = GPUDisplayConfiguration::KEY_MAP_INDEX + id;
+      binding = GPUDisplayConfiguration::KEY_MAP_INDEX + id;
     } else if constexpr (std::is_same_v<std::remove_cvref_t<decltype(key)>, GPUDisplayConfiguration::keyLambdaEntry>) {
-      entry.configRTTIIndex = std::get<1>(key);
-      entry.callback = std::move(std::get<2>(key));
+      const std::string& actionName = std::get<1>(key);
+      const auto& mapNames = mConfiguration->keyMapNames;
+      if (mConfiguration->keyActionsNames.contains(actionName) || std::find(mapNames.begin(), mapNames.end(), actionName) != mapNames.end()) {
+        throw std::runtime_error("Key action " + actionName + " defined twice in display frontend, or name of a key down mapping");
+      }
+      binding = mConfiguration->keyActions.size();
+      mConfiguration->keyActionsNames.emplace(actionName, binding);
+      mConfiguration->keyActions.push_back({actionName, std::get<2>(key), std::move(std::get<3>(key))});
+      mConfiguration->currentActionKeys.emplace_back();
     } else {
       static_assert(false, "invalid code path");
     }
+    mConfiguration->setKeyBinding(character, binding);
+    bindings.emplace_back(binding);
     keys += (keys.empty() ? "[" : " [") + name + "]";
   };
   [&]<size_t... I>(std::index_sequence<I...>) { (addKey(std::get<I>(argTuple)), ...); }(std::make_index_sequence<nKeys>());
   if constexpr (sizeof...(Args) == nKeys + 2) {
     keys = std::get<nKeys + 1>(argTuple);
   }
-  mConfigRTTI->helpTextEntries.emplace_back(std::move(keys), std::get<nKeys>(argTuple));
+  mConfiguration->helpTextEntries.emplace_back(std::move(keys), std::get<nKeys>(argTuple), std::move(bindings));
 }
 
 struct guiType { // Element type and choices, GUI_CHECKBOX, GUI_DROPDOWN(...), etc. in GPUDisplayFrontendConfigQtGUI.inc
@@ -365,32 +441,32 @@ void GPUDisplayFrontend::add_gui_binding(Args&&... args)
       element.get = [get = element.get, mask = element.type.bitMask](const GPUDisplayGUIChannel::Settings& cfg) -> GPUDisplayGUIValue { return (int64_t)((std::get<int64_t>(get(cfg)) & mask) != 0); };
     }
     static const GPUDisplayGUIChannel::Settings defaults; // Only for the types of the values
-    const uint32_t id = mConfigRTTI->guiElements.size();
-    auto& el = frame.elements.emplace_back(GPUDisplayGUIChannel::Element{.name = element.name, .description = element.rttiIndex < mConfigRTTI->rttiEntries.size() ? mConfigRTTI->rttiEntries[element.rttiIndex].description : "", .rttiIndex = element.rttiIndex, .type = element.type.type, .id = id, .isInteger = std::holds_alternative<int64_t>(element.get(defaults)), .isString = std::holds_alternative<std::string>(element.get(defaults)), .lines = element.type.lines, .choices = std::move(element.type.choices), .dynamicOptions = std::move(element.type.options), .get = element.get});
+    const uint32_t id = mConfiguration->guiElements.size();
+    auto& el = frame.elements.emplace_back(GPUDisplayGUIChannel::Element{.name = element.name, .description = element.rttiIndex < mConfiguration->rttiEntries.size() ? mConfiguration->rttiEntries[element.rttiIndex].description : "", .rttiIndex = element.rttiIndex, .type = element.type.type, .id = id, .isInteger = std::holds_alternative<int64_t>(element.get(defaults)), .isString = std::holds_alternative<std::string>(element.get(defaults)), .lines = element.type.lines, .choices = std::move(element.type.choices), .dynamicOptions = std::move(element.type.options), .get = element.get});
     if (el.dynamicOptions && !((el.type == Type::SLIDER && el.choices.empty()) || el.type == Type::DROPDOWN)) {
       throw std::runtime_error("GUI element " + element.name + ": dynamic options only for sliders with range and dropdown menus");
     }
     if (el.type == Type::SLIDER && !el.dynamicOptions) {
-      if (element.rttiIndex >= mConfigRTTI->rttiEntries.size()) {
+      if (element.rttiIndex >= mConfiguration->rttiEntries.size()) {
         throw std::runtime_error("GUI slider " + element.name + " needs an option with RTTI for min and max values");
       }
-      const auto& e = mConfigRTTI->rttiEntries[element.rttiIndex];
+      const auto& e = mConfiguration->rttiEntries[element.rttiIndex];
       if (e.min.empty() || e.max.empty()) {
         throw std::runtime_error("GUI slider " + element.name + ": option " + e.name + " needs min and max values");
       }
       el.min = std::stod(e.min);
       el.max = std::stod(e.max);
     }
-    if (el.type == Type::TEXTBOX && element.rttiIndex < mConfigRTTI->rttiEntries.size() && !mConfigRTTI->rttiEntries[element.rttiIndex].min.empty() && !mConfigRTTI->rttiEntries[element.rttiIndex].max.empty()) {
-      el.min = std::stod(mConfigRTTI->rttiEntries[element.rttiIndex].min);
-      el.max = std::stod(mConfigRTTI->rttiEntries[element.rttiIndex].max);
+    if (el.type == Type::TEXTBOX && element.rttiIndex < mConfiguration->rttiEntries.size() && !mConfiguration->rttiEntries[element.rttiIndex].min.empty() && !mConfiguration->rttiEntries[element.rttiIndex].max.empty()) {
+      el.min = std::stod(mConfiguration->rttiEntries[element.rttiIndex].min);
+      el.max = std::stod(mConfiguration->rttiEntries[element.rttiIndex].max);
       el.hasRange = true;
     }
     if ((el.type == Type::RADIO_BUTTONS || el.type == Type::DROPDOWN) ? (el.choices.empty() && !el.dynamicOptions) : (!el.choices.empty() && el.type != Type::SLIDER)) {
       throw std::runtime_error("GUI element " + element.name + ": choices are needed for radio buttons and dropdown menus, and only allowed for them and sliders");
     }
     el.horizontal = horizontal;
-    mConfigRTTI->guiElements.emplace_back(GPUDisplayConfiguration::guiElementCallbacks{element.rttiIndex, std::move(element.set)});
+    mConfiguration->guiElements.emplace_back(GPUDisplayConfiguration::guiElementCallbacks{element.rttiIndex, std::move(element.set)});
   };
   auto addArg = [&](auto& arg) {
     if constexpr (std::is_same_v<std::remove_cvref_t<decltype(arg)>, guiElement>) {
@@ -402,46 +478,103 @@ void GPUDisplayFrontend::add_gui_binding(Args&&... args)
     }
   };
   (addArg(args), ...);
-  mConfigRTTI->guiLayout.emplace_back(std::move(frame));
+  mConfiguration->guiLayout.emplace_back(std::move(frame));
 }
 
-void GPUDisplayFrontend::setGUILayout(GPUDisplayGUIChannel& channel) const { channel.layout = mConfigRTTI->guiLayout; }
+void GPUDisplayFrontend::setGUILayout(GPUDisplayGUIChannel& channel) const { channel.layout = mConfiguration->guiLayout; }
 
 void GPUDisplayFrontend::applyGUIValues(const GPUDisplayGUIUpdate& update)
 {
   for (const auto& [id, value] : update.values) {
-    if (id >= mConfigRTTI->guiElements.size()) {
+    if (id >= mConfiguration->guiElements.size()) {
       continue;
     }
-    const auto& e = mConfigRTTI->guiElements[id];
+    const auto& e = mConfiguration->guiElements[id];
     try {
       e.set(value);
     } catch (const std::exception& ex) {
       GPUError("Invalid value from the GUI for element %u: %s", id, ex.what());
       continue;
     }
-    if (mDisplay->mCfgC.guiPrintInfo && e.rttiIndex < mConfigRTTI->configInfos.size()) {
+    if (mDisplay->mCfgC.guiPrintInfo && e.rttiIndex < mConfiguration->configInfos.size()) {
       showConfigInfo(e.rttiIndex);
     }
   }
 }
 
-const std::vector<std::string>& GPUDisplayFrontend::getHelpText() const { return mConfigRTTI->helpText; }
+const std::vector<std::string>& GPUDisplayFrontend::getHelpText()
+{
+  if (!mConfiguration->helpTextUpToDate) {
+    mConfiguration->rebuildHelpText();
+  }
+  return mConfiguration->helpText;
+}
+
+static std::pair<int32_t, uint16_t> keyOrder(uint16_t k) // 0-9, a-z, A-Z, other characters, special keys, special keys with SHIFT
+{
+  return {k >= '0' && k <= '9'   ? 0
+          : k >= 'a' && k <= 'z' ? 1
+          : k >= 'A' && k <= 'Z' ? 2
+          : k >= 256             ? 5
+          : k > 32               ? 3
+                                 : 4,
+          k};
+}
+
+void GPUDisplayFrontend::listKeys(const std::function<void(const std::string&)>& print)
+{
+  const auto& rtti = *mConfiguration;
+  std::vector<uint16_t> boundKeys;
+  for (uint32_t k = 1; k < rtti.configKeys.size(); k++) {
+    if (rtti.configKeys[k] != GPUDisplayConfiguration::KEY_UNBOUND) {
+      boundKeys.emplace_back(k);
+    }
+  }
+  std::sort(boundKeys.begin(), boundKeys.end(), [](uint16_t a, uint16_t b) { return keyOrder(a) < keyOrder(b); });
+  std::vector<std::pair<std::string, int32_t>> rows; // Key, binding
+  for (uint16_t k : boundKeys) {
+    rows.emplace_back("[" + rtti.getKeyName(k) + "]", rtti.configKeys[k]);
+  }
+  auto addUnbound = [&](int32_t binding) {
+    if (rtti.boundKeys(binding).empty()) {
+      rows.emplace_back("[N/A]", binding);
+    }
+  };
+  for (uint32_t i = 0; i < rtti.keyActions.size(); i++) {
+    addUnbound(i);
+  }
+  for (uint32_t i = 0; i < KEY_MAP_MAX; i++) {
+    addUnbound(GPUDisplayConfiguration::KEY_MAP_INDEX + i);
+  }
+  size_t keyWidth = 0, nameWidth = 0;
+  for (const auto& [key, binding] : rows) {
+    keyWidth = std::max(keyWidth, key.size());
+    nameWidth = std::max(nameWidth, rtti.bindingName(binding).size());
+  }
+  print("Key bindings (key, action or key down mapping, option):");
+  for (const auto& [key, binding] : rows) {
+    const std::string name = rtti.bindingName(binding);
+    const uint32_t index = GPUDisplayConfiguration::isKeyMap(binding) ? GPUDisplayConfiguration::INVALID_INDEX : rtti.keyActions[binding].rttiIndex;
+    const std::string option = GPUDisplayConfiguration::isKeyMap(binding) ? "(key down map)" : index == GPUDisplayConfiguration::INVALID_INDEX ? "(no config option)" : rtti.rttiEntries[index].configStruct + " " + rtti.rttiEntries[index].name;
+    print("  " + key + std::string(keyWidth - key.size() + 1, ' ') + name + std::string(nameWidth - name.size() + 1, ' ') + option);
+  }
+  print("");
+  print("Key down mappings (id, name, key):");
+  for (uint32_t i = 0; i < KEY_MAP_MAX; i++) {
+    char line[128];
+    snprintf(line, sizeof(line), "  %2u %-28s %s", i, rtti.keyMapNames[i].c_str(), rtti.currentMappedKeys[i] < 0 ? "[N/A]" : ("[" + rtti.getKeyName(rtti.currentMappedKeys[i]) + "]").c_str());
+    print(line);
+  }
+}
 
 void GPUDisplayFrontend::listConfig()
 {
-  const auto& rtti = *mConfigRTTI;
-  auto keyOrder = [](uint16_t k) { return std::pair(k >= '0' && k <= '9' ? 0 : k >= 'a' && k <= 'z' ? 1
-                                                                             : k >= 'A' && k <= 'Z' ? 2
-                                                                             : k >= 256             ? 5
-                                                                             : k > 32               ? 3
-                                                                                                    : 4,
-                                                    k); }; // 0-9, a-z, A-Z, other characters, special keys, special keys with SHIFT
+  const auto& rtti = *mConfiguration;
   std::vector<uint16_t> boundKeys, availableKeys;
   for (uint32_t k = 1; k < rtti.configKeys.size(); k++) {
     const uint32_t base = k >= 256 ? k - SPECIAL_KEYS_SHIFTED : k; // A shifted special key is possible if the special key is, SHIFT itself is the modifier
     const bool possible = base != KEY_SHIFT && ((base < N_SPECIAL_KEYS && !rtti.keyNames[base].empty()) || (k < 256 && rtti.possibleKeys.find((char)k) != std::string_view::npos));
-    if (rtti.configKeys[k].callback || rtti.isKeyMap(rtti.configKeys[k].configRTTIIndex)) {
+    if (rtti.configKeys[k] != GPUDisplayConfiguration::KEY_UNBOUND) {
       boundKeys.emplace_back(k);
     } else if (possible) {
       availableKeys.emplace_back(k);
@@ -450,47 +583,31 @@ void GPUDisplayFrontend::listConfig()
   std::sort(boundKeys.begin(), boundKeys.end(), [&](uint16_t a, uint16_t b) { return keyOrder(a) < keyOrder(b); });
   std::sort(availableKeys.begin(), availableKeys.end(), [&](uint16_t a, uint16_t b) { return keyOrder(a) < keyOrder(b); });
 
+  GPUInfo("");
   GPUInfo("Display config options with RTTI (struct, option, type, default, in Qt GUI, keys):");
   uint32_t nOptionsWithKey = 0, nOptionsInGUI = 0;
-  int32_t defaultWidth = 0;
+  int32_t structWidth = 0, nameWidth = 0, typeWidth = 0, defaultWidth = 0; // Columns aligned to the longest entry
   for (const auto& e : rtti.rttiEntries) {
+    structWidth = std::max<int32_t>(structWidth, e.configStruct.size());
+    nameWidth = std::max<int32_t>(nameWidth, e.name.size());
+    typeWidth = std::max<int32_t>(typeWidth, e.type.size());
     defaultWidth = std::max<int32_t>(defaultWidth, e.defaultValue.size());
   }
   for (uint32_t i = 0; i < rtti.rttiEntries.size(); i++) {
     const auto& e = rtti.rttiEntries[i];
     std::string keys;
     for (uint16_t k : boundKeys) {
-      if (rtti.configKeys[k].configRTTIIndex == i) {
+      if (rtti.keyRTTIIndex(k) == i) {
         keys += (keys.empty() ? "[" : " [") + rtti.getKeyName(k) + "]";
       }
     }
     const bool inGUI = std::any_of(rtti.guiElements.begin(), rtti.guiElements.end(), [i](const auto& g) { return g.rttiIndex == i; });
     nOptionsWithKey += !keys.empty();
     nOptionsInGUI += inGUI;
-    GPUInfo("  %-28s %-32s %-12s %-*s %-3s %s", e.configStruct.c_str(), e.name.c_str(), e.type.c_str(), defaultWidth, e.defaultValue.c_str(), inGUI ? "GUI" : "---", keys.c_str());
+    GPUInfo("  %-*s %-*s %-*s %-*s %-3s %s", structWidth, e.configStruct.c_str(), nameWidth, e.name.c_str(), typeWidth, e.type.c_str(), defaultWidth, e.defaultValue.c_str(), inGUI ? "GUI" : "---", keys.c_str());
   }
   GPUInfo("");
-  GPUInfo("Bound keys (key, struct, option):");
-  std::vector<std::string> mappedKeys(KEY_MAP_MAX);
-  int32_t keyWidth = 0;
-  for (uint16_t k : boundKeys) {
-    keyWidth = std::max<int32_t>(keyWidth, rtti.getKeyName(k).size() + 2);
-  }
-  for (uint16_t k : boundKeys) {
-    const uint32_t index = rtti.configKeys[k].configRTTIIndex;
-    if (rtti.isKeyMap(index)) {
-      mappedKeys[index - GPUDisplayConfiguration::KEY_MAP_INDEX] = "[" + rtti.getKeyName(k) + "]";
-      GPUInfo("  %-*s %-28s %s", keyWidth, ("[" + rtti.getKeyName(k) + "]").c_str(), "(key down map)", rtti.keyMapNames[index - GPUDisplayConfiguration::KEY_MAP_INDEX].c_str());
-    } else {
-      const bool hasRTTI = index != GPUDisplayConfiguration::INVALID_INDEX;
-      GPUInfo("  %-*s %-28s %s", keyWidth, ("[" + rtti.getKeyName(k) + "]").c_str(), hasRTTI ? rtti.rttiEntries[index].configStruct.c_str() : "(no config option)", hasRTTI ? rtti.rttiEntries[index].name.c_str() : "");
-    }
-  }
-  GPUInfo("");
-  GPUInfo("Key down mappings (id, name, key):");
-  for (uint32_t i = 0; i < KEY_MAP_MAX; i++) {
-    GPUInfo("  %2u %-28s %s", i, rtti.keyMapNames[i].c_str(), mappedKeys[i].c_str());
-  }
+  listKeys([](const std::string& line) { GPUInfo("%s", line.c_str()); });
   GPUInfo("");
   static constexpr std::string_view availablePrefix = "Available keys: ";
   static constexpr size_t MAX_LINE_LENGTH = 240;
@@ -506,14 +623,16 @@ void GPUDisplayFrontend::listConfig()
     available += key;
   }
   GPUInfo("%s", available.c_str());
+  GPUInfo("");
   GPUInfo("Help text:");
-  for (const auto& line : rtti.helpText) {
+  for (const auto& line : getHelpText()) {
     GPUInfo("  %s", line.c_str());
   }
   GPUInfo("");
   mConsole->printCommands([](const std::string& line) { GPUInfo("%s", line.c_str()); });
   GPUInfo("");
   GPUInfo("%zu options with RTTI, %u of them with a key, %u in the Qt GUI, %zu bound keys, %zu available keys", rtti.rttiEntries.size(), nOptionsWithKey, nOptionsInGUI, boundKeys.size(), availableKeys.size());
+  GPUInfo("");
 }
 
 #include "GPUDisplayFrontendConfigKeys.inc"
@@ -523,9 +642,11 @@ void GPUDisplayFrontend::listConfig()
 
 void GPUDisplay::buildConfig()
 {
-  auto& rtti = mFrontend->mConfigRTTI;
+  auto& rtti = mFrontend->mConfiguration;
   rtti = {new GPUDisplayFrontend::GPUDisplayConfiguration, [](GPUDisplayFrontend::GPUDisplayConfiguration* p) { delete p; }};
 
+  rtti->configKeys.fill(GPUDisplayFrontend::GPUDisplayConfiguration::KEY_UNBOUND);
+  rtti->currentMappedKeys.assign(GPUDisplayFrontend::KEY_MAP_MAX, -1);
   rtti->keyNames.resize(rtti->configKeys.size());
   rtti->keyMapNames.resize(GPUDisplayFrontend::KEY_MAP_MAX + 1); // Including MAX
 #define GPUDisplayFrontendAddKey(code, key) rtti->keyNames[code] = #key
@@ -553,7 +674,7 @@ void GPUDisplay::buildConfig()
     }
     rtti->configInfos[i] = [this, i, message = e.message]() {
       char buffer[256];
-      const int32_t n = snprintf(buffer, sizeof(buffer), message.c_str(), mFrontend->mConfigRTTI->valueString(*this, i)->c_str());
+      const int32_t n = snprintf(buffer, sizeof(buffer), message.c_str(), mFrontend->mConfiguration->valueString(*this, i)->c_str());
       if (n < 0 || n >= (int32_t)sizeof(buffer)) {
         GPUError("Info message too long: %s", message.c_str());
         return;
@@ -573,10 +694,12 @@ bool GPUDisplayFrontend::processKeyLambda(uint32_t key)
   if (key < N_SPECIAL_KEYS && mKeys[KEY_SHIFT]) {
     key += SPECIAL_KEYS_SHIFTED;
   }
-  if (key < mConfigRTTI->configKeys.size() && mConfigRTTI->configKeys[key].callback) {
-    mConfigRTTI->configKeys[key].callback();
-    if (const uint32_t index = mConfigRTTI->configKeys[key].configRTTIIndex; index < mConfigRTTI->configInfos.size()) {
-      showConfigInfo(index);
+  const int32_t binding = key < mConfiguration->configKeys.size() ? mConfiguration->configKeys[key] : GPUDisplayConfiguration::KEY_UNBOUND;
+  if (binding != GPUDisplayConfiguration::KEY_UNBOUND && !GPUDisplayConfiguration::isKeyMap(binding)) {
+    const auto& action = mConfiguration->keyActions[binding];
+    action.callback();
+    if (action.rttiIndex < mConfiguration->configInfos.size()) {
+      showConfigInfo(action.rttiIndex);
     }
     return true;
   }
@@ -585,17 +708,17 @@ bool GPUDisplayFrontend::processKeyLambda(uint32_t key)
 
 void GPUDisplayFrontend::showConfigInfo(uint32_t index)
 {
-  if (mConfigRTTI->configInfos[index]) {
-    mConfigRTTI->configInfos[index]();
-  } else if (const auto value = mConfigRTTI->valueString(*mDisplay, index)) { // Generic info for options without info callback
-    const auto& e = mConfigRTTI->rttiEntries[index];
-    mDisplay->SetInfo("%s.%s changed to %s", mConfigRTTI->configStructNames[e.configStructIndex].c_str(), e.name.c_str(), value->c_str());
+  if (mConfiguration->configInfos[index]) {
+    mConfiguration->configInfos[index]();
+  } else if (const auto value = mConfiguration->valueString(*mDisplay, index)) { // Generic info for options without info callback
+    const auto& e = mConfiguration->rttiEntries[index];
+    mDisplay->SetInfo("%s.%s changed to %s", mConfiguration->configStructNames[e.configStructIndex].c_str(), e.name.c_str(), value->c_str());
   }
 }
 
 void GPUDisplay::HandleKey(uint8_t key, bool external, bool bypassConsole)
 {
-  if (mCfgC.showConsole && !bypassConsole && mFrontend->mConfigRTTI->configKeys[key].configRTTIIndex != mFrontend->mConfigRTTI->getRTTIIndex(*this, &GPUDisplayControl::showConsole)) { // All keys except the one toggling the console go to the console
+  if (mCfgC.showConsole && !bypassConsole && mFrontend->mConfiguration->keyRTTIIndex(key) != mFrontend->mConfiguration->getRTTIIndex(*this, &GPUDisplayControl::showConsole)) { // All keys except the one toggling the console go to the console
     if (!external) {
       mFrontend->mConsole->handleConsoleKey(key);
     }
@@ -623,8 +746,7 @@ std::string GPUDisplayFrontend::GPUDisplayConfiguration::setValue(GPUDisplay& di
     return "unsupported type " + e.type;
   }
   if (e.type == "float") { // Floating point: also from an integer
-    const double v = std::holds_alternative<int64_t>(value) ? (double)std::get<int64_t>(value) : std::holds_alternative<double>(value) ? std::get<double>(value)
-                                                                                                                                       : std::nan("");
+    const double v = std::holds_alternative<int64_t>(value) ? (double)std::get<int64_t>(value) : std::holds_alternative<double>(value) ? std::get<double>(value) : std::nan("");
     if (std::isnan(v)) {
       return "number expected";
     } else if ((e.min.size() && v < std::stod(e.min)) || (e.max.size() && v > std::stod(e.max))) {
