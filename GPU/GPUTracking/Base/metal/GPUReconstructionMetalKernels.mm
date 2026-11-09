@@ -29,6 +29,11 @@ inline void GPUReconstructionMetal::runKernelBackend(const krnlSetupTime& _xyz, 
   if (kEvents.evList) {
     StreamWaitForEvents(kExec.stream, kEvents.evList, kEvents.nEvents);
   }
+  // Device timers: the kernel gets a command buffer of its own, whose GPU time is the kernel's
+  const bool timed = GetProcessingSettings().deviceTimers && GetProcessingSettings().debugLevel > 0;
+  if (timed && mInternals->streamHasWork[kExec.stream]) {
+    CommitStream(kExec.stream);
+  }
 
   id<MTLComputePipelineState> pso = mInternals->pipelines[num];
   id<MTLComputeCommandEncoder> computeEncoder = [mInternals->commandBuffers[kExec.stream] computeCommandEncoder];
@@ -57,9 +62,19 @@ inline void GPUReconstructionMetal::runKernelBackend(const krnlSetupTime& _xyz, 
   [computeEncoder dispatchThreadgroups:MTLSizeMake(kExec.nBlocks, 1, 1)
                  threadsPerThreadgroup:MTLSizeMake(threadGroupSize, 1, 1)];
   metalEndEncoder(mInternals, computeEncoder, kExec.stream);
+  id<MTLCommandBuffer> cb = [mInternals->commandBuffers[kExec.stream] retain];
   if (kEvents.ev) {
     RecordMarker(kEvents.ev, kExec.stream);
   }
+  if (timed) {
+    if (mInternals->commandBuffers[kExec.stream] == cb) {
+      CommitStream(kExec.stream);
+    }
+    DrainStream(kExec.stream);
+    [cb waitUntilCompleted];  // the times are only set once the completion is processed
+    _xyz.t = cb.GPUEndTime - cb.GPUStartTime;
+  }
+  [cb release];
 }
 
 template <class T, int32_t I>
