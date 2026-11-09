@@ -491,6 +491,11 @@ void GPUReconstructionMetal::SynchronizeEvents(deviceEvent* evList, int32_t nEve
 
 void GPUReconstructionMetal::StreamWaitForEvents(int32_t stream, deviceEvent* evList, int32_t nEvents)
 {
+  // Encoded after the stream's pending work, the waits would keep its command buffer
+  // from completing until the other streams are done: wait in a buffer of its own.
+  if (mInternals->streamHasWork[stream]) {
+    CommitStream(stream);
+  }
   // Encode commands to wait for all the events
   id<MTLCommandBuffer> cb = mInternals->commandBuffers[stream];
   for (int32_t ei = 0; ei < nEvents; ei++) {
