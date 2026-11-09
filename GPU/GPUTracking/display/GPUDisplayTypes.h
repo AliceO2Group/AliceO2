@@ -15,8 +15,27 @@
 #ifndef GPUDISPLAYTYPES_H
 #define GPUDISPLAYTYPES_H
 
+#include "utils/vecpod.h"
+#include <cstdint>
+#include <ostream>
+
 namespace o2::gpu
 {
+struct GPUDisplayMultiSliderValue { // Value of a Qt GUI multi slider (GUI_MULTI_SLIDER): positions in the order of the display, selected one (-1: none), end of the range, progress
+  vecpod<float> values;
+  int16_t selected = -1;
+  uint16_t progress = 0; // Fraction (of 65535) of the last position highlighted, e.g. a running animation; small types: GPUDisplayGUIValue must not grow
+  float max = 0.f;
+  bool operator==(const GPUDisplayMultiSliderValue&) const = default;
+  friend std::ostream& operator<<(std::ostream& out, const GPUDisplayMultiSliderValue& v) // For the qconfig printout
+  {
+    for (float x : v.values) {
+      out << x << " ";
+    }
+    return out << "(selected " << v.selected << ")";
+  }
+};
+
 template <class T>
 struct GPUDisplayCopyableAtomic : std::atomic<T> { // std::atomic deletes the copy, here it copies the value
   using std::atomic<T>::atomic;

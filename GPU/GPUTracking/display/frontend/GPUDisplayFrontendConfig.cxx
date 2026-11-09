@@ -207,13 +207,17 @@ namespace
 void GPUDisplay::checkAndApplyConfigChanges()
 {
   const auto& [oldCfgH, oldCfgL, oldCfgR] = mOldCfg;
-  if (memcmp((void*)&oldCfgH, (void*)&mCfgH, sizeof(mCfgH)) != 0) {
+  const bool changedH = memcmp((void*)&oldCfgH, (void*)&mCfgH, sizeof(mCfgH)) != 0, changedL = memcmp((void*)&oldCfgL, (void*)&mCfgL, sizeof(mCfgL)) != 0, changedR = memcmp((void*)&oldCfgR, (void*)&mCfgR, sizeof(mCfgR)) != 0;
+  if (mAnimate && (changedH || changedL || changedR || mCfgC.resetScene.load())) {
+    StopAnimation();
+  }
+  if (changedH) {
     mUpdateEventData = true;
   }
   if (mCfgL.propagateTracks != 0 && !mTracksArePropagated) {
     mUpdateVertexLists = true;
   }
-  if (memcmp((void*)&oldCfgL, (void*)&mCfgL, sizeof(mCfgL)) != 0 || memcmp((void*)&oldCfgR, (void*)&mCfgR, sizeof(mCfgR)) != 0) {
+  if (changedL || changedR) {
     mUpdateDrawCommands = true;
   }
   if (oldCfgR.drawQualityMSAA != mCfgR.drawQualityMSAA || oldCfgR.drawQualityDownsampleFSAA != mCfgR.drawQualityDownsampleFSAA || oldCfgL.depthBuffer != mCfgL.depthBuffer || oldCfgR.screenshotScaleFactor != mCfgR.screenshotScaleFactor) {
@@ -250,6 +254,10 @@ void GPUDisplay::checkAndApplyConfigChanges()
       std::fill(std::begin(mFrontend->mKeys), std::end(mFrontend->mKeys), false);
     }
   }
+  if (mCfgC.animationPoints.selected >= 0 && mCfgC.animationPoints.selected < (int32_t)mAnimationVectors.size()) { // Update animation settings of selected point
+    mAnimationVectors[mCfgC.animationPoints.selected].cfgL = mCfgL;
+  }
+  updateAnimationPointsGUI();
 }
 
 void GPUDisplay::HandleExternalGUIKey(int32_t key, bool bypassConsole)
@@ -328,12 +336,13 @@ void GPUDisplayFrontend::add_key_binding(Args&&... args)
 }
 
 struct guiType { // Element type and choices, GUI_CHECKBOX, GUI_DROPDOWN(...), etc. in GPUDisplayFrontendConfigQtGUI.inc
-  guiType(GPUDisplayGUIChannel::ElementType t, std::vector<std::pair<std::string, GPUDisplayGUIValue>> c = {}, std::function<GPUDisplayGUIChannel::Options()> o = {}, uint32_t l = 0, int64_t b = 0) : type(t), choices(std::move(c)), options(std::move(o)), lines(l), bitMask(b) {}
+  guiType(GPUDisplayGUIChannel::ElementType t, std::vector<std::pair<std::string, GPUDisplayGUIValue>> c = {}, std::function<GPUDisplayGUIChannel::Options()> o = {}, uint32_t l = 0, int64_t b = 0, double s = 0) : type(t), choices(std::move(c)), options(std::move(o)), lines(l), bitMask(b), step(s) {}
   GPUDisplayGUIChannel::ElementType type;
   std::vector<std::pair<std::string, GPUDisplayGUIValue>> choices;
   std::function<GPUDisplayGUIChannel::Options()> options; // GUI_SLIDER_DYNAMIC / GUI_DROPDOWN_DYNAMIC
   uint32_t lines = 0;                                     // GUI_TEXTEDIT
   int64_t bitMask = 0;                                    // GUI_CHECKBOX_BIT
+  double step = 0;                                        // GUI_MULTI_SLIDER
 };
 
 static std::vector<std::pair<std::string, GPUDisplayGUIValue>> guiSliderValues(std::initializer_list<GPUDisplayGUIValue> values) // Choices of GUI_SLIDER_VALUES, named by their value
@@ -341,6 +350,8 @@ static std::vector<std::pair<std::string, GPUDisplayGUIValue>> guiSliderValues(s
   auto name = [](const auto& x) -> std::string {
     if constexpr (std::is_same_v<std::remove_cvref_t<decltype(x)>, std::string>) {
       return x;
+    } else if constexpr (std::is_same_v<std::remove_cvref_t<decltype(x)>, GPUDisplayMultiSliderValue>) {
+      return "";
     } else {
       return qConfig::print_type(x);
     }
@@ -378,7 +389,11 @@ static void guiAssign(T& dst, const GPUDisplayGUIValue& value) // Default GUI_LA
 {
   std::visit([&](const auto& v) {
     using V = std::remove_cvref_t<decltype(v)>;
-    if constexpr (std::is_same_v<T, std::string>) {
+    if constexpr (std::is_same_v<T, V>) {
+      dst = v;
+    } else if constexpr (std::is_same_v<T, GPUDisplayMultiSliderValue> || std::is_same_v<V, GPUDisplayMultiSliderValue>) {
+      throw std::runtime_error("GUI value of a multi slider for another element type, or vice versa");
+    } else if constexpr (std::is_same_v<T, std::string>) {
       if constexpr (std::is_same_v<V, std::string>) {
         dst = v;
       } else {
@@ -405,6 +420,8 @@ static GPUDisplayGUIValue toGUIValue(const T& v)
     return (double)v;
   }
 }
+
+static GPUDisplayGUIValue toGUIValue(const GPUDisplayMultiSliderValue& v) { return v; }
 
 template <class T>
 static GPUDisplayGUIValue toGUIValue(const GPUDisplayCopyableAtomic<T>& v)
@@ -442,7 +459,7 @@ void GPUDisplayFrontend::add_gui_binding(Args&&... args)
     }
     static const GPUDisplayGUIChannel::Settings defaults; // Only for the types of the values
     const uint32_t id = mConfiguration->guiElements.size();
-    auto& el = frame.elements.emplace_back(GPUDisplayGUIChannel::Element{.name = element.name, .description = element.rttiIndex < mConfiguration->rttiEntries.size() ? mConfiguration->rttiEntries[element.rttiIndex].description : "", .rttiIndex = element.rttiIndex, .type = element.type.type, .id = id, .isInteger = std::holds_alternative<int64_t>(element.get(defaults)), .isString = std::holds_alternative<std::string>(element.get(defaults)), .lines = element.type.lines, .choices = std::move(element.type.choices), .dynamicOptions = std::move(element.type.options), .get = element.get});
+    auto& el = frame.elements.emplace_back(GPUDisplayGUIChannel::Element{.name = element.name, .description = element.rttiIndex < mConfiguration->rttiEntries.size() ? mConfiguration->rttiEntries[element.rttiIndex].description : "", .rttiIndex = element.rttiIndex, .type = element.type.type, .id = id, .isInteger = std::holds_alternative<int64_t>(element.get(defaults)), .isString = std::holds_alternative<std::string>(element.get(defaults)), .lines = element.type.lines, .step = element.type.step, .choices = std::move(element.type.choices), .dynamicOptions = std::move(element.type.options), .get = element.get});
     if (el.dynamicOptions && !((el.type == Type::SLIDER && el.choices.empty()) || el.type == Type::DROPDOWN)) {
       throw std::runtime_error("GUI element " + element.name + ": dynamic options only for sliders with range and dropdown menus");
     }
@@ -461,6 +478,12 @@ void GPUDisplayFrontend::add_gui_binding(Args&&... args)
       el.min = std::stod(mConfiguration->rttiEntries[element.rttiIndex].min);
       el.max = std::stod(mConfiguration->rttiEntries[element.rttiIndex].max);
       el.hasRange = true;
+    }
+    if (el.step > 0 && !(el.type == Type::MULTI_SLIDER || (el.type == Type::SLIDER && el.choices.empty()))) {
+      throw std::runtime_error("GUI element " + element.name + ": a step only for sliders with a range and multi sliders");
+    }
+    if (el.type == Type::MULTI_SLIDER && (!std::holds_alternative<GPUDisplayMultiSliderValue>(element.get(defaults)) || el.step <= 0)) {
+      throw std::runtime_error("GUI multi slider " + element.name + " needs an option of type GPUDisplayMultiSliderValue and a step > 0");
     }
     if ((el.type == Type::RADIO_BUTTONS || el.type == Type::DROPDOWN) ? (el.choices.empty() && !el.dynamicOptions) : (!el.choices.empty() && el.type != Type::SLIDER)) {
       throw std::runtime_error("GUI element " + element.name + ": choices are needed for radio buttons and dropdown menus, and only allowed for them and sliders");

@@ -23,8 +23,10 @@
 #include <utility>
 #include <vector>
 
+class QHBoxLayout;
 class QKeyEvent;
 class QLabel;
+class QLineEdit;
 
 namespace o2::gpu
 {
@@ -71,6 +73,8 @@ class GPUDisplayGUI : public QMainWindow
   ElementWidget createTextEdit(const GPUDisplayGUIChannel::Element& el);
   ElementWidget createButton(const GPUDisplayGUIChannel::Element& el);
   ElementWidget createDropdown(const GPUDisplayGUIChannel::Element& el);
+  ElementWidget createMultiSlider(const GPUDisplayGUIChannel::Element& el);
+  QHBoxLayout* createSliderRow(ElementWidget& retVal, QWidget* slider, QLineEdit* edit, Qt::Alignment editAlignment = {});
   void setValue(uint32_t id, GPUDisplayGUIValue value); // Element changed by the user, sent with the next update
   void setScale(float scale);                           // Font size, fixed element sizes, and check / radio indicators (not sent to the display)
   static int32_t translateKey(const QKeyEvent* event);  // Qt key → display key code, -1 if not forwarded

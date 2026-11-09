@@ -29,6 +29,7 @@
 #include <QLayout>
 #include <QLineEdit>
 #include <QMouseEvent>
+#include <QPainter>
 #include <QPlainTextEdit>
 #include <QProxyStyle>
 #include <QPushButton>
@@ -50,6 +51,7 @@
 #include <cmath>
 #include <functional>
 #include <memory>
+#include <numeric>
 #include <optional>
 #include <string>
 #include <variant>
@@ -278,11 +280,161 @@ struct ValueEdit { // Text box for a value from the display, copied into the lam
   }
 };
 
+class MultiSlider : public QWidget // Handles on one range [0, value.max] with ticks below: dragged with the mouse (multiples of step, never onto another handle), a click without moving (de)selects
+{
+ public:
+  explicit MultiSlider(double step) : mStep(step)
+  {
+    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    setFocusPolicy(Qt::ClickFocus); // A click finishes the editing in the text box first, for the previously focused handle
+  }
+  std::function<void()> changed;      // Positions or selection changed by the user, value in the order received from the display
+  std::function<void()> focusChanged; // Other focused handle or its position, for the text box
+  GPUDisplayMultiSliderValue value;   // Positions in the order of the display, selected handle
+  int32_t focused = -1;               // Last clicked / dragged handle, shown in the text box
+
+  void setFromDisplay(const GPUDisplayMultiSliderValue& v)
+  {
+    value = v;
+    mDragging = -1; // A drag is cancelled by changes from the display
+    focused = focused < (int32_t)value.values.size() ? focused : -1;
+    update();
+    focusChanged();
+  }
+  void setPosition(int32_t i, double v) // From the text box, rounded to the step, ignored if the position does not change or another handle is there
+  {
+    v = snap(v);
+    if (isFree(v, -1)) { // Also the own position
+      value.values[i] = v;
+      sendAndNormalize();
+    }
+  }
+  QSize sizeHint() const override { return {300, handleHeight() + 6 + fontMetrics().height() + 8}; }
+  QSize minimumSizeHint() const override { return {100, sizeHint().height()}; }
+
+ protected:
+  void paintEvent(QPaintEvent*) override
+  {
+    QPainter p(this);
+    p.setRenderHint(QPainter::Antialiasing);
+    const QPalette& pal = palette();
+    const int32_t trackY = handleHeight() / 2 + 1, tickY = handleHeight() + 3;
+    p.setPen(QPen(pal.color(QPalette::Mid), 2));
+    p.drawLine(margin(), trackY, width() - margin(), trackY);
+    if (value.progress && value.values.size()) { // Up to the progress of the last position, e.g. the running animation
+      p.setPen(QPen(pal.color(QPalette::Highlight), 4));
+      p.drawLine(margin(), trackY, toX(value.progress / 65535. * value.values.back()), trackY);
+    }
+    p.setPen(pal.color(QPalette::WindowText));
+    const double tick = tickStep();
+    for (int32_t k = 0; k * tick <= maxValue() * (1 + 1e-9); k++) {
+      const int32_t x = toX(k * tick);
+      p.drawLine(x, tickY, x, tickY + 4);
+      p.drawText(QRect(x - 50, tickY + 5, 100, fontMetrics().height()), Qt::AlignHCenter | Qt::AlignTop, QString::number(k * tick));
+    }
+    for (uint32_t i = 0; i < value.values.size(); i++) {
+      const QRect r(toX(value.values[i]) - handleWidth() / 2, 1, handleWidth(), handleHeight());
+      p.setBrush((int32_t)i == value.selected ? pal.color(QPalette::Highlight) : pal.color(QPalette::Button));
+      p.setPen(QPen((int32_t)i == focused ? pal.color(QPalette::WindowText) : pal.color(QPalette::Mid), (int32_t)i == focused ? 2 : 1));
+      p.drawRoundedRect(r, 2, 2);
+    }
+  }
+  void mousePressEvent(QMouseEvent* e) override
+  {
+    if (e->button() != Qt::LeftButton) {
+      return;
+    }
+    int32_t best = -1, bestDistance = handleWidth();
+    for (uint32_t i = 0; i < value.values.size(); i++) { // Nearest handle under the mouse
+      if (const int32_t d = std::abs(toX(value.values[i]) - (int32_t)e->position().x()); d <= bestDistance) {
+        best = i;
+        bestDistance = d;
+      }
+    }
+    if (best >= 0) {
+      mDragging = focused = best;
+      mMoved = false;
+      update();
+      focusChanged();
+    }
+  }
+  void mouseMoveEvent(QMouseEvent* e) override
+  {
+    if (mDragging < 0) {
+      return;
+    }
+    const float v = snap(toValue(e->position().x()));           // Compared to the stored float
+    if (isFree(v, mDragging) && v != value.values[mDragging]) { // Never onto another handle, it can be passed
+      value.values[mDragging] = v;
+      mMoved = true;
+      update();
+      focusChanged();
+    }
+  }
+  void mouseReleaseEvent(QMouseEvent* e) override
+  {
+    if (e->button() != Qt::LeftButton || mDragging < 0) {
+      return;
+    }
+    if (!mMoved) {
+      value.selected = value.selected == mDragging ? -1 : mDragging;
+    }
+    mDragging = -1;
+    sendAndNormalize();
+  }
+
+ private:
+  void sendAndNormalize() // Sends the value in the order of the display, then sorts it as the display does (first position 0), until its reply arrives
+  {
+    changed();
+    std::vector<uint32_t> order(value.values.size());
+    std::iota(order.begin(), order.end(), 0);
+    std::stable_sort(order.begin(), order.end(), [this](uint32_t a, uint32_t b) { return value.values[a] < value.values[b]; });
+    GPUDisplayMultiSliderValue sorted = value;
+    int32_t newFocused = -1;
+    for (uint32_t i = 0; i < order.size(); i++) {
+      sorted.values[i] = value.values[order[i]] - value.values[order[0]];
+      sorted.selected = (int32_t)order[i] == value.selected ? i : sorted.selected;
+      newFocused = (int32_t)order[i] == focused ? i : newFocused;
+    }
+    value = std::move(sorted);
+    focused = newFocused;
+    update();
+    focusChanged();
+  }
+  double maxValue() const { return std::max<double>(value.max, mStep); }
+  double snap(double v) const { return std::clamp(std::round(v / mStep) * mStep, 0., maxValue()); } // Positions are multiples of the step
+  bool isFree(double v, int32_t except) const                                                       // No handle other than except at v (positions are snapped: closer than half a step is the same position)
+  {
+    return std::none_of(value.values.begin(), value.values.end(), [&](const float& x) { return &x - value.values.data() != except && std::abs(x - v) < mStep / 2; });
+  }
+  int32_t handleHeight() const { return fontMetrics().height(); }
+  int32_t handleWidth() const { return std::max(6, fontMetrics().height() / 2); }
+  int32_t margin() const { return std::max(handleWidth() / 2 + 1, fontMetrics().horizontalAdvance("00.00") / 2); } // Room for the handles and tick labels at the ends
+  int32_t toX(double v) const { return margin() + std::lround(v / maxValue() * (width() - 2 * margin())); }
+  double toValue(double x) const { return (x - margin()) / std::max(1, width() - 2 * margin()) * maxValue(); }
+  double tickStep() const // 1, 2, 5 times a power of 10, labels not overlapping
+  {
+    const double minStep = maxValue() * 2 * fontMetrics().horizontalAdvance("00.00") / std::max(1, width() - 2 * margin());
+    const double base = std::pow(10., std::floor(std::log10(std::max(minStep, 1e-9))));
+    for (double m : {1., 2., 5.}) {
+      if (m * base >= minStep) {
+        return std::max(m * base, mStep);
+      }
+    }
+    return std::max(10 * base, mStep);
+  }
+
+  double mStep;
+  int32_t mDragging = -1;
+  bool mMoved = false;
+};
+
 struct SliderRange {                           // Slider positions of a range of values
   static constexpr int32_t FLOAT_STEPS = 1000; // Resolution of sliders for floating point options
   double min, step;
   int32_t steps;
-  SliderRange(double minValue, double maxValue, bool isInteger) : min(minValue), step(isInteger ? 1. : (maxValue - minValue) / FLOAT_STEPS), steps(isInteger ? std::max<int32_t>(std::lround(maxValue - minValue), 0) : FLOAT_STEPS) {}
+  SliderRange(double minValue, double maxValue, bool isInteger, double fixedStep = 0) : min(minValue), step(fixedStep > 0 ? fixedStep : (isInteger ? 1. : (maxValue - minValue) / FLOAT_STEPS)), steps(fixedStep > 0 || isInteger ? std::max<int32_t>(std::lround((maxValue - minValue) / step), 0) : FLOAT_STEPS) {} // fixedStep: Element::step
   double value(int32_t position) const { return min + position * step; }
   int32_t position(double v) const { return step ? std::lround((v - min) / step) : 0; }
 };
@@ -299,6 +451,8 @@ static double toDouble(const GPUDisplayGUIValue& v)
   return std::visit([](const auto& x) -> double {
     if constexpr (std::is_same_v<std::remove_cvref_t<decltype(x)>, std::string>) {
       return QString::fromStdString(x).toDouble();
+    } else if constexpr (std::is_same_v<std::remove_cvref_t<decltype(x)>, GPUDisplayMultiSliderValue>) {
+      return 0.;
     } else {
       return x;
     }
@@ -311,6 +465,8 @@ static QString toQString(const GPUDisplayGUIValue& v)
   return std::visit([](const auto& x) {
     if constexpr (std::is_same_v<std::remove_cvref_t<decltype(x)>, std::string>) {
       return QString::fromStdString(x);
+    } else if constexpr (std::is_same_v<std::remove_cvref_t<decltype(x)>, GPUDisplayMultiSliderValue>) {
+      return QString();
     } else {
       return QString::number(x);
     }
@@ -333,8 +489,8 @@ static uint32_t nearestChoice(const std::vector<std::pair<std::string, GPUDispla
 
 static bool sameValue(const GPUDisplayGUIValue& a, const GPUDisplayGUIValue& b) // Numbers compared by value, independent of int64_t / double
 {
-  const bool aString = std::holds_alternative<std::string>(a), bString = std::holds_alternative<std::string>(b);
-  return aString || bString ? a == b : toDouble(a) == toDouble(b);
+  const bool aNumber = std::holds_alternative<int64_t>(a) || std::holds_alternative<double>(a), bNumber = std::holds_alternative<int64_t>(b) || std::holds_alternative<double>(b);
+  return aNumber && bNumber ? toDouble(a) == toDouble(b) : a == b;
 }
 
 GPUDisplayGUI::GPUDisplayGUI(GPUDisplayGUIChannel& channel, QWidget* parent) : QMainWindow(parent), mChannel(channel)
@@ -541,14 +697,23 @@ GPUDisplayGUI::ElementWidget GPUDisplayGUI::createTextbox(const GPUDisplayGUICha
   return {text.edit, [text](const GPUDisplayGUIValue& v) { text.show(toQString(v)); }, {}};
 }
 
-GPUDisplayGUI::ElementWidget GPUDisplayGUI::createSlider(const GPUDisplayGUIChannel::Element& el)
+QHBoxLayout* GPUDisplayGUI::createSliderRow(ElementWidget& retVal, QWidget* slider, QLineEdit* edit, Qt::Alignment editAlignment)
 {
-  ElementWidget retVal;
   retVal.widget = new QWidget;
   auto* row = new QHBoxLayout(retVal.widget);
   row->setContentsMargins(0, 0, 0, 0);
+  mScaleSetters.emplace_back([edit](float scale) { edit->setFixedWidth(std::lround(60 * scale)); });
+  row->addWidget(slider);
+  row->addWidget(edit, 0, editAlignment);
+  return row;
+}
+
+GPUDisplayGUI::ElementWidget GPUDisplayGUI::createSlider(const GPUDisplayGUIChannel::Element& el)
+{
+  ElementWidget retVal;
   auto* slider = new QSlider(Qt::Horizontal);
   ValueEdit text;
+  auto* row = createSliderRow(retVal, slider, text.edit);
   const bool fixedLength = fixedLengthSlider(el);
   const int32_t length = fixedLength ? (el.choices.size() ? el.choices.size() - 1 : std::lround(el.max - el.min)) * 2 * style()->pixelMetric(QStyle::PM_IndicatorWidth) : 150; // Fixed: about twice a checkbox indicator per step
   mScaleSetters.emplace_back([slider, length, fixedLength](float scale) {
@@ -558,9 +723,6 @@ GPUDisplayGUI::ElementWidget GPUDisplayGUI::createSlider(const GPUDisplayGUIChan
       slider->setMinimumWidth(std::lround(length * scale));
     }
   });
-  mScaleSetters.emplace_back([edit = text.edit](float scale) { edit->setFixedWidth(std::lround(60 * scale)); });
-  row->addWidget(slider);
-  row->addWidget(text.edit);
   if (fixedLength) {
     row->addStretch(); // Left-aligned, otherwise the free space is distributed around the fixed-size widgets
   }
@@ -587,16 +749,17 @@ GPUDisplayGUI::ElementWidget GPUDisplayGUI::createSlider(const GPUDisplayGUIChan
       text.show(sameValue((*choices)[best].second, value) ? QString::fromStdString((*choices)[best].first) : toQString(value));
     };
   } else {
-    auto range = std::make_shared<SliderRange>(el.min, el.max, el.isInteger); // Changed by dynamic options
+    auto range = std::make_shared<SliderRange>(el.min, el.max, el.isInteger, el.step); // Changed by dynamic options
     slider->setRange(0, range->steps);
     connect(slider, &QSlider::valueChanged, this, [this, text, id = el.id, range, isInteger = el.isInteger](int32_t pos) {
       const GPUDisplayGUIValue v = toValue(range->value(pos), isInteger);
       text.show(toQString(v));
       setValue(id, v);
     });
-    connect(text.edit, &QLineEdit::editingFinished, this, [this, text, slider, id = el.id, range, isInteger = el.isInteger]() {
+    connect(text.edit, &QLineEdit::editingFinished, this, [this, text, slider, id = el.id, range, isInteger = el.isInteger, step = el.step]() {
       if (const auto entered = text.number()) {
-        const GPUDisplayGUIValue v = toValue(std::clamp(*entered, range->min, range->value(range->steps)), isInteger); // Floating point values need not be on a slider step
+        const double clamped = std::clamp(*entered, range->min, range->value(range->steps));
+        const GPUDisplayGUIValue v = toValue(step > 0 ? range->value(range->position(clamped)) : clamped, isInteger); // Rounded to the step if set, otherwise floating point values need not be on a slider step
         text.commit(toQString(v));
         const QSignalBlocker blocker(slider);
         slider->setValue(range->position(toDouble(v)));
@@ -608,12 +771,32 @@ GPUDisplayGUI::ElementWidget GPUDisplayGUI::createSlider(const GPUDisplayGUIChan
       slider->setValue(range->position(toDouble(value)));
       text.show(toQString(value));
     };
-    retVal.setOptions = [slider, range, isInteger = el.isInteger](const GPUDisplayGUIChannel::Options& o) {
-      *range = SliderRange(o.min, o.max, isInteger);
+    retVal.setOptions = [slider, range, isInteger = el.isInteger, step = el.step](const GPUDisplayGUIChannel::Options& o) {
+      *range = SliderRange(o.min, o.max, isInteger, step);
       const QSignalBlocker blocker(slider);
       slider->setRange(0, range->steps);
     };
   }
+  return retVal;
+}
+
+GPUDisplayGUI::ElementWidget GPUDisplayGUI::createMultiSlider(const GPUDisplayGUIChannel::Element& el)
+{
+  ElementWidget retVal;
+  auto* slider = new MultiSlider(el.step);
+  ValueEdit text;
+  createSliderRow(retVal, slider, text.edit, Qt::AlignTop);
+  mScaleSetters.emplace_back([slider](float scale) { slider->setMinimumWidth(std::lround(300 * scale)); });
+  slider->changed = [this, slider, id = el.id]() { setValue(id, slider->value); };
+  auto focusedText = [slider]() { return slider->focused >= 0 ? QString::number(slider->value.values[slider->focused]) : QString(); };
+  slider->focusChanged = [text, focusedText]() { text.show(focusedText()); };
+  connect(text.edit, &QLineEdit::editingFinished, this, [slider, text, focusedText]() {
+    if (const auto entered = text.number(); entered && slider->focused >= 0) {
+      slider->setPosition(slider->focused, *entered);
+    }
+    text.commit(focusedText()); // The position actually set, also after the normalization
+  });
+  retVal.set = [slider](const GPUDisplayGUIValue& v) { slider->setFromDisplay(std::get<GPUDisplayMultiSliderValue>(v)); };
   return retVal;
 }
 
@@ -720,6 +903,9 @@ QWidget* GPUDisplayGUI::buildElements(const std::vector<GPUDisplayGUIChannel::Fr
         case Type::DROPDOWN:
           created = createDropdown(el);
           break;
+        case Type::MULTI_SLIDER:
+          created = createMultiSlider(el);
+          break;
       }
       QWidget* widget = created.widget;
       QLabel* name = el.type == Type::CHECKBOX || el.type == Type::BUTTON || el.name.empty() ? nullptr : new QLabel(QString::fromStdString(el.name)); // Checkboxes and buttons show their own text, an empty name means no caption
@@ -757,7 +943,7 @@ QWidget* GPUDisplayGUI::buildElements(const std::vector<GPUDisplayGUIChannel::Fr
       mElements.push_back({std::move(created.set), std::move(created.setOptions), el.get, el.dynamicOptions, std::nullopt}); // Element ids are sequential
     }
     framesLayout->addWidget(box);
-    if (std::any_of(frame.elements.begin(), frame.elements.end(), [](const auto& el) { return el.type == Type::SLIDER && !fixedLengthSlider(el); })) { // Sliders range to the frame border, frame limited to the window width by the layout
+    if (std::any_of(frame.elements.begin(), frame.elements.end(), [](const auto& el) { return (el.type == Type::SLIDER && !fixedLengthSlider(el)) || el.type == Type::MULTI_SLIDER; })) { // Sliders range to the frame border, frame limited to the window width by the layout
       mScaleSetters.emplace_back([this, framesLayout, box](float scale) { framesLayout->setPreferredWidth(box, std::lround(screen()->availableGeometry().width() / 3 * scale)); });
     }
   }

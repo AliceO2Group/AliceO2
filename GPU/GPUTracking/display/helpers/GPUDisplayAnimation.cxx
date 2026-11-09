@@ -17,6 +17,9 @@
 #include "GPUCommonMath.h"
 #include "HandMadeMath.h"
 
+#include <algorithm>
+#include <numeric>
+
 using namespace o2::gpu;
 
 const std::array<std::string, 7> GPUDisplay::ANIMATION_MODE_NAMES_SHORT = {"Cartesian, quaternion", "Cartesian, Euler angles", "Spherical Rotation, quaternion", "Spherical Rotation, Euler angles", "Spherical, quaternion", "Spherical, Euler angles", "Spherical, centered on origin"};
@@ -26,54 +29,53 @@ constexpr hmm_mat4 MY_HMM_FROM(float (&v)[16]) { return {{{v[0], v[1], v[2], v[3
 
 void GPUDisplay::setAnimationPoint()
 {
+  StopAnimation();
+  animationVector p;
+  const animationVector* last = mAnimationVectors.size() ? &mAnimationVectors.back() : nullptr;
+  auto& times = mCfgC.animationPoints.values;
   if (mCfgL.animationMode & 4) // Spherical
   {
     float rxy = sqrtf(mXYZ[0] * mXYZ[0] + mXYZ[2] * mXYZ[2]);
     float anglePhi = atan2f(mXYZ[0], mXYZ[2]);
     float angleTheta = atan2f(mXYZ[1], rxy);
-    if (mAnimateVectors[0].size()) {
-      mAnimationCloseAngle(anglePhi, mAnimateVectors[2].back());
+    if (last) {
+      mAnimationCloseAngle(anglePhi, last->v[1]);
+      mAnimationCloseAngle(angleTheta, last->v[2]);
     }
-    if (mAnimateVectors[0].size()) {
-      mAnimationCloseAngle(angleTheta, mAnimateVectors[3].back());
-    }
-    mAnimateVectors[1].emplace_back(0);
-    mAnimateVectors[2].emplace_back(anglePhi);
-    mAnimateVectors[3].emplace_back(angleTheta);
+    p.v[0] = 0;
+    p.v[1] = anglePhi;
+    p.v[2] = angleTheta;
   } else {
     for (int32_t i = 0; i < 3; i++) {
-      mAnimateVectors[i + 1].emplace_back(mXYZ[i]);
+      p.v[i] = mXYZ[i];
     }
     // Cartesian
   }
-  float r = sqrtf(mXYZ[0] * mXYZ[0] + mXYZ[1] * mXYZ[1] + mXYZ[2] * mXYZ[2]);
-  mAnimateVectors[4].emplace_back(r);
+  p.v[3] = sqrtf(mXYZ[0] * mXYZ[0] + mXYZ[1] * mXYZ[1] + mXYZ[2] * mXYZ[2]);
   if (mCfgL.animationMode & 1) // Euler-angles
   {
     for (int32_t i = 0; i < 3; i++) {
       float newangle = mAngle[i];
-      if (mAnimateVectors[0].size()) {
-        mAnimationCloseAngle(newangle, mAnimateVectors[i + 5].back());
+      if (last) {
+        mAnimationCloseAngle(newangle, last->v[i + 4]);
       }
-      mAnimateVectors[i + 5].emplace_back(newangle);
+      p.v[i + 4] = newangle;
     }
-    mAnimateVectors[8].emplace_back(0);
+    p.v[7] = 0;
   } else { // Quaternions
     float v[4];
     createQuaternionFromMatrix(v, &mViewMatrix->Elements[0][0]);
-    if (mAnimateVectors[0].size()) {
-      mAnimateCloseQuaternion(v, mAnimateVectors[5].back(), mAnimateVectors[6].back(), mAnimateVectors[7].back(), mAnimateVectors[8].back());
+    if (last) {
+      mAnimateCloseQuaternion(v, last->v[4], last->v[5], last->v[6], last->v[7]);
     }
     for (int32_t i = 0; i < 4; i++) {
-      mAnimateVectors[i + 5].emplace_back(v[i]);
+      p.v[i + 4] = v[i];
     }
   }
-  float delay = 0.f;
-  if (mAnimateVectors[0].size()) {
-    delay = mAnimateVectors[0].back() + ((int32_t)(mCfgC.animationDelay * 20)) / 20.f;
-  }
-  mAnimateVectors[0].emplace_back(delay);
-  mAnimateConfig.emplace_back(mCfgL);
+  times.emplace_back(last ? times.back() + ((int32_t)(mCfgC.animationDelay * 20)) / 20.f : 0.f);
+  p.cfgL = mCfgL;
+  mAnimationVectors.emplace_back(p);
+  mCfgC.animationPoints.selected = -1;
 }
 
 static hmm_mat4 lookAtMatrix(const float (&eye)[3], const float (&target)[3]) // HMM_LookAt with y up, z up when looking along y (the cross product with y would be 0)
@@ -122,27 +124,107 @@ void GPUDisplay::addAnimationPoint(const float (&xyz)[3], const float (&angles)[
 
 void GPUDisplay::resetAnimation()
 {
-  for (int32_t i = 0; i < 9; i++) {
-    mAnimateVectors[i].clear();
-  }
-  mAnimateConfig.clear();
-  mAnimate = 0;
+  mAnimationVectors.clear();
+  mCfgC.animationPoints.values.clear();
+  mCfgC.animationPoints.selected = -1;
+  StopAnimation();
 }
 
-void GPUDisplay::removeAnimationPoint()
+void GPUDisplay::removeAnimationPoint(int32_t i)
 {
-  if (mAnimateVectors[0].size() == 0) {
+  StopAnimation();
+  if (i < 0) {
+    i = mCfgC.animationPoints.selected >= 0 ? mCfgC.animationPoints.selected : (int32_t)mAnimationVectors.size() - 1;
+  }
+  if (i < 0 || i >= (int32_t)mAnimationVectors.size()) {
     return;
   }
-  for (int32_t i = 0; i < 9; i++) {
-    mAnimateVectors[i].pop_back();
+  auto& times = mCfgC.animationPoints.values;
+  mAnimationVectors.erase(mAnimationVectors.begin() + i);
+  times.erase(times.begin() + i);
+  if (i == 0 && times.size()) { // The first point stays at time 0
+    const float t0 = times[0];
+    for (float& t : times) {
+      t -= t0;
+    }
   }
-  mAnimateConfig.pop_back();
+  mCfgC.animationPoints.selected = -1;
+}
+
+void GPUDisplay::selectAnimationPoint(int32_t i)
+{
+  StopAnimation();
+  if (i < 0 || i >= (int32_t)mAnimationVectors.size()) {
+    mCfgC.animationPoints.selected = -1;
+    return;
+  }
+  mCfgC.animationPoints.selected = i;
+  mCfgL = mAnimationVectors[i].cfgL;
+  setCameraFromAnimationPoint(mAnimationVectors[i]);
+}
+
+void GPUDisplay::setCameraFromAnimationPoint(const animationVector& p)
+{
+  float vals[8];
+  std::copy(p.v, p.v + 8, vals);
+  hmm_mat4 viewMatrix = HMM_Mat4d(1.f);
+  animationViewMatrix(vals, p.cfgL.animationMode, viewMatrix);
+  *mViewMatrix = viewMatrix;
+  calcXYZ(&mViewMatrix->Elements[0][0]);
+}
+
+void GPUDisplay::StopAnimation()
+{
+  if (!mAnimate) {
+    return;
+  }
+  mAnimate = mCfgC.animateScreenshot = 0;
+  mAnimationMixBase = -1; // Camera and settings stay as they are
+  mUpdateDrawCommands = true;
+  SetInfo("Animation stopped", 1);
+}
+
+void GPUDisplay::setAnimationPointsFromGUI(const GPUDisplayMultiSliderValue& points)
+{
+  if (mAnimate || points.values.size() != mAnimationVectors.size()) { // Not while the animation runs; the GUI may not yet know a changed number of points
+    return;
+  }
+  std::vector<uint32_t> order(points.values.size());
+  std::iota(order.begin(), order.end(), 0);
+  std::stable_sort(order.begin(), order.end(), [&](uint32_t a, uint32_t b) { return points.values[a] < points.values[b]; });
+  for (uint32_t i = 1; i < order.size(); i++) {
+    if (!(points.values[order[i]] > points.values[order[i - 1]])) { // Points must have different times, the GUI prevents this
+      return;
+    }
+  }
+  vecpod<animationVector> sorted(order.size());
+  vecpod<float> sortedTimes(order.size());
+  int32_t selected = -1;
+  for (uint32_t i = 0; i < order.size(); i++) {
+    sorted[i] = mAnimationVectors[order[i]];
+    sortedTimes[i] = points.values[order[i]] - points.values[order[0]]; // The first point at time 0
+    selected = (int32_t)order[i] == points.selected ? i : selected;
+  }
+  const bool selectionChanged = points.selected != mCfgC.animationPoints.selected;
+  mAnimationVectors = std::move(sorted);
+  mCfgC.animationPoints.values = std::move(sortedTimes);
+  if (selectionChanged) {
+    selectAnimationPoint(selected);
+  } else {
+    mCfgC.animationPoints.selected = selected;
+  }
+}
+
+void GPUDisplay::updateAnimationPointsGUI()
+{
+  auto& gui = mCfgC.animationPoints;
+  gui.progress = mAnimate ? gui.progress : 0;                                                             // Set by animateCamera while the animation runs
+  gui.max = (gui.values.size() ? gui.values.back() : 0.) + ((int32_t)(mCfgC.animationDelay * 20)) / 20.f; // Room for the next point
 }
 
 void GPUDisplay::runAnimation()
 {
-  if (mAnimateVectors[0].size() > 1) {
+  if (mAnimationVectors.size() > 1) {
     if (mCfgC.animateScreenshot) {
       mAnimationExport++;
     }
@@ -155,12 +237,17 @@ void GPUDisplay::runAnimation()
 
 void GPUDisplay::startAnimation()
 {
+  vecpod<float> y(mAnimationVectors.size());
   for (int32_t i = 0; i < 8; i++) {
-    mAnimationSplines[i].create(mAnimateVectors[0], mAnimateVectors[i + 1]);
+    for (uint32_t k = 0; k < mAnimationVectors.size(); k++) {
+      y[k] = mAnimationVectors[k].v[i];
+    }
+    mAnimationSplines[i].create(mCfgC.animationPoints.values, y);
   }
   mAnimationTimer.ResetStart();
   mAnimationFrame = 0;
   mAnimate = 1;
+  mCfgC.animationPoints.selected = -1; // The animation changes mCfgL, which would otherwise be stored in the selected point when it ends
   mAnimationLastBase = 0;
   mAnimationMixBase = -1;
 }
@@ -175,7 +262,8 @@ int32_t GPUDisplay::animateCamera(bool suspended, float& animateTime, float& mix
       time = mAnimationTimer.GetCurrentElapsedTime();
     }
 
-    float maxTime = mAnimateVectors[0].back();
+    float maxTime = mCfgC.animationPoints.values.back();
+    mCfgC.animationPoints.progress = std::lround(std::clamp(time / maxTime, 0.f, 1.f) * 65535);
     if (time >= maxTime) {
       time = maxTime;
       mAnimate = mCfgC.animateScreenshot = 0;
@@ -194,36 +282,44 @@ int32_t GPUDisplay::animateCamera(bool suspended, float& animateTime, float& mix
   }
   if (mCfgC.animationChangeConfig && animateTime < 0) {
     int32_t base = 0;
-    int32_t k = mAnimateVectors[0].size() - 1;
-    while (base < k && time > mAnimateVectors[0][base]) {
+    const auto& times = mCfgC.animationPoints.values;
+    int32_t k = mAnimationVectors.size() - 1;
+    while (base < k && time > times[base]) {
       base++;
     }
     if (base > mAnimationLastBase + 1) {
       mAnimationLastBase = base - 1;
     }
 
-    const bool mixing = base != mAnimationLastBase && mAnimateVectors[0][mAnimationLastBase] != mAnimateVectors[0][base] && memcmp(&mAnimateConfig[base], &mAnimateConfig[mAnimationLastBase], sizeof(mAnimateConfig[base]));
+    const bool mixing = base != mAnimationLastBase && times[mAnimationLastBase] != times[base] && memcmp(&mAnimationVectors[base].cfgL, &mAnimationVectors[mAnimationLastBase].cfgL, sizeof(mCfgL));
     if ((mixing ? base : -1) != mAnimationMixBase) { // Blended configs changed: cached (Vulkan) command buffers must be re-recorded, otherwise they are kept while mixing
       mAnimationMixBase = mixing ? base : -1;
       mUpdateDrawCommands = true;
     }
     if (mixing) {
-      mixSlaveImage = 1.f - (time - mAnimateVectors[0][mAnimationLastBase]) / (mAnimateVectors[0][base] - mAnimateVectors[0][mAnimationLastBase]);
+      mixSlaveImage = 1.f - (time - times[mAnimationLastBase]) / (times[base] - times[mAnimationLastBase]);
       if (mixSlaveImage > 0) {
-        mCfgL = mAnimateConfig[mAnimationLastBase];
+        mCfgL = mAnimationVectors[mAnimationLastBase].cfgL;
         updateConfig();
         DrawGLScene_internal(suspended, time, true);
       }
     }
 
-    if (memcmp(&mAnimateConfig[base], &mCfgL, sizeof(mCfgL))) {
-      mCfgL = mAnimateConfig[base];
+    if (memcmp(&mAnimationVectors[base].cfgL, &mCfgL, sizeof(mCfgL))) {
+      mCfgL = mAnimationVectors[base].cfgL;
       updateConfig();
+      mUpdateDrawCommands |= !mixing; // mOldCfg is taken after drawing, so checkAndApplyConfigChanges does not see this change: cached (Vulkan) command buffers would keep the previous settings; while mixing, a change of mAnimationMixBase re-records them
     }
   }
 
-  if (mCfgL.animationMode != 6) {
-    if (mCfgL.animationMode & 1) // Rotation from euler angles, same order as setCamera (inverse of calcXYZ)
+  animationViewMatrix(vals, mCfgL.animationMode, nextViewMatrix);
+  return 1;
+}
+
+void GPUDisplay::animationViewMatrix(float (&vals)[8], int32_t mode, hmm_mat4& nextViewMatrix) const
+{
+  if (mode != 6) {
+    if (mode & 1) // Rotation from euler angles, same order as setCamera (inverse of calcXYZ)
     {
       nextViewMatrix = nextViewMatrix * HMM_Rotate(-vals[6] * 180.f / CAMath::Pi(), {{0, 0, 1}}) * HMM_Rotate(-vals[4] * 180.f / CAMath::Pi(), {{1, 0, 0}}) * HMM_Rotate(vals[5] * 180.f / CAMath::Pi(), {{0, 1, 0}});
     } else { // Rotation from quaternion
@@ -241,13 +337,13 @@ int32_t GPUDisplay::animateCamera(bool suspended, float& animateTime, float& mix
       nextViewMatrix = nextViewMatrix * MY_HMM_FROM(mat);
     }
   }
-  if (mCfgL.animationMode & 4) // Compute cartesian translation from sperical coordinates (euler angles)
+  if (mode & 4) // Compute cartesian translation from sperical coordinates (euler angles)
   {
     const float r = vals[3], phi = vals[1], theta = vals[2];
     vals[2] = r * cosf(phi) * cosf(theta);
     vals[0] = r * sinf(phi) * cosf(theta);
     vals[1] = r * sinf(theta);
-  } else if (mCfgL.animationMode & 2) { // Scale cartesion translation to interpolated radius
+  } else if (mode & 2) { // Scale cartesion translation to interpolated radius
     float r = sqrtf(vals[0] * vals[0] + vals[1] * vals[1] + vals[2] * vals[2]);
     if (fabsf(r) < 0.0001f) {
       r = 1;
@@ -257,10 +353,9 @@ int32_t GPUDisplay::animateCamera(bool suspended, float& animateTime, float& mix
       vals[i] *= r;
     }
   }
-  if (mCfgL.animationMode == 6) {
+  if (mode == 6) {
     nextViewMatrix = lookAtMatrix({vals[0], vals[1], vals[2]}, {0.f, 0.f, 0.f});
   } else {
     nextViewMatrix = nextViewMatrix * HMM_Translate({{-vals[0], -vals[1], -vals[2]}});
   }
-  return 1;
 }

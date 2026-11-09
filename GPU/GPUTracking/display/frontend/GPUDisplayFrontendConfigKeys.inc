@@ -241,9 +241,9 @@ void GPUDisplay::buildConfigKeys()
 
   mFrontend->add_key_binding(
     KEY_ACTION('y', "START_ANIMATION", runAnimation();),
-    KEY_ACTION('Y', "ADD_ANIMATION_POINT", setAnimationPoint(); SetInfo("Added Animation point (%d points, %6.2f seconds)", (int32_t)mAnimateVectors[0].size(), mAnimateVectors[0].back());), //
-    KEY_ACTION('\'', "REMOVE_ANIMATION_POINT", removeAnimationPoint(); SetInfo("Removed Animation point", 1);),                                                                               //
-    KEY_ACTION('X', "RESET_ANIMATION", resetAnimation(); SetInfo("Reset Animation points", 1);),                                                                                              //
+    KEY_ACTION('Y', "ADD_ANIMATION_POINT", setAnimationPoint(); SetInfo("Added Animation point (%d points, %6.2f seconds)", (int32_t)mAnimationVectors.size(), mCfgC.animationPoints.values.back());), //
+    KEY_ACTION('\'', "REMOVE_ANIMATION_POINT", removeAnimationPoint(); SetInfo("Removed Animation point", 1);),                                                                                        //
+    KEY_ACTION('X', "RESET_ANIMATION", resetAnimation(); SetInfo("Reset Animation points", 1);),                                                                                                       //
     KEY_LAMBDA('M', "ANIMATION_MODE", mCfgL, animationMode, {
       val++;
       if (val == 7) {

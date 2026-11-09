@@ -20,13 +20,16 @@
 #define GUI_TEXTBOX guiType(GPUDisplayGUIChannel::ElementType::TEXTBOX)
 #define GUI_TEXTEDIT(lines) guiType(GPUDisplayGUIChannel::ElementType::TEXTEDIT, {}, {}, lines)                   // Multi-line text edit, initially that many lines, resizeable with the mouse, applied when it loses the focus
 #define GUI_SLIDER guiType(GPUDisplayGUIChannel::ElementType::SLIDER)                                             // Range from the min / max of the option
+#define GUI_SLIDER_STEP(step) guiType(GPUDisplayGUIChannel::ElementType::SLIDER, {}, {}, 0, 0, step)              // Range from the min / max of the option, positions multiples of step from min
 #define GUI_SLIDER_VALUES(...) guiType(GPUDisplayGUIChannel::ElementType::SLIDER, guiSliderValues({__VA_ARGS__})) // Slider with only these values
 #define GUI_RADIO_BUTTONS(...) guiType(GPUDisplayGUIChannel::ElementType::RADIO_BUTTONS, {__VA_ARGS__})           // Choices {"name", value}, ...
 #define GUI_DROPDOWN(...) guiType(GPUDisplayGUIChannel::ElementType::DROPDOWN, {__VA_ARGS__})
-#define GUI_DROPDOWN_NAMES(names) guiType(GPUDisplayGUIChannel::ElementType::DROPDOWN, guiNamedChoices(names)) // Choices with these names, the value is the index
-#define GUI_SLIDER_DYNAMIC(...) guiType(GPUDisplayGUIChannel::ElementType::SLIDER, {}, __VA_ARGS__)            // Range from a lambda returning guiRange(min, max), called by the GUI after mUpdateGUIOptions while the display waits
-#define GUI_DROPDOWN_DYNAMIC(...) guiType(GPUDisplayGUIChannel::ElementType::DROPDOWN, {}, __VA_ARGS__)        // Choices from a lambda returning GPUDisplayGUIChannel::Options{.choices = ...}, as GUI_SLIDER_DYNAMIC
-#define GUI_BUTTON guiType(GPUDisplayGUIChannel::ElementType::BUTTON)                                          // Body of GUI_LAMBDA runs when the button is clicked
+#define GUI_DROPDOWN_NAMES(names) guiType(GPUDisplayGUIChannel::ElementType::DROPDOWN, guiNamedChoices(names))             // Choices with these names, the value is the index
+#define GUI_SLIDER_DYNAMIC(...) guiType(GPUDisplayGUIChannel::ElementType::SLIDER, {}, __VA_ARGS__)                        // Range from a lambda returning guiRange(min, max), called by the GUI after mUpdateGUIOptions while the display waits
+#define GUI_SLIDER_DYNAMIC_STEP(step, ...) guiType(GPUDisplayGUIChannel::ElementType::SLIDER, {}, __VA_ARGS__, 0, 0, step) // As GUI_SLIDER_DYNAMIC, positions multiples of step from min
+#define GUI_DROPDOWN_DYNAMIC(...) guiType(GPUDisplayGUIChannel::ElementType::DROPDOWN, {}, __VA_ARGS__)                    // Choices from a lambda returning GPUDisplayGUIChannel::Options{.choices = ...}, as GUI_SLIDER_DYNAMIC
+#define GUI_MULTI_SLIDER(step) guiType(GPUDisplayGUIChannel::ElementType::MULTI_SLIDER, {}, {}, 0, 0, step)                // Several handles for a GPUDisplayMultiSliderValue: positions multiples of step, at least step apart, range 0 to its max; sent when a handle is released or clicked (selection)
+#define GUI_BUTTON guiType(GPUDisplayGUIChannel::ElementType::BUTTON)                                                      // Body of GUI_LAMBDA runs when the button is clicked
 // GUI element for an option, type one of the GUI_* above. The optional body sets the value from the GUI: val is a reference to obj.value, guiVal the GPUDisplayGUIValue from the GUI (int64_t, double, or std::string). Without body, guiVal is assigned to val.
 #define GUI_LAMBDA(name, obj, value, type, ...) guiElement(std::string(name), mFrontend->mConfiguration->getRTTIIndex(*this, &std::remove_cvref_t<decltype(obj)>::value), type, [this](const GPUDisplayGUIValue& guiVal) { [[maybe_unused]] auto& val = obj.value; __VA_OPT__(if constexpr (true) { __VA_ARGS__ } else) guiAssign(val, guiVal); }, [](const GPUDisplayGUIChannel::Settings& cfg) { return toGUIValue(cfg.obj.value); })
 
@@ -170,12 +173,15 @@ void GPUDisplay::buildConfigQtGUI()
     GUI_LAMBDA("Filename", mCfgC, mscreenShotName, GUI_TEXTBOX),
     guiVertical{true},
     GUI_LAMBDA("Scale Factor", mCfgR, screenshotScaleFactor, GUI_SLIDER),
-    GUI_LAMBDA("Animation Delay", mCfgC, animationDelay, GUI_SLIDER_DYNAMIC([]() { return guiRange(0.05f, 20.f); })),
+    GUI_LAMBDA("Animation Delay", mCfgC, animationDelay, GUI_SLIDER_DYNAMIC_STEP(0.05, []() { return guiRange(0.05f, 20.f); })),
     guiVertical{false},
-    GUI_LAMBDA("Add Point", mCfgC, dummy, GUI_BUTTON, setAnimationPoint(); SetInfo("Added Animation point (%d points, %6.2f seconds)", (int32_t)mAnimateVectors[0].size(), mAnimateVectors[0].back());),
+    GUI_LAMBDA("Add Point", mCfgC, dummy, GUI_BUTTON, setAnimationPoint(); SetInfo("Added Animation point (%d points, %6.2f seconds)", (int32_t)mAnimationVectors.size(), mCfgC.animationPoints.values.back());),
     GUI_LAMBDA("Remove Point", mCfgC, dummy, GUI_BUTTON, removeAnimationPoint(); SetInfo("Removed Animation point", 1);),
     GUI_LAMBDA("Reset Animation", mCfgC, dummy, GUI_BUTTON, resetAnimation(); SetInfo("Reset Animation points", 1);),
-    GUI_LAMBDA("Animation Mode", mCfgL, animationMode, GUI_DROPDOWN_NAMES(ANIMATION_MODE_NAMES_SHORT), guiAssign(val, guiVal); if (!mCfgC.guiPrintInfo) { SetInfo("Animation mode set to %s", ANIMATION_MODE_NAMES_LONG[val].c_str()); }), "Screenshots / Animation", true);
+    GUI_LAMBDA("Animation Mode", mCfgL, animationMode, GUI_DROPDOWN_NAMES(ANIMATION_MODE_NAMES_SHORT), guiAssign(val, guiVal); if (!mCfgC.guiPrintInfo) { SetInfo("Animation mode set to %s", ANIMATION_MODE_NAMES_LONG[val].c_str()); }), // clang-format off
+    guiVertical{true},
+    GUI_LAMBDA("Points", mCfgC, animationPoints, GUI_MULTI_SLIDER(0.05), setAnimationPointsFromGUI(std::get<GPUDisplayMultiSliderValue>(guiVal));), // clang-format on
+    "Screenshots / Animation", true);
 
   mFrontend->add_gui_binding(
     GUI_LAMBDA("Next Event", mCfgC, displayControl, GUI_BUTTON, val.store(1);),
