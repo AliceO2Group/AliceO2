@@ -32,8 +32,8 @@ struct consoleArgumentError : public std::runtime_error { // Wrong arguments for
   {
     static constexpr std::pair<char, const char*> names[] = {{'s', "string"}, {'i', "int"}, {'d', "double"}, {'a', "any"}, {'+', "[optional]"}};
     for (char t : types) {
-      for (const auto& [c, name] : names) {
-        usage += c == t ? std::string(usage.size() > 1 ? " " : "") + name : "";
+      if (const auto* n = std::find_if(std::begin(names), std::end(names), [t](const auto& entry) { return entry.first == t; }); n != std::end(names)) {
+        usage += (usage.size() > 1 ? " " : "") + std::string(n->second);
       }
     }
     usage += "]";
@@ -154,11 +154,13 @@ void GPUDisplayConsole::consoleLimitHistory(uint32_t historySize)
   const size_t removed = mConsoleHistory.size() - size;
   std::move(mConsoleHistory.begin() + 1 + removed, mConsoleHistory.end(), mConsoleHistory.begin() + 1); // Keep the title (entry 0)
   mConsoleHistory.resize(size);
-  mConsoleTextCurrent = mConsoleTextCurrent > removed ? mConsoleTextCurrent - removed : 0;
+  mConsoleTextCurrent = mConsoleTextCurrent > removed ? mConsoleTextCurrent - removed : 0; // Same entry, the end if it was removed
+  mConsoleTextPos = std::min<uint32_t>(mConsoleTextPos, shownText().size());
+  mScroll = mScroll + 1 >= size ? 0 : mScroll; // Counted from the end: same lines, the end if the lowest shown one was removed
 }
 
 // Tokens separated by spaces: text in single / double quotes and characters after a backslash are plain text (the token is a string),
-// otherwise a token is int64_t for [+-]digits, double for [+-]digits with one '.', a string otherwise. Throws std::runtime_error for an unterminated quote / trailing backslash.
+// otherwise a token is int64_t for [+-]digits, double for other decimal numbers (also with exponent), a string otherwise. Throws std::runtime_error for an unterminated quote / trailing backslash.
 
 std::tuple<const GPUDisplayConsole::GPUDisplayConsoleCommand&, std::vector<GPUDisplayConsole::consoleArg>> GPUDisplayConsole::parseConsoleCommand(std::string_view cmd) const
 {
@@ -217,11 +219,14 @@ std::tuple<const GPUDisplayConsole::GPUDisplayConsoleCommand&, std::vector<GPUDi
   auto autoType = [](const std::string& text, bool plain) -> consoleArg { // int64_t for [+-]digits, double for other decimal numbers (also with exponent, as saveSettings writes them), string otherwise or if plain text
     const char *begin = text.c_str() + (text[0] == '+' || text[0] == '-'), *end = text.c_str() + text.size();
     const bool number = !plain && begin < end && ((*begin >= '0' && *begin <= '9') || *begin == '.') && std::all_of(begin, end, [](char c) { return (c >= '0' && c <= '9') || c == '.' || c == 'e' || c == 'E' || c == '+' || c == '-'; });
+    if (!number) {
+      return text;
+    }
     int64_t intValue = 0;
     double doubleValue = 0.;
-    if (const auto rInt = std::from_chars(begin, end, intValue); number && rInt.ec == std::errc() && rInt.ptr == end) {
+    if (const auto rInt = std::from_chars(begin, end, intValue); rInt.ec == std::errc() && rInt.ptr == end) {
       return text[0] == '-' ? -intValue : intValue;
-    } else if (const auto rDouble = std::from_chars(begin, end, doubleValue); number && rDouble.ec == std::errc() && rDouble.ptr == end) {
+    } else if (const auto rDouble = std::from_chars(begin, end, doubleValue); rDouble.ec == std::errc() && rDouble.ptr == end) {
       return text[0] == '-' ? -doubleValue : doubleValue; // Also integers out of the int64_t range
     }
     return text;
@@ -332,16 +337,15 @@ void GPUDisplayConsole::runScriptFile(const std::string& filename)
   runScript(content.str());
 }
 
-void GPUDisplayConsole::printCommands(const std::function<void(const std::string&)>& print)
+void GPUDisplayConsole::printCommands(const std::function<void(const std::string&)>& print) const
 {
-  std::vector<std::string> names;
-  for (const auto& [name, command] : mConsoleCommands) {
-    names.emplace_back(name);
+  std::vector<const std::pair<const std::string, GPUDisplayConsoleCommand>*> commands;
+  for (const auto& entry : mConsoleCommands) {
+    commands.emplace_back(&entry);
   }
-  std::sort(names.begin(), names.end());
+  std::sort(commands.begin(), commands.end(), [](const auto* a, const auto* b) { return a->first < b->first; });
   print("Console commands (argument types: s string, i integer, d number, a any, + further arguments):");
-  for (const auto& name : names) {
-    const auto& command = mConsoleCommands[name];
-    print("  " + name + (command.args.empty() ? "" : " ") + command.args + ": " + command.description);
+  for (const auto* c : commands) {
+    print("  " + c->first + (c->second.args.empty() ? "" : " ") + c->second.args + ": " + c->second.description);
   }
 }

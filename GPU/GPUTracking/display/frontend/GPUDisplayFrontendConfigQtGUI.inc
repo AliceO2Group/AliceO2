@@ -68,14 +68,14 @@ void GPUDisplay::buildConfigQtGUI()
     GUI_LAMBDA("FOV", mCfgR, fov, GUI_SLIDER));
 
   mFrontend->add_gui_binding(
-    GUI_LAMBDA("MSAA", mCfgR, drawQualityMSAA, GUI_SLIDER_VALUES(0, 2, 4, 8)),
+    GUI_LAMBDA("MSAA", mCfgR, drawQualityMSAA, GUI_SLIDER_VALUES(0, 2, 4, 8, 16)),
     GUI_LAMBDA("FSAA", mCfgR, drawQualityDownsampleFSAA, GUI_SLIDER_VALUES(0, 2, 3, 4)),
     "Anti-Aliasing");
 
   mFrontend->add_gui_binding(
     GUI_LAMBDA("Smooth points", mCfgL, smoothPoints, GUI_CHECKBOX),
     GUI_LAMBDA("Smooth lines", mCfgL, smoothLines, GUI_CHECKBOX),
-    GUI_LAMBDA("Depth buffer", mCfgL, depthBuffer, GUI_CHECKBOX, guiAssign(val, guiVal); mBackend->setDepthBuffer();),
+    GUI_LAMBDA("Depth buffer", mCfgL, depthBuffer, GUI_CHECKBOX),
     GUI_LAMBDA("VSync", mCfgR, drawQualityVSync, GUI_CHECKBOX),
     GUI_LAMBDA("FPS limit", mCfgR, fpsLimit, GUI_DROPDOWN({"None", 0}, {"Refresh rate", 1}, {"fpsRate", 2})),
     GUI_LAMBDA("fpsRate", mCfgR, fpsRate, GUI_TEXTBOX),

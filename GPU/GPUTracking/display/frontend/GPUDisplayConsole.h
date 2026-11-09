@@ -51,7 +51,7 @@ class GPUDisplayConsole : public GPUDisplayFrontendKeyVars // Text console of th
   void waitSeconds(double t) { mWaitUntil = std::chrono::steady_clock::now() + std::chrono::duration_cast<std::chrono::steady_clock::duration>(std::chrono::duration<double>(t)); }
   void waitFor(std::function<bool()> condition) { mWaitCondition = std::move(condition); }                              // The following script lines run once the condition is true
   void startBenchmark(uint32_t n);                                                                                      // Measures the next n frames, the following script lines run afterwards
-  void printCommands(const std::function<void(const std::string&)>& print);                                             // List of the commands with argument types and description, one line per call
+  void printCommands(const std::function<void(const std::string&)>& print) const;                                       // List of the commands with argument types and description, one line per call
   std::tuple<const GPUDisplayConsoleCommand&, std::vector<consoleArg>> parseConsoleCommand(std::string_view cmd) const; // Command and its arguments with the types it requests, throws std::runtime_error for syntax errors, unknown commands, wrong arguments
   void consolePrint(const char* format, ...);                                                                           // printf-like output to the console, indented by 2 spaces in mConsoleHistory
   void consoleInfo(const char* format, const char* text);                                                               // Output of SetInfo, updates the last line instead for the same message within 2 s

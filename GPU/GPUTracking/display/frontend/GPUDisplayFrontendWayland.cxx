@@ -552,8 +552,11 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
     throw std::runtime_error("Wayland initialization failed");
   }
   if (initialFullScreen || initialMaximized) { // Only after the windowed initial configure, so that the compositor has a normal (un-maximized) placement, then wait for the new configure before creating the swapchain
-    setWindowState(initialFullScreen, initialMaximized);
-    applyInitialWindowState();
+    if (initialFullScreen) {                   // Directly: the settings were reset by the configure, the next configure syncs them to the actual state
+      requestFullScreen(true);
+    } else {
+      requestMaximized(true);
+    }
     if (wl_display_roundtrip(mWayland) == -1) {
       reportError("initial window state roundtrip");
       throw std::runtime_error("Wayland initialization failed");

@@ -367,7 +367,7 @@ int32_t GPUDisplayFrontendWindows::FrontendMain()
         DispatchMessage(&msg);  // Dispatch The Message
       }
     } else {
-      if (active && mKeys[VK_ESCAPE]) {
+      if (getDisplayControl() == 2) { // Quit key / StopDisplay
         done = TRUE;
       } else {
         HandleUpdatesAndDrawGLScene(!active); // Only draw if the program is active

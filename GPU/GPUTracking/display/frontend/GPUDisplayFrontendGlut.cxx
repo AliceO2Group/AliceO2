@@ -18,6 +18,7 @@
 #include "GPUDisplayGUIWrapper.h"
 #include "GPULogging.h"
 #include <cstdio>
+#include <chrono>
 #include <cstring>
 #include <GL/freeglut.h>
 #include <GL/freeglut_ucall.h>
@@ -48,7 +49,8 @@ void GPUDisplayFrontendGlut::glutLoopFunc()
 {
   if (mRedisplayPending) { // Last redisplay not served (window not visible): handle updates without drawing
     HandleUpdatesAndDrawGLScene(true);
-    waitForFPSLimit();
+    std::unique_lock lock(mConfigUpdateMutex); // No swap waiting for VSync: block instead of spinning, woken by GUI updates
+    mConfigUpdateCV.wait_for(lock, std::chrono::milliseconds(100), [this] { return mConfigUpdatePending; });
   }
   mRedisplayPending = true;
   glutPostRedisplay(); // Drawing only in displayFunc, so that expose events do not draw twice

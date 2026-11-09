@@ -93,7 +93,7 @@ AddOption(camYUp, bool, false, "", 0, "Orient the camera such that the y-axis is
 AddOption(cameraMode, int32_t, 0, "", 0, "Camera mode", min(0), max(3))
 AddOption(fullScreen, bool, false, "", 0, "Full Screen")
 AddOption(maximized, bool, true, "", 0, "Maximized window")
-AddOption(drawQualityMSAA, int32_t, 0, "", 0, "MultiSample Anti Aliasing", min(0), max(8))
+AddOption(drawQualityMSAA, int32_t, 0, "", 0, "MultiSample Anti Aliasing", min(0), max(16))
 AddOption(drawQualityDownsampleFSAA, int32_t, 0, "", 0, "Downsampling Anti Aliasing", min(0), max(4))
 AddOption(drawQualityVSync, bool, true, "", 0, "Enable Vertical Sync")
 AddOption(fpsLimit, int32_t, 1, "", 0, "FPS limit: 0 = none (maximum rate), 1 = display refresh rate (no limit without VSync), 2 = fpsRate")
