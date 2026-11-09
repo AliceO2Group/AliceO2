@@ -183,7 +183,7 @@ struct GPUDisplayFrontend::GPUDisplayConfiguration {
   }
   std::string bindingName(int32_t binding) const // Name of the action or key down mapping, empty if unbound
   {
-    return isKeyMap(binding) ? keyMapNames[binding - KEY_MAP_INDEX] : binding >= 0 ? keyActions[binding].actionName : "";
+    return isKeyMap(binding) ? keyMapNames[binding - KEY_MAP_INDEX] : (binding >= 0 ? keyActions[binding].actionName : "");
   }
   uint32_t keyRTTIIndex(uint32_t key) const // Option changed by the action bound to the key, INVALID_INDEX if none
   {
@@ -555,7 +555,7 @@ void GPUDisplayFrontend::listKeys(const std::function<void(const std::string&)>&
   for (const auto& [key, binding] : rows) {
     const std::string name = rtti.bindingName(binding);
     const uint32_t index = GPUDisplayConfiguration::isKeyMap(binding) ? GPUDisplayConfiguration::INVALID_INDEX : rtti.keyActions[binding].rttiIndex;
-    const std::string option = GPUDisplayConfiguration::isKeyMap(binding) ? "(key down map)" : index == GPUDisplayConfiguration::INVALID_INDEX ? "(no config option)" : rtti.rttiEntries[index].configStruct + " " + rtti.rttiEntries[index].name;
+    const std::string option = GPUDisplayConfiguration::isKeyMap(binding) ? "(key down map)" : (index == GPUDisplayConfiguration::INVALID_INDEX ? "(no config option)" : rtti.rttiEntries[index].configStruct + " " + rtti.rttiEntries[index].name);
     print("  " + key + std::string(keyWidth - key.size() + 1, ' ') + name + std::string(nameWidth - name.size() + 1, ' ') + option);
   }
   print("");
@@ -746,7 +746,7 @@ std::string GPUDisplayFrontend::GPUDisplayConfiguration::setValue(GPUDisplay& di
     return "unsupported type " + e.type;
   }
   if (e.type == "float") { // Floating point: also from an integer
-    const double v = std::holds_alternative<int64_t>(value) ? (double)std::get<int64_t>(value) : std::holds_alternative<double>(value) ? std::get<double>(value) : std::nan("");
+    const double v = std::holds_alternative<int64_t>(value) ? (double)std::get<int64_t>(value) : (std::holds_alternative<double>(value) ? std::get<double>(value) : std::nan(""));
     if (std::isnan(v)) {
       return "number expected";
     } else if ((e.min.size() && v < std::stod(e.min)) || (e.max.size() && v > std::stod(e.max))) {

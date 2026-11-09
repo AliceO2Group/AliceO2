@@ -518,8 +518,8 @@ int32_t GPUQA::InitQACreateHistograms()
   // Create Cluster Histograms
   if (mQATasks & taskClusterAttach) {
     for (int32_t i = 0; i < N_CLS_TYPE * N_CLS_HIST - 1; i++) {
-      int32_t ioffset = i >= (2 * N_CLS_HIST - 1) ? (2 * N_CLS_HIST - 1) : i >= N_CLS_HIST ? N_CLS_HIST : 0;
-      int32_t itype = i >= (2 * N_CLS_HIST - 1) ? 2 : i >= N_CLS_HIST ? 1 : 0;
+      int32_t ioffset = i >= (2 * N_CLS_HIST - 1) ? (2 * N_CLS_HIST - 1) : (i >= N_CLS_HIST ? N_CLS_HIST : 0);
+      int32_t itype = i >= (2 * N_CLS_HIST - 1) ? 2 : (i >= N_CLS_HIST ? 1 : 0);
       snprintf(name, 2048, "clusters%s%s", CLUSTER_NAMES_SHORT[i - ioffset], CLUSTER_TYPES[itype]);
       std::unique_ptr<double[]> binsPt{CreateLogAxis(AXIS_BINS[4], PT_MIN_CLUST, PT_MAX)};
       createHist(mClusters[i], name, name, AXIS_BINS[4], binsPt.get());
@@ -1330,7 +1330,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
                 continue;
               }
 
-              int32_t val = (j == 0) ? (mRecTracks[iCol][i] ? 1 : 0) : (j == 1) ? (mRecTracks[iCol][i] ? mRecTracks[iCol][i] - 1 : 0) : (j == 2) ? mFakeTracks[iCol][i] : 1;
+              int32_t val = (j == 0) ? (mRecTracks[iCol][i] ? 1 : 0) : ((j == 1) ? (mRecTracks[iCol][i] ? mRecTracks[iCol][i] - 1 : 0) : ((j == 2) ? mFakeTracks[iCol][i] : 1));
               if (val == 0) {
                 continue;
               }
@@ -1346,7 +1346,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
                   continue;
                 }
 
-                float pos = l == 0 ? localY : l == 1 ? info.z : l == 2 ? mcphi : l == 3 ? mceta : mcpt;
+                float pos = l == 0 ? localY : (l == 1 ? info.z : (l == 2 ? mcphi : (l == 3 ? mceta : mcpt)));
 
                 mEff[j][k][!info.prim][l]->Fill(pos, val);
               }
@@ -2512,7 +2512,7 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
                   proj->GetXaxis()->SetRangeUser(std::max(proj->GetXaxis()->GetXmin(), proj->GetMean() - 3. * proj->GetRMS()), std::min(proj->GetXaxis()->GetXmax(), proj->GetMean() + 3. * proj->GetRMS()));
                   bool forceLogLike = proj->GetMaximum() < 20;
                   for (int32_t k = forceLogLike ? 2 : 0; k < 3; k++) {
-                    proj->Fit("gaus", forceLogLike || k == 2 ? "sQl" : k ? "sQww" : "sQ");
+                    proj->Fit("gaus", forceLogLike || k == 2 ? "sQl" : (k ? "sQww" : "sQ"));
                     TF1* fitFunc = proj->GetFunction("gaus");
 
                     if (k && !forceLogLike) {
@@ -2528,7 +2528,7 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
                     dst[1]->SetBinError(bin, fitFunc->GetParError(1));
 
                     const bool fail1 = sigma <= 0.f;
-                    const bool fail2 = fabs(proj->GetMean() - dst[1]->GetBinContent(bin)) > std::min<float>(p ? PULL_AXIS : mConfig.nativeFitResolutions ? RES_AXES_NATIVE[j] : RES_AXES[j], 3.f * proj->GetRMS());
+                    const bool fail2 = fabs(proj->GetMean() - dst[1]->GetBinContent(bin)) > std::min<float>(p ? PULL_AXIS : (mConfig.nativeFitResolutions ? RES_AXES_NATIVE[j] : RES_AXES[j]), 3.f * proj->GetRMS());
                     const bool fail3 = dst[0]->GetBinContent(bin) > 3.f * proj->GetRMS() || dst[0]->GetBinError(bin) > 1 || dst[1]->GetBinError(bin) > 1;
                     const bool fail4 = fitFunc->GetParameter(0) < proj->GetMaximum() / 5.;
                     const bool fail = fail1 || fail2 || fail3 || fail4;
@@ -2633,7 +2633,7 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
               e->SetLineWidth(1);
               e->SetLineStyle(CONFIG_DASHED_MARKERS ? k + 1 : 1);
               SetAxisSize(e);
-              e->GetYaxis()->SetTitle(p ? AXIS_TITLES_PULL[j] : mConfig.nativeFitResolutions ? AXIS_TITLES_NATIVE[j] : AXIS_TITLES[j]);
+              e->GetYaxis()->SetTitle(p ? AXIS_TITLES_PULL[j] : (mConfig.nativeFitResolutions ? AXIS_TITLES_NATIVE[j] : AXIS_TITLES[j]));
               e->GetXaxis()->SetTitle(XAXIS_TITLES[i]);
               if (LOG_PT_MIN > 0 && ii == 5) {
                 e->GetXaxis()->SetRangeUser(LOG_PT_MIN, PT_MAX);
@@ -2841,8 +2841,8 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
         mPClust[i]->cd();
         mPClust[i]->SetLogx();
       }
-      int32_t begin = i == 2 ? (2 * N_CLS_HIST - 1) : i == 1 ? N_CLS_HIST : 0;
-      int32_t end = i == 2 ? (3 * N_CLS_HIST - 1) : i == 1 ? (2 * N_CLS_HIST - 1) : N_CLS_HIST;
+      int32_t begin = i == 2 ? (2 * N_CLS_HIST - 1) : (i == 1 ? N_CLS_HIST : 0);
+      int32_t end = i == 2 ? (3 * N_CLS_HIST - 1) : (i == 1 ? (2 * N_CLS_HIST - 1) : N_CLS_HIST);
       int32_t numColor = 0;
       for (int32_t k = 0; k < ConfigNumInputs; k++) {
         for (int32_t j = end - 1; j >= begin; j--) {
@@ -2852,7 +2852,7 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
           }
 
           e->SetTitle(mConfig.plotsNoTitle ? "" : CLUSTER_TITLES[i]);
-          e->GetYaxis()->SetTitle(i == 0 ? "Number of TPC clusters" : i == 1 ? "Fraction of TPC clusters" : CLUST_HIST_INT_SUM ? "Total TPC clusters (integrated)" : "Fraction of TPC clusters (integrated)");
+          e->GetYaxis()->SetTitle(i == 0 ? "Number of TPC clusters" : (i == 1 ? "Fraction of TPC clusters" : (CLUST_HIST_INT_SUM ? "Total TPC clusters (integrated)" : "Fraction of TPC clusters (integrated)")));
           e->GetXaxis()->SetTitle("#it{p}_{Tmc} (GeV/#it{c})");
           e->GetXaxis()->SetTitleOffset(1.1);
           e->GetXaxis()->SetLabelOffset(-0.005);
@@ -2907,9 +2907,9 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
       }
       doPerfFigure(i == 0 ? 0.37 : (i == 1 ? 0.34 : 0.6), 0.295, 0.030);
       mCClust[i]->cd();
-      mCClust[i]->Print(Form(i == 2 ? "%s/clusters_integral.pdf" : i == 1 ? "%s/clusters_relative.pdf" : "%s/clusters.pdf", mConfig.plotsDir.c_str()));
+      mCClust[i]->Print(Form(i == 2 ? "%s/clusters_integral.pdf" : (i == 1 ? "%s/clusters_relative.pdf" : "%s/clusters.pdf"), mConfig.plotsDir.c_str()));
       if (mConfig.writeFileExt != "") {
-        mCClust[i]->Print(Form(i == 2 ? "%s/clusters_integral.%s" : i == 1 ? "%s/clusters_relative.%s" : "%s/clusters.%s", mConfig.plotsDir.c_str(), mConfig.writeFileExt.c_str()));
+        mCClust[i]->Print(Form(i == 2 ? "%s/clusters_integral.%s" : (i == 1 ? "%s/clusters_relative.%s" : "%s/clusters.%s"), mConfig.plotsDir.c_str(), mConfig.writeFileExt.c_str()));
       }
     }
 

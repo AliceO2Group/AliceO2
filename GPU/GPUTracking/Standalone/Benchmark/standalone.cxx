@@ -671,7 +671,7 @@ int32_t RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingU
     if (configStandalone.testSyncAsync) {
       printf("Running synchronous phase\n");
     }
-    const GPUTrackingInOutPointers& ioPtrs = ioPtrEvents[!configStandalone.preloadEvents ? 0 : configStandalone.proc.doublePipeline ? (iteration % ioPtrEvents.size()) : (iEvent - configStandalone.StartEvent)];
+    const GPUTrackingInOutPointers& ioPtrs = ioPtrEvents[!configStandalone.preloadEvents ? 0 : (configStandalone.proc.doublePipeline ? (iteration % ioPtrEvents.size()) : (iEvent - configStandalone.StartEvent))];
     chainTrackingUse->mIOPtrs = ioPtrs;
     if (iteration == (configStandalone.proc.doublePipeline ? 2 : (configStandalone.runs - 1))) {
       if (configStandalone.proc.doublePipeline && timerPipeline) {
@@ -922,7 +922,7 @@ int32_t main(int argc, char** argv)
           if (grp.grpContinuousMaxTimeBin == 0) {
             printf("Cannot override max time bin for non-continuous data!\n");
           } else {
-            grp.grpContinuousMaxTimeBin = chainTracking->mIOPtrs.tpcZS ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcZS) : chainTracking->mIOPtrs.tpcPackedDigits ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcPackedDigits) : GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.clustersNative);
+            grp.grpContinuousMaxTimeBin = chainTracking->mIOPtrs.tpcZS ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcZS) : (chainTracking->mIOPtrs.tpcPackedDigits ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcPackedDigits) : GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.clustersNative));
             printf("Max time bin set to %d\n", grp.grpContinuousMaxTimeBin);
             rec->UpdateSettings(&grp);
             if (recAsync) {

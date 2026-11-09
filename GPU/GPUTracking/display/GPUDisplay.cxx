@@ -441,8 +441,8 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(bool suspended, float animateTim
 
 void GPUDisplay::DrawGLScene_drawCommands()
 {
-#define LOOP_SECTOR for (int32_t iSector = (mCfgL.drawSector == -1 ? 0 : mCfgL.drawRelatedSectors ? (mCfgL.drawSector % (NSECTORS / 4)) : mCfgL.drawSector); iSector < NSECTORS; iSector += (mCfgL.drawSector == -1 ? 1 : mCfgL.drawRelatedSectors ? (NSECTORS / 4) : NSECTORS))
-#define LOOP_SECTOR2 for (int32_t iSector = (mCfgL.drawSector == -1 ? 0 : mCfgL.drawRelatedSectors ? (mCfgL.drawSector % (NSECTORS / 4)) : mCfgL.drawSector) % (NSECTORS / 2); iSector < NSECTORS / 2; iSector += (mCfgL.drawSector == -1 ? 1 : mCfgL.drawRelatedSectors ? (NSECTORS / 4) : NSECTORS))
+#define LOOP_SECTOR for (int32_t iSector = (mCfgL.drawSector == -1 ? 0 : (mCfgL.drawRelatedSectors ? (mCfgL.drawSector % (NSECTORS / 4)) : mCfgL.drawSector)); iSector < NSECTORS; iSector += (mCfgL.drawSector == -1 ? 1 : (mCfgL.drawRelatedSectors ? (NSECTORS / 4) : NSECTORS)))
+#define LOOP_SECTOR2 for (int32_t iSector = (mCfgL.drawSector == -1 ? 0 : (mCfgL.drawRelatedSectors ? (mCfgL.drawSector % (NSECTORS / 4)) : mCfgL.drawSector)) % (NSECTORS / 2); iSector < NSECTORS / 2; iSector += (mCfgL.drawSector == -1 ? 1 : (mCfgL.drawRelatedSectors ? (NSECTORS / 4) : NSECTORS)))
 #define LOOP_COLLISION for (int32_t iCol = (mCfgL.showCollision == -1 ? 0 : mCfgL.showCollision); iCol < mNCollissions; iCol += (mCfgL.showCollision == -1 ? 1 : mNCollissions))
 #define LOOP_COLLISION_COL(cmd)  \
   LOOP_COLLISION                 \

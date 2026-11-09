@@ -16,5 +16,4 @@
 #include "GPUReconstructionKernelMacros.h"
 
 // clang-format off
-$<JOIN:$<TARGET_PROPERTY:O2_GPU_KERNELS,O2_GPU_KERNELS>,>
-// clang-format on
+$<JOIN:$<TARGET_PROPERTY:O2_GPU_KERNELS,O2_GPU_KERNELS>,> // clang-format on

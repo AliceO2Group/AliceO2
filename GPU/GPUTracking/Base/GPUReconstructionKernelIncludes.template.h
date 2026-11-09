@@ -14,5 +14,4 @@
 
 // clang-format off
 $<JOIN:$<LIST:TRANSFORM,$<LIST:TRANSFORM,$<LIST:REMOVE_DUPLICATES,$<TARGET_PROPERTY:O2_GPU_KERNELS,O2_GPU_KERNEL_INCLUDES>>,APPEND,.h">,PREPEND,#include ">,
->
-// clang-format on
+> // clang-format on

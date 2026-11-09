@@ -331,9 +331,9 @@ int32_t GPUReconstructionCUDA::InitDevice_Runtime()
       }
     }
 
-#ifndef __HIPCC__ // CUDA
+#ifndef __HIPCC__                                                      // CUDA
     dummyInitKernel<<<mMultiprocessorCount, 256>>>(mDeviceMemoryBase); // TODO: Can't we just use the CUDA version and hipify will take care of the rest?
-#else // HIP
+#else                                                                  // HIP
     hipLaunchKernelGGL(HIP_KERNEL_NAME(dummyInitKernel), dim3(mMultiprocessorCount), dim3(256), 0, 0, mDeviceMemoryBase);
 #endif
 

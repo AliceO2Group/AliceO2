@@ -23,7 +23,7 @@ GPUdii() void GPUTPCGMMergerTrackFit::Thread<0>(int32_t nBlocks, int32_t nThread
 {
   const int32_t iEnd = mode == -1 ? merger.Memory()->nRetryRefit : merger.NMergedTracks();
   GPUCA_TBB_KERNEL_LOOP(merger.GetRec(), int32_t, ii, iEnd, {
-    const int32_t i = mode == -1 ? merger.RetryRefitIds()[ii] : mode ? merger.TrackOrderProcess()[ii] : ii;
+    const int32_t i = mode == -1 ? merger.RetryRefitIds()[ii] : (mode ? merger.TrackOrderProcess()[ii] : ii);
     GPUTPCGMTrackParam::RefitTrack(merger.MergedTracks()[i], i, &merger, mode == -1);
   });
 }

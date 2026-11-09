@@ -236,12 +236,12 @@ class GPUChain
   inline GPUChain* GetNextChainInQueue() { return mRec->GetNextChainInQueue(); }
 
   template <class T, class S, typename... Args>
-  bool DoDebugAndDump(RecoStep step, uint32_t mask, T& processor, S T::*func, Args&&... args)
+  bool DoDebugAndDump(RecoStep step, uint32_t mask, T& processor, S T::* func, Args&&... args)
   {
     return DoDebugAndDump(step, mask, true, processor, func, args...);
   }
   template <class T, class S, typename... Args>
-  bool DoDebugAndDump(RecoStep step, uint32_t mask, bool transfer, T& processor, S T::*func, Args&&... args);
+  bool DoDebugAndDump(RecoStep step, uint32_t mask, bool transfer, T& processor, S T::* func, Args&&... args);
   template <typename... Args>
   bool DoDebugDump(uint32_t mask, std::function<void(Args&...)> func, Args&... args);
   template <class S, typename... Args>
@@ -251,11 +251,11 @@ class GPUChain
   }
 
   template <class T, class S, typename... Args>
-  int32_t runRecoStep(RecoStep step, S T::*func, Args... args);
+  int32_t runRecoStep(RecoStep step, S T::* func, Args... args);
 
  private:
   template <bool Always = false, class T, class S, typename... Args>
-  void timeCpy(RecoStep step, int32_t toGPU, S T::*func, Args... args);
+  void timeCpy(RecoStep step, int32_t toGPU, S T::* func, Args... args);
 
 #define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward, x_types, ...)                                                                                                                                                                             \
   template <class S, int32_t I>                                                                                                                                                                                                                             \
@@ -269,7 +269,7 @@ class GPUChain
 };
 
 template <bool Always, class T, class S, typename... Args>
-inline void GPUChain::timeCpy(RecoStep step, int32_t toGPU, S T::*func, Args... args)
+inline void GPUChain::timeCpy(RecoStep step, int32_t toGPU, S T::* func, Args... args)
 {
   if (!Always && step != RecoStep::NoRecoStep && !(GetRecoStepsGPU() & step)) {
     return;
@@ -295,7 +295,7 @@ inline void GPUChain::timeCpy(RecoStep step, int32_t toGPU, S T::*func, Args... 
 }
 
 template <class T, class S, typename... Args>
-inline int32_t GPUChain::runRecoStep(RecoStep step, S T::*func, Args... args)
+inline int32_t GPUChain::runRecoStep(RecoStep step, S T::* func, Args... args)
 {
   if (GetRecoSteps().isSet(step)) {
     auto* timer = GetProcessingSettings().recoTaskTiming ? &mRec->getRecoStepTimer(step) : nullptr;

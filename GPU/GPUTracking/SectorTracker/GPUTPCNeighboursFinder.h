@@ -32,12 +32,12 @@ class GPUTPCNeighboursFinder : public GPUKernelTemplate
 {
  public:
   struct GPUSharedMemory {
-    int32_t mNHits;  // n hits
-    float mUpDx;     // x distance to the next row
-    float mDnDx;     // x distance to the previous row
-    float mUpTx;     // normalized x distance to the next row
-    float mDnTx;     // normalized x distance to the previous row
-    uint32_t mIRow;  // row number
+    int32_t mNHits;   // n hits
+    float mUpDx;      // x distance to the next row
+    float mDnDx;      // x distance to the previous row
+    float mUpTx;      // normalized x distance to the next row
+    float mDnTx;      // normalized x distance to the previous row
+    uint32_t mIRow;   // row number
     uint32_t mIRowUp; // next row number
     uint32_t mIRowDn; // previous row number
     static_assert(constants::NEIGHBOURS_MAX_N >= GPUCA_PAR_NEIGHBOURS_FINDER_MAX_NNEIGHUP);

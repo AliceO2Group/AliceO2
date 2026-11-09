@@ -46,19 +46,19 @@ class GPUTPCTrackletConstructor : public GPUKernelTemplate
 
    protected:
     // WARNING: This data is copied element by element in CopyTrackletTempData. Changes to members of this class must be reflected in CopyTrackletTempData!!!
-    uint32_t mISH;        // track index
-    uint32_t mFirstRow;   // first row index
-    uint32_t mLastRow;    // last row index
-    uint32_t mStartRow;   // row index of first hit in seed
-    uint32_t mEndRow;     // row index of last hit in seed
-    calink mCurrIH;       // indef of the current hit
-    int8_t mGo;           // do fit/searching flag
-    uint8_t mStage;       // reco stage
-    uint32_t mNHits;      // n track hits
+    uint32_t mISH;         // track index
+    uint32_t mFirstRow;    // first row index
+    uint32_t mLastRow;     // last row index
+    uint32_t mStartRow;    // row index of first hit in seed
+    uint32_t mEndRow;      // row index of last hit in seed
+    calink mCurrIH;        // indef of the current hit
+    int8_t mGo;            // do fit/searching flag
+    uint8_t mStage;        // reco stage
+    uint32_t mNHits;       // n track hits
     uint32_t mNHitsEndRow; // n hits at end row
     uint32_t mNMissed;     // n missed hits during search
-    float mLastY;         // Y of the last fitted cluster
-    float mLastZ;         // Z of the last fitted cluster
+    float mLastY;          // Y of the last fitted cluster
+    float mLastZ;          // Z of the last fitted cluster
   };
 
   struct GPUSharedMemory {

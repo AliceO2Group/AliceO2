@@ -98,7 +98,7 @@ class qThreadCls
     qThreadParamCls<S>& XthreadParam = *((qThreadParamCls<S>*)&this->threadParam);
 
     XthreadParam.pCls = pCls;
-    XthreadParam.pFunc = (void(S::*)(void*))pFunc;
+    XthreadParam.pFunc = (void (S::*)(void*))pFunc;
     XthreadParam.threadNum = threadNum;
     XthreadParam.pinCPU = pinCPU;
     pthread_t thr;
@@ -150,7 +150,7 @@ void* qThreadCls<S, T>::qThreadWrapperCls(T* arg)
     sched_setaffinity(0, sizeof(tmp_mask), &tmp_mask);
   }
 
-  void (S::*pFunc)(T*) = (void(S::*)(T*))arg_A->pFunc;
+  void (S::*pFunc)(T*) = (void (S::*)(T*))arg_A->pFunc;
   (arg_A->pCls->*pFunc)(arg);
 
   arg_A->threadMutex[1].Unlock();
