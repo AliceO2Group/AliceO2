@@ -66,6 +66,8 @@ struct GPUReconstructionMetalInternals {
   // collects the stream's work until something has to wait for it.
   std::array<id<MTLFence>, constants::GPU_MAX_STREAMS> streamFence;
   std::array<bool, constants::GPU_MAX_STREAMS> streamHasWork;
+  // Set while the device is torn down, when a failed command buffer is no longer fatal
+  bool exiting = false;
 
   std::vector<id<MTLFunction>> functions;
   std::vector<id<MTLComputePipelineState>> pipelines;
@@ -89,6 +91,17 @@ template <class E>
 inline void metalBeginEncoder(GPUReconstructionMetalInternals* internals, E encoder, int32_t stream)
 {
   [encoder waitForFence:internals->streamFence[stream]];
+}
+// A failed command buffer does not signal its events, and the work waiting for
+// them would wait forever: signal them from the host, so that everything
+// completes and the failure is reported when the host synchronises.
+inline void metalSignalOnError(id<MTLCommandBuffer> cb, id<MTLSharedEvent> event, uint64_t value)
+{
+  [cb addCompletedHandler:^(id<MTLCommandBuffer> c) {
+    if (c.status == MTLCommandBufferStatusError && event.signaledValue < value) {
+      event.signaledValue = value;
+    }
+  }];
 }
 template <class E>
 inline void metalEndEncoder(GPUReconstructionMetalInternals* internals, E encoder, int32_t stream)
