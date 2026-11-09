@@ -494,17 +494,14 @@ void _ParamHelper::syncCCDBandRegistry(const std::string& mainkey, TClass* cl, v
     // check current provenance
     auto key = mainkey + "." + name;
     auto proviter = provmap->find(key);
-    bool isRT = proviter != provmap->end() && proviter->second == ConfigurableParam::EParamProvenance::kRT;
-    if (isRT) {
-      return;
-    }
-    // lambda to update the provenance
-    auto updateProv = [&proviter]() {
+    if (proviter != provmap->end()) {
+      if (proviter->second == ConfigurableParam::EParamProvenance::kRT) {
+        return;
+      }
       proviter->second = ConfigurableParam::EParamProvenance::kCCDB;
-    };
+    }
 
     if (isContainer(*dm)) {
-      updateProv();
       ConfigurableParam::assignRegisteredContainer(getContainerTypeName(*dm), pointerto, pointerfrom);
       return;
     }
@@ -514,7 +511,6 @@ void _ParamHelper::syncCCDBandRegistry(const std::string& mainkey, TClass* cl, v
       std::string& target = *(std::string*)pointerto;
       std::string const& origin = *(std::string*)pointerfrom;
       // if (target.compare(origin) != 0) {
-      updateProv();
       target = origin;
       // }
       return;
@@ -522,7 +518,6 @@ void _ParamHelper::syncCCDBandRegistry(const std::string& mainkey, TClass* cl, v
 
     //
     // if (!isMemblockDifferent(pointerto, pointerfrom, TS)) {
-    updateProv();
     // actually copy
     std::memcpy(pointerto, pointerfrom, getSizeOfUnderlyingType(*dm));
     //  }
