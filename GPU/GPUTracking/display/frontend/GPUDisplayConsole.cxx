@@ -287,7 +287,9 @@ void GPUDisplayConsole::runScript(std::string_view script)
     pos = end + 1;
   }
   mScriptQueue.insert(mScriptQueue.begin(), lines.begin(), lines.end()); // Before the remaining lines of a script running this one
-  processScripts(false);
+  if (mScriptDepth == 0) {                                               // From a script, its processScripts loop continues with these lines
+    processScripts(false);
+  }
 }
 
 void GPUDisplayConsole::processScripts(bool newFrame)

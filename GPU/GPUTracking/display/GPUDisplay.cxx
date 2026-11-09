@@ -261,10 +261,10 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(bool suspended, float animateTim
     mMouseWheelTmp = 0;
   }
   mFrontend->mMouseWheel = 0;
-  bool lookOrigin = mCfgR.camLookOrigin ^ mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_FOCUS_ORIGIN]];
-  bool yUp = mCfgR.camYUp ^ mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_FOCUS_ORIENT_UP]] ^ lookOrigin;
-  bool rotateModelTPC = mCfgO.rotateAroundZ || mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_ROTATE_AROUND_Z]];
-  bool rotateModel = rotateModelTPC || mCfgO.rotateModel || mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_ROTATE_MODEL]];
+  bool lookOrigin = mCfgR.camLookOrigin ^ mFrontend->keyMapDown(mFrontend->KEY_MAP_FOCUS_ORIGIN);
+  bool yUp = mCfgR.camYUp ^ mFrontend->keyMapDown(mFrontend->KEY_MAP_FOCUS_ORIENT_UP) ^ lookOrigin;
+  bool rotateModelTPC = mCfgO.rotateAroundZ || mFrontend->keyMapDown(mFrontend->KEY_MAP_ROTATE_AROUND_Z);
+  bool rotateModel = rotateModelTPC || mCfgO.rotateModel || mFrontend->keyMapDown(mFrontend->KEY_MAP_ROTATE_MODEL);
 
   // Calculate rotation / translation scaling factors
   float scalefactor = mFrontend->mKeys[mFrontend->KEY_SHIFT] ? 0.2f : 1.0f;
@@ -304,12 +304,12 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(bool suspended, float animateTim
 
     mCfgC.resetScene.store(false);
   } else {
-    float moveZ = scalefactor * ((float)mMouseWheelTmp / 150 + (float)(mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_FORWARD]] - mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_BACKWARD]]) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]) * 0.2f * mFPSScale);
-    float moveY = scalefactor * ((float)(mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_STRAFE_DOWN]] - mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_STRAFE_UP]]) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]) * 0.2f * mFPSScale);
-    float moveX = scalefactor * ((float)(mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_STRAFE_LEFT]] - mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_STRAFE_RIGHT]]) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]) * 0.2f * mFPSScale);
-    float rotRoll = rotatescalefactor * mFPSScale * 2 * (mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_ROTATE_LEFT]] - mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_ROTATE_RIGHT]]) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]);
-    float rotYaw = rotatescalefactor * mFPSScale * 2 * (mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_ROTATE_YAW_RIGHT]] - mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_ROTATE_YAW_LEFT]]) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]);
-    float rotPitch = rotatescalefactor * mFPSScale * 2 * (mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_ROTATE_PITCH_DOWN]] - mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_ROTATE_PITCH_UP]]) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]);
+    float moveZ = scalefactor * ((float)mMouseWheelTmp / 150 + (float)(mFrontend->keyMapDown(mFrontend->KEY_MAP_FORWARD) - mFrontend->keyMapDown(mFrontend->KEY_MAP_BACKWARD)) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]) * 0.2f * mFPSScale);
+    float moveY = scalefactor * ((float)(mFrontend->keyMapDown(mFrontend->KEY_MAP_STRAFE_DOWN) - mFrontend->keyMapDown(mFrontend->KEY_MAP_STRAFE_UP)) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]) * 0.2f * mFPSScale);
+    float moveX = scalefactor * ((float)(mFrontend->keyMapDown(mFrontend->KEY_MAP_STRAFE_LEFT) - mFrontend->keyMapDown(mFrontend->KEY_MAP_STRAFE_RIGHT)) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]) * 0.2f * mFPSScale);
+    float rotRoll = rotatescalefactor * mFPSScale * 2 * (mFrontend->keyMapDown(mFrontend->KEY_MAP_ROTATE_LEFT) - mFrontend->keyMapDown(mFrontend->KEY_MAP_ROTATE_RIGHT)) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]);
+    float rotYaw = rotatescalefactor * mFPSScale * 2 * (mFrontend->keyMapDown(mFrontend->KEY_MAP_ROTATE_YAW_RIGHT) - mFrontend->keyMapDown(mFrontend->KEY_MAP_ROTATE_YAW_LEFT)) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]);
+    float rotPitch = rotatescalefactor * mFPSScale * 2 * (mFrontend->keyMapDown(mFrontend->KEY_MAP_ROTATE_PITCH_DOWN) - mFrontend->keyMapDown(mFrontend->KEY_MAP_ROTATE_PITCH_UP)) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]);
 
     float mouseScale = 1920.f / std::max<float>(1920.f, mBackend->mScreenWidth);
     if ((mFrontend->mMouseDnR && mFrontend->mMouseDn) || mFrontend->mMouseDnM) {
@@ -323,7 +323,7 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(bool suspended, float animateTim
       rotPitch += rotatescalefactor * mouseScale * ((float)mFrontend->mMouseMvY - (float)mFrontend->mMouseDnY);
     }
 
-    if (mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_CHANGE_ANIMATION_INTERVAL]]) {
+    if (mFrontend->keyMapDown(mFrontend->KEY_MAP_CHANGE_ANIMATION_INTERVAL)) {
       mCfgO.animationDelay += moveX;
       if (mCfgO.animationDelay < 0.05f) {
         mCfgO.animationDelay = 0.05f;
@@ -407,7 +407,7 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(bool suspended, float animateTim
 
     // Graphichs Options
     float minSize = 0.4f / (mCfgR.drawQualityDownsampleFSAA > 1 ? mCfgR.drawQualityDownsampleFSAA : 1);
-    int32_t deltaLine = (mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_INCREASE_WIDTH]] - mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_DECREASE_WIDTH]]) * mFrontend->mKeys[mFrontend->KEY_SHIFT];
+    int32_t deltaLine = (mFrontend->keyMapDown(mFrontend->KEY_MAP_INCREASE_WIDTH) - mFrontend->keyMapDown(mFrontend->KEY_MAP_DECREASE_WIDTH)) * mFrontend->mKeys[mFrontend->KEY_SHIFT];
     mCfgL.lineWidth += (float)deltaLine * mFPSScale * 0.02f * mCfgL.lineWidth;
     if (mCfgL.lineWidth < minSize) {
       mCfgL.lineWidth = minSize;
@@ -417,7 +417,7 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(bool suspended, float animateTim
       mUpdateDrawCommands = true;
     }
     minSize *= 2;
-    int32_t deltaPoint = (mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_INCREASE_WIDTH]] - mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_DECREASE_WIDTH]]) * !mFrontend->mKeys[mFrontend->KEY_SHIFT];
+    int32_t deltaPoint = (mFrontend->keyMapDown(mFrontend->KEY_MAP_INCREASE_WIDTH) - mFrontend->keyMapDown(mFrontend->KEY_MAP_DECREASE_WIDTH)) * !mFrontend->mKeys[mFrontend->KEY_SHIFT];
     mCfgL.pointSize += (float)deltaPoint * mFPSScale * 0.02f * mCfgL.pointSize;
     if (mCfgL.pointSize < minSize) {
       mCfgL.pointSize = minSize;
