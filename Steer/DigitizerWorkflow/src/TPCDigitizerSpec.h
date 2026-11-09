@@ -24,6 +24,9 @@ o2::framework::DataProcessorSpec getTPCDigitizerSpec(int channel, bool writeGRP,
 
 o2::framework::WorkflowSpec getTPCDigitizerSpec(int nLanes, std::vector<int> const& sectors, bool mctruth, bool internalwriter, int distortionType);
 
+/// A single TPC digitizer device that digitizes the sectors with nThreads threads and writes the digits in chunks
+o2::framework::DataProcessorSpec getTPCDigitizerMTSpec(int nThreads, std::vector<int> const& sectors, int distortionType);
+
 } // end namespace tpc
 } // end namespace o2
 

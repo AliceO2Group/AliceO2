@@ -186,6 +186,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   // Option to write TPC digits internaly, without forwarding to a special writer instance.
   // This is useful in GRID productions with small available memory.
   workflowOptions.push_back(ConfigParamSpec{"tpc-chunked-writer", o2::framework::VariantType::Bool, false, {"Write independent TPC digit chunks as soon as they can be flushed."}});
+  workflowOptions.push_back(ConfigParamSpec{"tpc-digi-threads", o2::framework::VariantType::Int, 0, {"Digitize TPC in a single device with this many threads instead of lanes (0 = use lanes); requires --tpc-chunked-writer"}});
   workflowOptions.push_back(ConfigParamSpec{"tpc-distortion-type", o2::framework::VariantType::Int, 0, {"Simulate distortions in the TPC (0=no distortions, 1=distortions without scaling, 2=distortions with CTP scaling)"}});
 
   std::string simhelp("Comma separated list of simulation prefixes (for background, signal productions)");
@@ -624,8 +625,16 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
     auto internalwrite = configcontext.options().get<bool>("tpc-chunked-writer");
     auto distortionType = configcontext.options().get<int>("tpc-distortion-type");
-    WorkflowSpec tpcPipelines = o2::tpc::getTPCDigitizerSpec(lanes, tpcsectors, mctruth, internalwrite, distortionType);
-    specs.insert(specs.end(), tpcPipelines.begin(), tpcPipelines.end());
+    auto digiThreads = configcontext.options().get<int>("tpc-digi-threads");
+    if (digiThreads > 0) {
+      if (!internalwrite) {
+        LOG(fatal) << "--tpc-digi-threads requires --tpc-chunked-writer";
+      }
+      specs.emplace_back(o2::tpc::getTPCDigitizerMTSpec(digiThreads, tpcsectors, distortionType));
+    } else {
+      WorkflowSpec tpcPipelines = o2::tpc::getTPCDigitizerSpec(lanes, tpcsectors, mctruth, internalwrite, distortionType);
+      specs.insert(specs.end(), tpcPipelines.begin(), tpcPipelines.end());
+    }
 
     if (configcontext.options().get<std::string>("tpc-reco-type").empty() == false) {
       throw std::runtime_error("option 'tpc-reco-type' is deprecated, please connect workflows on the command line by pipe");
