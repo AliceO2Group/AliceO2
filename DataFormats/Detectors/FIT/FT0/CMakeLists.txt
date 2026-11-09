@@ -19,6 +19,7 @@ o2_add_library(DataFormatsFT0
           src/CTF.cxx
           src/LookUpTable.cxx
           src/SlewingCoef.cxx
+	  src/PMLookupTable.cxx
 
   PUBLIC_LINK_LIBRARIES O2::FT0Base
                         O2::DataFormatsFIT
