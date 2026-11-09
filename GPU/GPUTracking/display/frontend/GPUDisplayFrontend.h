@@ -24,6 +24,7 @@
 #include <mutex>
 #include <thread>
 #include <condition_variable>
+#include <functional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -157,8 +158,7 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface, public GPUDisplay
  private:
   struct GPUDisplayConfiguration;
   struct configRTTIExt;
-  struct configKey;
-  std::unique_ptr<GPUDisplayConfiguration, void (*)(GPUDisplayConfiguration*)> mConfigRTTI{nullptr, nullptr}; // Deleter set in GPUDisplayFrontendConfig.cxx, the only place where GPUDisplayConfiguration is defined
+  std::unique_ptr<GPUDisplayConfiguration, void (*)(GPUDisplayConfiguration*)> mConfiguration{nullptr, nullptr}; // Deleter set in GPUDisplayFrontendConfig.cxx, the only place where GPUDisplayConfiguration is defined
 
   void HandleExternalGUIKeys();
   static int32_t translateExternalKey(uint32_t translationMode, uint64_t extendedKey); // Key code of an encoded key of sendExternalGUIKey (+ SPECIAL_KEYS_SHIFTED with SHIFT), -1 if unknown
@@ -172,7 +172,8 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface, public GPUDisplay
   void setGUILayout(GPUDisplayGUIChannel& channel) const; // Copy the GUI elements of the add_gui_binding calls to the channel
   void applyGUIValues(const GPUDisplayGUIUpdate& update); // Call the setter of the GUI elements changed in the GUI (element id, value), and show the info of their options
   void listConfig();
-  const std::vector<std::string>& getHelpText() const; // Help text of all key bindings, one line per binding
+  const std::vector<std::string>& getHelpText();                       // Help text of all key bindings, one line per binding, rebuilt after key bindings changed
+  void listKeys(const std::function<void(const std::string&)>& print); // Bound keys with action / key down mapping and option, then unbound actions and mappings, then the key down mappings with their keys, one line per call
 };
 } // namespace o2::gpu
 

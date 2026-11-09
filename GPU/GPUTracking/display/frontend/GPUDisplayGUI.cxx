@@ -143,8 +143,7 @@ class GUIStyle : public QProxyStyle // Tooltips only after hovering for 1.5 seco
  public:
   int styleHint(StyleHint hint, const QStyleOption* option, const QWidget* widget, QStyleHintReturn* returnData) const override
   {
-    return hint == SH_ToolTip_WakeUpDelay ? 1500 : hint == SH_ToolTip_FallAsleepDelay ? 0
-                                                                                      : QProxyStyle::styleHint(hint, option, widget, returnData);
+    return hint == SH_ToolTip_WakeUpDelay ? 1500 : hint == SH_ToolTip_FallAsleepDelay ? 0 : QProxyStyle::styleHint(hint, option, widget, returnData);
   }
 };
 
