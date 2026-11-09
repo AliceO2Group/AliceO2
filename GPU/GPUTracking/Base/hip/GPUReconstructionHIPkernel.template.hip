@@ -21,10 +21,7 @@
 
 // clang-format off
 @O2_GPU_KERNEL_TEMPLATE_FILES@
-// clang-format on
 
 extern "C" {
-// clang-format off
 @O2_GPU_KERNEL_TEMPLATE_REPLACE@
-// clang-format on
-}
+} // clang-format on: not before the }, the placeholders confuse clang-format

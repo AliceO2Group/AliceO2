@@ -41,8 +41,10 @@ struct array {
   }
   T m_internal_V__[N];
 };
+// clang-format off
 template <class T, class... E>
 GPUd() array(T, E...)->array<T, 1 + sizeof...(E)>;
+// clang-format on
 #else
 template <typename T, size_t N>
 using array = std::array<T, N>;

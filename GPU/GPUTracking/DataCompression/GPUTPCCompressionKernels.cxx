@@ -67,7 +67,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0at
       if (!(param.rec.tpc.compressionTypeMask & GPUSettings::CompressionTrackModel)) {
         continue; // No track model compression
       }
-      const ClusterNative& GPUrestrict() orgCl = clusters -> clusters[hit.sector][hit.row][hit.num - clusters->clusterOffset[hit.sector][hit.row]];
+      const ClusterNative& GPUrestrict() orgCl = clusters->clusters[hit.sector][hit.row][hit.num - clusters->clusterOffset[hit.sector][hit.row]];
       constexpr GPUTPCGeometry geo;
       float x = geo.Row2X(hit.row);
       float y = track.LinearPad2Y(hit.sector, orgCl.getPad(), geo.PadWidth(hit.row), geo.NPads(hit.row));
@@ -291,7 +291,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1un
 
       for (uint32_t j = get_local_id(0); j < count; j += get_local_size(0)) {
         int32_t outidx = idOffsetOut + totalCount + j;
-        const ClusterNative& GPUrestrict() orgCl = clusters -> clusters[iSector][iRow][sortBuffer[j]];
+        const ClusterNative& GPUrestrict() orgCl = clusters->clusters[iSector][iRow][sortBuffer[j]];
 
         int32_t preId = j != 0 ? (int32_t)sortBuffer[j - 1] : (totalCount != 0 ? (int32_t)smem.lastIndex : -1);
         GPUTPCCompression_EncodeUnattached(param.rec.tpc.compressionTypeMask, orgCl, c.timeDiffU[outidx], c.padDiffU[outidx], preId == -1 ? nullptr : &clusters->clusters[iSector][iRow][preId]);

@@ -554,7 +554,7 @@ GPUd() int32_t GPUTPCGMMerger::RefitSectorTrack(GPUTPCGMSectorTrack& sectorTrack
   GPUTPCGMPropagator prop;
   prop.SetMaterialTPC();
   prop.SetMaxSinPhi(constants::MAX_SIN_PHI);
-  prop.SetSeedingErrors(true); // Larger errors for seeds, better since we don't start with good hypothesis
+  prop.SetSeedingErrors(true);    // Larger errors for seeds, better since we don't start with good hypothesis
   prop.SetFitInProjections(true); // TODO: Was false, consider reenabling after fitInProjection is fixed
   prop.SetPolynomialField(&Param().polynomialField);
   GPUTPCGMTrackParam trk;

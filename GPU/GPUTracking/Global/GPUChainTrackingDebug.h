@@ -50,7 +50,7 @@ enum GPUChainTrackingDebugFlags : uint32_t {
 };
 
 template <class T, class S, typename... Args>
-inline bool GPUChain::DoDebugAndDump(GPUChain::RecoStep step, uint32_t mask, bool transfer, T& processor, S T::*func, Args&&... args)
+inline bool GPUChain::DoDebugAndDump(GPUChain::RecoStep step, uint32_t mask, bool transfer, T& processor, S T::* func, Args&&... args)
 {
   if (GetProcessingSettings().keepAllMemory) {
     if (transfer) {

@@ -49,8 +49,8 @@ QCONFIG_SETTING_TEMPLATE(def)
 template <typename T>
 struct qConfigSettings {
   qConfigSettings() : checkMin(false), checkMax(false), doSet(false), doDefault(false), min(), max(), set(), message(nullptr), allowEmpty(false) {};
-  template <typename S>
-  qConfigSettings(const qConfigSettings<S> v) : checkMin(false), checkMax(false), doSet(false), doDefault(false), min(), max(), set(), message(v.message), allowEmpty(v.allowEmpty) {};
+  template <typename S> // clang-format off
+  qConfigSettings(const qConfigSettings<S> v) : checkMin(false), checkMax(false), doSet(false), doDefault(false), min(), max(), set(), message(v.message), allowEmpty(v.allowEmpty) {}; // clang-format on
   bool checkMin, checkMax;
   bool doSet, doDefault;
   T min, max;

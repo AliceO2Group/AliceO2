@@ -175,7 +175,7 @@ struct qConfigType : public qConfigSettingsParser<T> {
   {
     auto settings = qConfigGetSettings(args...);
     const bool boolType = optionType != 1 && std::is_same_v<T, bool>;
-    const char* arguments = settings.doSet ? " (" : (settings.doDefault || optionType == 1 || boolType) ? " [arg] (" : optionType == 2 ? " [...] (" : " arg (";
+    const char* arguments = settings.doSet ? " (" : ((settings.doDefault || optionType == 1 || boolType) ? " [arg] (" : (optionType == 2 ? " [...] (" : " arg ("));
     char argBuffer[4] = {0};
     uint32_t argBufferPos = 0;
     if (optnameshort && preoptshort) {

@@ -27,6 +27,7 @@ IndentWidth:     2
 # It is broken on windows. Breaks all #include "header.h"
 ---
 Language:        Cpp
+AttributeMacros: ['GPUrestrict'] # GPU qualifier macro: GPUrestrict() is otherwise parsed as function call, e.g. 'a -> b' after it
 MaxEmptyLinesToKeep: 1
 KeepEmptyLinesAtTheStartOfBlocks: true
 NamespaceIndentation: None
