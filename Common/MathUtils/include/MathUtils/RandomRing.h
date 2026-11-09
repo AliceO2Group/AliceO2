@@ -101,6 +101,10 @@ class RandomRing
     // within this header file (to reduce memory problems during compilation).
     // The hope is that the calling user calls this with a
     // correct Vc type (Vc::float_v) in a source file.
+    // a vector must not run past the end of the ring, also after setRandomPosition()
+    if (mRingPosition + VcType::size() > mRandomNumbers.size()) {
+      mRingPosition = 0;
+    }
     const VcType value = VcType(&mRandomNumbers[mRingPosition]);
     mRingPosition += VcType::size();
     if (mRingPosition >= mRandomNumbers.size()) {
@@ -113,7 +117,7 @@ class RandomRing
   /// @return position in the ring buffer
   unsigned int getRingPosition() const { return mRingPosition; }
 
-  /// move to a random position in the ring buffer; not for rings read with getNextValueVc()
+  /// move to a random position in the ring buffer
   /// @param [in] rng random generator to draw the position from
   void setRandomPosition(TRandom& rng) { mRingPosition = rng.Integer(N); }
 
