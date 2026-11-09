@@ -87,9 +87,9 @@ void PulseHeight::process()
   }
   size_t nTrkTrig[2] = {mTrackTriggerRecordsITSTPCTRD.size(), mTrackTriggerRecordsTPCTRD.size()};
   int lastTrkTrig[2] = {0};
-  
+
   int currentFT0[2] = {0};
-  
+
   for (const auto& trig : mTriggerRecords) {
     if (trig.getNumberOfDigits() == 0) {
       continue;
@@ -156,7 +156,7 @@ void PulseHeight::findDigitsForTracklet(const Tracklet64& trklt, const TriggerRe
   int iDigitFirst = trig.getFirstDigit();
   int iDigitLast = trig.getFirstDigit() + trig.getNumberOfDigits();
   for (int iDigit = iDigitFirst + 1; iDigit < iDigitLast - 1; ++iDigit) {
-    const auto& digit = (*mDigits)[iDigit];    
+    const auto& digit = (*mDigits)[iDigit];
     if (digit.isSharedDigit()) {
       continue; // avoid double-counting of the same digit
     }
@@ -192,8 +192,9 @@ void PulseHeight::findDigitsForTracklet(const Tracklet64& trklt, const TriggerRe
     if (nNeighbours > 0) {
       // pile-up removal: if we have several consecutive digits with very small value for the first time bins, this is likely to come from pile-up
       int nOverThreshold = 0;
-      for (int iTb = 0; iTb < ((int) (mParams.pileupCut * 10)); iTb++) {
-        if (digit.getADC()[iTb] > mParams.digitsThreshold) nOverThreshold++;
+      for (int iTb = 0; iTb < ((int)(mParams.pileupCut * 10)); iTb++) {
+        if (digit.getADC()[iTb] > mParams.digitsThreshold)
+          nOverThreshold++;
       }
       if (nOverThreshold <= 2) {
         continue;

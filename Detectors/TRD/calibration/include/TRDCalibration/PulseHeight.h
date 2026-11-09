@@ -54,7 +54,7 @@ class PulseHeight
   void reset();
 
   void setApplyShift(bool f) { mApplyShift = f; }
-  void setTrkMask(o2::dataformats::GlobalTrackID::mask_t trkMask) { mTrkMask = trkMask;}
+  void setTrkMask(o2::dataformats::GlobalTrackID::mask_t trkMask) { mTrkMask = trkMask; }
 
   /// Main processing function
   void process();
