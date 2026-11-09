@@ -183,6 +183,7 @@ void GPUDisplayFrontend::sendExternalGUIKey(int32_t v, uint32_t translationMode,
 }
 
 bool GPUDisplayFrontend::consoleShown() const { return mDisplay->mCfgC.showConsole; }
+bool GPUDisplayFrontend::keyMapDown(uint32_t id) const { return mKeyDownMap[id] && mKeys[mKeyDownMap[id]]; } // Not mKeys[0] for unbound mappings: frontends may set it for unknown keys
 
 int32_t GPUDisplayFrontend::getDisplayControl() const { return mDisplay->mCfgC.displayControl.load(); }
 void GPUDisplayFrontend::setDisplayControl(int32_t v) { mDisplay->mCfgC.displayControl.store(v); }

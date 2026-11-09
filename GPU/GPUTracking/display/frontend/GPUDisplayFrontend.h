@@ -140,8 +140,10 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface, public GPUDisplay
 
   void HandleKey(uint8_t key);                     // Callback for handling key presses
   bool consoleShown() const;                       // Key presses go to the console, frontends do not set mKeys
+  bool keyMapDown(uint32_t id) const;              // Key of the KEY_MAP_* mapping held, never for unbound ones
   void HandleExternalGUISignals();                 // Callback to handle signals from external GUIs
   bool processKeyLambda(uint32_t key);             // Process key lambda callback
+  uint32_t shiftedKey(uint32_t key) const;         // Special keys with SHIFT held at code + SPECIAL_KEYS_SHIFTED, as in configKeys
   void showConfigInfo(uint32_t index);             // Info for a changed option (index in the config RTTI): its info callback, or "struct.option changed to value"
   void ResizeScene(int32_t width, int32_t height); // Callback when GL window is resized
   int32_t InitDisplay(bool initFailure = false);   // Callback to initialize the GL Display (to be called in StartDisplay)

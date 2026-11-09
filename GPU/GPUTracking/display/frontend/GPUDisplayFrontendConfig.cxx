@@ -257,7 +257,9 @@ void GPUDisplay::checkAndApplyConfigChanges()
     mConsoleTimer.AddTime(start);
     mConsoleTimer.Start();
     if (mCfgC.showConsole) {
+      const bool shift = mFrontend->mKeys[mFrontend->KEY_SHIFT]; // Kept while the console is shown (scrolling, shifted keys), frontends still update it
       std::fill(std::begin(mFrontend->mKeys), std::end(mFrontend->mKeys), false);
+      mFrontend->mKeys[mFrontend->KEY_SHIFT] = shift;
     }
   }
   if (mCfgO.applyToAllPoints && oldCfgL.animationMode != mCfgL.animationMode) { // Also for keys; the animation's own changes are in mOldCfg, so this is only user input
@@ -716,11 +718,11 @@ void GPUDisplay::buildConfig()
   rtti->buildHelpText();
 }
 
+uint32_t GPUDisplayFrontend::shiftedKey(uint32_t key) const { return key < N_SPECIAL_KEYS && mKeys[KEY_SHIFT] ? key + SPECIAL_KEYS_SHIFTED : key; }
+
 bool GPUDisplayFrontend::processKeyLambda(uint32_t key)
 {
-  if (key < N_SPECIAL_KEYS && mKeys[KEY_SHIFT]) {
-    key += SPECIAL_KEYS_SHIFTED;
-  }
+  key = shiftedKey(key);
   const int32_t binding = key < mConfiguration->configKeys.size() ? mConfiguration->configKeys[key] : GPUDisplayConfiguration::KEY_UNBOUND;
   if (binding != GPUDisplayConfiguration::KEY_UNBOUND && !GPUDisplayConfiguration::isKeyMap(binding)) {
     const auto& action = mConfiguration->keyActions[binding];
@@ -745,16 +747,17 @@ void GPUDisplayFrontend::showConfigInfo(uint32_t index)
 
 void GPUDisplay::HandleKey(uint8_t key, bool external, bool bypassConsole)
 {
-  if (mCfgC.showConsole && !bypassConsole && mFrontend->mConfiguration->keyRTTIIndex(key) != mFrontend->mConfiguration->getRTTIIndex(*this, &GPUDisplayControl::showConsole)) { // All keys except the one toggling the console go to the console
+  if (mCfgC.showConsole && !bypassConsole && mFrontend->mConfiguration->keyRTTIIndex(mFrontend->shiftedKey(key)) != mFrontend->mConfiguration->getRTTIIndex(*this, &GPUDisplayControl::showConsole)) { // All keys except the one toggling the console go to the console
     if (!external) {
       mFrontend->mConsole->handleConsoleKey(key, mFrontend->mKeys[mFrontend->KEY_SHIFT]);
     }
     return;
   }
-  if (key == mFrontend->KEY_ALT) {
-    mFrontend->mKeys[mFrontend->KEY_CTRL] = false; // Release CTRL with alt, to avoid orienting along y automatically!
-  } else if (mFrontend->processKeyLambda(key)) {
+  const uint8_t originKey = mFrontend->mKeyDownMap[mFrontend->KEY_MAP_FOCUS_ORIGIN], upKey = mFrontend->mKeyDownMap[mFrontend->KEY_MAP_FOCUS_ORIENT_UP];
+  if (originKey && upKey && (key >= 'a' && key <= 'z' ? key + 'A' - 'a' : key) == originKey) { // mKeyDownMap has letters in upper case
+    mFrontend->mKeys[upKey] = false;                                                           // Release the orient up key (CTRL) with the focus origin key (ALT), to avoid orienting along y automatically!
   }
+  mFrontend->processKeyLambda(key);
 }
 
 std::string GPUDisplayFrontend::GPUDisplayConfiguration::setValue(GPUDisplay& display, uint32_t index, const GPUDisplayConsole::consoleArg& value)
