@@ -46,6 +46,8 @@ void Digitizer::init()
   auto& electronTransport = ElectronTransport::instance();
   electronTransport.updateParameters(mVDrift);
   auto& sampaProcessing = SAMPAProcessing::instance();
+  // the calibration update may reload FEE parameters from file, so SAMPAProcessing picks up its pointers afterwards
+  mDigitContainer.updateCalibrations();
   sampaProcessing.updateParameters(mVDrift);
 }
 
