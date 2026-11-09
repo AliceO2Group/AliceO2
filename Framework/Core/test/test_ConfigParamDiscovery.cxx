@@ -54,9 +54,7 @@ std::vector<ConfigParamSpec> makeSpecs(std::string const& replace, bool withOrig
     {"MC", "LHC24a2", "x", "", "/path/L0.root", ""},
     {"RAW", "LHC23zzm", "", "y", "/path/L1.root", ""},
     {"", "", "", "", "/path/L2.root", "1"}};
-  static LabeledArray<std::string> origins{&values[0][0], 3, 6,
-                                           {"EMB", "AOD", "XYZ"},
-                                           {"DataType", "LPMProductionTag", "OnlyL0", "OnlyL1", "source", "disable"}};
+  static LabeledArray<std::string> origins{&values[0][0], 3, 6, {"EMB", "AOD", "XYZ"}, {"DataType", "LPMProductionTag", "OnlyL0", "OnlyL1", "source", "disable"}};
   std::vector<ConfigParamSpec> specs{
     ConfigParamSpec{"aod-origin-replace", VariantType::String, replace, {"origin"}},
     ConfigParamSpec{"aod-metadata-DataType", VariantType::String, "MC", {"metadata"}},
