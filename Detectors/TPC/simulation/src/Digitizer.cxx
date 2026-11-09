@@ -65,8 +65,7 @@ void Digitizer::process(const std::vector<o2::tpc::HitGroup>& hits,
 
   const int nShapedPoints = eleParam.NShapedPoints;
   const auto amplificationMode = gemParam.AmplMode;
-  static std::vector<float> signalArray;
-  signalArray.resize(nShapedPoints);
+  mSignalArray.resize(nShapedPoints);
 
   /// Reserve space in the digit container for the current event
   mDigitContainer.reserve(sampaProcessing.getTimeBinFromTime(mEventTime - mOutputDigitTimeOffset));
@@ -154,11 +153,11 @@ void Digitizer::process(const std::vector<o2::tpc::HitGroup>& hits,
         const GlobalPadNumber globalPad = mapper.globalPadNumber(digiPadPos.getGlobalPadPos());
         const float ADCsignal = sampaProcessing.getADCvalue(static_cast<float>(nElectronsGEM));
         const MCCompLabel label(MCTrackID, eventID, sourceID, false);
-        sampaProcessing.getShapedSignal(ADCsignal, absoluteTime, signalArray);
+        sampaProcessing.getShapedSignal(ADCsignal, absoluteTime, mSignalArray);
         for (float i = 0; i < nShapedPoints; ++i) {
           const float time = absoluteTime + i * eleParam.ZbinWidth;
           mDigitContainer.addDigit(label, digiPadPos.getCRU(), sampaProcessing.getTimeBinFromTime(time), globalPad,
-                                   signalArray[i]);
+                                   mSignalArray[i]);
         }
         /// TODO: add ion backflow to space-charge density
       }

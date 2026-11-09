@@ -21,6 +21,7 @@
 #include "TPCBase/CRU.h"
 #include "DataFormatsTPC/Defs.h"
 #include "TPCSimulation/DigitTime.h"
+#include "TPCSimulation/SAMPAProcessing.h"
 #include "TPCBase/CalDet.h"
 #include "CommonUtils/DebugStreamer.h"
 #include "TPCBase/ParameterDetector.h"
@@ -87,6 +88,9 @@ class DigitContainer
   /// Get the size of the container for one event
   size_t size() const { return mTimeBins.size(); }
 
+  /// Use this SAMPAProcessing instead of the singleton when filling the output
+  void setSAMPAProcessing(SAMPAProcessing* sampaProcessing) { mSAMPAProcessing = sampaProcessing; }
+
   /// Fetch the calibration objects used by fillOutputContainer from the CDBInterface
   /// Must be called after the CDBInterface is configured; fillOutputContainer calls it lazily otherwise
   void updateCalibrations();
@@ -103,6 +107,8 @@ class DigitContainer
   const CalDet<bool>* mDeadMap = nullptr;                     //!< Dead channel map
   bool mCMCEnabled = false;                                   //!< Common mode correction enabled in the FEE config (DigiMode Auto)
   bool mCalibrationsUpdated = false;                          //!< Whether updateCalibrations was called
+  SAMPAProcessing* mSAMPAProcessing = nullptr;                //!< SAMPAProcessing used for the output, the singleton if not set
+  std::vector<std::pair<MCCompLabel, int>> mLabelCollector;   //!< Workspace to sort the MC labels of a digit
 
   void reportSettings();
 };
