@@ -20,12 +20,11 @@
 template <class T>
 struct vecpod_allocator {
   typedef T value_type;
-  vecpod_allocator() noexcept : stdalloc() {}
-  T* allocate(std::size_t n) { return stdalloc.allocate(n); }
-  void deallocate(T* p, std::size_t n) { stdalloc.deallocate(p, n); }
+  vecpod_allocator() noexcept = default;
+  T* allocate(std::size_t n) { return std::allocator<T>().allocate(n); }
+  void deallocate(T* p, std::size_t n) { std::allocator<T>().deallocate(p, n); }
   static void construct(T*) {}
-  bool operator==(const vecpod_allocator&) const { return true; } // Stateless, needed e.g. for the move assignment of std::vector
-  std::allocator<T> stdalloc;
+  bool operator==(const vecpod_allocator&) const { return true; } // Stateless (no member, so std::vector does not store it), needed e.g. for the move assignment of std::vector
 };
 
 template <class T>
