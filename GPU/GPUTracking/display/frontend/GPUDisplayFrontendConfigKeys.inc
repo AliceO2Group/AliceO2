@@ -22,7 +22,7 @@
 void GPUDisplay::buildConfigKeys()
 {
   mFrontend->mConfiguration->helpTextEntries.emplace_back("[MOUSE 1] / [MOUSE 2] / [MOUSE 1+2]", "Look around / Strafe camera / Zoom / Rotate", std::vector<int32_t>());
-  mFrontend->mConfiguration->helpTextEntries.emplace_back("[SHIFT]", "Slow Zoom / Move / Rotate", std::vector<int32_t>());
+  mFrontend->mConfiguration->helpTextEntries.emplace_back("[SHIFT]", "Slow Mouse Zoom / Move / Rotate", std::vector<int32_t>());
 
   mFrontend->add_key_binding(
     KEY_DOWN_MAP('w', FORWARD),
@@ -157,8 +157,8 @@ void GPUDisplay::buildConfigKeys()
       }
     }),
     KEY_LAMBDA('J', "DRAW_RELATED_SECTORS", mCfgL, drawRelatedSectors, val ^= 1;), //
-    KEY_LAMBDA(';', "XZ_ADD", mCfgH, xzAdd, val += 60;),                           //
-    "Draw single sector (next  / previous sector), draw related sectors (same plane in phi) / Show splitting of TPC in sectors by extruding volume, [:] resets");
+    KEY_LAMBDA(';', "XZ_ADD", mCfgH, xzAdd, val = std::min(val + 60, 300.f);),     // Up to the option maximum, reset with the scene
+    "Draw single sector (next  / previous sector), draw related sectors (same plane in phi) / Show splitting of TPC in sectors by extruding volume");
 
   mFrontend->add_key_binding(
     KEY_LAMBDA('x', "EXCLUDE_CLUSTERS", mCfgL, excludeClusters, val = (val + 1) % 3;),
@@ -230,7 +230,7 @@ void GPUDisplay::buildConfigKeys()
 
   mFrontend->add_key_binding(
     KEY_LAMBDA('t', "REQUEST_SCREENSHOT", mCfgC, requestScreenshot, takeScreenshot();),
-    KEY_LAMBDA('T', "ANIMATE_SCREENSHOT", mCfgC, animateScreenshot, val ^= 1;), //
+    KEY_LAMBDA('T', "ANIMATE_SCREENSHOT", mCfgO, animateScreenshot, val ^= 1;), //
     KEY_LAMBDA('Z', "SCREENSHOT_SCALE_FACTOR", mCfgR, screenshotScaleFactor, {
       val += 1;
       if (val > 4) {
@@ -253,7 +253,7 @@ void GPUDisplay::buildConfigKeys()
     "Start Animation, Add / remove Animation point, Reset Points, Cycle animation camera mode");
 
   mFrontend->add_key_binding(
-    KEY_LAMBDA('>', "ANIMATION_CHANGE_CONFIG", mCfgC, animationChangeConfig, val ^= 1;),
+    KEY_LAMBDA('>', "ANIMATION_CHANGE_CONFIG", mCfgO, animationChangeConfig, val ^= 1;),
     KEY_DOWN_MAP('<', CHANGE_ANIMATION_INTERVAL), //
     "Toggle config interpolation during Animation / change Animation interval (via movement)");
 
@@ -294,7 +294,7 @@ void GPUDisplay::buildConfigKeys()
     "[SHIFT] + [F1] to [F4] / [F12]");
 
   mFrontend->add_key_binding(
-    KEY_LAMBDA('h', "PRINT_INFO_TEXT_ALWAYS", mCfgC, printInfoTextAlways, {
+    KEY_LAMBDA('h', "PRINT_INFO_TEXT_ALWAYS", mCfgO, printInfoTextAlways, {
       if (val) {
         val = false;
       } else if (mInfoHelpTimer.IsRunning()) {
@@ -304,7 +304,7 @@ void GPUDisplay::buildConfigKeys()
         PrintHelp();
       }
     }),
-    KEY_LAMBDA('H', "PRINT_INFO_TEXT", mCfgC, printInfoText, {
+    KEY_LAMBDA('H', "PRINT_INFO_TEXT", mCfgO, printInfoText, {
       val += 1;
       val &= 3;
     }), //

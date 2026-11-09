@@ -135,20 +135,20 @@ void GPUDisplayFrontend::HandleExternalGUISignals()
     }
     applyGUIValues(*update);
     if (update->guiScale) {
-      mDisplay->mCfgC.guiScale = *update->guiScale;
+      mDisplay->mCfgO.guiScale = *update->guiScale;
     }
     if (update->guiDarkMode) {
-      mDisplay->mCfgC.guiDarkMode = *update->guiDarkMode;
+      mDisplay->mCfgO.guiDarkMode = *update->guiDarkMode;
     }
   }
 
   if (gui) {
-    GPUDisplayGUIChannel::Settings cfg{mDisplay->mCfgH, mDisplay->mCfgL, mDisplay->mCfgR, mDisplay->mCfgC};
+    GPUDisplayGUIChannel::Settings cfg{mDisplay->mCfgH, mDisplay->mCfgL, mDisplay->mCfgR, mDisplay->mCfgO, mDisplay->mCfgC};
     {
       std::lock_guard lock(mGUIChannel->mutex);
       mGUIChannel->state.cfg = std::move(cfg);
-      mGUIChannel->state.infoStatus = mDisplay->mCfgC.printInfoTextGUI ? mDisplay->mGUIInfoStatus : "";
-      mGUIChannel->state.infoText = mDisplay->mCfgC.printInfoTextGUI ? mDisplay->mGUIInfoText : "";
+      mGUIChannel->state.infoStatus = mDisplay->mCfgO.printInfoTextGUI ? mDisplay->mGUIInfoStatus : "";
+      mGUIChannel->state.infoText = mDisplay->mCfgO.printInfoTextGUI ? mDisplay->mGUIInfoText : "";
       mGUIChannel->state.infoTextCounter = mDisplay->mGUIInfoTextCounter;
       if (mDisplay->mUpdateGUIOptions) {
         mGUIChannel->state.optionsRevision++;

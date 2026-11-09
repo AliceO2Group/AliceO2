@@ -56,7 +56,7 @@ struct GPUDisplayFrontend::configRTTIExt : public qConfig::qConfigRTTIentry {
 using configKeyCallback = std::function<void()>;
 
 struct GPUDisplayFrontend::GPUDisplayConfiguration {
-  static constexpr std::tuple configStructs{&GPUDisplay::mCfgL, &GPUDisplay::mCfgH, &GPUDisplay::mCfgR, &GPUDisplay::mCfgC}; // Config structs with RTTI, as members of GPUDisplay
+  static constexpr std::tuple configStructs{&GPUDisplay::mCfgL, &GPUDisplay::mCfgH, &GPUDisplay::mCfgR, &GPUDisplay::mCfgO, &GPUDisplay::mCfgC}; // Config structs with RTTI, as members of GPUDisplay
 
   std::vector<configRTTIExt> rttiEntries;                                                // qconfig RTTI of all options of configStructs (struct, name, type, offset, default, min / max, description, message), the index identifies an option
   std::vector<configKeyCallback> configInfos;                                            // SetInfo callback for an option, indexed like rttiEntries, called after the callback of a key bound to it
@@ -181,6 +181,15 @@ struct GPUDisplayFrontend::GPUDisplayConfiguration {
     helpTextUpToDate = false;
     return binding;
   }
+  void unbindAllKeys() // Unbinds all keys, also in the reverse lookups (mKeyDownMap is reset by the caller)
+  {
+    configKeys.fill(KEY_UNBOUND);
+    currentMappedKeys.assign(KEY_MAP_MAX, -1);
+    for (auto& keys : currentActionKeys) {
+      keys.clear();
+    }
+    helpTextUpToDate = false;
+  }
   std::string bindingName(int32_t binding) const // Name of the action or key down mapping, empty if unbound
   {
     return isKeyMap(binding) ? keyMapNames[binding - KEY_MAP_INDEX] : (binding >= 0 ? keyActions[binding].actionName : "");
@@ -240,7 +249,7 @@ void GPUDisplay::checkAndApplyConfigChanges()
   if (oldCfgH.trackFilter != mCfgH.trackFilter) {
     mUpdateTrackFilter = true;
   }
-  mCfgC.rotateModel |= mCfgC.rotateAroundZ;
+  mCfgO.rotateModel |= mCfgO.rotateAroundZ;
   if (mCfgC.showConsole != mConsoleShown) {
     mConsoleShown = mCfgC.showConsole;
     const double start = mConsoleTimer.IsRunning() ? std::max(0., mConfig.internal.consoleDelay - mConsoleTimer.GetCurrentElapsedTime()) : 0.; // Reverse a running animation from its current position
@@ -251,7 +260,7 @@ void GPUDisplay::checkAndApplyConfigChanges()
       std::fill(std::begin(mFrontend->mKeys), std::end(mFrontend->mKeys), false);
     }
   }
-  if (mCfgC.applyToAllPoints && oldCfgL.animationMode != mCfgL.animationMode) { // Also for keys; the animation's own changes are in mOldCfg, so this is only user input
+  if (mCfgO.applyToAllPoints && oldCfgL.animationMode != mCfgL.animationMode) { // Also for keys; the animation's own changes are in mOldCfg, so this is only user input
     for (auto& p : mAnimationVectors) {
       p.cfgL.animationMode = mCfgL.animationMode;
     }
@@ -264,8 +273,6 @@ void GPUDisplay::checkAndApplyConfigChanges()
 
 void GPUDisplay::HandleExternalGUIKey(int32_t key, bool bypassConsole)
 {
-  // GPUError("key %d '%c'", key, (char) key);
-
   bool shifted = key >= 'A' && key <= 'Z';
   if (key >= 256) { // Special key with SHIFT, from translateExternalKey
     shifted = true;
@@ -275,11 +282,6 @@ void GPUDisplay::HandleExternalGUIKey(int32_t key, bool bypassConsole)
   mFrontend->mKeys[mFrontend->KEY_SHIFT] = shifted;
   HandleKey(key, true, bypassConsole);
   mFrontend->mKeys[mFrontend->KEY_SHIFT] = oldShift;
-}
-
-bool GPUDisplayFrontend::HasExternalGUISignals() const
-{
-  return mExternalGUIKeys.size();
 }
 
 void GPUDisplayFrontend::HandleExternalGUIKeys()
@@ -344,7 +346,7 @@ struct guiType { // Element type and choices, GUI_CHECKBOX, GUI_DROPDOWN(...), e
   std::function<GPUDisplayGUIChannel::Options()> options; // GUI_SLIDER_DYNAMIC / GUI_DROPDOWN_DYNAMIC
   uint32_t lines = 0;                                     // GUI_TEXTEDIT
   int64_t bitMask = 0;                                    // GUI_CHECKBOX_BIT
-  double step = 0;                                        // GUI_MULTI_SLIDER
+  double step = 0;                                        // GUI_SLIDER_STEP / GUI_SLIDER_DYNAMIC_STEP / GUI_MULTI_SLIDER
 };
 
 static std::vector<std::pair<std::string, GPUDisplayGUIValue>> guiSliderValues(std::initializer_list<GPUDisplayGUIValue> values) // Choices of GUI_SLIDER_VALUES, named by their value
@@ -454,7 +456,7 @@ void GPUDisplayFrontend::add_gui_binding(Args&&... args)
     using Type = GPUDisplayGUIChannel::ElementType;
     if (element.type.bitMask) { // The element sets / shows only these bits of the option
       element.set = [this, set = element.set, get = element.get, mask = element.type.bitMask](const GPUDisplayGUIValue& v) {
-        const int64_t current = std::get<int64_t>(get({mDisplay->mCfgH, mDisplay->mCfgL, mDisplay->mCfgR, mDisplay->mCfgC}));
+        const int64_t current = std::get<int64_t>(get({mDisplay->mCfgH, mDisplay->mCfgL, mDisplay->mCfgR, mDisplay->mCfgO, mDisplay->mCfgC}));
         set(std::get<int64_t>(v) ? (current | mask) : (current & ~mask));
       };
       element.get = [get = element.get, mask = element.type.bitMask](const GPUDisplayGUIChannel::Settings& cfg) -> GPUDisplayGUIValue { return (int64_t)((std::get<int64_t>(get(cfg)) & mask) != 0); };
@@ -521,7 +523,7 @@ void GPUDisplayFrontend::applyGUIValues(const GPUDisplayGUIUpdate& update)
       GPUError("Invalid value from the GUI for element %u: %s", id, ex.what());
       continue;
     }
-    if (mDisplay->mCfgC.guiPrintInfo && e.rttiIndex < mConfiguration->configInfos.size()) {
+    if (mDisplay->mCfgO.guiPrintInfo && e.rttiIndex < mConfiguration->configInfos.size()) {
       showConfigInfo(e.rttiIndex);
     }
   }
@@ -670,8 +672,8 @@ void GPUDisplay::buildConfig()
   auto& rtti = mFrontend->mConfiguration;
   rtti = {new GPUDisplayFrontend::GPUDisplayConfiguration, [](GPUDisplayFrontend::GPUDisplayConfiguration* p) { delete p; }};
 
-  rtti->configKeys.fill(GPUDisplayFrontend::GPUDisplayConfiguration::KEY_UNBOUND);
-  rtti->currentMappedKeys.assign(GPUDisplayFrontend::KEY_MAP_MAX, -1);
+  rtti->unbindAllKeys();
+  mFrontend->mKeyDownMap.fill(0); // Set again by buildConfigKeys, also when the display is started again
   rtti->keyNames.resize(rtti->configKeys.size());
   rtti->keyMapNames.resize(GPUDisplayFrontend::KEY_MAP_MAX + 1); // Including MAX
 #define GPUDisplayFrontendAddKey(code, key) rtti->keyNames[code] = #key
@@ -846,6 +848,14 @@ std::optional<std::string> GPUDisplayFrontend::GPUDisplayConfiguration::valueStr
     return qConfig::print_type(*(const int32_t*)ptr);
   } else if (e.type == "uint32_t") {
     return qConfig::print_type(*(const uint32_t*)ptr);
+  } else if (e.type == "int64_t") {
+    return qConfig::print_type(*(const int64_t*)ptr);
+  } else if (e.type == "uint64_t") {
+    return qConfig::print_type(*(const uint64_t*)ptr);
+  } else if (e.type == "GPUDisplayCopyableAtomic<int32_t>") {
+    return qConfig::print_type(((const GPUDisplayCopyableAtomic<int32_t>*)ptr)->load());
+  } else if (e.type == "GPUDisplayCopyableAtomic<bool>") {
+    return qConfig::print_type(((const GPUDisplayCopyableAtomic<bool>*)ptr)->load());
   } else if (e.type == "std::string") {
     return *(const std::string*)ptr;
   }

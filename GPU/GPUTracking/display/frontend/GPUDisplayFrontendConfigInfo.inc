@@ -20,16 +20,16 @@
 void GPUDisplay::buildConfigInfo()
 {
   auto addInfo = [this](std::pair<uint32_t, configKeyCallback>&& info) { mFrontend->mConfiguration->configInfos[info.first] = std::move(info.second); };
-  static constexpr std::tuple noInfo{&GPUDisplayControl::dummy, &GPUDisplayControl::showConsole, &GPUSettingsDisplayLight::drawClusters, &GPUSettingsDisplayLight::drawInitLinks, &GPUSettingsDisplayLight::drawLinks, &GPUSettingsDisplayLight::drawSeeds,
+  static constexpr std::tuple noInfo{&GPUDisplayControl::showConsole, &GPUSettingsDisplayLight::drawClusters, &GPUSettingsDisplayLight::drawInitLinks, &GPUSettingsDisplayLight::drawLinks, &GPUSettingsDisplayLight::drawSeeds,
                                      &GPUSettingsDisplayLight::drawTracklets, &GPUSettingsDisplayLight::drawTracks, &GPUSettingsDisplayLight::drawExtrapolatedTracks, &GPUSettingsDisplayLight::drawFinal}; // Options without info, not even the generic one
   std::apply([this](auto... member) { ((mFrontend->mConfiguration->configInfos[mFrontend->mConfiguration->getRTTIIndex(*this, member)] = []() {}), ...); }, noInfo);
   addInfo(INFO_LAMBDA(mCfgC, displayControl, if (val == 2) { SetInfo("Exiting", 1); }));
   addInfo(INFO_LAMBDA(mCfgC, resetScene, SetInfo("View reset", 1);));
   addInfo(INFO_LAMBDA(mCfgC, requestScreenshot, SetInfo("Taking screenshot (%s)", mScreenshotFile.c_str());));
-  addInfo(INFO_LAMBDA(mCfgC, animateScreenshot, SetInfo("Writing screenshots from animation set to %d", val);));
-  addInfo(INFO_LAMBDA(mCfgC, animationChangeConfig, SetInfo("Interpolating visualization settings during Animation %s", val ? "enabled" : "disabled");));
-  addInfo(INFO_LAMBDA(mCfgC, printInfoTextAlways, SetInfo(val ? "Showing help text until disabled" : (mInfoHelpTimer.IsRunning() ? "Showing help text" : "Showing help text disabled"), 1);));
-  addInfo(INFO_LAMBDA(mCfgC, printInfoText, SetInfo("Info text display - console: %s, onscreen %s", (val & 2) ? "enabled" : "disabled", (val & 1) ? "enabled" : "disabled");));
+  addInfo(INFO_LAMBDA(mCfgO, animateScreenshot, SetInfo("Writing screenshots from animation set to %d", val);));
+  addInfo(INFO_LAMBDA(mCfgO, animationChangeConfig, SetInfo("Interpolating visualization settings during Animation %s", val ? "enabled" : "disabled");));
+  addInfo(INFO_LAMBDA(mCfgO, printInfoTextAlways, SetInfo(val ? "Showing help text until disabled" : (mInfoHelpTimer.IsRunning() ? "Showing help text" : "Showing help text disabled"), 1);));
+  addInfo(INFO_LAMBDA(mCfgO, printInfoText, SetInfo("Info text display - console: %s, onscreen %s", (val & 2) ? "enabled" : "disabled", (val & 1) ? "enabled" : "disabled");));
   addInfo(INFO_LAMBDA(mCfgL, colorClusters, SetInfo("Color coding for seed / trrack attachmend %s", val ? "enabled" : "disabled");));
   addInfo(INFO_LAMBDA(mCfgL, drawSector, {
     if (val == -1) {

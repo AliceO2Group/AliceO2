@@ -167,16 +167,16 @@ void GPUDisplayFrontend::buildConsoleCommands()
                                         }
                                       },
                                       "i", "Select an animation point (-1: none): loads its settings and camera, later changes of the light settings are stored in it"};
-  auto fileCommand = [this](std::string GPUDisplayControl::* file, void (GPUDisplay::*function)()) { // Sets the file name option (as in the GUI) and runs the function
+  auto fileCommand = [this](std::string GPUDisplayOptions::* file, void (GPUDisplay::*function)()) { // Sets the file name option (as in the GUI) and runs the function
     return [this, file, function](args a) {
-      mDisplay->mCfgC.*file = std::get<std::string>(a[0]);
+      mDisplay->mCfgO.*file = std::get<std::string>(a[0]);
       (mDisplay->*function)();
     };
   };
-  commands["saveCamera"] = {fileCommand(&GPUDisplayControl::glPosFile, &GPUDisplay::SaveGLPos), "s", "Save the camera position to the file"};
-  commands["loadCamera"] = {fileCommand(&GPUDisplayControl::glPosFile, &GPUDisplay::LoadGLPos), "s", "Load the camera position from the file"};
-  commands["saveAnimation"] = {fileCommand(&GPUDisplayControl::glAnimationFile, &GPUDisplay::SaveGLAnimation), "s", "Save the animation path to the file"};
-  commands["loadAnimation"] = {fileCommand(&GPUDisplayControl::glAnimationFile, &GPUDisplay::LoadGLAnimation), "s", "Load the animation path from the file"};
+  commands["saveCamera"] = {fileCommand(&GPUDisplayOptions::glPosFile, &GPUDisplay::SaveGLPos), "s", "Save the camera position to the file"};
+  commands["loadCamera"] = {fileCommand(&GPUDisplayOptions::glPosFile, &GPUDisplay::LoadGLPos), "s", "Load the camera position from the file"};
+  commands["saveAnimation"] = {fileCommand(&GPUDisplayOptions::glAnimationFile, &GPUDisplay::SaveGLAnimation), "s", "Save the animation path to the file"};
+  commands["loadAnimation"] = {fileCommand(&GPUDisplayOptions::glAnimationFile, &GPUDisplay::LoadGLAnimation), "s", "Load the animation path from the file"};
   commands["moveCamera"] = {[this, floatNumber](args a) {
                               const float xyz[3] = {mDisplay->mXYZ[0] + floatNumber(a[0]), mDisplay->mXYZ[1] + floatNumber(a[1]), mDisplay->mXYZ[2] + floatNumber(a[2])};
                               const float angles[3] = {mDisplay->mAngle[0], mDisplay->mAngle[1], mDisplay->mAngle[2]};
@@ -195,9 +195,9 @@ void GPUDisplayFrontend::buildConsoleCommands()
                           }
                         },
                         "ddd", "Turn the camera to the point x y z, keeping its position"};
-  static constexpr std::string_view groups = "lhrc"; // Order of GPUDisplayConfiguration::configStructs
+  static constexpr std::string_view groups = "lhroc"; // Order of GPUDisplayConfiguration::configStructs
   auto optionName = [this](uint32_t i) { return std::string(1, groups[mConfiguration->rttiEntries[i].configStructIndex]) + "." + mConfiguration->rttiEntries[i].name; };
-  auto findOptions = [this](const std::string& name, bool allowGroups) -> std::vector<uint32_t> { // Indices of the option l.name, with allowGroups also of the group l / h / r / c or all; empty if not found
+  auto findOptions = [this](const std::string& name, bool allowGroups) -> std::vector<uint32_t> { // Indices of the option l.name, with allowGroups also of the group l / h / r / o / c or all; empty if not found
     const size_t group = name.size() && (name.size() == 1 ? allowGroups : name[1] == '.') ? groups.find(name[0]) : std::string_view::npos;
     std::vector<uint32_t> retVal;
     for (uint32_t i = 0; i < mConfiguration->rttiEntries.size(); i++) {
@@ -208,10 +208,8 @@ void GPUDisplayFrontend::buildConsoleCommands()
     }
     return retVal;
   };
-  auto transient = [this](uint32_t i) { // Control values that are actions / state, not settings: not saved, not reset with a group
-    const auto& e = mConfiguration->rttiEntries[i];
-    return e.type.starts_with("GPUDisplayCopyableAtomic") || e.name == "requestScreenshot" || e.name == "showConsole" || e.name == "dummy" || e.name == "animationPoints"; // TODO: Settings struct should be split in transient and none-transient, to get rid of these string compares
-  };
+  auto controlState = [this](uint32_t i) { return mConfiguration->rttiEntries[i].configStructIndex == GPUDisplayConfiguration::configStructIndex<GPUDisplayControl>(); }; // Control state and actions (mCfgC): not saved, not reset with a group
+
   auto defaultValue = [this](uint32_t i) -> GPUDisplayConsole::consoleArg { // Default from the RTTI, as setValue expects it
     const auto& e = mConfiguration->rttiEntries[i];
     if (e.type == "std::string" || e.type == "bool") {
@@ -239,34 +237,34 @@ void GPUDisplayFrontend::buildConsoleCommands()
                        const std::string& name = std::get<std::string>(a[0]);
                        const auto index = findOptions(name, false);
                        if (index.empty()) {
-                         mConsole->consolePrint("set: unknown option %s, expected l. / h. / r. / c. and the name", name.c_str());
+                         mConsole->consolePrint("set: unknown option %s, expected l. / h. / r. / o. / c. and the name", name.c_str());
                          return;
                        }
                        if (const std::string error = mConfiguration->setValue(*mDisplay, index[0], a[1]); error.size()) {
                          mConsole->consolePrint("set %s: %s", name.c_str(), error.c_str());
                        } // Quiet: no info text, no GUI setter
                      },
-                     "sa", "Set an option: l. / h. / r. / c. (light, heavy, renderer, control settings) and its name, value"};
+                     "sa", "Set an option: l. / h. / r. / o. / c. (light, heavy, renderer, options, control) and its name, value"};
   commands["print"] = {[this, findOptions, optionName](args a) {
                          const std::string& name = std::get<std::string>(a[0]);
                          const auto index = findOptions(name, true);
                          if (index.empty()) {
-                           mConsole->consolePrint("print: unknown option %s, expected all, l / h / r / c, or l. / h. / r. / c. and an option name", name.c_str());
+                           mConsole->consolePrint("print: unknown option %s, expected all, l / h / r / o / c, or l. / h. / r. / o. / c. and an option name", name.c_str());
                          }
                          for (uint32_t i : index) {
                            const auto value = mConfiguration->valueString(*mDisplay, i);
                            mConsole->consolePrint("%s = %s", optionName(i).c_str(), value ? value->c_str() : "(type not supported)");
                          }
                        },
-                       "s", "Print an option (l. / h. / r. / c. and its name), a group (l / h / r / c), or all"};
-  commands["reset"] = {[this, findOptions, transient, defaultValue, optionName](args a) {
+                       "s", "Print an option (l. / h. / r. / o. / c. and its name), a group (l / h / r / o / c), or all"};
+  commands["reset"] = {[this, findOptions, controlState, defaultValue, optionName](args a) {
                          const std::string& name = std::get<std::string>(a[0]);
                          const auto index = findOptions(name, true);
                          if (index.empty()) {
-                           mConsole->consolePrint("reset: unknown option %s, expected all, l / h / r / c, or l. / h. / r. / c. and an option name", name.c_str());
+                           mConsole->consolePrint("reset: unknown option %s, expected all, l / h / r / o / c, or l. / h. / r. / o. / c. and an option name", name.c_str());
                          }
                          for (uint32_t i : index) {
-                           if (index.size() > 1 && transient(i)) {
+                           if (index.size() > 1 && controlState(i)) {
                              continue;
                            }
                            if (const std::string error = mConfiguration->setValue(*mDisplay, i, defaultValue(i)); error.size()) {
@@ -274,7 +272,7 @@ void GPUDisplayFrontend::buildConsoleCommands()
                            } // Quiet as set
                          }
                        },
-                       "s", "Reset an option, a group (l / h / r / c, without control actions such as showConsole), or all to the defaults"};
+                       "s", "Reset an option, a group (l / h / r / o / c, without the control state c), or all to the defaults"};
   commands["describe"] = {[this, findOptions, optionName](args a) {
                             const auto index = findOptions(std::get<std::string>(a[0]), false);
                             if (index.empty()) {
@@ -294,7 +292,7 @@ void GPUDisplayFrontend::buildConsoleCommands()
                             mConsole->consolePrint("  value %s, default %s%s%s%s%s", value ? value->c_str() : "(type not supported)", e.defaultValue.c_str(), e.min.size() ? ", min " : "", e.min.c_str(), e.max.size() ? ", max " : "", e.max.c_str());
                             mConsole->consolePrint("  keys %s, %s", keys.empty() ? "none" : keys.c_str(), inGUI ? "in the Qt GUI" : "not in the Qt GUI");
                           },
-                          "s", "Describe an option (l. / h. / r. / c. and its name): type, description, value, default, range, keys, GUI"};
+                          "s", "Describe an option (l. / h. / r. / o. / c. and its name): type, description, value, default, range, keys, GUI"};
   commands["find"] = {[this, optionName](args a) {
                         auto lower = [](std::string s) {
                           std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return std::tolower(c); });
@@ -312,7 +310,7 @@ void GPUDisplayFrontend::buildConsoleCommands()
                         mConsole->consolePrint("find: %u options", n);
                       },
                       "s", "Find options whose name or description contains the text (case insensitive)"};
-  commands["saveSettings"] = {[this, transient, optionName](args a) {
+  commands["saveSettings"] = {[this, controlState, optionName](args a) {
                                 const std::string& file = std::get<std::string>(a[0]);
                                 std::ofstream out(file);
                                 if (!out) {
@@ -321,7 +319,7 @@ void GPUDisplayFrontend::buildConsoleCommands()
                                 }
                                 for (uint32_t i = 0; i < mConfiguration->rttiEntries.size(); i++) {
                                   const auto value = mConfiguration->valueString(*mDisplay, i, true);
-                                  if (!value || transient(i)) {
+                                  if (!value || controlState(i)) {
                                     continue;
                                   } else if (value->find_first_of("\r\n") != std::string::npos) {
                                     mConsole->consolePrint("saveSettings: %s not saved, scripts cannot contain line breaks", optionName(i).c_str());
@@ -336,7 +334,7 @@ void GPUDisplayFrontend::buildConsoleCommands()
                                   out << "set " << optionName(i) << " " << text << "\n";
                                 }
                                 const float toDeg = 180.f / CAMath::Pi();
-                                out << std::setprecision(std::numeric_limits<float>::max_digits10); // Exact camera
+                                out << std::setprecision(std::numeric_limits<float>::max_digits10); // Camera position exact, angles up to the conversion to degrees
                                 out << "setXYZ " << mDisplay->mXYZ[0] << " " << mDisplay->mXYZ[1] << " " << mDisplay->mXYZ[2] << "\n";
                                 out << "setCameraAngles " << mDisplay->mAngle[1] * toDeg << " " << mDisplay->mAngle[0] * toDeg << " " << mDisplay->mAngle[2] * toDeg << "\n";
                                 mConsole->consolePrint("Settings and camera saved to %s", file.c_str());
@@ -358,7 +356,7 @@ void GPUDisplayFrontend::buildConsoleCommands()
                                mConsole->consolePrint("Camera: x %f y %f z %f, yaw %f pitch %f roll %f", mDisplay->mXYZ[0], mDisplay->mXYZ[1], mDisplay->mXYZ[2], mDisplay->mAngle[1] * toDeg, mDisplay->mAngle[0] * toDeg, mDisplay->mAngle[2] * toDeg);
                              },
                              "", "Print the camera position and direction (degrees)"};
-  commands["printStatus"] = {[this](args) { mConsole->consolePrint("%s", mDisplay->mGUIInfoStatus.empty() ? "No status yet (c.printInfoText / c.printInfoTextGUI)" : mDisplay->mGUIInfoStatus.c_str()); }, "", "Print the status line (FPS, counts, camera), updated every second"};
+  commands["printStatus"] = {[this](args) { mConsole->consolePrint("%s", mDisplay->mGUIInfoStatus.empty() ? "No status yet (o.printInfoText / o.printInfoTextGUI)" : mDisplay->mGUIInfoStatus.c_str()); }, "", "Print the status line (FPS, counts, camera), updated every second"};
   commands["unbindKey"] = {[this, parseKey, unbind](args a) {
                              const int32_t key = parseKey(a[0]);
                              if (key < 0) {
@@ -379,13 +377,8 @@ void GPUDisplayFrontend::buildConsoleCommands()
                                },
                                "", "Print the help text of the keys (as h), with the current key bindings"};
   commands["unbindAll"] = {[this](args) {
-                             mConfiguration->configKeys.fill(GPUDisplayConfiguration::KEY_UNBOUND);
-                             mConfiguration->currentMappedKeys.assign(KEY_MAP_MAX, -1);
-                             for (auto& keys : mConfiguration->currentActionKeys) {
-                               keys.clear();
-                             }
+                             mConfiguration->unbindAllKeys();
                              mKeyDownMap.fill(0);
-                             mConfiguration->helpTextUpToDate = false;
                            },
                            "", "Remove all key bindings (actions and key down mappings, also the key of the console)"};
   commands["saveKeyBindings"] = {[this](args a) {

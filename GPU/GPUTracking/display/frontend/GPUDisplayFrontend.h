@@ -61,7 +61,7 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface, public GPUDisplay
   static constexpr int32_t GL_MIN_VERSION_MAJOR = 4;
   static constexpr int32_t GL_MIN_VERSION_MINOR = 6;
 
-  int32_t StartDisplay();                      // Start the display. This function returns, and should spawn a thread that runs the display, and calls InitDisplay
+  int32_t StartDisplay();                      // Start the display: spawns the frontend thread (FrontendThreadWrapper, calls InitDisplay), returns after both threads are initialized
   void StopDisplay() override;                 // Stop the display. Display thread should call ExitDisplay. Functions waits for display thread to terminate
   virtual void SwitchFullscreen(bool set) = 0; // Toggle full-screen mode
   virtual void ToggleMaximized(bool set) = 0;  // Maximize window
@@ -141,7 +141,6 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface, public GPUDisplay
   void HandleKey(uint8_t key);                     // Callback for handling key presses
   bool consoleShown() const;                       // Key presses go to the console, frontends do not set mKeys
   void HandleExternalGUISignals();                 // Callback to handle signals from external GUIs
-  bool HasExternalGUISignals() const;              // Returns whether there are currently pending signals from external GUIs to be handled
   bool processKeyLambda(uint32_t key);             // Process key lambda callback
   void showConfigInfo(uint32_t index);             // Info for a changed option (index in the config RTTI): its info callback, or "struct.option changed to value"
   void ResizeScene(int32_t width, int32_t height); // Callback when GL window is resized
