@@ -70,6 +70,7 @@ struct GPUDisplayGUIChannel {
     GPUSettingsDisplayHeavy mCfgH;
     GPUSettingsDisplayLight mCfgL;
     GPUSettingsDisplayRenderer mCfgR;
+    GPUDisplayOptions mCfgO;
     GPUDisplayControl mCfgC;
   };
   enum class ElementType : uint8_t { CHECKBOX,

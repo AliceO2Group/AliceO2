@@ -440,6 +440,8 @@ struct SliderRange {                           // Slider positions of a range of
 };
 } // namespace
 
+static float clampScale(float scale) { return std::clamp(scale, 0.25f, 4.f); }
+
 static bool fixedLengthSlider(const GPUDisplayGUIChannel::Element& el) // Discrete / integer sliders with few steps, others stretch to the frame border
 {
   static constexpr double MAX_FIXED_LENGTH_STEPS = 16;
@@ -579,10 +581,10 @@ void GPUDisplayGUI::timerTick()
     mChannel.updatePosted();
   }
   if (newState) {
-    if (mState.cfg.mCfgC.guiDarkMode < 0) {
+    if (mState.cfg.mCfgO.guiDarkMode < 0) {
       mUpdate.guiDarkMode = mDarkMode; // Report the system scheme, also shows up in the DarkMode checkbox
-    } else if ((mState.cfg.mCfgC.guiDarkMode != 0) != mDarkMode) {
-      setDarkMode(mState.cfg.mCfgC.guiDarkMode != 0);
+    } else if ((mState.cfg.mCfgO.guiDarkMode != 0) != mDarkMode) {
+      setDarkMode(mState.cfg.mCfgO.guiDarkMode != 0);
     }
     if (mState.infoTextCounter != mInfoTextCounter) {
       mInfoTextCounter = mState.infoTextCounter;
@@ -646,8 +648,8 @@ void GPUDisplayGUI::updateInfoLabels()
 
 void GPUDisplayGUI::applySettings()
 {
-  if (mState.cfg.mCfgC.guiScale != mScale) { // Changed by the display (Reset GUI button) or from a previous GUI session
-    setScale(mState.cfg.mCfgC.guiScale);
+  if (clampScale(mState.cfg.mCfgO.guiScale) != mScale) { // Changed by the display (Reset GUI button, console) or from a previous GUI session, clamped as by setScale
+    setScale(mState.cfg.mCfgO.guiScale);
   }
   for (auto& element : mElements) {
     applyElement(element);
@@ -953,7 +955,7 @@ QWidget* GPUDisplayGUI::buildElements(const std::vector<GPUDisplayGUIChannel::Fr
 
 void GPUDisplayGUI::setScale(float scale)
 {
-  mScale = std::clamp(scale, 0.25f, 4.f);
+  mScale = clampScale(scale);
   for (const auto& setter : mScaleSetters) {
     setter(mScale);
   }

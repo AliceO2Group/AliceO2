@@ -37,7 +37,7 @@ void GPUDisplay::setAnimationPoint()
 {
   StopAnimation();
   auto& times = mCfgC.animationPoints.values;
-  times.emplace_back(times.size() ? times.back() + ((int32_t)(mCfgC.animationDelay * 20)) / 20.f : 0.f);
+  times.emplace_back(times.size() ? times.back() + ((int32_t)(mCfgO.animationDelay * 20)) / 20.f : 0.f);
   mAnimationVectors.push_back({{mXYZ[0], mXYZ[1], mXYZ[2], mAngle[0], mAngle[1], mAngle[2]}, mCfgL});
   mCfgC.animationPoints.selected = -1;
 }
@@ -125,7 +125,7 @@ void GPUDisplay::addAnimationPoint(const float (&xyz)[3], const float (&angles)[
 {
   const hmm_mat4 oldViewMatrix = *mViewMatrix;
   setCamera(xyz, angles);
-  setAnimationPoint(); // From mXYZ / mAngle / mViewMatrix, as for the current camera
+  setAnimationPoint(); // From mXYZ / mAngle set by setCamera, as for the current camera
   *mViewMatrix = oldViewMatrix;
   calcXYZ(&mViewMatrix->Elements[0][0]);
 }
@@ -168,17 +168,16 @@ void GPUDisplay::selectAnimationPoint(int32_t i)
   }
   mCfgC.animationPoints.selected = i;
   mCfgL = mAnimationVectors[i].cfgL;
-  setCameraFromAnimationPoint(mAnimationVectors[i]);
+  const auto& v = mAnimationVectors[i].v;
+  setCamera({v[0], v[1], v[2]}, {v[3], v[4], v[5]});
 }
-
-void GPUDisplay::setCameraFromAnimationPoint(const animationVector& p) { setCamera({p.v[0], p.v[1], p.v[2]}, {p.v[3], p.v[4], p.v[5]}); }
 
 void GPUDisplay::StopAnimation()
 {
   if (!mAnimate) {
     return;
   }
-  mAnimate = mCfgC.animateScreenshot = 0;
+  mAnimate = mCfgO.animateScreenshot = 0;
   mAnimationMixBase = -1; // Camera and settings stay as they are
   mUpdateDrawCommands = true;
   SetInfo("Animation stopped", 1);
@@ -219,13 +218,13 @@ void GPUDisplay::updateAnimationPointsGUI()
 {
   auto& gui = mCfgC.animationPoints;
   gui.progress = mAnimate ? gui.progress : 0;                                                             // Set by animateCamera while the animation runs
-  gui.max = (gui.values.size() ? gui.values.back() : 0.) + ((int32_t)(mCfgC.animationDelay * 20)) / 20.f; // Room for the next point
+  gui.max = (gui.values.size() ? gui.values.back() : 0.) + ((int32_t)(mCfgO.animationDelay * 20)) / 20.f; // Room for the next point
 }
 
 void GPUDisplay::runAnimation()
 {
   if (mAnimationVectors.size() > 1) {
-    if (mCfgC.animateScreenshot) {
+    if (mCfgO.animateScreenshot) {
       mAnimationExport++;
     }
     startAnimation();
@@ -266,7 +265,7 @@ int32_t GPUDisplay::animateCamera(bool suspended, float& animateTime, float& mix
 {
   float time = animateTime;
   if (mAnimate && time < 0) {
-    if (mCfgC.animateScreenshot) {
+    if (mCfgO.animateScreenshot) {
       time = mAnimationFrame / 30.f;
     } else {
       time = mAnimationTimer.GetCurrentElapsedTime();
@@ -276,7 +275,7 @@ int32_t GPUDisplay::animateCamera(bool suspended, float& animateTime, float& mix
     mCfgC.animationPoints.progress = std::lround(std::clamp(time / maxTime, 0.f, 1.f) * 65535);
     if (time >= maxTime) {
       time = maxTime;
-      mAnimate = mCfgC.animateScreenshot = 0;
+      mAnimate = mCfgO.animateScreenshot = 0;
       SetInfo("Animation finished. (%1.2f seconds, %d frames)", time, mAnimationFrame);
     } else {
       SetInfo("Running mAnimation: time %1.2f/%1.2f, frames %d", time, maxTime, mAnimationFrame);
@@ -286,7 +285,7 @@ int32_t GPUDisplay::animateCamera(bool suspended, float& animateTime, float& mix
   if (!mAnimate) {
     return 0;
   }
-  if (mCfgC.animationChangeConfig && animateTime < 0) {
+  if (mCfgO.animationChangeConfig && animateTime < 0) {
     int32_t base = 0;
     const auto& times = mCfgC.animationPoints.values;
     int32_t k = mAnimationVectors.size() - 1;
@@ -341,11 +340,10 @@ int32_t GPUDisplay::animateCamera(bool suspended, float& animateTime, float& mix
     float qA[4], qB[4], vals[8];
     createQuaternionFromMatrix(qA, &viewA.Elements[0][0]);
     createQuaternionFromMatrix(qB, &viewB.Elements[0][0]);
-    const float sign = qA[0] * qB[0] + qA[1] * qB[1] + qA[2] * qB[2] + qA[3] * qB[3] < 0 ? -1.f : 1.f; // Shorter way
-    for (int32_t i = 0; i < 3; i++) {                                                                  // Camera position, as calcXYZ
-      const float posA = -(viewA.Elements[i][0] * viewA.Elements[3][0] + viewA.Elements[i][1] * viewA.Elements[3][1] + viewA.Elements[i][2] * viewA.Elements[3][2]);
-      const float posB = -(viewB.Elements[i][0] * viewB.Elements[3][0] + viewB.Elements[i][1] * viewB.Elements[3][1] + viewB.Elements[i][2] * viewB.Elements[3][2]);
-      vals[i] = (1 - w) * posA + w * posB;
+    const float sign = qA[0] * qB[0] + qA[1] * qB[1] + qA[2] * qB[2] + qA[3] * qB[3] < 0 ? -1.f : 1.f;                                                                               // Shorter way
+    auto position = [](const hmm_mat4& m, int32_t i) { return -(m.Elements[i][0] * m.Elements[3][0] + m.Elements[i][1] * m.Elements[3][1] + m.Elements[i][2] * m.Elements[3][2]); }; // Camera position, as calcXYZ
+    for (int32_t i = 0; i < 3; i++) {
+      vals[i] = (1 - w) * position(viewA, i) + w * position(viewB, i);
     }
     vals[3] = 0;
     for (int32_t i = 0; i < 4; i++) {

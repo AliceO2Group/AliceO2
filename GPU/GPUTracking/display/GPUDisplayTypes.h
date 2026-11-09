@@ -16,6 +16,7 @@
 #define GPUDISPLAYTYPES_H
 
 #include "utils/vecpod.h"
+#include <atomic>
 #include <cstdint>
 #include <ostream>
 

@@ -263,8 +263,8 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(bool suspended, float animateTim
   mFrontend->mMouseWheel = 0;
   bool lookOrigin = mCfgR.camLookOrigin ^ mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_FOCUS_ORIGIN]];
   bool yUp = mCfgR.camYUp ^ mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_FOCUS_ORIENT_UP]] ^ lookOrigin;
-  bool rotateModelTPC = mCfgC.rotateAroundZ || mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_ROTATE_AROUND_Z]];
-  bool rotateModel = rotateModelTPC || mCfgC.rotateModel || mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_ROTATE_MODEL]];
+  bool rotateModelTPC = mCfgO.rotateAroundZ || mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_ROTATE_AROUND_Z]];
+  bool rotateModel = rotateModelTPC || mCfgO.rotateModel || mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_ROTATE_MODEL]];
 
   // Calculate rotation / translation scaling factors
   float scalefactor = mFrontend->mKeys[mFrontend->KEY_SHIFT] ? 0.2f : 1.0f;
@@ -324,15 +324,15 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(bool suspended, float animateTim
     }
 
     if (mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_CHANGE_ANIMATION_INTERVAL]]) {
-      mCfgC.animationDelay += moveX;
-      if (mCfgC.animationDelay < 0.05f) {
-        mCfgC.animationDelay = 0.05f;
-      } else if (mCfgC.animationDelay > 20.f) {
-        mCfgC.animationDelay = 20.f;
+      mCfgO.animationDelay += moveX;
+      if (mCfgO.animationDelay < 0.05f) {
+        mCfgO.animationDelay = 0.05f;
+      } else if (mCfgO.animationDelay > 20.f) {
+        mCfgO.animationDelay = 20.f;
       }
       moveX = 0.f;
       moveY = 0.f;
-      SetInfo("Animation delay set to %1.2f", mCfgC.animationDelay);
+      SetInfo("Animation delay set to %1.2f", mCfgO.animationDelay);
     }
 
     if (yUp) {
@@ -641,15 +641,15 @@ void GPUDisplay::DrawGLScene_drawCommands()
 
 void GPUDisplay::DrawGLScene_internal(bool suspended, float animateTime, bool renderToMixBuffer) // negative time = no mixing
 {
-  if (mCfgC.requestScreenshot || mCfgC.animateScreenshot) {
+  if (mCfgC.requestScreenshot || mCfgO.animateScreenshot) {
     const uint32_t factor = std::max(1, mCfgR.drawQualityDownsampleFSAA) * std::max(1, mCfgR.screenshotScaleFactor);
     if (std::max(mBackend->mScreenWidth, mBackend->mScreenHeight) * factor > mBackend->mMaxRenderSize) {
       GPUError("Screenshot not taken: requested render size %u x %u (window x FSAA x screenshot scale) exceeds the maximum size %u x %u", mBackend->mScreenWidth * factor, mBackend->mScreenHeight * factor, mBackend->mMaxRenderSize, mBackend->mMaxRenderSize);
       mCfgC.requestScreenshot = false;
-      mCfgC.animateScreenshot = 0;
+      mCfgO.animateScreenshot = 0;
     }
   }
-  const bool animateScreenshot = mCfgC.animateScreenshot && mAnimate;        // Copy, the animation resets animateScreenshot in its last frame
+  const bool animateScreenshot = mCfgO.animateScreenshot && mAnimate;        // Copy, the animation resets animateScreenshot in its last frame
   const bool screenshotFrame = mCfgC.requestScreenshot || animateScreenshot; // Also for the mix pass (animateTime >= 0), which must use the same render size
   const bool doScreenshot = screenshotFrame && animateTime < 0;
 
@@ -724,7 +724,7 @@ void GPUDisplay::DrawGLScene_internal(bool suspended, float animateTime, bool re
              fps, mCfgL.drawSector, mCfgL.drawClusters, mCfgL.drawInitLinks, mCfgL.drawLinks, mCfgL.drawSeeds, mCfgL.drawTracklets, mCfgL.drawTracks, mCfgL.drawExtrapolatedTracks, mCfgL.drawFinal, mFramesDone, mNDrawCalls, mXYZ[0], mXYZ[1], mXYZ[2], mRPhiTheta[0], mRPhiTheta[1] * 180 / CAMath::Pi(),
              mRPhiTheta[2] * 180 / CAMath::Pi(), mAngle[1] * 180 / CAMath::Pi(), mAngle[0] * 180 / CAMath::Pi(), mAngle[2] * 180 / CAMath::Pi(), mBackend->mScreenWidth, mBackend->mScreenHeight);
     if (fpstime > 1.) {
-      if (mCfgC.printInfoText & 2) {
+      if (mCfgO.printInfoText & 2) {
         GPUInfo("%s", info);
       }
       if (mFPSScaleadjust++) {
@@ -735,12 +735,12 @@ void GPUDisplay::DrawGLScene_internal(bool suspended, float animateTime, bool re
     }
 
     const float consoleFraction = consoleVerticalFraction();
-    const bool drawText = (mCfgC.printInfoText & 1) || consoleFraction > 0.f;
+    const bool drawText = (mCfgO.printInfoText & 1) || consoleFraction > 0.f;
     if (drawText) {
       mBackend->updateFontScale(mFrontend->getDisplayScale());
       mBackend->prepareText();
     }
-    if (mCfgC.printInfoText & 1 || mCfgC.printInfoTextGUI) {
+    if (mCfgO.printInfoText & 1 || mCfgO.printInfoTextGUI) {
       showInfo(info);
     }
     if (consoleFraction > 0.f) {
@@ -769,7 +769,7 @@ void GPUDisplay::DrawGLScene_internal(bool suspended, float animateTime, bool re
     if (animateScreenshot) {
       snprintf(tmpFileName, 48, "%d_%05d.bmp", mAnimationExport, mAnimationFrame);
     }
-    DoScreenshot(animateScreenshot ? (mCfgC.mscreenShotName + tmpFileName).c_str() : mScreenshotFile.c_str(), pixels);
+    DoScreenshot(animateScreenshot ? (mCfgO.mscreenShotName + tmpFileName).c_str() : mScreenshotFile.c_str(), pixels);
   }
 }
 

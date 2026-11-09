@@ -89,6 +89,7 @@ class GPUDisplay : public GPUDisplayInterface
   GPUDisplayFrontend* frontend() { return mFrontend; }
   int32_t& drawTextFontSize() { return mDrawTextFontSize; }
 
+  GPUDisplayOptions mCfgO;
   GPUDisplayControl mCfgC;
 
  private:
@@ -192,9 +193,9 @@ class GPUDisplay : public GPUDisplayInterface
   void calcXYZ(const float*);
   void mAnimationCloseAngle(float& newangle, float lastAngle);
   void mAnimateCloseQuaternion(float* v, float lastx, float lasty, float lastz, float lastw);
-  void SaveGLPos(); // Camera position to mCfgC.glPosFile
+  void SaveGLPos(); // Camera position to mCfgO.glPosFile
   void LoadGLPos();
-  void SaveGLAnimation(); // Animation path to mCfgC.glAnimationFile
+  void SaveGLAnimation(); // Animation path to mCfgO.glAnimationFile
   void LoadGLAnimation();
   void takeScreenshot();
   void runAnimation(); // Starts the animation if it has enough points
@@ -207,12 +208,11 @@ class GPUDisplay : public GPUDisplayInterface
   void resetAnimation();
   void removeAnimationPoint(int32_t i = -1);                                                              // -1: the selected one, the last one if none is selected
   void StopAnimation();                                                                                   // Ends a running animation, camera and settings stay as they are; for changed settings (checkAndApplyConfigChanges), scene reset, changes of the animation points
-  void setCameraFromAnimationPoint(const animationVector& p);                                             // Camera stored in the point, as the animation shows it there
   void selectAnimationPoint(int32_t i);                                                                   // -1: none, otherwise also loads its light settings and camera
   void setAnimationPointsFromGUI(const GPUDisplayMultiSliderValue& points);                               // New times from the Qt GUI: reorders the points, selection
   void updateAnimationPointsGUI();                                                                        // Range end of the GUI multi slider: last time + animationDelay, progress 0 without animation
   void animationPointValues(const animationVector& p, int32_t mode, const float* last, float (&vals)[8]); // The 8 interpolated values of the point in this animation mode, angles / quaternion continuous to the values of the previous point (last, nullptr if none)
-  void animationViewMatrix(float (&vals)[8], int32_t mode, hmm_mat4& viewMatrix) const;                   // Camera of interpolated / stored animation values (v[1..8]), as animateCamera
+  void animationViewMatrix(float (&vals)[8], int32_t mode, hmm_mat4& viewMatrix) const;                   // Camera of interpolated / stored animation values (vals of animationPointValues), as animateCamera
   void startAnimation();
   int32_t animateCamera(bool suspended, float& animateTime, float& mixSlaveImage, hmm_mat4& nextViewMatrix);
   void showInfo(const char* info);

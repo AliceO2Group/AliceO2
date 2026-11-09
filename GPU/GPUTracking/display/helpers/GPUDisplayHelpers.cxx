@@ -60,12 +60,12 @@ void GPUDisplay::takeScreenshot()
 {
   static int32_t nScreenshot = 1;
   mCfgC.requestScreenshot = true;
-  mScreenshotFile = mCfgC.mscreenShotName + std::to_string(nScreenshot++) + ".bmp";
+  mScreenshotFile = mCfgO.mscreenShotName + std::to_string(nScreenshot++) + ".bmp";
 }
 
 void GPUDisplay::SaveGLPos()
 {
-  const char* file = mCfgC.glPosFile.c_str();
+  const char* file = mCfgO.glPosFile.c_str();
   FILE* ftmp = fopen(file, "w+b");
   if (!ftmp) {
     SetInfo("Error opening file %s", file);
@@ -78,7 +78,7 @@ void GPUDisplay::SaveGLPos()
 
 void GPUDisplay::LoadGLPos()
 {
-  const char* file = mCfgC.glPosFile.c_str();
+  const char* file = mCfgO.glPosFile.c_str();
   FILE* ftmp = fopen(file, "rb");
   if (!ftmp) {
     SetInfo("Error opening file %s", file);
@@ -95,7 +95,7 @@ void GPUDisplay::LoadGLPos()
 
 void GPUDisplay::SaveGLAnimation()
 {
-  const char* file = mCfgC.glAnimationFile.c_str();
+  const char* file = mCfgO.glAnimationFile.c_str();
   FILE* ftmp = fopen(file, "w+b");
   if (!ftmp) {
     SetInfo("Error opening file %s", file);
@@ -112,7 +112,7 @@ void GPUDisplay::SaveGLAnimation()
 void GPUDisplay::LoadGLAnimation()
 {
   StopAnimation();
-  const char* file = mCfgC.glAnimationFile.c_str();
+  const char* file = mCfgO.glAnimationFile.c_str();
   FILE* ftmp = fopen(file, "rb");
   if (!ftmp) {
     SetInfo("Error opening file %s", file);
@@ -197,10 +197,10 @@ void GPUDisplay::DoScreenshot(const char* filename, std::vector<char>& pixels, f
 
 void GPUDisplay::showInfo(const char* info)
 {
-  if (mCfgC.printInfoTextGUI) {
+  if (mCfgO.printInfoTextGUI) {
     mGUIInfoStatus = info;
   }
-  if (!(mCfgC.printInfoText & 1)) {
+  if (!(mCfgO.printInfoText & 1)) {
     return;
   }
   float colorValue = mCfgL.invertColors ? 0.f : 1.f;
@@ -213,7 +213,7 @@ void GPUDisplay::showInfo(const char* info)
       GLPrintText(mInfoText2, 40.f, 20.f, colorValue, colorValue, colorValue, time <= shown ? 1.f : 1.f - (time - shown) / transition); // Opaque, then fading out
     }
   }
-  if (mInfoHelpTimer.IsRunning() || mCfgC.printInfoTextAlways) {
+  if (mInfoHelpTimer.IsRunning() || mCfgO.printInfoTextAlways) {
     if (mInfoHelpTimer.GetCurrentElapsedTime() >= 6) {
       mInfoHelpTimer.Reset();
     } else {

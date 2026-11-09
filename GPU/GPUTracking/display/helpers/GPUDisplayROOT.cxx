@@ -41,13 +41,13 @@ int32_t GPUDisplay::buildTrackFilter()
     std::string name = trackFilterName();
     const bool custom = (uint32_t)mCfgH.trackFilter > mConfig.filterMacros.size();
     if (custom) { // Code from the Qt GUI, written to a temporary file with a new name for every change, so that ROOT loads it again
-      if (mCfgC.filterMacroCustom.empty()) {
+      if (mCfgO.filterMacroCustom.empty()) {
         GPUError("No custom track filter macro set");
         return 1;
       }
       static uint32_t nCustomMacro = 0;
       name = (std::filesystem::temp_directory_path() / ("o2_gpu_display_track_filter_" + std::to_string(getpid()) + "_" + std::to_string(nCustomMacro++) + ".C")).string();
-      std::ofstream(name) << mCfgC.filterMacroCustom << "\n";
+      std::ofstream(name) << mCfgO.filterMacroCustom << "\n";
     }
     if (!mTrackFilterMacroLoaded.empty()) {                                    // All macros define gpuDisplayTrackFilter, the previous one must be unloaded
       const bool recreate = !std::filesystem::exists(mTrackFilterMacroLoaded); // ROOT cannot unload a macro if its file no longer exists, the content does not matter
