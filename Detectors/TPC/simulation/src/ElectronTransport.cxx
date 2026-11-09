@@ -21,9 +21,15 @@
 using namespace o2::tpc;
 using namespace o2::math_utils;
 
-ElectronTransport::ElectronTransport() : mRandomGaus(), mRandomFlat(RandomRing<>::RandomType::Flat)
+ElectronTransport::ElectronTransport(TRandom* rng) : mRandomGaus(RandomRing<>::RandomType::Gaus, rng), mRandomFlat(RandomRing<>::RandomType::Flat, rng)
 {
   updateParameters();
+}
+
+void ElectronTransport::setRandomRingPositions(TRandom& rng)
+{
+  mRandomGaus.setRandomPosition(rng);
+  mRandomFlat.setRandomPosition(rng);
 }
 
 void ElectronTransport::updateParameters(float vdrift)

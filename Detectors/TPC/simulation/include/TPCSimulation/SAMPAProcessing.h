@@ -45,8 +45,15 @@ class SAMPAProcessing
     static SAMPAProcessing sampaProcessing;
     return sampaProcessing;
   }
+  /// Constructor
+  /// \param rng random generator to fill the random ring from, gRandom if null
+  explicit SAMPAProcessing(TRandom* rng = nullptr);
+
   /// Destructor
   ~SAMPAProcessing() = default;
+
+  /// Move the random ring to a new position drawn from rng
+  void setRandomRingPositions(TRandom& rng) { mRandomNoiseRing.setRandomPosition(rng); }
 
   /// Update the OCDB parameters cached in the class. To be called once per event
   void updateParameters(float vdrift = 0);
@@ -134,7 +141,6 @@ class SAMPAProcessing
   float getPedestalCRU(const int sector, const int globalPadInSector) const;
 
  private:
-  SAMPAProcessing();
   const ParameterGas* mGasParam;             ///< Caching of the parameter class to avoid multiple CDB calls
   const ParameterDetector* mDetParam;        ///< Caching of the parameter class to avoid multiple CDB calls
   const ParameterElectronics* mEleParam;     ///< Caching of the parameter class to avoid multiple CDB calls
