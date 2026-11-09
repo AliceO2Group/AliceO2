@@ -154,6 +154,15 @@ class Digitizer
   /// Set the timeframe identifier that enters the sector seeding
   void setSeedingTimeframe(ULong64_t timeframe) { mSeedingTimeframe = timeframe; }
 
+  /// Fill the random rings of the sector seeding, if not done yet
+  void initSectorSeeding();
+
+  /// Use copies of the sector-seeding random rings of another digitizer
+  void setSectorSeedingFrom(const Digitizer& other);
+
+  /// Whether flush() also flushes the process-wide debug streamer
+  void setFlushDebugStreamer(bool flush) { mFlushDebugStreamer = flush; }
+
  private:
   ElectronTransport& electronTransport();
   GEMAmplification& gemAmplification();
@@ -165,6 +174,7 @@ class Digitizer
   ULong64_t mSeed = 0;                                   //!< Base seed for sector seeding
   ULong64_t mSeedingTimeframe = 0;                       //!< Timeframe identifier for sector seeding
   bool mUseSectorSeeding = false;                        //!< Whether sector seeding is used
+  bool mFlushDebugStreamer = true;                       //!< Whether flush() flushes the debug streamer
 
   DigitContainer mDigitContainer;        ///< Container for the Digits
   std::vector<float> mSignalArray;       //!< Workspace for the shaped signal of one electron

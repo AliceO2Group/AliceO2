@@ -13,7 +13,6 @@
 #define STEER_DIGITIZERWORKFLOW_TPCSECTORDIGITIZATION_H_
 
 #include <functional>
-#include <mutex>
 #include <vector>
 #include <RtypesCore.h>
 #include "CommonDataFormat/RangeReference.h"
@@ -21,6 +20,10 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "TPCSimulation/CommonMode.h"
+#include "TPCCalibration/VDriftHelper.h"
+#include "Framework/ConcreteDataMatcher.h"
+#include "Framework/ConfigParamSpec.h"
+#include "Framework/InputSpec.h"
 
 class TChain;
 
@@ -30,6 +33,11 @@ namespace steer
 {
 class DigitizationContext;
 }
+namespace framework
+{
+class InitContext;
+class ProcessingContext;
+} // namespace framework
 namespace tpc
 {
 class Digitizer;
@@ -41,15 +49,36 @@ struct SectorFlushBuffers {
   std::vector<CommonMode> commonMode;
 };
 
-/// Digitize all collisions of one sector of a timeframe.
-/// After each flush the new output is in buffers and onFlush is called on the calling thread.
-/// The function makes no DPL calls. Concurrent calls need one Digitizer with sector seeding and one set of chains
-/// per thread, and a common cdbMutex, which serialises the calls that read calibrations through the CDBInterface.
+/// Digitize all collisions of one sector of a timeframe, calling onFlush after each flush
 /// \return the digit groups, one per collision part in triggered mode, one for the timeframe in continuous mode
 std::vector<dataformats::RangeReference<int, int>> digitizeSector(Digitizer& digitizer, const steer::DigitizationContext& context,
                                                                   const std::vector<TChain*>& simChains, int sector, ULong64_t timeframe,
-                                                                  SectorFlushBuffers& buffers, const std::function<void()>& onFlush,
-                                                                  std::mutex* cdbMutex = nullptr);
+                                                                  SectorFlushBuffers& buffers, const std::function<void()>& onFlush);
+
+/// CCDB conditions and calibration files of the TPC digitizer devices
+class TPCDigitizerConditions
+{
+ public:
+  /// options common to the TPC digitizer devices
+  static std::vector<framework::ConfigParamSpec> options();
+  /// CCDB inputs common to the TPC digitizer devices
+  static void addInputs(std::vector<framework::InputSpec>& inputs, int distortionType);
+
+  void init(framework::InitContext& ic, int distortionType);
+  /// pass a CCDB object to the digitizer; true if it was a TPC condition
+  bool finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj, Digitizer& digitizer);
+  /// fetch the conditions of a timeframe and prepare the digitizer, which then holds the distortions
+  /// \param setVDrift called with the drift velocity and time offset when they changed
+  void update(framework::ProcessingContext& pc, Digitizer& digitizer, const std::function<void(float, float)>& setVDrift);
+
+ private:
+  VDriftHelper mVDriftHelper{};
+  int mDistortionType = 0;
+  bool mUseCalibrationsFromCCDB = false;
+  bool mRecalcDistortions = false;
+  float mMeanLumiDistortions = -1;
+  float mMeanLumiDistortionsDerivative = -1;
+};
 
 } // namespace tpc
 } // namespace o2
