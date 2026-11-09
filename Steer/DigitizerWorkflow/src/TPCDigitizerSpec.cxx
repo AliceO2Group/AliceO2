@@ -15,6 +15,7 @@
 #include <cassert>
 #include "Framework/RootSerializationSupport.h"
 #include "TPCDigitizerSpec.h"
+#include "TPCDistortionMapFile.h"
 #include "Framework/ControlService.h"
 #include "Framework/ParallelContext.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -127,6 +128,13 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     mUseCalibrationsFromCCDB = ic.options().get<bool>("TPCuseCCDB");
     mMeanLumiDistortions = ic.options().get<float>("meanLumiDistortions");
     mMeanLumiDistortionsDerivative = ic.options().get<float>("meanLumiDistortionsDerivative");
+    if (const auto file = ic.options().get<std::string>("tpc-distortion-file"); !file.empty()) {
+      if (mDistortionType == 2 && mRecalcDistortions) {
+        mDistortionMapFile = std::make_unique<TPCDistortionMapFile>(file);
+      } else {
+        LOG(info) << "TPC: --tpc-distortion-file is only used for distortion type 2 with recalculation";
+      }
+    }
 
     LOG(info) << "TPC calibrations from CCDB: " << mUseCalibrationsFromCCDB;
 
@@ -230,13 +238,20 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     pc.inputs().get<ParameterGas*>("gasparam");
     pc.inputs().get<ParameterGEM*>("gemparam");
     if (mDistortionType) {
-      pc.inputs().get<SC*>("tpcdistortions");
-      if (mDistortionType == 2) {
-        pc.inputs().get<SC*>("tpcdistortionsderiv");
-        mDigitizer.setLumiScaleFactor();
-        if (mRecalcDistortions) {
-          mDigitizer.recalculateDistortions();
+      auto computeDistortions = [&]() {
+        pc.inputs().get<SC*>("tpcdistortions");
+        if (mDistortionType == 2) {
+          pc.inputs().get<SC*>("tpcdistortionsderiv");
+          mDigitizer.setLumiScaleFactor();
+          if (mRecalcDistortions) {
+            mDigitizer.recalculateDistortions();
+          }
         }
+      };
+      if (mDistortionMapFile) {
+        mDistortionMapFile->prepare(pc, mDigitizer, mMeanLumiDistortions, mMeanLumiDistortionsDerivative, computeDistortions);
+      } else {
+        computeDistortions();
       }
     }
 
@@ -495,6 +510,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
   int mDistortionType = 0;
   float mMeanLumiDistortions = -1;
   float mMeanLumiDistortionsDerivative = -1;
+  std::unique_ptr<TPCDistortionMapFile> mDistortionMapFile; ///< file sharing the scaled distortions between digitizers
   bool mRecalcDistortions = false;
 };
 
@@ -536,6 +552,7 @@ o2::framework::DataProcessorSpec getTPCDigitizerSpec(int channel, bool writeGRP,
       {"meanLumiDistortionsDerivative", VariantType::Float, -1.f, {"override lumi of derivative distortion object if >=0"}},
       {"do-not-recalculate-distortions", VariantType::Bool, false, {"Do not recalculate the distortions"}},
       {"n-threads-distortions", VariantType::Int, 4, {"Number of threads used for the calculation of the distortions"}},
+      {"tpc-distortion-file", VariantType::String, "", {"File in which the digitizers of one job share the scaled distortions (distortion type 2 with recalculation), computed once; keep it in the job directory"}},
     }};
 }
 

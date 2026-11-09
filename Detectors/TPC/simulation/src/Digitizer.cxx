@@ -235,8 +235,21 @@ void Digitizer::setStartTime(double time)
   mDigitContainer.setStartTime(starttimebin);
 }
 
+void Digitizer::setScaledSCDistortions(std::unique_ptr<SC> spaceCharge)
+{
+  mUseSCDistortions = true;
+  mSpaceCharge = std::move(spaceCharge);
+  mSpaceCharge->initAfterReadingFromFile();
+  mSpaceCharge->printMetaData();
+  mUseScaledDistortions = true;
+}
+
 void Digitizer::setLumiScaleFactor()
 {
+  if (!mSpaceCharge || !mSpaceChargeDer) {
+    LOGP(info, "Average or derivative distortions not set");
+    return;
+  }
   mLumiScaleFactor = (CorrMapParam::Instance().lumiInst - mSpaceCharge->getMeanLumi()) / mSpaceChargeDer->getMeanLumi();
   LOGP(info, "Setting Lumi scale factor: lumiInst: {}  lumi mean: {} lumi mean derivative: {} lumi scale factor: {}", CorrMapParam::Instance().lumiInst, mSpaceCharge->getMeanLumi(), mSpaceChargeDer->getMeanLumi(), mLumiScaleFactor);
 }

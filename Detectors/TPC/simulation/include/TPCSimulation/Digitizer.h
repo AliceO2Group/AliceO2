@@ -141,6 +141,12 @@ class Digitizer
   /// in case of scaled distortions, the distortions can be recalculated to ensure consistent distortions and corrections
   void recalculateDistortions();
 
+  /// Use distortions that are already scaled to the instantaneous luminosity
+  void setScaledSCDistortions(std::unique_ptr<SC> spaceCharge);
+
+  /// \return the space-charge object holding the distortions, or nullptr
+  const SC* getSCDistortions() const { return mSpaceCharge.get(); }
+
  private:
   DigitContainer mDigitContainer;      ///< Container for the Digits
   std::unique_ptr<SC> mSpaceCharge;    ///< Handler of full distortions (static + IR dependant)
