@@ -83,7 +83,7 @@ void Digitizer::process(const std::vector<o2::tpc::HitGroup>& hits,
       if (mDistortionScaleType == 1) {
         mSpaceCharge->distortElectron(posEle);
       } else if (mDistortionScaleType == 2) {
-        mSpaceCharge->distortElectron(posEle, (mUseScaledDistortions ? nullptr : mSpaceChargeDer.get()), mLumiScaleFactor);
+        mSpaceCharge->distortElectron(posEle, (mUseScaledDistortions ? nullptr : mSpaceChargeDer), mLumiScaleFactor);
       }
 
       /// Remove electrons that end up more than three sigma of the hit's average diffusion away from the current sector
@@ -182,7 +182,8 @@ void Digitizer::setUseSCDistortions(const SCDistortionType& distortionType, cons
 {
   mUseSCDistortions = true;
   if (!mSpaceCharge) {
-    mSpaceCharge = std::make_unique<SC>();
+    mSpaceChargeOwned = std::make_unique<SC>();
+    mSpaceCharge = mSpaceChargeOwned.get();
   }
   mSpaceCharge->setSCDistortionType(distortionType);
   if (hisInitialSCDensity) {
@@ -194,14 +195,17 @@ void Digitizer::setUseSCDistortions(const SCDistortionType& distortionType, cons
 void Digitizer::setUseSCDistortions(SC* spaceCharge)
 {
   mUseSCDistortions = true;
-  mSpaceCharge.reset(spaceCharge);
+  if (spaceCharge != mSpaceChargeOwned.get()) {
+    mSpaceChargeOwned.reset();
+  }
+  mSpaceCharge = spaceCharge;
   mSpaceCharge->initAfterReadingFromFile();
   mSpaceCharge->printMetaData();
 }
 
 void Digitizer::setSCDistortionsDerivative(SC* spaceCharge)
 {
-  mSpaceChargeDer.reset(spaceCharge);
+  mSpaceChargeDer = spaceCharge;
   mSpaceChargeDer->initAfterReadingFromFile();
   mSpaceChargeDer->printMetaData();
 }
@@ -210,7 +214,8 @@ void Digitizer::setUseSCDistortions(std::string_view finp)
 {
   mUseSCDistortions = true;
   if (!mSpaceCharge) {
-    mSpaceCharge = std::make_unique<SC>();
+    mSpaceChargeOwned = std::make_unique<SC>();
+    mSpaceCharge = mSpaceChargeOwned.get();
   }
 
   // in case analytical distortions are loaded from file they are applied
@@ -268,7 +273,7 @@ void Digitizer::recalculateDistortions()
       mSpaceChargeDer->calcGlobalCorrWithGlobalDistIterative(side, nullptr, 0);
 
       LOGP(info, "Calculating scaled distortions with scaling factor {}", mLumiScaleFactor);
-      mSpaceCharge->calcGlobalDistWithGlobalCorrIterativeLinearCartesian(side, mSpaceChargeDer.get(), mLumiScaleFactor);
+      mSpaceCharge->calcGlobalDistWithGlobalCorrIterativeLinearCartesian(side, mSpaceChargeDer, mLumiScaleFactor);
     }
     // set new lumi of avg map
     mSpaceCharge->setMeanLumi(CorrMapParam::Instance().lumiInst);
