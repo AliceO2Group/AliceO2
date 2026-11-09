@@ -242,9 +242,9 @@ struct DiscoverMetadataInAOD : o2::framework::ConfigDiscoveryPlugin {
             }
             auto from = parentFileReplacement.substr(0, pos);
             auto to = parentFileReplacement.substr(pos + 1);
-            pos = parentFilename.find(from);
-            if (pos != std::string::npos) {
-              parentFilename.replace(pos, from.length(), to);
+            // Same as TString::ReplaceAll
+            for (size_t at = 0; !from.empty() && (at = parentFilename.find(from, at)) != std::string::npos; at += to.size()) {
+              parentFilename.replace(at, from.size(), to);
             }
           }
 
