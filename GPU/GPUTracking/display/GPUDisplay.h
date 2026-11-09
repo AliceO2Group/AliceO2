@@ -187,9 +187,9 @@ class GPUDisplay : public GPUDisplayInterface
   void calcXYZ(const float*);
   void mAnimationCloseAngle(float& newangle, float lastAngle);
   void mAnimateCloseQuaternion(float* v, float lastx, float lasty, float lastz, float lastw);
-  void SaveGLPos(); // Camera position to mCfgC.mGLPosFile
+  void SaveGLPos(); // Camera position to mCfgC.glPosFile
   void LoadGLPos();
-  void SaveGLAnimation(); // Animation path to mCfgC.mGLAnimationFile
+  void SaveGLAnimation(); // Animation path to mCfgC.glAnimationFile
   void LoadGLAnimation();
   void takeScreenshot();
   void runAnimation(); // Starts the animation if it has enough points

@@ -70,7 +70,7 @@ void GPUDisplay::setAnimationPoint()
   }
   float delay = 0.f;
   if (mAnimateVectors[0].size()) {
-    delay = mAnimateVectors[0].back() + ((int32_t)(mCfgC.mAnimationDelay * 20)) / 20.f;
+    delay = mAnimateVectors[0].back() + ((int32_t)(mCfgC.animationDelay * 20)) / 20.f;
   }
   mAnimateVectors[0].emplace_back(delay);
   mAnimateConfig.emplace_back(mCfgL);
@@ -143,7 +143,7 @@ void GPUDisplay::removeAnimationPoint()
 void GPUDisplay::runAnimation()
 {
   if (mAnimateVectors[0].size() > 1) {
-    if (mCfgC.mAnimateScreenshot) {
+    if (mCfgC.animateScreenshot) {
       mAnimationExport++;
     }
     startAnimation();
@@ -169,7 +169,7 @@ int32_t GPUDisplay::animateCamera(bool suspended, float& animateTime, float& mix
 {
   float time = animateTime;
   if (mAnimate && time < 0) {
-    if (mCfgC.mAnimateScreenshot) {
+    if (mCfgC.animateScreenshot) {
       time = mAnimationFrame / 30.f;
     } else {
       time = mAnimationTimer.GetCurrentElapsedTime();
@@ -178,7 +178,7 @@ int32_t GPUDisplay::animateCamera(bool suspended, float& animateTime, float& mix
     float maxTime = mAnimateVectors[0].back();
     if (time >= maxTime) {
       time = maxTime;
-      mAnimate = mCfgC.mAnimateScreenshot = 0;
+      mAnimate = mCfgC.animateScreenshot = 0;
       SetInfo("Animation finished. (%1.2f seconds, %d frames)", time, mAnimationFrame);
     } else {
       SetInfo("Running mAnimation: time %1.2f/%1.2f, frames %d", time, maxTime, mAnimationFrame);
@@ -192,7 +192,7 @@ int32_t GPUDisplay::animateCamera(bool suspended, float& animateTime, float& mix
   for (int32_t i = 0; i < 8; i++) {
     vals[i] = mAnimationSplines[i].evaluate(time);
   }
-  if (mCfgC.mAnimationChangeConfig && animateTime < 0) {
+  if (mCfgC.animationChangeConfig && animateTime < 0) {
     int32_t base = 0;
     int32_t k = mAnimateVectors[0].size() - 1;
     while (base < k && time > mAnimateVectors[0][base]) {

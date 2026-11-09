@@ -15,8 +15,8 @@
 #ifndef GPUDISPLAYFRONTENDCONFIGKEYS_INC
 #define GPUDISPLAYFRONTENDCONFIGKEYS_INC
 
-#define KEY_DOWN_MAP(character, id) std::tuple((uint8_t)(character), (uint8_t)GPUDisplayFrontend::KEY_MAP_##id) // Key queried as held key: GPUDisplay uses mKeys[mKeyDownMap[KEY_MAP_...]]
-#define KEY_LAMBDA(character, obj, value, ...) std::tuple((uint16_t)(character), mFrontend->mConfigRTTI->getRTTIIndex(*this, &std::remove_cvref_t<decltype(obj)>::value), configKeyCallback([this]() { [[maybe_unused]] auto& val = obj.value; __VA_ARGS__ }))
+#define KEY_DOWN_MAP(character, id) GPUDisplayFrontend::GPUDisplayConfiguration::keyDownMapEntry(character, GPUDisplayFrontend::KEY_MAP_##id) // Key queried as held key: GPUDisplay uses mKeys[mKeyDownMap[KEY_MAP_...]]
+#define KEY_LAMBDA(character, obj, value, ...) GPUDisplayFrontend::GPUDisplayConfiguration::keyLambdaEntry(character, mFrontend->mConfigRTTI->getRTTIIndex(*this, &std::remove_cvref_t<decltype(obj)>::value), configKeyCallback([this]() { [[maybe_unused]] auto& val = obj.value; __VA_ARGS__ }))
 
 void GPUDisplay::buildConfigKeys()
 {
@@ -38,9 +38,9 @@ void GPUDisplay::buildConfigKeys()
     "Strafe up / down / Rotate left / right");
 
   mFrontend->add_key_binding(
-    KEY_LAMBDA(mFrontend->KEY_ESCAPE, mCfgC, mDisplayControl, val.store(2);),
-    KEY_LAMBDA('n', mCfgC, mDisplayControl, val.store(1);),
-    KEY_LAMBDA('r', mCfgC, mResetScene, val.store(true);), //
+    KEY_LAMBDA(mFrontend->KEY_ESCAPE, mCfgC, displayControl, val.store(2);),
+    KEY_LAMBDA('n', mCfgC, displayControl, val.store(1);),
+    KEY_LAMBDA('r', mCfgC, resetScene, val.store(true);), //
     KEY_LAMBDA('q', mCfgC, dummy, {
       if (mFrontend->isGUIRunning()) {
         SetInfo("Stopping GUI", 1);
@@ -228,8 +228,8 @@ void GPUDisplay::buildConfigKeys()
     "Draw single collisions (next / previous) / Colorcode clusters of different collisions");
 
   mFrontend->add_key_binding(
-    KEY_LAMBDA('t', mCfgC, mRequestScreenshot, takeScreenshot();),
-    KEY_LAMBDA('T', mCfgC, mAnimateScreenshot, val ^= 1;), //
+    KEY_LAMBDA('t', mCfgC, requestScreenshot, takeScreenshot();),
+    KEY_LAMBDA('T', mCfgC, animateScreenshot, val ^= 1;), //
     KEY_LAMBDA('Z', mCfgR, screenshotScaleFactor, {
       val += 1;
       if (val > 4) {
@@ -252,7 +252,7 @@ void GPUDisplay::buildConfigKeys()
     "Start Animation, Add / remove Animation point, Reset Points, Cycle animation camera mode (resets)");
 
   mFrontend->add_key_binding(
-    KEY_LAMBDA('>', mCfgC, mAnimationChangeConfig, val ^= 1;),
+    KEY_LAMBDA('>', mCfgC, animationChangeConfig, val ^= 1;),
     KEY_DOWN_MAP('<', CHANGE_ANIMATION_INTERVAL), //
     "Toggle config interpolation during Animation / change Animation interval (via movement)");
 
@@ -293,7 +293,7 @@ void GPUDisplay::buildConfigKeys()
     "[SHIFT] + [F1] to [F4] / [F12]");
 
   mFrontend->add_key_binding(
-    KEY_LAMBDA('h', mCfgC, mPrintInfoTextAlways, {
+    KEY_LAMBDA('h', mCfgC, printInfoTextAlways, {
       if (val) {
         val = false;
       } else if (mInfoHelpTimer.IsRunning()) {
@@ -303,7 +303,7 @@ void GPUDisplay::buildConfigKeys()
         PrintHelp();
       }
     }),
-    KEY_LAMBDA('H', mCfgC, mPrintInfoText, {
+    KEY_LAMBDA('H', mCfgC, printInfoText, {
       val += 1;
       val &= 3;
     }), //

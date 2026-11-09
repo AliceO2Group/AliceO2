@@ -68,6 +68,8 @@ struct GPUDisplayFrontend::GPUDisplayConfiguration {
   static constexpr uint32_t INVALID_INDEX = std::numeric_limits<uint32_t>::max();
   static constexpr uint32_t KEY_MAP_INDEX = 0x80000000; // configRTTIIndex of keys mapped to mKeyDownMap[configRTTIIndex - KEY_MAP_INDEX]
   static bool isKeyMap(uint32_t index) { return index >= KEY_MAP_INDEX && index != INVALID_INDEX; }
+  using keyDownMapEntry = std::tuple<uint8_t, uint8_t>;                     // KEY_DOWN_MAP: key, KEY_MAP_ id
+  using keyLambdaEntry = std::tuple<uint16_t, uint32_t, configKeyCallback>; // KEY_LAMBDA: key, index in rttiEntries, callback
   std::vector<std::string> configStructNames;
   std::array<configKey, N_TOTAL_KEYS> configKeys; // By key code, special keys with SHIFT at code + SPECIAL_KEYS_SHIFTED
   std::vector<std::string> keyNames;
@@ -171,7 +173,7 @@ void GPUDisplay::checkAndApplyConfigChanges()
   if (oldCfgH.trackFilter != mCfgH.trackFilter) {
     mUpdateTrackFilter = true;
   }
-  mCfgC.mRotateModel |= mCfgC.mRotateAroundZ;
+  mCfgC.rotateModel |= mCfgC.rotateAroundZ;
   if (mCfgC.showConsole != mConsoleShown) {
     mConsoleShown = mCfgC.showConsole;
     const double start = mConsoleTimer.IsRunning() ? std::max(0., mConfig.internal.consoleDelay - mConsoleTimer.GetCurrentElapsedTime()) : 0.; // Reverse a running animation from its current position
@@ -216,7 +218,7 @@ void GPUDisplayFrontend::HandleExternalGUIKeys()
 template <typename... Args>
 void GPUDisplayFrontend::add_key_binding(Args&&... args)
 {
-  constexpr size_t nKeys = (0 + ... + (std::is_same_v<std::remove_cvref_t<Args>, std::tuple<uint16_t, uint32_t, configKeyCallback>> || std::is_same_v<std::remove_cvref_t<Args>, std::tuple<uint8_t, uint8_t>>));
+  constexpr size_t nKeys = (0 + ... + (std::is_same_v<std::remove_cvref_t<Args>, GPUDisplayConfiguration::keyLambdaEntry> || std::is_same_v<std::remove_cvref_t<Args>, GPUDisplayConfiguration::keyDownMapEntry>));
   static_assert(nKeys >= 1 && (sizeof...(Args) == nKeys + 1 || sizeof...(Args) == nKeys + 2), "add_key_binding needs at least one key, the help text, and optionally the keys to show in the help text");
   auto argTuple = std::forward_as_tuple(args...);
   std::string keys;
@@ -227,16 +229,18 @@ void GPUDisplayFrontend::add_key_binding(Args&&... args)
     if (entry.callback || entry.configRTTIIndex != GPUDisplayConfiguration::INVALID_INDEX) {
       throw std::runtime_error("Key [" + name + "] assigned twice in display frontend");
     }
-    if constexpr (std::is_same_v<std::remove_cvref_t<decltype(key)>, std::tuple<uint8_t, uint8_t>>) {
+    if constexpr (std::is_same_v<std::remove_cvref_t<decltype(key)>, GPUDisplayConfiguration::keyDownMapEntry>) {
       const uint8_t id = std::get<1>(key);
       if (mKeyDownMap[id]) {
         throw std::runtime_error("Key down mapping " + mConfigRTTI->keyMapNames[id] + " assigned twice in display frontend");
       }
       mKeyDownMap[id] = character >= 'a' && character <= 'z' ? character + 'A' - 'a' : character; // mKeys stores letters in upper case
       entry.configRTTIIndex = GPUDisplayConfiguration::KEY_MAP_INDEX + id;
-    } else {
+    } else if constexpr (std::is_same_v<std::remove_cvref_t<decltype(key)>, GPUDisplayConfiguration::keyLambdaEntry>) {
       entry.configRTTIIndex = std::get<1>(key);
       entry.callback = std::move(std::get<2>(key));
+    } else {
+      static_assert(false, "invalid code path");
     }
     keys += (keys.empty() ? "[" : " [") + name + "]";
   };
@@ -416,7 +420,7 @@ void GPUDisplayFrontend::applyGUIValues(const GPUDisplayGUIUpdate& update)
       GPUError("Invalid value from the GUI for element %u: %s", id, ex.what());
       continue;
     }
-    if (mDisplay->mCfgC.mGuiPrintInfo && e.rttiIndex < mConfigRTTI->configInfos.size()) {
+    if (mDisplay->mCfgC.guiPrintInfo && e.rttiIndex < mConfigRTTI->configInfos.size()) {
       showConfigInfo(e.rttiIndex);
     }
   }

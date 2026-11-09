@@ -70,13 +70,13 @@ void GPUDisplayFrontend::buildConsoleCommands()
                            },
                            "a", "Press a key: key code, character (\"a\"), or key name (UP, F1, SHIFT_F1, ...)"};
   commands["exit"] = {[this](args) {
-                        mDisplay->mCfgC.mDisplayControl.store(2);
+                        mDisplay->mCfgC.displayControl.store(2);
                         mConsole->mScriptQueue.clear(); // No further script lines
-                        showConfigInfo(mConfigRTTI->getRTTIIndex(*mDisplay, &GPUDisplayControl::mDisplayControl));
+                        showConfigInfo(mConfigRTTI->getRTTIIndex(*mDisplay, &GPUDisplayControl::displayControl));
                       },
                       "", "Exit"};
   commands["nextEvent"] = {[this](args) {
-                             mDisplay->mCfgC.mDisplayControl.store(1);
+                             mDisplay->mCfgC.displayControl.store(1);
                              mConsole->waitFor([this, n = mDisplay->mNEventsShown] { return mDisplay->mNEventsShown != n; });
                            },
                            "", "Show the next event, a script continues when it is shown"};
@@ -92,8 +92,8 @@ void GPUDisplayFrontend::buildConsoleCommands()
   commands["takeScreenshot"] = {[this](args a) {
                                   mDisplay->takeScreenshot();
                                   mDisplay->mScreenshotFile = std::get<std::string>(a[0]);
-                                  mConsole->waitFor([this] { return !mDisplay->mCfgC.mRequestScreenshot; }); // Otherwise further script lines would change the settings or the file before the screenshot is taken
-                                  showConfigInfo(mConfigRTTI->getRTTIIndex(*mDisplay, &GPUDisplayControl::mRequestScreenshot));
+                                  mConsole->waitFor([this] { return !mDisplay->mCfgC.requestScreenshot; }); // Otherwise further script lines would change the settings or the file before the screenshot is taken
+                                  showConfigInfo(mConfigRTTI->getRTTIIndex(*mDisplay, &GPUDisplayControl::requestScreenshot));
                                 },
                                 "s", "Take a screenshot to the given file, a script continues after it is taken"};
   commands["bindKey"] = {[this, parseKey](args a) {
@@ -144,10 +144,10 @@ void GPUDisplayFrontend::buildConsoleCommands()
       (mDisplay->*function)();
     };
   };
-  commands["saveCamera"] = {fileCommand(&GPUDisplayControl::mGLPosFile, &GPUDisplay::SaveGLPos), "s", "Save the camera position to the file"};
-  commands["loadCamera"] = {fileCommand(&GPUDisplayControl::mGLPosFile, &GPUDisplay::LoadGLPos), "s", "Load the camera position from the file"};
-  commands["saveAnimation"] = {fileCommand(&GPUDisplayControl::mGLAnimationFile, &GPUDisplay::SaveGLAnimation), "s", "Save the animation path to the file"};
-  commands["loadAnimation"] = {fileCommand(&GPUDisplayControl::mGLAnimationFile, &GPUDisplay::LoadGLAnimation), "s", "Load the animation path from the file"};
+  commands["saveCamera"] = {fileCommand(&GPUDisplayControl::glPosFile, &GPUDisplay::SaveGLPos), "s", "Save the camera position to the file"};
+  commands["loadCamera"] = {fileCommand(&GPUDisplayControl::glPosFile, &GPUDisplay::LoadGLPos), "s", "Load the camera position from the file"};
+  commands["saveAnimation"] = {fileCommand(&GPUDisplayControl::glAnimationFile, &GPUDisplay::SaveGLAnimation), "s", "Save the animation path to the file"};
+  commands["loadAnimation"] = {fileCommand(&GPUDisplayControl::glAnimationFile, &GPUDisplay::LoadGLAnimation), "s", "Load the animation path from the file"};
   commands["moveCamera"] = {[this, floatNumber](args a) {
                               const float xyz[3] = {mDisplay->mXYZ[0] + floatNumber(a[0]), mDisplay->mXYZ[1] + floatNumber(a[1]), mDisplay->mXYZ[2] + floatNumber(a[2])};
                               const float angles[3] = {mDisplay->mAngle[0], mDisplay->mAngle[1], mDisplay->mAngle[2]};
@@ -181,7 +181,7 @@ void GPUDisplayFrontend::buildConsoleCommands()
   };
   auto transient = [this](uint32_t i) { // Control values that are actions / state, not settings: not saved, not reset with a group
     const auto& e = mConfigRTTI->rttiEntries[i];
-    return e.type.starts_with("GPUDisplayCopyableAtomic") || e.name == "mRequestScreenshot" || e.name == "showConsole" || e.name == "dummy"; // TODO: Settings struct should be split in transient and none-transient, to get rid of these string compares
+    return e.type.starts_with("GPUDisplayCopyableAtomic") || e.name == "requestScreenshot" || e.name == "showConsole" || e.name == "dummy"; // TODO: Settings struct should be split in transient and none-transient, to get rid of these string compares
   };
   auto defaultValue = [this](uint32_t i) -> GPUDisplayConsole::consoleArg { // Default from the RTTI, as setValue expects it
     const auto& e = mConfigRTTI->rttiEntries[i];
@@ -329,7 +329,7 @@ void GPUDisplayFrontend::buildConsoleCommands()
                                mConsole->consolePrint("Camera: x %f y %f z %f, yaw %f pitch %f roll %f", mDisplay->mXYZ[0], mDisplay->mXYZ[1], mDisplay->mXYZ[2], mDisplay->mAngle[1] * toDeg, mDisplay->mAngle[0] * toDeg, mDisplay->mAngle[2] * toDeg);
                              },
                              "", "Print the camera position and direction (degrees)"};
-  commands["printStatus"] = {[this](args) { mConsole->consolePrint("%s", mDisplay->mGUIInfoStatus.empty() ? "No status yet (c.mPrintInfoText / c.mPrintInfoTextGUI)" : mDisplay->mGUIInfoStatus.c_str()); }, "", "Print the status line (FPS, counts, camera), updated every second"};
+  commands["printStatus"] = {[this](args) { mConsole->consolePrint("%s", mDisplay->mGUIInfoStatus.empty() ? "No status yet (c.printInfoText / c.printInfoTextGUI)" : mDisplay->mGUIInfoStatus.c_str()); }, "", "Print the status line (FPS, counts, camera), updated every second"};
   commands["unbindKey"] = {[this, parseKey](args a) {
                              const int32_t key = parseKey(a[0]);
                              if (key < 0) {
@@ -348,8 +348,8 @@ void GPUDisplayFrontend::buildConsoleCommands()
                            },
                            "a", "Remove the binding of a key (key function or key down mapping)"};
   commands["resetView"] = {[this](args) {
-                             mDisplay->mCfgC.mResetScene.store(true);
-                             showConfigInfo(mConfigRTTI->getRTTIIndex(*mDisplay, &GPUDisplayControl::mResetScene));
+                             mDisplay->mCfgC.resetScene.store(true);
+                             showConfigInfo(mConfigRTTI->getRTTIIndex(*mDisplay, &GPUDisplayControl::resetScene));
                            },
                            "", "Reset the view"};
   commands["history"] = {[this](args a) {
