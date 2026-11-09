@@ -22,6 +22,8 @@
 #include "DataFormatsTRD/TrackTriggerRecord.h"
 #include "DataFormatsTRD/PHData.h"
 #include "TRDCalibration/CalibrationParams.h"
+#include "DataFormatsFT0/RecPoints.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "TFile.h"
 #include "TTree.h"
 
@@ -52,6 +54,7 @@ class PulseHeight
   void reset();
 
   void setApplyShift(bool f) { mApplyShift = f; }
+  void setTrkMask(o2::dataformats::GlobalTrackID::mask_t trkMask) { mTrkMask = trkMask;}
 
   /// Main processing function
   void process();
@@ -75,6 +78,8 @@ class PulseHeight
   gsl::span<const TriggerRecord> mTriggerRecords;                    ///< array of trigger records
   gsl::span<const TrackTriggerRecord> mTrackTriggerRecordsTPCTRD;    ///< array of track trigger records
   gsl::span<const TrackTriggerRecord> mTrackTriggerRecordsITSTPCTRD; ///< array of track trigger records
+  gsl::span<const o2::ft0::RecPoints> mFT0RecPoints;                 ///< array of FT0 rec points
+  o2::dataformats::GlobalTrackID::mask_t mTrkMask;                   ///< seeding track sources (TPC, ITS-TPC, FT0)
 
   // output
   std::vector<PHData> mPHValues, *mPHValuesPtr{&mPHValues}; ///< vector of values used to fill the PH spectra per detector
