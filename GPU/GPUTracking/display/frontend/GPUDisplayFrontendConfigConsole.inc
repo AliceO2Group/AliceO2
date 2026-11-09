@@ -85,7 +85,7 @@ void GPUDisplayFrontend::buildConsoleCommands()
                                      const float xyz[3] = {floatNumber(a[0]), floatNumber(a[1]), floatNumber(a[2])};
                                      const float angles[3] = {floatNumber(a[4]) * toRad, floatNumber(a[3]) * toRad, floatNumber(a[5]) * toRad}; // As mAngle: pitch, yaw, roll
                                      mDisplay->addAnimationPoint(xyz, angles);
-                                     mDisplay->SetInfo("Added Animation point (%d points, %6.2f seconds)", (int32_t)mDisplay->mAnimateVectors[0].size(), mDisplay->mAnimateVectors[0].back());
+                                     mDisplay->SetInfo("Added Animation point (%d points, %6.2f seconds)", (int32_t)mDisplay->mAnimationVectors.size(), mDisplay->mCfgC.animationPoints.values.back());
                                    },
                                    "dddddd", "Add an animation point: x y z yaw pitch roll (degrees)"};
   commands["startAnimation"] = {[this](args) { mDisplay->runAnimation(); }, "", "Run the animation"};
@@ -147,6 +147,26 @@ void GPUDisplayFrontend::buildConsoleCommands()
                                   mDisplay->SetInfo("Reset Animation points", 1);
                                 },
                                 "", "Remove all animation points"};
+  auto pointIndex = [this](const char* command, const GPUDisplayConsole::consoleArg& a) -> std::optional<int32_t> { // Index of an animation point or -1, error message otherwise
+    const int64_t i = std::get<int64_t>(a);
+    if (i < -1 || i >= (int64_t)mDisplay->mAnimationVectors.size()) {
+      mConsole->consolePrint("%s: no animation point %lld (%zu points)", command, (long long)i, mDisplay->mAnimationVectors.size());
+      return std::nullopt;
+    }
+    return i;
+  };
+  commands["removeAnimationPoint"] = {[this, pointIndex](args a) {
+                                        if (const auto i = pointIndex("removeAnimationPoint", a[0])) {
+                                          mDisplay->removeAnimationPoint(*i);
+                                        }
+                                      },
+                                      "i", "Remove the animation point with this index, -1: the selected one, or the last one if none is selected"};
+  commands["selectAnimationPoint"] = {[this, pointIndex](args a) {
+                                        if (const auto i = pointIndex("selectAnimationPoint", a[0])) {
+                                          mDisplay->selectAnimationPoint(*i);
+                                        }
+                                      },
+                                      "i", "Select an animation point (-1: none): loads its settings and camera, later changes of the light settings are stored in it"};
   auto fileCommand = [this](std::string GPUDisplayControl::* file, void (GPUDisplay::*function)()) { // Sets the file name option (as in the GUI) and runs the function
     return [this, file, function](args a) {
       mDisplay->mCfgC.*file = std::get<std::string>(a[0]);
@@ -190,14 +210,14 @@ void GPUDisplayFrontend::buildConsoleCommands()
   };
   auto transient = [this](uint32_t i) { // Control values that are actions / state, not settings: not saved, not reset with a group
     const auto& e = mConfiguration->rttiEntries[i];
-    return e.type.starts_with("GPUDisplayCopyableAtomic") || e.name == "requestScreenshot" || e.name == "showConsole" || e.name == "dummy"; // TODO: Settings struct should be split in transient and none-transient, to get rid of these string compares
+    return e.type.starts_with("GPUDisplayCopyableAtomic") || e.name == "requestScreenshot" || e.name == "showConsole" || e.name == "dummy" || e.name == "animationPoints"; // TODO: Settings struct should be split in transient and none-transient, to get rid of these string compares
   };
   auto defaultValue = [this](uint32_t i) -> GPUDisplayConsole::consoleArg { // Default from the RTTI, as setValue expects it
     const auto& e = mConfiguration->rttiEntries[i];
     if (e.type == "std::string" || e.type == "bool") {
       return e.defaultValue;
     }
-    int64_t intValue;
+    int64_t intValue = 0;
     const char* end = e.defaultValue.c_str() + e.defaultValue.size();
     if (std::from_chars(e.defaultValue.c_str(), end, intValue).ptr == end) { // Integers exactly, not through double
       return intValue;

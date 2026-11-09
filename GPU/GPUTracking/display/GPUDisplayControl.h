@@ -41,6 +41,7 @@ BeginHiddenConfig(GPUDisplayControl, control)
   AddVariable(guiDarkMode, int8_t, -1)                          // Dark mode of the Qt GUI, -1 = not yet set: the GUI reports the system scheme when it starts
   AddVariable(guiScale, float, 1.f)                             // Scale factor of text and elements of the Qt GUI (on top of the system scaling), Ctrl + mouse wheel / Ctrl + 0 in the GUI
   AddVariable(showConsole, bool, false)                          // Console shown (^ key): all other keys go to the console
+  AddVariable(animationPoints, GPUDisplayMultiSliderValue, GPUDisplayMultiSliderValue()) // Times of the animation points (GPUDisplay::mAnimationVectors) and the selected one, shown in the Qt GUI
   AddVariable(dummy, bool, false)                                // dummy value to reference for keys that do not change variables
 EndConfig()
 EndNamespace() // o2::gpu

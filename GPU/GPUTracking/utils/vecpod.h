@@ -24,6 +24,7 @@ struct vecpod_allocator {
   T* allocate(std::size_t n) { return stdalloc.allocate(n); }
   void deallocate(T* p, std::size_t n) { stdalloc.deallocate(p, n); }
   static void construct(T*) {}
+  bool operator==(const vecpod_allocator&) const { return true; } // Stateless, needed e.g. for the move assignment of std::vector
   std::allocator<T> stdalloc;
 };
 

@@ -101,18 +101,17 @@ void GPUDisplay::SaveGLAnimation()
     SetInfo("Error opening file %s", file);
     return;
   }
-  const int32_t size = mAnimateVectors[0].size();
+  const int32_t size = mAnimationVectors.size();
   bool ok = fwrite(&mCfgL, sizeof(mCfgL), 1, ftmp) == 1 && fwrite(&size, sizeof(size), 1, ftmp) == 1;
-  for (int32_t i = 0; i < 9; i++) {
-    ok = ok && fwrite(mAnimateVectors[i].data(), sizeof(mAnimateVectors[i][0]), size, ftmp) == (size_t)size;
-  }
-  ok = ok && fwrite(mAnimateConfig.data(), sizeof(mAnimateConfig[0]), size, ftmp) == (size_t)size;
+  ok = ok && fwrite(mCfgC.animationPoints.values.data(), sizeof(float), size, ftmp) == (size_t)size;
+  ok = ok && fwrite(mAnimationVectors.data(), sizeof(mAnimationVectors[0]), size, ftmp) == (size_t)size;
   ok = fclose(ftmp) == 0 && ok;
   SetInfo(ok ? "Animation path stored to file %s" : "Error writing animation path to file %s", file);
 }
 
 void GPUDisplay::LoadGLAnimation()
 {
+  StopAnimation();
   const char* file = mCfgC.glAnimationFile.c_str();
   FILE* ftmp = fopen(file, "rb");
   if (!ftmp) {
@@ -125,16 +124,15 @@ void GPUDisplay::LoadGLAnimation()
   if (ok) { // Check the file size before allocating memory or changing anything
     const long start = ftell(ftmp);
     fseek(ftmp, 0, SEEK_END);
-    ok = (size_t)ftell(ftmp) == start + (size_t)size * (9 * sizeof(mAnimateVectors[0][0]) + sizeof(mAnimateConfig[0]));
+    ok = (size_t)ftell(ftmp) == start + (size_t)size * (sizeof(float) + sizeof(animationVector));
     fseek(ftmp, start, SEEK_SET);
   }
   if (ok) {
-    for (int32_t i = 0; i < 9; i++) {
-      mAnimateVectors[i].resize(size);
-      ok = ok && fread(mAnimateVectors[i].data(), sizeof(mAnimateVectors[i][0]), size, ftmp) == (size_t)size;
-    }
-    mAnimateConfig.resize(size);
-    ok = ok && fread(mAnimateConfig.data(), sizeof(mAnimateConfig[0]), size, ftmp) == (size_t)size;
+    mCfgC.animationPoints.values.resize(size);
+    mAnimationVectors.resize(size);
+    ok = ok && fread(mCfgC.animationPoints.values.data(), sizeof(float), size, ftmp) == (size_t)size;
+    ok = ok && fread(mAnimationVectors.data(), sizeof(mAnimationVectors[0]), size, ftmp) == (size_t)size;
+    mCfgC.animationPoints.selected = -1;
     if (ok) {
       mCfgL = cfg;
       std::get<1>(mOldCfg).animationMode = cfg.animationMode; // Otherwise the mode change resets the animation which was just loaded

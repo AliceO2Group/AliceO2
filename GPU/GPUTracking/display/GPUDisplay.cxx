@@ -89,8 +89,8 @@ void GPUDisplay::calcXYZ(const float* matrix)
     mAngle[1] = atan2f(-matrix[2] / A, matrix[10] / A);
     mAngle[2] = atan2f(matrix[4] / A, matrix[5] / A);
   } else {
-    mAngle[1] = 0;
-    mAngle[2] = atan2f(-matrix[1], -matrix[0]);
+    mAngle[1] = 0; // Gimbal lock: yaw and roll rotate around the same axis, all in roll
+    mAngle[2] = atan2f(-matrix[1], matrix[0]);
   }
 
   mRPhiTheta[0] = sqrtf(mXYZ[0] * mXYZ[0] + mXYZ[1] * mXYZ[1] + mXYZ[2] * mXYZ[2]);

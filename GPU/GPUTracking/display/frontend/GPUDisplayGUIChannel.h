@@ -32,7 +32,8 @@
 
 namespace o2::gpu
 {
-using GPUDisplayGUIValue = std::variant<int64_t, double, std::string>; // Value of a Qt GUI element
+using GPUDisplayGUIValue = std::variant<int64_t, double, std::string, GPUDisplayMultiSliderValue>; // Value of a Qt GUI element
+static_assert(sizeof(GPUDisplayGUIValue) == sizeof(std::variant<int64_t, double, std::string>), "GPUDisplayMultiSliderValue must not enlarge GPUDisplayGUIValue");
 
 struct GPUDisplayGUIUpdate { // GUI → display
   uint64_t id = 0;
@@ -77,7 +78,8 @@ struct GPUDisplayGUIChannel {
                                      RADIO_BUTTONS,
                                      DROPDOWN,
                                      BUTTON,
-                                     TEXTEDIT };
+                                     TEXTEDIT,
+                                     MULTI_SLIDER };
 
   struct Options { // Dynamic range (slider) or choices (dropdown) of an element, returned by its option lambda
     double min = 0, max = 0;
@@ -95,6 +97,7 @@ struct GPUDisplayGUIChannel {
     uint32_t lines = 0;                                              // Text edit: initial number of lines
     bool hasRange = false;                                           // Text field: value limited to min / max
     double min = 0, max = 0;                                         // Slider range / text field range (if hasRange), from the min / max of the option
+    double step = 0;                                                 // Slider with range / multi slider: positions are multiples of it (if > 0, required for the multi slider), multi slider handles at least that far apart
     std::vector<std::pair<std::string, GPUDisplayGUIValue>> choices; // Radio buttons / dropdown / slider with only these values: name -> value
     std::function<Options()> dynamicOptions;                         // Called by the GUI only while the display waits for it (see optionsRevision), reads display data
     std::function<GPUDisplayGUIValue(const Settings&)> get;          // Value of the option from a copy of the settings, callable from the GUI thread
