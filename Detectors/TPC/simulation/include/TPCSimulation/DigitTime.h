@@ -79,7 +79,7 @@ class DigitTime
   void fillOutputContainer(std::vector<Digit>& output, dataformats::MCTruthContainer<MCCompLabel>& mcTruth,
                            std::vector<CommonMode>& commonModeOutput, const Sector& sector, TimeBin timeBin,
                            PrevDigitInfoArray* prevTime = nullptr, Streamer* debugStream = nullptr,
-                           const CalPad* itParams[2] = nullptr, const CalDet<bool>* deadMap = nullptr);
+                           const CalPad* padParams[3] = nullptr, const CalDet<bool>* deadMap = nullptr);
 
  private:
   std::array<float, GEMSTACKSPERSECTOR> mCommonMode;                 ///< Common mode container - 4 GEM ROCs per sector
