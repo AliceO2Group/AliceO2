@@ -34,6 +34,8 @@ using half = _Float16;
 #include <memory>
 #include <mutex>
 #include <unordered_map>
+#include <cstdio>
+#include <mach/mach_time.h>
 #include "GPULogging.h"
 
 #include "GPUReconstructionMetal.h"
@@ -68,6 +70,12 @@ struct GPUReconstructionMetalInternals {
   std::array<bool, constants::GPU_MAX_STREAMS> streamHasWork;
   // Set while the device is torn down, when a failed command buffer is no longer fatal
   bool exiting = false;
+  // Opt-in command-buffer timeline, GPUCA_METAL_TIMELINE=<file>: what each open
+  // buffer contains (kernels, blits, waits, signals), written out once it completes
+  FILE* timeline = nullptr;
+  std::array<std::string, constants::GPU_MAX_STREAMS> timelineOps;
+  std::array<uint32_t, constants::GPU_MAX_STREAMS> timelineKernels;
+  uint64_t timelineBuffers = 0;
 
   std::vector<id<MTLFunction>> functions;
   std::vector<id<MTLComputePipelineState>> pipelines;
@@ -102,6 +110,20 @@ inline void metalSignalOnError(id<MTLCommandBuffer> cb, id<MTLSharedEvent> event
       event.signaledValue = value;
     }
   }];
+}
+// In the time base of the command buffers' GPUStartTime and GPUEndTime
+inline double metalHostTime()
+{
+  static const double scale = [] { mach_timebase_info_data_t tb; mach_timebase_info(&tb); return 1e-9 * tb.numer / tb.denom; }();
+  return mach_absolute_time() * scale;
+}
+inline void metalTimelineAdd(GPUReconstructionMetalInternals* internals, int32_t stream, const char* op, const void* id, uint64_t value)
+{
+  if (internals->timeline) {
+    char buf[96];
+    snprintf(buf, sizeof(buf), " %s:%p=%llu", op, id, (unsigned long long)value);
+    internals->timelineOps[stream] += buf;
+  }
 }
 template <class E>
 inline void metalEndEncoder(GPUReconstructionMetalInternals* internals, E encoder, int32_t stream)
