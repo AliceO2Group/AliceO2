@@ -150,7 +150,7 @@ class GPUDisplay : public GPUDisplayInterface
   };
 
   struct animationVector {        // Animation point, its time is in mCfgC.animationPoints.values
-    float v[8];                   // Camera, depending on cfgL.animationMode (setAnimationPoint)
+    float v[6];                   // Camera: x, y, z, pitch, yaw, roll (as mXYZ, mAngle), independent of the animation mode
     GPUSettingsDisplayLight cfgL; // Settings at the point
   };
 
@@ -205,13 +205,14 @@ class GPUDisplay : public GPUDisplayInterface
   void rotateCamera(const float (&angles)[3]);                             // Yaw, pitch, roll in degrees relative to the view, as the keyboard
   hmm_mat4 cameraRotation(const float (&angles)[3]) const;                 // Rotation of rotateCamera, applied to the view matrix also for keyboard / mouse
   void resetAnimation();
-  void removeAnimationPoint(int32_t i = -1);                                            // -1: the selected one, the last one if none is selected
-  void StopAnimation();                                                                 // Ends a running animation, camera and settings stay as they are; for changed settings (checkAndApplyConfigChanges), scene reset, changes of the animation points
-  void setCameraFromAnimationPoint(const animationVector& p);                           // Camera stored in the point, as the animation shows it there
-  void selectAnimationPoint(int32_t i);                                                 // -1: none, otherwise also loads its light settings and camera
-  void setAnimationPointsFromGUI(const GPUDisplayMultiSliderValue& points);             // New times from the Qt GUI: reorders the points, selection
-  void updateAnimationPointsGUI();                                                      // Range end of the GUI multi slider: last time + animationDelay, progress 0 without animation
-  void animationViewMatrix(float (&vals)[8], int32_t mode, hmm_mat4& viewMatrix) const; // Camera of interpolated / stored animation values (v[1..8]), as animateCamera
+  void removeAnimationPoint(int32_t i = -1);                                                              // -1: the selected one, the last one if none is selected
+  void StopAnimation();                                                                                   // Ends a running animation, camera and settings stay as they are; for changed settings (checkAndApplyConfigChanges), scene reset, changes of the animation points
+  void setCameraFromAnimationPoint(const animationVector& p);                                             // Camera stored in the point, as the animation shows it there
+  void selectAnimationPoint(int32_t i);                                                                   // -1: none, otherwise also loads its light settings and camera
+  void setAnimationPointsFromGUI(const GPUDisplayMultiSliderValue& points);                               // New times from the Qt GUI: reorders the points, selection
+  void updateAnimationPointsGUI();                                                                        // Range end of the GUI multi slider: last time + animationDelay, progress 0 without animation
+  void animationPointValues(const animationVector& p, int32_t mode, const float* last, float (&vals)[8]); // The 8 interpolated values of the point in this animation mode, angles / quaternion continuous to the values of the previous point (last, nullptr if none)
+  void animationViewMatrix(float (&vals)[8], int32_t mode, hmm_mat4& viewMatrix) const;                   // Camera of interpolated / stored animation values (v[1..8]), as animateCamera
   void startAnimation();
   int32_t animateCamera(bool suspended, float& animateTime, float& mixSlaveImage, hmm_mat4& nextViewMatrix);
   void showInfo(const char* info);
@@ -336,7 +337,7 @@ class GPUDisplay : public GPUDisplayInterface
   int32_t mAnimationMixBase = -1; // Target keyframe of the current config blend (mixing), -1 = none
   int32_t mAnimationExport = 0;
   vecpod<animationVector> mAnimationVectors;
-  opengl_spline mAnimationSplines[8];
+  std::vector<std::array<opengl_spline, 8>> mAnimationSplines; // By animation mode: the 8 values of animationPointValues
 
   char mInfoText2[1024];
   std::string mGUIInfoStatus;                                  // Latest status line (FPS etc.) for the Qt GUI

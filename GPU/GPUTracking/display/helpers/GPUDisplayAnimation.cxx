@@ -27,55 +27,64 @@ const std::array<std::string, 7> GPUDisplay::ANIMATION_MODE_NAMES_LONG = {"Posit
 
 constexpr hmm_mat4 MY_HMM_FROM(float (&v)[16]) { return {{{v[0], v[1], v[2], v[3]}, {v[4], v[5], v[6], v[7]}, {v[8], v[9], v[10], v[11]}, {v[12], v[13], v[14], v[15]}}}; }
 
+static hmm_mat4 cameraViewMatrix(const float (&xyz)[3], const float (&angles)[3]) // Inverse of calcXYZ
+{
+  const float toDeg = 180.f / CAMath::Pi();
+  return HMM_Rotate(-angles[2] * toDeg, {{0, 0, 1}}) * HMM_Rotate(-angles[0] * toDeg, {{1, 0, 0}}) * HMM_Rotate(angles[1] * toDeg, {{0, 1, 0}}) * HMM_Translate({{-xyz[0], -xyz[1], -xyz[2]}});
+}
+
 void GPUDisplay::setAnimationPoint()
 {
   StopAnimation();
-  animationVector p;
-  const animationVector* last = mAnimationVectors.size() ? &mAnimationVectors.back() : nullptr;
   auto& times = mCfgC.animationPoints.values;
-  if (mCfgL.animationMode & 4) // Spherical
+  times.emplace_back(times.size() ? times.back() + ((int32_t)(mCfgC.animationDelay * 20)) / 20.f : 0.f);
+  mAnimationVectors.push_back({{mXYZ[0], mXYZ[1], mXYZ[2], mAngle[0], mAngle[1], mAngle[2]}, mCfgL});
+  mCfgC.animationPoints.selected = -1;
+}
+
+void GPUDisplay::animationPointValues(const animationVector& p, int32_t mode, const float* last, float (&vals)[8])
+{
+  const float xyz[3] = {p.v[0], p.v[1], p.v[2]}, angles[3] = {p.v[3], p.v[4], p.v[5]};
+  if (mode & 4) // Spherical
   {
-    float rxy = sqrtf(mXYZ[0] * mXYZ[0] + mXYZ[2] * mXYZ[2]);
-    float anglePhi = atan2f(mXYZ[0], mXYZ[2]);
-    float angleTheta = atan2f(mXYZ[1], rxy);
+    float rxy = sqrtf(xyz[0] * xyz[0] + xyz[2] * xyz[2]);
+    float anglePhi = atan2f(xyz[0], xyz[2]);
+    float angleTheta = atan2f(xyz[1], rxy);
     if (last) {
-      mAnimationCloseAngle(anglePhi, last->v[1]);
-      mAnimationCloseAngle(angleTheta, last->v[2]);
+      mAnimationCloseAngle(anglePhi, last[1]);
+      mAnimationCloseAngle(angleTheta, last[2]);
     }
-    p.v[0] = 0;
-    p.v[1] = anglePhi;
-    p.v[2] = angleTheta;
+    vals[0] = 0;
+    vals[1] = anglePhi;
+    vals[2] = angleTheta;
   } else {
     for (int32_t i = 0; i < 3; i++) {
-      p.v[i] = mXYZ[i];
+      vals[i] = xyz[i];
     }
     // Cartesian
   }
-  p.v[3] = sqrtf(mXYZ[0] * mXYZ[0] + mXYZ[1] * mXYZ[1] + mXYZ[2] * mXYZ[2]);
-  if (mCfgL.animationMode & 1) // Euler-angles
+  vals[3] = sqrtf(xyz[0] * xyz[0] + xyz[1] * xyz[1] + xyz[2] * xyz[2]);
+  if (mode & 1) // Euler-angles
   {
     for (int32_t i = 0; i < 3; i++) {
-      float newangle = mAngle[i];
+      float newangle = angles[i];
       if (last) {
-        mAnimationCloseAngle(newangle, last->v[i + 4]);
+        mAnimationCloseAngle(newangle, last[i + 4]);
       }
-      p.v[i + 4] = newangle;
+      vals[i + 4] = newangle;
     }
-    p.v[7] = 0;
+    vals[7] = 0;
   } else { // Quaternions
     float v[4];
-    createQuaternionFromMatrix(v, &mViewMatrix->Elements[0][0]);
+    const hmm_mat4 viewMatrix = cameraViewMatrix(xyz, angles);
+    createQuaternionFromMatrix(v, &viewMatrix.Elements[0][0]);
     if (last) {
-      mAnimateCloseQuaternion(v, last->v[4], last->v[5], last->v[6], last->v[7]);
+      mAnimateCloseQuaternion(v, last[4], last[5], last[6], last[7]);
     }
     for (int32_t i = 0; i < 4; i++) {
-      p.v[i + 4] = v[i];
+      vals[i + 4] = v[i];
     }
   }
-  times.emplace_back(last ? times.back() + ((int32_t)(mCfgC.animationDelay * 20)) / 20.f : 0.f);
-  p.cfgL = mCfgL;
-  mAnimationVectors.emplace_back(p);
-  mCfgC.animationPoints.selected = -1;
 }
 
 static hmm_mat4 lookAtMatrix(const float (&eye)[3], const float (&target)[3]) // HMM_LookAt with y up, z up when looking along y (the cross product with y would be 0)
@@ -87,8 +96,7 @@ static hmm_mat4 lookAtMatrix(const float (&eye)[3], const float (&target)[3]) //
 
 void GPUDisplay::setCamera(const float (&xyz)[3], const float (&angles)[3])
 {
-  const float toDeg = 180.f / CAMath::Pi();
-  *mViewMatrix = HMM_Rotate(-angles[2] * toDeg, {{0, 0, 1}}) * HMM_Rotate(-angles[0] * toDeg, {{1, 0, 0}}) * HMM_Rotate(angles[1] * toDeg, {{0, 1, 0}}) * HMM_Translate({{-xyz[0], -xyz[1], -xyz[2]}}); // Inverse of calcXYZ
+  *mViewMatrix = cameraViewMatrix(xyz, angles);
   calcXYZ(&mViewMatrix->Elements[0][0]);
 }
 
@@ -163,15 +171,7 @@ void GPUDisplay::selectAnimationPoint(int32_t i)
   setCameraFromAnimationPoint(mAnimationVectors[i]);
 }
 
-void GPUDisplay::setCameraFromAnimationPoint(const animationVector& p)
-{
-  float vals[8];
-  std::copy(p.v, p.v + 8, vals);
-  hmm_mat4 viewMatrix = HMM_Mat4d(1.f);
-  animationViewMatrix(vals, p.cfgL.animationMode, viewMatrix);
-  *mViewMatrix = viewMatrix;
-  calcXYZ(&mViewMatrix->Elements[0][0]);
-}
+void GPUDisplay::setCameraFromAnimationPoint(const animationVector& p) { setCamera({p.v[0], p.v[1], p.v[2]}, {p.v[3], p.v[4], p.v[5]}); }
 
 void GPUDisplay::StopAnimation()
 {
@@ -237,12 +237,22 @@ void GPUDisplay::runAnimation()
 
 void GPUDisplay::startAnimation()
 {
-  vecpod<float> y(mAnimationVectors.size());
-  for (int32_t i = 0; i < 8; i++) {
+  mAnimationSplines.resize(ANIMATION_MODE_NAMES_SHORT.size());
+  vecpod<float> y[8];
+  for (auto& yi : y) {
+    yi.resize(mAnimationVectors.size());
+  }
+  for (uint32_t mode = 0; mode < mAnimationSplines.size(); mode++) { // Splines for all modes, points may have different modes
+    float vals[8], previous[8];
     for (uint32_t k = 0; k < mAnimationVectors.size(); k++) {
-      y[k] = mAnimationVectors[k].v[i];
+      animationPointValues(mAnimationVectors[k], mode, k ? previous : nullptr, vals); // Continuous to the previous point in time order
+      for (int32_t i = 0; i < 8; i++) {
+        y[i][k] = previous[i] = vals[i];
+      }
     }
-    mAnimationSplines[i].create(mCfgC.animationPoints.values, y);
+    for (int32_t i = 0; i < 8; i++) {
+      mAnimationSplines[mode][i].create(mCfgC.animationPoints.values, y[i]);
+    }
   }
   mAnimationTimer.ResetStart();
   mAnimationFrame = 0;
@@ -276,10 +286,6 @@ int32_t GPUDisplay::animateCamera(bool suspended, float& animateTime, float& mix
   if (!mAnimate) {
     return 0;
   }
-  float vals[8];
-  for (int32_t i = 0; i < 8; i++) {
-    vals[i] = mAnimationSplines[i].evaluate(time);
-  }
   if (mCfgC.animationChangeConfig && animateTime < 0) {
     int32_t base = 0;
     const auto& times = mCfgC.animationPoints.values;
@@ -312,7 +318,41 @@ int32_t GPUDisplay::animateCamera(bool suspended, float& animateTime, float& mix
     }
   }
 
-  animationViewMatrix(vals, mCfgL.animationMode, nextViewMatrix);
+  const auto& times = mCfgC.animationPoints.values;
+  uint32_t k = 0; // Interval [times[k], times[k + 1]] of the time
+  while (k + 2 < times.size() && time > times[k + 1]) {
+    k++;
+  }
+  const int32_t modeA = mAnimationVectors[k].cfgL.animationMode, modeB = mAnimationVectors[k + 1].cfgL.animationMode;
+  auto cameraOfMode = [&](int32_t mode, hmm_mat4& viewMatrix) {
+    float vals[8];
+    for (int32_t i = 0; i < 8; i++) {
+      vals[i] = mAnimationSplines[mode][i].evaluate(time);
+    }
+    animationViewMatrix(vals, mode, viewMatrix);
+  };
+  if (modeA == modeB) {
+    cameraOfMode(modeA, nextViewMatrix);
+  } else { // Modes of the points differ: blend the cameras of both modes, position linearly, rotation as quaternion, with sin^2 for a smooth start and end
+    hmm_mat4 viewA = nextViewMatrix, viewB = nextViewMatrix;
+    cameraOfMode(modeA, viewA);
+    cameraOfMode(modeB, viewB);
+    const float s = sinf(std::clamp((time - times[k]) / (times[k + 1] - times[k]), 0.f, 1.f) * CAMath::Pi() / 2), w = s * s;
+    float qA[4], qB[4], vals[8];
+    createQuaternionFromMatrix(qA, &viewA.Elements[0][0]);
+    createQuaternionFromMatrix(qB, &viewB.Elements[0][0]);
+    const float sign = qA[0] * qB[0] + qA[1] * qB[1] + qA[2] * qB[2] + qA[3] * qB[3] < 0 ? -1.f : 1.f; // Shorter way
+    for (int32_t i = 0; i < 3; i++) {                                                                  // Camera position, as calcXYZ
+      const float posA = -(viewA.Elements[i][0] * viewA.Elements[3][0] + viewA.Elements[i][1] * viewA.Elements[3][1] + viewA.Elements[i][2] * viewA.Elements[3][2]);
+      const float posB = -(viewB.Elements[i][0] * viewB.Elements[3][0] + viewB.Elements[i][1] * viewB.Elements[3][1] + viewB.Elements[i][2] * viewB.Elements[3][2]);
+      vals[i] = (1 - w) * posA + w * posB;
+    }
+    vals[3] = 0;
+    for (int32_t i = 0; i < 4; i++) {
+      vals[4 + i] = (1 - w) * qA[i] + w * sign * qB[i]; // Normalized by animationViewMatrix
+    }
+    animationViewMatrix(vals, 0, nextViewMatrix); // Mode 0: Cartesian position, quaternion
+  }
   return 1;
 }
 

@@ -237,9 +237,6 @@ void GPUDisplay::checkAndApplyConfigChanges()
   if (oldCfgR.useGLIndirectDraw != mCfgR.useGLIndirectDraw) {
     mUpdateEventData = true;
   }
-  if (oldCfgL.animationMode != mCfgL.animationMode) {
-    resetAnimation();
-  }
   if (oldCfgH.trackFilter != mCfgH.trackFilter) {
     mUpdateTrackFilter = true;
   }
@@ -252,6 +249,11 @@ void GPUDisplay::checkAndApplyConfigChanges()
     mConsoleTimer.Start();
     if (mCfgC.showConsole) {
       std::fill(std::begin(mFrontend->mKeys), std::end(mFrontend->mKeys), false);
+    }
+  }
+  if (mCfgC.applyToAllPoints && oldCfgL.animationMode != mCfgL.animationMode) { // Also for keys; the animation's own changes are in mOldCfg, so this is only user input
+    for (auto& p : mAnimationVectors) {
+      p.cfgL.animationMode = mCfgL.animationMode;
     }
   }
   if (mCfgC.animationPoints.selected >= 0 && mCfgC.animationPoints.selected < (int32_t)mAnimationVectors.size()) { // Update animation settings of selected point

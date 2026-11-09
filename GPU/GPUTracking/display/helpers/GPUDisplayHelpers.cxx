@@ -135,7 +135,6 @@ void GPUDisplay::LoadGLAnimation()
     mCfgC.animationPoints.selected = -1;
     if (ok) {
       mCfgL = cfg;
-      std::get<1>(mOldCfg).animationMode = cfg.animationMode; // Otherwise the mode change resets the animation which was just loaded
       updateConfig();
     } else {
       resetAnimation(); // Read error after the size check: no incomplete path

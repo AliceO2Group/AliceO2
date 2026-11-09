@@ -250,7 +250,7 @@ void GPUDisplay::buildConfigKeys()
         val = 0;
       }
     }), //
-    "Start Animation, Add / remove Animation point, Reset Points, Cycle animation camera mode (resets)");
+    "Start Animation, Add / remove Animation point, Reset Points, Cycle animation camera mode");
 
   mFrontend->add_key_binding(
     KEY_LAMBDA('>', "ANIMATION_CHANGE_CONFIG", mCfgC, animationChangeConfig, val ^= 1;),
