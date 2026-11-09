@@ -256,6 +256,10 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(bool suspended, float animateTim
 {
   HighResTimer timer(mUpdateVertexLists && mChain->GetProcessingSettings().debugLevel >= 2);
   int32_t mMouseWheelTmp = mFrontend->mMouseWheel;
+  if (mCfgC.showConsole && mMouseWheelTmp) { // Scrolls the console instead of zooming, one line per step (100)
+    mFrontend->mConsole->scroll(mMouseWheelTmp / 100 ? mMouseWheelTmp / 100 : (mMouseWheelTmp > 0) - (mMouseWheelTmp < 0));
+    mMouseWheelTmp = 0;
+  }
   mFrontend->mMouseWheel = 0;
   bool lookOrigin = mCfgR.camLookOrigin ^ mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_FOCUS_ORIGIN]];
   bool yUp = mCfgR.camYUp ^ mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_FOCUS_ORIENT_UP]] ^ lookOrigin;
@@ -308,7 +312,7 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(bool suspended, float animateTim
     float rotPitch = rotatescalefactor * mFPSScale * 2 * (mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_ROTATE_PITCH_DOWN]] - mFrontend->mKeys[mFrontend->mKeyDownMap[mFrontend->KEY_MAP_ROTATE_PITCH_UP]]) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]);
 
     float mouseScale = 1920.f / std::max<float>(1920.f, mBackend->mScreenWidth);
-    if (mFrontend->mMouseDnR && mFrontend->mMouseDn) {
+    if ((mFrontend->mMouseDnR && mFrontend->mMouseDn) || mFrontend->mMouseDnM) {
       moveZ += -scalefactor * mouseScale * ((float)mFrontend->mMouseMvY - (float)mFrontend->mMouseDnY) / 4;
       rotRoll += -rotatescalefactor * mouseScale * ((float)mFrontend->mMouseMvX - (float)mFrontend->mMouseDnX);
     } else if (mFrontend->mMouseDnR) {
@@ -430,7 +434,7 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(bool suspended, float animateTim
     calcXYZ(&mViewMatrix->Elements[0][0]);
   }
 
-  if (mFrontend->mMouseDn || mFrontend->mMouseDnR) {
+  if (mFrontend->mMouseDn || mFrontend->mMouseDnR || mFrontend->mMouseDnM) {
     mFrontend->mMouseDnX = mFrontend->mMouseMvX;
     mFrontend->mMouseDnY = mFrontend->mMouseMvY;
   }
@@ -740,9 +744,16 @@ void GPUDisplay::DrawGLScene_internal(bool suspended, float animateTime, bool re
       showInfo(info);
     }
     if (consoleFraction > 0.f) {
-      const double consoleTime = mConsoleTimer.GetCurrentElapsedTime();
-      const bool cursor = mCfgC.showConsole && consoleTime >= mConfig.internal.consoleDelay && std::fmod(consoleTime - mConfig.internal.consoleDelay, 1.0) < 0.5; // Only when fully open, blinking, the timer runs while the console is open
-      mBackend->GLDrawConsole(consoleFraction, mFrontend->mConsole->mConsoleHistory, mFrontend->mConsole->shownText(), cursor ? (int32_t)mFrontend->mConsole->mConsoleTextPos : -1);
+      const bool open = mCfgC.showConsole && mConsoleTimer.GetCurrentElapsedTime() >= mConfig.internal.consoleDelay; // Cursor only when fully open
+      if (!open) {
+        mConsoleCursorTimer.Reset();
+      } else if (!mConsoleCursorTimer.IsRunning() || mConsoleCursorPos != mFrontend->mConsole->mConsoleTextPos) { // Blinking restarts visible when the cursor moves
+        mConsoleCursorTimer.ResetStart();
+        mConsoleCursorPos = mFrontend->mConsole->mConsoleTextPos;
+      }
+      const bool cursor = open && std::fmod(mConsoleCursorTimer.GetCurrentElapsedTime(), 1.0) < 0.5;
+      auto& console = *mFrontend->mConsole;
+      console.mVisibleLines = mBackend->GLDrawConsole(consoleFraction, console.mConsoleHistory, console.shownText(), cursor ? (int32_t)console.mConsoleTextPos : -1, console.mScroll);
     }
     if (drawText) {
       mBackend->finishText();

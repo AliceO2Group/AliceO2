@@ -265,7 +265,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
     case WM_KEYDOWN:                                                   // Is A Key Being Held Down?
       wParam = ((lParam >> 16) & 0xFF) == 0x29 ? '^' : GetKey(wParam); // Scan code of the key left of 1: console key, independent of the layout
-      mKeys[wParam] = !consoleShown();
+      mKeys[wParam] = wParam == KEY_SHIFT || !consoleShown();          // Held keys only without console, SHIFT also with it (scrolling)
       HandleKey(wParam);
       return 0;
 
@@ -299,6 +299,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
     case WM_RBUTTONUP:
       mMouseDnR = false;
+      return 0;
+
+    case WM_MBUTTONDOWN:
+      mMouseDnX = GET_X_LPARAM(lParam);
+      mMouseDnY = GET_Y_LPARAM(lParam);
+      mMouseDnM = true;
+      GetCursorPos(&mouseCursorPos);
+      return 0;
+
+    case WM_MBUTTONUP:
+      mMouseDnM = false;
       return 0;
 
     case WM_MOUSEMOVE:

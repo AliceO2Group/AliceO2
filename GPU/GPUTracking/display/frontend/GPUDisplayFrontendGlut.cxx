@@ -134,7 +134,7 @@ void GPUDisplayFrontendGlut::keyboardFunc(int32_t key, bool special, bool down)
 {
   int32_t handleKey = 0, keyPress = 0;
   GetKey(key, handleKey, keyPress, special);
-  mKeys[keyPress] = down && !consoleShown();
+  mKeys[keyPress] = down && (keyPress == KEY_SHIFT || !consoleShown()); // Held keys only without console, SHIFT also with it (scrolling)
   if (down) {
     HandleKey(handleKey);
   }

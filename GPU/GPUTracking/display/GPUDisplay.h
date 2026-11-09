@@ -333,6 +333,8 @@ class GPUDisplay : public GPUDisplayInterface
   std::string mGUIInfoText;                                    // Latest info message (SetInfo) for the Qt GUI
   uint64_t mGUIInfoTextCounter = 0;                            // Number of info messages, the GUI shows a new one for some seconds
   HighResTimer mInfoText2Timer, mInfoHelpTimer, mConsoleTimer; // mConsoleTimer: opening / closing animation of the console
+  HighResTimer mConsoleCursorTimer;                            // Blinking of the console cursor, started when the console is fully open, restarted when the cursor moves
+  uint32_t mConsoleCursorPos = 0;                              // Cursor position at the last restart of mConsoleCursorTimer
   bool mConsoleShown = false;                                  // showConsole of the last checkAndApplyConfigChanges
 
   std::vector<threadVertexBuffer> mThreadBuffers;

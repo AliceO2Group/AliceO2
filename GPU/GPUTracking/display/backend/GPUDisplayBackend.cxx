@@ -220,10 +220,10 @@ void GPUDisplayBackend::GLDrawLine(float x0, float y0, float x1, float y1, float
   GLDrawQuad({{x0 + nx, y0 + ny}, {x0 - nx, y0 - ny}, {x1 - nx, y1 - ny}, {x1 + nx, y1 + ny}}, color);
 }
 
-void GPUDisplayBackend::GLDrawConsole(float verticalFraction, std::span<const std::string> previous, const std::string& current, int32_t cursorPos)
+uint32_t GPUDisplayBackend::GLDrawConsole(float verticalFraction, std::span<const std::string> previous, const std::string& current, int32_t cursorPos, uint32_t scroll)
 {
   if (!mFreetypeInitialized) {
-    return;
+    return 1;
   }
   const float scale = mDisplay->frontend()->getDisplayScale();
   const float colorValue = mDisplay->cfgL().invertColors ? 0.f : 1.f;
@@ -239,12 +239,17 @@ void GPUDisplayBackend::GLDrawConsole(float verticalFraction, std::span<const st
   const size_t maxChars = mFontCharWidth > 0.f ? std::max(0.f, (width / scale - 2 * MARGIN) / mFontCharWidth) : SIZE_MAX; // Longer lines are cut
   float y = bottom + (0.5f + MARGIN) * scale + descent;                                                                   // Baseline of the lowest line, MARGIN above the line (half its width)
   if (cursorPos >= 0 && (size_t)cursorPos < maxChars && mFontCharWidth > 0.f) {                                           // Monospace font: position from the character width
-    GLPrintText("_", (MARGIN + cursorPos * mFontCharWidth) * scale, y, textColor, scale / mFontRasterScale, 0);
+    const float x0 = (MARGIN + cursorPos * mFontCharWidth) * scale, x1 = x0 + mFontCharWidth * scale;
+    const float y1 = y - 0.5f * descent, y0 = y1 - 3.f * scale;
+    GLDrawQuad({{x0, y0}, {x1, y0}, {x1, y1}, {x0, y1}}, textColor); // Solid underline, 3 logical pixels, below the baseline
   }
-  for (size_t i = 0; i <= previous.size() && y + lineHeight - descent <= top; i++, y += lineHeight) {
-    const std::string& text = i == 0 ? current : previous[previous.size() - i];
+  const uint32_t nFit = std::max(1.f, std::floor((top - y + descent) / lineHeight) - 1.f); // Lines above the current one that fit, as in the loop
+  scroll = std::min<size_t>(scroll, previous.size());
+  for (size_t i = 0; i <= previous.size() - scroll && y + lineHeight - descent <= top; i++, y += lineHeight) {
+    const std::string& text = i == 0 ? current : previous[previous.size() - scroll - i];
     if (!text.empty() && maxChars) {
       GLPrintText(text.c_str(), MARGIN * scale, y, textColor, scale / mFontRasterScale, std::min(text.size(), maxChars));
     }
   }
+  return nFit;
 }
