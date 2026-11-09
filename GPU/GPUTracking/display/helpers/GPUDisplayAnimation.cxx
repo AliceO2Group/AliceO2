@@ -322,7 +322,8 @@ int32_t GPUDisplay::animateCamera(bool suspended, float& animateTime, float& mix
   while (k + 2 < times.size() && time > times[k + 1]) {
     k++;
   }
-  const int32_t modeA = mAnimationVectors[k].cfgL.animationMode, modeB = mAnimationVectors[k + 1].cfgL.animationMode;
+  const int32_t maxMode = mAnimationSplines.size() - 1; // Modes from a loaded file are not checked
+  const int32_t modeA = std::clamp(mAnimationVectors[k].cfgL.animationMode, 0, maxMode), modeB = std::clamp(mAnimationVectors[k + 1].cfgL.animationMode, 0, maxMode);
   auto cameraOfMode = [&](int32_t mode, hmm_mat4& viewMatrix) {
     float vals[8];
     for (int32_t i = 0; i < 8; i++) {

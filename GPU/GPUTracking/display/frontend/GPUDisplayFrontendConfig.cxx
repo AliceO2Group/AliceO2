@@ -232,6 +232,9 @@ void GPUDisplay::checkAndApplyConfigChanges()
   if (oldCfgR.drawQualityMSAA != mCfgR.drawQualityMSAA || oldCfgR.drawQualityDownsampleFSAA != mCfgR.drawQualityDownsampleFSAA || oldCfgL.depthBuffer != mCfgL.depthBuffer || oldCfgR.screenshotScaleFactor != mCfgR.screenshotScaleFactor) {
     mUpdateRenderPipeline = true;
   }
+  if (oldCfgL.depthBuffer != mCfgL.depthBuffer) { // Also for set / scripts, not only key and GUI
+    mBackend->setDepthBuffer();
+  }
 
   if (oldCfgR.drawQualityVSync != mCfgR.drawQualityVSync) {
     mFrontend->SetVSync(mCfgR.drawQualityVSync);

@@ -101,10 +101,7 @@ void GPUDisplay::buildConfigKeys()
   mFrontend->add_key_binding(
     KEY_LAMBDA('S', "SMOOTH_POINTS", mCfgL, smoothPoints, val ^= true;), //
     KEY_LAMBDA('A', "SMOOTH_LINES", mCfgL, smoothLines, val ^= true;),   //
-    KEY_LAMBDA('D', "DEPTH_BUFFER", mCfgL, depthBuffer, {
-      val ^= true;
-      mBackend->setDepthBuffer();
-    }), //
+    KEY_LAMBDA('D', "DEPTH_BUFFER", mCfgL, depthBuffer, val ^= true;),   //
     "Enable or disable smoothing of points / smoothing of lines / depth buffer");
 
   mFrontend->add_key_binding(

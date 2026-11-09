@@ -22,12 +22,23 @@ void GPUDisplayFrontend::buildConsoleCommands()
   commands["help"] = {[this](args) { mConsole->printCommands([this](const std::string& line) { mConsole->consolePrint("%s", line.c_str()); }); }, "", "List available console commands"};
   commands["clearHistory"] = {[this](args) {
                                 mConsole->mConsoleHistory.resize(1); // Keep the title
-                                mConsole->mConsoleTextCurrent = 0;
+                                mConsole->mConsoleTextCurrent = mConsole->mScroll = 0;
+                                mConsole->mConsoleTextPos = std::min<uint32_t>(mConsole->mConsoleTextPos, mConsole->mConsoleText.size()); // Shown text is mConsoleText again
                                 mConsole->mConsoleInfoLastMessage.clear();
                               },
                               "", "Clear the console history"};
   commands["runScript"] = {[this](args a) { mConsole->runScriptFile(std::get<std::string>(a[0])); }, "s", "Execute script file"};
 
+  auto writeFile = [this](const char* command, const std::string& file, const char* success, const std::function<void(std::ostream&)>& write) { // Writes the file with write, reports errors opening / writing, or success ("<success> <file>")
+    std::ofstream out(file);
+    if (!out) {
+      mConsole->consolePrint("%s: cannot open file %s", command, file.c_str());
+      return;
+    }
+    write(out);
+    out.close();
+    mConsole->consolePrint(out ? "%s %s" : "%s: error writing file %s", out ? success : command, file.c_str());
+  };
   auto floatNumber = [](const GPUDisplayConsole::consoleArg& a) { return (float)std::get<double>(a); };
   auto parseKey = [this](const GPUDisplayConsole::consoleArg& a) -> int32_t { // Key code (+ SPECIAL_KEYS_SHIFTED with SHIFT) from a code, a character or a key name (SHIFT_...), -1 if invalid
     if (const int64_t* code = std::get_if<int64_t>(&a)) {
@@ -42,8 +53,12 @@ void GPUDisplayFrontend::buildConsoleCommands()
       return (uint8_t)name[0];
     }
     const bool shift = name.starts_with("SHIFT_");
+    const std::string keyName = shift ? name.substr(6) : name;
+    if (keyName.empty()) { // Would match the codes without name
+      return -1;
+    }
     const auto& names = mConfiguration->keyNames;
-    const auto it = std::find(names.begin(), names.end(), shift ? name.substr(6) : name);
+    const auto it = std::find(names.begin(), names.end(), keyName);
     const int32_t key = it == names.end() ? -1 : it - names.begin();
     return key < 0 || !shift ? key : (key < (int32_t)N_SPECIAL_KEYS ? key + (int32_t)SPECIAL_KEYS_SHIFTED : -1);
   };
@@ -210,7 +225,7 @@ void GPUDisplayFrontend::buildConsoleCommands()
   };
   auto controlState = [this](uint32_t i) { return mConfiguration->rttiEntries[i].configStructIndex == GPUDisplayConfiguration::configStructIndex<GPUDisplayControl>(); }; // Control state and actions (mCfgC): not saved, not reset with a group
 
-  auto defaultValue = [this](uint32_t i) -> GPUDisplayConsole::consoleArg { // Default from the RTTI, as setValue expects it
+  auto defaultValue = [this](uint32_t i) -> std::optional<GPUDisplayConsole::consoleArg> { // Default from the RTTI, as setValue expects it, nullopt if it is not a number (e.g. GPUDisplayMultiSliderValue)
     const auto& e = mConfiguration->rttiEntries[i];
     if (e.type == "std::string" || e.type == "bool") {
       return e.defaultValue;
@@ -220,7 +235,11 @@ void GPUDisplayFrontend::buildConsoleCommands()
     if (std::from_chars(e.defaultValue.c_str(), end, intValue).ptr == end) { // Integers exactly, not through double
       return intValue;
     }
-    return std::stod(e.defaultValue);
+    double doubleValue = 0.;
+    if (const auto r = std::from_chars(e.defaultValue.c_str(), end, doubleValue); r.ec == std::errc() && r.ptr == end) {
+      return doubleValue;
+    }
+    return std::nullopt;
   };
   auto toText = [](const GPUDisplayConsole::consoleArg& a) { // Argument as text
     return std::visit([](const auto& v) {
@@ -250,6 +269,7 @@ void GPUDisplayFrontend::buildConsoleCommands()
                          const auto index = findOptions(name, true);
                          if (index.empty()) {
                            mConsole->consolePrint("print: unknown option %s, expected all, l / h / r / o / c, or l. / h. / r. / o. / c. and an option name", name.c_str());
+                           return;
                          }
                          for (uint32_t i : index) {
                            const auto value = mConfiguration->valueString(*mDisplay, i);
@@ -262,17 +282,22 @@ void GPUDisplayFrontend::buildConsoleCommands()
                          const auto index = findOptions(name, true);
                          if (index.empty()) {
                            mConsole->consolePrint("reset: unknown option %s, expected all, l / h / r / o / c, or l. / h. / r. / o. / c. and an option name", name.c_str());
+                           return;
                          }
                          for (uint32_t i : index) {
-                           if (index.size() > 1 && controlState(i)) {
+                           if (controlState(i)) { // Transient, no settings
+                             if (index.size() == 1) {
+                               mConsole->consolePrint("reset %s: control state, not resettable", optionName(i).c_str());
+                             }
                              continue;
                            }
-                           if (const std::string error = mConfiguration->setValue(*mDisplay, i, defaultValue(i)); error.size()) {
+                           const auto value = defaultValue(i);
+                           if (const std::string error = value ? mConfiguration->setValue(*mDisplay, i, *value) : "default is not a number, not resettable"; error.size()) {
                              mConsole->consolePrint("reset %s: %s", optionName(i).c_str(), error.c_str());
                            } // Quiet as set
                          }
                        },
-                       "s", "Reset an option, a group (l / h / r / o / c, without the control state c), or all to the defaults"};
+                       "s", "Reset an option, a group (l / h / r / o), or all to the defaults, not the control state c"};
   commands["describe"] = {[this, findOptions, optionName](args a) {
                             const auto index = findOptions(std::get<std::string>(a[0]), false);
                             if (index.empty()) {
@@ -310,34 +335,29 @@ void GPUDisplayFrontend::buildConsoleCommands()
                         mConsole->consolePrint("find: %u options", n);
                       },
                       "s", "Find options whose name or description contains the text (case insensitive)"};
-  commands["saveSettings"] = {[this, controlState, optionName](args a) {
-                                const std::string& file = std::get<std::string>(a[0]);
-                                std::ofstream out(file);
-                                if (!out) {
-                                  mConsole->consolePrint("saveSettings: cannot open file %s", file.c_str());
-                                  return;
-                                }
-                                for (uint32_t i = 0; i < mConfiguration->rttiEntries.size(); i++) {
-                                  const auto value = mConfiguration->valueString(*mDisplay, i, true);
-                                  if (!value || controlState(i)) {
-                                    continue;
-                                  } else if (value->find_first_of("\r\n") != std::string::npos) {
-                                    mConsole->consolePrint("saveSettings: %s not saved, scripts cannot contain line breaks", optionName(i).c_str());
-                                    continue;
+  commands["saveSettings"] = {[this, controlState, optionName, writeFile](args a) {
+                                writeFile("saveSettings", std::get<std::string>(a[0]), "Settings and camera saved to", [&](std::ostream& out) {
+                                  for (uint32_t i = 0; i < mConfiguration->rttiEntries.size(); i++) {
+                                    const auto value = mConfiguration->valueString(*mDisplay, i, true);
+                                    if (!value || controlState(i)) {
+                                      continue;
+                                    } else if (value->find_first_of("\r\n") != std::string::npos) {
+                                      mConsole->consolePrint("saveSettings: %s not saved, scripts cannot contain line breaks", optionName(i).c_str());
+                                      continue;
+                                    }
+                                    const bool isString = mConfiguration->rttiEntries[i].type == "std::string";
+                                    std::string text = value->empty() ? "\"\"" : "";
+                                    for (size_t k = 0; k < value->size(); k++) { // Escaped: a single argument, and plain text (a string) for string options also if it looks like a number
+                                      const char c = (*value)[k];
+                                      text += (c == ' ' || c == '"' || c == '\'' || c == '\\' || (isString && k == 0) ? "\\" : "") + std::string(1, c);
+                                    }
+                                    out << "set " << optionName(i) << " " << text << "\n";
                                   }
-                                  const bool isString = mConfiguration->rttiEntries[i].type == "std::string";
-                                  std::string text = value->empty() ? "\"\"" : "";
-                                  for (size_t k = 0; k < value->size(); k++) { // Escaped: a single argument, and plain text (a string) for string options also if it looks like a number
-                                    const char c = (*value)[k];
-                                    text += (c == ' ' || c == '"' || c == '\'' || c == '\\' || (isString && k == 0) ? "\\" : "") + std::string(1, c);
-                                  }
-                                  out << "set " << optionName(i) << " " << text << "\n";
-                                }
-                                const float toDeg = 180.f / CAMath::Pi();
-                                out << std::setprecision(std::numeric_limits<float>::max_digits10); // Camera position exact, angles up to the conversion to degrees
-                                out << "setXYZ " << mDisplay->mXYZ[0] << " " << mDisplay->mXYZ[1] << " " << mDisplay->mXYZ[2] << "\n";
-                                out << "setCameraAngles " << mDisplay->mAngle[1] * toDeg << " " << mDisplay->mAngle[0] * toDeg << " " << mDisplay->mAngle[2] * toDeg << "\n";
-                                mConsole->consolePrint("Settings and camera saved to %s", file.c_str());
+                                  const float toDeg = 180.f / CAMath::Pi();
+                                  out << std::setprecision(std::numeric_limits<float>::max_digits10); // Camera position exact, angles up to the conversion to degrees
+                                  out << "setXYZ " << mDisplay->mXYZ[0] << " " << mDisplay->mXYZ[1] << " " << mDisplay->mXYZ[2] << "\n";
+                                  out << "setCameraAngles " << mDisplay->mAngle[1] * toDeg << " " << mDisplay->mAngle[0] * toDeg << " " << mDisplay->mAngle[2] * toDeg << "\n";
+                                });
                               },
                               "s", "Save all settings and the camera as console script (run it with runScript)"};
   commands["waitFrames"] = {[this](args a) { mConsole->waitFrames(std::max<int64_t>(std::get<int64_t>(a[0]), 0)); }, "i", "In a script: run the following lines after n frames"};
@@ -381,21 +401,16 @@ void GPUDisplayFrontend::buildConsoleCommands()
                              mKeyDownMap.fill(0);
                            },
                            "", "Remove all key bindings (actions and key down mappings, also the key of the console)"};
-  commands["saveKeyBindings"] = {[this](args a) {
-                                   const std::string& file = std::get<std::string>(a[0]);
-                                   std::ofstream out(file);
-                                   if (!out) {
-                                     mConsole->consolePrint("saveKeyBindings: cannot open file %s", file.c_str());
-                                     return;
-                                   }
-                                   out << "unbindAll\n";
-                                   for (uint32_t k = 1; k < mConfiguration->configKeys.size(); k++) {
-                                     if (const int32_t binding = mConfiguration->configKeys[k]; binding != GPUDisplayConfiguration::KEY_UNBOUND) {
-                                       const std::string key = mConfiguration->getKeyName(k);
-                                       out << "bindKey " << (key.size() == 1 ? "\\" : "") << key << " " << mConfiguration->bindingName(binding) << "\n"; // Characters escaped: plain text, also digits, space, quotes
+  commands["saveKeyBindings"] = {[this, writeFile](args a) {
+                                   writeFile("saveKeyBindings", std::get<std::string>(a[0]), "Key bindings saved to", [&](std::ostream& out) {
+                                     out << "unbindAll\n";
+                                     for (uint32_t k = 1; k < mConfiguration->configKeys.size(); k++) {
+                                       if (const int32_t binding = mConfiguration->configKeys[k]; binding != GPUDisplayConfiguration::KEY_UNBOUND) {
+                                         const std::string key = mConfiguration->getKeyName(k);
+                                         out << "bindKey " << (key.size() == 1 ? "\\" : "") << key << " " << mConfiguration->bindingName(binding) << "\n"; // Characters escaped: plain text, also digits, space, quotes
+                                       }
                                      }
-                                   }
-                                   mConsole->consolePrint("Key bindings saved to %s", file.c_str());
+                                   });
                                  },
                                  "s", "Save all key bindings as console script: unbindAll, then bindKey for each key (run it with runScript)"};
   commands["resetView"] = {[this](args) {
@@ -403,17 +418,12 @@ void GPUDisplayFrontend::buildConsoleCommands()
                              showConfigInfo(mConfiguration->getRTTIIndex(*mDisplay, &GPUDisplayControl::resetScene));
                            },
                            "", "Reset the view"};
-  commands["history"] = {[this](args a) {
-                           const std::string& file = std::get<std::string>(a[0]);
-                           std::ofstream out(file);
-                           if (!out) {
-                             mConsole->consolePrint("history: cannot open file %s", file.c_str());
-                             return;
-                           }
-                           for (const auto& line : mConsole->mConsoleHistory) { // Title, commands, and their output (indented)
-                             out << line << "\n";
-                           }
-                           mConsole->consolePrint("History saved to %s", file.c_str());
+  commands["history"] = {[this, writeFile](args a) {
+                           writeFile("history", std::get<std::string>(a[0]), "History saved to", [&](std::ostream& out) {
+                             for (const auto& line : mConsole->mConsoleHistory) { // Title, commands, and their output (indented)
+                               out << line << "\n";
+                             }
+                           });
                          },
                          "s", "Save the console history (commands and output) to a file"};
 }

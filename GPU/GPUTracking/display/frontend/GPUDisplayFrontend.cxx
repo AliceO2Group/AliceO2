@@ -77,8 +77,10 @@ void GPUDisplayFrontend::FrontendThreadWrapper()
     GPUError("Error in display frontend: %s", e.what());
     retVal = -1;
   }
+  std::unique_lock lock(mExitStateMutex);
+  mDisplayRunning = false; // Also after an error / exception in the main loop, StopDisplay waits for it
+  mDisplayStoppedCV.notify_all();
   if (retVal) {
-    std::unique_lock lock(mExitStateMutex);
     if (mDisplay->mInitResult == 0) { // Failed before InitDisplay was called, report failure to StartDisplay(), which otherwise waits forever
       lock.unlock();
       InitDisplay(true);
