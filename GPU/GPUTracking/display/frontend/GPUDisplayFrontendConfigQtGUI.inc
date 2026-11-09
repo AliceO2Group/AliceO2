@@ -179,6 +179,7 @@ void GPUDisplay::buildConfigQtGUI()
     GUI_LAMBDA("Remove Point", mCfgC, dummy, GUI_BUTTON, removeAnimationPoint(); SetInfo("Removed Animation point", 1);),
     GUI_LAMBDA("Reset Animation", mCfgC, dummy, GUI_BUTTON, resetAnimation(); SetInfo("Reset Animation points", 1);),
     GUI_LAMBDA("Animation Mode", mCfgL, animationMode, GUI_DROPDOWN_NAMES(ANIMATION_MODE_NAMES_SHORT), guiAssign(val, guiVal); if (!mCfgC.guiPrintInfo) { SetInfo("Animation mode set to %s", ANIMATION_MODE_NAMES_LONG[val].c_str()); }), // clang-format off
+    GUI_LAMBDA("Apply to all", mCfgC, applyToAllPoints, GUI_CHECKBOX),
     guiVertical{true},
     GUI_LAMBDA("Points", mCfgC, animationPoints, GUI_MULTI_SLIDER(0.05), setAnimationPointsFromGUI(std::get<GPUDisplayMultiSliderValue>(guiVal));), // clang-format on
     "Screenshots / Animation", true);
