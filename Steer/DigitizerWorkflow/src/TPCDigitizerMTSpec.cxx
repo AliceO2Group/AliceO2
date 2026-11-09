@@ -18,7 +18,6 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataRefUtils.h"
 #include "Framework/Lifetime.h"
-#include "Framework/CCDBParamSpec.h"
 #include "Framework/Task.h"
 #include "Framework/Logger.h"
 #include "Headers/DataHeader.h"
@@ -28,13 +27,9 @@
 #include "DetectorsBase/Detector.h"
 #include "SimConfig/DigiParams.h"
 #include "SimulationDataFormat/DigitizationContext.h"
-#include "TPCBaseRecSim/CDBInterface.h"
-#include "TPCBase/ParameterGEM.h"
-#include "TPCBase/ParameterGas.h"
-#include "TPCCalibration/VDriftHelper.h"
 #include "TPCSimulation/Digitizer.h"
-#include "TPCSpaceCharge/SpaceCharge.h"
 #include "CommonUtils/DebugStreamer.h"
+#include "CommonUtils/FileSystemUtils.h"
 #include <TChain.h>
 #include <TFile.h>
 #include <TROOT.h>
@@ -53,7 +48,6 @@
 #include <vector>
 
 using namespace o2::framework;
-using SC = o2::tpc::SpaceCharge<float>;
 
 namespace o2
 {
@@ -142,11 +136,8 @@ class TPCDPLDigitizerMTTask : public o2::base::BaseDPLDigitizer
     }
 
     // the merger picks up every lane file in the directory, so files of an earlier run must not survive
-    for (const auto& entry : std::filesystem::directory_iterator(".")) {
-      const auto name = entry.path().filename().string();
-      if (name.rfind("tpc_driftime_digits_lane", 0) == 0 && entry.path().extension() == ".root") {
-        std::filesystem::remove(entry.path());
-      }
+    for (const auto& name : o2::utils::listFiles("tpc_driftime_digits_lane.*.root$")) {
+      std::filesystem::remove(name);
     }
 
     ROOT::EnableThreadSafety();
@@ -176,7 +167,6 @@ class TPCDPLDigitizerMTTask : public o2::base::BaseDPLDigitizer
     }
     if (!mSeedingShared) {
       // the rings depend only on the seed, so they are filled once and copied
-      primary.initSectorSeeding();
       for (size_t i = 1; i < mWorkers.size(); ++i) {
         mWorkers[i]->digitizer.setSectorSeedingFrom(primary);
       }

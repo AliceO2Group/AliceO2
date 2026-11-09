@@ -147,23 +147,24 @@ class Digitizer
   void setSCDistortionsFrom(const Digitizer& other);
 
   /// Use digitizer-owned random rings filled from seed and positioned per sector and timeframe in init(),
-  /// so that the digits of a sector do not depend on which sectors were processed before
+  /// so that the digits of a sector do not depend on which sectors were processed before.
+  /// All sectors share the ring contents and differ in the start positions, as with the singleton rings.
   /// \param seed base seed, typically DigiParams.seed
   void setUseSectorSeeding(ULong64_t seed);
 
   /// Set the timeframe identifier that enters the sector seeding
   void setSeedingTimeframe(ULong64_t timeframe) { mSeedingTimeframe = timeframe; }
 
-  /// Fill the random rings of the sector seeding, if not done yet
-  void initSectorSeeding();
-
-  /// Use copies of the sector-seeding random rings of another digitizer
-  void setSectorSeedingFrom(const Digitizer& other);
+  /// Use copies of the sector-seeding random rings of another digitizer, which fills them if needed
+  void setSectorSeedingFrom(Digitizer& other);
 
   /// Whether flush() also flushes the process-wide debug streamer
   void setFlushDebugStreamer(bool flush) { mFlushDebugStreamer = flush; }
 
  private:
+  /// Fill the random rings of the sector seeding, if not done yet
+  void initSectorSeeding();
+
   ElectronTransport& electronTransport();
   GEMAmplification& gemAmplification();
   SAMPAProcessing& sampaProcessing();

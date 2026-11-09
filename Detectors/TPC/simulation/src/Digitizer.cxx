@@ -100,8 +100,9 @@ void Digitizer::initSectorSeeding()
   }
 }
 
-void Digitizer::setSectorSeedingFrom(const Digitizer& other)
+void Digitizer::setSectorSeedingFrom(Digitizer& other)
 {
+  other.initSectorSeeding();
   mUseSectorSeeding = other.mUseSectorSeeding;
   mSeed = other.mSeed;
   if (other.mGEMAmplification) {
