@@ -424,10 +424,10 @@ void GPUDisplayGUI::timerTick()
     mChannel.updatePosted();
   }
   if (newState) {
-    if (mState.cfg.mCfgC.mGuiDarkMode < 0) {
+    if (mState.cfg.mCfgC.guiDarkMode < 0) {
       mUpdate.guiDarkMode = mDarkMode; // Report the system scheme, also shows up in the DarkMode checkbox
-    } else if ((mState.cfg.mCfgC.mGuiDarkMode != 0) != mDarkMode) {
-      setDarkMode(mState.cfg.mCfgC.mGuiDarkMode != 0);
+    } else if ((mState.cfg.mCfgC.guiDarkMode != 0) != mDarkMode) {
+      setDarkMode(mState.cfg.mCfgC.guiDarkMode != 0);
     }
     if (mState.infoTextCounter != mInfoTextCounter) {
       mInfoTextCounter = mState.infoTextCounter;
@@ -491,8 +491,8 @@ void GPUDisplayGUI::updateInfoLabels()
 
 void GPUDisplayGUI::applySettings()
 {
-  if (mState.cfg.mCfgC.mGuiScale != mScale) { // Changed by the display (Reset GUI button) or from a previous GUI session
-    setScale(mState.cfg.mCfgC.mGuiScale);
+  if (mState.cfg.mCfgC.guiScale != mScale) { // Changed by the display (Reset GUI button) or from a previous GUI session
+    setScale(mState.cfg.mCfgC.guiScale);
   }
   for (auto& element : mElements) {
     applyElement(element);

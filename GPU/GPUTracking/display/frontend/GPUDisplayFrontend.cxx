@@ -135,10 +135,10 @@ void GPUDisplayFrontend::HandleExternalGUISignals()
     }
     applyGUIValues(*update);
     if (update->guiScale) {
-      mDisplay->mCfgC.mGuiScale = *update->guiScale;
+      mDisplay->mCfgC.guiScale = *update->guiScale;
     }
     if (update->guiDarkMode) {
-      mDisplay->mCfgC.mGuiDarkMode = *update->guiDarkMode;
+      mDisplay->mCfgC.guiDarkMode = *update->guiDarkMode;
     }
   }
 
@@ -147,8 +147,8 @@ void GPUDisplayFrontend::HandleExternalGUISignals()
     {
       std::lock_guard lock(mGUIChannel->mutex);
       mGUIChannel->state.cfg = std::move(cfg);
-      mGUIChannel->state.infoStatus = mDisplay->mCfgC.mPrintInfoTextGUI ? mDisplay->mGUIInfoStatus : "";
-      mGUIChannel->state.infoText = mDisplay->mCfgC.mPrintInfoTextGUI ? mDisplay->mGUIInfoText : "";
+      mGUIChannel->state.infoStatus = mDisplay->mCfgC.printInfoTextGUI ? mDisplay->mGUIInfoStatus : "";
+      mGUIChannel->state.infoText = mDisplay->mCfgC.printInfoTextGUI ? mDisplay->mGUIInfoText : "";
       mGUIChannel->state.infoTextCounter = mDisplay->mGUIInfoTextCounter;
       if (mDisplay->mUpdateGUIOptions) {
         mGUIChannel->state.optionsRevision++;
@@ -184,8 +184,8 @@ void GPUDisplayFrontend::sendExternalGUIKey(int32_t v, uint32_t translationMode,
 
 bool GPUDisplayFrontend::consoleShown() const { return mDisplay->mCfgC.showConsole; }
 
-int32_t GPUDisplayFrontend::getDisplayControl() const { return mDisplay->mCfgC.mDisplayControl.load(); }
-void GPUDisplayFrontend::setDisplayControl(int32_t v) { mDisplay->mCfgC.mDisplayControl.store(v); }
+int32_t GPUDisplayFrontend::getDisplayControl() const { return mDisplay->mCfgC.displayControl.load(); }
+void GPUDisplayFrontend::setDisplayControl(int32_t v) { mDisplay->mCfgC.displayControl.store(v); }
 
 void GPUDisplayFrontend::HandleKey(uint8_t key) { mDisplay->HandleKey(key); }
 int32_t GPUDisplayFrontend::HandleUpdatesAndDrawGLScene(bool suspended)
@@ -376,7 +376,7 @@ void GPUDisplayFrontend::StopDisplay()
   {
     std::unique_lock lock(mExitStateMutex);
     if (mDisplayRunning) {
-      mDisplay->mCfgC.mDisplayControl.store(2);
+      mDisplay->mCfgC.displayControl.store(2);
       StopDisplayA();
       mDisplay->UnblockDisplay();
     }

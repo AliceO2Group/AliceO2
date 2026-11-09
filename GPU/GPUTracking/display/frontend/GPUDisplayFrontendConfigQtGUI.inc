@@ -53,8 +53,8 @@ void GPUDisplay::buildConfigQtGUI()
   mFrontend->add_gui_binding(
     GUI_LAMBDA("Look at origin", mCfgR, camLookOrigin, GUI_CHECKBOX, guiAssign(val, guiVal); mCfgR.cameraMode = val + 2 * mCfgR.camYUp;),
     GUI_LAMBDA("Toggle y upward", mCfgR, camYUp, GUI_CHECKBOX, guiAssign(val, guiVal); mCfgR.cameraMode = mCfgR.camLookOrigin + 2 * val;),
-    GUI_LAMBDA("Rotate Model", mCfgC, mRotateModel, GUI_CHECKBOX),
-    GUI_LAMBDA("Rotate around Beamline", mCfgC, mRotateAroundZ, GUI_CHECKBOX),
+    GUI_LAMBDA("Rotate Model", mCfgC, rotateModel, GUI_CHECKBOX),
+    GUI_LAMBDA("Rotate around Beamline", mCfgC, rotateAroundZ, GUI_CHECKBOX),
     GUI_LAMBDA("Project onto XY", mCfgH, projectXY, GUI_CHECKBOX),
     "Camera Options", true);
 
@@ -130,7 +130,7 @@ void GPUDisplay::buildConfigQtGUI()
     GUI_LAMBDA("ITS", mCfgH, drawITSTracks, GUI_CHECKBOX),
     GUI_LAMBDA("", mCfgH, drawTracksAndFilter, GUI_RADIO_BUTTONS({"AND", 1}, {"OR", 0})),
     GUI_LAMBDA("Filter Macro", mCfgH, trackFilter, guiType(GPUDisplayGUIChannel::ElementType::DROPDOWN, filterChoices)),
-    GUI_LAMBDA("Custom Macro", mCfgC, mFilterMacroCustom, GUI_TEXTEDIT(1), { // ROOT macro code, reload and apply the custom filter if selected, the change is not visible in the config structs
+    GUI_LAMBDA("Custom Macro", mCfgC, filterMacroCustom, GUI_TEXTEDIT(1), { // ROOT macro code, reload and apply the custom filter if selected, the change is not visible in the config structs
       guiAssign(val, guiVal);
       if ((uint32_t)mCfgH.trackFilter == mConfig.filterMacros.size() + 1) {
         mUpdateTrackFilter = true;
@@ -159,35 +159,35 @@ void GPUDisplay::buildConfigQtGUI()
     GUI_LAMBDA("Load Camera", mCfgC, dummy, GUI_BUTTON, LoadGLPos();),
     GUI_LAMBDA("Save Animation", mCfgC, dummy, GUI_BUTTON, SaveGLAnimation();),
     GUI_LAMBDA("Load Animation", mCfgC, dummy, GUI_BUTTON, LoadGLAnimation();),
-    GUI_LAMBDA("Camera File", mCfgC, mGLPosFile, GUI_TEXTBOX),
-    GUI_LAMBDA("Animation File", mCfgC, mGLAnimationFile, GUI_TEXTBOX),
+    GUI_LAMBDA("Camera File", mCfgC, glPosFile, GUI_TEXTBOX),
+    GUI_LAMBDA("Animation File", mCfgC, glAnimationFile, GUI_TEXTBOX),
     "Load / Save", true);
 
   mFrontend->add_gui_binding(
-    GUI_LAMBDA("Screenshot", mCfgC, mRequestScreenshot, GUI_BUTTON, takeScreenshot();),
+    GUI_LAMBDA("Screenshot", mCfgC, requestScreenshot, GUI_BUTTON, takeScreenshot();),
     GUI_LAMBDA("Animation", mCfgC, dummy, GUI_BUTTON, runAnimation();),
-    GUI_LAMBDA("Record Animation", mCfgC, mAnimateScreenshot, GUI_DROPDOWN({"no", 0}, {"to screenshots", 1})),
-    GUI_LAMBDA("Filename", mCfgC, mScreenShotname, GUI_TEXTBOX),
+    GUI_LAMBDA("Record Animation", mCfgC, animateScreenshot, GUI_DROPDOWN({"no", 0}, {"to screenshots", 1})),
+    GUI_LAMBDA("Filename", mCfgC, mscreenShotName, GUI_TEXTBOX),
     guiVertical{true},
     GUI_LAMBDA("Scale Factor", mCfgR, screenshotScaleFactor, GUI_SLIDER),
-    GUI_LAMBDA("Animation Delay", mCfgC, mAnimationDelay, GUI_SLIDER_DYNAMIC([]() { return guiRange(0.05f, 20.f); })),
+    GUI_LAMBDA("Animation Delay", mCfgC, animationDelay, GUI_SLIDER_DYNAMIC([]() { return guiRange(0.05f, 20.f); })),
     guiVertical{false},
     GUI_LAMBDA("Add Point", mCfgC, dummy, GUI_BUTTON, setAnimationPoint(); SetInfo("Added Animation point (%d points, %6.2f seconds)", (int32_t)mAnimateVectors[0].size(), mAnimateVectors[0].back());),
     GUI_LAMBDA("Remove Point", mCfgC, dummy, GUI_BUTTON, removeAnimationPoint(); SetInfo("Removed Animation point", 1);),
     GUI_LAMBDA("Reset Animation", mCfgC, dummy, GUI_BUTTON, resetAnimation(); SetInfo("Reset Animation points", 1);),
-    GUI_LAMBDA("Animation Mode", mCfgL, animationMode, GUI_DROPDOWN_NAMES(ANIMATION_MODE_NAMES_SHORT), guiAssign(val, guiVal); if (!mCfgC.mGuiPrintInfo) { SetInfo("Animation mode set to %s", ANIMATION_MODE_NAMES_LONG[val].c_str()); }), "Screenshots / Animation", true);
+    GUI_LAMBDA("Animation Mode", mCfgL, animationMode, GUI_DROPDOWN_NAMES(ANIMATION_MODE_NAMES_SHORT), guiAssign(val, guiVal); if (!mCfgC.guiPrintInfo) { SetInfo("Animation mode set to %s", ANIMATION_MODE_NAMES_LONG[val].c_str()); }), "Screenshots / Animation", true);
 
   mFrontend->add_gui_binding(
-    GUI_LAMBDA("Next Event", mCfgC, mDisplayControl, GUI_BUTTON, val.store(1);),
-    GUI_LAMBDA("Exit", mCfgC, mDisplayControl, GUI_BUTTON, val.store(2);),
-    GUI_LAMBDA("Reset", mCfgC, mResetScene, GUI_BUTTON, val.store(true);),
-    GUI_LAMBDA("Reset GUI", mCfgC, mGuiScale, GUI_BUTTON, val = 1.f;),
+    GUI_LAMBDA("Next Event", mCfgC, displayControl, GUI_BUTTON, val.store(1);),
+    GUI_LAMBDA("Exit", mCfgC, displayControl, GUI_BUTTON, val.store(2);),
+    GUI_LAMBDA("Reset", mCfgC, resetScene, GUI_BUTTON, val.store(true);),
+    GUI_LAMBDA("Reset GUI", mCfgC, guiScale, GUI_BUTTON, val = 1.f;),
     GUI_LAMBDA("Close GUI", mCfgC, dummy, GUI_BUTTON, mFrontend->stopGUI();),
-    GUI_LAMBDA("SendInfoText", mCfgC, mGuiPrintInfo, GUI_CHECKBOX),
-    GUI_LAMBDA("GUIInfo", mCfgC, mPrintInfoTextGUI, GUI_CHECKBOX),
-    GUI_LAMBDA("HelpText", mCfgC, mPrintInfoTextAlways, GUI_CHECKBOX),
-    GUI_LAMBDA("StatusText", mCfgC, mPrintInfoText, GUI_CHECKBOX_BIT(1)), // Bit 0: status line on screen (bit 1: in the console)
-    GUI_LAMBDA("DarkMode", mCfgC, mGuiDarkMode, GUI_CHECKBOX),
+    GUI_LAMBDA("SendInfoText", mCfgC, guiPrintInfo, GUI_CHECKBOX),
+    GUI_LAMBDA("GUIInfo", mCfgC, printInfoTextGUI, GUI_CHECKBOX),
+    GUI_LAMBDA("HelpText", mCfgC, printInfoTextAlways, GUI_CHECKBOX),
+    GUI_LAMBDA("StatusText", mCfgC, printInfoText, GUI_CHECKBOX_BIT(1)), // Bit 0: status line on screen (bit 1: in the console)
+    GUI_LAMBDA("DarkMode", mCfgC, guiDarkMode, GUI_CHECKBOX),
     true);
 }
 
