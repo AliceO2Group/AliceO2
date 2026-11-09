@@ -244,7 +244,7 @@ int32_t GPUDisplayFrontendWayland::FrontendMain()
     int32_t symbol = me->GetKey(key, state);
     int32_t keyPress = (symbol >= 'a' && symbol <= 'z') ? symbol + 'A' - 'a' : symbol;
     if (state == WL_KEYBOARD_KEY_STATE_PRESSED) {
-      me->mKeys[keyPress] = !me->consoleShown();
+      me->mKeys[keyPress] = keyPress == KEY_SHIFT || !me->consoleShown(); // Held keys only without console, SHIFT also with it (scrolling)
       me->HandleKey(symbol);
       if (symbol && me->mRepeatRate > 0 && me->mXKBkeymap && xkb_keymap_key_repeats(me->mXKBkeymap, key + 8)) { // Wayland compositors do not repeat keys, the client must do it
         me->mRepeatKeyCode = key;

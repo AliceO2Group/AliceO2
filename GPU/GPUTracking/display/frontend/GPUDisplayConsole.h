@@ -41,7 +41,8 @@ class GPUDisplayConsole : public GPUDisplayFrontendKeyVars // Text console of th
   };
   GPUDisplayConsole(const std::string& title); // First history entry, not selectable
 
-  void handleConsoleKey(uint8_t key);              // Key typed while the console is shown
+  void handleConsoleKey(uint8_t key, bool shift);  // Key typed while the console is shown
+  void scroll(int32_t lines);                      // Scrolls the history up (> 0) or down, limited to its lines
   void handleConsoleCommand(std::string_view cmd); // Runs the command named by the first token, error if unknown
   void runScript(std::string_view script);         // Queues the lines (separated by \n / \r) as console commands before the remaining script lines, runs them up to a wait
   void runScriptFile(const std::string& filename); // runScript with the content of the file
@@ -76,6 +77,8 @@ class GPUDisplayConsole : public GPUDisplayFrontendKeyVars // Text console of th
   std::vector<std::string> mConsoleHistory;                   // Title, then commands entered in the console and their output (indented)
   std::string mConsoleText;                                   // Text being typed in the console
   uint32_t mConsoleTextCurrent = 0;                           // Entry of mConsoleHistory shown in the console (selected with up / down, the title entry 0 is not selectable), 0 for mConsoleText
+  uint32_t mScroll = 0;                                       // History lines scrolled up (the lowest ones not shown), reset by enter
+  uint32_t mVisibleLines = 1;                                 // History lines fitting into the console, set when it is drawn
   uint32_t mConsoleTextPos = 0;                               // Cursor position in the shown text (left / right), the character there is the current one
 };
 } // namespace o2::gpu

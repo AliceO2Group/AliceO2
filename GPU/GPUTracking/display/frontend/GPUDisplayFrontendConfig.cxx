@@ -631,7 +631,7 @@ void GPUDisplayFrontend::listConfig()
   GPUInfo("");
   mConsole->printCommands([](const std::string& line) { GPUInfo("%s", line.c_str()); });
   GPUInfo("");
-  GPUInfo("%zu options with RTTI, %u of them with a key, %u in the Qt GUI, %zu bound keys, %zu available keys", rtti.rttiEntries.size(), nOptionsWithKey, nOptionsInGUI, boundKeys.size(), availableKeys.size());
+  GPUInfo("%zu options with RTTI, %u of them with a key, %u in the Qt GUI, %zu bound keys, %zu available keys, %zu console commands", rtti.rttiEntries.size(), nOptionsWithKey, nOptionsInGUI, boundKeys.size(), availableKeys.size(), mConsole->mConsoleCommands.size());
   GPUInfo("");
 }
 
@@ -720,7 +720,7 @@ void GPUDisplay::HandleKey(uint8_t key, bool external, bool bypassConsole)
 {
   if (mCfgC.showConsole && !bypassConsole && mFrontend->mConfiguration->keyRTTIIndex(key) != mFrontend->mConfiguration->getRTTIIndex(*this, &GPUDisplayControl::showConsole)) { // All keys except the one toggling the console go to the console
     if (!external) {
-      mFrontend->mConsole->handleConsoleKey(key);
+      mFrontend->mConsole->handleConsoleKey(key, mFrontend->mKeys[mFrontend->KEY_SHIFT]);
     }
     return;
   }

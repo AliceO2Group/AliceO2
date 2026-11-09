@@ -357,7 +357,7 @@ int32_t GPUDisplayFrontendX11::FrontendMain()
         case KeyPress: {
           int32_t handleKey = 0, keyPress = 0;
           GetKey(event, handleKey, keyPress);
-          mKeys[keyPress] = !consoleShown();
+          mKeys[keyPress] = keyPress == KEY_SHIFT || !consoleShown(); // Held keys only without console, SHIFT also with it (scrolling)
           HandleKey(handleKey);
           break;
         }

@@ -101,10 +101,10 @@ class GPUDisplayBackend
   const char* backendName() const { return mBackendName; }
   virtual void resizeScene(uint32_t width, uint32_t height) {}
   virtual size_t needMultiVBO() { return 0; }
-  virtual void GLPrintText(const char* s, float x, float y, float* color, float scale, uint32_t nCharacters) = 0;                   // nCharacters > 0: at most that many characters, otherwise until the terminating 0
-  virtual void GLDrawQuad(const float (&corners)[4][2], const float* color) = 0;                                                    // Filled quad with the corners counterclockwise, in pixels with y from the bottom, drawn with the text (SOLID_GLYPH)
-  void GLDrawLine(float x0, float y0, float x1, float y1, float width, const float* color);                                         // As GLDrawQuad
-  void GLDrawConsole(float verticalFraction, std::span<const std::string> previous, const std::string& current, int32_t cursorPos); // Console over the top verticalFraction of the window: current text in the lowest line, previous ones above (last one lowest), cursor _ at cursorPos (< 0: none)
+  virtual void GLPrintText(const char* s, float x, float y, float* color, float scale, uint32_t nCharacters) = 0;                                        // nCharacters > 0: at most that many characters, otherwise until the terminating 0
+  virtual void GLDrawQuad(const float (&corners)[4][2], const float* color) = 0;                                                                         // Filled quad with the corners counterclockwise, in pixels with y from the bottom, drawn with the text (SOLID_GLYPH)
+  void GLDrawLine(float x0, float y0, float x1, float y1, float width, const float* color);                                                              // As GLDrawQuad
+  uint32_t GLDrawConsole(float verticalFraction, std::span<const std::string> previous, const std::string& current, int32_t cursorPos, uint32_t scroll); // Console over the top verticalFraction of the window: current text in the lowest line, previous ones above (last one lowest, the last scroll ones skipped), cursor underline at cursorPos (< 0: none); returns the number of previous lines that fit
   static GPUDisplayBackend* getBackend(const char* type);
   std::vector<char> getPixels();
   virtual float getYFactor() const { return 1.0f; }

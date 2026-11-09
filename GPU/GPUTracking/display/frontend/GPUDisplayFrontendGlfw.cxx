@@ -170,8 +170,8 @@ void GPUDisplayFrontendGlfw::key_callback(GLFWwindow* window, int32_t key, int32
   int32_t handleKey = 0, keyPress = 0;
   GetKey(key, scancode, mods, handleKey, keyPress);
   if (handleKey < 32) {
-    if (action == GLFW_PRESS || action == GLFW_REPEAT) { // Repeat as the other frontends (e.g. backspace in the console), characters are repeated by char_callback
-      me->mKeys[keyPress] = !me->consoleShown();
+    if (action == GLFW_PRESS || action == GLFW_REPEAT) {                  // Repeat as the other frontends (e.g. backspace in the console), characters are repeated by char_callback
+      me->mKeys[keyPress] = keyPress == KEY_SHIFT || !me->consoleShown(); // Held keys only without console, SHIFT also with it (scrolling)
       me->HandleKey(handleKey);
     } else if (action == GLFW_RELEASE) {
       me->mKeys[keyPress] = false;
@@ -203,7 +203,7 @@ void GPUDisplayFrontendGlfw::char_callback(GLFWwindow* window, uint32_t codepoin
       keyPress += 'A' - 'a';
     }
     me->mGLFWKeyDownMap[me->mLastKeyDown] = keyPress;
-    me->mKeys[keyPress] = !me->consoleShown();
+    me->mKeys[keyPress] = keyPress == KEY_SHIFT || !me->consoleShown(); // Held keys only without console, SHIFT also with it (scrolling)
     me->HandleKey(codepoint);
   }
 }
