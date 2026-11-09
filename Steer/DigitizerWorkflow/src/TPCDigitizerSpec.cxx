@@ -15,6 +15,7 @@
 #include <cassert>
 #include "Framework/RootSerializationSupport.h"
 #include "TPCDigitizerSpec.h"
+#include "TPCSectorDigitization.h"
 #include "Framework/ControlService.h"
 #include "Framework/ParallelContext.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -22,7 +23,6 @@
 #include "Framework/DataRefUtils.h"
 #include "Framework/Lifetime.h"
 #include "Framework/DeviceSpec.h"
-#include "DetectorsRaw/HBFUtils.h"
 #include "Headers/DataHeader.h"
 #include "TStopwatch.h"
 #include "Steer/HitProcessingManager.h" // for DigitizationContext
@@ -90,20 +90,6 @@ void writeToBranchHelper<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>(TTr
   targetbr->Fill();
   targetbr->ResetAddress();
   targetbr->DropBaskets("all");
-}
-
-std::string getBranchNameLeft(int sector)
-{
-  std::stringstream branchnamestreamleft;
-  branchnamestreamleft << "TPCHitsShiftedSector" << int(o2::tpc::Sector::getLeft(o2::tpc::Sector(sector)));
-  return branchnamestreamleft.str();
-}
-
-std::string getBranchNameRight(int sector)
-{
-  std::stringstream branchnamestreamright;
-  branchnamestreamright << "TPCHitsShiftedSector" << sector;
-  return branchnamestreamright.str();
 }
 
 using namespace o2::base;
@@ -178,7 +164,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     {
       std::stringstream brname;
       brname << "TPCDigit_" << mSector;
-      auto br = o2::base::getOrMakeBranch(*mInternalROOTFlushTTree, brname.str().c_str(), &mDigits);
+      auto br = o2::base::getOrMakeBranch(*mInternalROOTFlushTTree, brname.str().c_str(), &mFlushBuffers.digits);
       br->Fill();
       br->ResetAddress();
     }
@@ -186,7 +172,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
       // labels
       std::stringstream brname;
       brname << "TPCDigitMCTruth_" << mSector;
-      auto br = o2::base::getOrMakeBranch(*mInternalROOTFlushTTree, brname.str().c_str(), &mLabels);
+      auto br = o2::base::getOrMakeBranch(*mInternalROOTFlushTTree, brname.str().c_str(), &mFlushBuffers.labels);
       br->Fill();
       br->ResetAddress();
     }
@@ -194,7 +180,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
       // common
       std::stringstream brname;
       brname << "TPCCommonMode_" << mSector;
-      auto br = o2::base::getOrMakeBranch(*mInternalROOTFlushTTree, brname.str().c_str(), &mCommonMode);
+      auto br = o2::base::getOrMakeBranch(*mInternalROOTFlushTTree, brname.str().c_str(), &mFlushBuffers.commonMode);
       br->Fill();
       br->ResetAddress();
     }
@@ -286,7 +272,6 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
         }
         // TODO: make generic reset method?
         mFlushCounter = 0;
-        mDigitCounter = 0;
       }
     }
   }
@@ -391,88 +376,24 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
       throw std::runtime_error("Digitizer can only work on single sectors");
     }
 
-    mDigitizer.setSector(sector);
-    mDigitizer.setSeedingTimeframe(dh->tfCounter);
-    mDigitizer.init();
+    TStopwatch timer;
+    timer.Start();
 
-    auto& eventParts = context->getEventParts();
-
-    auto flushDigitsAndLabels = [this, digitsAccum, &labelAccum, &commonModeAccum](bool finalFlush = false) {
+    auto onFlush = [this, digitsAccum, &labelAccum, &commonModeAccum]() {
       mFlushCounter++;
-      // flush previous buffer
-      mDigits.clear();
-      mLabels.clear();
-      mCommonMode.clear();
-      mDigitizer.flush(mDigits, mLabels, mCommonMode, finalFlush);
-      LOG(info) << "TPC: Flushed " << mDigits.size() << " digits, " << mLabels.getNElements() << " labels and " << mCommonMode.size() << " common mode entries";
-
       if (mInternalWriter) {
         // the natural place to write out this independent datachunk immediately ...
         writeToROOTFile();
       } else {
         // ... or to accumulate and later forward to next DPL proc
-        std::copy(mDigits.begin(), mDigits.end(), std::back_inserter(*digitsAccum));
+        std::copy(mFlushBuffers.digits.begin(), mFlushBuffers.digits.end(), std::back_inserter(*digitsAccum));
         if (mWithMCTruth) {
-          labelAccum.mergeAtBack(mLabels);
+          labelAccum.mergeAtBack(mFlushBuffers.labels);
         }
-        std::copy(mCommonMode.begin(), mCommonMode.end(), std::back_inserter(commonModeAccum));
+        std::copy(mFlushBuffers.commonMode.begin(), mFlushBuffers.commonMode.end(), std::back_inserter(commonModeAccum));
       }
-      mDigitCounter += mDigits.size();
     };
-
-    if (isContinuous) {
-      auto& hbfu = o2::raw::HBFUtils::Instance();
-      double time = hbfu.getFirstIRofTF(o2::InteractionRecord(0, hbfu.orbitFirstSampled)).bc2ns() / 1000.;
-      mDigitizer.setOutputDigitTimeOffset(time);
-      if (!irecords.empty()) {
-        mDigitizer.setStartTime(irecords[0].getTimeNS() / 1000.f);
-      }
-    }
-
-    TStopwatch timer;
-    timer.Start();
-
-    // loop over all composite collisions given from context
-    // (aka loop over all the interaction records)
-    for (int collID = 0; collID < irecords.size(); ++collID) {
-      const double eventTime = irecords[collID].getTimeNS() / 1000.f;
-      LOG(info) << "TPC: Event time " << eventTime << " us";
-      mDigitizer.setEventTime(eventTime);
-      if (!isContinuous) {
-        mDigitizer.setStartTime(eventTime);
-      }
-      size_t startSize = mDigitCounter; // digitsAccum->size();
-
-      // for each collision, loop over the constituents event and source IDs
-      // (background signal merging is basically taking place here)
-      for (auto& part : eventParts[collID]) {
-        const int eventID = part.entryID;
-        const int sourceID = part.sourceID;
-
-        // get the hits for this event and this source
-        std::vector<o2::tpc::HitGroup> hitsLeft;
-        std::vector<o2::tpc::HitGroup> hitsRight;
-        context->retrieveHits(mSimChains, getBranchNameLeft(sector).c_str(), part.sourceID, part.entryID, &hitsLeft);
-        context->retrieveHits(mSimChains, getBranchNameRight(sector).c_str(), part.sourceID, part.entryID, &hitsRight);
-        LOG(debug) << "TPC: Found " << hitsLeft.size() << " hit groups left and " << hitsRight.size() << " hit groups right in collision " << collID << " eventID " << part.entryID;
-
-        mDigitizer.process(hitsLeft, eventID, sourceID);
-        mDigitizer.process(hitsRight, eventID, sourceID);
-
-        flushDigitsAndLabels();
-
-        if (!isContinuous) {
-          eventAccum.emplace_back(startSize, mDigits.size());
-        }
-      }
-    }
-
-    // final flushing step; getting everything not yet written out
-    if (isContinuous) {
-      LOG(info) << "TPC: Final flush";
-      flushDigitsAndLabels(true);
-      eventAccum.emplace_back(0, mDigitCounter); // all digits are grouped to 1 super-event pseudo-triggered mode
-    }
+    eventAccum = digitizeSector(mDigitizer, *context, mSimChains, sector, dh->tfCounter, mFlushBuffers, onFlush);
 
     if (!mInternalWriter) {
       // send out to next stage
@@ -490,13 +411,10 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
   o2::tpc::Digitizer mDigitizer;
   o2::tpc::VDriftHelper mTPCVDriftHelper{};
   std::vector<TChain*> mSimChains;
-  std::vector<o2::tpc::Digit> mDigits;
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabels;
-  std::vector<o2::tpc::CommonMode> mCommonMode;
-  std::vector<int> mListOfSectors; //  a list of sectors treated by this task
+  SectorFlushBuffers mFlushBuffers; // output of the latest flush
+  std::vector<int> mListOfSectors;  //  a list of sectors treated by this task
   TFile* mInternalROOTFlushFile = nullptr;
   TTree* mInternalROOTFlushTTree = nullptr;
-  size_t mDigitCounter = 0;
   size_t mFlushCounter = 0;
   int mLaneId = 0; // the id of the current process within the parallel pipeline
   int mSector = 0;
