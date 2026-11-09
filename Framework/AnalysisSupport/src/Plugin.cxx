@@ -21,9 +21,13 @@
 #include <TDataType.h>
 #include <TGrid.h>
 #include <fmt/format.h>
+#include <algorithm>
 #include <cstring>
 #include <fstream>
+#include <map>
 #include <memory>
+#include <string>
+#include <vector>
 #include <unistd.h>
 
 O2_DECLARE_DYNAMIC_LOG(analysis_support);
@@ -146,25 +150,27 @@ std::vector<std::string> getListOfTables(AODInputFile& f)
   return r;
 }
 
-auto readMetadata(AODInputFile& currentFile) -> std::vector<ConfigParamSpec>
+// Key / value pairs of the metadata, empty if there is none
+auto readMetadata(AODInputFile& currentFile) -> std::map<std::string, std::string>
 {
-  // Get the metadata, if any
-  auto m = currentFile.metaData();
-  std::vector<ConfigParamSpec> results;
-
-  // Serialise metadata into a ; separated string with : separating key and value
+  auto metadata = currentFile.metaData();
   bool first = true;
-  for (auto& [name, value] : m) {
+  for (auto const& [name, value] : metadata) {
     if (first) {
       LOGP(info, "Metadata for file \"{}\":", currentFile.name());
       first = false;
     }
     LOGP(info, "- {}: {}", name, value);
-    std::string key = "aod-metadata-" + name;
-    char const* valueCopy = strdup(value.c_str());
-    results.push_back(ConfigParamSpec{key, VariantType::String, valueCopy, {"Metadata in AOD"}});
   }
+  return metadata;
+}
 
+auto metadataToSpecs(std::map<std::string, std::string> const& metadata) -> std::vector<ConfigParamSpec>
+{
+  std::vector<ConfigParamSpec> results;
+  for (auto const& [name, value] : metadata) {
+    results.push_back(ConfigParamSpec{"aod-metadata-" + name, VariantType::String, value, {"Metadata in AOD"}});
+  }
   return results;
 }
 
@@ -175,6 +181,55 @@ std::shared_ptr<AODInputFile> openForDiscovery(std::string const& filename)
   static RootObjectReadingFactory noTables;
   return RootAODInputFile::open(filename, noTables);
 }
+
+struct FileAtLevel {
+  std::shared_ptr<AODInputFile> file; // nullptr if there is no file at this level
+  std::string name;
+};
+
+// Open the first parent file of `child`
+FileAtLevel openParent(FileAtLevel const& child, ConfigParamRegistry& registry)
+{
+  auto parentFiles = child.file->parentFiles();
+  if (parentFiles.empty()) {
+    LOGP(info, "No parent file found for \"{}\"", child.name);
+    return {nullptr, child.name};
+  }
+  std::string parentFilename = parentFiles.begin()->second;
+  // Do the replacement. Notice this will require changing aod-parent-base-path-replacement to be
+  // a workflow option (because the metadata itself is potentially changing the topology).
+  if (registry.isSet("aod-parent-base-path-replacement")) {
+    auto parentFileReplacement = registry.get<std::string>("aod-parent-base-path-replacement");
+    auto pos = parentFileReplacement.find(';');
+    if (pos == std::string::npos) {
+      throw std::runtime_error(fmt::format("Invalid syntax in aod-parent-base-path-replacement: \"{}\"", parentFileReplacement.c_str()));
+    }
+    auto from = parentFileReplacement.substr(0, pos);
+    auto to = parentFileReplacement.substr(pos + 1);
+    // Same as TString::ReplaceAll
+    for (size_t at = 0; !from.empty() && (at = parentFilename.find(from, at)) != std::string::npos; at += to.size()) {
+      parentFilename.replace(at, from.size(), to);
+    }
+  }
+
+  if (parentFilename.starts_with("alien://") && !gGrid) {
+    TGrid::Connect("alien://");
+  }
+
+  auto parentFile = openForDiscovery(parentFilename);
+  if (parentFile.get() == nullptr) {
+    LOGP(fatal, "Couldn't open derived file \"{}\"!", parentFilename);
+  }
+  return {std::move(parentFile), parentFilename};
+}
+
+// What was found at a given parent level
+struct LevelMetadata {
+  bool found = false; // the file at this level exists
+  std::string source;
+  std::map<std::string, std::string> metadata;
+  std::vector<std::string> tables;
+};
 
 struct DiscoverMetadataInAOD : o2::framework::ConfigDiscoveryPlugin {
   ConfigDiscovery* create() override
@@ -204,73 +259,125 @@ struct DiscoverMetadataInAOD : o2::framework::ConfigDiscoveryPlugin {
         if (currentFile.get() == nullptr) {
           throw std::runtime_error(fmt::format("Couldn't open file \"{}\"!", filename));
         }
-        std::vector<ConfigParamSpec> results = readMetadata(*currentFile);
-        const bool metaDataEmpty = results.empty();
-        auto tables = getListOfTables(*currentFile);
-        if (tables.empty() == false) {
-          results.push_back(ConfigParamSpec{"aod-metadata-tables", VariantType::ArrayString, tables, {"Tables in first AOD"}});
+
+        // The files opened so far, by level. Ends with an empty file if the chain of parents is exhausted.
+        std::vector<FileAtLevel> chain{{currentFile, filename}};
+        // Each level is read only once, even if several origins map to it
+        std::map<int, LevelMetadata> levels;
+        auto readLevel = [&](int level) -> LevelMetadata const& {
+          if (auto it = levels.find(level); it != levels.end()) {
+            return it->second;
+          }
+          while (chain.back().file && chain.size() <= static_cast<size_t>(level)) {
+            chain.push_back(openParent(chain.back(), registry));
+          }
+          LevelMetadata data;
+          auto const& atLevel = chain[std::min(static_cast<size_t>(level), chain.size() - 1)];
+          if (atLevel.file) {
+            data.found = true;
+            data.source = atLevel.name;
+            data.metadata = readMetadata(*atLevel.file);
+            data.tables = getListOfTables(*atLevel.file);
+          }
+          return levels.emplace(level, std::move(data)).first->second;
+        };
+        int parentAccessLevel = 0;
+        if (registry.isSet("aod-parent-access-level")) {
+          parentAccessLevel = registry.get<int>("aod-parent-access-level");
         }
 
-        // Found metadata already in the main file.
-        if (!metaDataEmpty) {
+        // The plain aod-metadata-* options, from the file itself or from the closest parent which has them
+        LevelMetadata const* plain = nullptr;
+        auto const& top = readLevel(0);
+        std::vector<ConfigParamSpec> results = metadataToSpecs(top.metadata);
+        if (!top.tables.empty()) {
+          results.push_back(ConfigParamSpec{"aod-metadata-tables", VariantType::ArrayString, top.tables, {"Tables in first AOD"}});
+        }
+        if (!top.metadata.empty()) {
+          // Found metadata already in the main file.
           results.push_back(ConfigParamSpec{"aod-metadata-source", VariantType::String, filename, {"File from which the metadata was extracted."}});
-          return results;
-        }
-
-        if (!registry.isSet("aod-parent-access-level") || registry.get<int>("aod-parent-access-level") == 0) {
+          plain = &top;
+        } else if (parentAccessLevel == 0) {
           LOGP(info, "No metadata found in file \"{}\" and parent level 0 prevents further lookup.", filename);
           results.push_back(ConfigParamSpec{"aod-metadata-disable", VariantType::String, "1", {"Metadata not found in AOD"}});
+        } else {
+          // Lets try in the parent files, up to the allowed parent level.
+          LOGP(info, "No metadata found in file \"{}\", checking in its parents.", filename);
+          for (int level = 1; level <= parentAccessLevel && plain == nullptr; ++level) {
+            auto const& parent = readLevel(level);
+            if (!parent.found) {
+              break;
+            }
+            results = metadataToSpecs(parent.metadata);
+            if (parent.metadata.empty()) {
+              LOGP(info, "No metadata found in parent file \"{}\" at level {}", parent.source, level);
+              continue;
+            }
+            if (!parent.tables.empty()) {
+              results.push_back(ConfigParamSpec{"aod-metadata-tables", VariantType::ArrayString, parent.tables, {"Tables in first AOD"}});
+            }
+            results.push_back(ConfigParamSpec{"aod-metadata-source", VariantType::String, filename, {"File from which the metadata was extracted."}});
+            plain = &parent;
+          }
+          if (plain == nullptr) {
+            LOGP(info, "No metadata found in file \"{}\" nor in its parents", filename);
+            results.push_back(ConfigParamSpec{"aod-metadata-disable", VariantType::String, "1", {"Metadata not found in AOD"}});
+          }
+        }
+
+        if (!registry.hasOption("aod-origin-level-map")) {
           return results;
         }
 
-        // Lets try in the parent files, up to the allowed parent level.
-        auto childFile = currentFile;
-        for (int level = 1; level <= registry.get<int>("aod-parent-access-level"); ++level) {
-          auto parentFiles = childFile->parentFiles();
-          if (parentFiles.empty()) {
-            break;
-          }
-          LOGP(info, "No metadata found in file \"{}\", checking in its parents.", childFile->name());
-          std::string parentFilename = parentFiles.begin()->second;
-          // Do the replacement. Notice this will require changing aod-parent-base-path-replacement to be
-          // a workflow option (because the metadata itself is potentially changing the topology).
-          if (registry.isSet("aod-parent-base-path-replacement")) {
-            auto parentFileReplacement = registry.get<std::string>("aod-parent-base-path-replacement");
-            auto pos = parentFileReplacement.find(';');
-            if (pos == std::string::npos) {
-              throw std::runtime_error(fmt::format("Invalid syntax in aod-parent-base-path-replacement: \"{}\"", parentFileReplacement.c_str()));
-            }
-            auto from = parentFileReplacement.substr(0, pos);
-            auto to = parentFileReplacement.substr(pos + 1);
-            // Same as TString::ReplaceAll
-            for (size_t at = 0; !from.empty() && (at = parentFilename.find(from, at)) != std::string::npos; at += to.size()) {
-              parentFilename.replace(at, from.size(), to);
+        // The metadata of the level each origin reads, one row per origin. The columns are
+        // all the keys found, including the plain ones, so that an empty cell always means
+        // that the key is missing for that origin.
+        auto levelMap = registry.get<LabeledArray<int>>("aod-origin-level-map");
+        auto origins = levelMap.getLabelsRows();
+        std::vector<std::string> keys;
+        auto addKeys = [&keys](std::map<std::string, std::string> const& metadata) {
+          for (auto const& [key, value] : metadata) {
+            if (std::ranges::find(keys, key) == keys.end()) {
+              keys.push_back(key);
             }
           }
-
-          if (parentFilename.starts_with("alien://") && !gGrid) {
-            TGrid::Connect("alien://");
-          }
-
-          auto parentFile = openForDiscovery(parentFilename);
-          if (parentFile.get() == nullptr) {
-            LOGP(fatal, "Couldn't open derived file \"{}\"!", parentFilename);
-          }
-          results = readMetadata(*parentFile);
-          // Found metadata already in the main file.
-          if (!results.empty()) {
-            auto tables = getListOfTables(*parentFile);
-            if (tables.empty() == false) {
-              results.push_back(ConfigParamSpec{"aod-metadata-tables", VariantType::ArrayString, tables, {"Tables in first AOD"}});
-            }
-            results.push_back(ConfigParamSpec{"aod-metadata-source", VariantType::String, filename, {"File from which the metadata was extracted."}});
-            return results;
-          }
-          LOGP(info, "No metadata found in parent file \"{}\" at level {}", parentFilename, level);
-          childFile = parentFile;
+        };
+        if (plain != nullptr) {
+          addKeys(plain->metadata);
         }
-        LOGP(info, "No metadata found in file \"{}\" nor in its parents", filename);
-        results.push_back(ConfigParamSpec{"aod-metadata-disable", VariantType::String, "1", {"Metadata not found in AOD"}});
+        for (auto i = 0U; i < levelMap.rows(); ++i) {
+          auto level = levelMap.get(i, 0U);
+          if (level > parentAccessLevel) {
+            LOGP(fatal, "Origin {} is mapped to parent level {}, but aod-parent-access-level is {}", origins[i], level, parentAccessLevel);
+          }
+          addKeys(readLevel(level).metadata);
+        }
+        auto sourceColumn = keys.size();
+        keys.emplace_back("source");
+        auto disableColumn = keys.size();
+        keys.emplace_back("disable");
+
+        std::vector<std::string> values(origins.size() * keys.size());
+        for (auto i = 0U; i < origins.size(); ++i) {
+          auto const& data = readLevel(levelMap.get(i, 0U));
+          auto* row = values.data() + i * keys.size();
+          for (auto const& [key, value] : data.metadata) {
+            row[std::ranges::find(keys, key) - keys.begin()] = value;
+          }
+          row[sourceColumn] = data.source;
+          if (data.metadata.empty()) {
+            LOGP(info, "Metadata info missing for origin {}", origins[i]);
+            row[disableColumn] = "1";
+          }
+        }
+        LabeledArray<std::string> originMetadata{values.data(), static_cast<uint32_t>(origins.size()), static_cast<uint32_t>(keys.size()), origins, keys};
+        results.push_back(ConfigParamSpec{"aod-metadata-origins", VariantType::LabeledArrayString, originMetadata, {"Metadata in AOD for each origin: one row per origin, one column per key"}});
+        for (auto i = 0U; i < origins.size(); ++i) {
+          auto const& tables = readLevel(levelMap.get(i, 0U)).tables;
+          if (!tables.empty()) {
+            results.push_back(ConfigParamSpec{"aod-metadata-origin-" + origins[i] + "-tables", VariantType::ArrayString, tables, {"Tables in the AOD read for this origin"}});
+          }
+        }
         return results;
       }};
   }
