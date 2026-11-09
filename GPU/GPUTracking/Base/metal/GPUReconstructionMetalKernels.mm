@@ -50,6 +50,10 @@ inline void GPUReconstructionMetal::runKernelBackend(const krnlSetupTime& _xyz, 
   if (threadGroupSize > mInternals->maxThreadsPerGroup[num]) {
     threadGroupSize = mInternals->maxThreadsPerGroup[num];
   }
+  if (mInternals->timeline) {
+    mInternals->timelineOps[kExec.stream] += std::string(" k:") + GetKernelName<T, I>() + "/" + std::to_string(kExec.nBlocks);
+    mInternals->timelineKernels[kExec.stream]++;
+  }
   [computeEncoder dispatchThreadgroups:MTLSizeMake(kExec.nBlocks, 1, 1)
                  threadsPerThreadgroup:MTLSizeMake(threadGroupSize, 1, 1)];
   metalEndEncoder(mInternals, computeEncoder, kExec.stream);
