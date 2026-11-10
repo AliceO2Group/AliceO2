@@ -31,6 +31,8 @@ namespace tpc
 {
 
 class DigitContainer;
+class ElectronTransport;
+class GEMAmplification;
 
 template <class T>
 class SpaceCharge;
@@ -141,8 +143,28 @@ class Digitizer
   /// in case of scaled distortions, the distortions can be recalculated to ensure consistent distortions and corrections
   void recalculateDistortions();
 
+  /// Use digitizer-owned random rings filled from seed and positioned per sector and timeframe in init(),
+  /// so that the digits of a sector do not depend on which sectors were processed before
+  /// \param seed base seed, typically DigiParams.seed
+  void setUseSectorSeeding(ULong64_t seed);
+
+  /// Set the timeframe identifier that enters the sector seeding
+  void setSeedingTimeframe(ULong64_t timeframe) { mSeedingTimeframe = timeframe; }
+
  private:
+  ElectronTransport& electronTransport();
+  GEMAmplification& gemAmplification();
+  SAMPAProcessing& sampaProcessing();
+
+  std::unique_ptr<ElectronTransport> mElectronTransport; //!< Digitizer-owned instance with sector seeding, else the singleton is used
+  std::unique_ptr<GEMAmplification> mGEMAmplification;   //!< Digitizer-owned instance with sector seeding, else the singleton is used
+  std::unique_ptr<SAMPAProcessing> mSAMPAProcessing;     //!< Digitizer-owned instance with sector seeding, else the singleton is used
+  ULong64_t mSeed = 0;                                   //!< Base seed for sector seeding
+  ULong64_t mSeedingTimeframe = 0;                       //!< Timeframe identifier for sector seeding
+  bool mUseSectorSeeding = false;                        //!< Whether sector seeding is used
+
   DigitContainer mDigitContainer;        ///< Container for the Digits
+  std::vector<float> mSignalArray;       //!< Workspace for the shaped signal of one electron
   std::unique_ptr<SC> mSpaceChargeOwned; //!< Distortions created by the digitizer itself
   SC* mSpaceCharge = nullptr;            //!< Handler of full distortions (static + IR dependant), owned by mSpaceChargeOwned or by the caller
   SC* mSpaceChargeDer = nullptr;         //!< Handler of reference static distortions, owned by the caller

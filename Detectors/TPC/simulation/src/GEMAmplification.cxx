@@ -26,10 +26,15 @@ using namespace o2::tpc;
 using namespace o2::math_utils;
 using boost::format;
 
-GEMAmplification::GEMAmplification()
-  : mRandomGaus(),
-    mRandomFlat(RandomRing<>::RandomType::Flat),
-    mGain()
+GEMAmplification::GEMAmplification(TRandom* rng)
+  : mRandomGaus(RandomRing<>::RandomType::Gaus, rng),
+    mRandomFlat(RandomRing<>::RandomType::Flat, rng),
+    // the gain rings are refilled from the Polya distributions below; with an explicit generator they start empty
+    mGain{RandomRing<>(rng ? RandomRing<>::RandomType::CustomTF1 : RandomRing<>::RandomType::Gaus),
+          RandomRing<>(rng ? RandomRing<>::RandomType::CustomTF1 : RandomRing<>::RandomType::Gaus),
+          RandomRing<>(rng ? RandomRing<>::RandomType::CustomTF1 : RandomRing<>::RandomType::Gaus),
+          RandomRing<>(rng ? RandomRing<>::RandomType::CustomTF1 : RandomRing<>::RandomType::Gaus)},
+    mGainFullStack(rng ? RandomRing<>::RandomType::CustomTF1 : RandomRing<>::RandomType::Gaus)
 {
   updateParameters();
 
@@ -65,7 +70,7 @@ GEMAmplification::GEMAmplification()
       polyaDistribution = (o2::math_utils::CachingTF1*)outfile->Get(TString::Format("func%d", i).Data());
       // FIXME: verify that distribution corresponds to the parameters used here
     }
-    mGain[i].initialize(*polyaDistribution);
+    mGain[i].initialize(*polyaDistribution, rng);
 
     if (!cacheexists) {
       outfile->WriteTObject(polyaDistribution, TString::Format("func%d", i).Data());
@@ -88,7 +93,7 @@ GEMAmplification::GEMAmplification()
   } else {
     polyaDistribution = (o2::math_utils::CachingTF1*)outfile->Get("polyaStack");
   }
-  mGainFullStack.initialize(*polyaDistribution);
+  mGainFullStack.initialize(*polyaDistribution, rng);
 
   if (!cacheexists) {
     outfile->WriteTObject(polyaDistribution, "polyaStack");
@@ -100,6 +105,16 @@ GEMAmplification::GEMAmplification()
   }
   watch.Stop();
   LOG(info) << "TPC: GEM setup (polya) took " << watch.CpuTime();
+}
+
+void GEMAmplification::setRandomRingPositions(TRandom& rng)
+{
+  mRandomGaus.setRandomPosition(rng);
+  mRandomFlat.setRandomPosition(rng);
+  for (auto& gain : mGain) {
+    gain.setRandomPosition(rng);
+  }
+  mGainFullStack.setRandomPosition(rng);
 }
 
 void GEMAmplification::updateParameters()

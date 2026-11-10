@@ -97,6 +97,7 @@ class DigitGlobalPad
                            const CRU& cru, TimeBin timeBin,
                            GlobalPadNumber globalPad,
                            o2::dataformats::LabelContainer<std::pair<MCCompLabel, int>, false>& labelContainer,
+                           SAMPAProcessing& sampaProcessing, std::vector<std::pair<MCCompLabel, int>>& labelCollector,
                            float commonMode = 0.f, const PrevDigitInfo& prevDigit = PrevDigitInfo(), Streamer* debugStream = nullptr, const CalDet<bool>* deadMap = nullptr);
 
  private:
@@ -210,12 +211,11 @@ inline void DigitGlobalPad::fillOutputContainer(std::vector<Digit>& output,
                                                 const CRU& cru, TimeBin timeBin,
                                                 GlobalPadNumber globalPad,
                                                 o2::dataformats::LabelContainer<std::pair<MCCompLabel, int>, false>& labels,
+                                                SAMPAProcessing& sampaProcessing, std::vector<std::pair<MCCompLabel, int>>& labelCollector,
                                                 float commonMode, const PrevDigitInfo& prevDigit, Streamer* debugStream, const CalDet<bool>* deadMap)
 {
   const Mapper& mapper = Mapper::instance();
-  SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
   const PadPos pad = mapper.padPos(globalPad);
-  static std::vector<std::pair<MCCompLabel, int>> labelCollector; // static workspace container for sorting
 
   /// The charge accumulated on that pad is converted into ADC counts, saturation of the SAMPA is applied and a Digit
   /// is created in written out

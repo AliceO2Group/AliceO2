@@ -41,8 +41,15 @@ class ElectronTransport
     return electronTransport;
   }
 
+  /// Constructor
+  /// \param rng random generator to fill the random rings from, gRandom if null
+  explicit ElectronTransport(TRandom* rng = nullptr);
+
   /// Destructor
   ~ElectronTransport() = default;
+
+  /// Move the random rings to new positions drawn from rng
+  void setRandomRingPositions(TRandom& rng);
 
   /// Update the OCDB parameters cached in the class. To be called once per event
   void updateParameters(float vdrift = 0);
@@ -72,8 +79,6 @@ class ElectronTransport
   float getDriftTime(float zPos, float signChange = 1.f) const;
 
  private:
-  ElectronTransport();
-
   /// Circular random buffer containing random values of the Gauss distribution to take into account diffusion of the
   /// electrons
   math_utils::RandomRing<> mRandomGaus;

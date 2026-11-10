@@ -78,6 +78,7 @@ class DigitTime
   template <DigitzationMode MODE>
   void fillOutputContainer(std::vector<Digit>& output, dataformats::MCTruthContainer<MCCompLabel>& mcTruth,
                            std::vector<CommonMode>& commonModeOutput, const Sector& sector, TimeBin timeBin,
+                           SAMPAProcessing& sampaProcessing, std::vector<std::pair<MCCompLabel, int>>& labelCollector,
                            PrevDigitInfoArray* prevTime = nullptr, Streamer* debugStream = nullptr,
                            const CalPad* padParams[3] = nullptr, const CalDet<bool>* deadMap = nullptr);
 
@@ -129,6 +130,7 @@ inline float DigitTime::getCommonMode(const GEMstack& gemstack) const
 template <DigitzationMode MODE>
 inline void DigitTime::fillOutputContainer(std::vector<Digit>& output, dataformats::MCTruthContainer<MCCompLabel>& mcTruth,
                                            std::vector<CommonMode>& commonModeOutput, const Sector& sector, TimeBin timeBin,
+                                           SAMPAProcessing& sampaProcessing, std::vector<std::pair<MCCompLabel, int>>& labelCollector,
                                            PrevDigitInfoArray* prevTime, Streamer* debugStream, const CalPad* padParams[3],
                                            const CalDet<bool>* deadMap)
 {
@@ -167,7 +169,7 @@ inline void DigitTime::fillOutputContainer(std::vector<Digit>& output, dataforma
         prevDigit = (*prevTime)[iPad];
       }
       const CRU cru = mapper.getCRU(sector, iPad);
-      digit.fillOutputContainer<MODE>(output, mcTruth, cru, timeBin, iPad, mLabels, getCommonMode(cru), prevDigit, debugStream, deadMap);
+      digit.fillOutputContainer<MODE>(output, mcTruth, cru, timeBin, iPad, mLabels, sampaProcessing, labelCollector, getCommonMode(cru), prevDigit, debugStream, deadMap);
     }
   }
 }

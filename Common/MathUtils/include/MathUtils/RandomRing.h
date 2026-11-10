@@ -54,7 +54,8 @@ class RandomRing
 
   /// constructor
   /// @param [in] randomType type of the random generator
-  RandomRing(const RandomType randomType = RandomType::Gaus);
+  /// @param [in] rng random generator to draw from, gRandom if null
+  RandomRing(const RandomType randomType = RandomType::Gaus, TRandom* rng = nullptr);
 
   /// constructor accepting TF1
   /// @param [in] function TF1 function
@@ -62,11 +63,13 @@ class RandomRing
 
   /// initialisation of the random ring
   /// @param [in] randomType type of the random generator
-  void initialize(const RandomType randomType = RandomType::Gaus);
+  /// @param [in] rng random generator to draw from, gRandom if null
+  void initialize(const RandomType randomType = RandomType::Gaus, TRandom* rng = nullptr);
 
   /// initialisation of the random ring
-  /// @param [in] randomType type of the random generator
-  void initialize(TF1& function);
+  /// @param [in] function TF1 function
+  /// @param [in] rng random generator to draw from, gRandom if null
+  void initialize(TF1& function, TRandom* rng = nullptr);
 
   /// initialisation of the random ring
   /// @param [in] randomType type of the random generator
@@ -98,6 +101,10 @@ class RandomRing
     // within this header file (to reduce memory problems during compilation).
     // The hope is that the calling user calls this with a
     // correct Vc type (Vc::float_v) in a source file.
+    // a vector must not run past the end of the ring, also after setRandomPosition()
+    if (mRingPosition + VcType::size() > mRandomNumbers.size()) {
+      mRingPosition = 0;
+    }
     const VcType value = VcType(&mRandomNumbers[mRingPosition]);
     mRingPosition += VcType::size();
     if (mRingPosition >= mRandomNumbers.size()) {
@@ -109,6 +116,10 @@ class RandomRing
   /// position in the ring buffer
   /// @return position in the ring buffer
   unsigned int getRingPosition() const { return mRingPosition; }
+
+  /// move to a random position in the ring buffer
+  /// @param [in] rng random generator to draw the position from
+  void setRandomPosition(TRandom& rng) { mRingPosition = rng.Integer(N); }
 
  private:
   // =========================================================================
@@ -123,12 +134,12 @@ class RandomRing
 
 //______________________________________________________________________________
 template <size_t N>
-inline RandomRing<N>::RandomRing(const RandomType randomType)
+inline RandomRing<N>::RandomRing(const RandomType randomType, TRandom* rng)
   : mRandomType(randomType),
     mRandomNumbers()
 
 {
-  initialize(randomType);
+  initialize(randomType, rng);
 }
 
 //______________________________________________________________________________
@@ -142,18 +153,18 @@ inline RandomRing<N>::RandomRing(TF1& function)
 
 //______________________________________________________________________________
 template <size_t N>
-inline void RandomRing<N>::initialize(const RandomType randomType)
+inline void RandomRing<N>::initialize(const RandomType randomType, TRandom* rng)
 {
-
+  TRandom* random = rng ? rng : gRandom;
   for (auto& v : mRandomNumbers) {
     // TODO: configurable mean and sigma
     switch (randomType) {
       case RandomType::Gaus: {
-        v = gRandom->Gaus(0, 1);
+        v = random->Gaus(0, 1);
         break;
       }
       case RandomType::Flat: {
-        v = gRandom->Rndm();
+        v = random->Rndm();
         break;
       }
       default: {
@@ -166,11 +177,11 @@ inline void RandomRing<N>::initialize(const RandomType randomType)
 
 //______________________________________________________________________________
 template <size_t N>
-inline void RandomRing<N>::initialize(TF1& function)
+inline void RandomRing<N>::initialize(TF1& function, TRandom* rng)
 {
   mRandomType = RandomType::CustomTF1;
   for (auto& v : mRandomNumbers) {
-    v = function.GetRandom();
+    v = function.GetRandom(rng);
   }
 }
 

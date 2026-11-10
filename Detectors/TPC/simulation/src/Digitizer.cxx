@@ -30,6 +30,7 @@
 #include "TPCCalibration/CorrMapParam.h"
 
 #include <fairlogger/Logger.h>
+#include <TRandom3.h>
 
 ClassImp(o2::tpc::Digitizer);
 
@@ -39,13 +40,68 @@ Digitizer::~Digitizer() = default;
 
 Digitizer::Digitizer() = default;
 
+namespace
+{
+// splitmix64 finaliser, to derive well separated seeds from the base seed
+ULong64_t mixSeed(ULong64_t x)
+{
+  x += 0x9e3779b97f4a7c15ULL;
+  x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9ULL;
+  x = (x ^ (x >> 27)) * 0x94d049bb133111ebULL;
+  return x ^ (x >> 31);
+}
+
+// TRandom3 takes 32 bits of the seed and treats 0 as a request for a random seed
+UInt_t toTRandom3Seed(ULong64_t x)
+{
+  const UInt_t seed = static_cast<UInt_t>(x ^ (x >> 32));
+  return seed ? seed : 1;
+}
+} // namespace
+
+ElectronTransport& Digitizer::electronTransport()
+{
+  return mElectronTransport ? *mElectronTransport : ElectronTransport::instance();
+}
+
+GEMAmplification& Digitizer::gemAmplification()
+{
+  return mGEMAmplification ? *mGEMAmplification : GEMAmplification::instance();
+}
+
+SAMPAProcessing& Digitizer::sampaProcessing()
+{
+  return mSAMPAProcessing ? *mSAMPAProcessing : SAMPAProcessing::instance();
+}
+
+void Digitizer::setUseSectorSeeding(ULong64_t seed)
+{
+  mUseSectorSeeding = true;
+  mSeed = seed;
+}
+
 void Digitizer::init()
 {
-  auto& gemAmplification = GEMAmplification::instance();
+  if (mUseSectorSeeding) {
+    if (!mGEMAmplification) {
+      // the rings are filled once, in the construction order of the singletons
+      TRandom3 rng(toTRandom3Seed(mixSeed(mSeed)));
+      mGEMAmplification = std::make_unique<GEMAmplification>(&rng);
+      mElectronTransport = std::make_unique<ElectronTransport>(&rng);
+      mSAMPAProcessing = std::make_unique<SAMPAProcessing>(&rng);
+      mDigitContainer.setSAMPAProcessing(mSAMPAProcessing.get());
+    }
+    const ULong64_t sectorSeed = mixSeed(mSeed ^ mixSeed(static_cast<ULong64_t>(mSector) + 1));
+    TRandom3 rng(toTRandom3Seed(mixSeed(sectorSeed ^ mixSeed(mSeedingTimeframe))));
+    mGEMAmplification->setRandomRingPositions(rng);
+    mElectronTransport->setRandomRingPositions(rng);
+    mSAMPAProcessing->setRandomRingPositions(rng);
+  }
+  auto& gemAmplification = this->gemAmplification();
   gemAmplification.updateParameters();
-  auto& electronTransport = ElectronTransport::instance();
+  auto& electronTransport = this->electronTransport();
   electronTransport.updateParameters(mVDrift);
-  auto& sampaProcessing = SAMPAProcessing::instance();
+  auto& sampaProcessing = this->sampaProcessing();
   // the calibration update may reload FEE parameters from file, so SAMPAProcessing picks up its pointers afterwards
   mDigitContainer.updateCalibrations();
   sampaProcessing.updateParameters(mVDrift);
@@ -59,14 +115,13 @@ void Digitizer::process(const std::vector<o2::tpc::HitGroup>& hits,
   auto& eleParam = ParameterElectronics::Instance();
   auto& gemParam = ParameterGEM::Instance();
 
-  auto& gemAmplification = GEMAmplification::instance();
-  auto& electronTransport = ElectronTransport::instance();
-  auto& sampaProcessing = SAMPAProcessing::instance();
+  auto& gemAmplification = this->gemAmplification();
+  auto& electronTransport = this->electronTransport();
+  auto& sampaProcessing = this->sampaProcessing();
 
   const int nShapedPoints = eleParam.NShapedPoints;
   const auto amplificationMode = gemParam.AmplMode;
-  static std::vector<float> signalArray;
-  signalArray.resize(nShapedPoints);
+  mSignalArray.resize(nShapedPoints);
 
   /// Reserve space in the digit container for the current event
   mDigitContainer.reserve(sampaProcessing.getTimeBinFromTime(mEventTime - mOutputDigitTimeOffset));
@@ -154,11 +209,11 @@ void Digitizer::process(const std::vector<o2::tpc::HitGroup>& hits,
         const GlobalPadNumber globalPad = mapper.globalPadNumber(digiPadPos.getGlobalPadPos());
         const float ADCsignal = sampaProcessing.getADCvalue(static_cast<float>(nElectronsGEM));
         const MCCompLabel label(MCTrackID, eventID, sourceID, false);
-        sampaProcessing.getShapedSignal(ADCsignal, absoluteTime, signalArray);
+        sampaProcessing.getShapedSignal(ADCsignal, absoluteTime, mSignalArray);
         for (float i = 0; i < nShapedPoints; ++i) {
           const float time = absoluteTime + i * eleParam.ZbinWidth;
           mDigitContainer.addDigit(label, digiPadPos.getCRU(), sampaProcessing.getTimeBinFromTime(time), globalPad,
-                                   signalArray[i]);
+                                   mSignalArray[i]);
         }
         /// TODO: add ion backflow to space-charge density
       }
@@ -172,7 +227,7 @@ void Digitizer::flush(std::vector<o2::tpc::Digit>& digits,
                       std::vector<o2::tpc::CommonMode>& commonModeOutput,
                       bool finalFlush)
 {
-  SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
+  SAMPAProcessing& sampaProcessing = this->sampaProcessing();
   mDigitContainer.fillOutputContainer(digits, labels, commonModeOutput, mSector, sampaProcessing.getTimeBinFromTime(mEventTime - mOutputDigitTimeOffset), mIsContinuous, finalFlush);
   // flushing debug output to file
   if (((finalFlush && mIsContinuous) || (!mIsContinuous)) && mSpaceCharge) {
@@ -233,7 +288,7 @@ void Digitizer::setStartTime(double time)
   // this is setting the first timebin index for the digit container
   // note that negative times w.r.t start of timeframe/data-taking == mOutputDigitTimeOffset
   // will yield the 0-th bin (due to casting logic in sampaProcessing)
-  SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
+  SAMPAProcessing& sampaProcessing = this->sampaProcessing();
   sampaProcessing.updateParameters(mVDrift);
   const auto timediff = time - mOutputDigitTimeOffset;
   const auto starttimebin = sampaProcessing.getTimeBinFromTime(timediff);

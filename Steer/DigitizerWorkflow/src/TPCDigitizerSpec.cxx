@@ -44,6 +44,7 @@
 #include "TPCCalibration/VDriftHelper.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "SimConfig/DigiParams.h"
+#include <TRandom.h>
 #include <filesystem>
 #include "Framework/CCDBParamSpec.h"
 
@@ -132,6 +133,16 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
 
     mDigitizer.setContinuousReadout(!triggeredMode);
     mDigitizer.setDistortionScaleType(mDistortionType);
+
+    if (ic.options().get<bool>("tpc-sector-seeding")) {
+      const auto seed = o2::conf::DigiParams::Instance().seed;
+      if (seed == 0) {
+        LOG(warning) << "TPC sector seeding with DigiParams.seed=0 is not reproducible";
+      }
+      // with seed 0, gRandom was seeded randomly in the base class
+      mDigitizer.setUseSectorSeeding(seed != 0 ? seed : gRandom->Integer(kMaxUInt));
+      LOG(info) << "TPC: using sector seeding";
+    }
 
     // we send the GRP data once if the corresponding output channel is available
     // and set the flag to false after
@@ -381,6 +392,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     }
 
     mDigitizer.setSector(sector);
+    mDigitizer.setSeedingTimeframe(dh->tfCounter);
     mDigitizer.init();
 
     auto& eventParts = context->getEventParts();
@@ -536,6 +548,7 @@ o2::framework::DataProcessorSpec getTPCDigitizerSpec(int channel, bool writeGRP,
       {"meanLumiDistortionsDerivative", VariantType::Float, -1.f, {"override lumi of derivative distortion object if >=0"}},
       {"do-not-recalculate-distortions", VariantType::Bool, false, {"Do not recalculate the distortions"}},
       {"n-threads-distortions", VariantType::Int, 4, {"Number of threads used for the calculation of the distortions"}},
+      {"tpc-sector-seeding", VariantType::Bool, false, {"Seed the random numbers of each sector from DigiParams.seed and the sector, so that the digits do not depend on the lane assignment"}},
     }};
 }
 

@@ -15,6 +15,7 @@
 
 #include "TPCSimulation/DigitContainer.h"
 #include <memory>
+#include <type_traits>
 #include <fairlogger/Logger.h>
 #include "TPCBase/Mapper.h"
 #include "TPCBaseRecSim/CDBInterface.h"
@@ -47,6 +48,9 @@ void DigitContainer::fillOutputContainer(std::vector<Digit>& output,
     LOG(debug) << "TPC DigitContainer: calibrations not set up before the first flush, fetching them now";
     updateCalibrations();
   }
+
+  // after updateCalibrations, which may reload the FEE parameters that SAMPAProcessing picks up
+  auto& sampaProcessing = mSAMPAProcessing ? *mSAMPAProcessing : SAMPAProcessing::instance();
 
   const bool needsPrevDigArray = eleParam.doIonTail || eleParam.doIonTailPerPad || eleParam.doSaturationTail;
   const bool needsEmptyTimeBins = needsPrevDigArray || eleParam.doNoiseEmptyPads;
@@ -89,39 +93,37 @@ void DigitContainer::fillOutputContainer(std::vector<Digit>& output,
     // fmt::print("Processing secotor: {}, time bin: {}, mFirstTimeBin: {}, dgitTime: {}\n", sector.getSector(), timeBin, mFirstTimeBin, (void*)time);
 
     if (time) {
+      // the digitization mode is a template parameter of fillOutputContainer
+      auto fill = [&](auto mode) {
+        time->fillOutputContainer<decltype(mode)::value>(output, mcTruth, commonModeOutput, sector, timeBin, sampaProcessing, mLabelCollector, mPrevDigArr.get(), debugStream, mPadParams, mDeadMap);
+      };
+      using M = DigitzationMode;
       switch (digitizationMode) {
-        case DigitzationMode::FullMode: {
-          time->fillOutputContainer<DigitzationMode::FullMode>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get(), debugStream, mPadParams, mDeadMap);
+        case M::FullMode:
+          fill(std::integral_constant<M, M::FullMode>{});
           break;
-        }
-        case DigitzationMode::ZeroSuppression: {
-          time->fillOutputContainer<DigitzationMode::ZeroSuppression>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get(), debugStream, mPadParams, mDeadMap);
+        case M::ZeroSuppression:
+          fill(std::integral_constant<M, M::ZeroSuppression>{});
           break;
-        }
-        case DigitzationMode::ZeroSuppressionCMCorr: {
-          time->fillOutputContainer<DigitzationMode::ZeroSuppressionCMCorr>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get(), debugStream, mPadParams, mDeadMap);
+        case M::ZeroSuppressionCMCorr:
+          fill(std::integral_constant<M, M::ZeroSuppressionCMCorr>{});
           break;
-        }
-        case DigitzationMode::SubtractPedestal: {
-          time->fillOutputContainer<DigitzationMode::SubtractPedestal>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get(), debugStream, mPadParams, mDeadMap);
+        case M::SubtractPedestal:
+          fill(std::integral_constant<M, M::SubtractPedestal>{});
           break;
-        }
-        case DigitzationMode::NoSaturation: {
-          time->fillOutputContainer<DigitzationMode::NoSaturation>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get(), debugStream, mPadParams, mDeadMap);
+        case M::NoSaturation:
+          fill(std::integral_constant<M, M::NoSaturation>{});
           break;
-        }
-        case DigitzationMode::PropagateADC: {
-          time->fillOutputContainer<DigitzationMode::PropagateADC>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get(), debugStream, mPadParams, mDeadMap);
+        case M::PropagateADC:
+          fill(std::integral_constant<M, M::PropagateADC>{});
           break;
-        }
-        case DigitzationMode::Auto: {
+        case M::Auto:
           if (mCMCEnabled) {
-            time->fillOutputContainer<DigitzationMode::ZeroSuppressionCMCorr>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get(), debugStream, mPadParams, mDeadMap);
+            fill(std::integral_constant<M, M::ZeroSuppressionCMCorr>{});
           } else {
-            time->fillOutputContainer<DigitzationMode::ZeroSuppression>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get(), debugStream, mPadParams, mDeadMap);
+            fill(std::integral_constant<M, M::ZeroSuppression>{});
           }
           break;
-        }
       }
     }
 
