@@ -19,6 +19,7 @@
 #include <Rtypes.h>
 #include <cstdint>
 #include <ctime>
+#include <climits>
 #include "CommonConstants/LHCConstants.h"
 #include "CommonTypes/Units.h"
 #include "DetectorsCommonDataFormats/DetID.h"
