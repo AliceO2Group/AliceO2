@@ -83,6 +83,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
   float covYYUpd = 0.f;
   float deltaZ = 0.f;
 
+  // TODO: Could do 5 ways and interpolate again on the rebuilt clusters and reject in the final way based on that (and get the outer param from the rebuilt clusters), but costs 2 more ways
   for (int32_t iWay = rebuilt ? nWays - 1 : 0; iWay < nWays; iWay++) { // TODO DR: Unrolling has no performance improvement on GPU, why?
     int32_t nMissed = 0, nMissed2 = 0;
     float sumInvSqrtCharge = 0.f; // TODO: Compute in first iteration and store!
@@ -290,23 +291,25 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
       deltaZ = 0.f;
     }
 
-    if (param.rec.tpc.rebuildTrackInFit && !rebuilt && !(param.rec.tpc.disableRebuildAttachment & 16) && param.rec.tpc.rebuildTrackMaxNonIntCov > 0 && iWay >= nWays - 3 && !(fitBroken && iWay == nWays - 2) && CAMath::Abs(mP[2]) < maxSinForUpdate && lastUpdateRow != 255) {
+    if (param.rec.tpc.rebuildTrackInFit && !rebuilt && !(param.rec.tpc.disableRebuildAttachment & 16) && param.rec.tpc.rebuildTrackMaxNonIntCov > 0 && iWay >= nWays - 3 && !(fitBroken && iWay == nWays - 2) && CAMath::Abs(mP[2]) < maxSinForUpdate && lastUpdateRow != 255 && mNDF > (int32_t)param.rec.tpc.rebuildTrackNonIntMinNDF) {
       const int32_t up = ((clusters[0].row < clusters[maxN - 1].row) ^ (iWay & 1)) ? 1 : -1;
       int32_t sector = lastSector;
       CADEBUG(if (merger.MergedTrackMC()) printf("Extrapolate Start Track %d - sector %2d row %3d %s - fake %d\n", iTrk, sector, (int32_t)lastPropagateRow, up == 1 ? "upwards" : "downwards", (int)merger.MergedTrackMC()[iTrk].isFake()));
       uint8_t rowGapActive = 0, rowGapTotal = 0, missingRowsTotal = 0;
-      uint8_t lastGoodRow = lastPropagateRow, lastExtrapolateRow = lastPropagateRow;
-      uint8_t consecGoodRows = param.rec.tpc.rebuildTrackExtrMinConsecGoodRows, consecGoodRowsMissing = 0;
+      uint8_t lastGoodRow = lastPropagateRow, lastExtrapolateRow = lastPropagateRow, lastFoundRow = lastPropagateRow;
+      uint8_t consecGoodRows = ihitStart == ((iWay & 1) ? 0 : maxN - 1) ? param.rec.tpc.rebuildTrackExtrMinConsecGoodRows : 0, consecGoodRowsMissing = 0, segmentRows = 0; // Continue the track directly only if its last hit was accepted in the fit
+      float segmentStartChi2 = mChi2;
       prop.SetTrack(this, prop.GetAlpha());
-      for (uint32_t iRow = lastPropagateRow + up; iRow < GPUTPCGeometry::NROWS; iRow += up) { // uint8_t implies > 0! // TODO: Try to reduce some variables to int8/uint8 to save registers
+      uint32_t iExtrapolatedRow = lastPropagateRow + up;
+      for (; iExtrapolatedRow < GPUTPCGeometry::NROWS; iExtrapolatedRow += up) { // uint8_t implies > 0! // TODO: Try to reduce some variables to int8/uint8 to save registers
         bool fail = false;
         for (int32_t iAttempt = 0; iAttempt < 2; iAttempt++) {
           float tmpX, tmpY, tmpZ;
-          if (prop.GetPropagatedYZ(GPUTPCGeometry::Row2X(iRow), tmpY, tmpZ)) {
+          if (prop.GetPropagatedYZ(GPUTPCGeometry::Row2X(iExtrapolatedRow), tmpY, tmpZ)) {
             fail = true;
             break;
           }
-          merger.GetConstantMem()->calibObjects.fastTransform->InverseTransformYZtoX(sector, iRow, tmpY, tmpZ, tmpX);
+          merger.GetConstantMem()->calibObjects.fastTransform->InverseTransformYZtoX(sector, iExtrapolatedRow, tmpY, tmpZ, tmpX);
           if (prop.PropagateToXAlpha(tmpX, param.Alpha(sector), inFlyDirection)) {
             fail = true;
             break;
@@ -339,13 +342,14 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
         if (fail) {
           break;
         }
-        CADEBUG(printf("\tExtrapol. Sec %2d Row %3d Propaga Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f)   ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f\n", sector, iRow, prop.GetAlpha(), mX, mP[0], mP[1], mP[4], prop.GetQPt0(), mP[2], prop.GetSinPhi0(), sqrtf(mC[0]), sqrtf(mC[2]), sqrtf(mC[5]), sqrtf(mC[14]), mC[10]));
+        CADEBUG(printf("\tExtrapol. Sec %2d Row %3d Propaga Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f)   ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f\n", sector, iExtrapolatedRow, prop.GetAlpha(), mX, mP[0], mP[1], mP[4], prop.GetQPt0(), mP[2], prop.GetSinPhi0(), sqrtf(mC[0]), sqrtf(mC[2]), sqrtf(mC[5]), sqrtf(mC[14]), mC[10]));
         gputpcgmmergertypes::InterpolationErrorHit inter;
         inter.markInvalid();
-        float uncorrectedY = FindBestInterpolatedHit(merger, inter, sector, iRow, deltaZ, sumInvSqrtCharge, nAvgCharge, prop, iTrk, false);
-        auto& candidate = merger.ClusterCandidates()[(iTrk * GPUTPCGeometry::NROWS + iRow) * param.rec.tpc.rebuildTrackInFitClusterCandidates + 0];
-        if (candidate.id >= 2) {
-          lastExtrapolateRow = iRow;
+        float uncorrectedY = FindBestInterpolatedHit(merger, inter, sector, iExtrapolatedRow, deltaZ, sumInvSqrtCharge, nAvgCharge, prop, iTrk, false, true);
+        auto& candidate = merger.ClusterCandidates()[(iTrk * GPUTPCGeometry::NROWS + iExtrapolatedRow) * param.rec.tpc.rebuildTrackInFitClusterCandidates + 0];
+        bool found = candidate.id >= 2;
+        if (found) {
+          lastExtrapolateRow = iExtrapolatedRow;
 #if defined(DEBUG_REBUILD_MC) && !defined(GPUCA_GPUCODE)
           if (merger.MergedTrackMC() && merger.GetConstantMem()->ioPtrs.clustersNative->clustersMCTruth) {
             int32_t labelCorrect = GPUTPCTrkLblSearch(merger.GetConstantMem()->ioPtrs.clustersNative->clustersMCTruth->getLabels(candidate.id - 2), merger.MergedTrackMC()[iTrk]);
@@ -354,7 +358,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
 #endif
           float err2Y, err2Z, xx, yy, zz;
           const ClusterNative& GPUrestrict() cl = merger.GetConstantMem()->ioPtrs.clustersNative->clustersLinear[candidate.id - 2];
-          merger.GetConstantMem()->calibObjects.fastTransform->Transform(sector, iRow, cl.getPad(), cl.getTime(), xx, yy, zz, mTOffset);
+          merger.GetConstantMem()->calibObjects.fastTransform->Transform(sector, iExtrapolatedRow, cl.getPad(), cl.getTime(), xx, yy, zz, mTOffset);
           if (prop.PropagateToXAlpha(xx, prop.GetAlpha(), inFlyDirection)) {
             candidate.best = -1;
             break;
@@ -365,16 +369,30 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
           float invAvgCharge = (sumInvSqrtCharge += invSqrtCharge) / ++nAvgCharge;
           invAvgCharge *= invAvgCharge;
           const uint8_t clusterState = cl.getFlags();
-          prop.GetErr2(err2Y, err2Z, param, zz, iRow, clusterState, sector, time, invAvgCharge, invCharge);
+          prop.GetErr2(err2Y, err2Z, param, zz, iExtrapolatedRow, clusterState, sector, time, invAvgCharge, invCharge);
           CADEBUG(printf("\t%21sResiduals %8.3f %8.3f   ---   Errors %8.3f %8.3f\n", "", yy - mP[0], zz - mP[1], CAMath::Sqrt(err2Y), CAMath::Sqrt(err2Z)));
-          uint32_t retValUpd = prop.Update(yy, zz, iRow, param, clusterState, true, refit, err2Y, err2Z);
-          CADEBUG(printf("\tExtrapol. Sec %2d Row %3d Fit     Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f), DzDs %5.2f %16s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f   -   FErr %d\n", sector, iRow, prop.GetAlpha(), mX, mP[0], mP[1], mP[4], prop.GetQPt0(), mP[2], prop.GetSinPhi0(), mP[3], "", sqrtf(mC[0]), sqrtf(mC[2]), sqrtf(mC[5]), sqrtf(mC[14]), mC[10], retValUpd));
+          if (consecGoodRows == 0) { // New segment
+            segmentStartChi2 = mChi2;
+            segmentRows = 0;
+          }
+          int32_t retValUpd = prop.Update(yy, zz, iExtrapolatedRow, param, clusterState, true, refit, err2Y, err2Z);
+          CADEBUG(printf("\tExtrapol. Sec %2d Row %3d Fit     Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f), DzDs %5.2f %16s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f   -   FErr %d\n", sector, iExtrapolatedRow, prop.GetAlpha(), mX, mP[0], mP[1], mP[4], prop.GetQPt0(), mP[2], prop.GetSinPhi0(), mP[3], "", sqrtf(mC[0]), sqrtf(mC[2]), sqrtf(mC[5]), sqrtf(mC[14]), mC[10], retValUpd));
           if (retValUpd != 0) {
             candidate.best = -1;
-            break;
+            if (retValUpd < GPUTPCGMPropagator::updateErrorClusterRejected) {
+              break;
+            }
+            found = false; // Cluster rejected by chi2, handle as missing row
+          } else {
+            segmentRows++;
           }
+        }
+        if (found) {
+          lastFoundRow = iExtrapolatedRow;
           if (++consecGoodRows >= param.rec.tpc.rebuildTrackExtrMinConsecGoodRows) {
-            lastGoodRow = iRow;
+            if (param.rec.tpc.rebuildTrackExtrMaxAvgChi2 <= 0 || mChi2 - segmentStartChi2 <= param.rec.tpc.rebuildTrackExtrMaxAvgChi2 * segmentRows) {
+              lastGoodRow = iExtrapolatedRow; // TODO: Could optionally store the track state here, and revert to the good state in case we reject further clusters
+            }
             consecGoodRowsMissing = 0;
           }
           rowGapActive = rowGapTotal = 0;
@@ -385,8 +403,8 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
           if (++rowGapTotal > param.rec.tpc.trackFollowingMaxRowGap) {
             consecGoodRows = consecGoodRowsMissing = 0;
           }
-          uint32_t pad = CAMath::Float2UIntRn(GPUTPCGeometry::LinearY2Pad(sector, iRow, uncorrectedY));
-          if (pad < GPUTPCGeometry::NPads(iRow) && (!merger.GetConstantMem()->calibObjects.dEdxCalibContainer || !merger.GetConstantMem()->calibObjects.dEdxCalibContainer->isDead(sector, iRow, pad))) {
+          uint32_t pad = CAMath::Float2UIntRn(GPUTPCGeometry::LinearY2Pad(sector, iExtrapolatedRow, uncorrectedY));
+          if (pad < GPUTPCGeometry::NPads(iExtrapolatedRow) && (!merger.GetConstantMem()->calibObjects.dEdxCalibContainer || !merger.GetConstantMem()->calibObjects.dEdxCalibContainer->isDead(sector, iExtrapolatedRow, pad))) {
             if (rowGapActive++ >= param.rec.tpc.trackFollowingMaxRowGap) {
               break;
             }
@@ -395,6 +413,9 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
             }
           }
         }
+      }
+      if (iExtrapolatedRow >= GPUTPCGeometry::NROWS && consecGoodRows >= param.rec.tpc.rebuildTrackExtrMinConsecGoodRowsEdge && (param.rec.tpc.rebuildTrackExtrMaxAvgChi2 <= 0 || mChi2 - segmentStartChi2 <= param.rec.tpc.rebuildTrackExtrMaxAvgChi2 * segmentRows)) { // Reached the inner / outer end of the TPC, a shorter last segment is sufficient
+        lastGoodRow = lastFoundRow;
       }
       if (lastGoodRow != lastExtrapolateRow) {
         for (int32_t iRow = lastGoodRow + up; iRow != lastExtrapolateRow + up; iRow += up) {
@@ -464,7 +485,7 @@ GPUdii() void GPUTPCGMTrackParam::FitAddRow(const int32_t iRow, const uint8_t se
   }
   if (doInterpolate) {
     if (doInterpolate == 2) {
-      if (inter.isValid() && CAMath::Abs(inter.posY - mP[0]) > 4.f) {
+      if (inter.isValid() && CAMath::Abs(inter.posY - mP[0]) > param.rec.tpc.rebuildTrackMaxInterpolationDistY) {
         inter.markInvalid();
       }
       FindBestInterpolatedHit(merger, inter, sector, iRow, deltaZ, sumInvSqrtCharge, nAvgCharge, prop, iTrk, false);
@@ -572,7 +593,7 @@ GPUdii() int32_t GPUTPCGMTrackParam::FitHit(GPUTPCGMMerger& GPUrestrict() merger
   }
 }
 
-GPUdii() float GPUTPCGMTrackParam::FindBestInterpolatedHit(GPUTPCGMMerger& GPUrestrict() merger, gputpcgmmergertypes::InterpolationErrorHit& GPUrestrict() inter, const uint8_t sector, const uint8_t row, const float deltaZ, const float sumInvSqrtCharge, const int nAvgCharge, const GPUTPCGMPropagator& GPUrestrict() prop, const int32_t iTrk, bool interOnly)
+GPUdii() float GPUTPCGMTrackParam::FindBestInterpolatedHit(GPUTPCGMMerger& GPUrestrict() merger, gputpcgmmergertypes::InterpolationErrorHit& GPUrestrict() inter, const uint8_t sector, const uint8_t row, const float deltaZ, const float sumInvSqrtCharge, const int nAvgCharge, const GPUTPCGMPropagator& GPUrestrict() prop, const int32_t iTrk, bool interOnly, bool extrapolation)
 {
   const GPUParam& GPUrestrict() param = merger.Param();
   const GPUTPCTracker& GPUrestrict() tracker = *(merger.GetConstantMem()->tpcTrackers + sector);
@@ -580,7 +601,13 @@ GPUdii() float GPUTPCGMTrackParam::FindBestInterpolatedHit(GPUTPCGMMerger& GPUre
   GPUglobalref() const cahit2* hits = tracker.HitData(rowData);
   GPUglobalref() const calink* firsthit = tracker.FirstHitInBin(rowData);
   float uncorrectedY = -1e6f, uncorrectedZ;
-  if (rowData.NHits() && (inter.isValid() || (!interOnly && param.rec.tpc.rebuildTrackMaxNonIntCov > 0 && mC[0] < param.rec.tpc.rebuildTrackMaxNonIntCov && mC[2] < param.rec.tpc.rebuildTrackMaxNonIntCov))) {
+  const float maxNonIntCov = param.rec.tpc.rebuildTrackMaxNonIntCov;
+  bool useInter = inter.isValid();
+  if (useInter && interOnly) { // One-sided from the other direction, same limit as for the current track position
+    useInter = (float)inter.errorY < maxNonIntCov && (float)inter.errorZ < maxNonIntCov;
+  }
+  const bool useCurrent = !interOnly && maxNonIntCov > 0 && mC[0] < maxNonIntCov && mC[2] < maxNonIntCov && mNDF > (int32_t)param.rec.tpc.rebuildTrackNonIntMinNDF;
+  if (rowData.NHits() && (useInter || useCurrent)) {
     const float zOffset = param.par.continuousTracking ? merger.GetConstantMem()->calibObjects.fastTransform->convVertexTimeToZOffset(sector, mTOffset, param.continuousMaxTimeBin) : 0;
     const float y0 = rowData.Grid().YMin();
     const float stepY = rowData.HstepY();
@@ -594,7 +621,7 @@ GPUdii() float GPUTPCGMTrackParam::FindBestInterpolatedHit(GPUTPCGMMerger& GPUre
       ImP1 = (float)inter.posZ + deltaZ;
       ImC0 = (float)inter.errorY;
       ImC2 = (float)inter.errorZ;
-    } else if (inter.isValid()) {
+    } else if (useInter) {
       const float Iz0 = (float)inter.posY - mP[0];
       const float Iz1 = (float)inter.posZ + deltaZ - mP[1];
       const float Iw0 = 1.f / (mC[0] + (float)inter.errorY);
@@ -614,21 +641,36 @@ GPUdii() float GPUTPCGMTrackParam::FindBestInterpolatedHit(GPUTPCGMMerger& GPUre
 
     merger.GetConstantMem()->calibObjects.fastTransform->InverseTransformYZtoNominalYZ(sector, row, ImP0, ImP1, uncorrectedY, uncorrectedZ);
 
+    float xMoved = mX, yMoved = mP[0], zMoved = mP[1], sinPhiMoved = prop.GetSinPhi0();
+    if (interOnly) { // Track is not at this row: estimate track position and angle there (for the cluster errors) from the interpolated position and the helix of the current linearization
+      float sA, cA;
+      CAMath::SinCos(param.Alpha(sector) - prop.GetAlpha(), sA, cA);
+      xMoved = GPUTPCGeometry::Row2X(row);
+      yMoved = ImP0;
+      zMoved = ImP1;
+      const float sinPhi = prop.GetSinPhi0() - prop.GetQPt0() * prop.GetBz(mX, mP[0], mP[1]) * (xMoved * cA - yMoved * sA - mX); // at the X of the row in the current track frame
+      if (CAMath::Abs(sinPhi) < constants::MAX_SIN_PHI) {
+        sinPhiMoved = sinPhi * cA - CAMath::Copysign(CAMath::Sqrt(1.f - sinPhi * sinPhi), prop.GetCosPhi0()) * sA;
+      }
+      sinPhiMoved = CAMath::Clamp(sinPhiMoved, -constants::MAX_SIN_PHI, constants::MAX_SIN_PHI);
+    }
+
     int32_t nCandidates = 0;
     while (nCandidates < param.rec.tpc.rebuildTrackInFitClusterCandidates && merger.ClusterCandidates()[(iTrk * GPUTPCGeometry::NROWS + row) * param.rec.tpc.rebuildTrackInFitClusterCandidates + nCandidates].id > 1) {
       nCandidates++;
     }
     if (CAMath::Abs(uncorrectedY) <= rowData.getTPCMaxY()) {
       float err2Y, err2Z;
-      param.GetClusterErrors2(sector, row, mP[1], mP[2], mP[3], -1.f, 0.f, 0.f, err2Y, err2Z); // TODO: Use correct time/avgCharge
+      param.GetClusterErrors2(sector, row, zMoved, sinPhiMoved, mP[3], -1.f, 0.f, 0.f, err2Y, err2Z); // TODO: Use correct time/avgCharge
 
       const float kFactor = tracker.GetChiSeedFactor();
-      const float sy2 = 4 * CAMath::Min(param.rec.tpc.hitSearchArea2, kFactor * (err2Y + CAMath::Abs(mC[0]))); // TODO: is 4 a good factor??
-      const float sz2 = 4 * CAMath::Min(param.rec.tpc.hitSearchArea2, kFactor * (err2Z + CAMath::Abs(mC[2])));
+      const float sy2 = 4 * CAMath::Min(param.rec.tpc.hitSearchArea2, kFactor * (err2Y + CAMath::Abs(ImC0))); // TODO: is 4 a good factor??
+      const float sz2 = 4 * CAMath::Min(param.rec.tpc.hitSearchArea2, kFactor * (err2Z + CAMath::Abs(ImC2)));
       const float tubeY = CAMath::Sqrt(sy2);
       const float tubeZ = CAMath::Sqrt(sz2);
       rowData.Grid().GetBinArea(uncorrectedY, uncorrectedZ + zOffset, tubeY, tubeZ, bin, ny, nz);
 
+      const float errFactor = extrapolation ? param.rec.tpc.rebuildTrackErrFactorExtrapolation : ((interOnly || !useInter) ? param.rec.tpc.rebuildTrackErrFactorOneSided : 1.f); // Downweight candidates not found by two-sided interpolation
       const int32_t nBinsY = rowData.Grid().Ny();
       const int32_t idOffset = tracker.Data().ClusterIdOffset();
       const int32_t* ids = &(tracker.Data().ClusterDataIndex()[rowData.HitNumberOffset()]);
@@ -653,13 +695,17 @@ GPUdii() float GPUTPCGMTrackParam::FindBestInterpolatedHit(GPUTPCGMMerger& GPUre
             float invAvgCharge = (sumInvSqrtCharge + invSqrtCharge) / (nAvgCharge + 1);
             invAvgCharge *= invAvgCharge;
 
-            prop.GetErr2(err2YA, err2ZA, param, mP[1], row, clflags, sector, time, invAvgCharge, invCharge);
+            if (interOnly) {
+              GPUTPCGMPropagator::GetErr2(err2YA, err2ZA, param, sinPhiMoved, mP[3], zMoved, xMoved, yMoved, row, clflags, sector, time, invAvgCharge, invCharge, false);
+            } else {
+              prop.GetErr2(err2YA, err2ZA, param, mP[1], row, clflags, sector, time, invAvgCharge, invCharge);
+            }
             const float Jw0 = 1.f / (ImC0 + err2YA);
             const float Jw2 = 1.f / (ImC2 + err2ZA);
             const float chi2Y = Jw0 * dy * dy;
             const float chi2Z = Jw2 * dz * dz;
             bool ok = !prop.RejectCluster(chi2Y * param.rec.tpc.clusterRejectChi2TolleranceY, chi2Z * param.rec.tpc.clusterRejectChi2TolleranceZ, clflags);
-            float err = dy * dy + dz * dz;
+            const float err = (param.rec.tpc.rebuildTrackCandidateErrChi2 ? (chi2Y + chi2Z) : (dy * dy + dz * dz)) * errFactor;
             if (ok) {
               int32_t insert = nCandidates;
               for (int32_t c = 0; c < nCandidates; c++) {
@@ -1304,7 +1350,7 @@ GPUdii() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& GPUrestrict() 
     }
     CADEBUG(printf("Track rejected, marking for retry\n"));
     uint32_t nRefit = CAMath::AtomicAdd(&merger.Memory()->nRetryRefit, 1u);
-    merger.RetryRefitIds()[nRefit] = iTrk;
+    merger.RetryRefitIds()[nRefit] = iTrk; // TODO: With rebuildTrackInFit the retry runs on the rebuilt clusters, so it cannot recover tracks that lost their clusters in the rebuild
     return;
   }
   if (retryAttempt && (t.mNDF < 10 || t.mChi2 / t.mNDF >= 6.f)) {

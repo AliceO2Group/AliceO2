@@ -2184,7 +2184,7 @@ GPUd() void GPUTPCGMMerger::PrepareHitWeights(int32_t nBlocks, int32_t nThreads,
         auto* candidates = &mClusterCandidates[(i * GPUTPCGeometry::NROWS + cl.row) * Param().rec.tpc.rebuildTrackInFitClusterCandidates];
         if (cl.row != lastRow && candidates[0].id == 0 && (!(cl.state & GPUTPCGMMergedTrackHit::flagReject) || trk.GetParam().GetNDF() <= 0)) {
           candidates[0].id = cl.num + 2;
-          candidates[0].best = 128; // TODO: Needs better handling in the future, particularly should be marked as shared correctly
+          candidates[0].best = 128; // TODO: Needs better handling in the future, particularly should be marked as shared correctly. Tracks with NDF <= 0 get no fallback in rows with candidates, and get those back only via the shared recovery
           candidates[0].weight = cl.state;
           candidates[0].sector = cl.sector;
           lastRow = cl.row;
@@ -2204,15 +2204,14 @@ GPUd() void GPUTPCGMMerger::ComputeHitWeights(int32_t nBlocks, int32_t nThreads,
     for (uint32_t j = 0; j < GPUTPCGeometry::NROWS; j++) {
       auto* candidates = &mClusterCandidates[(i * GPUTPCGeometry::NROWS + j) * Param().rec.tpc.rebuildTrackInFitClusterCandidates];
       if (candidates[0].best == 0) {
-        if (candidates[iteration].id >= 2) {
-          const int32_t nCl = trk.NClusters();
-          float weightf = nCl * (nCl * 2 - 5) * 128 / trk.GetParam().GetChi2() / (1.f + candidates[iteration].error);
+        if (candidates[iteration].id >= 2 && (iteration == 0 || candidates[iteration].error <= CAMath::Max(Param().rec.tpc.rebuildTrackAltCandidateGoodErr, candidates[0].error * Param().rec.tpc.rebuildTrackAltCandidateMaxErrFactor))) { // Don't fall back to a much worse candidate, the best one is then rather a shared cluster
+          float weightf = (trk.GetParam().GetNDF() + 5) * trk.GetParam().GetNDF() * 64 / trk.GetParam().GetChi2() / (1.f + Param().rec.tpc.rebuildErrorWeightFactor * candidates[iteration].error);
           int32_t weight = weightf < 0.f ? 0 : (weightf > 2e9f ? 2e9f : (int32_t)weightf);
           candidates[iteration].weight = weight;
           CAMath::AtomicMax(&mHitWeights[candidates[iteration].id - 2], weight);
           CADEBUG(printf("REBUILD: iTrk %d Iteration %d Row %d Cluster %d Weight %d\n", i, iteration, j, candidates[iteration].id - 2, weight));
         } else {
-          candidates[0].best = -1;
+          candidates[0].best = -2;
         }
       }
     }
@@ -2259,7 +2258,7 @@ GPUd() void GPUTPCGMMerger::ResolveHitWeights2(int32_t nBlocks, int32_t nThreads
         if (candidates[0].best != 128 && candidates[candidates[0].best - 1].weight != mHitWeights[candidates[candidates[0].best - 1].id - 2]) {
           mSharedCount2[candidates[candidates[0].best - 1].id - 2] = 1; // shared between tracks of different iterations
         }
-      } else if (candidates[0].best == 0 && candidates[0].id >= 2) {
+      } else if (candidates[0].best != -1 && candidates[0].id >= 2) {
         sharedRowCandidates[nSharedRowCandidates++] = j;
       }
     }
