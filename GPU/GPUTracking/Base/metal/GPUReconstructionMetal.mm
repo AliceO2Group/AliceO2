@@ -185,7 +185,12 @@ int32_t GPUReconstructionMetal::InitDevice_Runtime()
     // The kernels reconstruct device pointers from these bases, so they must be
     // the addresses the GPU sees, not the CPU-visible ones of a shared buffer.
     mDeviceMemoryBase = (void*)(uintptr_t)mInternals->mem_gpu.gpuAddress;
-    mDeviceMemorySize = mInternals->mem_gpu.allocatedSize;
+    mDeviceMemorySize = mInternals->mem_gpu.allocatedSize - sizeof(uint32_t);
+    *(uint32_t*)((char*)mInternals->mem_gpu.contents + mDeviceMemorySize) = mInternals->canaryMagic;
+    if (getenv("GPUCA_METAL_CANARY")) {
+      mInternals->canaryBad = [mInternals->device newBufferWithLength:sizeof(uint32_t) options:MTLResourceStorageModeShared];
+      *(uint32_t*)mInternals->canaryBad.contents = 0;
+    }
     mDeviceConstantMem = (GPUConstantMem*)(uintptr_t)mInternals->mem_constant.gpuAddress;
 
     if (GetProcessingSettings().debugLevel >= 1) {
@@ -233,6 +238,7 @@ int32_t GPUReconstructionMetal::ExitDevice_Runtime()
     if (mDeviceMemoryBase) {
       [mInternals->mem_gpu release];
       [mInternals->mem_constant release];
+      [mInternals->canaryPipeline release];
       for (uint32_t i = 0; i < mInternals->functions.size(); i++) {
         [mInternals->functions[i] release];
       }
@@ -252,6 +258,7 @@ int32_t GPUReconstructionMetal::ExitDevice_Runtime()
         [mInternals->streamFence[i] release];
       }
       [mInternals->mem_host release];
+      [mInternals->canaryBad release];
     }
     // The completion handlers of the limit still use the internals
     std::unique_lock<std::mutex> lock(mInternals->inFlightMutex);
@@ -476,6 +483,10 @@ void GPUReconstructionMetal::DrainStream(int32_t stream)
     [cb release];
   }
   mInternals->submittedBuffers[stream].clear();
+  if (const uint32_t bad = mInternals->canaryBad ? *(volatile uint32_t*)mInternals->canaryBad.contents : 0) {
+    GPUError("Metal: %u kernels ran while the memory pool was not mapped for the GPU", bad);
+    error = error ? error : 1;
+  }
   if (drainStart) {
     fprintf(mInternals->timeline, "DR s%d %.6f %.6f\n", stream, drainStart, metalHostTime());
   }
@@ -609,6 +620,15 @@ int32_t GPUReconstructionMetal::GetMetalPrograms()
   if (mInternals->library == nil) {
     NSLog(@"%@", error);
     GPUError("Error loading the Metal library");
+    return 1;
+  }
+
+  id<MTLFunction> canary = [mInternals->library newFunctionWithName:@"krnl_metalCanary"];
+  mInternals->canaryPipeline = canary ? [mInternals->device newComputePipelineStateWithFunction:canary error:&error] : nil;
+  [canary release];
+  if (mInternals->canaryPipeline == nil) {
+    NSLog(@"%@", error);
+    GPUError("Error creating the Metal canary pipeline state");
     return 1;
   }
 
