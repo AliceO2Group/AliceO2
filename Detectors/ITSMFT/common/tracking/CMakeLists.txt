@@ -53,7 +53,7 @@ o2_add_library(ITSMFTTracking
                        O2::SimulationDataFormat
                        O2::ReconstructionDataFormats
                        O2::DataFormatsCalibration
-                       TBB::tbb
+                       TBB::tbb TBB::tbbmalloc
                PRIVATE_LINK_LIBRARIES
                        O2::Framework
                        O2::FrameworkLogger
