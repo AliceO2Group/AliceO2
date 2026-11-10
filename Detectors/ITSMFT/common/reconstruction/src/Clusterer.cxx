@@ -315,7 +315,10 @@ void Clusterer::ClustererThread::finishChipSingleHitFast(uint32_t hit, ChipPixel
 
   if (labelsClusPtr) { // MC labels were requested
     int nlab = 0;
-    fetchMCLabels(curChipData->getStartID() + hit, labelsDigPtr, nlab);
+    // Squashing can remove earlier digits on the chip, so the surviving
+    // pixel's source index need not be contiguous with the chip's start.
+    const auto digitID = parent->mSquashingDepth ? curChipData->getOrderedPixId(hit) : curChipData->getStartID() + hit;
+    fetchMCLabels(digitID, labelsDigPtr, nlab);
     auto cnt = compClusPtr->size();
     for (int i = 0; i < nlab; i++) {
       labelsClusPtr->addElement(cnt, labelsBuff[i]);
