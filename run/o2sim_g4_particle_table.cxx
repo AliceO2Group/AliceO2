@@ -42,7 +42,7 @@ int main(int argc, char** argv)
 
   // We use our O2 VMC setup to make sure we are in line with our physics definition.
   new o2::mc::O2TrivialMCApplication();
-  auto& physicsSetup = ::o2::conf::G4Params::Instance().getPhysicsConfigString();
+  auto physicsSetup = ::o2::conf::G4Params::Instance().getPhysicsConfigString();
   auto runConfiguration = new TG4RunConfiguration("geomRoot", physicsSetup);
   auto vmc = new TGeant4("TGeant4", "The Geant4 Monte Carlo", runConfiguration);
   // needs to be initialised to have the particle table / physics entirely ready

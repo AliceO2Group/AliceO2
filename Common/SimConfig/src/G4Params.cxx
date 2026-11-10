@@ -29,12 +29,15 @@ static const std::string confstrings[8] = {"FTFP_BERT+optical",
                                            "FTFP_BERT_HP_EMV+optical"};
 }
 
-std::string const& G4Params::getPhysicsConfigString() const
+std::string G4Params::getPhysicsConfigString() const
 {
-  if (physicsmode == o2::conf::EG4Physics::kUSER) {
-    return userPhysicsList;
+  std::string conf = physicsmode == o2::conf::EG4Physics::kUSER ? userPhysicsList : confstrings[(int)physicsmode];
+  if (useG4HepEm && conf.find("_HEP") == std::string::npos) {
+    // geant4_vmc selects G4HepEm with the suffix _HEP on the hadronic list, eg. FTFP_BERT_EMV_HEP+optical
+    const auto pos = conf.find('+');
+    conf.insert(pos == std::string::npos ? conf.size() : pos, "_HEP");
   }
-  return confstrings[(int)physicsmode];
+  return conf;
 }
 
 } // namespace conf

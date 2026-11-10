@@ -140,7 +140,7 @@ void Config()
                                  // any other choice is dangerously inconsistent with the FinishPrimary() interface of VMCApp
 
   auto& g4Params = ::o2::conf::G4Params::Instance();
-  auto& physicsSetup = g4Params.getPhysicsConfigString();
+  auto physicsSetup = g4Params.getPhysicsConfigString();
   std::cout << "PhysicsSetup wanted " << physicsSetup << "\n";
   std::string geomNavStr;
   if (g4Params.navmode == o2::conf::EG4Nav::kTGeo) {
