@@ -193,8 +193,9 @@ void PulseHeight::findDigitsForTracklet(const Tracklet64& trklt, const TriggerRe
       // pile-up removal: if we have several consecutive digits with very small value for the first time bins, this is likely to come from pile-up
       int nOverThreshold = 0;
       for (int iTb = 0; iTb < ((int)(mParams.pileupCut * 10)); iTb++) {
-        if (digit.getADC()[iTb] > mParams.digitsThreshold)
+        if (digit.getADC()[iTb] > mParams.digitsThreshold) {
           nOverThreshold++;
+        }
       }
       if (nOverThreshold <= 2) {
         continue;
