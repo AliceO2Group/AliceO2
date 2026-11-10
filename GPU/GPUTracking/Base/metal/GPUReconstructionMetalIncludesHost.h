@@ -33,6 +33,7 @@ using half = _Float16;
 #include <string>
 #include <memory>
 #include <mutex>
+#include <condition_variable>
 #include <unordered_map>
 #include <cstdio>
 #include <mach/mach_time.h>
@@ -76,6 +77,17 @@ struct GPUReconstructionMetalInternals {
   std::array<std::string, constants::GPU_MAX_STREAMS> timelineOps;
   std::array<uint32_t, constants::GPU_MAX_STREAMS> timelineKernels;
   uint64_t timelineBuffers = 0;
+  // Opt-in limits on the GPU work in flight, 0 = none, so that no stretch of GPU
+  // work runs long enough for the macOS GPU watchdog: GPUCA_METAL_MAX_KERNELS_PER_BUFFER
+  // commits a stream's buffer after that many kernels, GPUCA_METAL_MAX_STREAMS_IN_FLIGHT
+  // is how many streams may have committed buffers that are not complete yet.
+  uint32_t maxKernelsPerBuffer = 0;
+  uint32_t maxStreamsInFlight = 0;
+  std::array<uint32_t, constants::GPU_MAX_STREAMS> streamKernels{};
+  std::array<uint32_t, constants::GPU_MAX_STREAMS> streamBuffersInFlight{};
+  uint32_t streamsInFlight = 0;
+  std::mutex inFlightMutex;
+  std::condition_variable inFlightDone;
 
   std::vector<id<MTLFunction>> functions;
   std::vector<id<MTLComputePipelineState>> pipelines;
@@ -108,6 +120,25 @@ inline void metalSignalOnError(id<MTLCommandBuffer> cb, id<MTLSharedEvent> event
   [cb addCompletedHandler:^(id<MTLCommandBuffer> c) {
     if (c.status == MTLCommandBufferStatusError && event.signaledValue < value) {
       event.signaledValue = value;
+    }
+  }];
+}
+// Before a buffer of an idle stream is committed, wait until fewer than the
+// limit of streams have work in flight. This cannot deadlock: a buffer only waits
+// for events that buffers committed before it signal (RecordMarker commits the
+// signal at once), so the work in flight completes without the host's help.
+inline void metalLimitStreamsInFlight(GPUReconstructionMetalInternals* internals, id<MTLCommandBuffer> cb, int32_t stream)
+{
+  std::unique_lock<std::mutex> lock(internals->inFlightMutex);
+  if (internals->streamBuffersInFlight[stream]++ == 0) {
+    internals->inFlightDone.wait(lock, [internals] { return internals->streamsInFlight < internals->maxStreamsInFlight; });
+    internals->streamsInFlight++;
+  }
+  [cb addCompletedHandler:^(id<MTLCommandBuffer>) {
+    std::lock_guard<std::mutex> l(internals->inFlightMutex);
+    if (--internals->streamBuffersInFlight[stream] == 0) {
+      internals->streamsInFlight--;
+      internals->inFlightDone.notify_all();
     }
   }];
 }

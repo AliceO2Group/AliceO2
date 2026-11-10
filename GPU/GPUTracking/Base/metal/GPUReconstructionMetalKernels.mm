@@ -65,6 +65,8 @@ inline void GPUReconstructionMetal::runKernelBackend(const krnlSetupTime& _xyz, 
   id<MTLCommandBuffer> cb = [mInternals->commandBuffers[kExec.stream] retain];
   if (kEvents.ev) {
     RecordMarker(kEvents.ev, kExec.stream);
+  } else if (mInternals->maxKernelsPerBuffer && ++mInternals->streamKernels[kExec.stream] >= mInternals->maxKernelsPerBuffer) {
+    CommitStream(kExec.stream);
   }
   if (timed) {
     if (mInternals->commandBuffers[kExec.stream] == cb) {
