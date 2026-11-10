@@ -96,6 +96,12 @@ struct GPUReconstructionMetalInternals {
   id<MTLBuffer> mem_gpu;
   id<MTLBuffer> mem_constant;
   id<MTLBuffer> mem_host;
+  // Opt-in, GPUCA_METAL_CANARY=1: a kernel that reads a word past the end of the
+  // device pool, where the host put canaryMagic, and counts the reads that return
+  // something else. canaryBad is nil when it is off.
+  static constexpr uint32_t canaryMagic = 0xA11CE0A5;
+  id<MTLComputePipelineState> canaryPipeline;
+  id<MTLBuffer> canaryBad = nil;
 
   id<MTLLibrary> library;
 
@@ -155,6 +161,16 @@ inline void metalTimelineAdd(GPUReconstructionMetalInternals* internals, int32_t
     snprintf(buf, sizeof(buf), " %s:%p=%llu", op, id, (unsigned long long)value);
     internals->timelineOps[stream] += buf;
   }
+}
+// Runs after each kernel in its encoder, so a kernel that ran while the pool
+// was not mapped for the GPU is counted and the run fails instead of going on
+// with the results it did not produce.
+inline void metalEncodeCanary(GPUReconstructionMetalInternals* internals, id<MTLComputeCommandEncoder> encoder, uint64_t word)
+{
+  [encoder setComputePipelineState:internals->canaryPipeline];
+  [encoder setBuffer:internals->canaryBad offset:0 atIndex:0];
+  [encoder setBytes:&word length:sizeof(word) atIndex:1];
+  [encoder dispatchThreadgroups:MTLSizeMake(1, 1, 1) threadsPerThreadgroup:MTLSizeMake(1, 1, 1)];
 }
 template <class E>
 inline void metalEndEncoder(GPUReconstructionMetalInternals* internals, E encoder, int32_t stream)

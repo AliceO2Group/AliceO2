@@ -82,5 +82,14 @@ using namespace metal;
 
 #include "GPUReconstructionKernelList.h"
 
+// Reads a word of the memory pool through its address, as the kernels do, and
+// counts a read that does not return it; the host fails the run on a count.
+kernel void krnl_metalCanary(device atomic_uint* bad [[buffer(0)]], constant uint64_t& word [[buffer(1)]])
+{
+  if (*(device uint32_t*)word != 0xA11CE0A5u) {
+    atomic_fetch_add_explicit(bad, 1u, memory_order_relaxed);
+  }
+}
+
 // clang-format on
 #pragma clang diagnostic pop

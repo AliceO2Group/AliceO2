@@ -65,6 +65,9 @@ inline void GPUReconstructionMetal::runKernelBackend(const krnlSetupTime& _xyz, 
   }
   [computeEncoder dispatchThreadgroups:MTLSizeMake(kExec.nBlocks, 1, 1)
                  threadsPerThreadgroup:MTLSizeMake(threadGroupSize, 1, 1)];
+  if (mInternals->canaryBad) {
+    metalEncodeCanary(mInternals, computeEncoder, (uint64_t)mDeviceMemoryBase + mDeviceMemorySize);
+  }
   metalEndEncoder(mInternals, computeEncoder, kExec.stream);
   id<MTLCommandBuffer> cb = [mInternals->commandBuffers[kExec.stream] retain];
   if (kEvents.ev) {
