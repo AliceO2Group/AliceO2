@@ -20,7 +20,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
     o2_add_executable(standalone-benchmark
                       COMPONENT_NAME gpu
                       TARGETVARNAME targetName
-                      PUBLIC_LINK_LIBRARIES O2::GPUO2Interface O2::GPUTracking O2::TPCReconstruction
+                      PUBLIC_LINK_LIBRARIES O2::GPUO2Interface O2::GPUTracking O2::TPCReconstruction O2::CCDB O2::DetectorsBase
                       SOURCES ${SRCS})
 endif()
 

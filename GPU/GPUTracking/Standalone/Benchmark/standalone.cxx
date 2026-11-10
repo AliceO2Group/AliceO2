@@ -12,6 +12,13 @@
 /// \file standalone.cxx
 /// \author David Rohr
 
+#ifndef GPUCA_STANDALONE
+#include "GPUO2ExternalUser.h" // Compiled like O2 code using the GPU interface: full O2 headers (e.g. MatLayerCylSet::rectifyPtrFromFile), ROOT before the GPU headers
+#include "CCDB/BasicCCDBManager.h"
+#include "DetectorsBase/MatLayerCylSet.h"
+#include "TPCBase/Mapper.h"
+#endif
+
 #include "utils/qconfig.h"
 #include "GPUReconstruction.h"
 #include "GPUReconstructionTimeframe.h"
@@ -302,7 +309,7 @@ int32_t ReadConfiguration(int argc, char** argv)
   return (0);
 }
 
-void CreateTrivialCalibObjects()
+void CreateTrivialCalibObjects([[maybe_unused]] int64_t timestamp) // Timestamp of the CCDB objects (O2 build), 1: now
 {
   GPUCalibObjectsConst calib;
 
@@ -319,8 +326,20 @@ void CreateTrivialCalibObjects()
   calib.dEdxCalibContainer = tmpdEdxCalibContainer.get();
   auto tmpTPCPadGainCalib = std::make_unique<TPCPadGainCalib>();
   calib.tpcPadGain = tmpTPCPadGainCalib.get();
-  auto tmpTPCZSLinkMapping = std::make_unique<TPCZSLinkMapping>();
+#ifndef GPUCA_STANDALONE
+  auto tmpTPCZSLinkMapping = std::make_unique<TPCZSLinkMapping>(o2::tpc::Mapper::instance());
   calib.tpcZSLinkMapping = tmpTPCZSLinkMapping.get();
+  auto& ccdb = o2::ccdb::BasicCCDBManager::instance(); // Default CCDB server (NameConf), objects owned by the manager
+  ccdb.setFatalWhenNull(false);                        // Without CCDB access, write the other objects
+  if (timestamp != 1) {
+    ccdb.setTimestamp(timestamp);
+  }
+  if (auto* matLUT = ccdb.get<o2::base::MatLayerCylSet>("GLO/Param/MatLUT")) {
+    calib.matLUT = o2::base::MatLayerCylSet::rectifyPtrFromFile(matLUT);
+  } else {
+    printf("Could not fetch the material LUT from the CCDB, not written\n");
+  }
+#endif
 
   chainTracking->SetCalibObjects(calib);
   rec->DumpSettings("./");
@@ -806,7 +825,7 @@ int32_t main(int argc, char** argv)
   }
 
   if (configStandalone.recreateTrivialCalibObjects) {
-    CreateTrivialCalibObjects();
+    CreateTrivialCalibObjects(configStandalone.recreateTrivialCalibObjects);
     return 0;
   }
 
