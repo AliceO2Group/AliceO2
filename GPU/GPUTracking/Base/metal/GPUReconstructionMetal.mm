@@ -172,6 +172,8 @@ int32_t GPUReconstructionMetal::InitDevice_Runtime()
     if (const char* timeline = getenv("GPUCA_METAL_TIMELINE")) {
       mInternals->timeline = fopen(timeline, "w");
     }
+    mInternals->maxKernelsPerBuffer = getenv("GPUCA_METAL_MAX_KERNELS_PER_BUFFER") ? atoi(getenv("GPUCA_METAL_MAX_KERNELS_PER_BUFFER")) : 0;
+    mInternals->maxStreamsInFlight = getenv("GPUCA_METAL_MAX_STREAMS_IN_FLIGHT") ? atoi(getenv("GPUCA_METAL_MAX_STREAMS_IN_FLIGHT")) : 0;
 
     mInternals->mem_host = metalNewSharedBuffer(mInternals->device, mHostMemorySize);
     if (mInternals->mem_host == nil) {
@@ -251,6 +253,9 @@ int32_t GPUReconstructionMetal::ExitDevice_Runtime()
       }
       [mInternals->mem_host release];
     }
+    // The completion handlers of the limit still use the internals
+    std::unique_lock<std::mutex> lock(mInternals->inFlightMutex);
+    mInternals->inFlightDone.wait(lock, [this] { return mInternals->streamsInFlight == 0; });
     if (mInternals->timeline) {
       fflush(mInternals->timeline);  // not closed: a completion handler may still write to it
     }
@@ -406,6 +411,9 @@ void GPUReconstructionMetal::CommitStream(int32_t stream)
   const uint64_t value = ++mInternals->streamOrderValue[stream];
   [cb encodeSignalEvent:mInternals->streamOrder[stream] value:value];
   metalSignalOnError(cb, mInternals->streamOrder[stream], value);
+  if (mInternals->maxStreamsInFlight) {
+    metalLimitStreamsInFlight(mInternals, cb, stream);
+  }
   if (mInternals->timeline) {
     metalTimelineAdd(mInternals, stream, "s", mInternals->streamOrder[stream], value);
     FILE* f = mInternals->timeline;
@@ -424,6 +432,7 @@ void GPUReconstructionMetal::CommitStream(int32_t stream)
   // it until it is waited for, and open a fresh one to encode the next work in.
   mInternals->submittedBuffers[stream].emplace_back(cb);
   mInternals->streamHasWork[stream] = false;
+  mInternals->streamKernels[stream] = 0;
   mInternals->commandBuffers[stream] = [[mInternals->commandQueues[stream] commandBuffer] retain];
   [mInternals->commandBuffers[stream] encodeWaitForEvent:mInternals->streamOrder[stream] value:value];
   metalTimelineAdd(mInternals, stream, "w", mInternals->streamOrder[stream], value);
