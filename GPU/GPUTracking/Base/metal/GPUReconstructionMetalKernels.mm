@@ -42,6 +42,10 @@ inline void GPUReconstructionMetal::runKernelBackend(const krnlSetupTime& _xyz, 
   // Slots 0 to 2 are what GPUCA_KRNL_BUFFERS and GPUCA_KRNL_SECTOR_ARG declare
   // in the generated signature; the kernel's own arguments follow from slot 3.
   [computeEncoder setComputePipelineState:pso];
+  // The kernels reach the pools through the addresses kept in constant memory,
+  // which Metal cannot see, so they have to be made resident explicitly.
+  [computeEncoder useResource:mInternals->mem_gpu usage:MTLResourceUsageRead | MTLResourceUsageWrite];
+  [computeEncoder useResource:mInternals->mem_host usage:MTLResourceUsageRead | MTLResourceUsageWrite];
   [computeEncoder setBuffer:mInternals->mem_gpu offset:0 atIndex:0];
   [computeEncoder setBuffer:mInternals->mem_constant offset:0 atIndex:1];
   const int32_t iSector = runRange.index;
