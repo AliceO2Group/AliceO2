@@ -23,6 +23,7 @@
 #include <thread>
 #include <chrono>
 #include <cstdlib>
+#include <ctime>
 #include <locale>
 #include <TGrid.h>
 #include <TSystem.h>
@@ -243,8 +244,10 @@ void FileFetcher::cleanup()
         const auto systemTime = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
           fileTime - fs::file_time_type::clock::now() + std::chrono::system_clock::now());
         const auto modificationTime = std::chrono::system_clock::to_time_t(systemTime);
+        std::tm localTime{};
+        localtime_r(&modificationTime, &localTime);
         const auto size = entry.is_regular_file() ? std::to_string(entry.file_size()) : "-";
-        LOGP(info, "{:%Y-%m-%d %H:%M:%S} {} {}", fmt::localtime(modificationTime), size, entry.path().filename().string());
+        LOGP(info, "{:%Y-%m-%d %H:%M:%S} {} {}", localTime, size, entry.path().filename().string());
       }
     } catch (const std::exception& e) {
       LOGP(error, "FileFetcher failed to list scratch directory {}: {}", mCopyDirName, e.what());
