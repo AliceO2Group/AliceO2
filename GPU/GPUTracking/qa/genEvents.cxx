@@ -101,7 +101,7 @@ double genEvents::GetGaus(double sigma)
   return x;
 }
 
-void genEvents::InitEventGenerator()
+void genEvents::InitEventGenerator(const std::string& dir)
 {
   for (int32_t i = 0; i < 3; i++) {
     for (int32_t j = 0; j < 2; j++) {
@@ -115,6 +115,7 @@ void genEvents::InitEventGenerator()
       mClusterError[i][j]->GetXaxis()->SetTitle("Cluster Error [cm]");
     }
   }
+  mRec->rec()->DumpSettings(dir.c_str()); // the chain's own override does not write settings.dump
 }
 
 void genEvents::FinishEventGenerator()
@@ -359,9 +360,8 @@ void genEvents::RunEventGenerator(GPUChainTracking* rec, const std::string& dir)
 {
   std::unique_ptr<genEvents> gen(new genEvents(rec));
   mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-  rec->DumpSettings(dir.c_str());
 
-  gen->InitEventGenerator();
+  gen->InitEventGenerator(dir);
 
   for (int32_t i = 0; i < (configStandalone.nEvents == -1 ? 10 : configStandalone.nEvents); i++) {
     GPUInfo("Generating event %d/%d", i, configStandalone.nEvents == -1 ? 10 : configStandalone.nEvents);

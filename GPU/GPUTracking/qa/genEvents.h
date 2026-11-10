@@ -28,7 +28,7 @@ class genEvents
 {
  public:
   genEvents(GPUChainTracking* rec) {}
-  void InitEventGenerator() {}
+  void InitEventGenerator(const std::string& dir) {}
   int32_t GenerateEvent(const GPUParam& sectorParam, const char* filename) { return 1; }
   void FinishEventGenerator() {}
 
@@ -41,7 +41,7 @@ class genEvents
 {
  public:
   genEvents(GPUChainTracking* rec) : mRec(rec) {}
-  void InitEventGenerator();
+  void InitEventGenerator(const std::string& dir);
   int32_t GenerateEvent(const GPUParam& sectorParam, const char* filename);
   void FinishEventGenerator();
 
