@@ -336,6 +336,9 @@ size_t GPUReconstructionMetal::GPUMemCpy(void* dst, const void* src, size_t size
   if (ev) {
     RecordMarker(ev, realStream);
   }
+  if (stream == -1) {  // Synchronous like cudaMemcpy: the caller reads the destination right away
+    DrainStream(realStream);
+  }
 
   if (GetProcessingSettings().serializeGPU & 2) {
     GPUDebug(("GPUMemCpy " + std::to_string(toGPU)).c_str(), stream, true);
@@ -369,6 +372,9 @@ size_t GPUReconstructionMetal::WriteToConstantMemory(size_t offset, const void* 
   }
   if (ev) {
     RecordMarker(ev, realStream);
+  }
+  if (stream == -1) {
+    DrainStream(realStream);
   }
 
   if (GetProcessingSettings().serializeGPU & 2) {
