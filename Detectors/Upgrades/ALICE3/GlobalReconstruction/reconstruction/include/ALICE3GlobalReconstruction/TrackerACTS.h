@@ -22,11 +22,13 @@
 #include <Acts/Definitions/Units.hpp>
 #include <chrono>
 #include <cmath>
+#include <fstream>
 #include <iomanip>
 #include <memory>
 #include <string>
 #include <string_view>
 #include <Framework/Logger.h>
+#include <nlohmann/json.hpp>
 #include <array>
 #include <vector>
 #include <unordered_set>
@@ -48,6 +50,92 @@ namespace o2::trk
 ///
 /// Length and momentum-valued cuts use ACTS units (mm and GeV, respectively).
 struct TrackerACTSConfig {
+
+  TrackerACTSConfig()
+  {
+    std::ifstream input(configName);
+    if (!input) {
+      return;
+    }
+    LOG(info) << "Loading ACTS tracker configuration from " << configName;
+    nlohmann::json config;
+    try {
+      input >> config;
+    } catch (const nlohmann::json::parse_error& e) {
+      LOG(error) << "Failed to parse ACTS tracker configuration file " << configName << ": " << e.what();
+      return;
+    }
+    if (!config.is_object()) {
+      LOG(error) << "ACTS tracker configuration file " << configName << " must contain a JSON object";
+      return;
+    }
+
+    const auto load = [&config](const char* key, auto& value) {
+      if (!config.contains(key)) {
+        return;
+      }
+      try {
+        config.at(key).get_to(value);
+      } catch (const nlohmann::json::exception& e) {
+        LOG(error) << "Failed to load ACTS tracker configuration parameter " << key << ": " << e.what();
+      }
+    };
+
+    load("minPt", minPt);
+    load("maxImpactParameter", maxImpactParameter);
+    load("cotThetaMax", cotThetaMax);
+    load("deltaRMinBottom", deltaRMinBottom);
+    load("deltaRMaxBottom", deltaRMaxBottom);
+    load("deltaRMinTop", deltaRMinTop);
+    load("deltaRMaxTop", deltaRMaxTop);
+    load("zMin", zMin);
+    load("zMax", zMax);
+    load("collisionRegionMin", collisionRegionMin);
+    load("collisionRegionMax", collisionRegionMax);
+    load("maxSeedsPerMiddleSP", maxSeedsPerMiddleSP);
+    load("deltaPhiMax", deltaPhiMax);
+    load("writeDebugTrees", writeDebugTrees);
+    load("dumpTrackingGeometry", dumpTrackingGeometry);
+    load("debugMaxTimeFrames", debugMaxTimeFrames);
+    load("debugFileName", debugFileName);
+    load("geometryDumpFileName", geometryDumpFileName);
+  }
+
+  ~TrackerACTSConfig()
+  {
+    const nlohmann::json config = {
+      {"minPt", minPt},
+      {"maxImpactParameter", maxImpactParameter},
+      {"cotThetaMax", cotThetaMax},
+      {"deltaRMinBottom", deltaRMinBottom},
+      {"deltaRMaxBottom", deltaRMaxBottom},
+      {"deltaRMinTop", deltaRMinTop},
+      {"deltaRMaxTop", deltaRMaxTop},
+      {"zMin", zMin},
+      {"zMax", zMax},
+      {"collisionRegionMin", collisionRegionMin},
+      {"collisionRegionMax", collisionRegionMax},
+      {"maxSeedsPerMiddleSP", maxSeedsPerMiddleSP},
+      {"deltaPhiMax", deltaPhiMax},
+      {"writeDebugTrees", writeDebugTrees},
+      {"dumpTrackingGeometry", dumpTrackingGeometry},
+      {"debugMaxTimeFrames", debugMaxTimeFrames},
+      {"debugFileName", debugFileName},
+      {"geometryDumpFileName", geometryDumpFileName},
+    };
+    std::ofstream output(configName);
+    if (!output) {
+      LOG(error) << "Failed to open ACTS tracker configuration file " << configName;
+      return;
+    }
+
+    output << config.dump(2) << '\n';
+    if (!output) {
+      LOG(error) << "Failed to write ACTS tracker configuration file " << configName;
+    }
+    LOG(info) << "Saved ACTS tracker configuration to " << configName;
+  }
+
   /// Minimum transverse momentum accepted by the seeding algorithms.
   float minPt = 0.4f * Acts::UnitConstants::GeV; ///< Minimum pT for seeds
   /// Maximum transverse distance of closest approach used in seeding.
@@ -85,6 +173,8 @@ struct TrackerACTSConfig {
   std::string debugFileName = "TrackerACTS_debug.root";
   /// Destination JSON file for the tracking-geometry snapshot.
   std::string geometryDumpFileName = "TrackerACTS_geometry.json";
+
+  static constexpr const char* configName = "TrackerACTSConfig.json";
 };
 
 /// Cluster-derived space point passed to the ACTS seeding algorithms.
