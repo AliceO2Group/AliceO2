@@ -2178,15 +2178,18 @@ GPUd() void GPUTPCGMMerger::PrepareHitWeights(int32_t nBlocks, int32_t nThreads,
     }
     mTrackRebuildHelper[i].reverse = mClusters[trk.FirstClusterRef()].row < mClusters[trk.FirstClusterRef() + trk.NClusters() - 1].row;
     if (!(Param().rec.tpc.disableRebuildAttachment & 8)) {
+      const uint32_t nMaxCandidates = Param().rec.tpc.rebuildTrackInFitClusterCandidates;
       int lastRow = -1;
       for (uint32_t j = 0; j < trk.NClusters(); j++) {
         const auto& cl = mClusters[trk.FirstClusterRef() + j];
-        auto* candidates = &mClusterCandidates[(i * GPUTPCGeometry::NROWS + cl.row) * Param().rec.tpc.rebuildTrackInFitClusterCandidates];
-        if (cl.row != lastRow && candidates[0].id == 0 && (!(cl.state & GPUTPCGMMergedTrackHit::flagReject) || trk.GetParam().GetNDF() <= 0)) {
-          candidates[0].id = cl.num + 2;
-          candidates[0].best = 128; // TODO: Needs better handling in the future, particularly should be marked as shared correctly. Tracks with NDF <= 0 get no fallback in rows with candidates, and get those back only via the shared recovery
-          candidates[0].weight = cl.state;
-          candidates[0].sector = cl.sector;
+        auto* candidates = &mClusterCandidates[(i * GPUTPCGeometry::NROWS + cl.row) * nMaxCandidates];
+        if ((!(cl.state & GPUTPCGMMergedTrackHit::flagReject) || trk.GetParam().GetNDF() <= 0) && (candidates[0].id == 0 || cl.row == lastRow)) { // Row not searched: the original clusters of the row compete as normal candidates with fixed error
+          for (uint32_t k = 0; k < nMaxCandidates; k++) {
+            if (candidates[k].id == 0) {
+              candidates[k] = {.id = cl.num + 2, .row = cl.row, .sector = cl.sector, .error = Param().rec.tpc.rebuildTrackFallbackErr, .weight = 0, .best = 0};
+              break;
+            }
+          }
           lastRow = cl.row;
         }
       }
@@ -2198,15 +2201,15 @@ GPUd() void GPUTPCGMMerger::ComputeHitWeights(int32_t nBlocks, int32_t nThreads,
 {
   for (int32_t i = get_global_id(0); i < NMergedTracks(); i += get_global_size(0)) {
     const auto& trk = mMergedTracks[i];
-    if (!trk.OK() || trk.GetParam().GetNDF() <= 0) {
+    if (!trk.OK()) {
       continue;
     }
     for (uint32_t j = 0; j < GPUTPCGeometry::NROWS; j++) {
       auto* candidates = &mClusterCandidates[(i * GPUTPCGeometry::NROWS + j) * Param().rec.tpc.rebuildTrackInFitClusterCandidates];
       if (candidates[0].best == 0) {
-        if (candidates[iteration].id >= 2 && (iteration == 0 || candidates[iteration].error <= CAMath::Max(Param().rec.tpc.rebuildTrackAltCandidateGoodErr, candidates[0].error * Param().rec.tpc.rebuildTrackAltCandidateMaxErrFactor))) { // Don't fall back to a much worse candidate, the best one is then rather a shared cluster
-          float weightf = (trk.GetParam().GetNDF() + 5) * trk.GetParam().GetNDF() * 64 / trk.GetParam().GetChi2() / (1.f + Param().rec.tpc.rebuildErrorWeightFactor * candidates[iteration].error);
-          int32_t weight = weightf < 0.f ? 0 : (weightf > 2e9f ? 2e9f : (int32_t)weightf);
+        if (candidates[iteration].id >= 2 && (iteration == 0 || candidates[iteration].error <= CAMath::Max(Param().rec.tpc.rebuildTrackAltCandidateGoodErr, candidates[0].error * Param().rec.tpc.rebuildTrackAltCandidateMaxErrFactor))) {                                                                                    // Don't fall back to a much worse candidate, the best one is then rather a shared cluster
+          float weightf = (trk.GetParam().GetNDF() > 0 ? (trk.GetParam().GetNDF() + 5) * trk.GetParam().GetNDF() * 64 / trk.GetParam().GetChi2() : (2 * (int32_t)trk.NClusters() - 5) * 128 / Param().rec.tpc.rebuildTrackFallbackTrackChi2) / (1.f + Param().rec.tpc.rebuildErrorWeightFactor * candidates[iteration].error); // Tracks with NDF <= 0 use their nominal number of clusters and assume a fixed chi2 per cluster
+          int32_t weight = weightf > 0.f ? (weightf > 2e9f ? 2e9f : (int32_t)weightf) : 0;
           candidates[iteration].weight = weight;
           CAMath::AtomicMax(&mHitWeights[candidates[iteration].id - 2], weight);
           CADEBUG(printf("REBUILD: iTrk %d Iteration %d Row %d Cluster %d Weight %d\n", i, iteration, j, candidates[iteration].id - 2, weight));
@@ -2222,7 +2225,7 @@ GPUd() void GPUTPCGMMerger::ResolveHitWeights1(int32_t nBlocks, int32_t nThreads
 {
   for (int32_t i = get_global_id(0); i < NMergedTracks(); i += get_global_size(0)) {
     auto& trk = mMergedTracks[i];
-    if (!trk.OK() || trk.GetParam().GetNDF() <= 0) {
+    if (!trk.OK()) {
       continue;
     }
     for (unsigned int j = 0; j < GPUTPCGeometry::NROWS; j++) {
@@ -2250,12 +2253,12 @@ GPUd() void GPUTPCGMMerger::ResolveHitWeights2(int32_t nBlocks, int32_t nThreads
     uint8_t nSharedRowCandidates = 0;
     for (unsigned int j = 0; j < GPUTPCGeometry::NROWS; j++) {
       auto* candidates = &mClusterCandidates[(i * GPUTPCGeometry::NROWS + j) * Param().rec.tpc.rebuildTrackInFitClusterCandidates];
-      if (trk.GetParam().GetNDF() > 0 && candidates[0].best == 0 && candidates[nIter - 1].weight == mHitWeights[candidates[nIter - 1].id - 2]) {
+      if (candidates[0].best == 0 && candidates[nIter - 1].weight == mHitWeights[candidates[nIter - 1].id - 2]) {
         candidates[0].best = nIter;
       }
       if (candidates[0].best > 0) {
         nHits++;
-        if (candidates[0].best != 128 && candidates[candidates[0].best - 1].weight != mHitWeights[candidates[candidates[0].best - 1].id - 2]) {
+        if (candidates[candidates[0].best - 1].weight != mHitWeights[candidates[candidates[0].best - 1].id - 2]) {
           mSharedCount2[candidates[candidates[0].best - 1].id - 2] = 1; // shared between tracks of different iterations
         }
       } else if (candidates[0].best != -1 && candidates[0].id >= 2) {
@@ -2300,11 +2303,6 @@ GPUd() void GPUTPCGMMerger::ResolveHitWeights2(int32_t nBlocks, int32_t nThreads
       const auto& candidates = &mClusterCandidates[(i * GPUTPCGeometry::NROWS + j) * Param().rec.tpc.rebuildTrackInFitClusterCandidates];
       if (candidates[0].best > 0) {
         auto& outCl = mClusters[iOut + (reverse ? (written) : (nHits - 1 - written))];
-        if (candidates[0].best == 128) {
-          outCl = {.num = candidates[0].id - 2, .sector = candidates[0].sector, .row = (uint8_t)j, .state = (uint8_t)candidates[0].weight};
-          written++;
-          continue;
-        }
         const auto& best = candidates[candidates[0].best - 1];
         const ClusterNative& GPUrestrict() cl = GetConstantMem()->ioPtrs.clustersNative->clustersLinear[best.id - 2];
         uint8_t flags = (uint8_t)(cl.getFlags() & GPUTPCGMMergedTrackHit::clustererAndSharedFlags);
