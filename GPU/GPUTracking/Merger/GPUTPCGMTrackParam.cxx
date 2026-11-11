@@ -37,6 +37,9 @@
 
 #ifdef GPUCA_CADEBUG_ENABLED
 #include "GPUSettings.h"
+#include <set>
+#include <string>
+#include <cstring>
 #include "AliHLTTPCClusterMCData.h"
 #endif
 
@@ -1335,7 +1338,7 @@ GPUdii() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& GPUrestrict() 
     return;
   }
 
-  CADEBUG(if (DEBUG_SINGLE_TRACK != -1 && iTrk != ((DEBUG_SINGLE_TRACK == -2 && getenv("DEBUG_TRACK")) ? atoi(getenv("DEBUG_TRACK")) : DEBUG_SINGLE_TRACK)) { track.SetNClusters(0); track.SetOK(0); return; });
+  CADEBUG(if (DEBUG_SINGLE_TRACK != -1) { static const std::set<int32_t> dbgTracks = []() { std::set<int32_t> m; if (const char* e = DEBUG_SINGLE_TRACK == -2 ? getenv("DEBUG_TRACK") : nullptr) { std::string s(e); for (char* t = strtok(s.data(), ";, \n\t"); t; t = strtok(nullptr, ";, \n\t")) { m.insert(atoi(t)); } } else { m.insert(DEBUG_SINGLE_TRACK); } return m; }(); if (!dbgTracks.count(iTrk)) { track.SetNClusters(0); track.SetOK(0); return; } });
 
   int32_t nTrackHits = track.NClusters();
   int32_t NTolerated = 0; // Clusters not fit but tollerated for track length cut
