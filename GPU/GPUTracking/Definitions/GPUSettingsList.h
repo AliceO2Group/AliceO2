@@ -106,6 +106,8 @@ AddOptionRTC(rebuildTrackMaxSharedFraction, float, 0.1f, "", 0, "Max fraction of
 AddOptionRTC(rebuildTrackMaxNonIntCov, float, 4.f, "", 0, "Max Err2 allowed for non-interpolated cluster attachment during rebuild")
 AddOptionRTC(rebuildErrorWeightFactor, float, 5.f, "", 0, "Factor for the error (distance^2) of a cluster candidate in its hit weight 1 / (1 + factor * error) during rebuild")
 AddOptionRTC(rebuildTrackExtrMaxAvgChi2, float, 4.f, "", 0, "Max average chi2 per cluster to accept an extrapolated segment (0 = disabled)")
+AddOptionRTC(rebuildTrackFallbackErr, float, 1.f, "", 0, "Error (distance^2) assigned to the original clusters of a track used as fallback candidates in rows that could not be searched during rebuild")
+AddOptionRTC(rebuildTrackFallbackTrackChi2, float, 4.f, "", 0, "Chi2 per cluster assumed for the hit weight of tracks without successful fit (NDF <= 0) during rebuild")
 AddOptionRTC(rebuildTrackAltCandidateMaxErrFactor, float, 2.f, "", 0, "Alternative cluster candidates of a row are used only if their distance^2 is below this factor times the distance^2 of the best candidate")
 AddOptionRTC(rebuildTrackAltCandidateGoodErr, float, 0.25f, "", 0, "Alternative cluster candidates of a row with distance^2 below this value are always used")
 AddOptionRTC(rebuildTrackErrFactorOneSided, float, 1.5f, "", 0, "Factor applied to the error (distance^2) of cluster candidates found with the track position from only one side during rebuild")
