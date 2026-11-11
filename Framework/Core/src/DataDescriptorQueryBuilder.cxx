@@ -207,6 +207,8 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
         currentDescription.reset();
         currentSubSpec.reset();
         currentTimeModulo.reset();
+        currentKey.reset();
+        currentValue.reset();
         pushState(IN_BEGIN_BINDING);
       } break;
       case IN_BEGIN_BINDING: {
@@ -322,41 +324,26 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
         token(IN_STRING, "&;");
       } break;
       case IN_END_VALUE: {
+        QueryBuilderState nextState;
         if (*next == '&') {
-          assignLastStringMatch("value", 1000, currentValue, IN_BEGIN_KEY);
-          if (*currentKey == "lifetime" && currentValue == "condition") {
-            currentLifetime = Lifetime::Condition;
-          }
-          if (*currentKey == "ccdb-run-dependent") {
-            int val = currentValue == "false" ? 0 : (currentValue == "true" ? 1 : std::stoi(*currentValue));
-            attributes.push_back(ConfigParamSpec{*currentKey, VariantType::Int, val, {}});
-          } else {
-            attributes.push_back(ConfigParamSpec{*currentKey, VariantType::String, *currentValue, {}});
-          }
-        } else if (*next == ';') {
-          assignLastStringMatch("value", 1000, currentValue, IN_END_ATTRIBUTES);
-          if (*currentKey == "lifetime" && currentValue == "condition") {
-            currentLifetime = Lifetime::Condition;
-          }
-          if (*currentKey == "ccdb-run-dependent") {
-            int val = currentValue == "false" ? 0 : (currentValue == "true" ? 1 : std::stoi(*currentValue));
-            attributes.push_back(ConfigParamSpec{*currentKey, VariantType::Int, val, {}});
-          } else {
-            attributes.push_back(ConfigParamSpec{*currentKey, VariantType::String, *currentValue, {}});
-          }
-        } else if (*next == '\0') {
-          assignLastStringMatch("value", 1000, currentValue, IN_END_ATTRIBUTES);
-          if (*currentKey == "lifetime" && currentValue == "condition") {
-            currentLifetime = Lifetime::Condition;
-          }
-          if (*currentKey == "ccdb-run-dependent") {
-            int val = currentValue == "false" ? 0 : (currentValue == "true" ? 1 : std::stoi(*currentValue));
-            attributes.push_back(ConfigParamSpec{*currentKey, VariantType::Int, val, {}});
-          } else {
-            attributes.push_back(ConfigParamSpec{*currentKey, VariantType::String, *currentValue, {}});
-          }
+          nextState = IN_BEGIN_KEY;
+        } else if (*next == ';' || *next == '\0') {
+          nextState = IN_END_ATTRIBUTES;
         } else {
           error("missing value for string value");
+          continue;
+        }
+        if (!assignLastStringMatch("value", 1000, currentValue, nextState)) {
+          continue; // The error is pushed and currentValue is not set.
+        }
+        if (*currentKey == "lifetime" && currentValue == "condition") {
+          currentLifetime = Lifetime::Condition;
+        }
+        if (*currentKey == "ccdb-run-dependent") {
+          int val = currentValue == "false" ? 0 : (currentValue == "true" ? 1 : std::stoi(*currentValue));
+          attributes.push_back(ConfigParamSpec{*currentKey, VariantType::Int, val, {}});
+        } else {
+          attributes.push_back(ConfigParamSpec{*currentKey, VariantType::String, *currentValue, {}});
         }
       } break;
       case IN_END_ATTRIBUTES: {
