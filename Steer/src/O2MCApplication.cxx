@@ -46,6 +46,7 @@
 #include "DetectorsBase/GeometryManagerParam.h"
 #include <TGeoParallelWorld.h>
 #include <TGeoVolume.h>
+#include <TGeoVoxelFinder.h>
 #include <TBuffer3D.h>
 #include <TGeoTessellated.h>
 #include <DetectorsBase/O2Tessellated.h>
@@ -356,6 +357,24 @@ bool O2MCApplicationBase::MisalignGeometry()
 
   // performs possible optimizations (shape replacements on the runtime geometry)
   fixTGeoRuntimeShapes();
+
+  // alignment leaves voxels and assembly boxes to be rebuilt lazily during navigation, which
+  // is a data race between Geant4 transport threads; rebuild them here once
+  TIter nextvol(gGeoManager->GetListOfVolumes());
+  while (auto vol = static_cast<TGeoVolume*>(nextvol())) {
+    if (vol->IsAssembly()) {
+      vol->GetShape()->ComputeBBox();
+    }
+  }
+  nextvol.Reset();
+  int nvoxelized = 0;
+  while (auto vol = static_cast<TGeoVolume*>(nextvol())) {
+    if (auto voxels = vol->GetVoxels(); voxels && voxels->NeedRebuild()) {
+      voxels->Voxelize();
+      ++nvoxelized;
+    }
+  }
+  LOG(info) << "Rebuilt the voxels of " << nvoxelized << " volumes after alignment";
 
   // return original return value of misalignment procedure
   return true;
