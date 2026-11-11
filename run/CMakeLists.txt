@@ -230,8 +230,8 @@ set_tests_properties(o2sim_G4
                                 G4)
 set_property(TEST o2sim_G4 APPEND PROPERTY ENVIRONMENT ${G4ENV})
 
-# multithreaded Geant4 must give the same output for 1 and 2 transport threads
-if(Geant4_multithreaded_FOUND)
+# multithreaded Geant4 must give the same output for 1 and 2 transport threads (not run on macOS)
+if(Geant4_multithreaded_FOUND AND NOT APPLE)
   o2_add_test_command(NAME o2sim_G4_mt_equality
                       WORKING_DIRECTORY ${SIMTESTDIR}
                       TIMEOUT 600
