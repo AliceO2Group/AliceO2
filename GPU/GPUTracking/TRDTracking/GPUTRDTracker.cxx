@@ -652,7 +652,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
 
           // correction for mean z position of tracklet (is not the center of the pad if track eta != 0)
           float zPosCorr = spacePoints[trkltIdx].getZ() + mRecoParam->getZCorrCoeffNRC() * trkWork->getTgl();
-          //float yPosCorr = spacePoints[trkltIdx].getY() - tiltCorr + yCorrPileUp;
+          // float yPosCorr = spacePoints[trkltIdx].getY() - tiltCorr + yCorrPileUp;
           float yPosCorr = spacePoints[trkltIdx].getY() - tiltCorr + yCorrPileUp_weightedMean;
           zPosCorr -= zShiftTrk + zShiftTrkPileUp; // shift tracklet instead of track in order to avoid having to do a re-fit for each collision
 
@@ -843,7 +843,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
       }
 
       zPosCorrUp -= zShiftTrkPileUp;
-      //yPosCorrUp += yCorrPileUp;
+      // yPosCorrUp += yCorrPileUp;
       yPosCorrUp += yCorrPileUp_weightedMean;
 
       const auto currDet = tracklets[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].GetDetector();

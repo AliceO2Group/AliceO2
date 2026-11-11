@@ -929,7 +929,7 @@ bool TRDGlobalTracking::refitTRDTrack(TrackTRD& trk, float& chi2, bool inwards, 
 
     // conversion from slope in pad per time bin to slope in cm per BC = tracklets[trkltIdx].getSlopeFloat() * padWidth / BCperTimeBin
     float slopeFactor = mTrackletsRaw[trkltId].getSlopeFloat() * pad->getWidthIPad() / 4.f;
-    //float yCorrPileUp = mTCorrPileUp * slopeFactor;
+    // float yCorrPileUp = mTCorrPileUp * slopeFactor;
     float yCorrPileUp = mTCorrPileUp_weightedMean * slopeFactor;
     float yAddErrPileUp2 = mTErrPileUp2 * slopeFactor * slopeFactor;
     float yPosCorrUp = mTrackletsCalib[trkltId].getY() - tiltCorrUp + yCorrPileUp;

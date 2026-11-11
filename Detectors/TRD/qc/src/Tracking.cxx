@@ -118,7 +118,7 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
     sumCorr += probBC * deltaBC;
     sumCorr2 += probBC * deltaBC * deltaBC;
     sumProb += probBC;
-    tCorrPileUp_weightedMean -= probBC*deltaBC;
+    tCorrPileUp_weightedMean -= probBC * deltaBC;
     if (probBC > maxProb) {
       maxProb = probBC;
       tCorrPileUp = -deltaBC;
@@ -161,7 +161,7 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
 
     // conversion from slope in pad per time bin to slope in cm per BC = tracklets[trkltIdx].getSlopeFloat() * padWidth / BCperTimeBin
     float slopeFactor = mTrackletsRaw[trkltId].getSlopeFloat() * pad->getWidthIPad() / 4.f;
-    //float yCorrPileUp = tCorrPileUp * slopeFactor;
+    // float yCorrPileUp = tCorrPileUp * slopeFactor;
     float yCorrPileUp = tCorrPileUp_weightedMean * slopeFactor;
     float yAddErrPileUp2 = tErrPileUp2 * slopeFactor * slopeFactor;
     float yPosCorrUp = mTrackletsCalib[trkltId].getY() - tiltCorrUp + yCorrPileUp;

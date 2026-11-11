@@ -275,15 +275,16 @@ bool Digitizer::convertHits(const int det, const std::vector<Hit>& hits, SignalC
           continue;
         }
       }
-      
-      if (hit.GetTrackID() < 20) LOGF(info, "pos before ExB: %f, drift length: %f, locX: %f, trackId: %d", locCd, absDriftLength, locT, hit.GetTrackID());
+
+      if (hit.GetTrackID() < 20)
+        LOGF(info, "pos before ExB: %f, drift length: %f, locX: %f, trackId: %d", locCd, absDriftLength, locT, hit.GetTrackID());
 
       // Apply E x B effects
       if (mSimParam.isExBOn()) {
         // minus sign is necessary to be compatible with how Vdrift and ExB are calibrated
         locCd = locCd - TMath::Tan(calExBDetValue) * driftLength;
       }
-     
+
       // The electron position after diffusion and ExB in pad coordinates.
       rowE = padPlane->getPadRowNumberROC(locRd);
       if (rowE < 0) {
@@ -297,9 +298,10 @@ bool Digitizer::convertHits(const int det, const std::vector<Hit>& hits, SignalC
         continue;
       }
       const double colOffset = padPlane->getPadColOffset(colE, locCd + offsetTilt);
-      
-      if (hit.GetTrackID() < 20) LOGF(info, "pos after ExB: %f %d, offset: %f tilt: %f", locCd, colE, colOffset, offsetTilt);
-      
+
+      if (hit.GetTrackID() < 20)
+        LOGF(info, "pos after ExB: %f %d, offset: %f tilt: %f", locCd, colE, colOffset, offsetTilt);
+
       // Convert the position to drift time [mus], using either constant drift velocity or
       // time structure of drift cells (non-isochronity, GARFIELD calculation).
       // Also add absolute time of hits to take pile-up events into account properly
@@ -378,14 +380,16 @@ bool Digitizer::convertHits(const int det, const std::vector<Hit>& hits, SignalC
             const double timeResponse = mSimParam.trfOn() ? mSimParam.timeResponse(t) : 1;
             const double crossTalk = mSimParam.ctOn() ? mSimParam.crossTalk(t) : 0;
             currentSignal[tb] += padSignal[pad] * (timeResponse + crossTalk);
-            if (hit.GetTrackID() < 20)  LOGF(info, "0, time bin: %d, pad: %d, signal: %f, totalSignal: %f", tb, pad, padSignal[pad] * (timeResponse + crossTalk), currentSignal[tb]);
+            if (hit.GetTrackID() < 20)
+              LOGF(info, "0, time bin: %d, pad: %d, signal: %f, totalSignal: %f", tb, pad, padSignal[pad] * (timeResponse + crossTalk), currentSignal[tb]);
           } // end of loop time bins
         } else {
           for (int tb = firstTimeBin; tb < lastTimeBin; ++tb) {
             const double t = (tb - timeBinTruncated) / mSamplingRate + timeOffset;
             const double timeResponse = mSimParam.trfOn() ? mSimParam.timeResponse(t) : 1;
             currentSignal[tb] += padSignal[pad] * timeResponse;
-            if (hit.GetTrackID() < 20)  LOGF(info, "1, time bin: %d, pad: %d, signal: %f, totalSignal: %f", tb, pad, padSignal[pad] * (timeResponse), currentSignal[tb]);
+            if (hit.GetTrackID() < 20)
+              LOGF(info, "1, time bin: %d, pad: %d, signal: %f, totalSignal: %f", tb, pad, padSignal[pad] * (timeResponse), currentSignal[tb]);
           } // end of loop time bins
         }
       } // end of loop over pads
