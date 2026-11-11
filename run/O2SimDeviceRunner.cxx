@@ -39,6 +39,7 @@
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/filereadstream.h"
+#include <SimSetup/StaticTLSReserve.h>
 namespace bpo = boost::program_options;
 
 std::vector<int> gChildProcesses; // global vector of child pids
@@ -267,6 +268,8 @@ bool waitForControlInput(int workerID)
 
 int main(int argc, char* argv[])
 {
+  // Geant4 is loaded by dlopen and may need a static TLS reserve, which glibc only takes at program start
+  o2::ensureStaticTLSReserve(argv);
   struct sigaction act;
   memset(&act, 0, sizeof act);
   sigemptyset(&act.sa_mask);
