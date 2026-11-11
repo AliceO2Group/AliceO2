@@ -1038,7 +1038,12 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
 
         using ChargeMapType = decltype(*clustererShadow.mPchargeMap);
         using PeakMapType = decltype(*clustererShadow.mPpeakMap);
-        runKernel<GPUMemClean16>({GetGridAutoStep(lane, RecoStep::TPCClusterFinding)}, clustererShadow.mPchargeMap, TPCMapMemoryLayout<ChargeMapType>::items(GetProcessingSettings().overrideClusterizerFragmentLen) * sizeof(ChargeMapType));
+        deviceEvent* waitEvent = nullptr;
+        if (frag.index == 0 && transferRunning[lane] == 1) { // The gather of the previous sector of this lane may still read the scratch memory the maps are cleared in
+          waitEvent = &mEvents->stream[lane];
+          transferRunning[lane] = 2;
+        }
+        runKernel<GPUMemClean16>({GetGridAutoStep(lane, RecoStep::TPCClusterFinding), krnlRunRangeNone, {nullptr, waitEvent}}, clustererShadow.mPchargeMap, TPCMapMemoryLayout<ChargeMapType>::items(GetProcessingSettings().overrideClusterizerFragmentLen) * sizeof(ChargeMapType));
         runKernel<GPUMemClean16>({GetGridAutoStep(lane, RecoStep::TPCClusterFinding)}, clustererShadow.mPpeakMap, TPCMapMemoryLayout<PeakMapType>::items(GetProcessingSettings().overrideClusterizerFragmentLen) * sizeof(PeakMapType));
         if (frag.index == 0) {
           runKernel<GPUMemClean16>({GetGridAutoStep(lane, RecoStep::TPCClusterFinding)}, clustererShadow.mPpadIsNoisy, TPC_CLUSTERER_STRIDED_PAD_COUNT * sizeof(*clustererShadow.mPpadIsNoisy));
@@ -1211,12 +1216,7 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         }
 
         if (resetClusterCounters) {
-          deviceEvent* waitEvent = nullptr;
-          if (transferRunning[lane] == 1) {
-            waitEvent = &mEvents->stream[lane];
-            transferRunning[lane] = 2;
-          }
-          runKernel<GPUMemClean16>({GetGridAutoStep(lane, RecoStep::TPCClusterFinding), krnlRunRangeNone, {nullptr, waitEvent}}, clustererShadow.mPclusterInRow, GPUTPCGeometry::NROWS * sizeof(*clustererShadow.mPclusterInRow));
+          runKernel<GPUMemClean16>({GetGridAutoStep(lane, RecoStep::TPCClusterFinding)}, clustererShadow.mPclusterInRow, GPUTPCGeometry::NROWS * sizeof(*clustererShadow.mPclusterInRow));
         }
 
         if (clusterer.mPmemory->counters.nPositions == 0) {
