@@ -96,10 +96,14 @@ void* GPUTPCClusterFinder::SetPointersScratch(void* mem)
   computePointerWithAlignment(mem, mPisPeak, mNMaxDigitsFragment);
   computePointerWithAlignment(mem, mPchargeMap, TPCMapMemoryLayout<decltype(*mPchargeMap)>::items(mRec->GetProcessingSettings().overrideClusterizerFragmentLen));
   computePointerWithAlignment(mem, mPpeakMap, TPCMapMemoryLayout<decltype(*mPpeakMap)>::items(mRec->GetProcessingSettings().overrideClusterizerFragmentLen));
-  computePointerWithAlignment(mem, mPclusterByRow, GPUTPCGeometry::NROWS * mNMaxClusterPerRow);
   if ((mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCClusterFinding)) {
     computePointerWithAlignment(mem, mPscanBuf, mBufSize * mNBufs);
   }
+  return mem;
+}
+void* GPUTPCClusterFinder::SetPointersScratchClusters(void* mem)
+{
+  computePointerWithAlignment(mem, mPclusterByRow, GPUTPCGeometry::NROWS * mNMaxClusterPerRow);
   // TODO: Use memory scalers for MaxHIPTails.
   // NOTE: Always allocate since Param() is not available during size computation.
   computePointerWithAlignment(mem, mPhipTailsByRow, GPUTPCGeometry::NROWS * GPUTPCCFHIPClusterizer::MaxHIPTailsPerRow);
@@ -117,6 +121,7 @@ void GPUTPCClusterFinder::RegisterMemoryAllocation()
     scratchType |= GPUMemoryResource::MEMORY_HOST | GPUMemoryResource::MEMORY_GPU;
   }
   mScratchId = mRec->RegisterMemoryAllocation(this, &GPUTPCClusterFinder::SetPointersScratch, scratchType, "TPCClustererScratch", GPUMemoryReuse{GPUMemoryReuse::REUSE_1TO1, GPUMemoryReuse::ClustererScratch, (uint16_t)(mISector % mRec->GetProcessingSettings().nTPCClustererLanes)});
+  mScratchClustersId = mRec->RegisterMemoryAllocation(this, &GPUTPCClusterFinder::SetPointersScratchClusters, scratchType, "TPCClustererScratchClusters", GPUMemoryReuse{GPUMemoryReuse::REUSE_1TO1, GPUMemoryReuse::ClustererScratchClusters, (uint16_t)(mISector % mRec->GetProcessingSettings().nTPCClustererLanes)});
 
   mMemoryId = mRec->RegisterMemoryAllocation(this, &GPUTPCClusterFinder::SetPointersMemory, GPUMemoryResource::MEMORY_PERMANENT, "TPCClustererMemory");
   mRec->RegisterMemoryAllocation(this, &GPUTPCClusterFinder::SetPointersOutput, GPUMemoryResource::MEMORY_OUTPUT | GPUMemoryResource::MEMORY_STACK, "TPCClustererOutput");

@@ -85,6 +85,7 @@ class GPUTPCClusterFinder : public GPUProcessor
   void* SetPointersInput(void* mem);
   void* SetPointersOutput(void* mem);
   void* SetPointersScratch(void* mem);
+  void* SetPointersScratchClusters(void* mem);
   void* SetPointersMemory(void* mem);
   void* SetPointersZS(void* mem);
   void* SetPointersZSOffset(void* mem);
@@ -140,6 +141,7 @@ class GPUTPCClusterFinder : public GPUProcessor
 
   int16_t mMemoryId = -1;
   int16_t mScratchId = -1;
+  int16_t mScratchClustersId = -1;
   int16_t mZSId = -1;
   int16_t mZSOffsetId = -1;
   int16_t mOutputId = -1;
