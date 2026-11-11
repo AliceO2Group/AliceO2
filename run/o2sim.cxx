@@ -13,9 +13,12 @@
 #include <SimConfig/SimConfig.h>
 #include <TStopwatch.h>
 #include <fairlogger/Logger.h>
+#include <SimSetup/StaticTLSReserve.h>
 
 int main(int argc, char* argv[])
 {
+  // Geant4 is loaded by dlopen and may need a static TLS reserve, which glibc only takes at program start
+  o2::ensureStaticTLSReserve(argv);
   TStopwatch timer;
   timer.Start();
   auto& conf = o2::conf::SimConfig::Instance();

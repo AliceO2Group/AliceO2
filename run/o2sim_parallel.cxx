@@ -48,6 +48,7 @@
 #include "SimPublishChannelHelper.h"
 #include <CommonUtils/FileSystemUtils.h>
 #include <CCDB/BasicCCDBManager.h>
+#include <SimSetup/StaticTLSReserve.h>
 
 std::string getServerLogName()
 {
@@ -435,6 +436,8 @@ std::vector<char*> checkArgs(int argc, char* argv[])
 // for parallel simulation
 int main(int argc, char* argv[])
 {
+  // for the workers, which load Geant4 by dlopen; glibc takes the static TLS reserve only at program start
+  o2::setStaticTLSReserve();
   LOG(info) << "This is o2-sim version " << o2::fullVersion() << " (" << o2::gitRevision() << ")";
   LOG(info) << o2::getBuildInfo();
 

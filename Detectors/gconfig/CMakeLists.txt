@@ -74,6 +74,12 @@ o2_target_root_dictionary(SimSetup
                                   include/SimSetup/MCReplayParam.h
                           LINKDEF src/GConfLinkDef.h)
 
+o2_add_test(StaticTLSReserve
+            SOURCES test/testStaticTLSReserve.cxx
+            COMPONENT_NAME SimSetup
+            PUBLIC_LINK_LIBRARIES O2::SimSetup
+            LABELS simsetup)
+
 o2_add_test_root_macro(UserDecay.C
                        PUBLIC_LINK_LIBRARIES O2::SimSetup
                        LABELS simsetup)
