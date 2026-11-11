@@ -407,5 +407,168 @@ BOOST_AUTO_TEST_CASE(SpaceCharge_readFromFile_test)
   checkReadFromFile<float>();
 }
 
+/// distortions scaled with the global corrections of a derivative map (scaleGlobalDistWithDerivativeCorr) have to be consistent with the scaled
+/// corrections C(y) + s * C_der(y) at the distorted point y (in cartesian coordinates, as in the reconstruction) and agree with the inversion of the
+/// scaled corrections (calcGlobalDistWithGlobalCorrIterativeLinearCartesian), here with exact corrections of the average map
+BOOST_AUTO_TEST_CASE(SpaceCharge_scaleWithDerivative_test)
+{
+  const int nZ = 65;
+  const int nR = 65;
+  const int nPhi = 90;
+  SC::setNThreads(4);
+  for (const Side side : {Side::A, Side::C}) {
+    // global corrections from analytical fields, global distortions by inversion
+    auto makeMap = [&](const DataT parA, const DataT parB, const DataT parC) {
+      auto sc = std::make_unique<SC>(0, nZ, nR, nPhi);
+      AnalyticalFields<DataT> fields(side);
+      fields.setParameters(parA, parB, parC);
+      sc->calcLocalDistortionsCorrections(SC::Type::Corrections, fields);
+      sc->calcGlobalCorrections(sc->getLocalCorrInterpolator(side));
+      sc->calcGlobalDistWithGlobalCorrIterative(sc->getGlobalCorrInterpolator(side));
+      return sc;
+    };
+    // derivative map: smaller than the average map and with a different shape
+    const auto der = makeMap(1e-7, 1.5, 3e-4);
+
+    // without global distortions of the object or without global corrections of the derivative map nothing is scaled, which is returned to the caller
+    {
+      SC scEmpty(0, nZ, nR, nPhi);
+      BOOST_CHECK(!scEmpty.scaleGlobalDistWithDerivativeCorr(side, *der, 1.f));
+      auto sc = makeMap(5e-7, 0.5, 1e-4);
+      const GlobalDist distBefore = getGlobalDistortions(*sc, side, nZ, nR, nPhi);
+      BOOST_CHECK(!sc->scaleGlobalDistWithDerivativeCorr(side, scEmpty, 1.f));
+      const GlobalDist distAfter = getGlobalDistortions(*sc, side, nZ, nR, nPhi);
+      BOOST_CHECK(distAfter.r == distBefore.r);
+      BOOST_CHECK(distAfter.rphi == distBefore.rphi);
+      BOOST_CHECK(distAfter.z == distBefore.z);
+    }
+
+    for (const float scale : {-3.f, -1.f, 2.f}) {
+      auto sc = makeMap(5e-7, 0.5, 1e-4);
+      auto ref = makeMap(5e-7, 0.5, 1e-4);
+      BOOST_CHECK(sc->scaleGlobalDistWithDerivativeCorr(side, *der, scale));
+      ref->calcGlobalDistWithGlobalCorrIterativeLinearCartesian(side, der.get(), scale);
+
+      // closure at random points p: y = p + D(p), y + C(y) + scale * C_der(y) - p
+      std::mt19937 gen(42);
+      std::uniform_real_distribution<DataT> distR(95, 240);
+      std::uniform_real_distribution<DataT> distPhi(0, 2 * M_PI);
+      std::uniform_real_distribution<DataT> distZ(5, 245);
+      const int nPoints = 20000;
+      DataT rms[3]{};
+      DataT maxRes[3]{};
+      DataT maxDer = 0;
+      for (int i = 0; i < nPoints; ++i) {
+        const DataT r = distR(gen);
+        const DataT phi = distPhi(gen);
+        const DataT p[3]{r * std::cos(phi), r * std::sin(phi), (side == Side::A) ? distZ(gen) : -distZ(gen)};
+        DataT d[3];
+        sc->getDistortions(p[0], p[1], p[2], side, d[0], d[1], d[2]);
+        const DataT y[3]{p[0] + d[0], p[1] + d[1], p[2] + d[2]};
+        DataT c[3], cDer[3];
+        sc->getCorrections(y[0], y[1], y[2], side, c[0], c[1], c[2]);
+        der->getCorrections(y[0], y[1], y[2], side, cDer[0], cDer[1], cDer[2]);
+        for (int k = 0; k < 3; ++k) {
+          const DataT res = y[k] + c[k] + scale * cDer[k] - p[k];
+          rms[k] += res * res;
+          maxRes[k] = std::max(maxRes[k], std::abs(res));
+          maxDer = std::max(maxDer, std::abs(scale * cDer[k]));
+        }
+      }
+      for (int k = 0; k < 3; ++k) {
+        rms[k] = std::sqrt(rms[k] / nPoints);
+      }
+
+      // difference to the inversion of the scaled corrections at the vertices (the first z vertex of the inversion is extrapolated)
+      const GlobalDist dist = getGlobalDistortions(*sc, side, nZ, nR, nPhi);
+      const GlobalDist distRef = getGlobalDistortions(*ref, side, nZ, nR, nPhi);
+      DataT maxDiff[3]{};
+      for (size_t i = 0; i < dist.z.size(); ++i) {
+        if ((i % nZ) == 0) {
+          continue;
+        }
+        maxDiff[0] = std::max(maxDiff[0], std::abs(dist.r[i] - distRef.r[i]));
+        maxDiff[1] = std::max(maxDiff[1], std::abs(dist.rphi[i] - distRef.rphi[i]));
+        maxDiff[2] = std::max(maxDiff[2], std::abs(dist.z[i] - distRef.z[i]));
+      }
+
+      BOOST_TEST_MESSAGE("side " << static_cast<int>(side) << " scale " << scale << " max |scale * C_der| [cm]: " << maxDer);
+      BOOST_TEST_MESSAGE("  closure with the scaled corrections (x, y, z) rms: " << rms[0] << " " << rms[1] << " " << rms[2] << " max: " << maxRes[0] << " " << maxRes[1] << " " << maxRes[2]);
+      BOOST_TEST_MESSAGE("  max difference to the inversion (r, rphi, z): " << maxDiff[0] << " " << maxDiff[1] << " " << maxDiff[2]);
+
+      // the scaled derivative must be large enough for a meaningful test
+      BOOST_CHECK(maxDer > 0.1);
+      // closure O(0.2 um) rms, O(1 um) max, difference to the inversion O(0.5 um) for these smooth fields: tolerance 0.5 um (rms) and 2 um
+      for (int k = 0; k < 3; ++k) {
+        BOOST_CHECK_SMALL(rms[k], 5e-5);
+        BOOST_CHECK_SMALL(maxRes[k], 5e-4);
+        BOOST_CHECK_SMALL(maxDiff[k], 2e-4);
+      }
+    }
+  }
+}
+
+/// scaleGlobalDistWithDerivativeCorr in single precision (as used by the Digitizer): for radial distortions and radial derivative corrections the scaled
+/// distortions are radial. The r-phi distortion at the vertices has to be zero within the rounding of the positions, also for the vertices with phi > pi
+/// (no difference of two angles close to 2 pi and no wrapping with the 2 pi in single precision, which is larger than 2 pi by 1.7e-7)
+BOOST_AUTO_TEST_CASE(SpaceCharge_scaleWithDerivativeFloat_test)
+{
+  using SCFloat = SpaceCharge<float>;
+  const int nZ = 17;
+  const int nR = 33;
+  const int nPhi = 90;
+  SCFloat::setNThreads(4);
+  const float distR = 0.5f;     // radial distortion (cm)
+  const float corrRDer = -0.1f; // radial correction of the derivative map (cm)
+  const float scale = 2;
+  const auto radial = [](const float val) {
+    return [val](int, float gx, float gy, float, float& gCx, float& gCy, float& gCz) {
+      const float r = std::hypot(gx, gy);
+      gCx = val * gx / r;
+      gCy = val * gy / r;
+      gCz = 0;
+    };
+  };
+  for (const Side side : {Side::A, Side::C}) {
+    SCFloat sc(0, nZ, nR, nPhi);
+    sc.setGlobalDistortions(radial(distR), side);
+    SCFloat der(0, nZ, nR, nPhi);
+    der.setGlobalCorrections(radial(corrRDer), side);
+    BOOST_REQUIRE(sc.scaleGlobalDistWithDerivativeCorr(side, der, scale));
+
+    // r-phi distortion of the vertices with phi <= pi (index 0) and phi > pi (index 1) and difference of the radial distortion to distR - scale * corrRDer.
+    // Without the first and the last radius: their start points are outside of the grid
+    double mean[2]{};
+    double rms[2]{};
+    double maxDiffR = 0;
+    int nVertices[2]{};
+    for (int iPhi = 0; iPhi < nPhi; ++iPhi) {
+      const int half = (sc.getPhiVertex(iPhi, side) > M_PI) ? 1 : 0;
+      for (int iR = 1; iR < nR - 1; ++iR) {
+        for (int iZ = 0; iZ < nZ; ++iZ) {
+          const double distRPhi = sc.getGlobalDistRPhi(iZ, iR, iPhi, side);
+          mean[half] += distRPhi;
+          rms[half] += distRPhi * distRPhi;
+          ++nVertices[half];
+          const double diffR = sc.getGlobalDistR(iZ, iR, iPhi, side) - (distR - scale * corrRDer);
+          maxDiffR = std::max(maxDiffR, std::abs(diffR));
+        }
+      }
+    }
+    BOOST_TEST_MESSAGE("side " << static_cast<int>(side) << " single precision: max difference of the radial distortion [cm]: " << maxDiffR);
+    BOOST_CHECK_SMALL(maxDiffR, 3e-4);
+    for (int half = 0; half < 2; ++half) {
+      mean[half] /= nVertices[half];
+      rms[half] = std::sqrt(rms[half] / nVertices[half]);
+      BOOST_TEST_MESSAGE("  r-phi distortion [cm] for phi " << (half ? "> " : "<=") << " pi: mean " << mean[half] << " rms " << rms[half]);
+      // rounding of the positions in the maps and in the cartesian look ups: no offset (< 0.01 um) and O(0.1 um) rms for phi <= pi, O(0.2 um) rms for phi > pi
+      // (the phi of the vertices with phi <= pi is the same number in [-pi, pi], for phi > pi it is rounded).
+      // With the difference of the angles wrapped with 2 pi: offset 0.4 um and 0.6 um rms for phi > pi
+      BOOST_CHECK_SMALL(std::abs(mean[half]), 1e-5);
+      BOOST_CHECK_SMALL(rms[half], 4e-5);
+    }
+  }
+}
+
 } // namespace tpc
 } // namespace o2

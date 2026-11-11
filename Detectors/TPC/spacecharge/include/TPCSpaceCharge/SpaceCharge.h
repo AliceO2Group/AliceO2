@@ -409,6 +409,24 @@ class SpaceCharge
   void calcGlobalDistWithGlobalCorrIterativeLinearCartesian(const Side side, const SpaceCharge<DataT>* scSCale = nullptr, float scale = 0, const int maxIter = 100, const DataT approachX = 1, const DataT approachY = 1, const DataT approachZ = 1, const DataT diffCorr = 50e-6);
   void calcGlobalDistWithGlobalCorrIterativeLinearCartesian(const SpaceCharge<DataT>* scSCale = nullptr, float scale = 0, const int maxIter = 100, const DataT approachX = 1, const DataT approachY = 1, const DataT approachZ = 1, const DataT diffCorr = 50e-6);
 
+  /// Scale the global distortions with the global corrections of a derivative map, consistent with the scaled corrections C(y) + scale * C_der(y) at the
+  /// distorted point y (as done in the tracking), without inverting the global distortions of this object.
+  /// With T(x) = x + D(x) (the global distortions of this object), the new distortion at the vertex p is D_new(p) = T(x) - p, where x is the fixed point of
+  /// x = p - scale * C_der(T(x)) (iterated starting at x = p). Then y = T(x) fulfils y + C(y) = x for the inverse C of D, and y + C(y) + scale * C_der(y) = p.
+  /// The iteration converges fast since C_der is small and smooth (each step reduces the error by about |scale| * |dC_der/dy|).
+  /// \param side side of the TPC
+  /// \param scDer derivative map: its global corrections must be set (e.g. with calcGlobalCorrWithGlobalDistIterative())
+  /// \param scale scaling factor of the derivative map
+  /// \param maxIter maximum number of fixed-point iterations per vertex
+  /// \param diffCorr the iteration stops when the start point x changes by less than this value (cm) in x, y and z. The default (2 um) is above the
+  ///                 rounding noise of the cartesian corrections in single precision (O(0.5 um) at the outer radius) times the scaling factor
+  /// \return true if the distortions were scaled, false if the global distortions of this object or the global corrections of the derivative map are not set (the distortions are not changed)
+  bool scaleGlobalDistWithDerivativeCorr(const Side side, const SpaceCharge<DataT>& scDer, const float scale, const int maxIter = 20, const DataT diffCorr = 2e-4);
+
+  /// Scale the global distortions of both sides with the global corrections of a derivative map (see the function for one side)
+  /// \return true if the distortions of both sides were scaled, false if at least one side was not scaled
+  bool scaleGlobalDistWithDerivativeCorr(const SpaceCharge<DataT>& scDer, const float scale, const int maxIter = 20, const DataT diffCorr = 2e-4);
+
   /// Calculate global corrections using the global distortions by scaling with second distortion object, which will be consistent with scaled corrections in cartesian coordinates
   /// \param side Side of the TPC
   /// \param scSCale possible second sc object

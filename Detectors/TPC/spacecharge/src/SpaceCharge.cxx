@@ -944,6 +944,105 @@ void SpaceCharge<DataT>::calcGlobalDistWithGlobalCorrIterativeLinearCartesian(co
 }
 
 template <typename DataT>
+bool SpaceCharge<DataT>::scaleGlobalDistWithDerivativeCorr(const Side side, const SpaceCharge<DataT>& scDer, const float scale, const int maxIter, const DataT diffCorr)
+{
+  if (!mGlobalDistdR[side].getNDataPoints() || !scDer.mGlobalCorrdR[side].getNDataPoints()) {
+    LOGP(error, "Global distortions or global corrections of the derivative map not set for side {}: distortions are not scaled", static_cast<int>(side));
+    return false;
+  }
+
+  // the new distortions are written to separate containers, since the current distortions are interpolated during the calculation
+  DataContainer distdR(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices);
+  DataContainer distdZ(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices);
+  DataContainer distdRPhi(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices);
+  unsigned long nNotConverged = 0;
+
+#pragma omp parallel for num_threads(sNThreads) reduction(+ : nNotConverged)
+  for (unsigned int iPhi = 0; iPhi < mParamGrid.NPhiVertices; ++iPhi) {
+    const DataT phi = getPhiVertex(iPhi, side);
+    for (unsigned int iR = 0; iR < mParamGrid.NRVertices; ++iR) {
+      const DataT radius = getRVertex(iR, side);
+      const DataT px = getXFromPolar(radius, phi);
+      const DataT py = getYFromPolar(radius, phi);
+      for (unsigned int iZ = 0; iZ < mParamGrid.NZVertices; ++iZ) {
+        const DataT pz = getZVertex(iZ, side);
+
+        // distorted point y = T(p) of the vertex p, from the distortions at the vertex
+        const DataT radiusDist = radius + mGlobalDistdR[side](iZ, iR, iPhi);
+        const DataT phiDist = phi + mGlobalDistdRPhi[side](iZ, iR, iPhi) / radius;
+        DataT yX = getXFromPolar(radiusDist, phiDist);
+        DataT yY = getYFromPolar(radiusDist, phiDist);
+        DataT yZ = pz + mGlobalDistdZ[side](iZ, iR, iPhi);
+
+        // fixed-point iteration for the start point x = p - scale * C_der(T(x)), starting at x = p
+        DataT xX = px;
+        DataT xY = py;
+        DataT xZ = pz;
+        bool converged = false;
+        for (int iter = 0; iter < maxIter; ++iter) {
+          DataT corrX = 0;
+          DataT corrY = 0;
+          DataT corrZ = 0;
+          scDer.getCorrections(yX, yY, yZ, side, corrX, corrY, corrZ);
+          const DataT xXNew = px - scale * corrX;
+          const DataT xYNew = py - scale * corrY;
+          const DataT xZNew = pz - scale * corrZ;
+          const DataT diff = std::max(std::abs(xXNew - xX), std::max(std::abs(xYNew - xY), std::abs(xZNew - xZ)));
+          xX = xXNew;
+          xY = xYNew;
+          xZ = xZNew;
+
+          // distorted point of the new start point
+          DataT distX = 0;
+          DataT distY = 0;
+          DataT distZ = 0;
+          getDistortions(xX, xY, xZ, side, distX, distY, distZ);
+          yX = xX + distX;
+          yY = xY + distY;
+          yZ = xZ + distZ;
+          if (diff < diffCorr) {
+            converged = true;
+            break;
+          }
+        }
+        nNotConverged += !converged;
+
+        // new distortion of the vertex: y - p in r, r phi (at the radius of the vertex) and z. The angle between p and y is calculated from the cross
+        // and the dot product: the difference of the two angles is close to -2 pi for phi > pi and has to be wrapped, which in single precision gives
+        // an offset (2 pi in single precision is larger than 2 pi by 1.7e-7) and a larger rounding error
+        const DataT deltaPhi = std::atan2(px * yY - py * yX, px * yX + py * yY);
+        distdR(iZ, iR, iPhi) = getRadiusFromCartesian(yX, yY) - radius;
+        distdRPhi(iZ, iR, iPhi) = deltaPhi * radius;
+        distdZ(iZ, iR, iPhi) = yZ - pz;
+      }
+    }
+  }
+
+  // swap the data: the interpolators of the global distortions keep the address of the containers
+  mGlobalDistdR[side].getData().swap(distdR.getData());
+  mGlobalDistdZ[side].getData().swap(distdZ.getData());
+  mGlobalDistdRPhi[side].getData().swap(distdRPhi.getData());
+
+  if (nNotConverged) {
+    LOGP(warning, "Scaling of the global distortions with the derivative map (scale {}): {} of {} vertices on side {} not converged after {} iterations", scale, nNotConverged, mGlobalDistdR[side].getNDataPoints(), static_cast<int>(side), maxIter);
+  }
+  warnNonFinite(mGlobalDistdR[side], mGlobalDistdRPhi[side], mGlobalDistdZ[side], "global distortions scaled with the derivative map", side);
+  return true;
+}
+
+template <typename DataT>
+bool SpaceCharge<DataT>::scaleGlobalDistWithDerivativeCorr(const SpaceCharge<DataT>& scDer, const float scale, const int maxIter, const DataT diffCorr)
+{
+  // the sides are processed one after the other: the calculation for each side is parallelised
+  bool scaled = true;
+  for (int iside = 0; iside < FNSIDES; ++iside) {
+    const o2::tpc::Side side = (iside == 0) ? Side::A : Side::C;
+    scaled &= scaleGlobalDistWithDerivativeCorr(side, scDer, scale, maxIter, diffCorr);
+  }
+  return scaled;
+}
+
+template <typename DataT>
 void SpaceCharge<DataT>::calcGlobalCorrWithGlobalDistIterativeLinearCartesian(const Side side, const SpaceCharge<DataT>* scSCale, float scale, const int maxIter, const DataT approachX, const DataT approachY, const DataT approachZ, const DataT diffCorr)
 {
   calcGlobalDistCorrIterativeLinearCartesian(getGlobalDistInterpolator(side), maxIter, approachX, approachY, approachZ, diffCorr, scSCale, scale, Type::Corrections);

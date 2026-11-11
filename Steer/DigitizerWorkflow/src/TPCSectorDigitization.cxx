@@ -137,6 +137,7 @@ std::vector<framework::ConfigParamSpec> TPCDigitizerConditions::options()
     {"meanLumiDistortions", VariantType::Float, -1.f, {"override lumi of distortion object if >=0"}},
     {"meanLumiDistortionsDerivative", VariantType::Float, -1.f, {"override lumi of derivative distortion object if >=0"}},
     {"do-not-recalculate-distortions", VariantType::Bool, false, {"Do not recalculate the distortions"}},
+    {"recalculate-distortions-method", VariantType::Int, 1, {"Recalculation of the distortions with the derivative map: 0 = inversion of the scaled corrections (old), 1 = scaled derivative corrections applied to the distortions"}},
     {"n-threads-distortions", VariantType::Int, 4, {"Number of threads used for the calculation of the distortions"}},
   };
 }
@@ -160,6 +161,7 @@ void TPCDigitizerConditions::init(framework::InitContext& ic, int distortionType
 {
   mDistortionType = distortionType;
   mRecalcDistortions = !(ic.options().get<bool>("do-not-recalculate-distortions"));
+  mRecalcDistortionsMethod = ic.options().get<int>("recalculate-distortions-method");
   SpaceCharge<float>::setNThreads(ic.options().get<int>("n-threads-distortions"));
   mUseCalibrationsFromCCDB = ic.options().get<bool>("TPCuseCCDB");
   mMeanLumiDistortions = ic.options().get<float>("meanLumiDistortions");
@@ -218,6 +220,7 @@ void TPCDigitizerConditions::update(framework::ProcessingContext& pc, Digitizer&
       pc.inputs().get<SC*>("tpcdistortionsderiv");
       digitizer.setLumiScaleFactor();
       if (mRecalcDistortions) {
+        digitizer.setRecalcDistortionsMethod(mRecalcDistortionsMethod);
         digitizer.recalculateDistortions();
       }
     }
