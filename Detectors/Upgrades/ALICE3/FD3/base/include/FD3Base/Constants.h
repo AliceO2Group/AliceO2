@@ -33,7 +33,7 @@ struct Constants {
   static constexpr float etaMax = 4.9f;
   static constexpr float etaMax2 = 5.5f; // asymmetric configuration
 
-  static constexpr float rsizeq = 1.025f; // quartz radiator transverse size
+  static constexpr float rsizeq = 1.025f; // transvers size of quartz radiators
 };
 
 } // namespace fd3
