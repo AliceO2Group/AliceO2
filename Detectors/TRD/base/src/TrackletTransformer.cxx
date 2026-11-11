@@ -61,7 +61,7 @@ float TrackletTransformer::calculateDy(int detector, int slope, const PadPlane* 
 
 float TrackletTransformer::calibrateX(double x) const
 {
-  // Hard-coded value will be replaced once t0 calibration is available from CCDB
+  // Hard-coded value since t0 is rather stable as a function of time
   float t0Correction = -0.230;
   return x += t0Correction;
 }
@@ -105,8 +105,6 @@ CalibratedTracklet TrackletTransformer::transformTracklet(Tracklet64 tracklet, b
   float x = mGeo->cdrHght() - 0.5;
   float y = tracklet.getUncalibratedY(mApplyShift);
   float z = calculateZ(padrow, padPlane);
-  
-  //LOGF(info, "apply shift: %d", mApplyShift);
 
   float dy = calculateDy(detector, slope, padPlane);
 
