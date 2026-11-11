@@ -165,6 +165,10 @@ class GPUTPCCFDecodeZSDenseLink : public GPUTPCCFDecodeZSLinkBase
     // GPUCA_SHARED_STORAGE(uint32_t ZSPage[o2::tpc::TPCZSHDR::TPC_ZS_PAGE_SIZE / sizeof(uint32_t)]);
     uint16_t samplesPerLinkEnd[MaxNLinksPerTimebin]; // Offset from end of TB link header to first sample not in this link
     uint8_t linkIds[MaxNLinksPerTimebin];
+#ifdef __METAL__
+    uint16_t linkBitmaskL2[MaxNLinksPerTimebin];
+    uint16_t linkBitmaskOffset[MaxNLinksPerTimebin]; // Offset of the link's channel bitmask from the timebin header
+#endif
     uint8_t rawFECChannels[MaxNLinksPerTimebin * 80];
   };
 
