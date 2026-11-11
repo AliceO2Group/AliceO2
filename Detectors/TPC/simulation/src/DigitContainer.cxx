@@ -160,6 +160,9 @@ void DigitContainer::updateCalibrations()
     mPadParams[2] = &cdb.getCMkValues();
   }
 
+  // pedestals for the common mode saturation per pad
+  mPadParams[3] = eleParam.doCommonModePerPadSaturation ? &cdb.getPedestals() : nullptr;
+
   // dead channel map
   mDeadMap = eleParam.applyDeadMap ? &cdb.getDeadChannelMap() : nullptr;
 
@@ -174,7 +177,7 @@ void DigitContainer::reportSettings()
   auto& cdb = CDBInterface::instance();
   const auto& eleParam = ParameterElectronics::Instance();
   const auto& feeConfig = cdb.getFEEConfig();
-  LOGP(info, "ParameterElectronics:  doIonTail={}, doIonTailPerPad={}, doCommonModePerPad={}, doSaturationTail={}, doNoiseEmptyPads={}, applyDeadMap={}, commonModeCoupling={}, DigiMode={}",
-       eleParam.doIonTail, eleParam.doIonTailPerPad, eleParam.doCommonModePerPad, eleParam.doSaturationTail, eleParam.doNoiseEmptyPads, eleParam.applyDeadMap, eleParam.commonModeCoupling, (int)eleParam.DigiMode);
+  LOGP(info, "ParameterElectronics:  doIonTail={}, doIonTailPerPad={}, doCommonModePerPad={}, doCommonModePerPadSaturation={}, doSaturationTail={}, doNoiseEmptyPads={}, applyDeadMap={}, commonModeCoupling={}, DigiMode={}",
+       eleParam.doIonTail, eleParam.doIonTailPerPad, eleParam.doCommonModePerPad, eleParam.doCommonModePerPadSaturation, eleParam.doSaturationTail, eleParam.doNoiseEmptyPads, eleParam.applyDeadMap, eleParam.commonModeCoupling, (int)eleParam.DigiMode);
   feeConfig.printShort();
 }
