@@ -31,6 +31,7 @@ struct GPUMemoryReuse {
   };
   enum Group : uint16_t {
     ClustererScratch,
+    ClustererScratchClusters,
     NNClusterer,
     ClustererZS,
     TrackerScratch,

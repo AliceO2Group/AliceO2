@@ -1367,6 +1367,7 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
 
           if (doGPU && propagateMCLabels) {
             TransferMemoryResourceLinkToHost(RecoStep::TPCClusterFinding, clusterer.mScratchId, lane);
+            TransferMemoryResourceLinkToHost(RecoStep::TPCClusterFinding, clusterer.mScratchClustersId, lane);
             SynchronizeStream(lane);
             runKernel<GPUTPCCFClusterizer>({GetGrid(clusterer.mPmemory->counters.nClusters, lane, GPUReconstruction::krnlDeviceType::CPU), {iSector}}, 1); // Computes MC labels
           }
@@ -1382,7 +1383,7 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
             SynchronizeStream(lane);
           }
           if (doGPU && propagateMCLabels) {
-            TransferMemoryResourceLinkToHost(RecoStep::TPCClusterFinding, clusterer.mScratchId, lane);
+            TransferMemoryResourceLinkToHost(RecoStep::TPCClusterFinding, clusterer.mScratchClustersId, lane);
             SynchronizeStream(lane);
             runKernel<GPUTPCCFHIPClusterizer>({GetGrid(GPUTPCGeometry::NROWS, lane, GPUReconstruction::krnlDeviceType::CPU), {iSector}}, 1); // Computes MC labels
           }
