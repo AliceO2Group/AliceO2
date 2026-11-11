@@ -316,6 +316,7 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   inputTracks.collectData(pc, *mDataRequest);
   updateTimeDependentParams(pc);
   storeConfigs(pc);
+  mTriggeredBCFT0.clear();
   mChainTracking->ClearIOPointers();
 
   mTPCClusterIdxStruct = &inputTracks.inputsTPCclusters->clusterIndex;
