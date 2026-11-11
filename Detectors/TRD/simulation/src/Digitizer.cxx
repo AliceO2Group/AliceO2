@@ -281,7 +281,6 @@ bool Digitizer::convertHits(const int det, const std::vector<Hit>& hits, SignalC
         // minus sign is necessary to be compatible with how Vdrift and ExB are calibrated
         locCd = locCd - TMath::Tan(calExBDetValue) * driftLength;
       }
-
       // The electron position after diffusion and ExB in pad coordinates.
       rowE = padPlane->getPadRowNumberROC(locRd);
       if (rowE < 0) {
@@ -295,7 +294,6 @@ bool Digitizer::convertHits(const int det, const std::vector<Hit>& hits, SignalC
         continue;
       }
       const double colOffset = padPlane->getPadColOffset(colE, locCd + offsetTilt);
-
       // Convert the position to drift time [mus], using either constant drift velocity or
       // time structure of drift cells (non-isochronity, GARFIELD calculation).
       // Also add absolute time of hits to take pile-up events into account properly
