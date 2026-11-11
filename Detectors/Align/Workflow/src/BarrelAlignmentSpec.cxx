@@ -186,7 +186,7 @@ void BarrelAlignmentSpec::init(InitContext& ic)
         mTRDTransformer->setApplyXOR();
       }
       auto prevShift = mTRDTransformer->isShiftApplied();
-      if (getenv("ALIEN_JDL_LPMPRODUCTIONTYPE") && std::strcmp(getenv("ALIEN_JDL_LPMPRODUCTIONTYPE"), "MC") == 0) {
+      if ((getenv("ALIEN_JDL_LPMPRODUCTIONTYPE") && std::strcmp(getenv("ALIEN_JDL_LPMPRODUCTIONTYPE"), "MC") == 0) || !ic.options().get<bool>("apply-shift")) {
         // apply artificial pad shift in case non-ideal alignment is used to compensate for shift in current alignment from real data
         mTRDTransformer->setApplyShift(false);
       }
@@ -365,6 +365,7 @@ DataProcessorSpec getBarrelAlignmentSpec(GTrackID::mask_t srcMP, GTrackID::mask_
   bool loadTPCCalib = false;
   Options opts{
     ConfigParamSpec{"apply-xor", o2::framework::VariantType::Bool, false, {"flip the 8-th bit of slope and position (for processing TRD CTFs from 2021 pilot beam)"}},
+    ConfigParamSpec{"apply-shift", o2::framework::VariantType::Bool, true, {"whether we apply the one pad shift for the TRD in data (never applied in MC)"}},
     ConfigParamSpec{"allow-afterburner-tracks", VariantType::Bool, false, {"allow using ITS-TPC afterburner tracks"}},
     ConfigParamSpec{"ignore-ccdb-alignment", VariantType::Bool, false, {"do not aplly CCDB alignment to ideal geometry"}},
     ConfigParamSpec{"initial-params-file", VariantType::String, "", {"initial parameters file"}},

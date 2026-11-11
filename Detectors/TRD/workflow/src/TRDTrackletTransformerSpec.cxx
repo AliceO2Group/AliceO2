@@ -35,7 +35,8 @@ void TRDTrackletTransformerSpec::init(o2::framework::InitContext& ic)
   if (ic.options().get<bool>("apply-xor")) {
     mTransformer.setApplyXOR();
   }
-  if (getenv("ALIEN_JDL_LPMPRODUCTIONTYPE") && std::strcmp(getenv("ALIEN_JDL_LPMPRODUCTIONTYPE"), "MC") == 0) {
+  if ((getenv("ALIEN_JDL_LPMPRODUCTIONTYPE") && std::strcmp(getenv("ALIEN_JDL_LPMPRODUCTIONTYPE"), "MC") == 0) || ic.options().get<bool>("disable-shift")) {
+    LOGF(info, "TRD pad shift is not applied");
     // apply artificial pad shift in case non-ideal alignment is used to compensate for shift in current alignment from real data
     mTransformer.setApplyShift(false);
   }
@@ -174,7 +175,8 @@ o2::framework::DataProcessorSpec getTRDTrackletTransformerSpec(bool trigRecFilte
     outputs,
     AlgorithmSpec{adaptFromTask<TRDTrackletTransformerSpec>(dataRequest, ggRequest, trigRecFilterActive)},
     Options{
-      {"apply-xor", o2::framework::VariantType::Bool, false, {"flip the 8-th bit of slope and position (for processing CTFs from 2021 pilot beam)"}}}};
+      {"apply-xor", o2::framework::VariantType::Bool, false, {"flip the 8-th bit of slope and position (for processing CTFs from 2021 pilot beam)"}},
+      {"disable-shift", o2::framework::VariantType::Bool, false, {"whether we apply the one pad shift in data (always disabled in MC)"}}}};
 }
 
 } //end namespace trd

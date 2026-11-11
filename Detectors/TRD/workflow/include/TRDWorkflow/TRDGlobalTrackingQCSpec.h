@@ -152,8 +152,7 @@ DataProcessorSpec getTRDGlobalTrackingQCSpec(o2::dataformats::GlobalTrackID::mas
     "trd-tracking-qc",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TRDGlobalTrackingQC>(dataRequest, ggRequest, isTPCavailable, src)},
-    Options{}};
+    AlgorithmSpec{adaptFromTask<TRDGlobalTrackingQC>(dataRequest, ggRequest, isTPCavailable, src)}};
 }
 
 template <typename T>

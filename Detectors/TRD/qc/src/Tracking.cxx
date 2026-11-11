@@ -85,6 +85,7 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
 
   // Find most probable BCs and RMS for pile-up correction and error. Same BC is assumed for all tracklets
   float tCorrPileUp = 0.;
+  float tCorrPileUp_weightedMean = 0.;
   float tErrPileUp2 = 0;
   float maxProb = 0.f;
   // The uncertainty is the RMS wrt the default correction of all possible corrections weighted by their probability
@@ -117,6 +118,7 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
     sumCorr += probBC * deltaBC;
     sumCorr2 += probBC * deltaBC * deltaBC;
     sumProb += probBC;
+    tCorrPileUp_weightedMean -= probBC * deltaBC;
     if (probBC > maxProb) {
       maxProb = probBC;
       tCorrPileUp = -deltaBC;
@@ -124,6 +126,7 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
   }
   if (sumProb > 1e-6) {
     tErrPileUp2 = sumCorr2 / sumProb - 2 * tCorrPileUp * sumCorr / sumProb + tCorrPileUp * tCorrPileUp;
+    tCorrPileUp_weightedMean /= sumProb;
   }
 
   for (int iLayer = 0; iLayer < NLAYER; ++iLayer) {
@@ -158,7 +161,8 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
 
     // conversion from slope in pad per time bin to slope in cm per BC = tracklets[trkltIdx].getSlopeFloat() * padWidth / BCperTimeBin
     float slopeFactor = mTrackletsRaw[trkltId].getSlopeFloat() * pad->getWidthIPad() / 4.f;
-    float yCorrPileUp = tCorrPileUp * slopeFactor;
+    // float yCorrPileUp = tCorrPileUp * slopeFactor;
+    float yCorrPileUp = tCorrPileUp_weightedMean * slopeFactor;
     float yAddErrPileUp2 = tErrPileUp2 * slopeFactor * slopeFactor;
     float yPosCorrUp = mTrackletsCalib[trkltId].getY() - tiltCorrUp + yCorrPileUp;
 
@@ -184,7 +188,7 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
     // \sqrt{ (dx/dx)^2 + (dy/dx)^2 + (dz/dx)^2}
     auto tphi = trk.getSnp() / std::sqrt((1.f - trk.getSnp()) * (1.f + trk.getSnp()));
     auto trackletLength = std::sqrt(1.f + tphi * tphi + trk.getTgl() * trk.getTgl());
-    auto cor = mLocalGain.getValue(tracklet.getHCID() / 2, tracklet.getPadCol(mApplyShift), tracklet.getPadRow()) * trackletLength;
+    auto cor = mLocalGain.getValue(tracklet.getHCID() / 2, tracklet.getPadCol(false), tracklet.getPadRow()) * trackletLength;
     float q0{tracklet.getQ0() / cor}, q1{tracklet.getQ1() / cor}, q2{tracklet.getQ2() / cor};
 
     // z-row merging
@@ -193,9 +197,9 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
         if (tracklet.getTrackletWord() == trklt.getTrackletWord()) { // skip original tracklet
           continue;
         }
-        if (std::abs(tracklet.getPadCol(mApplyShift) - trklt.getPadCol(mApplyShift)) <= 1 && std::abs(tracklet.getPadRow() - trklt.getPadRow()) == 1) {
+        if (std::abs(tracklet.getPadCol(false) - trklt.getPadCol(false)) <= 1 && std::abs(tracklet.getPadRow() - trklt.getPadRow()) == 1) {
           // Add charge information
-          auto cor = mLocalGain.getValue(trklt.getHCID() / 2, trklt.getPadCol(mApplyShift), trklt.getPadRow()) * trackletLength;
+          auto cor = mLocalGain.getValue(trklt.getHCID() / 2, trklt.getPadCol(false), trklt.getPadRow()) * trackletLength;
           q0 += trklt.getQ0() / cor;
           q1 += trklt.getQ1() / cor;
           q2 += trklt.getQ2() / cor;

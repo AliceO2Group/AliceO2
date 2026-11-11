@@ -542,6 +542,7 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
     float sumCorr = 0.f;
     float sumCorr2 = 0.f;
     float sumProb = 0.f;
+    mTCorrPileUp_weightedMean = 0.f;
     for (int iBC = 0; iBC < mTriggeredBCFT0.size(); iBC++) {
       int deltaBC = roundf(mTriggeredBCFT0[iBC] - mChainTracking->mIOPtrs.trdTriggerTimes[trdTrack.getCollisionId()] / o2::constants::lhc::LHCBunchSpacingMUS);
       if (deltaBC <= mRecoParam.getPileUpRangeBefore() || deltaBC >= mRecoParam.getPileUpRangeAfter()) {
@@ -565,6 +566,7 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
       sumCorr += probBC * deltaBC;
       sumCorr2 += probBC * deltaBC * deltaBC;
       sumProb += probBC;
+      mTCorrPileUp_weightedMean -= deltaBC * probBC;
       if (probBC > maxProb) {
         maxProb = probBC;
         mTCorrPileUp = -deltaBC;
@@ -572,6 +574,7 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
     }
     if (sumProb > 1e-6) {
       mTErrPileUp2 = sumCorr2 / sumProb - 2 * mTCorrPileUp * sumCorr / sumProb + mTCorrPileUp * mTCorrPileUp;
+      mTCorrPileUp_weightedMean /= sumProb;
     }
 
     nTrackletsAttached += trdTrack.getNtracklets();
@@ -926,7 +929,8 @@ bool TRDGlobalTracking::refitTRDTrack(TrackTRD& trk, float& chi2, bool inwards, 
 
     // conversion from slope in pad per time bin to slope in cm per BC = tracklets[trkltIdx].getSlopeFloat() * padWidth / BCperTimeBin
     float slopeFactor = mTrackletsRaw[trkltId].getSlopeFloat() * pad->getWidthIPad() / 4.f;
-    float yCorrPileUp = mTCorrPileUp * slopeFactor;
+    // float yCorrPileUp = mTCorrPileUp * slopeFactor;
+    float yCorrPileUp = mTCorrPileUp_weightedMean * slopeFactor;
     float yAddErrPileUp2 = mTErrPileUp2 * slopeFactor * slopeFactor;
     float yPosCorrUp = mTrackletsCalib[trkltId].getY() - tiltCorrUp + yCorrPileUp;
 

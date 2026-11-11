@@ -615,6 +615,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
           // contrary to the assumption when tracklet is reconstructed, so we cancel this extrapolation.
           // The correction is extracted from the most probable trigger. There is also an additional error depending on all the compatible triggers
           float yCorrPileUp = 0.f;
+          float yCorrPileUp_weightedMean = 0.f;
           float yAddErrPileUp2 = 0.f;
           // additional zshiftTrk for TPC only tracks due to pile-up
           float zShiftTrkPileUp = 0.f;
@@ -632,6 +633,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
               sumCorr += probBC * slopeFactor * deltaBC;
               sumCorr2 += probBC * slopeFactor * deltaBC * slopeFactor * deltaBC;
               sumProb += probBC;
+              yCorrPileUp_weightedMean -= slopeFactor * deltaBC * probBC;
               if (probBC > maxProb) {
                 maxProb = probBC;
                 yCorrPileUp = -slopeFactor * deltaBC;
@@ -640,6 +642,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
             }
             if (sumProb > 1e-6f) {
               yAddErrPileUp2 = sumCorr2 / sumProb - 2 * yCorrPileUp * sumCorr / sumProb + yCorrPileUp * yCorrPileUp;
+              yCorrPileUp_weightedMean /= sumProb;
             }
           }
 
@@ -649,7 +652,8 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
 
           // correction for mean z position of tracklet (is not the center of the pad if track eta != 0)
           float zPosCorr = spacePoints[trkltIdx].getZ() + mRecoParam->getZCorrCoeffNRC() * trkWork->getTgl();
-          float yPosCorr = spacePoints[trkltIdx].getY() - tiltCorr + yCorrPileUp;
+          // float yPosCorr = spacePoints[trkltIdx].getY() - tiltCorr + yCorrPileUp;
+          float yPosCorr = spacePoints[trkltIdx].getY() - tiltCorr + yCorrPileUp_weightedMean;
           zPosCorr -= zShiftTrk + zShiftTrkPileUp; // shift tracklet instead of track in order to avoid having to do a re-fit for each collision
 
           // Correction of y position based on angular pull
@@ -808,6 +812,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
       // contrary to the assumption when tracklet is reconstructed, so we cancel this extrapolation.
       // The correction is extracted from the most probable trigger. There is also an additional error depending on all the compatible triggers
       float yCorrPileUp = 0.f;
+      float yCorrPileUp_weightedMean = 0.f;
       float yAddErrPileUp2 = 0.f;
       float zShiftTrkPileUp = 0.f;
       if (nIdxBCMax - nIdxBCMin >= 2) {
@@ -824,6 +829,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
           sumCorr += probBC * slopeFactor * deltaBC;
           sumCorr2 += probBC * slopeFactor * deltaBC * slopeFactor * deltaBC;
           sumProb += probBC;
+          yCorrPileUp_weightedMean -= slopeFactor * deltaBC * probBC;
           if (probBC > maxProb) {
             maxProb = probBC;
             yCorrPileUp = -slopeFactor * deltaBC;
@@ -832,11 +838,13 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
         }
         if (sumProb > 1e-6f) {
           yAddErrPileUp2 = sumCorr2 / sumProb - 2 * yCorrPileUp * sumCorr / sumProb + yCorrPileUp * yCorrPileUp;
+          yCorrPileUp_weightedMean /= sumProb;
         }
       }
 
       zPosCorrUp -= zShiftTrkPileUp;
-      yPosCorrUp += yCorrPileUp;
+      // yPosCorrUp += yCorrPileUp;
+      yPosCorrUp += yCorrPileUp_weightedMean;
 
       const auto currDet = tracklets[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].GetDetector();
       int nTrackletsChamber = mTrackletIndexArray[trkltIdxOffset + currDet + 1] - mTrackletIndexArray[trkltIdxOffset + currDet];

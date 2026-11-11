@@ -61,8 +61,8 @@ float TrackletTransformer::calculateDy(int detector, int slope, const PadPlane* 
 
 float TrackletTransformer::calibrateX(double x) const
 {
-  // Hard-coded value will be replaced once t0 calibration is available from CCDB
-  float t0Correction = -0.279;
+  // Hard-coded value since t0 is rather stable as a function of time
+  float t0Correction = -0.230;
   return x += t0Correction;
 }
 
@@ -110,7 +110,6 @@ CalibratedTracklet TrackletTransformer::transformTracklet(Tracklet64 tracklet, b
 
   float calibratedX = calibrateX(x);
 
-  // NOTE: Correction to y position based on x calibration NOT YET implemented. Need t0.
   if (trackingFrame) {
     std::array<float, 3> sectorSpacePoint = transformL2T(detector, std::array<double, 3>{calibratedX, y, z});
     LOG(debug) << "x: " << sectorSpacePoint[0] << " | "
