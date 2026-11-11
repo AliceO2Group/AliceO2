@@ -252,8 +252,8 @@ DataT DataContainer3D<DataT>::interpolate(const DataT z, const DataT r, const Da
 template <typename DataT>
 bool DataContainer3D<DataT>::getVertices(std::string_view treename, std::string_view fileIn, unsigned short& nR, unsigned short& nZ, unsigned short& nPhi)
 {
-  TFile fTmp(fileIn.data(), "READ");
-  TTree* tree = (TTree*)fTmp.Get(treename.data());
+  TFile fTmp(std::string(fileIn).c_str(), "READ");
+  TTree* tree = (TTree*)fTmp.Get(std::string(treename).c_str());
   if (!tree) {
     LOGP(warning, "Tree {} not found in input file {}", treename, fileIn);
     return false;

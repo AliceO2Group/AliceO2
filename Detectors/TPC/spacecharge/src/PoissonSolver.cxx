@@ -168,15 +168,20 @@ void PoissonSolver<DataT>::poissonMultiGrid3D(DataContainer& matricesV, const Da
     restrictBoundaryLevel(tvArrayV[index], tvArrayV[index - 1], levels[index], levels[index - 1]);
   }
 
+  // factorisation of the periodic tridiagonal systems of the line relaxation in phi: depends only on the level and is calculated once
+  std::vector<PhiLineFactorisation> phiLineFact(nLoop);
+  for (int index = 0; index < nLoop; ++index) {
+    if (levels[index].lineRelaxPhi) {
+      setLevelCoefficients(levels[index], ratioZ, coefficient1, coefficient2, coefficient3, coefficient4);
+      phiLineFact[index] = factorisePhiLines(levels[index], coefficient3, coefficient4);
+    }
+  }
+
   // 2) Relax on the coarsest grid
   {
     const MGLevel& level = levels[nLoop - 1];
-    const DataT h = gridSpacingR * level.rzFactor;
-    const DataT h2 = h * h;
-    const DataT gridSizePhiInv = level.nphi * getGridSizePhiInv();   // h_{phi}
-    const DataT tempRatioPhi = h2 * gridSizePhiInv * gridSizePhiInv; // ratio_{phi} = gridSize_{r} / gridSize_{phi}
-    calcCoefficients(1, level.nr - 1, h, ratioZ, tempRatioPhi, coefficient1, coefficient2, coefficient3, coefficient4);
-    relaxLevel(level, tvArrayV[nLoop - 1], tvChargeFMG[nLoop - 1], h2, ratioZ, coefficient1, coefficient2, coefficient3, coefficient4);
+    const DataT h2 = setLevelCoefficients(level, ratioZ, coefficient1, coefficient2, coefficient3, coefficient4);
+    relaxLevel(level, phiLineFact[nLoop - 1], tvArrayV[nLoop - 1], tvChargeFMG[nLoop - 1], h2, ratioZ, coefficient1, coefficient2, coefficient3, coefficient4);
   }
 
   // 3) V Cycle from coarsest to finest
@@ -202,7 +207,7 @@ void PoissonSolver<DataT>::poissonMultiGrid3D(DataContainer& matricesV, const Da
       // copy to store previous potential
       copyParallel(tvPrevArrayV[count], tvArrayV[count], sNThreads, MINPOINTSPARALLEL);
 
-      vCycle3D(count + 1, nLoop, MGParameters::nPre, MGParameters::nPost, ratioZ, levels, tvArrayV, tvCharge, tvResidue, coefficient1, coefficient2, coefficient3, coefficient4, inverseCoefficient4);
+      vCycle3D(count + 1, nLoop, MGParameters::nPre, MGParameters::nPost, ratioZ, levels, phiLineFact, tvArrayV, tvCharge, tvResidue, coefficient1, coefficient2, coefficient3, coefficient4, inverseCoefficient4);
 
       // converge error
       const DataT convergenceError = getConvergenceError(tvArrayV[count], tvPrevArrayV[count]);
@@ -237,26 +242,14 @@ void PoissonSolver<DataT>::poissonMultiGrid3D(DataContainer& matricesV, const Da
 }
 
 template <typename DataT>
-void PoissonSolver<DataT>::vCycle3D(const int gridFrom, const int gridTo, const int nPre, const int nPost, const DataT ratioZ, const std::vector<MGLevel>& levels, std::vector<Vector>& tvArrayV,
-                                    std::vector<Vector>& tvCharge, std::vector<Vector>& tvResidue, std::vector<DataT>& coefficient1, std::vector<DataT>& coefficient2, std::vector<DataT>& coefficient3,
-                                    std::vector<DataT>& coefficient4, std::vector<DataT>& inverseCoefficient4) const
+void PoissonSolver<DataT>::vCycle3D(const int gridFrom, const int gridTo, const int nPre, const int nPost, const DataT ratioZ, const std::vector<MGLevel>& levels, const std::vector<PhiLineFactorisation>& phiLineFact,
+                                    std::vector<Vector>& tvArrayV, std::vector<Vector>& tvCharge, std::vector<Vector>& tvResidue, std::vector<DataT>& coefficient1, std::vector<DataT>& coefficient2,
+                                    std::vector<DataT>& coefficient3, std::vector<DataT>& coefficient4, std::vector<DataT>& inverseCoefficient4) const
 {
-  const DataT gridSpacingR = getSpacingR();
-
-  // set the coefficients for given level
-  const auto setCoefficients = [&](const MGLevel& level, DataT& h2) {
-    const DataT h = gridSpacingR * level.rzFactor;
-    h2 = h * h;
-    const DataT tempGridSizePhiInv = level.nphi * getGridSizePhiInv();
-    const DataT tempRatioPhi = h2 * tempGridSizePhiInv * tempGridSizePhiInv; // ratio_{phi} = gridSize_{r} / gridSize_{phi}
-    calcCoefficients(1, level.nr - 1, h, ratioZ, tempRatioPhi, coefficient1, coefficient2, coefficient3, coefficient4);
-  };
-
   for (int count = gridFrom; count <= gridTo - 1; ++count) {
     const int index = count - 1;
     const MGLevel& level = levels[index];
-    DataT h2 = 0;
-    setCoefficients(level, h2);
+    const DataT h2 = setLevelCoefficients(level, ratioZ, coefficient1, coefficient2, coefficient3, coefficient4);
     const DataT ih2 = 1 / h2;
     for (int i = 1; i < level.nr - 1; ++i) {
       inverseCoefficient4[i] = 1 / coefficient4[i];
@@ -264,7 +257,7 @@ void PoissonSolver<DataT>::vCycle3D(const int gridFrom, const int gridTo, const 
 
     // 1) Pre-Smoothing: Gauss-Seidel Relaxation
     for (int jPre = 1; jPre <= nPre; ++jPre) {
-      relaxLevel(level, tvArrayV[index], tvCharge[index], h2, ratioZ, coefficient1, coefficient2, coefficient3, coefficient4);
+      relaxLevel(level, phiLineFact[index], tvArrayV[index], tvCharge[index], h2, ratioZ, coefficient1, coefficient2, coefficient3, coefficient4);
     } // end pre smoothing
 
     // 2) Residue calculation
@@ -280,9 +273,8 @@ void PoissonSolver<DataT>::vCycle3D(const int gridFrom, const int gridTo, const 
   // coarsest grid
   {
     const MGLevel& level = levels[gridTo - 1];
-    DataT h2 = 0;
-    setCoefficients(level, h2);
-    relaxLevel(level, tvArrayV[gridTo - 1], tvCharge[gridTo - 1], h2, ratioZ, coefficient1, coefficient2, coefficient3, coefficient4);
+    const DataT h2 = setLevelCoefficients(level, ratioZ, coefficient1, coefficient2, coefficient3, coefficient4);
+    relaxLevel(level, phiLineFact[gridTo - 1], tvArrayV[gridTo - 1], tvCharge[gridTo - 1], h2, ratioZ, coefficient1, coefficient2, coefficient3, coefficient4);
   }
 
   // back to fine
@@ -293,14 +285,24 @@ void PoissonSolver<DataT>::vCycle3D(const int gridFrom, const int gridTo, const 
     // 4) Interpolation/Prolongation
     interpolateLevel<true>(tvArrayV[index], tvArrayV[count], level, levels[count]);
 
-    DataT h2 = 0;
-    setCoefficients(level, h2);
+    const DataT h2 = setLevelCoefficients(level, ratioZ, coefficient1, coefficient2, coefficient3, coefficient4);
 
     // 5) Post-Smoothing: Gauss-Seidel Relaxation
     for (int jPost = 1; jPost <= nPost; ++jPost) {
-      relaxLevel(level, tvArrayV[index], tvCharge[index], h2, ratioZ, coefficient1, coefficient2, coefficient3, coefficient4);
+      relaxLevel(level, phiLineFact[index], tvArrayV[index], tvCharge[index], h2, ratioZ, coefficient1, coefficient2, coefficient3, coefficient4);
     }
   }
+}
+
+template <typename DataT>
+DataT PoissonSolver<DataT>::setLevelCoefficients(const MGLevel& level, const DataT ratioZ, std::vector<DataT>& coefficient1, std::vector<DataT>& coefficient2, std::vector<DataT>& coefficient3, std::vector<DataT>& coefficient4) const
+{
+  const DataT h = getSpacingR() * level.rzFactor;
+  const DataT h2 = h * h;
+  const DataT gridSizePhiInv = level.nphi * getGridSizePhiInv();   // h_{phi}
+  const DataT tempRatioPhi = h2 * gridSizePhiInv * gridSizePhiInv; // ratio_{phi} = gridSize_{r} / gridSize_{phi}
+  calcCoefficients(1, level.nr - 1, h, ratioZ, tempRatioPhi, coefficient1, coefficient2, coefficient3, coefficient4);
+  return h2;
 }
 
 template <typename DataT>
@@ -509,37 +511,43 @@ void PoissonSolver<DataT>::relax3D(Vector& matricesCurrentV, const Vector& matri
 }
 
 template <typename DataT>
-void PoissonSolver<DataT>::relaxLevel(const MGLevel& level, Vector& matricesCurrentV, const Vector& matricesCurrentCharge, const DataT h2, const DataT tempRatioZ,
+void PoissonSolver<DataT>::relaxLevel(const MGLevel& level, const PhiLineFactorisation& phiLineFact, Vector& matricesCurrentV, const Vector& matricesCurrentCharge, const DataT h2, const DataT tempRatioZ,
                                       const std::vector<DataT>& coefficient1, const std::vector<DataT>& coefficient2, const std::vector<DataT>& coefficient3, const std::vector<DataT>& coefficient4) const
 {
   if (level.lineRelaxPhi) {
-    relaxLinePhi(matricesCurrentV, matricesCurrentCharge, level.nr, level.nz, level.nphi, h2, tempRatioZ, coefficient1, coefficient2, coefficient3, coefficient4);
+    relaxLinePhi(matricesCurrentV, matricesCurrentCharge, level.nr, level.nz, level.nphi, h2, tempRatioZ, coefficient1, coefficient2, phiLineFact);
   } else {
     relax3D(matricesCurrentV, matricesCurrentCharge, level.nr, level.nz, level.nphi, h2, tempRatioZ, coefficient1, coefficient2, coefficient3, coefficient4);
   }
 }
 
 template <typename DataT>
-void PoissonSolver<DataT>::relaxLinePhi(Vector& matricesCurrentV, const Vector& matricesCurrentCharge, const int tnRRow, const int tnZColumn, const int iPhi, const DataT h2, const DataT tempRatioZ,
-                                        const std::vector<DataT>& coefficient1, const std::vector<DataT>& coefficient2, const std::vector<DataT>& coefficient3, const std::vector<DataT>& coefficient4) const
+typename PoissonSolver<DataT>::PhiLineFactorisation PoissonSolver<DataT>::factorisePhiLines(const MGLevel& level, const std::vector<DataT>& coefficient3, const std::vector<DataT>& coefficient4) const
 {
-  // For each line (i, j) the equations a_i * V_m - b_i * (V_{m-1} + V_{m+1}) = rhs_m with periodic boundary in phi are solved, with
-  // a_i = 1 / coefficient4[i] = 2 * (1 + tempRatioZ + coefficient3[i]), b_i = coefficient3[i] and rhs_m containing the neighbours in r and z and the charge.
+  // For each line (i, j) the equations a_i * V_m - b_i * (V_{m-1} + V_{m+1}) = rhs_m with periodic boundary in phi are solved (see relaxLinePhi()), with
+  // a_i = 1 / coefficient4[i] = 2 * (1 + tempRatioZ + coefficient3[i]) and b_i = coefficient3[i].
   // The periodic tridiagonal system is solved with the Thomas algorithm and the Sherman-Morrison formula (see Numerical Recipes, cyclic tridiagonal systems).
-  // The matrix depends only on i: the factorisation is calculated once for all lines. Storage of the factorisation: index = i + nr * m
-  const int nr = matricesCurrentV.getNr();
-  const int strideZ = nr;
-  const int stridePhi = nr * matricesCurrentV.getNz();
-  const int n = iPhi;
-  std::vector<DataT> cPrime(static_cast<size_t>(nr) * n);    // modified super diagonal of the Thomas algorithm
-  std::vector<DataT> invDen(static_cast<size_t>(nr) * n);    // inverse of the modified diagonal of the Thomas algorithm
-  std::vector<DataT> zSM(static_cast<size_t>(nr) * n);       // solution of T z = u for the Sherman-Morrison correction
-  std::vector<DataT> factDenInv(nr), bOverA(nr), bCoeff(nr); // 1 / (1 + z_0 + b/a * z_{n-1}), b/a, b
-  const bool runParallel = (sNThreads > 1) && (static_cast<long>(tnRRow) * tnZColumn * iPhi > MINPOINTSPARALLEL);
+  // The matrix depends only on i (and on the level): the factorisation is calculated once for all lines and all relaxations of the level. Storage: index = i + nr * m
+  const int nr = level.nr;
+  const int n = level.nphi;
+  PhiLineFactorisation fact;
+  fact.cPrime.resize(static_cast<size_t>(nr) * n);
+  fact.invDen.resize(static_cast<size_t>(nr) * n);
+  fact.zSM.resize(static_cast<size_t>(nr) * n);
+  fact.factDenInv.resize(nr);
+  fact.bOverA.resize(nr);
+  fact.bCoeff.resize(nr);
+  std::vector<DataT>& cPrime = fact.cPrime;
+  std::vector<DataT>& invDen = fact.invDen;
+  std::vector<DataT>& zSM = fact.zSM;
+  std::vector<DataT>& factDenInv = fact.factDenInv;
+  std::vector<DataT>& bOverA = fact.bOverA;
+  std::vector<DataT>& bCoeff = fact.bCoeff;
+  const bool runParallel = (sNThreads > 1) && (static_cast<long>(level.nr) * level.nz * level.nphi > MINPOINTSPARALLEL);
 
   // the factorisations for different i are independent
 #pragma omp parallel for num_threads(sNThreads) if (runParallel)
-  for (int i = 1; i < tnRRow - 1; ++i) {
+  for (int i = 1; i < nr - 1; ++i) {
     const DataT a = 1 / coefficient4[i];
     const DataT b = coefficient3[i];
     const DataT gamma = -a;
@@ -568,6 +576,26 @@ void PoissonSolver<DataT>::relaxLinePhi(Vector& matricesCurrentV, const Vector& 
     }
     factDenInv[i] = 1 / (1 + zSM[i] + bOverA[i] * zSM[i + nr * (n - 1)]);
   }
+  return fact;
+}
+
+template <typename DataT>
+void PoissonSolver<DataT>::relaxLinePhi(Vector& matricesCurrentV, const Vector& matricesCurrentCharge, const int tnRRow, const int tnZColumn, const int iPhi, const DataT h2, const DataT tempRatioZ,
+                                        const std::vector<DataT>& coefficient1, const std::vector<DataT>& coefficient2, const PhiLineFactorisation& phiLineFact) const
+{
+  // For each line (i, j) the equations a_i * V_m - b_i * (V_{m-1} + V_{m+1}) = rhs_m with periodic boundary in phi are solved, with rhs_m containing the
+  // neighbours in r and z and the charge, using the factorisation of the periodic tridiagonal system of the level (see factorisePhiLines(), index = i + nr * m)
+  const int nr = matricesCurrentV.getNr();
+  const int strideZ = nr;
+  const int stridePhi = nr * matricesCurrentV.getNz();
+  const int n = iPhi;
+  const DataT* cPrime = phiLineFact.cPrime.data();
+  const DataT* invDen = phiLineFact.invDen.data();
+  const DataT* zSM = phiLineFact.zSM.data();
+  const DataT* factDenInv = phiLineFact.factDenInv.data();
+  const DataT* bOverA = phiLineFact.bOverA.data();
+  const DataT* bCoeff = phiLineFact.bCoeff.data();
+  const bool runParallel = (sNThreads > 1) && (static_cast<long>(tnRRow) * tnZColumn * iPhi > MINPOINTSPARALLEL);
 
   const DataT* charge = matricesCurrentCharge.data().data();
   DataT* pot = matricesCurrentV.data().data();

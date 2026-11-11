@@ -136,16 +136,21 @@ class SpaceCharge
   /// \param hisSCDensity3D histogram for the space charge density
   void fillChargeDensityFromHisto(const TH3& hisSCDensity3D);
 
-  /// step 0: set the space-charge density from two TH3 histograms containing the space-charge density for A and C side seperately
+  /// step 0: set the space-charge density from two TH3 histograms containing the space-charge density for A and C side seperately.
+  /// Both histograms need the same number of bins (phi, r, z), the C-side histogram is expected in phi and r with the same ranges as the A-side histogram
+  /// and in z with the mirrored range (e.g. A side: z in [0, zMax], C side: z in [-zMax, 0]). The z axis of the A-side histogram is expected to start at 0.
+  /// Different ranges give a warning: the bins are used with the expected ranges
   /// \param hisSCDensity3D_A histogram for the space charge density for A-side
   /// \param hisSCDensity3D_C histogram for the space charge density for C-side
-  void fillChargeDensityFromHisto(const TH3& hisSCDensity3D_A, const TH3& hisSCDensity3D_C);
+  /// \return true if the density was filled, false if the number of bins of the histograms differs (the density is not changed)
+  bool fillChargeDensityFromHisto(const TH3& hisSCDensity3D_A, const TH3& hisSCDensity3D_C);
 
   /// step 0: set the space-charge density from two TH3 histograms containing the space charge density for A and C side separately which are stored in a ROOT file
   /// \param file path to root file containing the space-charge density
   /// \param nameA name of the space-charge density histogram for the A-side
   /// \param nameC name of the space-charge density histogram for the C-side
-  void fillChargeDensityFromHisto(const char* file, const char* nameA, const char* nameC);
+  /// \return true if the density was filled, false if a histogram was not found or the number of bins of the histograms differs (the density is not changed)
+  bool fillChargeDensityFromHisto(const char* file, const char* nameA, const char* nameC);
 
   /// step 0: set the space charge density from std::vector<CalDet> containing the space charge density. Each entry in the object corresponds to one z slice
   /// \param calSCDensity3D pad-by-pad CalDet for the space charge density
@@ -282,14 +287,25 @@ class SpaceCharge
   /// \param Side of the TPC
   void setPotentialBoundaryOuterRadius(const std::function<DataT(DataT)>& potentialFunc, const Side side);
 
+  /// step 1: use the O2TPCPoissonSolver class to numerically calculate the potential with set space charge density and boundary conditions from potential.
+  /// The stopping criterion of the poisson solver is the one set with PoissonSolver<DataT>::setConvergenceError() (default: PoissonSolver<DataT>::getDefaultConvergenceError())
+  /// \param side side of the TPC
+  void poissonSolver(const Side side);
+
   /// step 1: use the O2TPCPoissonSolver class to numerically calculate the potential with set space charge density and boundary conditions from potential
   /// \param side side of the TPC
-  /// \param stoppingConvergence stopping criterion used in the poisson solver (relative change of the potential between two multi grid V cycles, see MGParameters::relativeConvergence; default 1e-8 for double, 1e-6 for float)
-  void poissonSolver(const Side side, const DataT stoppingConvergence = std::is_same_v<DataT, float> ? DataT(1e-6) : DataT(1e-8));
+  /// \param stoppingConvergence stopping criterion used in the poisson solver (relative change of the potential between two multi grid V cycles, see MGParameters::relativeConvergence).
+  /// It is set with PoissonSolver<DataT>::setConvergenceError() and is also used by later calls
+  void poissonSolver(const Side side, const DataT stoppingConvergence);
 
-  /// step 1: use the O2TPCPoissonSolver class to numerically calculate the potential with set space charge density and boundary conditions from potential for A and C side in parallel
-  /// \param stoppingConvergence stopping criterion used in the poisson solver (relative change of the potential between two multi grid V cycles, see MGParameters::relativeConvergence; default 1e-8 for double, 1e-6 for float)
-  void poissonSolver(const DataT stoppingConvergence = std::is_same_v<DataT, float> ? DataT(1e-6) : DataT(1e-8));
+  /// step 1: use the O2TPCPoissonSolver class to numerically calculate the potential with set space charge density and boundary conditions from potential for the A and C side (one after the other).
+  /// The stopping criterion of the poisson solver is the one set with PoissonSolver<DataT>::setConvergenceError() (default: PoissonSolver<DataT>::getDefaultConvergenceError())
+  void poissonSolver();
+
+  /// step 1: use the O2TPCPoissonSolver class to numerically calculate the potential with set space charge density and boundary conditions from potential for the A and C side (one after the other)
+  /// \param stoppingConvergence stopping criterion used in the poisson solver (relative change of the potential between two multi grid V cycles, see MGParameters::relativeConvergence).
+  /// It is set with PoissonSolver<DataT>::setConvergenceError() and is also used by later calls
+  void poissonSolver(const DataT stoppingConvergence);
 
   /// step 2: calculate numerically the electric field from the potential
   /// \param side side of the TPC

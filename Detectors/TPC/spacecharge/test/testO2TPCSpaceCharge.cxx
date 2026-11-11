@@ -18,12 +18,16 @@
 #include <boost/test/unit_test.hpp>
 #include "TPCSpaceCharge/SpaceCharge.h"
 #include "TPCSpaceCharge/SpaceChargeHelpers.h"
+#include "TPCSpaceCharge/PoissonSolver.h"
 #include "TMemFile.h"
+#include "TH3F.h"
 #include <memory>
 #include <random>
 #include <cmath>
 #include <algorithm>
 #include <limits>
+#include <array>
+#include <vector>
 
 namespace o2
 {
@@ -71,6 +75,59 @@ Residuals closure(const SC& sc, const Side side)
   }
   return res;
 }
+
+/// \return number of vertices with a different density (both sides)
+int getNDifferentDensity(const SC& sc1, const SC& sc2)
+{
+  int nDiff = 0;
+  for (const Side side : {Side::A, Side::C}) {
+    for (size_t iPhi = 0; iPhi < sc1.getNPhiVertices(); ++iPhi) {
+      for (size_t iR = 0; iR < sc1.getNRVertices(); ++iR) {
+        for (size_t iZ = 0; iZ < sc1.getNZVertices(); ++iZ) {
+          nDiff += (sc1.getDensity(iZ, iR, iPhi, side) != sc2.getDensity(iZ, iR, iPhi, side));
+        }
+      }
+    }
+  }
+  return nDiff;
+}
+
+/// \return maximum absolute density of both sides
+DataT getMaxDensity(const SC& sc)
+{
+  DataT maxDensity = 0;
+  for (const Side side : {Side::A, Side::C}) {
+    for (size_t iPhi = 0; iPhi < sc.getNPhiVertices(); ++iPhi) {
+      for (size_t iR = 0; iR < sc.getNRVertices(); ++iR) {
+        for (size_t iZ = 0; iZ < sc.getNZVertices(); ++iZ) {
+          maxDensity = std::max(maxDensity, std::abs(sc.getDensity(iZ, iR, iPhi, side)));
+        }
+      }
+    }
+  }
+  return maxDensity;
+}
+
+/// fill histograms of the A side (z in [0, zMax]) and of the C side (z in [-zMax, 0]) with random entries
+void fillDensityHistos(TH3& hA, TH3& hC)
+{
+  std::mt19937 gen(7);
+  std::uniform_real_distribution<double> distPhi(0, 2 * M_PI);
+  std::uniform_real_distribution<double> distR(hA.GetYaxis()->GetXmin(), hA.GetYaxis()->GetXmax());
+  std::uniform_real_distribution<double> distZ(hA.GetZaxis()->GetXmin(), hA.GetZaxis()->GetXmax());
+  std::uniform_real_distribution<double> distW(0.5, 2);
+  for (int i = 0; i < 5000; ++i) {
+    const double phi = distPhi(gen);
+    const double r = distR(gen);
+    const double z = distZ(gen);
+    hA.Fill(phi, r, z, distW(gen));
+    hC.Fill(phi, r, -z, distW(gen));
+  }
+}
+
+constexpr double ZMAXHIST = 250;
+constexpr double RMINHIST = 83.5;
+constexpr double RMAXHIST = 254.5;
 
 struct GlobalDist {
   std::vector<DataT> r, rphi, z;
@@ -187,6 +244,126 @@ BOOST_AUTO_TEST_CASE(SpaceCharge_largeFields_test)
   sc.getCorrectionsCyl(100, 150, 1 + 1000 * periodPhi, side, cZFar, cRFar, cRPhiFar);
   sc.getCorrectionsCyl(100, 150, 1, side, cZ, cR, cRPhi);
   BOOST_CHECK_CLOSE(cRFar, cR, 1e-6);
+}
+
+/// the stopping criterion set with PoissonSolver::setConvergenceError() (here the previous absolute criterion) is used by SpaceCharge::poissonSolver()
+/// and not overwritten by a default value. An explicitly given stopping criterion is set for the PoissonSolver
+BOOST_AUTO_TEST_CASE(SpaceCharge_convergenceError_test)
+{
+  const int nZ = 33;
+  const int nR = 33;
+  const int nPhi = 36;
+  SC::setNThreads(4);
+  const Side side = Side::A;
+  SC sc(0, nZ, nR, nPhi);
+  AnalyticalFields<DataT> fields(side);
+  sc.setChargeDensityFromFormula(fields);
+  sc.setPotentialBoundaryFromFormula(fields);
+
+  // reference with the default stopping criterion
+  sc.poissonSolver(side);
+  std::vector<DataT> potRef;
+  for (int iPhi = 0; iPhi < nPhi; ++iPhi) {
+    for (int iR = 0; iR < nR; ++iR) {
+      for (int iZ = 0; iZ < nZ; ++iZ) {
+        potRef.emplace_back(sc.getPotential(iZ, iR, iPhi, side));
+      }
+    }
+  }
+
+  // previous absolute stopping criterion
+  MGParameters::relativeConvergence = false;
+  PoissonSolver<DataT>::setConvergenceError(1e-6);
+  sc.poissonSolver(side);
+  BOOST_CHECK_EQUAL(PoissonSolver<DataT>::getConvergenceError(), DataT(1e-6));
+  DataT maxDiff = 0;
+  DataT maxPot = 0;
+  size_t index = 0;
+  for (int iPhi = 0; iPhi < nPhi; ++iPhi) {
+    for (int iR = 0; iR < nR; ++iR) {
+      for (int iZ = 0; iZ < nZ; ++iZ) {
+        maxDiff = std::max(maxDiff, std::abs(sc.getPotential(iZ, iR, iPhi, side) - potRef[index]));
+        maxPot = std::max(maxPot, std::abs(potRef[index]));
+        ++index;
+      }
+    }
+  }
+  BOOST_TEST_MESSAGE("max |V_abs - V_default| / max |V|: " << maxDiff / maxPot);
+  BOOST_CHECK_SMALL(maxDiff / maxPot, DataT(1e-6));
+
+  // explicitly given stopping criterion
+  MGParameters::relativeConvergence = true;
+  sc.poissonSolver(side, 1e-9);
+  BOOST_CHECK_EQUAL(PoissonSolver<DataT>::getConvergenceError(), DataT(1e-9));
+
+  // restore the default for the other tests
+  PoissonSolver<DataT>::setConvergenceError(PoissonSolver<DataT>::getDefaultConvergenceError());
+}
+
+/// density from histograms with a pending fill buffer (TH1::SetBuffer()): has to be the same as from the histograms without buffer
+BOOST_AUTO_TEST_CASE(SpaceCharge_densityFromBufferedHisto_test)
+{
+  SC::setNThreads(4);
+  TH3F hA("hA", "", 36, 0, 2 * M_PI, 34, RMINHIST, RMAXHIST, 32, 0, ZMAXHIST);
+  TH3F hC("hC", "", 36, 0, 2 * M_PI, 34, RMINHIST, RMAXHIST, 32, -ZMAXHIST, 0);
+  fillDensityHistos(hA, hC);
+  TH3F hABuffer("hABuffer", "", 36, 0, 2 * M_PI, 34, RMINHIST, RMAXHIST, 32, 0, ZMAXHIST);
+  TH3F hCBuffer("hCBuffer", "", 36, 0, 2 * M_PI, 34, RMINHIST, RMAXHIST, 32, -ZMAXHIST, 0);
+  hABuffer.SetBuffer(10000);
+  hCBuffer.SetBuffer(10000);
+  fillDensityHistos(hABuffer, hCBuffer);
+  BOOST_REQUIRE(hABuffer.GetBuffer() && (hABuffer.GetBuffer()[0] > 0)); // the entries are still in the buffer
+
+  SC sc(0, 17, 17, 18);
+  sc.fillChargeDensityFromHisto(hA, hC);
+  SC scBuffer(0, 17, 17, 18);
+  scBuffer.fillChargeDensityFromHisto(hABuffer, hCBuffer);
+  BOOST_CHECK(getMaxDensity(sc) > 0);
+  BOOST_CHECK_EQUAL(getNDifferentDensity(sc, scBuffer), 0);
+
+  // one histogram for both sides
+  TH3F hAC("hAC", "", 36, 0, 2 * M_PI, 34, RMINHIST, RMAXHIST, 64, -ZMAXHIST, ZMAXHIST);
+  TH3F hACBuffer("hACBuffer", "", 36, 0, 2 * M_PI, 34, RMINHIST, RMAXHIST, 64, -ZMAXHIST, ZMAXHIST);
+  hACBuffer.SetBuffer(20000);
+  fillDensityHistos(hAC, hAC);
+  fillDensityHistos(hACBuffer, hACBuffer);
+  BOOST_REQUIRE(hACBuffer.GetBuffer() && (hACBuffer.GetBuffer()[0] > 0));
+  sc.fillChargeDensityFromHisto(hAC);
+  scBuffer.fillChargeDensityFromHisto(hACBuffer);
+  BOOST_CHECK(getMaxDensity(sc) > 0);
+  BOOST_CHECK_EQUAL(getNDifferentDensity(sc, scBuffer), 0);
+}
+
+/// density from A-side and C-side histograms with a different binning: the histograms must not be read outside of their bin arrays.
+/// A different number of bins is an error (the density is not changed and false is returned), a different range is read with the bin numbers of the A side (as before)
+BOOST_AUTO_TEST_CASE(SpaceCharge_densityFromHistoBinning_test)
+{
+  SC::setNThreads(4);
+  TH3F hA("hA", "", 36, 0, 2 * M_PI, 34, RMINHIST, RMAXHIST, 32, 0, ZMAXHIST);
+  TH3F hC("hC", "", 36, 0, 2 * M_PI, 34, RMINHIST, RMAXHIST, 32, -ZMAXHIST, 0);
+  fillDensityHistos(hA, hC);
+  SC scRef(0, 17, 17, 18);
+  BOOST_CHECK(scRef.fillChargeDensityFromHisto(hA, hC));
+  BOOST_CHECK(getMaxDensity(scRef) > 0);
+
+  // different number of bins of the C-side histogram
+  for (const auto& nBins : {std::array<int, 3>{18, 34, 32}, std::array<int, 3>{36, 17, 32}, std::array<int, 3>{36, 34, 16}, std::array<int, 3>{18, 17, 16}, std::array<int, 3>{72, 34, 32}}) {
+    TH3F hCOther("hCOther", "", nBins[0], 0, 2 * M_PI, nBins[1], RMINHIST, RMAXHIST, nBins[2], -ZMAXHIST, 0);
+    fillDensityHistos(hCOther, hCOther);
+    SC sc(0, 17, 17, 18);
+    BOOST_CHECK(sc.fillChargeDensityFromHisto(hA, hC));
+    BOOST_CHECK(!sc.fillChargeDensityFromHisto(hA, hCOther));
+    BOOST_CHECK_EQUAL(getNDifferentDensity(sc, scRef), 0);
+  }
+
+  // same number of bins but different range of the C-side histogram
+  TH3F hCShifted("hCShifted", "", 36, 0, 2 * M_PI, 34, RMINHIST + 10, RMAXHIST + 10, 32, 0, ZMAXHIST);
+  for (int bin = 0; bin < hC.GetNcells(); ++bin) {
+    hCShifted.SetBinContent(bin, hC.GetBinContent(bin));
+  }
+  SC scShifted(0, 17, 17, 18);
+  BOOST_CHECK(scShifted.fillChargeDensityFromHisto(hA, hCShifted));
+  BOOST_CHECK_EQUAL(getNDifferentDensity(scShifted, scRef), 0);
 }
 
 /// write the object to a file and read it back: the grid (transient) has to be set up from the stored number of vertices

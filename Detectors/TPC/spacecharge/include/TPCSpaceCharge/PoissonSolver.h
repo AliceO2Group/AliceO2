@@ -115,15 +115,34 @@ class PoissonSolver
     bool lineRelaxPhi{}; ///< use line relaxation in phi (phi strongly coupled, see MGParameters::phiLineRelaxThreshold) instead of point relaxation
   };
 
-  /// relaxation of the given level: line relaxation in phi (MGLevel::lineRelaxPhi) or point relaxation (relax3D())
-  void relaxLevel(const MGLevel& level, Vector& matricesCurrentV, const Vector& matricesCurrentCharge, const DataT h2, const DataT tempRatioZ,
+  /// factorisation of the periodic tridiagonal systems of the line relaxation in phi of one level (Thomas algorithm and Sherman-Morrison correction).
+  /// The matrix depends only on the radial index i (and on the level): storage of the vectors with n = nphi entries per i: index = i + nr * m
+  struct PhiLineFactorisation {
+    std::vector<DataT> cPrime{};     ///< modified super diagonal of the Thomas algorithm
+    std::vector<DataT> invDen{};     ///< inverse of the modified diagonal of the Thomas algorithm
+    std::vector<DataT> zSM{};        ///< solution of T z = u for the Sherman-Morrison correction
+    std::vector<DataT> factDenInv{}; ///< 1 / (1 + z_0 + b/a * z_{n-1}) for each i
+    std::vector<DataT> bOverA{};     ///< b / a for each i
+    std::vector<DataT> bCoeff{};     ///< b (coupling in phi) for each i
+  };
+
+  /// set the coefficients of the relaxation for given level
+  /// \return returns h^2 with h the grid spacing in r of the level
+  DataT setLevelCoefficients(const MGLevel& level, const DataT ratioZ, std::vector<DataT>& coefficient1, std::vector<DataT>& coefficient2, std::vector<DataT>& coefficient3, std::vector<DataT>& coefficient4) const;
+
+  /// \return returns the factorisation of the periodic tridiagonal systems of the line relaxation in phi for given level and coefficients of the level
+  PhiLineFactorisation factorisePhiLines(const MGLevel& level, const std::vector<DataT>& coefficient3, const std::vector<DataT>& coefficient4) const;
+
+  /// relaxation of the given level: line relaxation in phi (MGLevel::lineRelaxPhi) with the factorisation phiLineFact of the level or point relaxation (relax3D())
+  void relaxLevel(const MGLevel& level, const PhiLineFactorisation& phiLineFact, Vector& matricesCurrentV, const Vector& matricesCurrentCharge, const DataT h2, const DataT tempRatioZ,
                   const std::vector<DataT>& coefficient1, const std::vector<DataT>& coefficient2, const std::vector<DataT>& coefficient3, const std::vector<DataT>& coefficient4) const;
 
   /// red-black Gauss-Seidel line relaxation in phi direction: the potential of all phi slices on one line (r, z) is solved exactly (periodic tridiagonal system)
   /// for given potential on the neighbouring lines. The lines with (ir + iz) even and odd are relaxed one after the other.
   /// Robust if the phi direction is strongly coupled compared to r and z (fine grid in phi), where the point relaxation smooths the error badly.
+  /// \param phiLineFact factorisation of the periodic tridiagonal systems of the level (see factorisePhiLines())
   void relaxLinePhi(Vector& matricesCurrentV, const Vector& matricesCurrentCharge, const int tnRRow, const int tnZColumn, const int iPhi, const DataT h2, const DataT tempRatioZ,
-                    const std::vector<DataT>& coefficient1, const std::vector<DataT>& coefficient2, const std::vector<DataT>& coefficient3, const std::vector<DataT>& coefficient4) const;
+                    const std::vector<DataT>& coefficient1, const std::vector<DataT>& coefficient2, const PhiLineFactorisation& phiLineFact) const;
 
   /// \returns the grids of the multi grid levels. From one level to the next the r and z direction are coarsened and the phi direction is coarsened (if the number of slices is even)
   /// only if it is not weakly coupled compared to r and z (see MGParameters::phiCoarseningThreshold). Line relaxation in phi is used on the levels where phi is strongly coupled (see MGParameters::phiLineRelaxThreshold)
@@ -273,6 +292,7 @@ class PoissonSolver
   /// \param nPost number of smoothing after coarsening
   /// \param ratioZ ratio between square of grid r and grid z
   /// \param levels grids of the multi grid levels
+  /// \param phiLineFact factorisation of the line relaxation in phi of the levels (empty for the levels without line relaxation)
   /// \param tvArrayV vector of V potential in different grids
   /// \param tvCharge vector of charge distribution in different grids
   /// \param tvResidue vector of residue calculation in different grids
@@ -281,9 +301,9 @@ class PoissonSolver
   /// \param coefficient3 coefficient for relaxation (ratio r/z)
   /// \param coefficient4 coefficient for relaxation (ratio for grid_r)
   /// \param inverseCoefficient4 coefficient for relaxation (inverse coefficient4)
-  void vCycle3D(const int gridFrom, const int gridTo, const int nPre, const int nPost, const DataT ratioZ, const std::vector<MGLevel>& levels, std::vector<Vector>& tvArrayV, std::vector<Vector>& tvCharge,
-                std::vector<Vector>& tvResidue, std::vector<DataT>& coefficient1, std::vector<DataT>& coefficient2, std::vector<DataT>& coefficient3,
-                std::vector<DataT>& coefficient4, std::vector<DataT>& inverseCoefficient4) const;
+  void vCycle3D(const int gridFrom, const int gridTo, const int nPre, const int nPost, const DataT ratioZ, const std::vector<MGLevel>& levels, const std::vector<PhiLineFactorisation>& phiLineFact,
+                std::vector<Vector>& tvArrayV, std::vector<Vector>& tvCharge, std::vector<Vector>& tvResidue, std::vector<DataT>& coefficient1, std::vector<DataT>& coefficient2,
+                std::vector<DataT>& coefficient3, std::vector<DataT>& coefficient4, std::vector<DataT>& inverseCoefficient4) const;
 
   /// Residue3D
   ///

@@ -218,11 +218,36 @@ DataT TriCubicInterpolator<DataT>::interpolateSparse(const DataT z, const DataT 
 }
 
 template <typename DataT>
+bool TriCubicInterpolator<DataT>::isSameGrid(const TriCubicInterpolator<DataT>& other) const
+{
+  // different grid objects: compare the data layout and the grid
+  const DataContainer& data = *mGridData;
+  const DataContainer& otherData = *other.mGridData;
+  if ((data.getNZ() != otherData.getNZ()) || (data.getNR() != otherData.getNR()) || (data.getNPhi() != otherData.getNPhi())) {
+    return false;
+  }
+  const Grid3D& grid = *mGridProperties;
+  const Grid3D& otherGrid = *other.mGridProperties;
+  for (unsigned int dim = 0; dim < FDim; ++dim) {
+    if ((grid.getN(dim) != otherGrid.getN(dim)) || (grid.getGridMin()[dim] != otherGrid.getGridMin()[dim]) || (grid.getInvSpacing()[dim] != otherGrid.getInvSpacing()[dim])) {
+      return false;
+    }
+  }
+  return true;
+}
+
+template <typename DataT>
 void TriCubicInterpolator<DataT>::interpolate(const DataT z, const DataT r, const DataT phi, const TriCubicInterpolator<DataT>& other1, const TriCubicInterpolator<DataT>& other2, DataT& val0, DataT& val1, DataT& val2) const
 {
+  // the cell and the weights of this interpolator are used for the other interpolators if they have the same extrapolation settings, the same number
+  // of data points and the same grid: same grid object (the data of an interpolator have the layout of its grid, which is also assumed for the
+  // separate interpolation) or same data layout and grid values (isSameGrid()). The check is done inline: it is executed for each interpolation
   const size_t nPoints = mGridData->getNDataPoints();
-  if (!nPoints || (other1.mGridData->getNDataPoints() != nPoints) || (other2.mGridData->getNDataPoints() != nPoints)) {
-    // empty data or data with different grid: separate interpolation
+  const auto isSameInterpolation = [this, nPoints](const TriCubicInterpolator<DataT>& other) {
+    return (other.mGridData->getNDataPoints() == nPoints) && (other.mExtrapolationType == mExtrapolationType) && (other.mExtraPolateValues == mExtraPolateValues) && ((other.mGridProperties == mGridProperties) || isSameGrid(other));
+  };
+  if (!nPoints || !isSameInterpolation(other1) || !isSameInterpolation(other2)) {
+    // empty data or different data layout, grid or extrapolation settings: separate interpolation
     val0 = interpolateSparse(z, r, phi);
     val1 = other1.interpolateSparse(z, r, phi);
     val2 = other2.interpolateSparse(z, r, phi);

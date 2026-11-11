@@ -628,24 +628,37 @@ void SpaceCharge<DataT>::setPotentialBoundaryFromFormula(const AnalyticalFields<
 }
 
 template <typename DataT>
-void SpaceCharge<DataT>::poissonSolver(const Side side, const DataT stoppingConvergence)
+void SpaceCharge<DataT>::poissonSolver(const Side side)
 {
   initContainer(mDensity[side], true);
   initContainer(mPotential[side], true);
-  PoissonSolver<DataT>::setConvergenceError(stoppingConvergence);
   PoissonSolver<DataT>::setNThreads(sNThreads);
   PoissonSolver<DataT> poissonSolver(mGrid3D[0]);
   poissonSolver.poissonSolver3D(mPotential[side], mDensity[side]);
 }
 
 template <typename DataT>
-void SpaceCharge<DataT>::poissonSolver(const DataT stoppingConvergence)
+void SpaceCharge<DataT>::poissonSolver(const Side side, const DataT stoppingConvergence)
+{
+  PoissonSolver<DataT>::setConvergenceError(stoppingConvergence);
+  poissonSolver(side);
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::poissonSolver()
 {
   // the sides are processed one after the other: the calculation for each side is parallelised (nested OpenMP regions are not active by default, so a parallel loop over the two sides would use only two threads in total)
   for (int iside = 0; iside < FNSIDES; ++iside) {
     const o2::tpc::Side side = (iside == 0) ? Side::A : Side::C;
-    poissonSolver(side, stoppingConvergence);
+    poissonSolver(side);
   }
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::poissonSolver(const DataT stoppingConvergence)
+{
+  PoissonSolver<DataT>::setConvergenceError(stoppingConvergence);
+  poissonSolver();
 }
 
 template <typename DataT>
@@ -1158,29 +1171,47 @@ void SpaceCharge<DataT>::fillChargeFromCalDet(const std::vector<CalDet<float>>& 
 
 namespace
 {
-/// call func with an accessor (iPhi, iR, iZ) -> bin content of the histogram. Direct access to the bin array for TH3F and TH3D
-/// (exact class: derived classes such as TProfile3D compute the bin content differently and use GetBinContent())
-template <typename Func>
-void withBinContentAccessor(const TH3& h, Func&& func)
+/// bin content (iPhi, iR, iZ) of a TH3 histogram. Direct access to the bin array for TH3F and TH3D, GetBinContent() for other classes
+/// (exact class: derived classes such as TProfile3D compute the bin content differently)
+class TH3BinContent
 {
-  const int nx = h.GetNbinsX() + 2;
-  const int ny = h.GetNbinsY() + 2;
-  if (h.IsA() == TH3F::Class()) {
-    const float* data = static_cast<const TH3F&>(h).GetArray();
-    func([data, nx, ny](int ix, int iy, int iz) { return static_cast<double>(data[ix + nx * (iy + ny * iz)]); });
-  } else if (h.IsA() == TH3D::Class()) {
-    const double* data = static_cast<const TH3D&>(h).GetArray();
-    func([data, nx, ny](int ix, int iy, int iz) { return data[ix + nx * (iy + ny * iz)]; });
-  } else {
-    func([&h](int ix, int iy, int iz) { return h.GetBinContent(ix, iy, iz); });
+ public:
+  explicit TH3BinContent(const TH3& h) : mHist{&h}, mNx{h.GetNbinsX() + 2}, mNy{h.GetNbinsY() + 2}
+  {
+    // GetArray() does not flush the fill buffer as GetBinContent() does: fill the histogram from a pending buffer first. BufferEmpty() is non-const
+    // (the const_cast is the same as in TH1::GetBinContent()). Flushing once here also avoids that GetBinContent() flushes from the threads of the rebinning
+    const_cast<TH3&>(h).BufferEmpty();
+    if (h.IsA() == TH3F::Class()) {
+      mDataF = static_cast<const TH3F&>(h).GetArray();
+    } else if (h.IsA() == TH3D::Class()) {
+      mDataD = static_cast<const TH3D&>(h).GetArray();
+    }
   }
-}
+
+  double operator()(const int ix, const int iy, const int iz) const
+  {
+    if (mDataF) {
+      return mDataF[ix + mNx * (iy + mNy * iz)];
+    }
+    if (mDataD) {
+      return mDataD[ix + mNx * (iy + mNy * iz)];
+    }
+    return mHist->GetBinContent(ix, iy, iz);
+  }
+
+ private:
+  const TH3* mHist{};     ///< histogram
+  int mNx{};              ///< number of bins in x including underflow and overflow bin
+  int mNy{};              ///< number of bins in y including underflow and overflow bin
+  const float* mDataF{};  ///< bin array of a TH3F
+  const double* mDataD{}; ///< bin array of a TH3D
+};
 } // namespace
 
 template <typename DataT>
 void SpaceCharge<DataT>::fillChargeDensityFromHisto(const TH3& hOrig)
 {
-  withBinContentAccessor(hOrig, [&](const auto& getBinContent) { fillChargeDensityFromHisto(*hOrig.GetXaxis(), *hOrig.GetYaxis(), *hOrig.GetZaxis(), getBinContent); });
+  fillChargeDensityFromHisto(*hOrig.GetXaxis(), *hOrig.GetYaxis(), *hOrig.GetZaxis(), TH3BinContent(hOrig));
 }
 
 template <typename DataT>
@@ -1967,12 +1998,15 @@ void SpaceCharge<DataT>::getCorrections(const DataT x, const DataT y, const Data
   } else {
     // convert cartesian to polar
     const DataT radius = getRadiusFromCartesian(x, y);
-    DataT phi = getPhiFromCartesian(x, y);
-    o2::math_utils::detail::bringTo02PiGen(phi);
+    const DataT phi = getPhiFromCartesian(x, y);
+    // phi in [0, 2 pi) only for the look up: the corrected position is calculated with the phi of the point, since bringTo02PiGen adds the 2 pi in
+    // single precision (larger by 1.7e-7), which would rotate the corrected position of points with phi < 0
+    DataT phiGrid = phi;
+    o2::math_utils::detail::bringTo02PiGen(phiGrid);
 
     DataT corrR{};
     DataT corrRPhi{};
-    getCorrectionsCyl(z, radius, phi, side, corrZ, corrR, corrRPhi);
+    getCorrectionsCyl(z, radius, phiGrid, side, corrZ, corrR, corrRPhi);
 
     // Calculate corrected position
     const DataT radiusCorr = radius + corrR;
@@ -2341,7 +2375,7 @@ std::vector<std::pair<std::vector<o2::math_utils::Point3D<float>>, std::array<Da
     electronTracks[i].second = std::array<DataT, 3>{drDist, dPhiDist * r0, dzDist};
   }
   if (!outFile.empty()) {
-    dumpElectronTracksToTree(electronTracks, nSamplingPoints, outFile.data());
+    dumpElectronTracksToTree(electronTracks, nSamplingPoints, std::string(outFile).c_str());
   }
   return electronTracks;
 }
@@ -2527,7 +2561,7 @@ int SpaceCharge<DataT>::dumpAnalyticalCorrectionsDistortions(TFile& outf) const
 template <typename DataT>
 void SpaceCharge<DataT>::setAnalyticalCorrectionsDistortionsFromFile(std::string_view inpf)
 {
-  TFile fIn(inpf.data(), "READ");
+  TFile fIn(std::string(inpf).c_str(), "READ");
   const bool containsFormulas = fIn.GetListOfKeys()->Contains("analyticalDistCorr");
   if (!containsFormulas) {
     LOGP(info, "============== analytical functions are not stored! returning ==============");
@@ -2842,7 +2876,7 @@ void SpaceCharge<DataT>::addGlobalCorrections(const SpaceCharge<DataT>& otherSC,
 }
 
 template <typename DataT>
-void SpaceCharge<DataT>::fillChargeDensityFromHisto(const char* file, const char* nameA, const char* nameC)
+bool SpaceCharge<DataT>::fillChargeDensityFromHisto(const char* file, const char* nameA, const char* nameC)
 {
   TFile fInp(file, "READ");
   TH3F* hSCA = (TH3F*)fInp.Get(nameA);
@@ -2854,25 +2888,50 @@ void SpaceCharge<DataT>::fillChargeDensityFromHisto(const char* file, const char
     LOGP(error, "Histogram {} not found", nameC);
   }
   if (!hSCA || !hSCC) {
-    return;
+    return false;
   }
-  fillChargeDensityFromHisto(*hSCA, *hSCC);
+  return fillChargeDensityFromHisto(*hSCA, *hSCC);
 }
 
 template <typename DataT>
-void SpaceCharge<DataT>::fillChargeDensityFromHisto(const TH3& hisSCDensity3D_A, const TH3& hisSCDensity3D_C)
+bool SpaceCharge<DataT>::fillChargeDensityFromHisto(const TH3& hisSCDensity3D_A, const TH3& hisSCDensity3D_C)
 {
   // the C-side histogram is mapped to z in [-zMax, 0] and the A-side histogram to z in [0, zMax] (z bin number of the C-side
   // histogram = z bin number of the merged axis). The rebinning reads both histograms directly without creating a merged copy.
-  const int nZBins = hisSCDensity3D_A.GetZaxis()->GetNbins();
-  const auto zUp = hisSCDensity3D_A.GetZaxis()->GetBinUpEdge(nZBins);
+  // Both histograms are read with the bin numbers of the A-side histogram: the number of bins has to be the same
+  const TAxis& axisPhiA = *hisSCDensity3D_A.GetXaxis();
+  const TAxis& axisRA = *hisSCDensity3D_A.GetYaxis();
+  const TAxis& axisZA = *hisSCDensity3D_A.GetZaxis();
+  const TAxis& axisPhiC = *hisSCDensity3D_C.GetXaxis();
+  const TAxis& axisRC = *hisSCDensity3D_C.GetYaxis();
+  const TAxis& axisZC = *hisSCDensity3D_C.GetZaxis();
+  if ((axisPhiA.GetNbins() != axisPhiC.GetNbins()) || (axisRA.GetNbins() != axisRC.GetNbins()) || (axisZA.GetNbins() != axisZC.GetNbins())) {
+    LOGP(error, "Different number of bins (phi x r x z) of the A-side histogram ({} x {} x {}) and of the C-side histogram ({} x {} x {}): the density is not filled",
+         axisPhiA.GetNbins(), axisRA.GetNbins(), axisZA.GetNbins(), axisPhiC.GetNbins(), axisRC.GetNbins(), axisZC.GetNbins());
+    return false;
+  }
+  // expected ranges of the C-side histogram: phi and r as for the A side, z mirrored
+  const double zMinC = -axisZA.GetXmax();
+  const double zMaxC = 0. - axisZA.GetXmin(); // 0 - x instead of -x: 0 instead of -0 for x = 0
+  const auto isClose = [](const double val, const double ref, const double binWidth) { return std::abs(val - ref) <= 1e-3 * binWidth; };
+  const auto hasRange = [&isClose](const TAxis& axis, const double min, const double max) { return isClose(axis.GetXmin(), min, axis.GetBinWidth(1)) && isClose(axis.GetXmax(), max, axis.GetBinWidth(1)); };
+  if (!hasRange(axisPhiC, axisPhiA.GetXmin(), axisPhiA.GetXmax()) || !hasRange(axisRC, axisRA.GetXmin(), axisRA.GetXmax()) || !hasRange(axisZC, zMinC, zMaxC)) {
+    LOGP(warning, "Ranges of the C-side histogram (phi [{}, {}], r [{}, {}], z [{}, {}]) differ from the ones expected from the A-side histogram (phi [{}, {}], r [{}, {}], z [{}, {}]). The bins of the C-side histogram are used with the ranges of the A-side histogram",
+         axisPhiC.GetXmin(), axisPhiC.GetXmax(), axisRC.GetXmin(), axisRC.GetXmax(), axisZC.GetXmin(), axisZC.GetXmax(), axisPhiA.GetXmin(), axisPhiA.GetXmax(), axisRA.GetXmin(), axisRA.GetXmax(), zMinC, zMaxC);
+  }
+  // the z bins of the A-side histogram are mapped to z in [0, zMax] (e.g. a histogram for both sides as A-side histogram would be compressed to the A side)
+  if (!isClose(axisZA.GetXmin(), 0., axisZA.GetBinWidth(1))) {
+    LOGP(warning, "The z axis of the A-side histogram (z [{}, {}]) does not start at 0. The z bins of the A-side histogram are used from z = 0 to the maximum z", axisZA.GetXmin(), axisZA.GetXmax());
+  }
+
+  const int nZBins = axisZA.GetNbins();
+  const auto zUp = axisZA.GetBinUpEdge(nZBins);
   const TAxis axisZMerged(2 * nZBins, -zUp, zUp);
-  withBinContentAccessor(hisSCDensity3D_A, [&](const auto& getA) {
-    withBinContentAccessor(hisSCDensity3D_C, [&](const auto& getC) {
-      const auto getBinContent = [&getA, &getC, nZBins](int iPhi, int iR, int iZ) { return (iZ > nZBins) ? getA(iPhi, iR, iZ - nZBins) : getC(iPhi, iR, iZ); };
-      fillChargeDensityFromHisto(*hisSCDensity3D_A.GetXaxis(), *hisSCDensity3D_A.GetYaxis(), axisZMerged, getBinContent);
-    });
-  });
+  const TH3BinContent getA(hisSCDensity3D_A);
+  const TH3BinContent getC(hisSCDensity3D_C);
+  const auto getBinContent = [&getA, &getC, nZBins](int iPhi, int iR, int iZ) { return (iZ > nZBins) ? getA(iPhi, iR, iZ - nZBins) : getC(iPhi, iR, iZ); };
+  fillChargeDensityFromHisto(axisPhiA, axisRA, axisZMerged, getBinContent);
+  return true;
 }
 
 template <typename DataT>

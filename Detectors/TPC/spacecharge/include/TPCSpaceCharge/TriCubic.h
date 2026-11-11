@@ -83,7 +83,7 @@ class TriCubicInterpolator
 
   /// interpolate the data of this and of two other interpolators at the same coordinate (e.g. the three components of a vector field).
   /// The position in the grid and the weights of the interpolation are calculated only once, which is faster than three separate interpolations.
-  /// The other interpolators have to use the same grid. The extrapolation settings of this interpolator are used for all three.
+  /// If the data layout, the grid or the extrapolation settings of the other interpolators are different, the three values are interpolated separately.
   /// \param z z coordinate
   /// \param r r coordinate
   /// \param phi phi coordinate
@@ -116,6 +116,9 @@ class TriCubicInterpolator
   const Grid3D* mGridProperties{};                                    ///< adress to the properties of the grid
   ExtrapolationType mExtrapolationType = ExtrapolationType::Parabola; ///< sets which type of extrapolation for missing points at boundary is used
   bool mExtraPolateValues = true;                                     ///< extrapolating values outside of the grid or restricting query to inside of the grid
+
+  /// \return returns whether the other interpolator (with a different grid object) has the same data layout and grid (number of vertices, minimum and spacing)
+  bool isSameGrid(const TriCubicInterpolator<DataT>& other) const;
 
   /// \return returns the cell and the weights of the interpolation for given coordinate
   TriCubicCell<DataT> getCell(const DataT z, const DataT r, const DataT phi) const;
