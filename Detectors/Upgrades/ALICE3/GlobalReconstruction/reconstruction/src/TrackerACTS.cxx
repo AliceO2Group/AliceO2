@@ -110,8 +110,7 @@ bool convertTrackParameters(const Acts::BoundTrackParameters& actsTrack,
                             o2::track::TrackParCov& output)
 {
   const auto& state = actsTrack.parameters();
-  if (!state.allFinite() || !actsTrack.covariance().has_value() ||
-      !actsTrack.covariance()->allFinite()) {
+  if (!state.allFinite() || !actsTrack.covariance().has_value() || !actsTrack.covariance()->allFinite()) {
     return false;
   }
 
@@ -181,8 +180,7 @@ bool convertTrackParameters(const Acts::BoundTrackParameters& actsTrack,
     jacobian.col(i) = (fPlus - fMinus) / (2. * step);
   }
 
-  const Eigen::Matrix<double, 5, 5> covariance =
-    jacobian * (*actsTrack.covariance()) * jacobian.transpose();
+  const Eigen::Matrix<double, 5, 5> covariance = jacobian * (*actsTrack.covariance()) * jacobian.transpose();
   if (!covariance.allFinite()) {
     return false;
   }
@@ -195,8 +193,7 @@ bool convertTrackParameters(const Acts::BoundTrackParameters& actsTrack,
     }
     o2Params[i] = static_cast<float>(pars[i]);
     for (int j = 0; j <= i; ++j) {
-      o2Cov[o2::track::CovarMap[i][j]] =
-        static_cast<float>(0.5 * (covariance(i, j) + covariance(j, i)));
+      o2Cov[o2::track::CovarMap[i][j]] = static_cast<float>(0.5 * (covariance(i, j) + covariance(j, i)));
     }
   }
   const int charge = state[Acts::eBoundQOverP] >= 0. ? 1 : -1;
@@ -587,12 +584,11 @@ void TrackerACTS<nLayers>::createSeeds()
   }
 
   // ACTS 47 uses a non-templated, column-based space-point container.
-  Acts::SpacePointContainer spacePoints{
-    Acts::SpacePointColumns::CopiedFromIndex |
-    Acts::SpacePointColumns::PackedXY |
-    Acts::SpacePointColumns::PackedZR |
-    Acts::SpacePointColumns::VarianceR |
-    Acts::SpacePointColumns::VarianceZ};
+  Acts::SpacePointContainer spacePoints{Acts::SpacePointColumns::CopiedFromIndex |
+                                        Acts::SpacePointColumns::PackedXY |
+                                        Acts::SpacePointColumns::PackedZR |
+                                        Acts::SpacePointColumns::VarianceR |
+                                        Acts::SpacePointColumns::VarianceZ};
   spacePoints.reserve(grid.numberOfSpacePoints());
 
   std::vector<Acts::SpacePointIndexRange> gridRanges;
@@ -622,23 +618,20 @@ void TrackerACTS<nLayers>::createSeeds()
   bottomConfig.cotThetaMax = mConfig.cotThetaMax;
   bottomConfig.impactMax = mConfig.maxImpactParameter;
   bottomConfig.minPt = mConfig.minPt;
-  auto bottomFinder = Acts::DoubletSeedFinder::create(
-    Acts::DoubletSeedFinder::DerivedConfig{bottomConfig, bFieldInZ});
+  auto bottomFinder = Acts::DoubletSeedFinder::create(Acts::DoubletSeedFinder::DerivedConfig{bottomConfig, bFieldInZ});
 
   Acts::DoubletSeedFinder::Config topConfig = bottomConfig;
   topConfig.candidateDirection = Acts::Direction::Forward();
   topConfig.deltaRMin = mConfig.deltaRMinTop;
   topConfig.deltaRMax = mConfig.deltaRMaxTop;
-  auto topFinder = Acts::DoubletSeedFinder::create(
-    Acts::DoubletSeedFinder::DerivedConfig{topConfig, bFieldInZ});
+  auto topFinder = Acts::DoubletSeedFinder::create(Acts::DoubletSeedFinder::DerivedConfig{topConfig, bFieldInZ});
 
   Acts::TripletSeedFinder::Config tripletConfig;
   tripletConfig.minPt = mConfig.minPt;
   tripletConfig.impactMax = mConfig.maxImpactParameter;
   tripletConfig.sigmaScattering = 5.f;
   tripletConfig.radLengthPerSeed = 0.05f;
-  auto tripletFinder = Acts::TripletSeedFinder::create(
-    Acts::TripletSeedFinder::DerivedConfig{tripletConfig, bFieldInZ});
+  auto tripletFinder = Acts::TripletSeedFinder::create(Acts::TripletSeedFinder::DerivedConfig{tripletConfig, bFieldInZ});
 
   Acts::BroadTripletSeedFilter::Config filterConfig;
   filterConfig.maxSeedsPerSpM = static_cast<unsigned int>(mConfig.maxSeedsPerMiddleSP);
@@ -687,7 +680,7 @@ void TrackerACTS<nLayers>::createSeeds()
   }
   fillDebugSeeds(mSpacePoints.front().rof);
 
-  LOGF(info, "Created %zu seeds from %zu space points", mSeeds.size(), mSpacePoints.size());
+  LOGF(debug, "Created %zu seeds from %zu space points", mSeeds.size(), mSpacePoints.size());
 }
 
 template <int nLayers>
@@ -712,9 +705,7 @@ void TrackerACTS<nLayers>::findTracks()
   using Trajectory = Acts::VectorMultiTrajectory;
   using TrackContainer = Acts::TrackContainer<Acts::VectorTrackContainer, Trajectory>;
 
-  Propagator propagator{
-    Acts::EigenStepper<>{magneticField},
-    Acts::DirectNavigator{}};
+  Propagator propagator{Acts::EigenStepper<>{magneticField}, Acts::DirectNavigator{}};
 
   Acts::KalmanFitter<Propagator, Trajectory> fitter{std::move(propagator)};
 
@@ -794,16 +785,14 @@ void TrackerACTS<nLayers>::findTracks()
   int nInvalid = 0;
 
   for (const auto& seed : mSeeds) {
-    const std::array<const SpacePoint*, 3> spacePoints{
-      seed.bottom, seed.middle, seed.top};
+    const std::array<const SpacePoint*, 3> spacePoints{seed.bottom, seed.middle, seed.top};
 
     if (!spacePoints[0] || !spacePoints[1] || !spacePoints[2]) {
       ++nInvalid;
       continue;
     }
 
-    if (!spacePoints[0]->surface || !spacePoints[1]->surface ||
-        !spacePoints[2]->surface) {
+    if (!spacePoints[0]->surface || !spacePoints[1]->surface || !spacePoints[2]->surface) {
       ++nInvalid;
       continue;
     }
@@ -841,10 +830,9 @@ void TrackerACTS<nLayers>::findTracks()
       continue;
     }
 
-    Acts::Vector3 direction{
-      freeParams[Acts::eFreeDir0],
-      freeParams[Acts::eFreeDir1],
-      freeParams[Acts::eFreeDir2]};
+    Acts::Vector3 direction{freeParams[Acts::eFreeDir0],
+                            freeParams[Acts::eFreeDir1],
+                            freeParams[Acts::eFreeDir2]};
 
     if (!direction.allFinite() || direction.norm() < 1.e-12) {
       ++nInvalid;
@@ -866,9 +854,7 @@ void TrackerACTS<nLayers>::findTracks()
 
       // Convert the cluster's global position to the coordinates expected by
       // a measurement on this ACTS surface.
-      auto localResult = surface->globalToLocal(
-        geometryContext, position, direction,
-        1. * Acts::UnitConstants::mm);
+      auto localResult = surface->globalToLocal(geometryContext, position, direction, 1. * Acts::UnitConstants::mm);
 
       if (!localResult.ok()) {
         validMeasurements = false;
@@ -899,24 +885,19 @@ void TrackerACTS<nLayers>::findTracks()
     position4 << pos0.x(), pos0.y(), pos0.z(), 0.;
 
     Acts::BoundMatrix covariance = Acts::BoundMatrix::Zero();
-    covariance(Acts::eBoundLoc0, Acts::eBoundLoc0) =
-      std::pow(1. * Acts::UnitConstants::mm, 2);
-    covariance(Acts::eBoundLoc1, Acts::eBoundLoc1) =
-      std::pow(1. * Acts::UnitConstants::mm, 2);
+    auto square = [](const double x) { return x * x; };
+    covariance(Acts::eBoundLoc0, Acts::eBoundLoc0) = square(1. * Acts::UnitConstants::mm);
+    covariance(Acts::eBoundLoc1, Acts::eBoundLoc1) = square(1. * Acts::UnitConstants::mm);
     covariance(Acts::eBoundPhi, Acts::eBoundPhi) = 0.1 * 0.1;
     covariance(Acts::eBoundTheta, Acts::eBoundTheta) = 0.1 * 0.1;
-    covariance(Acts::eBoundQOverP, Acts::eBoundQOverP) =
-      std::pow(0.5 * qOverP, 2);
-    covariance(Acts::eBoundTime, Acts::eBoundTime) =
-      std::pow(1. * Acts::UnitConstants::ns, 2);
+    covariance(Acts::eBoundQOverP, Acts::eBoundQOverP) = square(0.5 * qOverP);
+    covariance(Acts::eBoundTime, Acts::eBoundTime) = square(1. * Acts::UnitConstants::ns);
 
-    auto initialParameters = Acts::BoundTrackParameters::createCurvilinear(
-      position4, direction, qOverP, covariance,
-      Acts::ParticleHypothesis::pion());
+    auto initialParameters = Acts::BoundTrackParameters::createCurvilinear(position4, direction, qOverP, covariance,
+                                                                           Acts::ParticleHypothesis::pion());
 
-    auto result = fitter.fit(
-      sourceLinks.begin(), sourceLinks.end(), initialParameters,
-      fitterOptions, surfaces, tracks);
+    auto result = fitter.fit(sourceLinks.begin(), sourceLinks.end(), initialParameters,
+                             fitterOptions, surfaces, tracks);
 
     if (!result.ok()) {
       LOG(debug) << "ACTS Kalman fit failed: " << result.error().message();
@@ -936,8 +917,7 @@ void TrackerACTS<nLayers>::findTracks()
       continue;
     }
     const auto outerState = track.outermostTrackState();
-    if (!innerState->hasSmoothed() || !outerState.hasSmoothed() ||
-        !std::isfinite(track.chi2()) || track.chi2() < 0.f) {
+    if (!innerState->hasSmoothed() || !outerState.hasSmoothed() || !std::isfinite(track.chi2()) || track.chi2() < 0.f) {
       ++nFailed;
       continue;
     }
@@ -963,9 +943,9 @@ void TrackerACTS<nLayers>::findTracks()
   for (const auto& candidate : candidates) {
     nAccepted += acceptTrack(candidate.inner, candidate.outer, candidate.seed, candidate.chi2);
   }
-  LOG(info) << "ACTS fitting: " << nFitted << " fitted, "
-            << nAccepted << " accepted, " << nFailed << " failed, "
-            << nInvalid << " invalid from " << mSeeds.size() << " seeds";
+  LOG(debug) << "ACTS fitting: " << nFitted << " fitted, "
+             << nAccepted << " accepted, " << nFailed << " failed, "
+             << nInvalid << " invalid from " << mSeeds.size() << " seeds";
 }
 
 template <int nLayers>
@@ -999,8 +979,7 @@ bool TrackerACTS<nLayers>::acceptTrack(const Acts::BoundTrackParameters& inner,
       return false;
     }
     pattern |= mask;
-    keys[i] = (uint64_t(static_cast<uint32_t>(hit->layer)) << 32) |
-              static_cast<uint32_t>(hit->clusterId);
+    keys[i] = (uint64_t(static_cast<uint32_t>(hit->layer)) << 32) | static_cast<uint32_t>(hit->clusterId);
     if (mAcceptedClusters.contains(keys[i])) {
       return false;
     }
@@ -1072,8 +1051,7 @@ void TrackerACTS<nLayers>::computeTracksMClabels()
   auto& labels = mTimeFrame->getTracksLabel();
 
   if (tracks.size() != mAcceptedTrackClusterIndices.size()) {
-    LOGP(fatal, "ACTS MC labeling: {} tracks but {} internal cluster reference sets",
-         tracks.size(), mAcceptedTrackClusterIndices.size());
+    LOGP(fatal, "ACTS MC labeling: {} tracks but {} internal cluster reference sets", tracks.size(), mAcceptedTrackClusterIndices.size());
     return;
   }
 
