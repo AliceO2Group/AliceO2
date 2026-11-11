@@ -346,6 +346,7 @@ EndConfig()
 BeginSubConfig(GPUSettingsProcessingDebug, debug, configStandalone.proc, "DEBUG", 0, "Debugging Settings", proc_debug)
 AddOption(memoryScalingFuzz, uint64_t, 0, "", 0, "Fuzz the memoryScalingFactor (0 disable, 1 enable, >1 set seed", def(1))
 AddOption(mergerMCLabels, bool, false, "", 0, "Create MC labels for merged tracks before refit for debugging")
+AddOption(mergerDumpTrackNCl, bool, false, "", 0, "Dump file with nCl per merged track fit")
 AddHelp("help", 'h')
 EndConfig()
 
