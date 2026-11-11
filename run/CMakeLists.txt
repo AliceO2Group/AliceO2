@@ -244,6 +244,36 @@ if(Geant4_multithreaded_FOUND)
                        PROPERTIES PASS_REGULAR_EXPRESSION
                                   "EQUALITY TEST PASSED")
   set_property(TEST o2sim_G4_mt_equality APPEND PROPERTY ENVIRONMENT ${G4ENV})
+
+  # the o2sim_G4 setup in multithreaded Geant4 mode
+  o2_add_test_command(NAME o2sim_G4_MT
+                      WORKING_DIRECTORY ${SIMTESTDIR}
+                      TIMEOUT 400
+                      COMMAND $<TARGET_FILE:${o2simExecutable}>
+                      COMMAND_LINE_ARGS --isMT
+                                        1
+                                        -n
+                                        2
+                                        -j
+                                        2
+                                        -e
+                                        TGeant4
+                                        -o
+                                        o2simG4MT
+                                        --chunkSize
+                                        2
+                                        --skipModules
+                                        MFT ZDC
+                                        --seed
+                                        15946057944514955802
+                                        --configKeyValues
+                                        "align-geom.mDetectors=none"
+                      ENVIRONMENT "${SIMENV}"
+                      LABELS "g4;sim;long")
+  set_tests_properties(o2sim_G4_MT
+                       PROPERTIES PASS_REGULAR_EXPRESSION
+                                  "SIMULATION RETURNED SUCCESFULLY")
+  set_property(TEST o2sim_G4_MT APPEND PROPERTY ENVIRONMENT ${G4ENV})
 endif()
 
 
