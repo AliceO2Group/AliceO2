@@ -1701,7 +1701,7 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int32_t nBlocks, int32_t nThread
         }
         nHits += nTrackHits;
       }
-      if (nHits < Param().tpcMinHitsB5(trbase->QPt() * Param().qptB5Scaler)) {
+      if (nHits < Param().tpcMinHitsB5Abs(CAMath::Abs(trbase->QPt() * Param().qptB5Scaler))) {
         break;
       }
 
@@ -2161,6 +2161,11 @@ GPUd() void GPUTPCGMMerger::MergeLoopersMain(int32_t nBlocks, int32_t nThreads, 
     printf("%8.3f: %3d\n", i / 10.f + 0.05f, histFail[i]);
   }
 #endif*/
+}
+
+GPUd() uint32_t GPUTPCGMMerger::MinHitsForQPt(float qPt, float err2QPt) const
+{
+  return Param().tpcMinHitsB5Abs((CAMath::Abs(qPt) + CAMath::Min(CAMath::Sqrt(CAMath::Max(0.f, err2QPt)), Param().rec.tpc.trackFitMinHitsMaxQPtIncrease * CAMath::Abs(qPt))) * Param().qptB5Scaler);
 }
 
 GPUd() void GPUTPCGMMerger::PrepareHitWeights(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread)

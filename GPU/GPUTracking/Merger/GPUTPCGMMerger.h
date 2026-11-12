@@ -215,6 +215,7 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUd() void ResolveHitWeights1(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iteration);
   GPUd() void ResolveHitWeights2(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
   GPUd() void ResolveHitWeightsShared(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
+  GPUd() uint32_t MinHitsForQPt(float qPt, float err2QPt) const; // QPt-dependent minimum number of hits, for QPt increased by 1 sigma (at most by the fraction trackFitMinHitsMaxQPtIncrease)
   GPUd() void CreateMCLabels(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
 
 #ifndef GPUCA_GPUCODE
