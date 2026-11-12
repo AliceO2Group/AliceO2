@@ -59,9 +59,9 @@ using namespace o2::tpc;
 GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_t iTrk, int32_t& GPUrestrict() N, int32_t& GPUrestrict() NTolerated, float& GPUrestrict() Alpha, GPUTPCGMMergedTrack& GPUrestrict() track, bool rebuilt, bool retryAttempt)
 {
   constexpr float maxSinPhi = constants::MAX_SIN_PHI;
-  const float maxSinForUpdate = CAMath::Sin(70.f * CAMath::Deg2Rad());
 
   const GPUParam& GPUrestrict() param = merger.Param();
+  const float maxSinForUpdate = param.rec.tpc.maxSinPhiForFitUpdate;
   GPUTPCGMMergedTrackHit* GPUrestrict() clusters = merger.Clusters() + track.FirstClusterRef();
 
   GPUdEdx dEdx, dEdxAlt;
@@ -302,6 +302,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
       uint8_t lastGoodRow = lastPropagateRow, lastExtrapolateRow = lastPropagateRow, lastFoundRow = lastPropagateRow;
       uint8_t consecGoodRows = ihitStart == ((iWay & 1) ? 0 : maxN - 1) ? param.rec.tpc.rebuildTrackExtrMinConsecGoodRows : 0, consecGoodRowsMissing = 0, segmentRows = 0; // Continue the track directly only if its last hit was accepted in the fit
       float segmentStartChi2 = mChi2;
+      const float qPtStart = mP[4];
       prop.SetTrack(this, prop.GetAlpha());
       uint32_t iExtrapolatedRow = lastPropagateRow + up;
       for (; iExtrapolatedRow < GPUTPCGeometry::NROWS; iExtrapolatedRow += up) { // uint8_t implies > 0! // TODO: Try to reduce some variables to int8/uint8 to save registers
@@ -317,7 +318,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
             fail = true;
             break;
           }
-          if (CAMath::Abs(mP[2]) > maxSinForUpdate) {
+          if (CAMath::Abs(mP[2]) > maxSinForUpdate || CAMath::Abs(prop.GetSinPhi0()) >= maxSinForUpdate || mC[0] >= param.rec.tpc.rebuildTrackMaxNonIntCov || mC[2] >= param.rec.tpc.rebuildTrackMaxNonIntCov) { // No further clusters can be attached to the fit
             fail = true;
             break;
           }
@@ -380,6 +381,10 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
           }
           int32_t retValUpd = prop.Update(yy, zz, iExtrapolatedRow, param, clusterState, true, refit, err2Y, err2Z);
           CADEBUG(printf("\tExtrapol. Sec %2d Row %3d Fit     Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f), DzDs %5.2f %16s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f   -   FErr %d\n", sector, iExtrapolatedRow, prop.GetAlpha(), mX, mP[0], mP[1], mP[4], prop.GetQPt0(), mP[2], prop.GetSinPhi0(), mP[3], "", sqrtf(mC[0]), sqrtf(mC[2]), sqrtf(mC[5]), sqrtf(mC[14]), mC[10], retValUpd));
+          if (retValUpd == 0 && param.rec.tpc.rebuildTrackMaxQPtDrift > 0 && CAMath::Abs(mP[4] - qPtStart) > param.rec.tpc.rebuildTrackMaxQPtDrift * CAMath::Max(1.f, CAMath::Abs(qPtStart))) { // Track changed too much, probably following something else
+            candidate.best = -1;
+            break;
+          }
           if (retValUpd != 0) {
             candidate.best = -1;
             if (retValUpd < GPUTPCGMPropagator::updateErrorClusterRejected) {
@@ -426,9 +431,11 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
           candidate.best = -1;
         }
       }
-    }
-
-    if (finalOutInFit && !(param.rec.tpc.disableMarkAdjacent & 4) && lastUpdateRow != 255 && !retryAttempt) {
+      if (finalOutInFit && !(param.rec.tpc.disableMarkAdjacent & 4) && iExtrapolatedRow < GPUTPCGeometry::NROWS) { // Continue the looper following from where the extrapolation stopped
+        StoreLoopPropagation(merger, sector, iExtrapolatedRow, iTrk, up == 1, prop.GetAlpha());
+        CADEBUG(printf("\t\tSTORING %d extrapolated row %d sector %d out %d\n", iTrk, (int)iExtrapolatedRow, sector, up == 1));
+      }
+    } else if (finalOutInFit && !(param.rec.tpc.disableMarkAdjacent & 4) && lastUpdateRow != 255 && !retryAttempt) {
       StoreLoopPropagation(merger, lastSector, lastUpdateRow, iTrk, lastUpdateRow > clusters[(iWay & 1) ? (maxN - 1) : 0].row, prop.GetAlpha());
       CADEBUG(printf("\t\tSTORING %d lastUpdateRow %d row %d out %d\n", iTrk, (int)lastUpdateRow, (int)clusters[(iWay & 1) ? (maxN - 1) : 0].row, lastUpdateRow > clusters[(iWay & 1) ? (maxN - 1) : 0].row));
     }
