@@ -15,6 +15,7 @@
 #include <cassert>
 #include "Framework/RootSerializationSupport.h"
 #include "TPCDigitizerSpec.h"
+#include "TPCSectorDigitization.h"
 #include "Framework/ControlService.h"
 #include "Framework/ParallelContext.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -22,7 +23,6 @@
 #include "Framework/DataRefUtils.h"
 #include "Framework/Lifetime.h"
 #include "Framework/DeviceSpec.h"
-#include "DetectorsRaw/HBFUtils.h"
 #include "Headers/DataHeader.h"
 #include "TStopwatch.h"
 #include "Steer/HitProcessingManager.h" // for DigitizationContext
@@ -92,20 +92,6 @@ void writeToBranchHelper<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>(TTr
   targetbr->DropBaskets("all");
 }
 
-std::string getBranchNameLeft(int sector)
-{
-  std::stringstream branchnamestreamleft;
-  branchnamestreamleft << "TPCHitsShiftedSector" << int(o2::tpc::Sector::getLeft(o2::tpc::Sector(sector)));
-  return branchnamestreamleft.str();
-}
-
-std::string getBranchNameRight(int sector)
-{
-  std::stringstream branchnamestreamright;
-  branchnamestreamright << "TPCHitsShiftedSector" << sector;
-  return branchnamestreamright.str();
-}
-
 using namespace o2::base;
 class TPCDPLDigitizerTask : public BaseDPLDigitizer
 {
@@ -122,14 +108,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
 
     mWithMCTruth = o2::conf::DigiParams::Instance().mctruth;
     auto triggeredMode = ic.options().get<bool>("TPCtriggered");
-    mRecalcDistortions = !(ic.options().get<bool>("do-not-recalculate-distortions"));
-    const int nthreadsDist = ic.options().get<int>("n-threads-distortions");
-    SC::setNThreads(nthreadsDist);
-    mUseCalibrationsFromCCDB = ic.options().get<bool>("TPCuseCCDB");
-    mMeanLumiDistortions = ic.options().get<float>("meanLumiDistortions");
-    mMeanLumiDistortionsDerivative = ic.options().get<float>("meanLumiDistortionsDerivative");
-
-    LOG(info) << "TPC calibrations from CCDB: " << mUseCalibrationsFromCCDB;
+    mConditions.init(ic, mDistortionType);
 
     mDigitizer.setContinuousReadout(!triggeredMode);
     mDigitizer.setDistortionScaleType(mDistortionType);
@@ -178,7 +157,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     {
       std::stringstream brname;
       brname << "TPCDigit_" << mSector;
-      auto br = o2::base::getOrMakeBranch(*mInternalROOTFlushTTree, brname.str().c_str(), &mDigits);
+      auto br = o2::base::getOrMakeBranch(*mInternalROOTFlushTTree, brname.str().c_str(), &mFlushBuffers.digits);
       br->Fill();
       br->ResetAddress();
     }
@@ -186,7 +165,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
       // labels
       std::stringstream brname;
       brname << "TPCDigitMCTruth_" << mSector;
-      auto br = o2::base::getOrMakeBranch(*mInternalROOTFlushTTree, brname.str().c_str(), &mLabels);
+      auto br = o2::base::getOrMakeBranch(*mInternalROOTFlushTTree, brname.str().c_str(), &mFlushBuffers.labels);
       br->Fill();
       br->ResetAddress();
     }
@@ -194,7 +173,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
       // common
       std::stringstream brname;
       brname << "TPCCommonMode_" << mSector;
-      auto br = o2::base::getOrMakeBranch(*mInternalROOTFlushTTree, brname.str().c_str(), &mCommonMode);
+      auto br = o2::base::getOrMakeBranch(*mInternalROOTFlushTTree, brname.str().c_str(), &mFlushBuffers.commonMode);
       br->Fill();
       br->ResetAddress();
     }
@@ -202,73 +181,17 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
 
   void finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj)
   {
-    if (mTPCVDriftHelper.accountCCDBInputs(matcher, obj)) {
-      return;
-    }
-    if (matcher == ConcreteDataMatcher(o2::header::gDataOriginTPC, "TPCDIST", 0)) {
-      LOGP(info, "Updating distortion map");
-      mDigitizer.setUseSCDistortions(static_cast<SC*>(obj));
-      if (mMeanLumiDistortions >= 0) {
-        mDigitizer.setMeanLumiDistortions(mMeanLumiDistortions);
-      }
-    }
-    if (matcher == ConcreteDataMatcher(o2::header::gDataOriginTPC, "TPCDISTDERIV", 0)) {
-      LOGP(info, "Updating reference distortion map");
-      mDigitizer.setSCDistortionsDerivative(static_cast<SC*>(obj));
-      if (mMeanLumiDistortionsDerivative >= 0) {
-        mDigitizer.setMeanLumiDistortionsDerivative(mMeanLumiDistortionsDerivative);
-      }
-    }
-    if (matcher == ConcreteDataMatcher(o2::header::gDataOriginTPC, "TPCGASPARAM", 0)) {
-      LOGP(info, "TPC gas param updated");
-      ParameterGas::Instance().printKeyValues(true, true);
-    }
-    if (matcher == ConcreteDataMatcher(o2::header::gDataOriginTPC, "TPCGEMPARAM", 0)) {
-      LOGP(info, "TPC GEM param updated");
-      ParameterGEM::Instance().printKeyValues(true, true);
-    }
+    mConditions.finaliseCCDB(matcher, obj, mDigitizer);
   }
 
   void run(framework::ProcessingContext& pc)
   {
     LOG(info) << "Processing TPC digitization";
 
-    /// For the time being use the defaults for the CDB
-    auto& cdb = o2::tpc::CDBInterface::instance();
-    cdb.setUseDefaults(!mUseCalibrationsFromCCDB);
-    // whatever are global settings for CCDB usage, we have to extract the TPC vdrift from CCDB for anchored simulations
-    mTPCVDriftHelper.extractCCDBInputs(pc);
-    pc.inputs().get<ParameterGas*>("gasparam");
-    pc.inputs().get<ParameterGEM*>("gemparam");
-    if (mDistortionType) {
-      pc.inputs().get<SC*>("tpcdistortions");
-      if (mDistortionType == 2) {
-        pc.inputs().get<SC*>("tpcdistortionsderiv");
-        mDigitizer.setLumiScaleFactor();
-        if (mRecalcDistortions) {
-          mDigitizer.recalculateDistortions();
-        }
-      }
-    }
-
-    if (mTPCVDriftHelper.isUpdated()) {
-      const auto& vd = mTPCVDriftHelper.getVDriftObject();
-      LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
-           vd.corrFact, vd.refVDrift, vd.timeOffsetCorr, vd.refTimeOffset, mTPCVDriftHelper.getSourceName());
-      mDigitizer.setVDrift(vd.getVDrift());
-      mDigitizer.setTDriftOffset(vd.getTimeOffset());
-      mTPCVDriftHelper.acknowledgeUpdate();
-    }
-
-    if (std::filesystem::exists("ThresholdMap.root")) {
-      LOG(info) << "TPC: Using zero suppression map from 'ThresholdMap.root'";
-      cdb.setThresholdMapFromFile("ThresholdMap.root");
-    }
-
-    if (std::filesystem::exists("GainMap.root")) {
-      LOG(info) << "TPC: Using gain map from 'GainMap.root'";
-      cdb.setGainMapFromFile("GainMap.root");
-    }
+    mConditions.update(pc, mDigitizer, [this](float vdrift, float tdriftOffset) {
+      mDigitizer.setVDrift(vdrift);
+      mDigitizer.setTDriftOffset(tdriftOffset);
+    });
 
     for (auto it = pc.inputs().begin(), end = pc.inputs().end(); it != end; ++it) {
       for (auto const& inputref : it.parts()) {
@@ -286,7 +209,6 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
         }
         // TODO: make generic reset method?
         mFlushCounter = 0;
-        mDigitCounter = 0;
       }
     }
   }
@@ -391,88 +313,24 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
       throw std::runtime_error("Digitizer can only work on single sectors");
     }
 
-    mDigitizer.setSector(sector);
-    mDigitizer.setSeedingTimeframe(dh->tfCounter);
-    mDigitizer.init();
+    TStopwatch timer;
+    timer.Start();
 
-    auto& eventParts = context->getEventParts();
-
-    auto flushDigitsAndLabels = [this, digitsAccum, &labelAccum, &commonModeAccum](bool finalFlush = false) {
+    auto onFlush = [this, digitsAccum, &labelAccum, &commonModeAccum]() {
       mFlushCounter++;
-      // flush previous buffer
-      mDigits.clear();
-      mLabels.clear();
-      mCommonMode.clear();
-      mDigitizer.flush(mDigits, mLabels, mCommonMode, finalFlush);
-      LOG(info) << "TPC: Flushed " << mDigits.size() << " digits, " << mLabels.getNElements() << " labels and " << mCommonMode.size() << " common mode entries";
-
       if (mInternalWriter) {
         // the natural place to write out this independent datachunk immediately ...
         writeToROOTFile();
       } else {
         // ... or to accumulate and later forward to next DPL proc
-        std::copy(mDigits.begin(), mDigits.end(), std::back_inserter(*digitsAccum));
+        std::copy(mFlushBuffers.digits.begin(), mFlushBuffers.digits.end(), std::back_inserter(*digitsAccum));
         if (mWithMCTruth) {
-          labelAccum.mergeAtBack(mLabels);
+          labelAccum.mergeAtBack(mFlushBuffers.labels);
         }
-        std::copy(mCommonMode.begin(), mCommonMode.end(), std::back_inserter(commonModeAccum));
+        std::copy(mFlushBuffers.commonMode.begin(), mFlushBuffers.commonMode.end(), std::back_inserter(commonModeAccum));
       }
-      mDigitCounter += mDigits.size();
     };
-
-    if (isContinuous) {
-      auto& hbfu = o2::raw::HBFUtils::Instance();
-      double time = hbfu.getFirstIRofTF(o2::InteractionRecord(0, hbfu.orbitFirstSampled)).bc2ns() / 1000.;
-      mDigitizer.setOutputDigitTimeOffset(time);
-      if (!irecords.empty()) {
-        mDigitizer.setStartTime(irecords[0].getTimeNS() / 1000.f);
-      }
-    }
-
-    TStopwatch timer;
-    timer.Start();
-
-    // loop over all composite collisions given from context
-    // (aka loop over all the interaction records)
-    for (int collID = 0; collID < irecords.size(); ++collID) {
-      const double eventTime = irecords[collID].getTimeNS() / 1000.f;
-      LOG(info) << "TPC: Event time " << eventTime << " us";
-      mDigitizer.setEventTime(eventTime);
-      if (!isContinuous) {
-        mDigitizer.setStartTime(eventTime);
-      }
-      size_t startSize = mDigitCounter; // digitsAccum->size();
-
-      // for each collision, loop over the constituents event and source IDs
-      // (background signal merging is basically taking place here)
-      for (auto& part : eventParts[collID]) {
-        const int eventID = part.entryID;
-        const int sourceID = part.sourceID;
-
-        // get the hits for this event and this source
-        std::vector<o2::tpc::HitGroup> hitsLeft;
-        std::vector<o2::tpc::HitGroup> hitsRight;
-        context->retrieveHits(mSimChains, getBranchNameLeft(sector).c_str(), part.sourceID, part.entryID, &hitsLeft);
-        context->retrieveHits(mSimChains, getBranchNameRight(sector).c_str(), part.sourceID, part.entryID, &hitsRight);
-        LOG(debug) << "TPC: Found " << hitsLeft.size() << " hit groups left and " << hitsRight.size() << " hit groups right in collision " << collID << " eventID " << part.entryID;
-
-        mDigitizer.process(hitsLeft, eventID, sourceID);
-        mDigitizer.process(hitsRight, eventID, sourceID);
-
-        flushDigitsAndLabels();
-
-        if (!isContinuous) {
-          eventAccum.emplace_back(startSize, mDigits.size());
-        }
-      }
-    }
-
-    // final flushing step; getting everything not yet written out
-    if (isContinuous) {
-      LOG(info) << "TPC: Final flush";
-      flushDigitsAndLabels(true);
-      eventAccum.emplace_back(0, mDigitCounter); // all digits are grouped to 1 super-event pseudo-triggered mode
-    }
+    eventAccum = digitizeSector(mDigitizer, *context, mSimChains, sector, dh->tfCounter, mFlushBuffers, onFlush);
 
     if (!mInternalWriter) {
       // send out to next stage
@@ -488,26 +346,19 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
 
  private:
   o2::tpc::Digitizer mDigitizer;
-  o2::tpc::VDriftHelper mTPCVDriftHelper{};
+  TPCDigitizerConditions mConditions;
   std::vector<TChain*> mSimChains;
-  std::vector<o2::tpc::Digit> mDigits;
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabels;
-  std::vector<o2::tpc::CommonMode> mCommonMode;
-  std::vector<int> mListOfSectors; //  a list of sectors treated by this task
+  SectorFlushBuffers mFlushBuffers; // output of the latest flush
+  std::vector<int> mListOfSectors;  //  a list of sectors treated by this task
   TFile* mInternalROOTFlushFile = nullptr;
   TTree* mInternalROOTFlushTTree = nullptr;
-  size_t mDigitCounter = 0;
   size_t mFlushCounter = 0;
   int mLaneId = 0; // the id of the current process within the parallel pipeline
   int mSector = 0;
   bool mWriteGRP = false;
   bool mWithMCTruth = true;
   bool mInternalWriter = false;
-  bool mUseCalibrationsFromCCDB = false;
   int mDistortionType = 0;
-  float mMeanLumiDistortions = -1;
-  float mMeanLumiDistortionsDerivative = -1;
-  bool mRecalcDistortions = false;
 };
 
 o2::framework::DataProcessorSpec getTPCDigitizerSpec(int channel, bool writeGRP, bool mctruth, bool internalwriter, int distortionType)
@@ -536,20 +387,14 @@ o2::framework::DataProcessorSpec getTPCDigitizerSpec(int channel, bool writeGRP,
   }
 
   std::vector<InputSpec> inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}};
+  auto options = TPCDigitizerConditions::options();
+  options.push_back({"tpc-sector-seeding", VariantType::Bool, false, {"Seed the random numbers of each sector from DigiParams.seed and the sector, so that the digits do not depend on the lane assignment"}});
   return DataProcessorSpec{
     id.str().c_str(),
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<TPCDPLDigitizerTask>(internalwriter, distortionType)},
-    Options{
-      {"TPCtriggered", VariantType::Bool, false, {"Impose triggered RO mode (default: continuous)"}},
-      {"TPCuseCCDB", VariantType::Bool, false, {"true: load calibrations from CCDB; false: use random calibratoins"}},
-      {"meanLumiDistortions", VariantType::Float, -1.f, {"override lumi of distortion object if >=0"}},
-      {"meanLumiDistortionsDerivative", VariantType::Float, -1.f, {"override lumi of derivative distortion object if >=0"}},
-      {"do-not-recalculate-distortions", VariantType::Bool, false, {"Do not recalculate the distortions"}},
-      {"n-threads-distortions", VariantType::Int, 4, {"Number of threads used for the calculation of the distortions"}},
-      {"tpc-sector-seeding", VariantType::Bool, false, {"Seed the random numbers of each sector from DigiParams.seed and the sector, so that the digits do not depend on the lane assignment"}},
-    }};
+    options};
 }
 
 o2::framework::WorkflowSpec getTPCDigitizerSpec(int nLanes, std::vector<int> const& sectors, bool mctruth, bool internalwriter, int distortionType)
@@ -565,16 +410,7 @@ o2::framework::WorkflowSpec getTPCDigitizerSpec(int nLanes, std::vector<int> con
     pipelineTemplate, nLanes, [size = sectors.size()]() { return size; }, [&sectors](size_t index) { return sectors[index]; });
   // add the channel for the GRP information to the first processor
   for (auto& spec : pipelines) {
-    o2::tpc::VDriftHelper::requestCCDBInputs(spec.inputs); // add the same CCDB request to each pipeline
-    spec.inputs.emplace_back("gasparam", o2::header::gDataOriginTPC, "TPCGASPARAM", 0, Lifetime::Condition, ccdbParamSpec(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::ParGas)));
-    spec.inputs.emplace_back("gemparam", o2::header::gDataOriginTPC, "TPCGEMPARAM", 0, Lifetime::Condition, ccdbParamSpec(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::ParGEM)));
-    if (distortionType) {
-      spec.inputs.emplace_back("tpcdistortions", o2::header::gDataOriginTPC, "TPCDIST", 0, Lifetime::Condition, ccdbParamSpec(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::DistortionMapMC), {}, 1)); // time-dependent
-      // load derivative map in case scaling was requested
-      if (distortionType == 2) {
-        spec.inputs.emplace_back("tpcdistortionsderiv", o2::header::gDataOriginTPC, "TPCDISTDERIV", 0, Lifetime::Condition, ccdbParamSpec(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::DistortionMapDerivMC), {}, 1)); // time-dependent
-      }
-    }
+    TPCDigitizerConditions::addInputs(spec.inputs, distortionType); // the same CCDB request for each pipeline
   }
   pipelines[0].outputs.emplace_back("TPC", "ROMode", 0, Lifetime::Timeframe);
   return pipelines;

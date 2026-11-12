@@ -104,7 +104,8 @@ class DigitContainer
   std::unique_ptr<DigitTime::PrevDigitInfoArray> mPrevDigArr; ///< Keep track of ToT and ion tail cumul from last time bin
   o2::utils::DebugStreamer mStreamer;                         ///< Debug streamer
   const CalPad* mPadParams[3] = {nullptr, nullptr, nullptr};  //!< Ion tail fraction, ion tail slope and common mode k-values per pad
-  const CalDet<bool>* mDeadMap = nullptr;                     //!< Dead channel map
+  const CalDet<bool>* mDeadMap = nullptr;                     //!< Dead channel map, points to mDeadMapCopy if set
+  std::unique_ptr<CalDet<bool>> mDeadMapCopy;                 //!< Own copy of the dead channel map, which the CDBInterface rebuilds on each access
   bool mCMCEnabled = false;                                   //!< Common mode correction enabled in the FEE config (DigiMode Auto)
   bool mCalibrationsUpdated = false;                          //!< Whether updateCalibrations was called
   SAMPAProcessing* mSAMPAProcessing = nullptr;                //!< SAMPAProcessing used for the output, the singleton if not set

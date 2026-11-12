@@ -31,6 +31,7 @@
 
 #include <fairlogger/Logger.h>
 #include <TRandom3.h>
+#include <mutex>
 
 ClassImp(o2::tpc::Digitizer);
 
@@ -42,6 +43,13 @@ Digitizer::Digitizer() = default;
 
 namespace
 {
+/// serialises the calls that read calibrations through the CDBInterface, which is not thread safe
+std::mutex& calibrationMutex()
+{
+  static std::mutex mutex;
+  return mutex;
+}
+
 // splitmix64 finaliser, to derive well separated seeds from the base seed
 ULong64_t mixSeed(ULong64_t x)
 {
@@ -80,17 +88,36 @@ void Digitizer::setUseSectorSeeding(ULong64_t seed)
   mSeed = seed;
 }
 
+void Digitizer::initSectorSeeding()
+{
+  if (mUseSectorSeeding && !mGEMAmplification) {
+    // the rings are filled once, in the construction order of the singletons
+    TRandom3 rng(toTRandom3Seed(mixSeed(mSeed)));
+    mGEMAmplification = std::make_unique<GEMAmplification>(&rng);
+    mElectronTransport = std::make_unique<ElectronTransport>(&rng);
+    mSAMPAProcessing = std::make_unique<SAMPAProcessing>(&rng);
+    mDigitContainer.setSAMPAProcessing(mSAMPAProcessing.get());
+  }
+}
+
+void Digitizer::setSectorSeedingFrom(Digitizer& other)
+{
+  other.initSectorSeeding();
+  mUseSectorSeeding = other.mUseSectorSeeding;
+  mSeed = other.mSeed;
+  if (other.mGEMAmplification) {
+    mGEMAmplification = std::make_unique<GEMAmplification>(*other.mGEMAmplification);
+    mElectronTransport = std::make_unique<ElectronTransport>(*other.mElectronTransport);
+    mSAMPAProcessing = std::make_unique<SAMPAProcessing>(*other.mSAMPAProcessing);
+    mDigitContainer.setSAMPAProcessing(mSAMPAProcessing.get());
+  }
+}
+
 void Digitizer::init()
 {
+  std::lock_guard<std::mutex> lock(calibrationMutex());
   if (mUseSectorSeeding) {
-    if (!mGEMAmplification) {
-      // the rings are filled once, in the construction order of the singletons
-      TRandom3 rng(toTRandom3Seed(mixSeed(mSeed)));
-      mGEMAmplification = std::make_unique<GEMAmplification>(&rng);
-      mElectronTransport = std::make_unique<ElectronTransport>(&rng);
-      mSAMPAProcessing = std::make_unique<SAMPAProcessing>(&rng);
-      mDigitContainer.setSAMPAProcessing(mSAMPAProcessing.get());
-    }
+    initSectorSeeding();
     const ULong64_t sectorSeed = mixSeed(mSeed ^ mixSeed(static_cast<ULong64_t>(mSector) + 1));
     TRandom3 rng(toTRandom3Seed(mixSeed(sectorSeed ^ mixSeed(mSeedingTimeframe))));
     mGEMAmplification->setRandomRingPositions(rng);
@@ -230,7 +257,7 @@ void Digitizer::flush(std::vector<o2::tpc::Digit>& digits,
   SAMPAProcessing& sampaProcessing = this->sampaProcessing();
   mDigitContainer.fillOutputContainer(digits, labels, commonModeOutput, mSector, sampaProcessing.getTimeBinFromTime(mEventTime - mOutputDigitTimeOffset), mIsContinuous, finalFlush);
   // flushing debug output to file
-  if (((finalFlush && mIsContinuous) || (!mIsContinuous)) && mSpaceCharge) {
+  if (mFlushDebugStreamer && ((finalFlush && mIsContinuous) || (!mIsContinuous)) && mSpaceCharge) {
     o2::utils::DebugStreamer::instance()->flush();
   }
 }
@@ -289,10 +316,23 @@ void Digitizer::setStartTime(double time)
   // note that negative times w.r.t start of timeframe/data-taking == mOutputDigitTimeOffset
   // will yield the 0-th bin (due to casting logic in sampaProcessing)
   SAMPAProcessing& sampaProcessing = this->sampaProcessing();
-  sampaProcessing.updateParameters(mVDrift);
+  {
+    std::lock_guard<std::mutex> lock(calibrationMutex());
+    sampaProcessing.updateParameters(mVDrift);
+  }
   const auto timediff = time - mOutputDigitTimeOffset;
   const auto starttimebin = sampaProcessing.getTimeBinFromTime(timediff);
   mDigitContainer.setStartTime(starttimebin);
+}
+
+void Digitizer::setSCDistortionsFrom(const Digitizer& other)
+{
+  mSpaceChargeOwned.reset();
+  mSpaceCharge = other.mSpaceCharge;
+  mSpaceChargeDer = other.mSpaceChargeDer;
+  mUseSCDistortions = other.mUseSCDistortions;
+  mLumiScaleFactor = other.mLumiScaleFactor;
+  mUseScaledDistortions = other.mUseScaledDistortions;
 }
 
 void Digitizer::setLumiScaleFactor()

@@ -14,6 +14,7 @@
 /// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
 
 #include "TPCSimulation/DigitContainer.h"
+#include <atomic>
 #include <memory>
 #include <type_traits>
 #include <fairlogger/Logger.h>
@@ -58,15 +59,6 @@ void DigitContainer::fillOutputContainer(std::vector<Digit>& output,
   // TODO: make creation conditional
   if (needsPrevDigArray && !mPrevDigArr) {
     mPrevDigArr = std::make_unique<DigitTime::PrevDigitInfoArray>();
-  }
-
-  static bool reportedSettings = false;
-  if (!reportedSettings) {
-    reportSettings();
-    if (mDeadMap) {
-      LOGP(info, "Using dead map with {} masked pads", mDeadMap->getSum<int>());
-    }
-    reportedSettings = true;
   }
 
   for (auto& time : mTimeBins) {
@@ -161,12 +153,25 @@ void DigitContainer::updateCalibrations()
   }
 
   // dead channel map
-  mDeadMap = eleParam.applyDeadMap ? &cdb.getDeadChannelMap() : nullptr;
+  mDeadMap = nullptr;
+  mDeadMapCopy.reset();
+  if (eleParam.applyDeadMap) {
+    mDeadMapCopy = std::make_unique<CalDet<bool>>(cdb.getDeadChannelMap());
+    mDeadMap = mDeadMapCopy.get();
+  }
 
   // common mode correction in the FEE, needed to resolve DigiMode Auto
   mCMCEnabled = (eleParam.DigiMode == DigitzationMode::Auto) && cdb.getFEEConfig().isCMCEnabled();
 
   mCalibrationsUpdated = true;
+
+  static std::atomic<bool> reportedSettings{false};
+  if (!reportedSettings.exchange(true)) {
+    reportSettings();
+    if (mDeadMap) {
+      LOGP(info, "Using dead map with {} masked pads", mDeadMap->getSum<int>());
+    }
+  }
 }
 
 void DigitContainer::reportSettings()

@@ -143,15 +143,28 @@ class Digitizer
   /// in case of scaled distortions, the distortions can be recalculated to ensure consistent distortions and corrections
   void recalculateDistortions();
 
+  /// Use the distortion maps and scaling of another digitizer, which keeps ownership of the maps
+  void setSCDistortionsFrom(const Digitizer& other);
+
   /// Use digitizer-owned random rings filled from seed and positioned per sector and timeframe in init(),
-  /// so that the digits of a sector do not depend on which sectors were processed before
+  /// so that the digits of a sector do not depend on which sectors were processed before.
+  /// All sectors share the ring contents and differ in the start positions, as with the singleton rings.
   /// \param seed base seed, typically DigiParams.seed
   void setUseSectorSeeding(ULong64_t seed);
 
   /// Set the timeframe identifier that enters the sector seeding
   void setSeedingTimeframe(ULong64_t timeframe) { mSeedingTimeframe = timeframe; }
 
+  /// Use copies of the sector-seeding random rings of another digitizer, which fills them if needed
+  void setSectorSeedingFrom(Digitizer& other);
+
+  /// Whether flush() also flushes the process-wide debug streamer
+  void setFlushDebugStreamer(bool flush) { mFlushDebugStreamer = flush; }
+
  private:
+  /// Fill the random rings of the sector seeding, if not done yet
+  void initSectorSeeding();
+
   ElectronTransport& electronTransport();
   GEMAmplification& gemAmplification();
   SAMPAProcessing& sampaProcessing();
@@ -162,6 +175,7 @@ class Digitizer
   ULong64_t mSeed = 0;                                   //!< Base seed for sector seeding
   ULong64_t mSeedingTimeframe = 0;                       //!< Timeframe identifier for sector seeding
   bool mUseSectorSeeding = false;                        //!< Whether sector seeding is used
+  bool mFlushDebugStreamer = true;                       //!< Whether flush() flushes the debug streamer
 
   DigitContainer mDigitContainer;        ///< Container for the Digits
   std::vector<float> mSignalArray;       //!< Workspace for the shaped signal of one electron
