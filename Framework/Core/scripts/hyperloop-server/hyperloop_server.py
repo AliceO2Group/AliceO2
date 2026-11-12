@@ -298,6 +298,61 @@ async def train_detail(train_id: int) -> str:
 
 
 @mcp.tool()
+async def train_outputs(train_id: int, include_jobs: bool = False) -> dict:
+    """Return Grid output directories and merge coverage for one train.
+
+    One read-only metadata request. Directory locations are reported by Hyperloop;
+    this does not assert which files still exist there or download Grid payloads.
+    Include per-run job directories only when requested. Different merge entries
+    can refer to the same directory; consumers must deduplicate before downloading.
+    """
+    if train_id <= 0:
+        raise ValueError("train_id must be positive")
+    train = await _get("trains/train.jsp", {"train_id": train_id})
+    if isinstance(train, list):
+        if len(train) != 1:
+            raise RuntimeError("Expected a single train record")
+        train = train[0]
+
+    def runs(value):
+        if not value:
+            return set()
+        if isinstance(value, str):
+            return {int(run.strip()) for run in value.split(",") if run.strip()}
+        return {int(run) for run in value}
+
+    merges = []
+    for merge in train.get("mergeResults") or []:
+        intended = runs(merge.get("total_merge"))
+        merged = runs(merge.get("merged_runlist"))
+        merges.append({
+            "id": merge.get("id"),
+            "name": merge.get("full_name"),
+            "state": merge.get("merge_state"),
+            "directory": merge.get("outputdir"),
+            "merged_run_count": len(merged),
+            "intended_run_count": len(intended),
+            "missing_runs": sorted(intended - merged),
+            "input_data_processed": merge.get("input_data_processed"),
+            "merge_completion": merge.get("merge_completion"),
+        })
+    result = {
+        "train_id": train.get("id"),
+        "dataset": train.get("dataset_name"),
+        "state": train.get("state"),
+        "package_tag": train.get("package_tag"),
+        "derived_data_type": train.get("derived_data_type"),
+        "merges": merges,
+    }
+    if include_jobs:
+        result["jobs"] = [
+            {key: job.get(key) for key in ("id", "run", "merge_state", "outputdir")}
+            for job in train.get("jobResults") or []
+        ]
+    return result
+
+
+@mcp.tool()
 async def wagon_stats(train_id: int) -> str:
     """Get per-wagon CPU and memory breakdown for a train (ongoing or finished).
 
