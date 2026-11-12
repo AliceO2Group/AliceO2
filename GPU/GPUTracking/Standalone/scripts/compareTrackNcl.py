@@ -11,7 +11,7 @@
 # or submit itself to any jurisdiction.
 
 # Usage: compareTrackNcl.py FILE1 FILE2, with files of lines "Track <id> NCl <ncl>" (from --DEBUGmergerDumpTrackNCl).
-# Prints the ids of tracks with less than half the clusters in FILE1 compared to FILE2 as DEBUG_TRACK="...", to be used as environment variable with DEBUG_SINGLE_TRACK -2 in GPUTPCGMTrackParam.cxx, followed by some statistics.
+# Prints the ids of tracks with less than half the clusters in FILE1 compared to FILE2 as DEBUG_TRACK="...", to be used as environment variable with GPUCA_CADEBUG 2 in GPUTPCGMTrackParam.cxx, followed by some statistics.
 
 import sys
 
