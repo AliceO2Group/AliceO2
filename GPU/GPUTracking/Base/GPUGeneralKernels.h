@@ -76,6 +76,12 @@ class GPUKernelTemplate
       int32_t tmpBroadcast;
       int32_t warpPredicateSum[I / GPUCA_WARP_SIZE];
     };
+#elif defined(__METAL__) && defined(GPUCA_GPUCODE)
+    // What the Metal work-group collectives in GPUCommonAlgorithm.h go through
+    union {
+      int32_t tmpBroadcast;
+      int32_t warpPredicateSum[I / GPUCA_WARP_SIZE];
+    };
 #endif
   };
 

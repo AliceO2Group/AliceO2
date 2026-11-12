@@ -65,7 +65,7 @@ class CfUtils
   }
 
   template <size_t BlockSize, typename SharedMemory>
-  static GPUdi() int32_t blockPredicateScan(SharedMemory& smem, int32_t pred, int32_t* sum = nullptr)
+  static GPUdi() int32_t blockPredicateScan(SharedMemory& smem, int32_t pred, int32_t* sum GPUCA_THREAD_INFO_DECL)
   {
 #if defined(__HIPCC__) || defined(__CUDACC__)
     int32_t iThread =
@@ -115,7 +115,7 @@ class CfUtils
   }
 
   template <size_t BlockSize, typename SharedMemory>
-  static GPUdi() int32_t blockPredicateSum(SharedMemory& smem, int32_t pred)
+  static GPUdi() int32_t blockPredicateSum(SharedMemory& smem, int32_t pred GPUCA_THREAD_INFO_DECL)
   {
 #if defined(__HIPCC__) || defined(__CUDACC__)
     int32_t iThread =
@@ -152,12 +152,12 @@ class CfUtils
   }
 
   template <size_t SCRATCH_PAD_WORK_GROUP_SIZE, typename SharedMemory>
-  static GPUdi() uint16_t partition(SharedMemory& smem, uint16_t ll, bool pred, uint16_t partSize, uint16_t* newPartSize)
+  static GPUdi() uint16_t partition(SharedMemory& smem, uint16_t ll, bool pred, uint16_t partSize, uint16_t* newPartSize GPUCA_THREAD_INFO_DECL)
   {
     bool participates = ll < partSize;
 
     int32_t part;
-    int32_t lpos = blockPredicateScan<SCRATCH_PAD_WORK_GROUP_SIZE>(smem, int32_t(!pred && participates), &part);
+    int32_t lpos = blockPredicateScan<SCRATCH_PAD_WORK_GROUP_SIZE>(smem, int32_t(!pred && participates), &part GPUCA_THREAD_INFO_PROVIDE);
 
     uint16_t pos = (participates && !pred) ? lpos : part;
 

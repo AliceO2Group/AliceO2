@@ -500,6 +500,111 @@ GPUdi() T warp_reduce_max(T v)
   return __syncthreads_count(pred);
 }
 
+#elif defined(__METAL__)
+// MSL has SIMD-group collectives only, so the work-group ones scan within each
+// SIMD group and then across the group totals, which go through smem as with
+// cub. The thread index is a kernel parameter in MSL, so like smem it is taken
+// from the caller's scope. A 1D threadgroup is split into SIMD groups of
+// consecutive threads, of GPUCA_WARP_SIZE each. The SIMD scans take 32-bit
+// lanes; the narrower types are counts and are widened. Sums are returned
+// promoted, as v + 0 would be, since the callers pass !!pred: a bool would
+// truncate them to 0 / 1.
+
+template <class T>
+GPUdi() auto warp_scan_inclusive_add(T v) -> decltype(+v)
+{
+  return simd_prefix_inclusive_sum((int32_t)v);
+}
+
+template <class T>
+GPUdi() T warp_broadcast(T v, int32_t i)
+{
+  return (T)simd_shuffle((int32_t)v, (ushort)i);
+}
+
+template <class T>
+GPUdi() T warp_shuffle_xor(T v, int32_t laneMask)
+{
+  return simd_shuffle_xor(v, (ushort)laneMask);
+}
+
+template <int32_t Width, class T>
+GPUdi() T warp_reduce_add(T v)
+{
+  for (int32_t m = Width / 2; m > 0; m >>= 1) {
+    v += warp_shuffle_xor(v, m);
+  }
+  return v;
+}
+
+template <int32_t Width, class T>
+GPUdi() T warp_reduce_min(T v)
+{
+  for (int32_t m = Width / 2; m > 0; m >>= 1) {
+    const T o = warp_shuffle_xor(v, m);
+    v = o < v ? o : v;
+  }
+  return v;
+}
+
+template <int32_t Width, class T>
+GPUdi() T warp_reduce_max(T v)
+{
+  for (int32_t m = Width / 2; m > 0; m >>= 1) {
+    const T o = warp_shuffle_xor(v, m);
+    v = o > v ? o : v;
+  }
+  return v;
+}
+
+#define work_group_scan_inclusive_add(v) work_group_scan_inclusive_add_FUNC(v, smem, iThread, nThreads)
+template <class T, class S>
+GPUdi() auto work_group_scan_inclusive_add_FUNC(T v, S& smem, int32_t iThread, int32_t nThreads) -> decltype(+v)
+{
+  const int32_t iWarp = iThread / GPUCA_WARP_SIZE;
+  const int32_t nWarps = (nThreads + GPUCA_WARP_SIZE - 1) / GPUCA_WARP_SIZE;
+  int32_t x = simd_prefix_inclusive_sum((int32_t)v);
+  if (iThread % GPUCA_WARP_SIZE == GPUCA_WARP_SIZE - 1 || iThread == nThreads - 1) {
+    smem.warpPredicateSum[iWarp] = x;
+  }
+  GPUbarrier();
+  if (iWarp == 0) {
+    const int32_t s = simd_prefix_inclusive_sum(iThread < nWarps ? smem.warpPredicateSum[iThread] : 0);
+    if (iThread < nWarps) {
+      smem.warpPredicateSum[iThread] = s;
+    }
+  }
+  GPUbarrier();
+  if (iWarp > 0) {
+    x += smem.warpPredicateSum[iWarp - 1];
+  }
+  GPUbarrier();
+  return x;
+}
+
+#define work_group_broadcast(v, i) work_group_broadcast_FUNC(v, i, smem, iThread)
+template <class T, class S>
+GPUdi() T work_group_broadcast_FUNC(T v, int32_t i, S& smem, int32_t iThread)
+{
+  if (iThread == i) {
+    smem.tmpBroadcast = v;
+  }
+  GPUbarrier();
+  T retVal = smem.tmpBroadcast;
+  GPUbarrier();
+  return retVal;
+}
+
+#define work_group_reduce_add(v) work_group_reduce_add_FUNC(v, smem, iThread, nThreads)
+template <class T, class S>
+GPUdi() auto work_group_reduce_add_FUNC(T v, S& smem, int32_t iThread, int32_t nThreads) -> decltype(+v)
+{
+  return work_group_broadcast_FUNC(work_group_scan_inclusive_add_FUNC(v, smem, iThread, nThreads), nThreads - 1, smem, iThread);
+}
+
+#define work_group_count(pred) ((uint32_t)work_group_reduce_add_FUNC((int32_t)(pred), smem, iThread, nThreads))
+#define work_group_any(pred) (work_group_count(pred) != 0)
+
 #else
 // Trivial implementation for the CPU
 

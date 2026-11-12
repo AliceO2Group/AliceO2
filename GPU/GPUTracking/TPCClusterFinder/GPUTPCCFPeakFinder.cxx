@@ -50,7 +50,7 @@ GPUdii() bool GPUTPCCFPeakFinder::isPeak(
     ll,
     belowThreshold,
     SCRATCH_PAD_WORK_GROUP_SIZE,
-    &lookForPeaks);
+    &lookForPeaks GPUCA_THREAD_INFO_PROVIDE);
 
   if (partId < lookForPeaks) {
     posBcast[partId] = pos;
