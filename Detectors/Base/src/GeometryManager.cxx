@@ -277,7 +277,7 @@ bool GeometryManager::applyAlignment(const std::vector<const std::vector<o2::det
 }
 
 //______________________________________________________________________
-bool GeometryManager::applyAlignment(const std::vector<o2::detectors::AlignParam>& algPars)
+bool GeometryManager::applyAlignment(const std::vector<o2::detectors::AlignParam>& algPars, bool keepPhysicalNodes)
 {
   /// misalign geometry with alignment objects from the array, optionaly check overlaps
   int nvols = algPars.size();
@@ -286,10 +286,22 @@ bool GeometryManager::applyAlignment(const std::vector<o2::detectors::AlignParam
   std::sort(std::begin(ord), std::end(ord), [&algPars](int a, int b) { return algPars[a].getLevel() < algPars[b].getLevel(); });
 
   bool res = true;
+  auto pns = gGeoManager->GetListOfPhysicalNodes();
   for (int i = 0; i < nvols; i++) {
+    int npn = pns->GetEntriesFast();
     if (!algPars[ord[i]].applyToGeometry(GeometryManagerParam::Instance().printLevel)) {
       res = false;
       LOG(error) << "Error applying alignment object for volume" << algPars[ord[i]].getSymName();
+    }
+    if (!keepPhysicalNodes) { // delete the nodes this alignment created, so their memory is reused by the next one
+      for (int k = pns->GetEntriesFast() - 1; k >= npn; k--) {
+        auto pn = static_cast<TGeoPhysicalNode*>(pns->RemoveAt(k));
+        if (auto pne = gGeoManager->GetAlignableEntry(algPars[ord[i]].getSymName().c_str()); pne && pne->GetPhysicalNode() == pn) {
+          pne->SetPhysicalNode(nullptr);
+        }
+        delete pn;
+      }
+      pns->Compress();
     }
   }
   return res;

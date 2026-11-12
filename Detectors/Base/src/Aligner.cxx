@@ -27,7 +27,7 @@ DetID::mask_t Aligner::getDetectorsMask() const
   return DetID::getMask(mDetectors) & (~DetID::getMask(DetID::CTP));
 }
 
-void Aligner::applyAlignment(long timestamp, DetID::mask_t addMask) const
+void Aligner::applyAlignment(long timestamp, DetID::mask_t addMask, bool keepPhysicalNodes) const
 {
   DetID::mask_t msk = getDetectorsMask() & addMask;
   if (msk.none()) {
@@ -59,7 +59,7 @@ void Aligner::applyAlignment(long timestamp, DetID::mask_t addMask) const
     }
     if (!algV->empty()) {
       done.set(id);
-      o2::base::GeometryManager::applyAlignment(*algV);
+      o2::base::GeometryManager::applyAlignment(*algV, keepPhysicalNodes);
     } else {
       skipped.set(id);
     }

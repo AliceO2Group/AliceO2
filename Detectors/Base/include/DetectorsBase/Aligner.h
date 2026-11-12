@@ -33,7 +33,7 @@ class Aligner : public o2::conf::ConfigurableParamHelper<Aligner>
   o2::detectors::DetID::mask_t getDetectorsMask() const;
 
   bool isAlignmentRequested() const { return getDetectorsMask().any(); }
-  void applyAlignment(long timestamp = 0, o2::detectors::DetID::mask_t addMask = o2::detectors::DetID::FullMask) const;
+  void applyAlignment(long timestamp = 0, o2::detectors::DetID::mask_t addMask = o2::detectors::DetID::FullMask, bool keepPhysicalNodes = true) const;
 
  private:
   std::string mDetectors = "all";                      // comma-separated list of modules to align, "all" or "none"
