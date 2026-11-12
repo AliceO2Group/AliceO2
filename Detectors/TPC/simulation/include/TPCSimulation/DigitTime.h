@@ -80,7 +80,7 @@ class DigitTime
                            std::vector<CommonMode>& commonModeOutput, const Sector& sector, TimeBin timeBin,
                            SAMPAProcessing& sampaProcessing, std::vector<std::pair<MCCompLabel, int>>& labelCollector,
                            PrevDigitInfoArray* prevTime = nullptr, Streamer* debugStream = nullptr,
-                           const CalPad* padParams[3] = nullptr, const CalDet<bool>* deadMap = nullptr);
+                           const CalPad* padParams[4] = nullptr, const CalDet<bool>* deadMap = nullptr);
 
  private:
   std::array<float, GEMSTACKSPERSECTOR> mCommonMode;                 ///< Common mode container - 4 GEM ROCs per sector
@@ -131,7 +131,7 @@ template <DigitzationMode MODE>
 inline void DigitTime::fillOutputContainer(std::vector<Digit>& output, dataformats::MCTruthContainer<MCCompLabel>& mcTruth,
                                            std::vector<CommonMode>& commonModeOutput, const Sector& sector, TimeBin timeBin,
                                            SAMPAProcessing& sampaProcessing, std::vector<std::pair<MCCompLabel, int>>& labelCollector,
-                                           PrevDigitInfoArray* prevTime, Streamer* debugStream, const CalPad* padParams[3],
+                                           PrevDigitInfoArray* prevTime, Streamer* debugStream, const CalPad* padParams[4],
                                            const CalDet<bool>* deadMap)
 {
   const auto& mapper = Mapper::instance();
@@ -153,23 +153,33 @@ inline void DigitTime::fillOutputContainer(std::vector<Digit>& output, dataforma
     mCommonMode[cru.gemStack()] += digit.getChargePad() * eleParam.commonModeCoupling * cmKValue; // TODO: Add stack-by-stack variation?
   }
 
-  // fill common mode output container
-  for (size_t i = 0; i < mCommonMode.size(); ++i) {
-    const float cm = getCommonMode(GEMstack(i));
-    if (cm > 0.) {
-      commonModeOutput.push_back({cm, timeBin, static_cast<unsigned char>(i)});
-    }
-  }
+  // the common mode is induced on all pads of the GEM stack, but the baseline of a pad can at most drop to 0 ADC,
+  // so the common mode seen by a pad saturates at its pedestal value
+  const CalPad* pedestals = eleParam.doCommonModePerPadSaturation ? padParams[3] : nullptr;
+  std::array<double, GEMSTACKSPERSECTOR> commonModeSeen{}; // double: sum of ~3000 values per stack
 
   for (size_t iPad = 0; iPad < mGlobalPads.size(); ++iPad) {
     auto& digit = mGlobalPads[iPad];
+    const CRU cru = mapper.getCRU(sector, iPad);
+    float commonMode = getCommonMode(cru);
+    if (pedestals) {
+      commonMode = std::min(commonMode, pedestals->getValue(sector.getSector(), iPad));
+      commonModeSeen[cru.gemStack()] += commonMode;
+    }
     if (eleParam.doNoiseEmptyPads || (digit.getChargePad() > 0.f)) {
       PrevDigitInfo prevDigit;
       if (prevTime) {
         prevDigit = (*prevTime)[iPad];
       }
-      const CRU cru = mapper.getCRU(sector, iPad);
-      digit.fillOutputContainer<MODE>(output, mcTruth, cru, timeBin, iPad, mLabels, sampaProcessing, labelCollector, getCommonMode(cru), prevDigit, debugStream, deadMap);
+      digit.fillOutputContainer<MODE>(output, mcTruth, cru, timeBin, iPad, mLabels, sampaProcessing, labelCollector, commonMode, prevDigit, debugStream, deadMap);
+    }
+  }
+
+  // fill common mode output container, with saturation the average common mode seen by the pads of the GEM stack
+  for (size_t i = 0; i < mCommonMode.size(); ++i) {
+    const float cm = pedestals ? static_cast<float>(commonModeSeen[i] / mapper.getNumberOfPads(GEMstack(i))) : getCommonMode(GEMstack(i));
+    if (cm > 0.) {
+      commonModeOutput.push_back({cm, timeBin, static_cast<unsigned char>(i)});
     }
   }
 }
