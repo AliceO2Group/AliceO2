@@ -56,8 +56,8 @@ GPUd() void GPUTPCTrackletConstructor::StoreTracklet(int32_t /*nBlocks*/, int32_
 {
   // reconstruction of tracklets, tracklet store step
   const uint32_t nHits = r.mLastRow + 1 - r.mFirstRow;
-  if (nHits == 0 || r.mNHits == 0 || (r.mNHits < tracker.Param().tpcMinHitsB5(tParam.QPt() * tracker.Param().qptB5Scaler) || !CheckCov(tParam) || CAMath::Abs(tParam.GetQPt() * tracker.Param().qptB5Scaler) > tracker.Param().rec.maxTrackQPtB5)) {
-    CADEBUG(printf("    Rejected: nHits %d QPt %f MinHits %d MaxQPt %f CheckCov %d\n", r.mNHits, tParam.QPt(), tracker.Param().tpcMinHitsB5(tParam.QPt() * tracker.Param().qptB5Scaler), tracker.Param().rec.maxTrackQPtB5, (int32_t)CheckCov(tParam)));
+  if (nHits == 0 || r.mNHits == 0 || (r.mNHits < tracker.Param().tpcMinHitsB5Abs(CAMath::Abs(tParam.QPt() * tracker.Param().qptB5Scaler)) || !CheckCov(tParam) || CAMath::Abs(tParam.GetQPt() * tracker.Param().qptB5Scaler) > tracker.Param().rec.maxTrackQPtB5)) {
+    CADEBUG(printf("    Rejected: nHits %d QPt %f MinHits %d MaxQPt %f CheckCov %d\n", r.mNHits, tParam.QPt(), tracker.Param().tpcMinHitsB5Abs(CAMath::Abs(tParam.QPt() * tracker.Param().qptB5Scaler)), tracker.Param().rec.maxTrackQPtB5, (int32_t)CheckCov(tParam)));
     return;
   }
 
