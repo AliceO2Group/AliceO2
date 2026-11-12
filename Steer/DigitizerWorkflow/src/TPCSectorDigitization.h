@@ -13,6 +13,8 @@
 #define STEER_DIGITIZERWORKFLOW_TPCSECTORDIGITIZATION_H_
 
 #include <functional>
+#include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 #include <RtypesCore.h>
@@ -27,6 +29,8 @@
 #include "Framework/InputSpec.h"
 
 class TChain;
+class TFile;
+class TTree;
 
 namespace o2
 {
@@ -56,11 +60,36 @@ std::vector<dataformats::RangeReference<int, int>> digitizeSector(Digitizer& dig
                                                                   const std::vector<TChain*>& simChains, int sector, ULong64_t timeframe,
                                                                   SectorFlushBuffers& buffers, const std::function<void()>& onFlush);
 
+/// The base seed of the per-sector seeding: DigiParams.seed, or a random seed from gRandom if that is 0
+ULong64_t sectorSeedingBaseSeed();
+
 /// Name of the chunked digit file of a lane, which the chunked digit merger reads
 std::string laneDigitFileName(int lane);
 
 /// Remove the chunked digit files in the working directory whose lane passes the selection
 void removeLaneDigitFiles(const std::function<bool(int)>& select);
+
+/// Writes the flushes of the sectors of one lane to the chunked digit file of the lane
+class LaneDigitFileWriter
+{
+ public:
+  LaneDigitFileWriter(int lane, bool withMCTruth);
+  ~LaneDigitFileWriter();
+  /// open the lane file and start the tree of a sector
+  void beginSector(int sector);
+  /// write the latest flush of the current sector
+  void writeFlush(SectorFlushBuffers& buffers);
+  /// write the tree of the current sector and close the file
+  void endSector();
+
+ private:
+  std::unique_ptr<TFile> mFile;
+  TTree* mTree = nullptr; ///< owned by the file
+  size_t mFlushes = 0;
+  int mLane = 0;
+  int mSector = 0;
+  bool mWithMCTruth = true;
+};
 
 /// CCDB conditions and calibration files of the TPC digitizer devices
 class TPCDigitizerConditions
@@ -71,12 +100,18 @@ class TPCDigitizerConditions
   /// CCDB inputs common to the TPC digitizer devices
   static void addInputs(std::vector<framework::InputSpec>& inputs, int distortionType);
 
+  /// drift velocity and time offset to apply to the digitizers
+  struct VDrift {
+    float vdrift;
+    float tdriftOffset;
+  };
+
   void init(framework::InitContext& ic, int distortionType);
-  /// pass a CCDB object to the digitizer; true if it was a TPC condition
-  bool finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj, Digitizer& digitizer);
+  /// pass a CCDB object to the digitizer
+  void finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj, Digitizer& digitizer);
   /// fetch the conditions of a timeframe and prepare the digitizer, which then holds the distortions
-  /// \param setVDrift called with the drift velocity and time offset when they changed
-  void update(framework::ProcessingContext& pc, Digitizer& digitizer, const std::function<void(float, float)>& setVDrift);
+  /// \return the drift velocity and time offset if they changed
+  std::optional<VDrift> update(framework::ProcessingContext& pc, Digitizer& digitizer);
 
  private:
   VDriftHelper mVDriftHelper{};

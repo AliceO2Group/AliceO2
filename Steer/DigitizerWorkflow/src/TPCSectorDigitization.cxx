@@ -29,8 +29,14 @@
 #include "Framework/InitContext.h"
 #include "Framework/InputRecord.h"
 #include "Framework/ProcessingContext.h"
+#include "DetectorsBase/Detector.h"
+#include "SimConfig/DigiParams.h"
+#include <TFile.h>
+#include <TRandom.h>
+#include <TTree.h>
 #include <filesystem>
 #include <regex>
+#include <stdexcept>
 
 namespace o2::tpc
 {
@@ -129,6 +135,16 @@ std::vector<dataformats::RangeReference<int, int>> digitizeSector(Digitizer& dig
   return events;
 }
 
+ULong64_t sectorSeedingBaseSeed()
+{
+  const auto seed = o2::conf::DigiParams::Instance().seed;
+  if (seed == 0) {
+    LOG(warning) << "TPC sector seeding with DigiParams.seed=0 is not reproducible";
+  }
+  // with seed 0, gRandom was seeded randomly in the base class
+  return seed != 0 ? seed : gRandom->Integer(kMaxUInt);
+}
+
 std::string laneDigitFileName(int lane)
 {
   return "tpc_driftime_digits_lane" + std::to_string(lane) + ".root";
@@ -144,6 +160,48 @@ void removeLaneDigitFiles(const std::function<bool(int)>& select)
       std::filesystem::remove(entry.path());
     }
   }
+}
+
+LaneDigitFileWriter::LaneDigitFileWriter(int lane, bool withMCTruth) : mLane(lane), mWithMCTruth(withMCTruth) {}
+
+LaneDigitFileWriter::~LaneDigitFileWriter() = default;
+
+void LaneDigitFileWriter::beginSector(int sector)
+{
+  const auto name = laneDigitFileName(mLane);
+  mFile.reset(TFile::Open(name.c_str(), "UPDATE"));
+  if (!mFile || mFile->IsZombie()) {
+    throw std::runtime_error("TPC: cannot open " + name);
+  }
+  mSector = sector;
+  mFlushes = 0;
+  mTree = new TTree(std::to_string(sector).c_str(), "o2sim");
+  mTree->SetDirectory(mFile.get());
+}
+
+void LaneDigitFileWriter::writeFlush(SectorFlushBuffers& buffers)
+{
+  ++mFlushes;
+  auto fill = [this](const std::string& name, auto* data) {
+    auto br = o2::base::getOrMakeBranch(*mTree, name.c_str(), data);
+    br->Fill();
+    br->ResetAddress();
+  };
+  const auto sector = std::to_string(mSector);
+  fill("TPCDigit_" + sector, &buffers.digits);
+  if (mWithMCTruth) {
+    fill("TPCDigitMCTruth_" + sector, &buffers.labels);
+  }
+  fill("TPCCommonMode_" + sector, &buffers.commonMode);
+}
+
+void LaneDigitFileWriter::endSector()
+{
+  mTree->SetEntries(mFlushes);
+  mFile->Write("", TObject::kOverwrite);
+  mFile->Close();
+  mFile.reset();
+  mTree = nullptr;
 }
 
 std::vector<framework::ConfigParamSpec> TPCDigitizerConditions::options()
@@ -186,12 +244,12 @@ void TPCDigitizerConditions::init(framework::InitContext& ic, int distortionType
   LOG(info) << "TPC calibrations from CCDB: " << mUseCalibrationsFromCCDB;
 }
 
-bool TPCDigitizerConditions::finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj, Digitizer& digitizer)
+void TPCDigitizerConditions::finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj, Digitizer& digitizer)
 {
   using framework::ConcreteDataMatcher;
   using SC = SpaceCharge<float>;
   if (mVDriftHelper.accountCCDBInputs(matcher, obj)) {
-    return true;
+    return;
   }
   if (matcher == ConcreteDataMatcher(o2::header::gDataOriginTPC, "TPCDIST", 0)) {
     LOGP(info, "Updating distortion map");
@@ -199,7 +257,7 @@ bool TPCDigitizerConditions::finaliseCCDB(framework::ConcreteDataMatcher& matche
     if (mMeanLumiDistortions >= 0) {
       digitizer.setMeanLumiDistortions(mMeanLumiDistortions);
     }
-    return true;
+    return;
   }
   if (matcher == ConcreteDataMatcher(o2::header::gDataOriginTPC, "TPCDISTDERIV", 0)) {
     LOGP(info, "Updating reference distortion map");
@@ -207,22 +265,20 @@ bool TPCDigitizerConditions::finaliseCCDB(framework::ConcreteDataMatcher& matche
     if (mMeanLumiDistortionsDerivative >= 0) {
       digitizer.setMeanLumiDistortionsDerivative(mMeanLumiDistortionsDerivative);
     }
-    return true;
+    return;
   }
   if (matcher == ConcreteDataMatcher(o2::header::gDataOriginTPC, "TPCGASPARAM", 0)) {
     LOGP(info, "TPC gas param updated");
     ParameterGas::Instance().printKeyValues(true, true);
-    return true;
+    return;
   }
   if (matcher == ConcreteDataMatcher(o2::header::gDataOriginTPC, "TPCGEMPARAM", 0)) {
     LOGP(info, "TPC GEM param updated");
     ParameterGEM::Instance().printKeyValues(true, true);
-    return true;
   }
-  return false;
 }
 
-void TPCDigitizerConditions::update(framework::ProcessingContext& pc, Digitizer& digitizer, const std::function<void(float, float)>& setVDrift)
+std::optional<TPCDigitizerConditions::VDrift> TPCDigitizerConditions::update(framework::ProcessingContext& pc, Digitizer& digitizer)
 {
   using SC = SpaceCharge<float>;
   auto& cdb = CDBInterface::instance();
@@ -242,11 +298,12 @@ void TPCDigitizerConditions::update(framework::ProcessingContext& pc, Digitizer&
     }
   }
 
+  std::optional<VDrift> vdrift;
   if (mVDriftHelper.isUpdated()) {
     const auto& vd = mVDriftHelper.getVDriftObject();
     LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
          vd.corrFact, vd.refVDrift, vd.timeOffsetCorr, vd.refTimeOffset, mVDriftHelper.getSourceName());
-    setVDrift(vd.getVDrift(), vd.getTimeOffset());
+    vdrift = VDrift{vd.getVDrift(), vd.getTimeOffset()};
     mVDriftHelper.acknowledgeUpdate();
   }
 
@@ -259,6 +316,7 @@ void TPCDigitizerConditions::update(framework::ProcessingContext& pc, Digitizer&
     LOG(info) << "TPC: Using gain map from 'GainMap.root'";
     cdb.setGainMapFromFile("GainMap.root");
   }
+  return vdrift;
 }
 
 } // namespace o2::tpc
