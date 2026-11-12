@@ -84,7 +84,8 @@ class GeometryManager : public TObject
   ~GeometryManager() override = default;
 
   /// misalign geometry with alignment objects from the array, optionaly check overlaps
-  static bool applyAlignment(const std::vector<o2::detectors::AlignParam>& algPars);
+  /// with keepPhysicalNodes false, each physical node is deleted after its alignment (no original matrices are kept)
+  static bool applyAlignment(const std::vector<o2::detectors::AlignParam>& algPars, bool keepPhysicalNodes = true);
   static bool applyAlignment(const std::vector<const std::vector<o2::detectors::AlignParam>*> algPars);
 
   struct MatBudgetExt {
