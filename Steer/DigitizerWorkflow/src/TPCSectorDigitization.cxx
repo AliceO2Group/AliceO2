@@ -316,6 +316,8 @@ std::optional<TPCDigitizerConditions::VDrift> TPCDigitizerConditions::update(fra
     LOG(info) << "TPC: Using gain map from 'GainMap.root'";
     cdb.setGainMapFromFile("GainMap.root");
   }
+  // all reads of the CDBInterface for the digitizers happen here, in one thread
+  mCalibrations = DigitizerCalibrations::fetch();
   return vdrift;
 }
 

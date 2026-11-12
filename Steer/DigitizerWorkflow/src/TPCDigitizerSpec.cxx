@@ -101,6 +101,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
       mDigitizer.setVDrift(vdrift->vdrift);
       mDigitizer.setTDriftOffset(vdrift->tdriftOffset);
     }
+    mDigitizer.setCalibrations(mConditions.calibrations());
 
     for (auto it = pc.inputs().begin(), end = pc.inputs().end(); it != end; ++it) {
       for (auto const& inputref : it.parts()) {

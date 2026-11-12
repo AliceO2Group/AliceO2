@@ -15,6 +15,7 @@ o2_add_library(TPCSimulation
                        src/DigitContainer.cxx
                        src/DigitGlobalPad.cxx
                        src/Digitizer.cxx
+                       src/DigitizerCalibrations.cxx
                        src/DigitTime.cxx
                        src/ElectronTransport.cxx
                        src/GEMAmplification.cxx

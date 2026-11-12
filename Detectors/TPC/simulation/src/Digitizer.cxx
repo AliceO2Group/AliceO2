@@ -24,14 +24,12 @@
 #include "TPCSimulation/GEMAmplification.h"
 #include "TPCSimulation/Point.h"
 #include "TPCSimulation/SAMPAProcessing.h"
-#include "TPCBaseRecSim/CDBInterface.h"
 #include "TPCSpaceCharge/SpaceCharge.h"
 #include "TPCBase/Mapper.h"
 #include "TPCCalibration/CorrMapParam.h"
 
 #include <fairlogger/Logger.h>
 #include <TRandom3.h>
-#include <mutex>
 
 ClassImp(o2::tpc::Digitizer);
 
@@ -43,13 +41,6 @@ Digitizer::Digitizer() = default;
 
 namespace
 {
-/// serialises the calls that read calibrations through the CDBInterface, which is not thread safe
-std::mutex& calibrationMutex()
-{
-  static std::mutex mutex;
-  return mutex;
-}
-
 // splitmix64 finaliser, to derive well separated seeds from the base seed
 ULong64_t mixSeed(ULong64_t x)
 {
@@ -115,7 +106,7 @@ void Digitizer::setSectorSeedingFrom(Digitizer& other)
 
 void Digitizer::init()
 {
-  std::lock_guard<std::mutex> lock(calibrationMutex());
+  const auto& calib = calibrations();
   if (mUseSectorSeeding) {
     initSectorSeeding();
     const ULong64_t sectorSeed = mixSeed(mSeed ^ mixSeed(static_cast<ULong64_t>(mSector) + 1));
@@ -124,14 +115,19 @@ void Digitizer::init()
     mElectronTransport->setRandomRingPositions(rng);
     mSAMPAProcessing->setRandomRingPositions(rng);
   }
-  auto& gemAmplification = this->gemAmplification();
-  gemAmplification.updateParameters();
-  auto& electronTransport = this->electronTransport();
-  electronTransport.updateParameters(mVDrift);
-  auto& sampaProcessing = this->sampaProcessing();
-  // the calibration update may reload FEE parameters from file, so SAMPAProcessing picks up its pointers afterwards
-  mDigitContainer.updateCalibrations();
-  sampaProcessing.updateParameters(mVDrift);
+  gemAmplification().updateParameters(calib);
+  electronTransport().updateParameters(mVDrift);
+  mDigitContainer.updateCalibrations(mCalibrations);
+  sampaProcessing().updateParameters(mVDrift, calib);
+}
+
+const DigitizerCalibrations& Digitizer::calibrations()
+{
+  if (!mCalibrations) {
+    // a digitizer used on its own; with several threads the caller sets one snapshot for all
+    mCalibrations = DigitizerCalibrations::fetch();
+  }
+  return *mCalibrations;
 }
 
 void Digitizer::process(const std::vector<o2::tpc::HitGroup>& hits,
@@ -316,10 +312,7 @@ void Digitizer::setStartTime(double time)
   // note that negative times w.r.t start of timeframe/data-taking == mOutputDigitTimeOffset
   // will yield the 0-th bin (due to casting logic in sampaProcessing)
   SAMPAProcessing& sampaProcessing = this->sampaProcessing();
-  {
-    std::lock_guard<std::mutex> lock(calibrationMutex());
-    sampaProcessing.updateParameters(mVDrift);
-  }
+  sampaProcessing.updateParameters(mVDrift, calibrations());
   const auto timediff = time - mOutputDigitTimeOffset;
   const auto starttimebin = sampaProcessing.getTimeBinFromTime(timediff);
   mDigitContainer.setStartTime(starttimebin);

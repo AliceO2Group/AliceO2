@@ -20,6 +20,7 @@
 
 #include "TPCBase/PadPos.h"
 #include "TPCBase/CalDet.h"
+#include "TPCSimulation/DigitizerCalibrations.h"
 #include "TPCBase/CRU.h"
 #include "MathUtils/RandomRing.h"
 #include "TPCBase/ParameterDetector.h"
@@ -57,6 +58,9 @@ class SAMPAProcessing
 
   /// Update the OCDB parameters cached in the class. To be called once per event
   void updateParameters(float vdrift = 0);
+
+  /// Update the parameters cached in the class, with the maps from the calibration snapshot
+  void updateParameters(float vdrift, const DigitizerCalibrations& calib);
 
   /// Conversion from a given number of electrons into ADC value without taking into account saturation (vectorized)
   /// \param nElectrons Number of electrons in time bin

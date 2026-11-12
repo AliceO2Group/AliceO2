@@ -124,11 +124,14 @@ class TPCDPLDigitizerMTTask : public o2::base::BaseDPLDigitizer
     LOG(info) << "Processing multithreaded TPC digitization";
 
     auto& primary = mWorkers[0]->digitizer;
-    if (auto vdrift = mConditions.update(pc, primary)) {
-      for (auto& worker : mWorkers) {
+    const auto vdrift = mConditions.update(pc, primary);
+    for (auto& worker : mWorkers) {
+      if (vdrift) {
         worker->digitizer.setVDrift(vdrift->vdrift);
         worker->digitizer.setTDriftOffset(vdrift->tdriftOffset);
       }
+      // the workers only read the calibrations, which update() fetched in this thread
+      worker->digitizer.setCalibrations(mConditions.calibrations());
     }
     if (mDistortionType) {
       for (size_t i = 1; i < mWorkers.size(); ++i) {

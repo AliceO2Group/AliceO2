@@ -23,6 +23,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "TPCSimulation/CommonMode.h"
+#include "TPCSimulation/DigitizerCalibrations.h"
 #include "TPCCalibration/VDriftHelper.h"
 #include "Framework/ConcreteDataMatcher.h"
 #include "Framework/ConfigParamSpec.h"
@@ -112,9 +113,12 @@ class TPCDigitizerConditions
   /// fetch the conditions of a timeframe and prepare the digitizer, which then holds the distortions
   /// \return the drift velocity and time offset if they changed
   std::optional<VDrift> update(framework::ProcessingContext& pc, Digitizer& digitizer);
+  /// the calibration snapshot of the timeframe, read by update() and shared read-only by the digitizers
+  const std::shared_ptr<const DigitizerCalibrations>& calibrations() const { return mCalibrations; }
 
  private:
   VDriftHelper mVDriftHelper{};
+  std::shared_ptr<const DigitizerCalibrations> mCalibrations;
   int mDistortionType = 0;
   bool mUseCalibrationsFromCCDB = false;
   bool mRecalcDistortions = false;
