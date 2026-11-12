@@ -13,7 +13,6 @@
 /// \author David Rohr, Sergey Gorbunov
 
 #define GPUCA_CADEBUG 0
-#define DEBUG_SINGLE_TRACK -1
 // #define DEBUG_REBUILD_MC
 
 #include "GPUTPCDef.h"
@@ -41,6 +40,7 @@
 #include <string>
 #include <cstring>
 #include "AliHLTTPCClusterMCData.h"
+static thread_local bool CADEBUG_CONDITION = true;
 #endif
 
 #ifndef GPUCA_GPUCODE
@@ -873,7 +873,7 @@ GPUd() int32_t GPUTPCGMTrackParam::MergeDoubleRowClusters(int32_t& ihit, int32_t
     const float kFactor = merger.GetConstantMem()->tpcTrackers[0].GetChiSeedFactor() * 4.f;
     maxDistY2 = (maxDistY2 + mC[0]) * kFactor;
     maxDistZ2 = (maxDistZ2 + mC[2]) * kFactor;
-    auto chkFunction = [clusters, markReject, maxDistY2, maxDistZ2, projY, projZ, noReject CADEBUG(, this)](int32_t ih, float y, float z) {
+    auto chkFunction = [clusters, markReject, maxDistY2, maxDistZ2, projY, projZ, noReject CADEBUG3(, this)](int32_t ih, float y, float z) {
       float dy = y - projY;
       float dz = z - projZ;
       if (!noReject && (dy * dy > maxDistY2 || dz * dz > maxDistZ2)) {
@@ -1338,7 +1338,7 @@ GPUdii() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& GPUrestrict() 
     return;
   }
 
-  CADEBUG(if (DEBUG_SINGLE_TRACK != -1) { static const std::set<int32_t> dbgTracks = []() { std::set<int32_t> m; if (const char* e = DEBUG_SINGLE_TRACK == -2 ? getenv("DEBUG_TRACK") : nullptr) { std::string s(e); for (char* t = strtok(s.data(), ";, \n\t"); t; t = strtok(nullptr, ";, \n\t")) { m.insert(atoi(t)); } } else { m.insert(DEBUG_SINGLE_TRACK); } return m; }(); if (!dbgTracks.count(iTrk)) { track.SetNClusters(0); track.SetOK(0); return; } });
+  CADEBUG3(if (GPUCA_CADEBUG_ENABLED >= 2) { static const std::set<int32_t> dbgTracks = []() { std::set<int32_t> m; if (const char* e = getenv("DEBUG_TRACK")) { std::string s(e); for (char* t = strtok(s.data(), ";, \n\t"); t; t = strtok(nullptr, ";, \n\t")) { m.insert(atoi(t)); } } return m; }(); CADEBUG_CONDITION = dbgTracks.count(iTrk); });
 
   int32_t nTrackHits = track.NClusters();
   int32_t NTolerated = 0; // Clusters not fit but tollerated for track length cut
