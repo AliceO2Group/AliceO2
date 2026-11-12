@@ -62,7 +62,7 @@ void* extractFromTFile(TFile& file, TClass const* cl, const char* what)
   auto result = object;
   // We need to handle some specific cases as ROOT ties them deeply
   // to the file they are contained in
-  if (cl->InheritsFrom("TObject")) {
+  if (cl->IsTObject()) {
     // make a clone
     // detach from the file
     auto tree = dynamic_cast<TTree*>((TObject*)object);
