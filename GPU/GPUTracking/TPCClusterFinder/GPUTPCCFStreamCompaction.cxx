@@ -36,7 +36,7 @@ GPUdii() void GPUTPCCFStreamCompaction::Thread<GPUTPCCFStreamCompaction::scanSta
     pred = predicate[iThreadGlobal];
   }
 
-  int32_t nElemsInBlock = CfUtils::blockPredicateSum<GPUCA_PAR_CF_SCAN_WORKGROUP_SIZE>(smem, pred);
+  int32_t nElemsInBlock = CfUtils::blockPredicateSum<GPUCA_PAR_CF_SCAN_WORKGROUP_SIZE>(smem, pred GPUCA_THREAD_INFO_PROVIDE);
 
   int32_t lastThread = nThreads - 1;
   if (iThread == lastThread) {
@@ -115,7 +115,7 @@ GPUdii() void GPUTPCCFStreamCompaction::Thread<GPUTPCCFStreamCompaction::compact
   bool iAmDummy = (iThreadGlobal >= nElems);
 
   int32_t pred = (iAmDummy) ? 0 : predicate[iThreadGlobal];
-  int32_t offsetInBlock = CfUtils::blockPredicateScan<GPUCA_PAR_CF_SCAN_WORKGROUP_SIZE>(smem, pred);
+  int32_t offsetInBlock = CfUtils::blockPredicateScan<GPUCA_PAR_CF_SCAN_WORKGROUP_SIZE>(smem, pred, nullptr GPUCA_THREAD_INFO_PROVIDE);
 
   SizeT globalOffsetOut = offsetInBlock;
   if (iBlock > 0) {
