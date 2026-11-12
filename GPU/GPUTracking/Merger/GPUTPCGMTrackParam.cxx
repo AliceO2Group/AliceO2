@@ -81,6 +81,10 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
 
   const int32_t nWays = param.rec.tpc.nWays;
   const int32_t maxN = N;
+  if (rebuilt && maxN > 0 && param.par.continuousTracking && !track.CCE() && !track.Looper()) { // The rebuilt track can have other first / last clusters than the track the Z shift was computed for
+    const float t0 = merger.GetConstantMem()->ioPtrs.clustersNative->clustersLinear[clusters[0].num].getTime(), tN = merger.GetConstantMem()->ioPtrs.clustersNative->clustersLinear[clusters[maxN - 1].num].getTime();
+    ConstrainZ(merger, clusters[0].sector, CAMath::Max(t0, tN), CAMath::Min(t0, tN));
+  }
   int32_t ihitStart = 0;
   int32_t interpolatedStart = 0;
   float covYYUpd = 0.f;
@@ -1327,28 +1331,29 @@ GPUd() float GPUTPCGMTrackParam::ShiftZ(const GPUTPCGMMerger& GPUrestrict() merg
     merger.GetConstantMem()->calibObjects.fastTransform->TransformIdealZ(sector, cltmax, basez, mTOffset);
     deltaZ = basez - refZ;
   }
-  {
-    float deltaT = merger.GetConstantMem()->calibObjects.fastTransform->convDeltaZtoDeltaTimeInTimeFrame(sector, deltaZ);
-    mTOffset += deltaT;
-    const float maxT = cltmin - merger.GetConstantMem()->calibObjects.fastTransform->getT0();
-    const float minT = cltmax - merger.GetConstantMem()->calibObjects.fastTransform->getMaxDriftTime(sector);
-    // printf("T Check: Clusters %f %f, min %f max %f vtx %f\n", tz1, tz2, minT, maxT, mTOffset);
-    deltaT = 0.f;
-    if (mTOffset < minT) {
-      deltaT = minT - mTOffset;
-    }
-    if (mTOffset + deltaT > maxT) {
-      deltaT = maxT - mTOffset;
-    }
-    if (deltaT != 0.f) {
-      deltaZ += merger.GetConstantMem()->calibObjects.fastTransform->convDeltaTimeToDeltaZinTimeFrame(sector, deltaT);
-      // printf("Moving clusters to TPC Range: QPt %f, New mTOffset %f, t1 %f, t2 %f, Shift %f in Z: %f to %f --> %f to %f in T\n", mP[4], mTOffset + deltaT, tz1, tz2, deltaZ, tz2 - mTOffset, tz1 - mTOffset, tz2 - mTOffset - deltaT, tz1 - mTOffset - deltaT);
-      mTOffset += deltaT;
-    }
-    mP[1] -= deltaZ;
+  mTOffset += merger.GetConstantMem()->calibObjects.fastTransform->convDeltaZtoDeltaTimeInTimeFrame(sector, deltaZ);
+  return -ConstrainZ(merger, sector, cltmax, cltmin, deltaZ);
+}
+
+GPUd() float GPUTPCGMTrackParam::ConstrainZ(const GPUTPCGMMerger& GPUrestrict() merger, uint32_t sector, float cltmax, float cltmin, float deltaZ)
+{
+  const float maxT = cltmin - merger.GetConstantMem()->calibObjects.fastTransform->getT0();
+  const float minT = cltmax - merger.GetConstantMem()->calibObjects.fastTransform->getMaxDriftTime(sector);
+  // printf("T Check: Clusters %f %f, min %f max %f vtx %f\n", tz1, tz2, minT, maxT, mTOffset);
+  float deltaT = 0.f;
+  if (mTOffset < minT) {
+    deltaT = minT - mTOffset;
   }
-  // printf("\n");
-  return -deltaZ;
+  if (mTOffset + deltaT > maxT) {
+    deltaT = maxT - mTOffset;
+  }
+  if (deltaT != 0.f) {
+    deltaZ += merger.GetConstantMem()->calibObjects.fastTransform->convDeltaTimeToDeltaZinTimeFrame(sector, deltaT);
+    // printf("Moving clusters to TPC Range: QPt %f, New mTOffset %f, t1 %f, t2 %f, Shift %f in Z: %f to %f --> %f to %f in T\n", mP[4], mTOffset + deltaT, tz1, tz2, deltaZ, tz2 - mTOffset, tz1 - mTOffset, tz2 - mTOffset - deltaT, tz1 - mTOffset - deltaT);
+    mTOffset += deltaT;
+  }
+  mP[1] -= deltaZ;
+  return deltaZ;
 }
 
 GPUd() bool GPUTPCGMTrackParam::CheckCov() const
