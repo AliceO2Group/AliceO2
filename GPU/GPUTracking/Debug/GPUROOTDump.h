@@ -79,7 +79,7 @@ class GPUROOTDump<T, Args...> : public GPUROOTDump<Args...>
   void FillInternal(const T& o, const Args&... args)
   {
     mObj = o;
-    GPUROOTDump<Args...>::Fill(args...);
+    GPUROOTDump<Args...>::FillInternal(args...);
   }
 
   using GPUROOTDump<Args...>::mTree;
@@ -101,7 +101,7 @@ class GPUROOTDump<> : public GPUROOTDumpBase
   void write() override { mTree->Write(); }
 
  protected:
-  void Fill()
+  void FillInternal()
   {
     mTree->Fill();
   }
