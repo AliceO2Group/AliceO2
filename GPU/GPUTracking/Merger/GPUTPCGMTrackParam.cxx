@@ -302,7 +302,10 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
       uint8_t lastGoodRow = lastPropagateRow, lastExtrapolateRow = lastPropagateRow, lastFoundRow = lastPropagateRow;
       uint8_t consecGoodRows = ihitStart == ((iWay & 1) ? 0 : maxN - 1) ? param.rec.tpc.rebuildTrackExtrMinConsecGoodRows : 0, consecGoodRowsMissing = 0, segmentRows = 0; // Continue the track directly only if its last hit was accepted in the fit
       float segmentStartChi2 = mChi2;
-      const float qPtStart = mP[4];
+      const float qPtStart = mP[4], alphaStart = prop.GetAlpha();
+      const GPUTPCGMTrackParam paramStart = *this; // To revert to if the extrapolation fails
+      float lastFoundX = 0.f, lastFoundAlpha = 0.f;
+      bool revert = false;
       prop.SetTrack(this, prop.GetAlpha());
       uint32_t iExtrapolatedRow = lastPropagateRow + up;
       for (; iExtrapolatedRow < GPUTPCGeometry::NROWS; iExtrapolatedRow += up) { // uint8_t implies > 0! // TODO: Try to reduce some variables to int8/uint8 to save registers
@@ -310,12 +313,12 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
         for (int32_t iAttempt = 0; iAttempt < 2; iAttempt++) {
           float tmpX, tmpY, tmpZ;
           if (prop.GetPropagatedYZ(GPUTPCGeometry::Row2X(iExtrapolatedRow), tmpY, tmpZ)) {
-            fail = true;
+            fail = revert = true;
             break;
           }
           merger.GetConstantMem()->calibObjects.fastTransform->InverseTransformYZtoX(sector, iExtrapolatedRow, tmpY, tmpZ, tmpX);
           if (prop.PropagateToXAlpha(tmpX, param.Alpha(sector), inFlyDirection)) {
-            fail = true;
+            fail = revert = true;
             break;
           }
           if (CAMath::Abs(mP[2]) > maxSinForUpdate || CAMath::Abs(prop.GetSinPhi0()) >= maxSinForUpdate || mC[0] >= param.rec.tpc.rebuildTrackMaxNonIntCov || mC[2] >= param.rec.tpc.rebuildTrackMaxNonIntCov) { // No further clusters can be attached to the fit
@@ -338,7 +341,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
               }
             }
             if (prop.RotateToAlpha(param.Alpha(sector))) { // GetPropagatedYZ / InverseTransformYZtoX of the next attempt need Y in the frame of the new sector
-              fail = true;
+              fail = revert = true;
               break;
             }
           }
@@ -365,6 +368,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
           merger.GetConstantMem()->calibObjects.fastTransform->Transform(sector, iExtrapolatedRow, cl.getPad(), cl.getTime(), xx, yy, zz, mTOffset);
           if (prop.PropagateToXAlpha(xx, prop.GetAlpha(), inFlyDirection)) {
             candidate.best = -1;
+            revert = true;
             break;
           }
           const float time = merger.GetConstantMem()->ioPtrs.clustersNative ? cl.getTime() : -1.f; // TODO: When is it possible that we do not have clusterNative?
@@ -383,11 +387,13 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
           CADEBUG(printf("\tExtrapol. Sec %2d Row %3d Fit     Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f), DzDs %5.2f %16s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f   -   FErr %d\n", sector, iExtrapolatedRow, prop.GetAlpha(), mX, mP[0], mP[1], mP[4], prop.GetQPt0(), mP[2], prop.GetSinPhi0(), mP[3], "", sqrtf(mC[0]), sqrtf(mC[2]), sqrtf(mC[5]), sqrtf(mC[14]), mC[10], retValUpd));
           if (retValUpd == 0 && param.rec.tpc.rebuildTrackMaxQPtDrift > 0 && CAMath::Abs(mP[4] - qPtStart) > param.rec.tpc.rebuildTrackMaxQPtDrift * CAMath::Max(1.f, CAMath::Abs(qPtStart))) { // Track changed too much, probably following something else
             candidate.best = -1;
+            revert = true; // The rejected cluster is already in the fit
             break;
           }
           if (retValUpd != 0) {
             candidate.best = -1;
             if (retValUpd < GPUTPCGMPropagator::updateErrorClusterRejected) {
+              revert = true;
               break;
             }
             found = false; // Cluster rejected by chi2, handle as missing row
@@ -397,6 +403,8 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
         }
         if (found) {
           lastFoundRow = iExtrapolatedRow;
+          lastFoundX = mX;
+          lastFoundAlpha = prop.GetAlpha();
           if (++consecGoodRows >= param.rec.tpc.rebuildTrackExtrMinConsecGoodRows) {
             if (param.rec.tpc.rebuildTrackExtrMaxAvgChi2 <= 0 || mChi2 - segmentStartChi2 <= param.rec.tpc.rebuildTrackExtrMaxAvgChi2 * segmentRows) {
               lastGoodRow = iExtrapolatedRow; // TODO: Could optionally store the track state here, and revert to the good state in case we reject further clusters
@@ -434,6 +442,11 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
       if (finalOutInFit && !(param.rec.tpc.disableMarkAdjacent & 4) && iExtrapolatedRow < GPUTPCGeometry::NROWS) { // Continue the looper following from where the extrapolation stopped
         StoreLoopPropagation(merger, sector, iExtrapolatedRow, iTrk, up == 1, prop.GetAlpha());
         CADEBUG(printf("\t\tSTORING %d extrapolated row %d sector %d out %d\n", iTrk, (int)iExtrapolatedRow, sector, up == 1));
+      }
+      const int32_t rowsMoved = CAMath::Abs((int32_t)(iExtrapolatedRow < GPUTPCGeometry::NROWS ? iExtrapolatedRow : iExtrapolatedRow - up) - (int32_t)lastGoodRow);
+      if (revert || lastGoodRow == lastPropagateRow || lastFoundRow != lastGoodRow || (iWay == nWays - 3 && sector != lastSector) || rowsMoved > param.rec.tpc.rebuildTrackExtrMaxRowsBack || (rowsMoved && prop.PropagateToXAlpha(lastFoundX, lastFoundAlpha, !inFlyDirection))) { // Failure, nothing accepted, rejected clusters in the fit, sector changed before the next way goes back, or too far from the last accepted cluster to go back to it
+        *this = paramStart;
+        prop.SetTrack(this, alphaStart);
       }
     } else if (finalOutInFit && !(param.rec.tpc.disableMarkAdjacent & 4) && lastUpdateRow != 255 && !retryAttempt) {
       StoreLoopPropagation(merger, lastSector, lastUpdateRow, iTrk, lastUpdateRow > clusters[(iWay & 1) ? (maxN - 1) : 0].row, prop.GetAlpha());
