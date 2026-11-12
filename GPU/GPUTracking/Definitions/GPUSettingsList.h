@@ -102,6 +102,7 @@ AddOptionRTC(rejectEdgeClustersMargin, float, 0.f, "", 0, "Margin in cm of Y pos
 AddOptionRTC(rejectEdgeClustersSigmaMargin, float, 0.f, "", 0, "Margin factor for trackSigmaY when rejecting edge clusters based on uncorrected track Y")
 AddOptionRTC(trackletMaxSharedFraction, float, 0.1f, "", 0, "Max fraction of shared clusters for tracklet")
 AddOptionRTC(trackletMinSharedNormFactor, float, 0.f, "", 0, "Max shared defined as trackletMinSharedNormFactor*max(current_nhits,trackletMinSharedNormFactor*minHits,1)")
+AddOptionRTC(trackFitMinHitsMaxQPtIncrease, float, 0.2f, "", 0, "For the QPt-dependent minimum number of hits of the track fit, abs(QPt) is increased by 1 sigma, but at most by this fraction (0 = use fitted QPt)")
 AddOptionRTC(rebuildTrackMaxSharedFraction, float, 0.1f, "", 0, "Max fraction of shared clusters for rebuilt tracks")
 AddOptionRTC(rebuildTrackMaxNonIntCov, float, 4.f, "", 0, "Max Err2 allowed for non-interpolated cluster attachment during rebuild")
 AddOptionRTC(rebuildErrorWeightFactor, float, 5.f, "", 0, "Factor for the error (distance^2) of a cluster candidate in its hit weight 1 / (1 + factor * error) during rebuild")
