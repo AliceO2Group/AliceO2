@@ -18,7 +18,8 @@
 namespace o2::fdd
 {
 struct FDDRecoConfig : o2::conf::ConfigurableParamHelper<FDDRecoConfig> {
-  enum DetectorSide {SideA = 0, SideC = 1}
+  enum DetectorSide { SideA = 0,
+                      SideC = 1 };
   int16_t ChannelAmplitudeUpper[2] = {4096, 4096};
   int16_t ChannelAmplitudeLower[2] = {6, 0};
 
@@ -39,7 +40,7 @@ struct FDDRecoConfig : o2::conf::ConfigurableParamHelper<FDDRecoConfig> {
     return (flags & TriggerBitsValidationMask) == TriggerBitsValid;
   }
 
-  int16_t CollisionTimeAmpltudeUpper[2]= {4096, 4096};
+  int16_t CollisionTimeAmpltudeUpper[2] = {4096, 4096};
   int16_t CollisionTimeAmplitudeLower[2] = {6, 0};
   int16_t CollisionTimeTimeLower = -500;
   int16_t CollisionTimeTimeUpper = 500;

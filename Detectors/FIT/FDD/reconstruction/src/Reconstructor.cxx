@@ -53,7 +53,8 @@ void Reconstructor::process(o2::fdd::Digit const& digitBC, gsl::span<const o2::f
       LOG(debug) << "Channel " << channelData.mPMNumber << " is dead - discarding data";
       continue;
     }
-    if (!isInAmplitudeWindow(channelData.mChargeADC) || !isInTimeWindow(channelData.mTime) || !isChannelDataGood(channelData.mFEEBits)) {
+    const auto side = channelData.mPMNumber >= sSideAStartId ? FDDRecoConfig::SideA : FDDRecoConfig::SideC;
+    if (!isInAmplitudeWindow(channelData.mChargeADC, side) || !isInTimeWindow(channelData.mTime) || !isChannelDataGood(channelData.mFEEBits)) {
       continue;
     }
     const auto& chNum = channelData.mPMNumber;
@@ -63,7 +64,7 @@ void Reconstructor::process(o2::fdd::Digit const& digitBC, gsl::span<const o2::f
     storedEntries++;
 
     if (FDDRecoConfig::Instance().SwTriggerEnabled) {
-      coincidencePairsOrTrg[chNum] |= checkSwOrGateConditions(channelData);
+      coincidencePairsOrTrg[chNum] |= checkSwOrGateConditions(channelData, side);
       coincidencePairsTime[chNum] = channelData.mTime;
       if (FDDRecoConfig::Instance().SwTriggerCoincidenceMode && coincidencePairsOrTrg[chNum] && coincidencePairsOrTrg[coincidencePairs[chNum]]) {
         if (chNum >= sSideAStartId) {
@@ -88,7 +89,7 @@ void Reconstructor::process(o2::fdd::Digit const& digitBC, gsl::span<const o2::f
       }
     }
 
-    if (!isChannelDataGoodForCollisionTime(channelData.mFEEBits) || !isInCollisionTimeAmplitudeWindow(channelData.mChargeADC) || !isInCollisionTimeTimeWindow(channelData.mTime)) {
+    if (!isChannelDataGoodForCollisionTime(channelData.mFEEBits) || !isInCollisionTimeAmplitudeWindow(channelData.mChargeADC, side) || !isInCollisionTimeTimeWindow(channelData.mTime)) {
       continue;
     }
 
