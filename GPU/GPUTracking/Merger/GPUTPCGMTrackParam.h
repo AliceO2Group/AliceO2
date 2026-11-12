@@ -203,6 +203,7 @@ class GPUTPCGMTrackParam
   GPUd() void Rotate(float alpha);
   GPUd() float ShiftZ(const GPUTPCGMMerger& merger, uint32_t sector, float cltmax, float cltmin, float clx);
   GPUd() float ShiftZ(const GPUTPCGMMergedTrackHit* clusters, const GPUTPCGMMerger& merger, int32_t N);
+  GPUd() float ConstrainZ(const GPUTPCGMMerger& merger, uint32_t sector, float cltmax, float cltmin, float deltaZ = 0.f); // Shift Z / TOffset such that the clusters are within the TPC drift volume, applies in addition the pending shift deltaZ to Z, returns the total shift
 
   GPUd() static float Reciprocal(float x) { return 1.f / x; }
   GPUdi() static void Assign(float& x, bool mask, float v)
