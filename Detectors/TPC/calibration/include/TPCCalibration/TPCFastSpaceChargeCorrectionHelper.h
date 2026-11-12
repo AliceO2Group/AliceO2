@@ -73,6 +73,24 @@ class TPCFastSpaceChargeCorrectionHelper
   /// get the number of threads
   int getNthreads() const { return mNthreads; }
 
+  /// sets the y/x spline knots of createFromTrackResiduals, in the coordinate of the voxel binning (y/x scaled to -1..1, as the
+  /// bin boundaries of TrackResiduals::setY2XBinning). The spline of a row spans its first to its last voxel bin centre: those two are
+  /// always knots, knots outside them are dropped, as are knots closer than half the narrowest voxel bin to their neighbouring knot.
+  /// Empty (default): a knot at every second voxel bin, counted from both ends.
+  void setY2XKnots(const std::vector<double>& knots) { mY2XKnots = knots; }
+
+  /// get the y/x spline knots of createFromTrackResiduals (empty: the default knots)
+  const std::vector<double>& getY2XKnots() const { return mY2XKnots; }
+
+  /// sets the z/x spline knots of createFromTrackResiduals, in the coordinate of the voxel binning (z/x scaled to 0..1, i.e. z/x divided by
+  /// SpacePointsCalibConfParam::maxZ2X, as the bin boundaries of TrackResiduals::setZ2XBinning). As for y/x, the first and the last voxel
+  /// bin centre are always knots, knots outside them are dropped, as are knots closer than half the narrowest voxel bin to their
+  /// neighbouring knot. Empty (default): a knot at every second voxel bin, counted from both ends.
+  void setZ2XKnots(const std::vector<double>& knots) { mZ2XKnots = knots; }
+
+  /// get the z/x spline knots of createFromTrackResiduals (empty: the default knots)
+  const std::vector<double>& getZ2XKnots() const { return mZ2XKnots; }
+
   /// _______________  Main functionality  ________________________
 
   /// creates TPCFastSpaceChargeCorrection object from a continious space charge correction in local coordinates
@@ -183,6 +201,8 @@ class TPCFastSpaceChargeCorrectionHelper
   static TPCFastSpaceChargeCorrectionHelper* sInstance; ///< singleton instance
   bool mIsInitialized = 0;                              ///< initialization flag
   int mNthreads = 1;                                    ///< n of threads to use
+  std::vector<double> mY2XKnots;                        ///< y/x spline knots of createFromTrackResiduals (empty: the default)
+  std::vector<double> mZ2XKnots;                        ///< z/x spline knots of createFromTrackResiduals (empty: the default)
   TPCFastTransformGeo mGeo;                             ///< geometry parameters
 
   TPCFastSpaceChargeCorrectionMap mCorrectionMap{0, 0};
