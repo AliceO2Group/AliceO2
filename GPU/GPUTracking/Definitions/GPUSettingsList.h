@@ -183,6 +183,7 @@ AddOptionRTC(tubeExtraProtectEdgePads, uint8_t, 2, "", 0, "Increase Protection, 
 AddOptionRTC(rebuildTrackExtrMaxMissingRows, uint8_t, 20, "", 0, "Maximum total number of rows allowed to be missing during track extrapolation")
 AddOptionRTC(rebuildTrackExtrMinConsecGoodRows, uint8_t, 8, "", 0, "Minimum number of consecutive rows required to accept extrapolated segment")
 AddOptionRTC(rebuildTrackExtrMinConsecGoodRowsEdge, uint8_t, 3, "", 0, "Minimum number of consecutive rows required to accept extrapolated segment")
+AddOptionRTC(rebuildTrackExtrMaxRowsBack, uint8_t, 3, "", 0, "After the track extrapolation, propagate the track back to the last accepted cluster if it is at most this number of rows away, otherwise revert to the track before the extrapolation")
 AddOptionRTC(rebuildTrackExtrConsecGoodRowsMaxGap, uint8_t, 1, "", 0, "Max row gap size to consider the segment as consecutive rows")
 AddOptionRTC(rebuildTrackCandidateErrChi2, uint8_t, 0, "", 0, "Rank cluster candidates during rebuild by chi2 instead of distance^2 (rebuildTrackAltCandidateGoodErr is then in units of chi2)")
 AddOptionRTC(rebuildTrackNonIntMinNDF, uint8_t, 10, "", 0, "NDF the track must exceed for non-interpolated cluster attachment (one-sided search and extrapolation) during rebuild")
