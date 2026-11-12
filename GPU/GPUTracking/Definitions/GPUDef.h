@@ -70,10 +70,23 @@
   #ifdef CADEBUG
     #undef CADEBUG
   #endif
-  #if GPUCA_CADEBUG == 1 && !defined(GPUCA_GPUCODE)
-    #define CADEBUG(...) __VA_ARGS__
-    #define CADEBUG2(cmd, ...) {__VA_ARGS__; cmd;}
-    #define GPUCA_CADEBUG_ENABLED
+  #ifdef CADEBUG2
+    #undef CADEBUG2
+  #endif
+  #ifdef CADEBUG3
+    #undef CADEBUG3
+  #endif
+  #if GPUCA_CADEBUG >= 1 && !defined(GPUCA_GPUCODE)
+    #if GPUCA_CADEBUG >= 2
+      #define CADEBUG(...) if (CADEBUG_CONDITION) {__VA_ARGS__;}
+      #define CADEBUG2(cmd, ...) if (CADEBUG_CONDITION) {__VA_ARGS__; cmd;}
+      #define GPUCA_CADEBUG_ENABLED 2
+    #else
+      #define CADEBUG(...) __VA_ARGS__
+      #define CADEBUG2(cmd, ...) {__VA_ARGS__; cmd;}
+      #define GPUCA_CADEBUG_ENABLED 1
+    #endif
+    #define CADEBUG3(...) __VA_ARGS__
   #endif
   #undef GPUCA_CADEBUG
 #endif
@@ -81,5 +94,6 @@
 #ifndef CADEBUG
   #define CADEBUG(...)
   #define CADEBUG2(cmd, ...) {cmd;}
+  #define CADEBUG3(...)
 #endif
 // clang-format on

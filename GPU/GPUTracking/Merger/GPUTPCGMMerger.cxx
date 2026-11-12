@@ -17,6 +17,7 @@
 // #define GPUCA_CADEBUG_ENABLED
 
 #include "GPUCommonDef.h"
+#include "GPUDef.h"
 
 #if !defined(GPUCA_GPUCODE) && (defined(GPUCA_MERGER_BY_MC_LABEL) || defined(GPUCA_CADEBUG_ENABLED) || GPUCA_MERGE_LOOPER_MC)
 #include "AliHLTTPCClusterMCData.h"
