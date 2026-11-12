@@ -18,8 +18,10 @@
 namespace o2::fdd
 {
 struct FDDRecoConfig : o2::conf::ConfigurableParamHelper<FDDRecoConfig> {
-  int16_t ChannelAmplitudeUpper = 4096;
-  int16_t ChannelAmplitudeLower = 0;
+  enum DetectorSide {SideA = 0, SideC = 1}
+  int16_t ChannelAmplitudeUpper[2] = {4096, 4096};
+  int16_t ChannelAmplitudeLower[2] = {6, 0};
+
   int16_t ChannelTimeLower = -2050;
   int16_t ChannelTimeUpper = 2050;
 
@@ -37,8 +39,8 @@ struct FDDRecoConfig : o2::conf::ConfigurableParamHelper<FDDRecoConfig> {
     return (flags & TriggerBitsValidationMask) == TriggerBitsValid;
   }
 
-  int16_t CollisionTimeAmpltudeUpper = 4096;
-  int16_t CollisionTimeAmplitudeLower = 0;
+  int16_t CollisionTimeAmpltudeUpper[2]= {4096, 4096};
+  int16_t CollisionTimeAmplitudeLower[2] = {6, 0};
   int16_t CollisionTimeTimeLower = -500;
   int16_t CollisionTimeTimeUpper = 500;
 
@@ -50,10 +52,8 @@ struct FDDRecoConfig : o2::conf::ConfigurableParamHelper<FDDRecoConfig> {
   }
 
   int16_t SwOrGate = 153;
-  int16_t SwOrTriggerAmplitudeLowThresholdSideA = 6;
-  int16_t SwOrTriggerAmplitudeLowThresholdSideC = 0;
-  int16_t SwOrTriggerAmplitudeHighThresholdSideA = 4095;
-  int16_t SwOrTriggerAmplitudeHighThresholdSideC = 4095;
+  int16_t SwOrTriggerAmplitudeLowThreshold[2] = {6, 0};
+  int16_t SwOrTriggerAmplitudeHighThreshold[2] = {4095, 4095};
   int16_t SwVtxTriggerTimeWindow = 100;
   bool SwTriggerCoincidenceMode = true;
   bool SwTriggerEnabled = false;
