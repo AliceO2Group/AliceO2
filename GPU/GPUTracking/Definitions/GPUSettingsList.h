@@ -106,6 +106,8 @@ AddOptionRTC(trackFitMinHitsMaxQPtIncrease, float, 0.2f, "", 0, "For the QPt-dep
 AddOptionRTC(rebuildTrackMaxSharedFraction, float, 0.1f, "", 0, "Max fraction of shared clusters for rebuilt tracks")
 AddOptionRTC(rebuildTrackMaxNonIntCov, float, 4.f, "", 0, "Max Err2 allowed for non-interpolated cluster attachment during rebuild")
 AddOptionRTC(rebuildErrorWeightFactor, float, 5.f, "", 0, "Factor for the error (distance^2) of a cluster candidate in its hit weight 1 / (1 + factor * error) during rebuild")
+AddOptionRTC(maxSinPhiForFitUpdate, float, 0.9396926f, "", 0, "Max abs(sinPhi) of the track to update it with a cluster in the track fit)") // default sin(70 deg = 0.9396926
+AddOptionRTC(rebuildTrackMaxQPtDrift, float, 0.5f, "", 0, "Stop the track extrapolation during rebuild when QPt changed by more than this fraction of max(1, abs(QPt)) compared to before the extrapolation (0 = disabled)")
 AddOptionRTC(rebuildTrackExtrMaxAvgChi2, float, 4.f, "", 0, "Max average chi2 per cluster to accept an extrapolated segment (0 = disabled)")
 AddOptionRTC(rebuildTrackFallbackErr, float, 1.f, "", 0, "Error (distance^2) assigned to the original clusters of a track used as fallback candidates in rows that could not be searched during rebuild")
 AddOptionRTC(rebuildTrackFallbackTrackChi2, float, 4.f, "", 0, "Chi2 per cluster assumed for the hit weight of tracks without successful fit (NDF <= 0) during rebuild")
