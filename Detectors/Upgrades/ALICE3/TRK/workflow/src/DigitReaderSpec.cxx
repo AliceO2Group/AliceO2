@@ -73,8 +73,8 @@ void DigitReader::run(ProcessingContext& pc)
     mTree->GetEntry(ent);
   }
 
-  static const std::vector<o2::trkft3::ROFRecord> noDigROFRec;
-  static const std::vector<o2::trkft3::Digit> noDigits;
+  static const std::vector<o2::itsmft::ROFRecord> noDigROFRec;
+  static const std::vector<o2::itsmft::Digit> noDigits;
   for (int iLayer = 0; iLayer < mLayers; ++iLayer) {
     const auto& digROFRec = noEntry ? noDigROFRec : *mDigROFRec[iLayer];
     const auto& digits = noEntry ? noDigits : *mDigits[iLayer];
