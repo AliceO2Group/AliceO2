@@ -186,6 +186,8 @@ AddOptionRTC(rebuildTrackExtrMinConsecGoodRowsEdge, uint8_t, 3, "", 0, "Minimum 
 AddOptionRTC(rebuildTrackExtrMaxRowsBack, uint8_t, 3, "", 0, "After the track extrapolation, propagate the track back to the last accepted cluster if it is at most this number of rows away, otherwise revert to the track before the extrapolation")
 AddOptionRTC(rebuildTrackExtrConsecGoodRowsMaxGap, uint8_t, 1, "", 0, "Max row gap size to consider the segment as consecutive rows")
 AddOptionRTC(rebuildTrackCandidateErrChi2, uint8_t, 0, "", 0, "Rank cluster candidates during rebuild by chi2 instead of distance^2 (rebuildTrackAltCandidateGoodErr is then in units of chi2)")
+AddOptionRTC(rebuildTrackMaxRowsFromEnd, uint8_t, 10, "", 0, "If the last fitted hit of the outward way of the rebuild is more than this number of rows away from the end of the track, the final fit starts from the original track parameters")
+AddOptionRTC(rebuildTrackFallbackMaxNCl, uint8_t, 20, "", 0, "For tracks with at most this number of clusters, keep the original cluster of a row as candidate during rebuild if no candidate was found but it passes the interpolated chi2 cut (0 = disabled)")
 AddOptionRTC(rebuildTrackNonIntMinNDF, uint8_t, 10, "", 0, "NDF the track must exceed for non-interpolated cluster attachment (one-sided search and extrapolation) during rebuild")
 AddOptionArray(PID_remap, int8_t, 9, (0, 1, 2, 3, 4, 5, 6, 7, 8), "", 0, "Remap Ipid to PID_reamp[Ipid] (no remap if<0)") // BUG: CUDA cannot yet handle AddOptionArrayRTC
 AddHelp("help", 'h')
