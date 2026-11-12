@@ -45,7 +45,6 @@
 #include "CommonDataFormat/RangeReference.h"
 #include "SimConfig/DigiParams.h"
 #include <TRandom.h>
-#include <filesystem>
 #include "Framework/CCDBParamSpec.h"
 
 using namespace o2::framework;
@@ -127,29 +126,18 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     // and set the flag to false after
     mWriteGRP = true;
 
-    // clean up (possibly) existing digit files
+    // the digit files are updated during processing and the merger reads every lane file in the directory,
+    // so each lane removes its own file of an earlier run and the first lane also those of lanes this run does not have
     if (mInternalWriter) {
-      cleanDigitFile();
-    }
-  }
-
-  void cleanDigitFile()
-  {
-    // since we update digit files during ordinary processing
-    // it is better to remove possibly existing files in the same dir
-    std::stringstream tmp;
-    tmp << "tpc_driftime_digits_lane" << mLaneId << ".root";
-    if (std::filesystem::exists(tmp.str())) {
-      std::filesystem::remove(tmp.str());
+      const int nLanes = ic.services().get<const o2::framework::DeviceSpec>().nSlots;
+      removeLaneDigitFiles([this, nLanes](int lane) { return lane == mLaneId || (mLaneId == 0 && lane >= nLanes); });
     }
   }
 
   void writeToROOTFile()
   {
     if (!mInternalROOTFlushFile) {
-      std::stringstream tmp;
-      tmp << "tpc_driftime_digits_lane" << mLaneId << ".root";
-      mInternalROOTFlushFile = new TFile(tmp.str().c_str(), "UPDATE");
+      mInternalROOTFlushFile = new TFile(laneDigitFileName(mLaneId).c_str(), "UPDATE");
       std::stringstream trname;
       trname << mSector;
       mInternalROOTFlushTTree = new TTree(trname.str().c_str(), "o2sim");
@@ -387,14 +375,12 @@ o2::framework::DataProcessorSpec getTPCDigitizerSpec(int channel, bool writeGRP,
   }
 
   std::vector<InputSpec> inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}};
-  auto options = TPCDigitizerConditions::options();
-  options.push_back({"tpc-sector-seeding", VariantType::Bool, false, {"Seed the random numbers of each sector from DigiParams.seed and the sector, so that the digits do not depend on the lane assignment"}});
   return DataProcessorSpec{
     id.str().c_str(),
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<TPCDPLDigitizerTask>(internalwriter, distortionType)},
-    options};
+    TPCDigitizerConditions::options()};
 }
 
 o2::framework::WorkflowSpec getTPCDigitizerSpec(int nLanes, std::vector<int> const& sectors, bool mctruth, bool internalwriter, int distortionType)

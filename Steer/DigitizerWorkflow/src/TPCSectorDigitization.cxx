@@ -30,6 +30,7 @@
 #include "Framework/InputRecord.h"
 #include "Framework/ProcessingContext.h"
 #include <filesystem>
+#include <regex>
 
 namespace o2::tpc
 {
@@ -128,10 +129,28 @@ std::vector<dataformats::RangeReference<int, int>> digitizeSector(Digitizer& dig
   return events;
 }
 
+std::string laneDigitFileName(int lane)
+{
+  return "tpc_driftime_digits_lane" + std::to_string(lane) + ".root";
+}
+
+void removeLaneDigitFiles(const std::function<bool(int)>& select)
+{
+  const std::regex pattern("tpc_driftime_digits_lane([0-9]+)\\.root");
+  for (const auto& entry : std::filesystem::directory_iterator(".")) {
+    const auto name = entry.path().filename().string();
+    std::smatch match;
+    if (std::regex_match(name, match, pattern) && select(std::stoi(match[1]))) {
+      std::filesystem::remove(entry.path());
+    }
+  }
+}
+
 std::vector<framework::ConfigParamSpec> TPCDigitizerConditions::options()
 {
   using framework::VariantType;
   return {
+    {"tpc-sector-seeding", VariantType::Bool, false, {"Seed the random numbers of each sector from DigiParams.seed and the sector, so that the digits do not depend on the lane assignment (always on with --tpc-digi-threads)"}},
     {"TPCtriggered", VariantType::Bool, false, {"Impose triggered RO mode (default: continuous)"}},
     {"TPCuseCCDB", VariantType::Bool, false, {"true: load calibrations from CCDB; false: use random calibratoins"}},
     {"meanLumiDistortions", VariantType::Float, -1.f, {"override lumi of distortion object if >=0"}},

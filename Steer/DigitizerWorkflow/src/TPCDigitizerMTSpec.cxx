@@ -29,7 +29,6 @@
 #include "SimulationDataFormat/DigitizationContext.h"
 #include "TPCSimulation/Digitizer.h"
 #include "CommonUtils/DebugStreamer.h"
-#include "CommonUtils/FileSystemUtils.h"
 #include <TChain.h>
 #include <TFile.h>
 #include <TROOT.h>
@@ -39,7 +38,6 @@
 #include <algorithm>
 #include <atomic>
 #include <exception>
-#include <filesystem>
 #include <memory>
 #include <optional>
 #include <string>
@@ -71,7 +69,7 @@ struct DigitizerWorker {
     }
   }
 
-  std::string fileName() const { return "tpc_driftime_digits_lane" + std::to_string(id) + ".root"; }
+  std::string fileName() const { return laneDigitFileName(id); }
 
   /// Digitize one sector and write it to the worker's digit file, in the format of the chunked writer of the lane spec
   void processSector(const steer::DigitizationContext& context, int sector, ULong64_t timeframe, bool withMCTruth)
@@ -136,9 +134,7 @@ class TPCDPLDigitizerMTTask : public o2::base::BaseDPLDigitizer
     }
 
     // the merger picks up every lane file in the directory, so files of an earlier run must not survive
-    for (const auto& name : o2::utils::listFiles("tpc_driftime_digits_lane.*.root$")) {
-      std::filesystem::remove(name);
-    }
+    removeLaneDigitFiles([](int) { return true; });
 
     ROOT::EnableThreadSafety();
   }

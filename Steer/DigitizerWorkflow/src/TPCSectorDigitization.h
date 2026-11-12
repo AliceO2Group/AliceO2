@@ -13,6 +13,7 @@
 #define STEER_DIGITIZERWORKFLOW_TPCSECTORDIGITIZATION_H_
 
 #include <functional>
+#include <string>
 #include <vector>
 #include <RtypesCore.h>
 #include "CommonDataFormat/RangeReference.h"
@@ -54,6 +55,12 @@ struct SectorFlushBuffers {
 std::vector<dataformats::RangeReference<int, int>> digitizeSector(Digitizer& digitizer, const steer::DigitizationContext& context,
                                                                   const std::vector<TChain*>& simChains, int sector, ULong64_t timeframe,
                                                                   SectorFlushBuffers& buffers, const std::function<void()>& onFlush);
+
+/// Name of the chunked digit file of a lane, which the chunked digit merger reads
+std::string laneDigitFileName(int lane);
+
+/// Remove the chunked digit files in the working directory whose lane passes the selection
+void removeLaneDigitFiles(const std::function<bool(int)>& select);
 
 /// CCDB conditions and calibration files of the TPC digitizer devices
 class TPCDigitizerConditions
