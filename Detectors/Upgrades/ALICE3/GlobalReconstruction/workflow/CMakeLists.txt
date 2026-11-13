@@ -27,6 +27,10 @@ o2_add_library(ALICE3GlobalReconstructionWorkflow
                                      O2::CommonUtils
                                      nlohmann_json::nlohmann_json)
 
+if(Acts_FOUND)
+  target_link_libraries(${targetName} PRIVATE O2::ALICE3ACTS)
+endif()
+
 if(CUDA_ENABLED OR HIP_ENABLED)
   target_compile_definitions(${targetName} PUBLIC TRK_HAS_GPU_TRACKING)
 endif()

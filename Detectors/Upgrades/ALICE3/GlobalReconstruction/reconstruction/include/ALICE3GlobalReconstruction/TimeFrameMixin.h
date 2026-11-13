@@ -71,11 +71,12 @@ class TimeFrameMixin : public Base
   void deriveAndInitTiming(const std::array<gsl::span<const o2::trkft3::ROFRecord>, nLayers>& layerROFs);
 
   const o2::InteractionRecord& getTFAnchorIR() const noexcept { return mTFAnchorIR; }
+  const auto& getClusterSensorIDs() const noexcept { return mClusterSensorIDs; }
 
  protected:
   void initTimingTables(const std::array<o2::its::LayerTiming, nLayers>& timings);
   void updateHostROFVertexLookupTable();
-
+  std::array<std::vector<int>, nLayers> mClusterSensorIDs;
   bool mTimingTablesInitialised{false};
   o2::InteractionRecord mTFAnchorIR{0, 0};
 };
@@ -205,6 +206,7 @@ int TimeFrameMixin<nLayers, Base>::loadROFsFromHitTree(TTree* hitsTree, Geometry
     this->mUnsortedClusters[iLayer].clear();
     this->mTrackingFrameInfo[iLayer].clear();
     this->mClusterExternalIndices[iLayer].clear();
+    mClusterSensorIDs[iLayer].clear();
     this->mClusterSize[iLayer].clear();
   }
 
@@ -228,6 +230,7 @@ int TimeFrameMixin<nLayers, Base>::loadROFsFromHitTree(TTree* hitsTree, Geometry
     this->mUnsortedClusters[iLayer].reserve(clusterCountPerLayer[iLayer]);
     this->mTrackingFrameInfo[iLayer].reserve(clusterCountPerLayer[iLayer]);
     this->mClusterExternalIndices[iLayer].reserve(clusterCountPerLayer[iLayer]);
+    mClusterSensorIDs[iLayer].reserve(clusterCountPerLayer[iLayer]);
     this->mClusterSize[iLayer].reserve(clusterCountPerLayer[iLayer]);
   }
 
@@ -294,6 +297,7 @@ int TimeFrameMixin<nLayers, Base>::loadROFsFromHitTree(TTree* hitsTree, Geometry
                                         std::array<float, 2>{trkXYZ.y(), trkXYZ.z()},
                                         std::array<float, 3>{resolution[layer] * resolution[layer], 0., resolution[layer] * resolution[layer]});
       this->addClusterToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), this->mUnsortedClusters[layer].size());
+      mClusterSensorIDs[layer].push_back(hit.GetDetectorID());
       const int layerHitCounter = hitCounterPerLayer[layer]++;
       this->addClusterExternalIndexToLayer(layer, layerHitCounter);
       this->mClusterSize[layer].push_back(1);
@@ -344,10 +348,12 @@ int TimeFrameMixin<nLayers, Base>::loadROFrameData(const std::array<gsl::span<co
     this->mUnsortedClusters[iLayer].clear();
     this->mTrackingFrameInfo[iLayer].clear();
     this->mClusterExternalIndices[iLayer].clear();
+    mClusterSensorIDs[iLayer].clear();
     this->mClusterSize[iLayer].clear();
     this->mUnsortedClusters[iLayer].reserve(layerClusters[iLayer].size());
     this->mTrackingFrameInfo[iLayer].reserve(layerClusters[iLayer].size());
     this->mClusterExternalIndices[iLayer].reserve(layerClusters[iLayer].size());
+    mClusterSensorIDs[iLayer].reserve(layerClusters[iLayer].size());
     this->mClusterSize[iLayer].reserve(layerClusters[iLayer].size());
   }
 
@@ -436,6 +442,7 @@ int TimeFrameMixin<nLayers, Base>::loadROFrameData(const std::array<gsl::span<co
                                           std::array<float, 2>{trkXYZ.y(), trkXYZ.z()},
                                           std::array<float, 3>{sigmaY2, 0.f, sigmaZ2});
         this->addClusterToLayer(iLayer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), this->mUnsortedClusters[iLayer].size());
+        mClusterSensorIDs[iLayer].push_back(c.chipID);
         this->addClusterExternalIndexToLayer(iLayer, clusterId);
         this->mClusterSize[iLayer].push_back(std::clamp(static_cast<unsigned int>(c.size), 0u, 255u));
       }
