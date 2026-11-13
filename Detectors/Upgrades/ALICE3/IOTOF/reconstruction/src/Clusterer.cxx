@@ -176,8 +176,8 @@ void Clusterer::ClustererThread::findClustersSingleHit(gsl::span<const Digit> di
   const uint16_t row = digit.getRow();
   const uint16_t col = digit.getColumn();
   //const time_t time = digit.getTime();
-  uint64_t nbc = digit.getBc();
-  float timeWrtBc = digit.getTdc() * digitizerParams.tdcBin;
+  const uint64_t nbc = digit.getBc();
+  const float timeWrtBc = digit.getTdc() * digitizerParams.tdcBin;
   const time_t time = timeWrtBc + nbc * o2::constants::lhc::LHCBunchSpacingNS;
 
   if (labelsClusPtr) {
@@ -275,8 +275,8 @@ void Clusterer::ClustererThread::findClustersMultipleHits(gsl::span<const Digit>
       const uint16_t row = digit.getRow();
       const uint16_t col = digit.getColumn();
       // const time_t time = digit.getTime();
-      uint64_t nbc = digit.getBc();
-      float timeWrtBc = digit.getTdc() * digitizerParams.tdcBin;
+      const uint64_t nbc = digit.getBc();
+      const float timeWrtBc = digit.getTdc() * digitizerParams.tdcBin;
       const time_t time = timeWrtBc + nbc * o2::constants::lhc::LHCBunchSpacingNS;
 
       if (labelsClusPtr) {
@@ -321,9 +321,7 @@ void Clusterer::ClustererThread::findClustersMultipleHits(gsl::span<const Digit>
         minCol = std::min(minCol, digit.getColumn());
         maxRow = std::max(maxRow, digit.getRow());
         maxCol = std::max(maxCol, digit.getColumn());
-        uint64_t nbc = digit.getBc();
-        float timeWrtBc = digit.getTdc() * digitizerParams.tdcBin;
-        const time_t time = timeWrtBc + nbc * o2::constants::lhc::LHCBunchSpacingNS;
+        const time_t time = digit.getTdc() * digitizerParams.tdcBin + digit.getBc() * o2::constants::lhc::LHCBunchSpacingNS;
         clsTime += time;
         fetchMCLabels(idx, labelsDigPtr, nMcLabels);
       }
@@ -331,8 +329,8 @@ void Clusterer::ClustererThread::findClustersMultipleHits(gsl::span<const Digit>
       const uint8_t rowSpan = maxRow - minRow + 1;
       const uint8_t colSpan = maxCol - minCol + 1;
 
-      uint64_t nbc = static_cast<uint64_t>(clsTime / o2::constants::lhc::LHCBunchSpacingNS);
-      float timeWrtBc = clsTime - nbc * o2::constants::lhc::LHCBunchSpacingNS;
+      const uint64_t nbc = static_cast<uint64_t>(clsTime / o2::constants::lhc::LHCBunchSpacingNS);
+      const float timeWrtBc = clsTime - nbc * o2::constants::lhc::LHCBunchSpacingNS;
 
       // Fired digits bitmask packed into a single 16-bit pattern variable
       uint16_t firedDigitsMask = 0;
