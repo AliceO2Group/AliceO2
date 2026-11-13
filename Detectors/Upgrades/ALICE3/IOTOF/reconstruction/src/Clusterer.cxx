@@ -175,7 +175,7 @@ void Clusterer::ClustererThread::findClustersSingleHit(gsl::span<const Digit> di
   const uint16_t chipID = digit.getChipIndex();
   const uint16_t row = digit.getRow();
   const uint16_t col = digit.getColumn();
-  //const time_t time = digit.getTime();
+  // const time_t time = digit.getTime();
   const uint64_t nbc = digit.getBc();
   const float timeWrtBc = digit.getTdc() * digitizerParams.tdcBin;
   const time_t time = timeWrtBc + nbc * o2::constants::lhc::LHCBunchSpacingNS;
