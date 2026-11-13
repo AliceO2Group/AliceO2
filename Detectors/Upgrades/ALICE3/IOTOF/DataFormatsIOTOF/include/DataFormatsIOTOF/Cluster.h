@@ -152,7 +152,7 @@ class Cluster
   uint32_t getSensorID() const { return mChipID; }
   time_t getTime() const { return mTime; }
   uint64_t getBc() const { return mBc; }
-  float gettimeWrtBc() const { return mTimeWrtBc; }
+  float getTimeWrtBc() const { return mTimeWrtBc; }
 
   uint64_t getPackedData() const { return mClusterInfo.data; }
 
@@ -165,6 +165,8 @@ class Cluster
   void setTopology(UShort_t t) { mClusterInfo.setTopology(t); }
   void setChipID(UShort_t c) { mChipID = c; }
   void setTime(time_t t) { mTime = t; }
+  void setBc(uint64_t bc) { mBc = bc; }
+  void setTimeWrtBc(float timeWrtBc) { mTimeWrtBc = timeWrtBc; }
 
   // Operators & Debugging
   bool operator==(const Cluster& cl) const
