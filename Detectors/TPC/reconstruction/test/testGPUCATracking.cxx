@@ -64,7 +64,6 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
   config.configGRP.solenoidBzNominalGPU = solenoidBz;
   config.configGRP.grpContinuousMaxTimeBin = continuous ? GPUSettings::TPC_MAX_TF_TIME_BIN : 0; // Number of timebins in timeframe if continuous, 0 otherwise
 
-  config.configReconstruction.tpc.nWays = 3;               // Should always be 3!
   config.configReconstruction.tpc.searchWindowDZDR = 2.5f; // Should always be 2.5 for looper-finding and/or continuous tracking
   config.configReconstruction.tpc.trackReferenceX = refX;
 
