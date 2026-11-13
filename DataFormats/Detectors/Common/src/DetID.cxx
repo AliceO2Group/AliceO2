@@ -34,6 +34,7 @@ constexpr DetID::ID DetID::IT3;
 constexpr DetID::ID DetID::TRK;
 constexpr DetID::ID DetID::FT3;
 constexpr DetID::ID DetID::FCT;
+constexpr DetID::ID DetID::FD3;
 #endif
 
 constexpr int DetID::nDetectors;
