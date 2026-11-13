@@ -258,14 +258,6 @@ bool GPUChainTracking::ValidateSteps()
 bool GPUChainTracking::ValidateSettings()
 {
   int32_t gatherMode = mRec->GetProcessingSettings().tpcCompressionGatherMode == -1 ? mRec->getGPUParameters(mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCCompression).par_COMP_GATHER_MODE : mRec->GetProcessingSettings().tpcCompressionGatherMode;
-  if ((param().rec.tpc.nWays & 1) == 0) {
-    GPUError("nWay setting musst be odd number!");
-    return false;
-  }
-  if (param().rec.tpc.mergerInterpolateErrors && param().rec.tpc.nWays < 3) {
-    GPUError("Cannot do error interpolation with NWays < 3!");
-    return false;
-  }
   if (param().rec.tpc.rebuildTrackInFit && !param().rec.tpc.mergerInterpolateErrors) {
     GPUError("Need error interpolation to rebuild tracks during fit");
     return false;

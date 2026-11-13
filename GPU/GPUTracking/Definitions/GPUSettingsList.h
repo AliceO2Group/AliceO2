@@ -148,7 +148,10 @@ AddOptionRTC(cfMinSplitNum, uint8_t, 1, "", 0, "Minimum number of split charges 
 AddOptionRTC(cfNoiseSuppressionEpsilon, uint8_t, 10, "", 0, "Cluster Finder: Difference between peak and charge for the charge to count as a minima during noise suppression")
 AddOptionRTC(cfNoiseSuppressionEpsilonRelative, uint8_t, 76, "", 0, "Cluster Finder: Difference between peak and charge for the charge to count as a minima during noise suppression, relative as fraction of 255")
 AddOptionRTC(cfEdgeTwoPads, uint8_t, 0, "", 0, "Flag clusters with peak on the 2 pads closes to the sector edge as edge cluster")
-AddOptionRTC(nWays, uint8_t, 3, "", 0, "Do N fit passes in final fit of merger (must be odd to end with inward fit)")
+AddOptionRTC(mergerInitial3wayFit, uint8_t, 0, "", 0, "The track fit does 2 initial fit passes for a good track state before running the rebuild or the interpolation rejection")
+AddOptionRTC(mergerInterpolateErrors, uint8_t, 1, "", 0, "Use interpolation instead of extrapolation for chi2 based cluster rejection")
+AddOptionRTC(mergerInterpolateRejectAlsoOnCurrentPosition, uint8_t, 1, "", 0, "When using mergerInterpolateErrors, reject based on chi2 twice computed with interpolated and current track position starting from NDF > mergerNonInterpolateRejectMinNDF")
+AddOptionRTC(mergerNonInterpolateRejectMinNDF, uint8_t, 5, "", 0, "Minimum NDF of track for non-interpolated reject (both for chi2 and absolute distance)")
 AddOptionRTC(rebuildTrackInFit, uint8_t, 1, "", 0, "Rebuild track completely during fit based on clusters closed to interpolated track positions")
 AddOptionRTC(rebuildTrackInFitClusterCandidates, uint8_t, 3, "", 0, "Number of cluster candidates per row for rebuilt track")
 AddOptionRTC(disableRebuildAttachment, uint8_t, 0, "", 0, "Bitmask to disable certain attachment steps during track rebuid (1: current row, 2: interpolate missing row, 4: one sided interpolation, 8: original hit, 16: extrapolation)")
@@ -166,9 +169,6 @@ AddOptionRTC(compressionSortOrder, uint8_t, o2::gpu::GPUSettings::SortTime, "", 
 AddOptionRTC(sigBitsCharge, uint8_t, 4, "", 0, "Number of significant bits for TPC cluster charge in compression mode 1")
 AddOptionRTC(sigBitsWidth, uint8_t, 3, "", 0, "Number of significant bits for TPC cluster width in compression mode 1")
 AddOptionRTC(dropLoopers, uint8_t, 0, "", 0, "Drop looping tracks starting from second loop")
-AddOptionRTC(mergerInterpolateErrors, uint8_t, 1, "", 0, "Use interpolation instead of extrapolation for chi2 based cluster rejection")
-AddOptionRTC(mergerInterpolateRejectAlsoOnCurrentPosition, uint8_t, 1, "", 0, "When using mergerInterpolateErrors, reject based on chi2 twice computed with interpolated and current track position starting from NDF > mergerNonInterpolateRejectMinNDF")
-AddOptionRTC(mergerNonInterpolateRejectMinNDF, uint8_t, 5, "", 0, "Minimum NDF of track for non-interpolated reject (both for chi2 and absolute distance)")
 AddOptionRTC(mergeCE, uint8_t, 1, "", 0, "Merge tracks accross the central electrode")
 AddOptionRTC(retryRefit, int8_t, 1, "", 0, "Retry refit with seeding errors and without cluster rejection when fit fails")
 AddOptionRTC(enablePID, int8_t, 1, "", 0, "Enable PID response")
@@ -190,6 +190,7 @@ AddOptionRTC(rebuildTrackMaxRowsFromEnd, uint8_t, 10, "", 0, "If the last fitted
 AddOptionRTC(rebuildTrackFallbackMaxNCl, uint8_t, 20, "", 0, "For tracks with at most this number of clusters, keep the original cluster of a row as candidate during rebuild if no candidate was found but it passes the interpolated chi2 cut (0 = disabled)")
 AddOptionRTC(rebuildTrackNonIntMinNDF, uint8_t, 10, "", 0, "NDF the track must exceed for non-interpolated cluster attachment (one-sided search and extrapolation) during rebuild")
 AddOptionArray(PID_remap, int8_t, 9, (0, 1, 2, 3, 4, 5, 6, 7, 8), "", 0, "Remap Ipid to PID_reamp[Ipid] (no remap if<0)") // BUG: CUDA cannot yet handle AddOptionArrayRTC
+AddVariableRTC(nWays, uint8_t, 0);
 AddHelp("help", 'h')
 EndConfig()
 

@@ -89,19 +89,19 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
   int32_t interpolatedStart = 0;
   float covYYUpd = 0.f;
   float deltaZ = 0.f;
+  const int32_t wayRebuildStart = rec.tpc.mergerInitial3wayFit ? 2 : 0;
 
-  // TODO: Could do 5 ways and interpolate again on the rebuilt clusters and reject in the final way based on that (and get the outer param from the rebuilt clusters), but costs 2 more ways
-  for (int32_t iWay = rebuilt ? nWays - 1 : 0; iWay < nWays; iWay++) { // TODO DR: Unrolling has no performance improvement on GPU, why?
+  for (int32_t iWay = rebuilt ? (wayRebuildStart + 2) : 0; iWay < nWays; iWay++) { // TODO DR: Unrolling has no performance improvement on GPU, why?
     int32_t nMissed = 0, nMissed2 = 0;
     float sumInvSqrtCharge = 0.f; // TODO: Compute in first iteration and store!
     int32_t nAvgCharge = 0;
 
     int32_t resetT0 = CAMath::Max(10, CAMath::Min<int32_t>(40, 150.f / CAMath::Abs(mP[4])));
-    const bool refit = (nWays == 1 || iWay >= 1);
-    const bool finalOutInFit = iWay + 2 >= nWays;
+    const bool refit = (nWays == 1 || iWay >= (rec.tpc.mergerInitial3wayFit ? 3 : 1));
+    const bool finalOutInFit = iWay >= nWays - 2;
     const bool finalFit = iWay == nWays - 1;
 
-    if (iWay && finalFit) {
+    if (iWay && finalFit && !retryAttempt) {
       StoreOuter(&track.OuterParam(), rebuilt ? Alpha : prop.GetAlpha());
     }
 
@@ -110,7 +110,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
     prop.SetFitInProjections(true); // param.rec.fitInProjections == -1 ? (iWay == 0) : param.rec.fitInProjections); // TODO: Reenable once fixed
     prop.SetPropagateBzOnly(param.rec.fitPropagateBzOnly == -1 ? !finalFit : param.rec.fitPropagateBzOnly);
     prop.SetMatLUT((param.rec.useMatLUT && finalFit) ? merger.GetConstantMem()->calibObjects.matLUT : nullptr);
-    prop.SetTrack(this, iWay && !rebuilt ? prop.GetAlpha() : Alpha);
+    prop.SetTrack(this, iWay && (!rebuilt || iWay > wayRebuildStart + 2) ? prop.GetAlpha() : Alpha);
     ConstrainSinPhi(iWay == 0 ? 0.95f : constants::MAX_SIN_PHI_LOW);
     CADEBUG(printf("Fitting track %d way %d (sector %d, alpha %f) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n", iTrk, iWay, CAMath::Float2IntRn(prop.GetAlpha() / GPUTPCGeometry::kSectAngle()) + (mP[1] < 0 ? 18 : 0), prop.GetAlpha()));
 
@@ -161,7 +161,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
         const bool doAttach = allowChangeClusters && !param.rec.tpc.rebuildTrackInFit && !(merger.Param().rec.tpc.disableMarkAdjacent & 2);
         const bool crossCE = lastSector != 255 && ((cluster.sector >= GPUTPCGeometry::NSECTORS / 2) != (lastSector >= GPUTPCGeometry::NSECTORS / 2));
         const bool ceOverlap = crossCE && ((cluster.row > lastPropagateRow) != ((clusters[0].row < clusters[maxN - 1].row) ^ (iWay & 1))); // Row gap goes backwards at the CE crossing, these rows were already searched on both sides
-        const uint8_t doInterpolate = ((param.rec.tpc.disableRebuildAttachment & 2) || ceOverlap) ? 0 : ((param.rec.tpc.rebuildTrackInFit && iWay == nWays - 3) ? 1 : ((param.rec.tpc.rebuildTrackInFit && iWay == nWays - 2) ? 2 : 0));
+        const uint8_t doInterpolate = ((param.rec.tpc.disableRebuildAttachment & 2) || ceOverlap) ? 0 : ((param.rec.tpc.rebuildTrackInFit && iWay == wayRebuildStart) ? 1 : ((param.rec.tpc.rebuildTrackInFit && iWay == wayRebuildStart + 1) ? 2 : 0));
         if (lastUpdateRow != 255 && (dodEdx || doAttach || doInterpolate)) {
           int32_t step = cluster.row > lastPropagateRow ? 1 : -1;
           uint8_t sector = lastSector;
@@ -195,7 +195,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
         MarkClusters(clusters, ihitMergeFirst, ihit, wayDirection, GPUTPCGMMergedTrackHit::flagHighIncl);
         nMissed2++;
         NTolerated++;
-        if (param.rec.tpc.rebuildTrackInFit && iWay == nWays - 2 && param.rec.tpc.rebuildTrackMaxNonIntCov > 0 && !(param.rec.tpc.disableRebuildAttachment & 4)) {
+        if (param.rec.tpc.rebuildTrackInFit && iWay == wayRebuildStart + 1 && param.rec.tpc.rebuildTrackMaxNonIntCov > 0 && !(param.rec.tpc.disableRebuildAttachment & 4)) {
           FindBestInterpolatedHit(merger, inter, cluster.sector, cluster.row, deltaZ, sumInvSqrtCharge, nAvgCharge, prop, iTrk, true); // TODO: mark clusters from single-sided finding as dubious, and apply stricter restriction cut later
         }
         continue;
@@ -205,7 +205,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
       CADEBUG(printf("\t%21sPropaga Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f)   ---   Res %8.3f %8.3f   ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f   -   PErr %d\n", "", prop.GetAlpha(), mX, mP[0], mP[1], mP[4], prop.GetQPt0(), mP[2], prop.GetSinPhi0(), mP[0] - yy, mP[1] - zz, sqrtf(mC[0]), sqrtf(mC[2]), sqrtf(mC[5]), sqrtf(mC[14]), mC[10], retValProp));
       // clang-format on
       if (mNDF >= 0 && (mC[0] > param.rec.tpc.trackFitCovLimit || mC[2] > param.rec.tpc.trackFitCovLimit)) {
-        if (param.rec.tpc.rebuildTrackInFit && iWay == nWays - 2 && param.rec.tpc.rebuildTrackMaxNonIntCov > 0 && !(param.rec.tpc.disableRebuildAttachment & 4)) {
+        if (param.rec.tpc.rebuildTrackInFit && iWay == wayRebuildStart + 1 && param.rec.tpc.rebuildTrackMaxNonIntCov > 0 && !(param.rec.tpc.disableRebuildAttachment & 4)) {
           InterpolateMissingRows(merger, interpolation, clusters, ihit, interpolationIndex, cluster.row, deltaZ, sumInvSqrtCharge, nAvgCharge, prop, iTrk);
         }
         fitBroken = true;
@@ -214,7 +214,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
 
       float uncorrectedY = -1e6f;
       if (param.rec.tpc.rebuildTrackInFit) {
-        if (iWay == nWays - 2 && !(param.rec.tpc.disableRebuildAttachment & 1)) {
+        if (iWay == wayRebuildStart + 1 && !(param.rec.tpc.disableRebuildAttachment & 1)) {
           uncorrectedY = FindBestInterpolatedHit(merger, inter, cluster.sector, cluster.row, deltaZ, sumInvSqrtCharge, nAvgCharge, prop, iTrk, false); // TODO: Check whether we do not need to use track Y for some rejection steps
         }
         if (allowChangeClusters) {
@@ -231,7 +231,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
       HandleCrossCE(param, cluster.sector, lastSector);
       lastSector = cluster.sector;
 
-      if (param.rec.tpc.mergerInterpolateErrors && iWay == nWays - 3) {
+      if ((param.rec.tpc.mergerInterpolateErrors && iWay == nWays - 3) || (param.rec.tpc.rebuildTrackInFit && iWay == wayRebuildStart)) {
         prop.InterpolateFill(&inter);
       }
 
@@ -248,7 +248,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
           CADEBUG(printf("Reinit linearization\n"));
           prop.SetTrack(this, prop.GetAlpha());
         } else {
-          if (!markHighIncl && nWays >= 2 && CAMath::Abs(mP[2]) < maxSinPhi && CAMath::Max(CAMath::Abs(yy - mP[0]), CAMath::Abs(zz - mP[1])) <= 5.f) { // abs(sinPhi) decreases in the direction we are going (we come from another sector) and the cluster is close: continue from the cluster position, a normal update could distort sinPhi and QPt at this inclination
+          if (!markHighIncl && nWays > 1 && CAMath::Abs(mP[2]) < maxSinPhi && CAMath::Max(CAMath::Abs(yy - mP[0]), CAMath::Abs(zz - mP[1])) <= 5.f) { // abs(sinPhi) decreases in the direction we are going (we come from another sector) and the cluster is close: continue from the cluster position, a normal update could distort sinPhi and QPt at this inclination
             float err2Y, err2Z;
             prop.GetErr2(err2Y, err2Z, param, zz, cluster.row, clusterState, cluster.sector, -1.f, 0.f, 0.f);
             prop.Model().Y() = mP[0] = yy; // Like an update that takes the position fully from the cluster and leaves the other parameters untouched
@@ -299,7 +299,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
           }
         }
       } else if (retValHit == 1) {
-        if (param.rec.tpc.rebuildTrackInFit && iWay == nWays - 2 && param.rec.tpc.rebuildTrackMaxNonIntCov > 0 && !(param.rec.tpc.disableRebuildAttachment & 4)) {
+        if (param.rec.tpc.rebuildTrackInFit && iWay == wayRebuildStart + 1 && param.rec.tpc.rebuildTrackMaxNonIntCov > 0 && !(param.rec.tpc.disableRebuildAttachment & 4)) {
           InterpolateMissingRows(merger, interpolation, clusters, ihit + wayDirection, interpolationIndex + wayDirection, cluster.row, deltaZ, sumInvSqrtCharge, nAvgCharge, prop, iTrk);
         }
         fitBroken = true;
@@ -307,7 +307,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
       }
 
       lastUpdateRow = cluster.row;
-      assert(!param.rec.tpc.mergerInterpolateErrors || rebuilt || iWay != nWays - 2 || ihit || interpolationIndex == 0);
+      assert(!param.rec.tpc.rebuildTrackInFit || iWay != wayRebuildStart - 1 || ihit || interpolationIndex == 0);
     }
     if (!(iWay & 1) && !finalFit && !track.CCE() && !track.Looper()) {
       deltaZ = ShiftZ(clusters, merger, maxN);
@@ -315,7 +315,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
       deltaZ = 0.f;
     }
 
-    if (param.rec.tpc.rebuildTrackInFit && !rebuilt && !(param.rec.tpc.disableRebuildAttachment & 16) && param.rec.tpc.rebuildTrackMaxNonIntCov > 0 && iWay >= nWays - 3 && !(fitBroken && iWay == nWays - 2) && CAMath::Abs(mP[2]) < maxSinForUpdate && lastUpdateRow != 255 && mNDF > (int32_t)param.rec.tpc.rebuildTrackNonIntMinNDF) {
+    if (param.rec.tpc.rebuildTrackInFit && !rebuilt && !(param.rec.tpc.disableRebuildAttachment & 16) && param.rec.tpc.rebuildTrackMaxNonIntCov > 0 && iWay >= wayRebuildStart && !(fitBroken && iWay == wayRebuildStart + 1) && CAMath::Abs(mP[2]) < maxSinForUpdate && lastUpdateRow != 255 && mNDF > (int32_t)param.rec.tpc.rebuildTrackNonIntMinNDF) {
       const int32_t up = ((clusters[0].row < clusters[maxN - 1].row) ^ (iWay & 1)) ? 1 : -1;
       int32_t sector = lastSector;
       CADEBUG(if (merger.MergedTrackMC()) printf("Extrapolate Start Track %d - sector %2d row %3d %s - fake %d\n", iTrk, sector, (int32_t)lastPropagateRow, up == 1 ? "upwards" : "downwards", (int)merger.MergedTrackMC()[iTrk].isFake()));
@@ -465,7 +465,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
         CADEBUG(printf("\t\tSTORING %d extrapolated row %d sector %d out %d\n", iTrk, (int)iExtrapolatedRow, sector, up == 1));
       }
       const int32_t rowsMoved = CAMath::Abs((int32_t)(iExtrapolatedRow < GPUTPCGeometry::NROWS ? iExtrapolatedRow : iExtrapolatedRow - up) - (int32_t)lastGoodRow);
-      if (revert || lastGoodRow == lastPropagateRow || lastFoundRow != lastGoodRow || (iWay == nWays - 3 && sector != lastSector) || rowsMoved > param.rec.tpc.rebuildTrackExtrMaxRowsBack || (rowsMoved && prop.PropagateToXAlpha(lastFoundX, lastFoundAlpha, !inFlyDirection))) { // Failure, nothing accepted, rejected clusters in the fit, sector changed before the next way goes back, or too far from the last accepted cluster to go back to it
+      if (revert || lastGoodRow == lastPropagateRow || lastFoundRow != lastGoodRow || (iWay == wayRebuildStart && sector != lastSector) || rowsMoved > param.rec.tpc.rebuildTrackExtrMaxRowsBack || (rowsMoved && prop.PropagateToXAlpha(lastFoundX, lastFoundAlpha, !inFlyDirection))) { // Failure, nothing accepted, rejected clusters in the fit, sector changed before the next way goes back, or too far from the last accepted cluster to go back to it
         *this = paramStart;
         prop.SetTrack(this, alphaStart);
       }
@@ -474,7 +474,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
       CADEBUG(printf("\t\tSTORING %d lastUpdateRow %d row %d out %d\n", iTrk, (int)lastUpdateRow, (int)clusters[(iWay & 1) ? (maxN - 1) : 0].row, lastUpdateRow > clusters[(iWay & 1) ? (maxN - 1) : 0].row));
     }
 
-    if (param.rec.tpc.rebuildTrackInFit && iWay == nWays - 2) {
+    if (param.rec.tpc.rebuildTrackInFit && iWay == wayRebuildStart + 1) {
       Alpha = prop.GetAlpha();
       if (ihitStart != 0) {
         MarkClusters(clusters, 0, ihitStart - 1, 1, GPUTPCGMMergedTrackHit::flagHighIncl);
@@ -589,24 +589,22 @@ GPUdii() int32_t GPUTPCGMTrackParam::FitHit(GPUTPCGMMerger& GPUrestrict() merger
 
     bool rejectChi2 = !retryAttempt && (clusterState & GPUTPCGMMergedTrackHit::flagReject);
     if (!retryAttempt) {
-      if (param.rec.tpc.mergerInterpolateErrors) {
-        if (iWay == nWays - 2) {
-          if (!param.rec.tpc.rebuildTrackInFit) {
-            if (inter.isValid()) {
-              retValInt = prop.InterpolateReject(param, yy, zz, clusterState, &inter, err2Y, err2Z, deltaZ);
-            } else {
-              rejectChi2 = true;
-            }
-          } else if (track.NClusters() <= param.rec.tpc.rebuildTrackFallbackMaxNCl && inter.isValid()) { // Short track: keep the original cluster as candidate if the search found none, but it passes the interpolated chi2 cut
-            auto& candidate = merger.ClusterCandidates()[(iTrk * GPUTPCGeometry::NROWS + cluster.row) * param.rec.tpc.rebuildTrackInFitClusterCandidates];
-            if (candidate.id < 2 && !prop.InterpolateReject(param, yy, zz, clusterState, &inter, err2Y, err2Z, deltaZ)) {
-              const float wY = mC[0] / (mC[0] + (float)inter.errorY), wZ = mC[2] / (mC[2] + (float)inter.errorZ); // Weight of the stored position in the interpolation
-              candidate = {.id = cluster.num + 2, .row = cluster.row, .sector = cluster.sector, .error = CAMath::Square(yy - mP[0] - wY * ((float)inter.posY - mP[0])) + CAMath::Square(zz - mP[1] - wZ * ((float)inter.posZ + deltaZ - mP[1])), .weight = 0, .best = 0};
-            }
-          }
-        } else if (iWay == nWays - 1) {
-          if (param.rec.tpc.mergerInterpolateRejectAlsoOnCurrentPosition && GetNDF() > (int32_t)param.rec.tpc.mergerNonInterpolateRejectMinNDF) {
-            rejectChi2 = true;
+      if (finalFit && (param.rec.tpc.mergerInterpolateErrors || param.rec.tpc.rebuildTrackInFit)) {
+        if (param.rec.tpc.mergerInterpolateRejectAlsoOnCurrentPosition && GetNDF() > (int32_t)param.rec.tpc.mergerNonInterpolateRejectMinNDF) {
+          rejectChi2 = true;
+        }
+      } else if (param.rec.tpc.mergerInterpolateErrors && iWay == nWays - 2) {
+        if (inter.isValid()) {
+          retValInt = prop.InterpolateReject(param, yy, zz, clusterState, &inter, err2Y, err2Z, deltaZ);
+        } else {
+          rejectChi2 = true;
+        }
+      } else if (param.rec.tpc.rebuildTrackInFit && iWay == wayRebuildStart + 1) {
+        if (track.NClusters() <= param.rec.tpc.rebuildTrackFallbackMaxNCl && inter.isValid()) { // Short track: keep the original cluster as candidate if the search found none, but it passes the interpolated chi2 cut
+          auto& candidate = merger.ClusterCandidates()[(iTrk * GPUTPCGeometry::NROWS + cluster.row) * param.rec.tpc.rebuildTrackInFitClusterCandidates];
+          if (candidate.id < 2 && !prop.InterpolateReject(param, yy, zz, clusterState, &inter, err2Y, err2Z, deltaZ)) {
+            const float wY = mC[0] / (mC[0] + (float)inter.errorY), wZ = mC[2] / (mC[2] + (float)inter.errorZ); // Weight of the stored position in the interpolation
+            candidate = {.id = cluster.num + 2, .row = cluster.row, .sector = cluster.sector, .error = CAMath::Square(yy - mP[0] - wY * ((float)inter.posY - mP[0])) + CAMath::Square(zz - mP[1] - wZ * ((float)inter.posZ + deltaZ - mP[1])), .weight = 0, .best = 0};
           }
         }
       } else {
