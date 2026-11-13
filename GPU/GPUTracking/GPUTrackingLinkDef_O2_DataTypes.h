@@ -34,6 +34,7 @@
 #pragma link C++ class o2::gpu::internal::GPUConfigurableParamGPUSettingsProcessingNNclusterizer + ;
 #pragma link C++ class o2::gpu::internal::GPUConfigurableParamGPUSettingsProcessingScaling + ;
 #pragma link C++ class o2::gpu::internal::GPUConfigurableParamGPUSettingsDisplay + ;
+#pragma link C++ class o2::gpu::internal::GPUConfigurableParamGPUSettingsDisplayInternal + ;
 #pragma link C++ class o2::gpu::internal::GPUConfigurableParamGPUSettingsDisplayLight + ;
 #pragma link C++ class o2::gpu::internal::GPUConfigurableParamGPUSettingsDisplayHeavy + ;
 #pragma link C++ class o2::gpu::internal::GPUConfigurableParamGPUSettingsDisplayRenderer + ;
