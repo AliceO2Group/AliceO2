@@ -113,17 +113,19 @@ class Cluster
   static constexpr uint16_t InvalidPatternID = static_cast<uint16_t>(ClusterInfo::MaskPattern);
 
   Cluster() = default;
-  Cluster(UShort_t row, UShort_t col, UShort_t rowSpan, UShort_t colSpan, UShort_t patt, UShort_t topo, UShort_t chipID = 0, time_t time = 0.0f)
-    : mChipID(chipID), mTime(time)
+  Cluster(UShort_t row, UShort_t col, UShort_t rowSpan, UShort_t colSpan, UShort_t patt, UShort_t topo, UShort_t chipID = 0, time_t time = 0.0f, uint64_t bc = 0, float timeWrtBc = 0.0f)
+    : mChipID(chipID), mTime(time), mBc(bc), mTimeWrtBc(timeWrtBc)
   {
     mClusterInfo.data = ClusterInfo::pack(row, col, rowSpan, colSpan, patt, topo);
   }
 
-  void set(UShort_t row, UShort_t col, UShort_t rowSpan, UShort_t colSpan, UShort_t patt, UShort_t topo, UShort_t chipID, time_t time)
+  void set(UShort_t row, UShort_t col, UShort_t rowSpan, UShort_t colSpan, UShort_t patt, UShort_t topo, UShort_t chipID, time_t time, uint64_t bc, float timeWrtBc)
   {
     mClusterInfo.data = ClusterInfo::pack(row, col, rowSpan, colSpan, patt, topo);
     mChipID = chipID;
     mTime = time;
+    mBc = bc;
+    mTimeWrtBc = timeWrtBc;
   }
 
   // Unpack Getters
@@ -149,6 +151,9 @@ class Cluster
   uint32_t getChipID() const { return mChipID; }
   uint32_t getSensorID() const { return mChipID; }
   time_t getTime() const { return mTime; }
+  uint64_t getBc() const { return mBc; }
+  float gettimeWrtBc() const { return mTimeWrtBc; }
+
   uint64_t getPackedData() const { return mClusterInfo.data; }
 
   // Setters
@@ -174,6 +179,8 @@ class Cluster
   ClusterInfo mClusterInfo{}; ///< 64-bit packed structure containing geometry/topology
   UShort_t mChipID{0};        ///< Chip / Sensor ID
   float mTime{0.0f};          ///< Hit timing information
+  uint64_t mBc{0};            ///< Number of bunch crossing
+  float mTimeWrtBc{0.0f};     ///< Cluster time w.r.t. BC
 
   void sanityCheck();
 
