@@ -96,14 +96,14 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
     float sumInvSqrtCharge = 0.f; // TODO: Compute in first iteration and store!
     int32_t nAvgCharge = 0;
 
-    if (iWay && (iWay & 1) == 0) {
-      StoreOuter(&track.OuterParam(), prop.GetAlpha()); // TODO: Fix outer param!
-    }
-
     int32_t resetT0 = CAMath::Max(10, CAMath::Min<int32_t>(40, 150.f / CAMath::Abs(mP[4])));
     const bool refit = (nWays == 1 || iWay >= 1);
     const bool finalOutInFit = iWay + 2 >= nWays;
     const bool finalFit = iWay == nWays - 1;
+
+    if (iWay && finalFit) {
+      StoreOuter(&track.OuterParam(), rebuilt ? Alpha : prop.GetAlpha());
+    }
 
     ResetCovariance();
     prop.SetSeedingErrors(!(refit && !retryAttempt));
