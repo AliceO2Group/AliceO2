@@ -330,7 +330,8 @@ bool O2MCApplicationBase::MisalignGeometry()
 
   // apply alignment for included detectors AFTER exporting ideal geometry
   auto& aligner = o2::base::Aligner::Instance();
-  aligner.applyAlignment(confref.getTimestamp());
+  // the simulation needs no original matrices, so the physical nodes are not kept
+  aligner.applyAlignment(confref.getTimestamp(), o2::detectors::DetID::FullMask, false);
 
   // export aligned geometry into different file
   auto alignedgeomfile = o2::base::NameConf::getAlignedGeomFileName(confref.getOutPrefix());
