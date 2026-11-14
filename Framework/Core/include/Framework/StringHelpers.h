@@ -122,18 +122,32 @@ consteval uint32_t compile_time_hash_from_literal(const char (&str)[N])
   return crc32(str, N - 2) ^ 0xFFFFFFFF;
 }
 
-template <char... chars>
+/// A string usable as a template argument, so that a compile-time string is
+/// one type per distinct text rather than one type per character.
+template <std::size_t N>
+struct FixedString {
+  char str[N]{};
+  constexpr FixedString(std::string_view s)
+  {
+    for (std::size_t i = 0; i + 1 < N; ++i) {
+      str[i] = s[i];
+    }
+  }
+  constexpr FixedString(const char (&s)[N]) : FixedString(std::string_view{s, N - 1}) {}
+};
+
+template <FixedString S>
 struct ConstStr {
-  static constexpr char str[] = {chars..., '\0'};
-  static constexpr uint32_t hash = compile_time_hash_from_literal(str);
+  static constexpr char const* str = S.str;
+  static constexpr uint32_t hash = compile_time_hash_from_literal(S.str);
 };
 
 template <typename>
 struct is_const_str : std::false_type {
 };
 
-template <char... chars>
-struct is_const_str<ConstStr<chars...>> : std::true_type {
+template <FixedString S>
+struct is_const_str<ConstStr<S>> : std::true_type {
 };
 
 template <typename T>
@@ -142,27 +156,27 @@ consteval bool is_const_str_v(T)
   return is_const_str<T>::value;
 }
 
-template <char... chars1, char... chars2>
-constexpr auto operator+(const ConstStr<chars1...>&, const ConstStr<chars2...>&)
+template <std::size_t N1, std::size_t N2>
+consteval FixedString<N1 + N2 - 1> concatenate(const FixedString<N1>& lhs, const FixedString<N2>& rhs)
 {
-  return ConstStr<chars1..., chars2...>{};
+  char str[N1 + N2 - 1]{};
+  for (std::size_t i = 0; i + 1 < N1; ++i) {
+    str[i] = lhs.str[i];
+  }
+  for (std::size_t i = 0; i + 1 < N2; ++i) {
+    str[N1 - 1 + i] = rhs.str[i];
+  }
+  return FixedString<N1 + N2 - 1>(std::string_view{str, N1 + N2 - 2});
+}
+
+template <FixedString S1, FixedString S2>
+constexpr auto operator+(const ConstStr<S1>&, const ConstStr<S2>&)
+{
+  return ConstStr<concatenate(S1, S2)>{};
 }
 
 namespace const_str_details
 {
-
-template <typename T, std::size_t... Is>
-constexpr auto as_chars_impl(std::index_sequence<Is...>)
-{
-  return ConstStr<T::str()[Is]...>{};
-}
-
-template <typename T>
-constexpr auto as_chars()
-{
-  return as_chars_impl<T>(
-    std::make_index_sequence<T::size() - 1>{});
-}
 
 template <int N>
 constexpr auto get_str(const char (&str)[N])
@@ -187,19 +201,7 @@ constexpr auto get_size(const std::string_view& str)
 }
 } // namespace const_str_details
 
-#define CONST_STR(literal)                                  \
-  [] {                                                      \
-    struct literal_to_chars {                               \
-      static constexpr decltype(auto) str()                 \
-      {                                                     \
-        return const_str_details::get_str(literal);         \
-      }                                                     \
-      static constexpr decltype(auto) size()                \
-      {                                                     \
-        return const_str_details::get_size(literal);        \
-      }                                                     \
-    };                                                      \
-    return const_str_details::as_chars<literal_to_chars>(); \
-  }()
+#define CONST_STR(literal) \
+  ConstStr<FixedString<const_str_details::get_size(literal)>(literal)> {}
 
 #endif // O2_FRAMEWORK_STRINGHELPERS_H
