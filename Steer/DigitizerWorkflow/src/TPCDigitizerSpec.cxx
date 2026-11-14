@@ -29,68 +29,25 @@
 #include "TChain.h"
 #include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/ConstMCTruthContainer.h>
-#include <SimulationDataFormat/IOMCTruthContainerView.h>
 #include "Framework/Task.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
-#include "TPCBaseRecSim/CDBInterface.h"
-#include "TPCBase/ParameterGEM.h"
 #include "DataFormatsTPC/Digit.h"
 #include "TPCSimulation/Digitizer.h"
 #include "TPCSimulation/Detector.h"
-#include "TPCSpaceCharge/SpaceCharge.h"
 #include "DetectorsBase/BaseDPLDigitizer.h"
 #include "DetectorsBase/Detector.h"
-#include "TPCCalibration/VDriftHelper.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "SimConfig/DigiParams.h"
-#include <TRandom.h>
-#include <filesystem>
-#include "Framework/CCDBParamSpec.h"
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 using DigiGroupRef = o2::dataformats::RangeReference<int, int>;
-using SC = o2::tpc::SpaceCharge<float>;
 
 namespace o2
 {
 namespace tpc
 {
-
-template <typename T>
-void copyHelper(T const& origin, T& target)
-{
-  std::copy(origin.begin(), origin.end(), std::back_inserter(target));
-}
-template <>
-void copyHelper<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>(o2::dataformats::MCTruthContainer<o2::MCCompLabel> const& origin, o2::dataformats::MCTruthContainer<o2::MCCompLabel>& target)
-{
-  target.mergeAtBack(origin);
-}
-
-template <typename T>
-void writeToBranchHelper(TTree& tree, const char* name, T* accum)
-{
-  auto targetbr = o2::base::getOrMakeBranch(tree, name, accum);
-  targetbr->Fill();
-  targetbr->ResetAddress();
-  targetbr->DropBaskets("all");
-}
-template <>
-void writeToBranchHelper<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>(TTree& tree,
-                                                                             const char* name, o2::dataformats::MCTruthContainer<o2::MCCompLabel>* accum)
-{
-  // we convert first of all to IOMCTruthContainer
-  std::vector<char> buffer;
-  accum->flatten_to(buffer);
-  accum->clear_andfreememory();
-  o2::dataformats::IOMCTruthContainerView view(buffer);
-  auto targetbr = o2::base::getOrMakeBranch(tree, name, &view);
-  targetbr->Fill();
-  targetbr->ResetAddress();
-  targetbr->DropBaskets("all");
-}
 
 using namespace o2::base;
 class TPCDPLDigitizerTask : public BaseDPLDigitizer
@@ -114,12 +71,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     mDigitizer.setDistortionScaleType(mDistortionType);
 
     if (ic.options().get<bool>("tpc-sector-seeding")) {
-      const auto seed = o2::conf::DigiParams::Instance().seed;
-      if (seed == 0) {
-        LOG(warning) << "TPC sector seeding with DigiParams.seed=0 is not reproducible";
-      }
-      // with seed 0, gRandom was seeded randomly in the base class
-      mDigitizer.setUseSectorSeeding(seed != 0 ? seed : gRandom->Integer(kMaxUInt));
+      mDigitizer.setUseSectorSeeding(sectorSeedingBaseSeed());
       LOG(info) << "TPC: using sector seeding";
     }
 
@@ -127,55 +79,12 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     // and set the flag to false after
     mWriteGRP = true;
 
-    // clean up (possibly) existing digit files
+    // the digit files are updated during processing and the merger reads every lane file in the directory,
+    // so each lane removes its own file of an earlier run and the first lane also those of lanes this run does not have
     if (mInternalWriter) {
-      cleanDigitFile();
-    }
-  }
-
-  void cleanDigitFile()
-  {
-    // since we update digit files during ordinary processing
-    // it is better to remove possibly existing files in the same dir
-    std::stringstream tmp;
-    tmp << "tpc_driftime_digits_lane" << mLaneId << ".root";
-    if (std::filesystem::exists(tmp.str())) {
-      std::filesystem::remove(tmp.str());
-    }
-  }
-
-  void writeToROOTFile()
-  {
-    if (!mInternalROOTFlushFile) {
-      std::stringstream tmp;
-      tmp << "tpc_driftime_digits_lane" << mLaneId << ".root";
-      mInternalROOTFlushFile = new TFile(tmp.str().c_str(), "UPDATE");
-      std::stringstream trname;
-      trname << mSector;
-      mInternalROOTFlushTTree = new TTree(trname.str().c_str(), "o2sim");
-    }
-    {
-      std::stringstream brname;
-      brname << "TPCDigit_" << mSector;
-      auto br = o2::base::getOrMakeBranch(*mInternalROOTFlushTTree, brname.str().c_str(), &mFlushBuffers.digits);
-      br->Fill();
-      br->ResetAddress();
-    }
-    if (mWithMCTruth) {
-      // labels
-      std::stringstream brname;
-      brname << "TPCDigitMCTruth_" << mSector;
-      auto br = o2::base::getOrMakeBranch(*mInternalROOTFlushTTree, brname.str().c_str(), &mFlushBuffers.labels);
-      br->Fill();
-      br->ResetAddress();
-    }
-    {
-      // common
-      std::stringstream brname;
-      brname << "TPCCommonMode_" << mSector;
-      auto br = o2::base::getOrMakeBranch(*mInternalROOTFlushTTree, brname.str().c_str(), &mFlushBuffers.commonMode);
-      br->Fill();
-      br->ResetAddress();
+      const int nLanes = ic.services().get<const o2::framework::DeviceSpec>().nSlots;
+      removeLaneDigitFiles([this, nLanes](int lane) { return lane == mLaneId || (mLaneId == 0 && lane >= nLanes); });
+      mWriter.emplace(mLaneId, mWithMCTruth);
     }
   }
 
@@ -188,10 +97,11 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
   {
     LOG(info) << "Processing TPC digitization";
 
-    mConditions.update(pc, mDigitizer, [this](float vdrift, float tdriftOffset) {
-      mDigitizer.setVDrift(vdrift);
-      mDigitizer.setTDriftOffset(tdriftOffset);
-    });
+    if (auto vdrift = mConditions.update(pc, mDigitizer)) {
+      mDigitizer.setVDrift(vdrift->vdrift);
+      mDigitizer.setTDriftOffset(vdrift->tdriftOffset);
+    }
+    mDigitizer.setCalibrations(mConditions.calibrations());
 
     for (auto it = pc.inputs().begin(), end = pc.inputs().end(); it != end; ++it) {
       for (auto const& inputref : it.parts()) {
@@ -199,16 +109,6 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
           continue;
         }
         process(pc, inputref);
-        if (mInternalWriter) {
-          mInternalROOTFlushTTree->SetEntries(mFlushCounter);
-          mInternalROOTFlushFile->Write("", TObject::kOverwrite);
-          mInternalROOTFlushFile->Close();
-          // delete mInternalROOTFlushTTree; --> automatically done by ->Close()
-          delete mInternalROOTFlushFile;
-          mInternalROOTFlushFile = nullptr;
-        }
-        // TODO: make generic reset method?
-        mFlushCounter = 0;
       }
     }
   }
@@ -244,8 +144,6 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
       return;
     }
     auto sector = sectorHeader->sector();
-    mSector = sector;
-    mListOfSectors.push_back(sector);
     LOG(info) << "TPC: Processing sector " << sector;
     // the active sectors need to be propagated
     uint64_t activeSectors = 0;
@@ -316,11 +214,13 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     TStopwatch timer;
     timer.Start();
 
+    if (mWriter) {
+      mWriter->beginSector(sector);
+    }
     auto onFlush = [this, digitsAccum, &labelAccum, &commonModeAccum]() {
-      mFlushCounter++;
-      if (mInternalWriter) {
+      if (mWriter) {
         // the natural place to write out this independent datachunk immediately ...
-        writeToROOTFile();
+        mWriter->writeFlush(mFlushBuffers);
       } else {
         // ... or to accumulate and later forward to next DPL proc
         std::copy(mFlushBuffers.digits.begin(), mFlushBuffers.digits.end(), std::back_inserter(*digitsAccum));
@@ -331,6 +231,9 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
       }
     };
     eventAccum = digitizeSector(mDigitizer, *context, mSimChains, sector, dh->tfCounter, mFlushBuffers, onFlush);
+    if (mWriter) {
+      mWriter->endSector();
+    }
 
     if (!mInternalWriter) {
       // send out to next stage
@@ -348,13 +251,9 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
   o2::tpc::Digitizer mDigitizer;
   TPCDigitizerConditions mConditions;
   std::vector<TChain*> mSimChains;
-  SectorFlushBuffers mFlushBuffers; // output of the latest flush
-  std::vector<int> mListOfSectors;  //  a list of sectors treated by this task
-  TFile* mInternalROOTFlushFile = nullptr;
-  TTree* mInternalROOTFlushTTree = nullptr;
-  size_t mFlushCounter = 0;
-  int mLaneId = 0; // the id of the current process within the parallel pipeline
-  int mSector = 0;
+  SectorFlushBuffers mFlushBuffers;           // output of the latest flush
+  std::optional<LaneDigitFileWriter> mWriter; // the chunked digit writer of this lane
+  int mLaneId = 0;                            // the id of the current process within the parallel pipeline
   bool mWriteGRP = false;
   bool mWithMCTruth = true;
   bool mInternalWriter = false;
@@ -387,14 +286,12 @@ o2::framework::DataProcessorSpec getTPCDigitizerSpec(int channel, bool writeGRP,
   }
 
   std::vector<InputSpec> inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}};
-  auto options = TPCDigitizerConditions::options();
-  options.push_back({"tpc-sector-seeding", VariantType::Bool, false, {"Seed the random numbers of each sector from DigiParams.seed and the sector, so that the digits do not depend on the lane assignment"}});
   return DataProcessorSpec{
     id.str().c_str(),
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<TPCDPLDigitizerTask>(internalwriter, distortionType)},
-    options};
+    TPCDigitizerConditions::options()};
 }
 
 o2::framework::WorkflowSpec getTPCDigitizerSpec(int nLanes, std::vector<int> const& sectors, bool mctruth, bool internalwriter, int distortionType)

@@ -24,24 +24,17 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "DetectorsBase/BaseDPLDigitizer.h"
-#include "DetectorsBase/Detector.h"
 #include "SimConfig/DigiParams.h"
 #include "SimulationDataFormat/DigitizationContext.h"
 #include "TPCSimulation/Digitizer.h"
 #include "CommonUtils/DebugStreamer.h"
-#include "CommonUtils/FileSystemUtils.h"
 #include <TChain.h>
-#include <TFile.h>
 #include <TROOT.h>
-#include <TRandom.h>
 #include <TStopwatch.h>
-#include <TTree.h>
 #include <algorithm>
 #include <atomic>
 #include <exception>
-#include <filesystem>
 #include <memory>
-#include <optional>
 #include <string>
 #include <thread>
 #include <utility>
@@ -58,12 +51,7 @@ namespace
 {
 /// The state of one worker thread: a digitizer, its own hit chains and its own digit file
 struct DigitizerWorker {
-  int id = 0;
-  Digitizer digitizer;
-  std::vector<TChain*> chains;
-  SectorFlushBuffers buffers;
-  std::exception_ptr error;
-
+  DigitizerWorker(int lane, bool withMCTruth) : id(lane), writer(lane, withMCTruth) {}
   ~DigitizerWorker()
   {
     for (auto chain : chains) {
@@ -71,63 +59,47 @@ struct DigitizerWorker {
     }
   }
 
-  std::string fileName() const { return "tpc_driftime_digits_lane" + std::to_string(id) + ".root"; }
-
-  /// Digitize one sector and write it to the worker's digit file, in the format of the chunked writer of the lane spec
-  void processSector(const steer::DigitizationContext& context, int sector, ULong64_t timeframe, bool withMCTruth)
+  /// Digitize one sector and write it to the digit file of the worker
+  void processSector(const steer::DigitizationContext& context, int sector, ULong64_t timeframe)
   {
-    std::unique_ptr<TFile> file(TFile::Open(fileName().c_str(), "UPDATE"));
-    if (!file || file->IsZombie()) {
-      throw std::runtime_error("TPC: cannot open " + fileName());
-    }
-    auto tree = new TTree(std::to_string(sector).c_str(), "o2sim");
-    tree->SetDirectory(file.get()); // owned by the file
-    size_t flushCounter = 0;
-    auto onFlush = [&]() {
-      ++flushCounter;
-      auto fill = [&tree](const std::string& name, auto* data) {
-        auto br = o2::base::getOrMakeBranch(*tree, name.c_str(), data);
-        br->Fill();
-        br->ResetAddress();
-      };
-      fill("TPCDigit_" + std::to_string(sector), &buffers.digits);
-      if (withMCTruth) {
-        fill("TPCDigitMCTruth_" + std::to_string(sector), &buffers.labels);
-      }
-      fill("TPCCommonMode_" + std::to_string(sector), &buffers.commonMode);
-    };
-    digitizeSector(digitizer, context, chains, sector, timeframe, buffers, onFlush);
-    tree->SetEntries(flushCounter);
-    file->Write("", TObject::kOverwrite);
-    file->Close();
+    writer.beginSector(sector);
+    digitizeSector(digitizer, context, chains, sector, timeframe, buffers, [this]() { writer.writeFlush(buffers); });
+    writer.endSector();
   }
+
+  int id = 0;
+  Digitizer digitizer;
+  std::vector<TChain*> chains;
+  SectorFlushBuffers buffers;
+  LaneDigitFileWriter writer;
+  std::exception_ptr error;
 };
+
+std::string contextBinding(int sector)
+{
+  return "collisioncontext" + std::to_string(sector);
+}
 } // namespace
 
 class TPCDPLDigitizerMTTask : public o2::base::BaseDPLDigitizer
 {
  public:
-  TPCDPLDigitizerMTTask(int nThreads, int distortionType) : BaseDPLDigitizer(o2::base::InitServices::FIELD | o2::base::InitServices::GEOM), mNThreads(nThreads), mDistortionType(distortionType) {}
+  TPCDPLDigitizerMTTask(int nThreads, std::vector<int> sectors, int distortionType) : BaseDPLDigitizer(o2::base::InitServices::FIELD | o2::base::InitServices::GEOM), mSectors(std::move(sectors)), mNThreads(nThreads), mDistortionType(distortionType) {}
 
   void initDigitizerTask(framework::InitContext& ic) override
   {
     LOG(info) << "Initializing multithreaded TPC digitization with " << mNThreads << " threads";
 
-    mWithMCTruth = o2::conf::DigiParams::Instance().mctruth;
+    const bool withMCTruth = o2::conf::DigiParams::Instance().mctruth;
     const auto triggeredMode = ic.options().get<bool>("TPCtriggered");
     mConditions.init(ic, mDistortionType);
 
-    // the workers share no random numbers: each digitizer seeds every sector from DigiParams.seed
-    const auto seed = o2::conf::DigiParams::Instance().seed;
-    if (seed == 0) {
-      LOG(warning) << "TPC sector seeding with DigiParams.seed=0 is not reproducible";
-    }
-    // with seed 0, gRandom was seeded randomly in the base class
-    const ULong64_t sectorSeed = seed != 0 ? seed : gRandom->Integer(kMaxUInt);
+    // the workers share no random numbers: each digitizer seeds every sector from the same base seed,
+    // so the option --tpc-sector-seeding is always on here
+    const ULong64_t sectorSeed = sectorSeedingBaseSeed();
 
     for (int i = 0; i < mNThreads; ++i) {
-      auto& worker = mWorkers.emplace_back(std::make_unique<DigitizerWorker>());
-      worker->id = i;
+      auto& worker = mWorkers.emplace_back(std::make_unique<DigitizerWorker>(i, withMCTruth));
       worker->digitizer.setContinuousReadout(!triggeredMode);
       worker->digitizer.setDistortionScaleType(mDistortionType);
       worker->digitizer.setUseSectorSeeding(sectorSeed);
@@ -136,9 +108,7 @@ class TPCDPLDigitizerMTTask : public o2::base::BaseDPLDigitizer
     }
 
     // the merger picks up every lane file in the directory, so files of an earlier run must not survive
-    for (const auto& name : o2::utils::listFiles("tpc_driftime_digits_lane.*.root$")) {
-      std::filesystem::remove(name);
-    }
+    removeLaneDigitFiles([](int) { return true; });
 
     ROOT::EnableThreadSafety();
   }
@@ -154,12 +124,15 @@ class TPCDPLDigitizerMTTask : public o2::base::BaseDPLDigitizer
     LOG(info) << "Processing multithreaded TPC digitization";
 
     auto& primary = mWorkers[0]->digitizer;
-    mConditions.update(pc, primary, [this](float vdrift, float tdriftOffset) {
-      for (auto& worker : mWorkers) {
-        worker->digitizer.setVDrift(vdrift);
-        worker->digitizer.setTDriftOffset(tdriftOffset);
+    const auto vdrift = mConditions.update(pc, primary);
+    for (auto& worker : mWorkers) {
+      if (vdrift) {
+        worker->digitizer.setVDrift(vdrift->vdrift);
+        worker->digitizer.setTDriftOffset(vdrift->tdriftOffset);
       }
-    });
+      // the workers only read the calibrations, which update() fetched in this thread
+      worker->digitizer.setCalibrations(mConditions.calibrations());
+    }
     if (mDistortionType) {
       for (size_t i = 1; i < mWorkers.size(); ++i) {
         mWorkers[i]->digitizer.setSCDistortionsFrom(primary);
@@ -173,37 +146,13 @@ class TPCDPLDigitizerMTTask : public o2::base::BaseDPLDigitizer
       mSeedingShared = true;
     }
 
-    // the sectors of this timeframe; all inputs carry the same collision context
-    std::vector<int> sectors;
-    std::optional<DataRef> contextRef;
-    for (auto it = pc.inputs().begin(), end = pc.inputs().end(); it != end; ++it) {
-      for (auto const& inputref : it.parts()) {
-        if (inputref.spec->lifetime == o2::framework::Lifetime::Condition) {
-          continue;
-        }
-        auto const* sectorHeader = DataRefUtils::getHeader<TPCSectorHeader*>(inputref);
-        if (sectorHeader == nullptr) {
-          LOG(error) << "TPC: Sector header missing, skipping input";
-          continue;
-        }
-        const int sector = sectorHeader->sector();
-        if (sector < 0 || sector >= TPCSectorHeader::NSectors) {
-          throw std::runtime_error("Digitizer can only work on single sectors");
-        }
-        sectors.push_back(sector);
-        if (!contextRef) {
-          contextRef = inputref;
-        }
-      }
-    }
-
     if (mWriteGRP) {
       auto roMode = primary.isContinuousReadout() ? o2::parameters::GRPObject::CONTINUOUS : o2::parameters::GRPObject::PRESENT;
       LOG(info) << "TPC: Sending ROMode= " << (primary.isContinuousReadout() ? "Continuous" : "Triggered") << " to GRPUpdater";
       pc.outputs().snapshot(Output{"TPC", "ROMode", 0}, roMode);
       mWriteGRP = false;
     }
-    if (!contextRef) {
+    if (mSectors.empty()) {
       return;
     }
     // the chunked digit files and the dynamic sector scheduling hold one timeframe per process
@@ -211,14 +160,16 @@ class TPCDPLDigitizerMTTask : public o2::base::BaseDPLDigitizer
       LOG(fatal) << "TPC: the multithreaded digitizer supports only one timeframe per process";
     }
     mProcessedTimeframe = true;
-    auto context = pc.inputs().get<o2::steer::DigitizationContext*>(*contextRef);
-    const ULong64_t timeframe = DataRefUtils::getHeader<o2::header::DataHeader*>(*contextRef)->tfCounter;
-    LOG(info) << "TPC: Processing " << sectors.size() << " sectors with " << context->getEventRecords().size() << " collisions";
+    // every sector input carries the same collision context
+    const auto contextRef = pc.inputs().get(contextBinding(mSectors[0]));
+    auto context = pc.inputs().get<o2::steer::DigitizationContext*>(contextRef);
+    const ULong64_t timeframe = DataRefUtils::getHeader<o2::header::DataHeader*>(contextRef)->tfCounter;
+    LOG(info) << "TPC: Processing " << mSectors.size() << " sectors with " << context->getEventRecords().size() << " collisions";
 
     TStopwatch timer;
     timer.Start();
 
-    const size_t nWorkers = std::min(mWorkers.size(), sectors.size());
+    const size_t nWorkers = std::min(mWorkers.size(), mSectors.size());
     for (size_t i = 0; i < nWorkers; ++i) {
       context->initSimChains(o2::detectors::DetID::TPC, mWorkers[i]->chains);
     }
@@ -229,13 +180,13 @@ class TPCDPLDigitizerMTTask : public o2::base::BaseDPLDigitizer
     for (size_t i = 0; i < nWorkers; ++i) {
       threads.emplace_back([&, worker = mWorkers[i].get()]() {
         try {
-          for (size_t is = nextSector++; is < sectors.size(); is = nextSector++) {
-            LOG(info) << "TPC: Worker " << worker->id << " processing sector " << sectors[is];
-            worker->processSector(*context, sectors[is], timeframe, mWithMCTruth);
+          for (size_t is = nextSector++; is < mSectors.size(); is = nextSector++) {
+            LOG(info) << "TPC: Worker " << worker->id << " processing sector " << mSectors[is];
+            worker->processSector(*context, mSectors[is], timeframe);
           }
         } catch (...) {
           worker->error = std::current_exception();
-          nextSector = sectors.size(); // let the other workers stop early
+          nextSector = mSectors.size(); // let the other workers stop early
         }
       });
     }
@@ -257,20 +208,21 @@ class TPCDPLDigitizerMTTask : public o2::base::BaseDPLDigitizer
 
  private:
   std::vector<std::unique_ptr<DigitizerWorker>> mWorkers;
+  std::vector<int> mSectors; ///< the sectors to digitize, one collision context input each
   TPCDigitizerConditions mConditions;
   bool mSeedingShared = false;      ///< whether the workers got the random rings of the first one
   bool mProcessedTimeframe = false; ///< whether a timeframe was digitized
   int mNThreads = 1;
   int mDistortionType = 0;
   bool mWriteGRP = true;
-  bool mWithMCTruth = true;
 };
 
 o2::framework::DataProcessorSpec getTPCDigitizerMTSpec(int nThreads, std::vector<int> const& sectors, int distortionType)
 {
+  // the reader sends the collision context once per sector, so the device subscribes to all of them
   std::vector<InputSpec> inputs;
   for (auto sector : sectors) {
-    inputs.emplace_back("collisioncontext" + std::to_string(sector), "SIM", "COLLISIONCONTEXT", static_cast<o2::header::DataHeader::SubSpecificationType>(sector), Lifetime::Timeframe);
+    inputs.emplace_back(contextBinding(sector), "SIM", "COLLISIONCONTEXT", static_cast<o2::header::DataHeader::SubSpecificationType>(sector), Lifetime::Timeframe);
   }
   TPCDigitizerConditions::addInputs(inputs, distortionType);
   std::vector<OutputSpec> outputs{{"TPC", "ROMode", 0, Lifetime::Timeframe}};
@@ -280,7 +232,7 @@ o2::framework::DataProcessorSpec getTPCDigitizerMTSpec(int nThreads, std::vector
     "tpc-digitizer-mt",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCDPLDigitizerMTTask>(nThreads, distortionType)},
+    AlgorithmSpec{adaptFromTask<TPCDPLDigitizerMTTask>(nThreads, sectors, distortionType)},
     TPCDigitizerConditions::options()};
 }
 

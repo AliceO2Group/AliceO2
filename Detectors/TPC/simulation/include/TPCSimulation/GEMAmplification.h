@@ -22,6 +22,7 @@
 #include "TPCBase/CRU.h"
 #include "TPCBase/PadPos.h"
 #include "TPCBase/CalDet.h"
+#include "TPCSimulation/DigitizerCalibrations.h"
 
 namespace o2
 {
@@ -55,6 +56,9 @@ class GEMAmplification
 
   /// Update the OCDB parameters cached in the class. To be called once per event
   void updateParameters();
+
+  /// Update the parameters cached in the class, with the gain map from the calibration snapshot
+  void updateParameters(const DigitizerCalibrations& calib);
 
   /// Compute the number of electrons after amplification in a full stack of four GEM foils
   /// \param nElectrons Number of electrons arriving at the first amplification stage (GEM1)

@@ -106,6 +106,13 @@ o2_add_test(
   LABELS detectorsbase)
 
 o2_add_test(
+  GetOrMakeBranch
+  SOURCES test/testGetOrMakeBranch.cxx
+  COMPONENT_NAME DetectorsBase
+  PUBLIC_LINK_LIBRARIES O2::DetectorsBase
+  LABELS detectorsbase)
+
+o2_add_test(
   O2Tessellated
   SOURCES test/testO2Tessellated.cxx
   COMPONENT_NAME DetectorsBase
