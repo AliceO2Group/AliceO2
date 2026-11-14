@@ -18,6 +18,8 @@
 #include "DataFormatsFDD/Digit.h"
 #include "DataFormatsFDD/RecPoint.h"
 #include "DataFormatsFIT/DeadChannelMap.h"
+#include "DataFormatsFDD/FDDRecoConfig.h"
+#include "FDDBase/Constants.h"
 namespace o2
 {
 namespace fdd
@@ -40,6 +42,47 @@ class Reconstructor
   }
 
  private:
+  static constexpr uint8_t coincidencePairs[Nchannels] = {4, 5, 6, 7, 0, 1, 2, 3, 12, 13, 14, 15, 8, 9, 10, 11};
+
+  bool isInAmplitudeWindow(int16_t amplitude, FDDRecoConfig::DetectorSide side)
+  {
+    return amplitude > FDDRecoConfig::Instance().ChannelAmplitudeLower[side] && amplitude < FDDRecoConfig::Instance().ChannelAmplitudeUpper[side];
+  }
+  bool isInTimeWindow(int16_t time)
+  {
+    return time > FDDRecoConfig::Instance().ChannelTimeLower && time < FDDRecoConfig::Instance().ChannelTimeUpper;
+  }
+  bool isChannelDataGood(uint8_t channelBits)
+  {
+    return FDDRecoConfig::Instance().isChannelDataGood(channelBits);
+  }
+
+  bool isInCollisionTimeAmplitudeWindow(int16_t amplitude, FDDRecoConfig::DetectorSide side)
+  {
+    return amplitude > FDDRecoConfig::Instance().CollisionTimeAmplitudeLower[side] && amplitude < FDDRecoConfig::Instance().CollisionTimeAmpltudeUpper[side];
+  }
+  bool isInCollisionTimeTimeWindow(int16_t time)
+  {
+    return time > FDDRecoConfig::Instance().CollisionTimeTimeLower && time < FDDRecoConfig::Instance().CollisionTimeTimeUpper;
+  }
+  bool isChannelDataGoodForCollisionTime(uint8_t channelBits)
+  {
+    return FDDRecoConfig::Instance().isChannelDataGoodForCollisionTime(channelBits);
+  }
+
+  bool checkSwOrGateConditions(const ChannelData& channelData, FDDRecoConfig::DetectorSide side)
+  {
+    bool isAmplitudeInRange = channelData.mChargeADC > FDDRecoConfig::Instance().SwOrTriggerAmplitudeLowThreshold[side] && channelData.mChargeADC < FDDRecoConfig::Instance().SwOrTriggerAmplitudeHighThreshold[side];
+    bool isInTimeWindow = std::abs(channelData.mTime) < FDDRecoConfig::Instance().SwOrGate;
+    return isAmplitudeInRange && isInTimeWindow && FDDRecoConfig::Instance().isChannelDataGoodForSwTrigger(channelData.mFEEBits);
+  }
+
+  bool calculateSwTrigger(float meanTimeSideA, float meanTimeSideC, bool orGateSideA, bool orGateSideC)
+  {
+    return (std::abs(meanTimeSideC - meanTimeSideA) < o2::fdd::timePerTDC * FDDRecoConfig::Instance().SwVtxTriggerTimeWindow) && orGateSideA && orGateSideC;
+  }
+  static constexpr uint8_t sSideAStartId = 8;
+
   o2::fit::DeadChannelMap const* mDeadChannelMap = nullptr;
   ClassDefNV(Reconstructor, 3);
 };

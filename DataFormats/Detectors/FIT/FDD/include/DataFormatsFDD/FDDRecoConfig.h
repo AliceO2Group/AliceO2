@@ -13,13 +13,61 @@
 #define ALICEO2_FDD_RECO_PARAM
 
 #include "CommonUtils/ConfigurableParamHelper.h"
+#include "DataFormatsFDD/ChannelData.h"
 
 namespace o2::fdd
 {
 struct FDDRecoConfig : o2::conf::ConfigurableParamHelper<FDDRecoConfig> {
-  float AmplitudeCutOnCollisionTimeWeights = 3;
+  enum DetectorSide { SideA = 0,
+                      SideC = 1 };
+  int16_t ChannelAmplitudeUpper[2] = {4096, 4096};
+  int16_t ChannelAmplitudeLower[2] = {6, 0};
+
+  int16_t ChannelTimeLower = -2050;
+  int16_t ChannelTimeUpper = 2050;
+
+  uint8_t ChannelValidPmInputFlagMask = 0;
+  uint8_t ChannelValidPmInputFlags = 0;
+  bool isChannelDataGood(uint8_t flags) const
+  {
+    return (flags & ChannelValidPmInputFlagMask) == ChannelValidPmInputFlags;
+  }
+
+  uint8_t TriggerBitsValidationMask = 0;
+  uint8_t TriggerBitsValid = 0;
+  bool areTriggerBitsGood(uint8_t flags) const
+  {
+    return (flags & TriggerBitsValidationMask) == TriggerBitsValid;
+  }
+
+  int16_t CollisionTimeAmpltudeUpper[2] = {4096, 4096};
+  int16_t CollisionTimeAmplitudeLower[2] = {6, 0};
+  int16_t CollisionTimeTimeLower = -500;
+  int16_t CollisionTimeTimeUpper = 500;
+
+  uint8_t CollisionTimeValidPmInputFlagMask = static_cast<uint8_t>(~(1u << ChannelData::kNumberADC));
+  uint8_t CollisionTimeValidPmInputFlags = static_cast<uint8_t>((1u << ChannelData::kIsCFDinADCgate) | (1u << ChannelData::kIsEventInTVDC));
+  bool isChannelDataGoodForCollisionTime(uint8_t flags) const
+  {
+    return (flags & CollisionTimeValidPmInputFlagMask) == CollisionTimeValidPmInputFlags;
+  }
+
+  int16_t SwOrGate = 153;
+  int16_t SwOrTriggerAmplitudeLowThreshold[2] = {6, 0};
+  int16_t SwOrTriggerAmplitudeHighThreshold[2] = {4095, 4095};
+  int16_t SwVtxTriggerTimeWindow = 100;
+  bool SwTriggerCoincidenceMode = true;
+  bool SwTriggerEnabled = false;
+
+  uint8_t SwTriggerValidPmInputFlagMask = static_cast<uint8_t>(~((1u << ChannelData::kNumberADC) | (1u << ChannelData::kIsEventInTVDC)));
+  uint8_t SwTriggerValidPmInputFlags = static_cast<uint8_t>(1u << ChannelData::kIsCFDinADCgate);
+  bool isChannelDataGoodForSwTrigger(uint8_t flags) const
+  {
+    return (flags & SwTriggerValidPmInputFlagMask) == SwTriggerValidPmInputFlags;
+  }
+
   O2ParamDef(FDDRecoConfig, "FDDRecoConfig");
-  ClassDefNV(FDDRecoConfig, 1);
+  ClassDefNV(FDDRecoConfig, 2);
 };
 } // namespace o2::fdd
 #endif
