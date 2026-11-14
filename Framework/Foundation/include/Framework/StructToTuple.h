@@ -13,6 +13,7 @@
 
 #include <Framework/Traits.h>
 #include <array>
+#include <tuple>
 
 // Structured binding packs (P1061) are C++26, but clang implements them as an
 // extension in every language mode and advertises them via the feature test
@@ -91,11 +92,13 @@ consteval int homogeneous_apply_refs_size()
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wc++26-extensions"
 #endif
-template <bool B = false, class T, int D = 0, typename L>
+template <bool B = false, class T, int D = 0, typename L, bool Cat = false>
 constexpr auto homogeneous_apply_refs(L l, T&& object)
 {
   auto&& [... members] = object;
-  if constexpr (sizeof...(members) == 0) {
+  if constexpr (Cat) {
+    return std::tuple_cat(l(members)...);
+  } else if constexpr (sizeof...(members) == 0) {
     return std::array<bool, 0>();
   } else {
     return std::array{l(members)...};
@@ -155,28 +158,42 @@ constexpr auto homogeneous_apply_refs(L l, T&& object)
 
 #define DPL_FENUM(f, pre, post, d, u) DPL_FENUM_##d##0(f, pre, post), DPL_FENUM_##u(f, pre##d, post)
 
-#define DPL_HOMOGENEOUS_APPLY_ENTRY_LOW(u)                        \
-  constexpr(numElements == u)                                     \
-  {                                                               \
-    auto&& [DPL_ENUM_##u(p, )] = object;                          \
-    return std::array<decltype(l(p0)), u>{DPL_FENUM_##u(l, p, )}; \
+#define DPL_HOMOGENEOUS_APPLY_RESULT(n, ...)            \
+  if constexpr (Cat) {                                  \
+    return std::tuple_cat(__VA_ARGS__);                 \
+  } else {                                              \
+    return std::array<decltype(l(p0)), n>{__VA_ARGS__}; \
   }
 
-#define DPL_HOMOGENEOUS_APPLY_ENTRY(d, u)                              \
-  constexpr(numElements == d##u)                                       \
-  {                                                                    \
-    auto&& [DPL_ENUM(p, , d, u)] = object;                             \
-    return std::array<decltype(l(p0)), d##u>{DPL_FENUM(l, p, , d, u)}; \
+#define DPL_HOMOGENEOUS_APPLY_EMPTY \
+  if constexpr (Cat) {              \
+    return std::tuple<>();          \
+  } else {                          \
+    return std::array<bool, 0>();   \
   }
 
-#define DPL_HOMOGENEOUS_APPLY_ENTRY_TENS(d)                             \
-  constexpr(numElements == d##0)                                        \
-  {                                                                     \
-    auto&& [DPL_ENUM_##d##0(p, )] = object;                             \
-    return std::array<decltype(l(p0)), d##0>{DPL_FENUM_##d##0(l, p, )}; \
+#define DPL_HOMOGENEOUS_APPLY_ENTRY_LOW(u)                 \
+  constexpr(numElements == u)                              \
+  {                                                        \
+    auto&& [DPL_ENUM_##u(p, )] = object;                   \
+    DPL_HOMOGENEOUS_APPLY_RESULT(u, DPL_FENUM_##u(l, p, )) \
   }
 
-template <bool B = false, class T, int D = nested_brace_constructible_size<B, T>() / 10, typename L>
+#define DPL_HOMOGENEOUS_APPLY_ENTRY(d, u)                       \
+  constexpr(numElements == d##u)                                \
+  {                                                             \
+    auto&& [DPL_ENUM(p, , d, u)] = object;                      \
+    DPL_HOMOGENEOUS_APPLY_RESULT(d##u, DPL_FENUM(l, p, , d, u)) \
+  }
+
+#define DPL_HOMOGENEOUS_APPLY_ENTRY_TENS(d)                      \
+  constexpr(numElements == d##0)                                 \
+  {                                                              \
+    auto&& [DPL_ENUM_##d##0(p, )] = object;                      \
+    DPL_HOMOGENEOUS_APPLY_RESULT(d##0, DPL_FENUM_##d##0(l, p, )) \
+  }
+
+template <bool B = false, class T, int D = nested_brace_constructible_size<B, T>() / 10, typename L, bool Cat = false>
   requires(D == 9)
 constexpr auto homogeneous_apply_refs(L l, T&& object)
 {
@@ -192,11 +209,11 @@ constexpr auto homogeneous_apply_refs(L l, T&& object)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY (9, 2)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY (9, 1)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY_TENS (9)
-  else { return std::array<bool,0>(); }
+  else { DPL_HOMOGENEOUS_APPLY_EMPTY }
   // clang-format on
 }
 
-template <bool B = false, class T, int D = nested_brace_constructible_size<B, T>() / 10, typename L>
+template <bool B = false, class T, int D = nested_brace_constructible_size<B, T>() / 10, typename L, bool Cat = false>
   requires(D == 8)
 constexpr auto homogeneous_apply_refs(L l, T&& object)
 {
@@ -212,11 +229,11 @@ constexpr auto homogeneous_apply_refs(L l, T&& object)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY (8, 2)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY (8, 1)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY_TENS (8)
-  else { return std::array<bool,0>(); }
+  else { DPL_HOMOGENEOUS_APPLY_EMPTY }
   // clang-format on
 }
 
-template <bool B = false, class T, int D = nested_brace_constructible_size<B, T>() / 10, typename L>
+template <bool B = false, class T, int D = nested_brace_constructible_size<B, T>() / 10, typename L, bool Cat = false>
   requires(D == 7)
 constexpr auto homogeneous_apply_refs(L l, T&& object)
 {
@@ -232,11 +249,11 @@ constexpr auto homogeneous_apply_refs(L l, T&& object)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY (7, 2)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY (7, 1)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY_TENS (7)
-  else { return std::array<bool,0>(); }
+  else { DPL_HOMOGENEOUS_APPLY_EMPTY }
   // clang-format on
 }
 
-template <bool B = false, class T, int D = nested_brace_constructible_size<B, T>() / 10, typename L>
+template <bool B = false, class T, int D = nested_brace_constructible_size<B, T>() / 10, typename L, bool Cat = false>
   requires(D == 6)
 constexpr auto homogeneous_apply_refs(L l, T&& object)
 {
@@ -252,11 +269,11 @@ constexpr auto homogeneous_apply_refs(L l, T&& object)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY (6, 2)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY (6, 1)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY_TENS (6)
-  else { return std::array<bool,0>(); }
+  else { DPL_HOMOGENEOUS_APPLY_EMPTY }
   // clang-format on
 }
 
-template <bool B = false, class T, int D = nested_brace_constructible_size<B, T>() / 10, typename L>
+template <bool B = false, class T, int D = nested_brace_constructible_size<B, T>() / 10, typename L, bool Cat = false>
   requires(D == 5)
 constexpr auto homogeneous_apply_refs(L l, T&& object)
 {
@@ -272,11 +289,11 @@ constexpr auto homogeneous_apply_refs(L l, T&& object)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY (5, 2)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY (5, 1)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY_TENS (5)
-  else { return std::array<bool,0>(); }
+  else { DPL_HOMOGENEOUS_APPLY_EMPTY }
   // clang-format on
 }
 
-template <bool B = false, class T, int D = nested_brace_constructible_size<B, T>() / 10, typename L>
+template <bool B = false, class T, int D = nested_brace_constructible_size<B, T>() / 10, typename L, bool Cat = false>
   requires(D == 4)
 constexpr auto homogeneous_apply_refs(L l, T&& object)
 {
@@ -292,11 +309,11 @@ constexpr auto homogeneous_apply_refs(L l, T&& object)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY (4, 2)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY (4, 1)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY_TENS (4)
-  else { return std::array<bool,0>(); }
+  else { DPL_HOMOGENEOUS_APPLY_EMPTY }
   // clang-format on
 }
 
-template <bool B = false, class T, int D = nested_brace_constructible_size<B, T>() / 10, typename L>
+template <bool B = false, class T, int D = nested_brace_constructible_size<B, T>() / 10, typename L, bool Cat = false>
   requires(D == 3)
 constexpr auto homogeneous_apply_refs(L l, T&& object)
 {
@@ -312,11 +329,11 @@ constexpr auto homogeneous_apply_refs(L l, T&& object)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY (3, 2)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY (3, 1)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY_TENS (3)
-  else { return std::array<bool,0>(); }
+  else { DPL_HOMOGENEOUS_APPLY_EMPTY }
   // clang-format on
 }
 
-template <bool B = false, class T, int D = nested_brace_constructible_size<B, T>() / 10, typename L>
+template <bool B = false, class T, int D = nested_brace_constructible_size<B, T>() / 10, typename L, bool Cat = false>
   requires(D == 2)
 constexpr auto homogeneous_apply_refs(L l, T&& object)
 {
@@ -332,11 +349,11 @@ constexpr auto homogeneous_apply_refs(L l, T&& object)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY (2, 2)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY (2, 1)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY_TENS (2)
-  else { return std::array<bool,0>(); }
+  else { DPL_HOMOGENEOUS_APPLY_EMPTY }
   // clang-format on
 }
 
-template <bool B = false, class T, int D = nested_brace_constructible_size<B, T>() / 10, typename L>
+template <bool B = false, class T, int D = nested_brace_constructible_size<B, T>() / 10, typename L, bool Cat = false>
   requires(D == 1)
 constexpr auto homogeneous_apply_refs(L l, T&& object)
 {
@@ -352,11 +369,11 @@ constexpr auto homogeneous_apply_refs(L l, T&& object)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY (1, 2)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY (1, 1)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY_TENS (1)
-  else { return std::array<bool,0>(); }
+  else { DPL_HOMOGENEOUS_APPLY_EMPTY }
   // clang-format on
 }
 
-template <bool B = false, class T, int D = nested_brace_constructible_size<B, T>() / 10, typename L>
+template <bool B = false, class T, int D = nested_brace_constructible_size<B, T>() / 10, typename L, bool Cat = false>
   requires(D == 0)
 constexpr auto homogeneous_apply_refs(L l, T&& object)
 {
@@ -371,7 +388,7 @@ constexpr auto homogeneous_apply_refs(L l, T&& object)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY_LOW (3)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY_LOW (2)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY_LOW (1)
-  else { return std::array<bool,0>(); }
+  else { DPL_HOMOGENEOUS_APPLY_EMPTY }
   // clang-format on
 }
 
@@ -381,6 +398,15 @@ template <int D, typename T, typename L>
 constexpr auto homogeneous_apply_refs_sized(L l, T&& object)
 {
   return homogeneous_apply_refs<false, T, D, L>(l, object);
+}
+
+/// Like homogeneous_apply_refs_sized, but l returns a std::tuple for each
+/// member and the results are concatenated: returning std::tuple<M&> or
+/// std::tuple<>() selects members. The calls to l are unsequenced.
+template <int D, typename T, typename L>
+constexpr auto apply_refs_tuple_cat_sized(L l, T&& object)
+{
+  return homogeneous_apply_refs<false, T, D, L, true>(l, object);
 }
 
 } // namespace o2::framework
