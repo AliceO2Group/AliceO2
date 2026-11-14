@@ -24,6 +24,7 @@
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "CommonConstants/LHCConstants.h"
 #include <gsl/span>
 #include <vector>
 #include <array>
