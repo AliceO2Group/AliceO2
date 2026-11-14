@@ -18,6 +18,10 @@
 #pragma link C++ class o2::tpc::ClusterHardware + ;
 #pragma link C++ class o2::tpc::ClusterHardwareContainer + ;
 #pragma link C++ class o2::tpc::ClusterNative + ;
+// ClusterNative::qTot was renamed to qTotPacked (saturated clusters encoded above maxRegularQtot): read the files written with the
+// old name (plain charge), identified by the checksum of the old layout; charges above maxRegularQtot are clipped to it
+#pragma read \
+  sourceClass = "o2::tpc::ClusterNative" targetClass = "o2::tpc::ClusterNative" checksum = "[4114055202]" source = "UShort_t qTot" target = "qTotPacked" include = "DataFormatsTPC/ClusterNative.h" code = "{ qTotPacked = onfile.qTot > o2::tpc::ClusterNative::maxRegularQtot ? o2::tpc::ClusterNative::maxRegularQtot : onfile.qTot; }"
 #pragma link C++ class o2::tpc::ClusterHardwareContainer8kb + ;
 #pragma link C++ class o2::tpc::ClusterHardwareContainerFixedSize < 8192> + ;
 #pragma link C++ class o2::tpc::ClusterNativeContainer + ;
