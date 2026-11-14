@@ -94,7 +94,7 @@ void ServiceRegistry::registerService(ServiceTypeHash typeHash, void* service, S
     if (mServicesBooked[i + index.index].compare_exchange_strong(expected, true,
                                                                  std::memory_order_seq_cst)) {
       mServicesValue[i + index.index] = service;
-      mServicesMeta[i + index.index] = Meta{kind, name ? strdup(name) : nullptr, specIndex};
+      mServicesMeta[i + index.index] = Meta{kind, name ? std::string(name) : std::string{""}, specIndex};
       mServicesKey[i + index.index] = Key{.typeHash = typeHash, .salt = salt};
       std::atomic_thread_fence(std::memory_order_release);
       return;
