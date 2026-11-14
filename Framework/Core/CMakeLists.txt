@@ -215,6 +215,7 @@ add_executable(o2-test-framework-core
               test/test_ComputingQuotaEvaluator.cxx
               test/test_Concepts.cxx
               test/test_ControlServiceHelpers.cxx
+              test/test_ConfigParamDiscovery.cxx
               test/test_ConfigParamStore.cxx
               test/test_ConfigParamRegistry.cxx
               test/test_DataDescriptorMatcher.cxx
