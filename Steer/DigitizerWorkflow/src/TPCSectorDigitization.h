@@ -76,6 +76,7 @@ class TPCDigitizerConditions
   int mDistortionType = 0;
   bool mUseCalibrationsFromCCDB = false;
   bool mRecalcDistortions = false;
+  int mRecalcDistortionsMethod = 1; ///< method of Digitizer::recalculateDistortions()
   float mMeanLumiDistortions = -1;
   float mMeanLumiDistortionsDerivative = -1;
 };

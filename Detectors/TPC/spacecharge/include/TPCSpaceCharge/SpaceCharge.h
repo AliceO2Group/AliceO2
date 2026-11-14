@@ -26,8 +26,10 @@
 #include "TPCSpaceCharge/DataContainer3D.h"
 #include "TPCSpaceCharge/SpaceChargeParameter.h"
 #include "DataFormatsTPC/Defs.h"
+#include <type_traits>
 
 class TH3;
+class TAxis;
 class TH3D;
 class TH3F;
 class TH2F;
@@ -134,16 +136,21 @@ class SpaceCharge
   /// \param hisSCDensity3D histogram for the space charge density
   void fillChargeDensityFromHisto(const TH3& hisSCDensity3D);
 
-  /// step 0: set the space-charge density from two TH3 histograms containing the space-charge density for A and C side seperately
+  /// step 0: set the space-charge density from two TH3 histograms containing the space-charge density for A and C side seperately.
+  /// Both histograms need the same number of bins (phi, r, z), the C-side histogram is expected in phi and r with the same ranges as the A-side histogram
+  /// and in z with the mirrored range (e.g. A side: z in [0, zMax], C side: z in [-zMax, 0]). The z axis of the A-side histogram is expected to start at 0.
+  /// Different ranges give a warning: the bins are used with the expected ranges
   /// \param hisSCDensity3D_A histogram for the space charge density for A-side
   /// \param hisSCDensity3D_C histogram for the space charge density for C-side
-  void fillChargeDensityFromHisto(const TH3& hisSCDensity3D_A, const TH3& hisSCDensity3D_C);
+  /// \return true if the density was filled, false if the number of bins of the histograms differs (the density is not changed)
+  bool fillChargeDensityFromHisto(const TH3& hisSCDensity3D_A, const TH3& hisSCDensity3D_C);
 
   /// step 0: set the space-charge density from two TH3 histograms containing the space charge density for A and C side separately which are stored in a ROOT file
   /// \param file path to root file containing the space-charge density
   /// \param nameA name of the space-charge density histogram for the A-side
   /// \param nameC name of the space-charge density histogram for the C-side
-  void fillChargeDensityFromHisto(const char* file, const char* nameA, const char* nameC);
+  /// \return true if the density was filled, false if a histogram was not found or the number of bins of the histograms differs (the density is not changed)
+  bool fillChargeDensityFromHisto(const char* file, const char* nameA, const char* nameC);
 
   /// step 0: set the space charge density from std::vector<CalDet> containing the space charge density. Each entry in the object corresponds to one z slice
   /// \param calSCDensity3D pad-by-pad CalDet for the space charge density
@@ -280,16 +287,25 @@ class SpaceCharge
   /// \param Side of the TPC
   void setPotentialBoundaryOuterRadius(const std::function<DataT(DataT)>& potentialFunc, const Side side);
 
+  /// step 1: use the O2TPCPoissonSolver class to numerically calculate the potential with set space charge density and boundary conditions from potential.
+  /// The stopping criterion of the poisson solver is the one set with PoissonSolver<DataT>::setConvergenceError() (default: PoissonSolver<DataT>::getDefaultConvergenceError())
+  /// \param side side of the TPC
+  void poissonSolver(const Side side);
+
   /// step 1: use the O2TPCPoissonSolver class to numerically calculate the potential with set space charge density and boundary conditions from potential
   /// \param side side of the TPC
-  /// \param stoppingConvergence stopping criterion used in the poisson solver
-  /// \param symmetry use symmetry or not in the poisson solver
-  void poissonSolver(const Side side, const DataT stoppingConvergence = 1e-6, const int symmetry = 0);
+  /// \param stoppingConvergence stopping criterion used in the poisson solver (relative change of the potential between two multi grid V cycles, see MGParameters::relativeConvergence).
+  /// It is set with PoissonSolver<DataT>::setConvergenceError() and is also used by later calls
+  void poissonSolver(const Side side, const DataT stoppingConvergence);
 
-  /// step 1: use the O2TPCPoissonSolver class to numerically calculate the potential with set space charge density and boundary conditions from potential for A and C side in parallel
-  /// \param stoppingConvergence stopping criterion used in the poisson solver
-  /// \param symmetry use symmetry or not in the poisson solver
-  void poissonSolver(const DataT stoppingConvergence = 1e-6, const int symmetry = 0);
+  /// step 1: use the O2TPCPoissonSolver class to numerically calculate the potential with set space charge density and boundary conditions from potential for the A and C side (one after the other).
+  /// The stopping criterion of the poisson solver is the one set with PoissonSolver<DataT>::setConvergenceError() (default: PoissonSolver<DataT>::getDefaultConvergenceError())
+  void poissonSolver();
+
+  /// step 1: use the O2TPCPoissonSolver class to numerically calculate the potential with set space charge density and boundary conditions from potential for the A and C side (one after the other)
+  /// \param stoppingConvergence stopping criterion used in the poisson solver (relative change of the potential between two multi grid V cycles, see MGParameters::relativeConvergence).
+  /// It is set with PoissonSolver<DataT>::setConvergenceError() and is also used by later calls
+  void poissonSolver(const DataT stoppingConvergence);
 
   /// step 2: calculate numerically the electric field from the potential
   /// \param side side of the TPC
@@ -392,6 +408,24 @@ class SpaceCharge
   /// \param scale scaling for second sc object
   void calcGlobalDistWithGlobalCorrIterativeLinearCartesian(const Side side, const SpaceCharge<DataT>* scSCale = nullptr, float scale = 0, const int maxIter = 100, const DataT approachX = 1, const DataT approachY = 1, const DataT approachZ = 1, const DataT diffCorr = 50e-6);
   void calcGlobalDistWithGlobalCorrIterativeLinearCartesian(const SpaceCharge<DataT>* scSCale = nullptr, float scale = 0, const int maxIter = 100, const DataT approachX = 1, const DataT approachY = 1, const DataT approachZ = 1, const DataT diffCorr = 50e-6);
+
+  /// Scale the global distortions with the global corrections of a derivative map, consistent with the scaled corrections C(y) + scale * C_der(y) at the
+  /// distorted point y (as done in the tracking), without inverting the global distortions of this object.
+  /// With T(x) = x + D(x) (the global distortions of this object), the new distortion at the vertex p is D_new(p) = T(x) - p, where x is the fixed point of
+  /// x = p - scale * C_der(T(x)) (iterated starting at x = p). Then y = T(x) fulfils y + C(y) = x for the inverse C of D, and y + C(y) + scale * C_der(y) = p.
+  /// The iteration converges fast since C_der is small and smooth (each step reduces the error by about |scale| * |dC_der/dy|).
+  /// \param side side of the TPC
+  /// \param scDer derivative map: its global corrections must be set (e.g. with calcGlobalCorrWithGlobalDistIterative())
+  /// \param scale scaling factor of the derivative map
+  /// \param maxIter maximum number of fixed-point iterations per vertex
+  /// \param diffCorr the iteration stops when the start point x changes by less than this value (cm) in x, y and z. The default (2 um) is above the
+  ///                 rounding noise of the cartesian corrections in single precision (O(0.5 um) at the outer radius) times the scaling factor
+  /// \return true if the distortions were scaled, false if the global distortions of this object or the global corrections of the derivative map are not set (the distortions are not changed)
+  bool scaleGlobalDistWithDerivativeCorr(const Side side, const SpaceCharge<DataT>& scDer, const float scale, const int maxIter = 20, const DataT diffCorr = 2e-4);
+
+  /// Scale the global distortions of both sides with the global corrections of a derivative map (see the function for one side)
+  /// \return true if the distortions of both sides were scaled, false if at least one side was not scaled
+  bool scaleGlobalDistWithDerivativeCorr(const SpaceCharge<DataT>& scDer, const float scale, const int maxIter = 20, const DataT diffCorr = 2e-4);
 
   /// Calculate global corrections using the global distortions by scaling with second distortion object, which will be consistent with scaled corrections in cartesian coordinates
   /// \param side Side of the TPC
@@ -865,7 +899,7 @@ class SpaceCharge
   DataT getPotential(const size_t iz, const size_t ir, const size_t iphi, const Side side) const { return mPotential[side](iz, ir, iphi); }
 
   /// Get the step width which is used for the calculation of the correction/distortions in units of the z-bin
-  static int getStepWidth() { return 1 / sSteps; }
+  static DataT getStepWidth() { return DataT(1) / sSteps; }
 
   /// Get phi vertex position for index in phi direction
   /// \param indexPhi index in phi direction
@@ -1365,8 +1399,9 @@ class SpaceCharge
   void integrateEFieldsSimpson(const DataT p1r, const DataT p1phi, const DataT p1z, const DataT p2z, DataT& localIntErOverEz, DataT& localIntEPhiOverEz, DataT& localIntDeltaEz, const Fields& formulaStruct, const DataT ezField, const Side side) const;
 
   /// integrate electrical fields using simpson integration method with non straight drift of electrons
+  /// \param fieldsStart fields (z, r, phi) at the start point p1
   template <typename Fields = AnalyticalFields<DataT>>
-  void integrateEFieldsSimpsonIterative(const DataT p1r, const DataT p2r, const DataT p1phi, const DataT p2phi, const DataT p1z, const DataT p2z, DataT& localIntErOverEz, DataT& localIntEPhiOverEz, DataT& localIntDeltaEz, const Fields& formulaStruct, const DataT ezField, const Side side) const;
+  void integrateEFieldsSimpsonIterative(const DataT p1r, const DataT p2r, const DataT p1phi, const DataT p2phi, const DataT p1z, const DataT p2z, const DataT (&fieldsStart)[3], DataT& localIntErOverEz, DataT& localIntEPhiOverEz, DataT& localIntDeltaEz, const Fields& formulaStruct, const DataT ezField, const Side side) const;
 
   /// calculate distortions/corrections using analytical electric fields
   void processGlobalDistCorr(const DataT radius, const DataT phi, const DataT z0Tmp, const DataT z1Tmp, DataT& ddR, DataT& ddPhi, DataT& ddZ, const AnalyticalFields<DataT>& formulaStruct) const { calcDistCorr(radius, phi, z0Tmp, z1Tmp, ddR, ddPhi, ddZ, formulaStruct, false, formulaStruct.getSide()); }
@@ -1377,9 +1412,9 @@ class SpaceCharge
   /// calculate distortions/corrections by interpolation of local distortions/corrections
   void processGlobalDistCorr(const DataT radius, const DataT phi, const DataT z0Tmp, [[maybe_unused]] const DataT z1Tmp, DataT& ddR, DataT& ddPhi, DataT& ddZ, const DistCorrInterpolator<DataT>& localDistCorr) const
   {
-    ddR = localDistCorr.evaldR(z0Tmp, radius, phi);
-    ddZ = localDistCorr.evaldZ(z0Tmp, radius, phi);
-    ddPhi = localDistCorr.evaldRPhi(z0Tmp, radius, phi) / radius;
+    DataT ddRPhi;
+    localDistCorr.evalDistCorr(z0Tmp, radius, phi, ddZ, ddR, ddRPhi);
+    ddPhi = ddRPhi / radius;
   }
 
   /// dump the created electron tracks with calculateElectronDriftPath function to a tree
@@ -1393,6 +1428,14 @@ class SpaceCharge
   void setBFields(o2::parameters::GRPMagField& magField);
 
   void initContainer(DataContainer& data, const bool initMem = true);
+
+  /// initialize several containers concurrently (allocation and first access to the memory of large containers)
+  void initContainers(const std::vector<DataContainer*>& containers);
+
+  /// rebin the space-charge density of a histogram (phi, r, z with z in [-zMax, zMax]) to the grid of both sides
+  /// \param getBinContentOrig function (iPhi, iR, iZ) returning the bin content of the original histogram (ROOT bin numbering)
+  template <typename BinContent>
+  void fillChargeDensityFromHisto(const TAxis& axisPhiOrig, const TAxis& axisROrig, const TAxis& axisZOrig, const BinContent& getBinContentOrig);
 
   void initAllBuffers();
 
