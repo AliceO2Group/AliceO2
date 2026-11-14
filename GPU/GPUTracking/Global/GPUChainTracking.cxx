@@ -266,6 +266,14 @@ bool GPUChainTracking::ValidateSettings()
     GPUError("Cannot do error interpolation with NWays < 3!");
     return false;
   }
+  if (param().rec.tpc.rebuildTrackInFit && !param().rec.tpc.mergerInterpolateErrors) {
+    GPUError("Need error interpolation to rebuild tracks during fit");
+    return false;
+  }
+  if (param().rec.tpc.rebuildTrackInFit && param().rec.tpc.rebuildTrackInFitClusterCandidates == 0) {
+    GPUError("Need at least 1 cluster candidate to rebuild tracks during fit");
+    return false;
+  }
   if (param().continuousMaxTimeBin > (int32_t)GPUSettings::TPC_MAX_TF_TIME_BIN) {
     GPUError("configured max time bin exceeds 256 orbits");
     return false;
@@ -1023,6 +1031,7 @@ void GPUChainTracking::ApplySyncSettings(GPUSettingsProcessing& proc, GPUSetting
 {
   if (syncMode) {
     rec.useMatLUT = false;
+    rec.tpc.rebuildTrackMaxNonIntCov = 0.f; // TODO: Check if this yields a performance benefit
   }
   if (proc.rtc.optSpecialCode == -1) {
     proc.rtc.optSpecialCode = syncMode;

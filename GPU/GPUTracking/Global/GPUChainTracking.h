@@ -322,6 +322,9 @@ class GPUChainTracking : public GPUChain
   int32_t RunTRDTrackingInternal();
   uint32_t StreamForSector(uint32_t sector) const;
 
+  // Debug
+  void DoDebugMergerNClDump(const GPUTPCGMMerger& merger);
+
   std::mutex mMutexUpdateCalib;
   std::unique_ptr<GPUChainTrackingFinalContext> mPipelineFinalizationCtx;
   GPUChainTrackingFinalContext* mPipelineNotifyCtx = nullptr;

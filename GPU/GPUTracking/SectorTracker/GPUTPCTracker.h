@@ -162,11 +162,15 @@ class GPUTPCTracker : public GPUProcessor
   GPUdi() static int32_t CalculateHitWeight(int32_t NHits, float chi2)
   {
     float weight = NHits * (NHits * 2 - 5) * 128 / chi2; // TODO: Add QPt to this formula
-    if (weight < 0.f || weight > 2e9f) {
+    if (weight < 0.f) {
       return 0;
+    }
+    if (weight > 2e9f) {
+      return 2e9f;
     }
     return ((int32_t)weight);
   }
+  GPUdi() float GetChiSeedFactor() const { return Param().rec.tpc.hitPickUpFactor * Param().rec.tpc.hitPickUpFactor * 3.5f * 3.5f; }
   GPUd() void MaximizeHitWeight(const GPUTPCRow& row, int32_t hitIndex, int32_t weight) { mData.MaximizeHitWeight(row, hitIndex, weight); }
   GPUd() void SetHitWeight(const GPUTPCRow& row, int32_t hitIndex, int32_t weight) { mData.SetHitWeight(row, hitIndex, weight); }
   GPUd() int32_t HitWeight(const GPUTPCRow& row, int32_t hitIndex) const { return mData.HitWeight(row, hitIndex); }

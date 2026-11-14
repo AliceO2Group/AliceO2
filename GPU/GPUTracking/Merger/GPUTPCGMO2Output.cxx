@@ -76,7 +76,7 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::prepare>(int32_t nBlock
     if (nCl == 0) {
       continue;
     }
-    if (nCl + 2 < merger.Param().tpcMinHitsB5(tracks[i].GetParam().GetQPt() * merger.Param().qptB5Scaler)) { // Give 2 hits tolerance in the primary leg, compared to the full fit of the looper
+    if (nCl + 2 < merger.MinHitsForQPt(tracks[i].GetParam().GetQPt(), tracks[i].GetParam().GetErr2QPt())) { // Give 2 hits tolerance in the primary leg, compared to the full fit of the looper
       continue;
     }
     if (merger.Param().rec.tpc.minNClustersFinalTrack != -1 && nCl < (uint32_t)merger.Param().rec.tpc.minNClustersFinalTrack) {
@@ -215,9 +215,11 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int32_t nBlocks
 
     if (track.PrevSegment() >= 0) {
       const GPUTPCGMMergedTrack* chkTrk = track.GetFirstSegment(tracks, merger.Param().rec.enableCyclicGraphWorkarounds);
-      const auto& firstPrevCluster = trackClusters[chkTrk->FirstClusterRef()];
-      t1 = clusters->clustersLinear[firstPrevCluster.num].getTime();
-      sector1 = firstPrevCluster.sector;
+      if (chkTrk->NClusters()) { // First segment can have lost all its clusters in the rebuild, then its cluster reference is invalid
+        const auto& firstPrevCluster = trackClusters[chkTrk->FirstClusterRef()];
+        t1 = clusters->clustersLinear[firstPrevCluster.num].getTime();
+        sector1 = firstPrevCluster.sector;
+      }
     }
 
     bool cce = track.CCE() && ((sector1 < MAXSECTOR / 2) ^ (sector2 < MAXSECTOR / 2));
