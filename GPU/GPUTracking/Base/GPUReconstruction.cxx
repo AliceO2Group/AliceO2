@@ -295,7 +295,7 @@ int32_t GPUReconstruction::InitPhaseBeforeDevice()
   if (GetProcessingSettings().deterministicGPUReconstruction && GetProcessingSettings().debugLevel >= 6) {
     mProcessingSettings->nTPCClustererLanes = 1;
   }
-  if (GetProcessingSettings().createO2Output > 1 && GetProcessingSettings().runQA && GetProcessingSettings().qcRunFraction == 100.f) {
+  if (GetProcessingSettings().createO2Output > 1 && ((GetProcessingSettings().runQA && GetProcessingSettings().qcRunFraction == 100.f) || GetProcessingSettings().debug.mergerDumpTrackNCl)) {
     mProcessingSettings->createO2Output = 1;
   }
   if (!GetProcessingSettings().createO2Output || !IsGPU()) {

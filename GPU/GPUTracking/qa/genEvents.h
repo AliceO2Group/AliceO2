@@ -16,7 +16,7 @@
 #define GENEVENTS_H
 
 #include "GPUCommonDef.h"
-#include <cmath>
+#include "GPUCommonMath.h"
 
 namespace o2::gpu
 {
@@ -66,7 +66,7 @@ class genEvents
     uint32_t id;
   };
 
-  const double mTwoPi = 2 * M_PI;
+  const double mTwoPi = 2 * CAMath::Pi();
   const double mSectorDAngle = mTwoPi / 18.;
   const double mSectorAngleOffset = mSectorDAngle / 2;
 

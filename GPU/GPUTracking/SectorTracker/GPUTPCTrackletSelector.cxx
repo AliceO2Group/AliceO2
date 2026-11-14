@@ -51,7 +51,7 @@ GPUdii() void GPUTPCTrackletSelector::Thread<0>(int32_t nBlocks, int32_t nThread
     uint32_t gap = 0;
     uint32_t nShared = 0;
     uint32_t nHits = 0;
-    const uint32_t minHits = tracker.Param().rec.tpc.minNClustersTrackSeed == -1 ? tracker.Param().tpcMinHitsB5(tracklet.Param().QPt() * tracker.Param().qptB5Scaler) : tracker.Param().rec.tpc.minNClustersTrackSeed;
+    const uint32_t minHits = tracker.Param().rec.tpc.minNClustersTrackSeed == -1 ? tracker.Param().tpcMinHitsB5Abs(CAMath::Abs(tracklet.Param().QPt() * tracker.Param().qptB5Scaler)) : tracker.Param().rec.tpc.minNClustersTrackSeed;
     const uint32_t sharingMinNorm = minHits * tracker.Param().rec.tpc.trackletMinSharedNormFactor;
     const float maxSharedNorm = maxSharedFrac * sharingMinNorm;
 

@@ -258,12 +258,12 @@ bool GPUChainTracking::ValidateSteps()
 bool GPUChainTracking::ValidateSettings()
 {
   int32_t gatherMode = mRec->GetProcessingSettings().tpcCompressionGatherMode == -1 ? mRec->getGPUParameters(mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCCompression).par_COMP_GATHER_MODE : mRec->GetProcessingSettings().tpcCompressionGatherMode;
-  if ((param().rec.tpc.nWays & 1) == 0) {
-    GPUError("nWay setting musst be odd number!");
+  if (param().rec.tpc.rebuildTrackInFit && !param().rec.tpc.mergerInterpolateErrors) {
+    GPUError("Need error interpolation to rebuild tracks during fit");
     return false;
   }
-  if (param().rec.tpc.mergerInterpolateErrors && param().rec.tpc.nWays < 3) {
-    GPUError("Cannot do error interpolation with NWays < 3!");
+  if (param().rec.tpc.rebuildTrackInFit && param().rec.tpc.rebuildTrackInFitClusterCandidates == 0) {
+    GPUError("Need at least 1 cluster candidate to rebuild tracks during fit");
     return false;
   }
   if (param().continuousMaxTimeBin > (int32_t)GPUSettings::TPC_MAX_TF_TIME_BIN) {
@@ -1023,6 +1023,7 @@ void GPUChainTracking::ApplySyncSettings(GPUSettingsProcessing& proc, GPUSetting
 {
   if (syncMode) {
     rec.useMatLUT = false;
+    rec.tpc.rebuildTrackMaxNonIntCov = 0.f; // TODO: Check if this yields a performance benefit
   }
   if (proc.rtc.optSpecialCode == -1) {
     proc.rtc.optSpecialCode = syncMode;
