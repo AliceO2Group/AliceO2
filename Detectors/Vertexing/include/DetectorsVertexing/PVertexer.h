@@ -377,7 +377,7 @@ bool PVertexer::prepareVertexRefit(const TR& tracks, const o2d::VertexBase& vtxS
   if (int(mTracksPool.size()) < mPVParams->minTracksPerVtx) {
     return false;
   }
-  mRefitTrackIDs.resize(tracks.size());
+  mRefitTrackIDs.resize(mTracksPool.size());
   std::iota(mRefitTrackIDs.begin(), mRefitTrackIDs.end(), 0);
   mVtxRefitOrig = vtxSeed;
   return true;
