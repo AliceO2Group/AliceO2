@@ -30,6 +30,11 @@ include_guard()
 #   regular executables (e.g. o2-tpc-... or o2-mch-...) or the origin target for
 #   tests (to help locate the source file in the source directory hierarchy,
 #   e.g. o2-test-DataFormats-...)
+# * WORKFLOW_PLUGIN (optional), for a DPL workflow: its sources are compiled
+#   into the workflow plugin <Name>, in libO2<Name>Plugin, which o2-dpl-run can
+#   load with --workflow-plugin, and the executable is only a main() linking
+#   it. <Name> is the CamelCase of the executable name without o2-, e.g.
+#   o2-tpc-reco-workflow gives O2TpcRecoWorkflowPlugin:TpcRecoWorkflow.
 #
 # Note that the _target_ corresponding to the executable will be named
 # O2exe[-exeType][component]-basename and can be retrieved with the
@@ -48,7 +53,7 @@ function(o2_add_executable baseTargetName)
   cmake_parse_arguments(PARSE_ARGV
                         1
                         A
-                        "IS_TEST;NO_INSTALL;IS_BENCHMARK"
+                        "IS_TEST;NO_INSTALL;IS_BENCHMARK;WORKFLOW_PLUGIN"
                         "COMPONENT_NAME;TARGETVARNAME"
                         "SOURCES;PUBLIC_LINK_LIBRARIES;JOB_POOL")
 
@@ -92,7 +97,18 @@ function(o2_add_executable baseTargetName)
   endif()
 
   # add the executable with its sources
-  add_executable(${target} ${A_SOURCES})
+  if(A_WORKFLOW_PLUGIN)
+    o2_add_workflow_plugin(${exeName} SOURCES ${A_SOURCES}
+                           PUBLIC_LINK_LIBRARIES ${A_PUBLIC_LINK_LIBRARIES}
+                           TARGETVARNAME plugin)
+    add_executable(${target} $<TARGET_OBJECTS:O2FrameworkWorkflowMain>)
+    target_link_libraries(${target} PUBLIC ${plugin})
+    if(NOT A_NO_INSTALL)
+      install(TARGETS ${plugin} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+    endif()
+  else()
+    add_executable(${target} ${A_SOURCES})
+  endif()
 
   # set the executable output name
   set_property(TARGET ${target} PROPERTY OUTPUT_NAME ${exeName})
@@ -131,4 +147,33 @@ function(o2_add_executable baseTargetName)
     endif()
   endif()
 
+endfunction()
+
+# o2_add_workflow_plugin(exeName SOURCES ... PUBLIC_LINK_LIBRARIES ...
+# TARGETVARNAME var) builds the workflow plugin of the executable exeName, see
+# WORKFLOW_PLUGIN above, and the main() of such executables, once.
+function(o2_add_workflow_plugin exeName)
+  cmake_parse_arguments(PARSE_ARGV 1 A "" "TARGETVARNAME" "SOURCES;PUBLIC_LINK_LIBRARIES")
+  string(REGEX REPLACE "^o2-" "" name ${exeName})
+  string(REPLACE "-" ";" parts ${name})
+  set(name "")
+  foreach(part IN LISTS parts)
+    string(SUBSTRING ${part} 0 1 first)
+    string(SUBSTRING ${part} 1 -1 rest)
+    string(TOUPPER ${first} first)
+    string(APPEND name ${first}${rest})
+  endforeach()
+  string(MAKE_C_IDENTIFIER ${name} name)
+  set(plugin O2${name}Plugin)
+  add_library(${plugin} SHARED ${A_SOURCES})
+  target_link_libraries(${plugin} PUBLIC ${A_PUBLIC_LINK_LIBRARIES})
+  target_compile_definitions(${plugin} PRIVATE DPL_WORKFLOW_PLUGIN_NAME=${name})
+  set(${A_TARGETVARNAME} ${plugin} PARENT_SCOPE)
+  if(NOT TARGET O2FrameworkWorkflowMain)
+    file(CONFIGURE OUTPUT ${CMAKE_BINARY_DIR}/O2FrameworkWorkflowMain.cxx CONTENT [[
+extern "C" int dpl_workflow_main(int argc, char** argv);
+int main(int argc, char** argv) { return dpl_workflow_main(argc, argv); }
+]])
+    add_library(O2FrameworkWorkflowMain OBJECT ${CMAKE_BINARY_DIR}/O2FrameworkWorkflowMain.cxx)
+  endif()
 endfunction()

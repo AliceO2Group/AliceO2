@@ -92,6 +92,7 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     IN_DATAPROCESSOR_INFO,
     IN_DATAPROCESSOR_INFO_NAME,
     IN_DATAPROCESSOR_INFO_EXECUTABLE,
+    IN_DATAPROCESSOR_INFO_PLUGIN,
     IN_DATAPROCESSOR_INFO_ARGS,
     IN_DATAPROCESSOR_INFO_ARG,
     IN_DATAPROCESSOR_INFO_CHANNELS,
@@ -263,6 +264,9 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
         break;
       case State::IN_DATAPROCESSOR_INFO_EXECUTABLE:
         s << "IN_DATAPROCESSOR_INFO_EXECUTABLE";
+        break;
+      case State::IN_DATAPROCESSOR_INFO_PLUGIN:
+        s << "IN_DATAPROCESSOR_INFO_PLUGIN";
         break;
       case State::IN_DATAPROCESSOR_INFO_ARGS:
         s << "IN_DATAPROCESSOR_INFO_ARGS";
@@ -708,6 +712,8 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       push(State::IN_DATAPROCESSOR_INFO_NAME);
     } else if (in(State::IN_DATAPROCESSOR_INFO) && strncmp(str, "executable", length) == 0) {
       push(State::IN_DATAPROCESSOR_INFO_EXECUTABLE);
+    } else if (in(State::IN_DATAPROCESSOR_INFO) && strncmp(str, "plugin", length) == 0) {
+      push(State::IN_DATAPROCESSOR_INFO_PLUGIN);
     } else if (in(State::IN_DATAPROCESSOR_INFO) && strncmp(str, "cmdLineArgs", length) == 0) {
       push(State::IN_DATAPROCESSOR_INFO_ARGS);
     } else if (in(State::IN_DATAPROCESSOR_INFO) && strncmp(str, "workflowOptions", length) == 0) {
@@ -734,6 +740,9 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     } else if (in(State::IN_DATAPROCESSOR_INFO_EXECUTABLE)) {
       assert(metadata.size());
       metadata.back().executable = s;
+    } else if (in(State::IN_DATAPROCESSOR_INFO_PLUGIN)) {
+      assert(metadata.size());
+      metadata.back().plugin = s;
     } else if (in(State::IN_INPUT_BINDING)) {
       binding = s;
     } else if (in(State::IN_INPUT_ORIGIN)) {
@@ -1270,6 +1279,10 @@ void WorkflowSerializationHelpers::dump(std::ostream& out,
     w.String(info.name.c_str());
     w.Key("executable");
     w.String(info.executable.c_str());
+    if (!info.plugin.empty()) {
+      w.Key("plugin");
+      w.String(info.plugin.c_str());
+    }
     w.Key("cmdLineArgs");
     w.StartArray();
     for (auto& arg : info.cmdLineArgs) {
