@@ -48,6 +48,7 @@ NJOBS=${NJOBS:-"${NCPUS}"}
 SHMSIZE=${SHMSIZE:-8000000000} # Size of shared memory for messages (use 128 GB for 550 event full TF)
 #TPCTRACKERSCRATCHMEMORY=${TPCTRACKERSCRATCHMEMORY:-8000000000} # Not needed by default
 ENABLE_GPU_TEST=${ENABLE_GPU_TEST:-0} # Run the full system test also on the GPU
+FST_GPUTYPE=${FST_GPUTYPE:-CUDA} # GPU backend used in case ENABLE_GPU_TEST=1 (CUDA / HIP / METAL)
 GPUMEMSIZE=${GPUMEMSIZE:-6000000000} # Size of GPU memory to use in case ENABBLE_GPU_TEST=1
 NTIMEFRAMES=${NTIMEFRAMES:-1} # Number of time frames to process
 TFDELAY=${TFDELAY:-100} # Delay in seconds between publishing time frames
@@ -281,7 +282,7 @@ for STAGE in $STAGES; do
   export WORKFLOW_PARAMETERS=
   if [[ "$STAGE" = "WITHGPU" ]]; then
     export CREATECTFDICT=0
-    export GPUTYPE=CUDA
+    export GPUTYPE=$FST_GPUTYPE
     export HOSTMEMSIZE=1000000000
     export SYNCMODE=1
     export CTFINPUT=0
