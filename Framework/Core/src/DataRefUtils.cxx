@@ -84,30 +84,69 @@ void* extractFromTFile(TFile& file, TClass const* cl, const char* what)
 
 #if defined(_LIBCPP_VERSION)
 // The only member of std::array<T,N> is T _M_elems[N] in libstdc++, T __elems_[N] in libc++, so
-// objects written on Linux carry a StreamerInfo with a checksum the libc++ class does not have.
-// When opening the file, ROOT drops that StreamerInfo as an alias of the in-memory one
-// (TStreamerInfo::BuildCheck), and the read fails with "Could not find the StreamerInfo with a
-// checksum", leaving the array zero-filled. Register the on-file layout as a version of its own,
+// objects written on Linux refer to a StreamerInfo checksum the libc++ class does not have, and
+// the read fails with "Could not find the StreamerInfo with a checksum", leaving the array
+// zero-filled (or -1 where the constructor put that). This happens for an std::array stored as
+// the object itself (TRD's chamber status) and as a member (ITS GeometryTGeo::mLayerToWrapper).
+// For each std::array the file describes, register its libstdc++ layout as a version of its own,
 // under the in-memory member name, so that the payload, T[N] for both, is read as usual.
-void DataRefUtils::registerLibstdcxxStdArray(TFile& file, TClass const* cl)
+namespace
 {
-  auto* infos = std::strncmp(cl->GetName(), "array<", 6) == 0 ? file.GetStreamerInfoCache() : nullptr;
-  auto* onfile = infos ? dynamic_cast<TStreamerInfo*>(infos->FindObject(cl->GetName())) : nullptr;
-  if (!onfile || onfile->GetNelement() != 1 || std::strcmp(onfile->GetElement(0)->GetName(), "_M_elems") != 0) {
+// TStreamerInfo::GetCheckSum for a class whose only member is "name" of type T[N]
+UInt_t stdArrayCheckSum(TClass const* cl, TStreamerElement const* el, char const* name)
+{
+  UInt_t id = 0;
+  auto add = [&id](char const* s) { for (; *s; ++s) { id = id * 3 + *s; } };
+  add(cl->GetName());
+  add(name);
+  add(el->GetTypeName());
+  for (int i = 0; i < el->GetArrayDim(); ++i) {
+    id = id * 3 + el->GetMaxIndex(i);
+  }
+  return id;
+}
+} // namespace
+
+void DataRefUtils::registerLibstdcxxStdArray(TFile& file, TClass const* /*cl*/)
+{
+  auto* infos = file.GetStreamerInfoCache();
+  if (!infos) {
     return;
   }
-  // Exists before BuildCheck, so that the on-file layout gets a version of its own
-  auto* current = static_cast<TStreamerInfo*>(const_cast<TClass*>(cl)->GetStreamerInfo());
-  auto* info = static_cast<TStreamerInfo*>(cl->FindStreamerInfo(onfile->GetCheckSum()));
-  if (!info) {
-    info = static_cast<TStreamerInfo*>(onfile->Clone());
-    info->BuildCheck(&file);
-  }
-  // Also when ROOT registered it itself: it then reads nothing, without any error
-  if (std::strcmp(info->GetElement(0)->GetName(), current->GetElement(0)->GetName()) != 0) {
-    info->GetElement(0)->SetName(current->GetElement(0)->GetName());
-    info->Clear("build");
-    info->BuildOld();
+  for (auto* obj : *infos) {
+    auto* onfile = dynamic_cast<TStreamerInfo*>(obj);
+    if (!onfile || std::strncmp(onfile->GetName(), "array<", 6) != 0 || onfile->GetNelement() != 1) {
+      continue;
+    }
+    auto* cl = TClass::GetClass(onfile->GetName());
+    if (!cl) {
+      continue;
+    }
+    // Exists before BuildCheck, so that the libstdc++ layout gets a version of its own
+    auto* current = static_cast<TStreamerInfo*>(cl->GetStreamerInfo());
+    if (!current || current->GetNelement() != 1) {
+      continue;
+    }
+    // ROOT may already have replaced the file's layout by the in-memory one (members of other
+    // classes): then rebuild the libstdc++ one, which differs only by the member name.
+    auto checksum = std::strcmp(onfile->GetElement(0)->GetName(), "_M_elems") == 0 ? onfile->GetCheckSum() : stdArrayCheckSum(cl, current->GetElement(0), "_M_elems");
+    auto* info = static_cast<TStreamerInfo*>(cl->FindStreamerInfo(checksum));
+    if (!info) {
+      info = static_cast<TStreamerInfo*>((std::strcmp(onfile->GetElement(0)->GetName(), "_M_elems") == 0 ? onfile : current)->Clone());
+      info->GetElement(0)->SetName("_M_elems");
+      info->SetCheckSum(checksum);
+      info->BuildCheck(&file);
+      info = static_cast<TStreamerInfo*>(cl->FindStreamerInfo(checksum));
+      if (!info) {
+        continue;
+      }
+    }
+    // Also when ROOT registered it itself: it then reads nothing, without any error
+    if (std::strcmp(info->GetElement(0)->GetName(), current->GetElement(0)->GetName()) != 0) {
+      info->GetElement(0)->SetName(current->GetElement(0)->GetName());
+      info->Clear("build");
+      info->BuildOld();
+    }
   }
 }
 #endif
