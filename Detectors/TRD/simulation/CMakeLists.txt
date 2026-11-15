@@ -12,6 +12,7 @@
 o2_add_library(TRDSimulation
                TARGETVARNAME targetName
                SOURCES src/Detector.cxx
+                       src/IonisationModel.cxx
                        src/TRsim.cxx
                        src/DiffAndTimeStructEstimator.cxx
                        src/Digitizer.cxx
@@ -64,6 +65,12 @@ o2_add_test(PileupTool
             COMPONENT_NAME trd
             PUBLIC_LINK_LIBRARIES O2::TRDSimulation
             ENVIRONMENT VMCWORKDIR=${CMAKE_BINARY_DIR}/stage
+            LABELS trd)
+
+o2_add_test(IonisationModel
+            SOURCES test/testTRDIonisationModel.cxx
+            COMPONENT_NAME trd
+            PUBLIC_LINK_LIBRARIES O2::TRDSimulation
             LABELS trd)
 
 o2_add_test(DiffusionCoefficient

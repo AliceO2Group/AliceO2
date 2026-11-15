@@ -4,6 +4,6 @@
 *    Med GAM   ELEC  NHAD  CHAD  MUON  EBREM MUHAB EDEL  MUDEL MUPA  ANNI  BREM  COMP  DCAY  DRAY  HADR  LOSS  MULS  PAIR  PHOT  RAYL  STRA
 * Mylar
 TRD  27  1e-5  1e-5  1e-3  1e-3  1e-5  1e-5  1e-5  1e-5  1e-5  -1.   1     1     1     1     1     1     3     1     1     1     1     0
-* Gas mixture
+* Gas mixture; its DCUTE must stay the delta-ray cut of the TRD ionisation tables (IonisationModel)
 TRD   9  1e-5  1e-5  1e-3  1e-3  1e-5  1e-5  1e-5  1e-5  1e-5  -1.   1     1     1     1     1     1     3     1     1     1     1     1
 *

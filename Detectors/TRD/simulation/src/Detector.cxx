@@ -18,6 +18,7 @@
 #include "DataFormatsTRD/Hit.h"
 
 #include "CommonUtils/ShmAllocator.h"
+#include "DetectorsBase/MaterialManager.h"
 #include "DetectorsBase/Stack.h"
 #include "FairVolume.h"
 #include "FairRootManager.h"
@@ -25,6 +26,7 @@
 #include <TGeoManager.h>
 #include <TVirtualMC.h>
 
+#include <cmath>
 #include <cstdio>
 #include <vector>
 #include <stdexcept>
@@ -120,6 +122,56 @@ void Detector::InitializeParams()
   }
   mTR = new TRsim();
   mMaxMCStepDef = TRDSimParams::Instance().maxMCStepSize;
+
+  const auto& simParams = TRDSimParams::Instance();
+  if (simParams.ionisationModel == 1) {
+    mIonisation = std::make_unique<IonisationModel>(simParams.gas);
+    // the tables start at minBetaGamma; below it the energy deposit is used
+    mIonMinBetaGamma = std::max<double>(simParams.ionisationMinBetaGamma, IonisationModel::minBetaGamma());
+    mIonMinEkin = simParams.ionisationMinEkin;
+    LOG(info) << "TRD: ionisation from collision tables, energy deposit below beta*gamma " << mIonMinBetaGamma
+              << " or kinetic energy " << mIonMinEkin << " eV";
+  } else if (simParams.ionisationModel != 0) {
+    LOG(fatal) << "TRD: unknown ionisationModel " << simParams.ionisationModel;
+  }
+}
+
+void Detector::checkDeltaRayCut()
+{
+  // The collision tables end at the delta-ray cut they were made for. Above it Geant4 makes delta electrons
+  // with their own hits, so a different cut in the gas (medium 9, Gas-mix) would double count or lose energy.
+  auto& mgr = o2::base::MaterialManager::Instance();
+  std::vector<std::pair<o2::base::ECut, Float_t>> cuts;
+  mgr.getSpecialCuts(GetName(), 9, cuts);
+  double dcute = -1.; // eV
+  for (const auto& [cut, value] : cuts) {
+    if (cut == o2::base::ECut::kDCUTE) {
+      dcute = value * 1e9;
+    }
+  }
+  const double tableCut = IonisationModel::deltaRayCut();
+  if (!mgr.specialCutsEnabled() || std::abs(dcute - tableCut) > 1e-3 * tableCut) {
+    LOG(fatal) << "TRD: the ionisation tables need DCUTE = " << tableCut << " eV in the gas, the medium has "
+               << (mgr.specialCutsEnabled() ? dcute : -1.) << " eV; use TRDSimParams.ionisationModel=0 with other cuts";
+  }
+  mDeltaRayCutChecked = true;
+}
+
+double Detector::ionisationEnergy(float edep) const
+{
+  double px, py, pz, etot;
+  fMC->TrackMomentum(px, py, pz, etot);
+  const double mass = fMC->TrackMass();
+  const double epre = etot + fMC->Edep(); // total energy before the step
+  const double ekin = (epre - mass) * 1e9;
+  const double betaGamma = std::sqrt(std::max(epre * epre - mass * mass, 0.)) / mass;
+  // slow tracks, including the step that stops a track, keep the energy deposit
+  if (betaGamma < mIonMinBetaGamma || ekin < mIonMinEkin) {
+    return edep;
+  }
+  // bare charge, no effective charge: an ion is close to bare for beta >> Z/137, for alphas above the beta*gamma cut
+  const double z = fMC->TrackCharge();
+  return std::min(mIonisation->stepEnergy(fMC->TrackStep(), betaGamma, z * z, *o2::base::simRandom()), ekin);
 }
 
 bool Detector::ProcessHits(FairVolume* v)
@@ -221,10 +273,14 @@ bool Detector::ProcessHits(FairVolume* v)
     trkStat = 2;
   }
 
-  // Calculate the charge according to GEANT Edep
+  // Calculate the charge from the collision model, or from the transport engine's energy deposit
   // Create a new dEdx hit
-  const float enDep = std::max(fMC->Edep(), 0.0) * 1e9; // Energy in eV
-  const int totalChargeDep = (int)(enDep / mWion);      // Total charge
+  const float edep = std::max(fMC->Edep(), 0.0) * 1e9; // Energy in eV
+  if (mIonisation && !mDeltaRayCutChecked) {
+    checkDeltaRayCut();
+  }
+  const float enDep = mIonisation ? ionisationEnergy(edep) : edep;
+  const int totalChargeDep = (int)(enDep / mWion); // Total charge
 
   // Store those hits with enDep bigger than the ionization potential of the gas mixture for in-flight tracks
   // or store hits of tracks that are entering or exiting
