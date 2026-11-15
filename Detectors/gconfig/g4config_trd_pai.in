@@ -1,0 +1,6 @@
+# PAI for the TRD gas, applied by g4Config.C only when the TRD charge comes from the Geant4
+# energy deposit (TRDSimParams.ionisationModel=0)
+# Geant4 VMC >= v3.2
+/mcPhysics/emModel/setEmModel  PAI
+/mcPhysics/emModel/setRegions  TRD_Gas-mix
+/mcPhysics/emModel/setParticles  e- e+ mu- mu+ pi- pi+ kaon- kaon+ proton anti_proton deuteron triton He3 alpha
