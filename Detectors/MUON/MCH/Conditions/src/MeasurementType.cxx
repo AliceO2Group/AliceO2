@@ -12,6 +12,8 @@
 #include "MCHConditions/MeasurementType.h"
 #include <array>
 #include <fmt/core.h>
+#include <fmt/format.h>
+#include <stdexcept>
 
 namespace o2::mch::dcs
 {
