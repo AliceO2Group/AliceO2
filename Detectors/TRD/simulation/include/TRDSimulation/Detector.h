@@ -12,12 +12,14 @@
 #ifndef ALICEO2_TRD_DETECTOR_H_
 #define ALICEO2_TRD_DETECTOR_H_
 
+#include <memory>
 #include <vector>
 #include "DetectorsBase/Detector.h"
 #include "SimulationDataFormat/BaseHits.h"
 #include "CommonUtils/ShmAllocator.h"
 
 #include "DataFormatsTRD/Hit.h"
+#include "TRDSimulation/IonisationModel.h"
 
 class FairVolume;
 
@@ -89,6 +91,17 @@ class Detector : public o2::base::DetImpl<Detector>
   TRsim* mTR; // Access to TR simulation
 
   float mWion; // Ionization potential
+
+  // Energy (eV) from which the charge of the current step is made
+  double ionisationEnergy(float edep) const;
+
+  // Checks once that the gas has the delta-ray cut of the collision tables
+  void checkDeltaRayCut();
+  bool mDeltaRayCutChecked = false; //!
+
+  std::unique_ptr<IonisationModel> mIonisation; //! collision model in the gas, null when the energy deposit is used
+  double mIonMinBetaGamma = 0.;                 //!
+  double mIonMinEkin = 0.;                      //! eV
 
   Geometry* mGeom = nullptr;
 

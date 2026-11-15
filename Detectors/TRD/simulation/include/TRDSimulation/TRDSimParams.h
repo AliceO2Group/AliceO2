@@ -37,6 +37,10 @@ struct TRDSimParams : public o2::conf::ConfigurableParamHelper<TRDSimParams> {
   float maxMCStepSize = 0.1;                              ///< maximum size of MC steps
   bool doTR = true;                                       ///< switch for transition radiation
   SimParam::GasMixture gas = SimParam::GasMixture::Xenon; ///< the gas mixture in the TRD
+  // ionisation in the gas
+  int ionisationModel = 0;             ///< charge from 0: Geant4 energy deposit with PAI, 1: TRD collision tables, no PAI
+  float ionisationMinBetaGamma = 0.04; ///< below this beta*gamma the charge comes from the energy deposit
+  float ionisationMinEkin = 30e3;      ///< (eV) below this kinetic energy the charge comes from the energy deposit
   // TRF parameters
   int trf = 1;                  // Sampled TRF function. 0: default TRF, 1: TRF described in TRF TDR, 2: No TRF, 3: Landau dist as TRF (parameters specified below)
   float trf_landau_mu = 0.;     // Mu of the Landau distribution used to describe TRF
