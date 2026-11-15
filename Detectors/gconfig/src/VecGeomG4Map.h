@@ -12,6 +12,9 @@
 #ifndef O2_SIMSETUP_VECGEOMG4MAP_H_
 #define O2_SIMSETUP_VECGEOMG4MAP_H_
 
+#include "G4VPhysicalVolume.hh"
+
+#include <VecGeom/navigation/NavigationState.h>
 #include <VecGeom/volumes/PlacedVolume.h>
 
 #include <cstddef>
@@ -19,7 +22,6 @@
 #include <unordered_map>
 #include <vector>
 
-class G4VPhysicalVolume;
 class TG4RootDetectorConstruction;
 class TGeoNode;
 
@@ -91,6 +93,12 @@ class VecGeomG4Map
     return true;
   }
 
+  /// Builds \a state from a Geant4 path, extending past the levels assembly flattening dissolved.
+  /// \a volumeAt(level) gives the Geant4 volume at a level, 0 being the world, \a depth the deepest
+  /// level. False if a level matches no VecGeom placement; \a state is then empty.
+  template <typename VolumeAt>
+  bool stateFromPath(VolumeAt&& volumeAt, std::size_t depth, vecgeom::NavigationState& state) const;
+
   /// How many Geant4 levels a VecGeom placement accounts for.
   unsigned chainSize(int vgId) const
   {
@@ -118,6 +126,56 @@ class VecGeomG4Map
   std::size_t mPairs = 0;
   std::size_t mMispaired = 0;
 };
+
+template <typename VolumeAt>
+bool VecGeomG4Map::stateFromPath(VolumeAt&& volumeAt, std::size_t depth, vecgeom::NavigationState& state) const
+{
+  // A run of levels that ends in a Geant4 volume several placements share is settled by comparing
+  // the run against the placements' recorded chains, which is exact.
+  constexpr std::size_t kMaxChain = 16; // longest run of Geant4 levels one flattened placement stands for
+  state.Clear();
+  if (mWorld == nullptr || volumeAt(0) == nullptr) {
+    return false;
+  }
+  state.Push(mWorld);
+  std::size_t l = chainSize(mWorld->id());
+  while (l <= depth) {
+    G4VPhysicalVolume* run[kMaxChain];
+    vecgeom::VPlacedVolume const* found = nullptr;
+    std::size_t n = 0;
+    for (std::size_t e = l; e <= depth && n < kMaxChain; ++e, ++n) {
+      run[n] = volumeAt(e);
+      if (run[n] == nullptr) {
+        state.Clear();
+        return false;
+      }
+      auto const* candidate = toVecGeom(run[n]->GetInstanceID());
+      if (candidate == nullptr) {
+        continue; // an assembly level; the chain reaches further down
+      }
+      if (candidate == ambiguous()) {
+        for (auto const* c : candidates(run[n]->GetInstanceID())) {
+          if (chainMatches(c, run, n + 1)) {
+            found = c;
+            break;
+          }
+        }
+      } else if (chainMatches(candidate, run, n + 1)) {
+        found = candidate;
+      }
+      if (found != nullptr) {
+        break;
+      }
+    }
+    if (found == nullptr) {
+      state.Clear();
+      return false;
+    }
+    state.Push(found);
+    l += chainSize(found->id());
+  }
+  return true;
+}
 
 } // namespace o2::simsetup
 

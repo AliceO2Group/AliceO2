@@ -31,7 +31,7 @@ set(G4SETUP_SOURCES src/G4Config.cxx src/G4RunConfiguration.cxx src/G4LocalField
                     src/VecGeomNavigation.cxx src/O2MonopolePhysics.cxx)
 if(G4SETUP_WITH_VECGEOM)
   list(APPEND G4SETUP_SOURCES src/VecGeomG4Map.cxx src/VecGeomChecks.cxx src/VecGeomG4NavigatorBase.cxx
-                              src/VecGeomG4Navigator.cxx
+                              src/VecGeomG4Navigator.cxx src/VecGeomParallelWorld.cxx
                               src/VecGeomG4PropagatingNavigator.cxx)
 endif()
 
@@ -89,6 +89,15 @@ if(G4SETUP_WITH_VECGEOM)
               LABELS simsetup)
   if(targetNavigatorTest)
     target_compile_definitions(${targetNavigatorTest} PRIVATE O2_WITH_VECGEOM)
+  endif()
+  o2_add_test(VecGeomParallelWorld
+              SOURCES test/testVecGeomParallelWorld.cxx
+              COMPONENT_NAME SimSetup
+              TARGETVARNAME targetParallelWorldTest
+              PUBLIC_LINK_LIBRARIES O2::G4Setup TGeo2VecGeom::TGeo2VecGeom
+              LABELS simsetup)
+  if(targetParallelWorldTest)
+    target_compile_definitions(${targetParallelWorldTest} PRIVATE O2_WITH_VECGEOM)
   endif()
 endif()
 

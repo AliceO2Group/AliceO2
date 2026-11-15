@@ -26,6 +26,7 @@
 #include "VecGeomChecks.h"
 #include "VecGeomG4Map.h"
 #include "VecGeomG4Navigator.h"
+#include "VecGeomParallelWorld.h"
 #include "VecGeomG4PropagatingNavigator.h"
 
 #include "TG4RootDetectorConstruction.h"
@@ -58,9 +59,10 @@ void installVecGeomNavigator()
     LOG(fatal) << "G4.navmode=kVecGeom cannot be used with the multi-engine TMCManager: restoring a "
                   "geometry state across engines goes through the TGeo navigator";
   }
-  if (o2::GeometryManagerParam::Instance().useParallelWorld) {
-    LOG(fatal) << "G4.navmode=kVecGeom cannot be used with GeometryManagerParam.useParallelWorld: VecGeom "
-                  "has no equivalent of the TGeo priority world";
+  const bool useParallelWorld = o2::GeometryManagerParam::Instance().useParallelWorld;
+  if (useParallelWorld && g4Params.vecgeomNavigator != o2::conf::EVecGeomNav::kRelocating) {
+    LOG(fatal) << "GeometryManagerParam.useParallelWorld needs G4.vecgeomNavigator=kRelocating: the propagating "
+                  "navigator adopts the state VecGeom propagated, which knows no priority world";
   }
   auto* navMgr = TG4RootNavMgr::GetInstance();
   if (navMgr == nullptr || navMgr->GetDetConstruction() == nullptr) {
@@ -91,6 +93,17 @@ void installVecGeomNavigator()
   timer.Stop();
   LOG(info) << "VecGeom to Geant4 map built in " << timer.RealTime() << " s";
 
+  // The prioritised placements of the TGeo parallel world, navigated with VecGeom.
+  static VecGeomParallelWorld parallelWorld;
+  VecGeomParallelWorld const* parallelWorldPtr = nullptr;
+  if (useParallelWorld) {
+    if (parallelWorld.build(*detConstruction, map)) {
+      parallelWorldPtr = &parallelWorld;
+    } else {
+      LOG(warning) << "GeometryManagerParam.useParallelWorld is set but the TGeo parallel world is empty";
+    }
+  }
+
   if (!g4Params.vecgeomCheckVolumes.empty()) {
     std::stringstream names(g4Params.vecgeomCheckVolumes);
     std::string one;
@@ -110,7 +123,7 @@ void installVecGeomNavigator()
     LOG(info) << "VecGeom navigation: propagating navigator";
     navigator = new VecGeomG4PropagatingNavigator(map, g4Params.vecgeomZeroSafety);
   } else {
-    navigator = new VecGeomG4Navigator(map, g4Params.vecgeomPushDepth, g4Params.vecgeomZeroSafety);
+    navigator = new VecGeomG4Navigator(map, g4Params.vecgeomPushDepth, g4Params.vecgeomZeroSafety, parallelWorldPtr);
   }
   navigator->SetWorldVolume(detConstruction->GetTopPV());
 

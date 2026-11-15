@@ -11,6 +11,8 @@
 
 #include "VecGeomG4Navigator.h"
 
+#include "VecGeomParallelWorld.h"
+
 #include "G4Exception.hh"
 #include "G4TouchableHistory.hh"
 #include "G4VPhysicalVolume.hh"
@@ -45,8 +47,9 @@ vecgeom::VPlacedVolume const* topOf(vecgeom::NavigationState const& st)
 namespace o2::simsetup
 {
 
-VecGeomG4Navigator::VecGeomG4Navigator(VecGeomG4Map const& map, double pushDepth, bool zeroSafety)
-  : VecGeomG4NavigatorBase(map), mPushDepth(pushDepth), mZeroSafety(zeroSafety)
+VecGeomG4Navigator::VecGeomG4Navigator(VecGeomG4Map const& map, double pushDepth, bool zeroSafety,
+                                       VecGeomParallelWorld const* parallelWorld)
+  : VecGeomG4NavigatorBase(map), mPushDepth(pushDepth), mZeroSafety(zeroSafety), mParallelWorld(parallelWorld)
 {
   mEmptyState.Clear();
 }
@@ -57,6 +60,10 @@ VecGeomG4Navigator::~VecGeomG4Navigator()
             << ", abandoned " << mAbandonCount << ", negative safeties " << mNegativeSafetyCount
             << ", unmappable touchables " << mUnmappableHistoryCount << ", relocated resumes "
             << mRelocatedResumeCount << ", missing exit normals " << mNoNormalCount;
+  if (mParallelWorld != nullptr) {
+    LOG(info) << "VecGeom parallel world: " << mParallelEntries << " steps ended on a node, " << mParallelRelocated
+              << " locates overridden";
+  }
 }
 
 G4VPhysicalVolume* VecGeomG4Navigator::updateG4History()
@@ -133,6 +140,7 @@ G4double VecGeomG4Navigator::ComputeStep(const G4ThreeVector& globalPoint, const
   // along the curve. The volume the last crossing left is blocked in the first call only, and only
   // while the direction points away from it; a track turning back into it must see its boundary.
   mStepState = mCurState;
+  bool blockExited = false;
   if (mExitBlockPending) {
     const bool block = samePoint(globalPoint, mLastLocatedPoint) &&
                        (mExitNormalFromPush ? directionLeaves(mPushNormal, toDir(direction))
@@ -140,12 +148,32 @@ G4double VecGeomG4Navigator::ComputeStep(const G4ThreeVector& globalPoint, const
     if (!block) {
       mStepState.SetLastExited(mEmptyState.GetLastExitedState());
     }
+    blockExited = block;
     clearLastExited();
   }
   const double limit = std::min(proposedStepLength * kG4ToVG, static_cast<double>(vecgeom::kInfLength));
   double safety = 0.;
   double vgStep = navigator->ComputeStepAndSafety(toVG(globalPoint), toDir(direction), limit, mStepState, calcSafety,
                                                   safety, true);
+  // Outside the parallel world its nodes limit the step and the safety like daughters of every volume;
+  // inside a node they are not seen, as in TGeo. A node at the distance of the main boundary is left to
+  // the main hierarchy, which is safe because the locate descends from what was entered and then asks the
+  // parallel world again. The nodes just left are blocked by the rule of the volume just left.
+  int parallelHit = -1;
+  if (mParallelWorld != nullptr && !mInParallelNode) {
+    const V3 p = toVG(globalPoint);
+    double pwStep = std::min(std::max(vgStep, 0.), limit);
+    parallelHit = mParallelWorld->distanceToIn(p, toDir(direction), pwStep, [&](int node) {
+      return blockExited && mParallelWorld->isInNode(node, mExitedState);
+    });
+    if (parallelHit >= 0) {
+      vgStep = pwStep;
+      ++mParallelEntries;
+    }
+    if (calcSafety && safety > 0.) {
+      safety = mParallelWorld->safetyToIn(p, safety);
+    }
+  }
   if (calcSafety) {
     if (safety < 0.) {
       ++mNegativeSafetyCount;
@@ -158,7 +186,7 @@ G4double VecGeomG4Navigator::ComputeStep(const G4ThreeVector& globalPoint, const
   }
   const bool boundaryLimited = vgStep < limit;
   G4double step = std::max(vgStep, 0.) * kVGToG4;
-  const bool entering = mStepState.GetCurrentLevel() > mCurState.GetCurrentLevel();
+  const bool entering = parallelHit >= 0 || mStepState.GetCurrentLevel() > mCurState.GetCurrentLevel();
 
   // A track that is not moving, with G4Navigator's thresholds: after ten zero steps the step is
   // lengthened, after twenty-five the event is aborted.
@@ -199,7 +227,8 @@ G4double VecGeomG4Navigator::ComputeStep(const G4ThreeVector& globalPoint, const
     mNextPoint = globalPoint + step * direction;
     mNextDir = toDir(direction);
     if (entering) {
-      mNextState = mStepState;
+      // A parallel world node is entered from anywhere in the hierarchy, not only from its mother.
+      mNextState = parallelHit >= 0 ? mParallelWorld->state(parallelHit) : mStepState;
     }
     // The surface this step ends on, for the exit normal: the entered daughter's or our own.
     mNormalState = entering ? mNextState : mCurState;
@@ -337,12 +366,7 @@ G4VPhysicalVolume* VecGeomG4Navigator::LocateGlobalPointAndSetup(const G4ThreeVe
     // mNextState is a copy of the step state and can still carry the block of the volume the previous
     // crossing left, which was meant for the first step after that exit only.
     mCurState.SetLastExited(mEmptyState.GetLastExitedState());
-    auto const* daughter = mCurState.Top();
-    mCurState.Pop();
-    vecgeom::Transformation3D m;
-    mCurState.TopMatrix(m);
-    vecgeom::GlobalLocator::LocateGlobalPoint(daughter, daughter->GetTransformation()->Transform(m.Transform(q)),
-                                              mCurState, false);
+    descendInto(mCurState, q);
     mLocatedOnBoundary = true;
   } else if (crossing) {
     // Out of the current volume: up until the point is contained, then down, never back into the
@@ -384,11 +408,55 @@ G4VPhysicalVolume* VecGeomG4Navigator::LocateGlobalPointAndSetup(const G4ThreeVe
   if (crossing) {
     leaveFlushVolumes(q, dir, entering ? static_cast<int>(mNextState.GetCurrentLevel()) : 0,
                       entering || topOf(mReloScratch) == nullptr ? nullptr : &mReloScratch);
+  }
+  if (mParallelWorld != nullptr) {
+    applyParallelWorld(q, crossing && !entering);
+  }
+  if (crossing) {
     updateCrossingFlags(entering);
   }
   mWouldEnter = false;
   mWouldExit = false;
   return updateG4History();
+}
+
+/// TGeo's rule: the node added first among those holding the point is where the track is. The
+/// locate then goes on into the node's daughters, which TGeo leaves out; with sensors and metal
+/// layers added before their chips, as ITS does, the result is the same.
+bool VecGeomG4Navigator::applyParallelWorld(const V3& point, bool exiting)
+{
+  mInParallelNode = false;
+  if (topOf(mCurState) == nullptr || !mParallelWorld->nearNodes(point)) {
+    return false;
+  }
+  // The pushed point can still be within the tolerance of a node the step just left.
+  const int node = mParallelWorld->findNode(point, [&](int k) {
+    return exiting && mParallelWorld->isInNode(k, mReloScratch) && !mParallelWorld->isInNode(k, mCurState);
+  });
+  if (node < 0) {
+    // No node holds the point, but the main hierarchy may have put the track in one within its tolerance.
+    mInParallelNode = mParallelWorld->isInAnyNode(mCurState);
+    return false;
+  }
+  mInParallelNode = true;
+  if (mParallelWorld->isInNode(node, mCurState)) {
+    return false;
+  }
+  mCurState = mParallelWorld->state(node);
+  descendInto(mCurState, point);
+  clearLastExited(); // the volume left is no daughter of this branch
+  ++mParallelRelocated;
+  return true;
+}
+
+void VecGeomG4Navigator::descendInto(vecgeom::NavigationState& state, const V3& point)
+{
+  auto const* placed = state.Top();
+  state.Pop();
+  vecgeom::Transformation3D m;
+  state.TopMatrix(m);
+  vecgeom::GlobalLocator::LocateGlobalPoint(placed, placed->GetTransformation()->Transform(m.Transform(point)), state,
+                                            false);
 }
 
 G4VPhysicalVolume* VecGeomG4Navigator::ResetHierarchyAndLocate(const G4ThreeVector& point,
@@ -429,6 +497,10 @@ G4VPhysicalVolume* VecGeomG4Navigator::ResetHierarchyAndLocate(const G4ThreeVect
     locateFromWorld(p);
   }
   clearLastExited();
+  if (mParallelWorld != nullptr) {
+    // A node holding the point has priority over the touchable too, as in TGeo's search on a resume.
+    kept = !applyParallelWorld(p, false) && kept;
+  }
   if (kept) {
     // The touchable's history is the path of the state: keep it rather than rebuild it.
     mHistoryState = mCurState;
@@ -477,6 +549,10 @@ G4double VecGeomG4Navigator::ComputeSafety(const G4ThreeVector& globalPoint, con
     return rest;
   }
   double safety = boundedSafety(mCurState, globalPoint, proposedMaxLength);
+  if (mParallelWorld != nullptr && !mInParallelNode && safety > 0.) {
+    // Up to the caller's bound only; the bound returned for a farther node is a valid lower bound.
+    safety = mParallelWorld->safetyToIn(toVG(globalPoint), std::min(safety, proposedMaxLength) * kG4ToVG) * kVGToG4;
+  }
   if (safety < 0.) {
     ++mNegativeSafetyCount;
     safety = 0.;
