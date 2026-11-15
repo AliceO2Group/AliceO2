@@ -134,7 +134,9 @@ AddOptionRTC(mergerLooperQPtB5Limit, uint8_t, 4, "", 0, "Min Q/Pt (@B=0.5T) to r
 AddOptionRTC(mergerLooperSecondHorizontalQPtB5Limit, uint8_t, 2, "", 0, "Min Q/Pt (@B=0.5T) to attempt second horizontal merge between sectors after a vertical merge was found")
 AddOptionRTC(trackFollowingMaxRowGap, uint8_t, 4, "", 0, "Maximum number of consecutive rows without hit in track following")
 AddOptionRTC(trackFollowingMaxRowGapSeed, uint8_t, 2, "", 0, "Maximum number of consecutive rows without hit in track following during fit of seed")
-AddOptionRTC(trackFitMaxRowMissedHard, uint8_t, 10, "", 0, "Hard limit for number of missed rows in fit / propagation")
+AddOptionRTC(trackFitAbortNMissedHits, int8_t, 5, "", 0, "0: no limit on rejection or missed hits, >0: break after n rejected hits")
+AddOptionRTC(trackFitAbortNMissedHitsHard, uint8_t, 10, "", 0, "Hard limit for number of missed rows in fit / propagation")
+AddOptionRTC(rejectIFCLowRadiusCluster, uint8_t, 1, "", 0, "Reject clusters that get the IFC mask error during refit")
 AddOptionRTC(extrapolationTrackingRowRange, uint8_t, 45, "", 0, "Number of rows from the upped/lower limit to search for extrapolated track candidates in for")
 AddOptionRTC(extrapolationTrackingMinRows, uint8_t, 10, "", 0, "Min num of rows an additional extrapolated track must span over")
 AddOptionRTC(extrapolationTrackingMinHits, uint8_t, 8, "", 0, "Min num of hits for an additional extrapolated track")
@@ -156,8 +158,6 @@ AddOptionRTC(rebuildTrackInFit, uint8_t, 1, "", 0, "Rebuild track completely dur
 AddOptionRTC(rebuildTrackInFitClusterCandidates, uint8_t, 3, "", 0, "Number of cluster candidates per row for rebuilt track")
 AddOptionRTC(disableRebuildAttachment, uint8_t, 0, "", 0, "Bitmask to disable certain attachment steps during track rebuid (1: current row, 2: interpolate missing row, 4: one sided interpolation, 8: original hit, 16: extrapolation)")
 AddOptionRTC(disableMarkAdjacent, uint8_t, 0, "", 0, "Bitmask to disable certain steps during refit to mark adjacenrt clusters (1: current row, 2: extrapolate missing rows, 4: loop following)") // TODO: Add history
-AddOptionRTC(trackFitRejectMode, int8_t, 5, "", 0, "0: no limit on rejection or missed hits, >0: break after n rejected hits")
-AddOptionRTC(rejectIFCLowRadiusCluster, uint8_t, 1, "", 0, "Reject clusters that get the IFC mask error during refit")
 AddOptionRTC(dEdxTruncLow, uint8_t, 2, "", 0, "Low truncation threshold, fraction of 128")
 AddOptionRTC(dEdxTruncHigh, uint8_t, 77, "", 0, "High truncation threshold, fraction of 128")
 AddOptionRTC(extrapolationTracking, int8_t, 1, "", 0, "Enable Extrapolation Tracking (prolong tracks to adjacent sectors to find short segments)")
@@ -170,7 +170,7 @@ AddOptionRTC(sigBitsCharge, uint8_t, 4, "", 0, "Number of significant bits for T
 AddOptionRTC(sigBitsWidth, uint8_t, 3, "", 0, "Number of significant bits for TPC cluster width in compression mode 1")
 AddOptionRTC(dropLoopers, uint8_t, 0, "", 0, "Drop looping tracks starting from second loop")
 AddOptionRTC(mergeCE, uint8_t, 1, "", 0, "Merge tracks accross the central electrode")
-AddOptionRTC(retryRefit, int8_t, 1, "", 0, "Retry refit with seeding errors and without cluster rejection when fit fails")
+AddOptionRTC(retryRefit, int8_t, 1, "", 0, "Retry refit with seeding errors and without chi2 cluster rejection when fit fails")
 AddOptionRTC(enablePID, int8_t, 1, "", 0, "Enable PID response")
 AddOptionRTC(PID_useNsigma, int8_t, 1, "", 0, "Use nSigma instead of absolute distance in PID response")
 AddOptionRTC(adddEdxSubThresholdClusters, int8_t, 1, "", 0, "Add sub threshold clusters in TPC dEdx computation")
@@ -499,7 +499,7 @@ AddShortcut("compare", 0, "--QAinput", "Compare QA histograms", "-c", "--qa", "-
 AddHelp("help", 'h')
 EndConfig()
 
-//Settings for the O2 workflow
+// Settings for the O2 workflow
 #if !defined(QCONFIG_PARSER_CXX) && !defined(GPUCA_STANDALONE)
 BeginSubConfig(GPUSettingsO2, global, configStandalone, "O2", 0, "O2 workflow settings", global)
 AddOption(solenoidBzNominalGPU, float, -1e6f, "", 0, "Field strength of solenoid Bz in kGaus")
