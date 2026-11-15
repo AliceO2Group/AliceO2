@@ -17,6 +17,7 @@
 #include "MCHConditions/Side.h"
 #include <algorithm>
 #include <fmt/core.h>
+#include <fmt/format.h>
 #include <stdexcept>
 
 namespace o2::mch::dcs

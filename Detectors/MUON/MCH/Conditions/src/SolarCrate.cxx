@@ -17,6 +17,7 @@
 #include <map>
 #include <string>
 #include <fmt/core.h>
+#include <fmt/format.h>
 
 namespace o2::mch::dcs
 {

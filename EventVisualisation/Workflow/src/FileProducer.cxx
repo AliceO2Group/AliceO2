@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <climits>
 #include <fmt/core.h>
+#include <fmt/format.h>
 
 using namespace o2::event_visualisation;
 

@@ -17,7 +17,9 @@
 #include "MCHConditions/Side.h"
 #include <array>
 #include <fmt/core.h>
+#include <fmt/format.h>
 #include <set>
+#include <stdexcept>
 
 namespace o2::mch::dcs::quadrant
 {

@@ -15,6 +15,7 @@
 #include <boost/test/unit_test.hpp>
 #include "MCHBase/ErrorMap.h"
 #include <fmt/core.h>
+#include <fmt/format.h>
 
 using o2::mch::Error;
 using o2::mch::ErrorGroup;

@@ -11,6 +11,7 @@
 
 #include "MCHConditions/Chamber.h"
 #include <fmt/core.h>
+#include <fmt/format.h>
 
 namespace o2::mch::dcs
 {

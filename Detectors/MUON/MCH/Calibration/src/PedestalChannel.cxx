@@ -12,6 +12,7 @@
 #include "MCHCalibration/PedestalChannel.h"
 #include <cmath>
 #include <fmt/core.h>
+#include <fmt/format.h>
 #include <iostream>
 
 namespace o2::mch::calibration
