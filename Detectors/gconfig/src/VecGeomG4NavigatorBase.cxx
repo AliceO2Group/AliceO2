@@ -26,8 +26,6 @@
 
 namespace
 {
-/// Longest run of Geant4 levels one flattened VecGeom placement can stand for.
-constexpr std::size_t kMaxChain = 16;
 /// Deepest Geant4 touchable the ALICE geometry can produce, with headroom.
 constexpr int kMaxDepth = 64;
 } // namespace
@@ -113,47 +111,7 @@ G4VPhysicalVolume* VecGeomG4NavigatorBase::historyFromState(vecgeom::NavigationS
 
 bool VecGeomG4NavigatorBase::stateFromHistory(vecgeom::NavigationState& state) const
 {
-  // A run of levels that ends in a Geant4 volume several placements share is settled by comparing
-  // the run against the placements' recorded chains, which is exact.
-  state.Clear();
-  if (mMap.world() == nullptr || fHistory.GetVolume(0) == nullptr) {
-    return false;
-  }
-  state.Push(mMap.world());
-  const std::size_t depth = fHistory.GetDepth();
-  std::size_t l = mMap.chainSize(mMap.world()->id());
-  while (l <= depth) {
-    G4VPhysicalVolume* run[kMaxChain];
-    vecgeom::VPlacedVolume const* found = nullptr;
-    std::size_t n = 0;
-    for (std::size_t e = l; e <= depth && n < kMaxChain; ++e, ++n) {
-      run[n] = fHistory.GetVolume(e);
-      auto const* candidate = mMap.toVecGeom(run[n]->GetInstanceID());
-      if (candidate == nullptr) {
-        continue; // an assembly level; the chain reaches further down
-      }
-      if (candidate == VecGeomG4Map::ambiguous()) {
-        for (auto const* c : mMap.candidates(run[n]->GetInstanceID())) {
-          if (mMap.chainMatches(c, run, n + 1)) {
-            found = c;
-            break;
-          }
-        }
-      } else if (mMap.chainMatches(candidate, run, n + 1)) {
-        found = candidate;
-      }
-      if (found != nullptr) {
-        break;
-      }
-    }
-    if (found == nullptr) {
-      state.Clear();
-      return false;
-    }
-    state.Push(found);
-    l += mMap.chainSize(found->id());
-  }
-  return true;
+  return mMap.stateFromPath([this](std::size_t level) { return fHistory.GetVolume(level); }, fHistory.GetDepth(), state);
 }
 
 } // namespace o2::simsetup

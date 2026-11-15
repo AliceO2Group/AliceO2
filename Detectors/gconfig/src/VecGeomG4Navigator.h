@@ -17,6 +17,8 @@
 namespace o2::simsetup
 {
 
+class VecGeomParallelWorld;
+
 /// A Geant4 tracking navigator that answers every navigation query from VecGeom while keeping the
 /// Geant4 navigation history, the touchable the scoring code reads, in step with the VecGeom state.
 /// Selected with G4.vecgeomNavigator=kRelocating, the default. It works as G4VecGeomNav's
@@ -38,7 +40,9 @@ class VecGeomG4Navigator : public VecGeomG4NavigatorBase
  public:
   /// \param pushDepth how far past a face (cm, measured across it) a boundary point is pushed before
   /// it is located. \param zeroSafety answers zero to every safety query.
-  VecGeomG4Navigator(VecGeomG4Map const& map, double pushDepth, bool zeroSafety);
+  /// \param parallelWorld the prioritised placements, or null if there are none.
+  VecGeomG4Navigator(VecGeomG4Map const& map, double pushDepth, bool zeroSafety,
+                     VecGeomParallelWorld const* parallelWorld = nullptr);
   ~VecGeomG4Navigator() override;
 
   G4double ComputeStep(const G4ThreeVector& globalPoint, const G4ThreeVector& direction,
@@ -66,6 +70,12 @@ class VecGeomG4Navigator : public VecGeomG4NavigatorBase
   void locateFromWorld(const V3& point);
   /// Go up past every volume the point is on the surface of and heading out of, then down again.
   void leaveFlushVolumes(const V3& point, const V3& dir, int minLevel, vecgeom::NavigationState const* avoid);
+  /// Gives a parallel world node holding the point priority over the state the main hierarchy located.
+  /// \param exiting the locate follows a step out of a volume, whose path is in mReloScratch.
+  /// \return whether the state was moved into a node.
+  bool applyParallelWorld(const V3& point, bool exiting);
+  /// Locates \a point in the daughters of the top volume of \a state, which holds it.
+  static void descendInto(vecgeom::NavigationState& state, const V3& point);
   /// Sets fEnteredDaughter and fExitedMother from the paths before (mReloScratch) and after a crossing.
   void updateCrossingFlags(bool entering);
   void clearLastExited()
@@ -88,6 +98,8 @@ class VecGeomG4Navigator : public VecGeomG4NavigatorBase
 
   double mPushDepth = 1.e-9; ///< cm
   bool mZeroSafety = false;
+  VecGeomParallelWorld const* mParallelWorld = nullptr;
+  bool mInParallelNode = false; ///< the track is in a parallel world node; changed by the locates only
 
   vecgeom::NavigationState mCurState;     ///< the volume the track is in; changed by the locates only
   vecgeom::NavigationState mNextState;    ///< the state entering the daughter the last ComputeStep hit
@@ -137,6 +149,8 @@ class VecGeomG4Navigator : public VecGeomG4NavigatorBase
   long mUnmappableHistoryCount = 0;
   long mRelocatedResumeCount = 0;
   long mNoNormalCount = 0;
+  long mParallelEntries = 0;   ///< steps that ended on a parallel world node
+  long mParallelRelocated = 0; ///< locates the parallel world overrode
 };
 
 } // namespace o2::simsetup
