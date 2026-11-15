@@ -508,7 +508,9 @@ GPUdi() T warp_reduce_max(T v)
 // consecutive threads, of GPUCA_WARP_SIZE each. The SIMD scans take 32-bit
 // lanes; the narrower types are counts and are widened. Sums are returned
 // promoted, as v + 0 would be, since the callers pass !!pred: a bool would
-// truncate them to 0 / 1.
+// truncate them to 0 / 1. They only exchange data through smem, so their
+// barriers fence threadgroup memory only: a device-memory fence, as
+// GPUbarrier() has, costs the stream compaction ~10%.
 
 template <class T>
 GPUdi() auto warp_scan_inclusive_add(T v) -> decltype(+v)
@@ -567,18 +569,18 @@ GPUdi() auto work_group_scan_inclusive_add_FUNC(T v, S& smem, int32_t iThread, i
   if (iThread % GPUCA_WARP_SIZE == GPUCA_WARP_SIZE - 1 || iThread == nThreads - 1) {
     smem.warpPredicateSum[iWarp] = x;
   }
-  GPUbarrier();
+  threadgroup_barrier(mem_flags::mem_threadgroup);
   if (iWarp == 0) {
     const int32_t s = simd_prefix_inclusive_sum(iThread < nWarps ? smem.warpPredicateSum[iThread] : 0);
     if (iThread < nWarps) {
       smem.warpPredicateSum[iThread] = s;
     }
   }
-  GPUbarrier();
+  threadgroup_barrier(mem_flags::mem_threadgroup);
   if (iWarp > 0) {
     x += smem.warpPredicateSum[iWarp - 1];
   }
-  GPUbarrier();
+  threadgroup_barrier(mem_flags::mem_threadgroup);
   return x;
 }
 
@@ -589,9 +591,9 @@ GPUdi() T work_group_broadcast_FUNC(T v, int32_t i, S& smem, int32_t iThread)
   if (iThread == i) {
     smem.tmpBroadcast = v;
   }
-  GPUbarrier();
+  threadgroup_barrier(mem_flags::mem_threadgroup);
   T retVal = smem.tmpBroadcast;
-  GPUbarrier();
+  threadgroup_barrier(mem_flags::mem_threadgroup);
   return retVal;
 }
 
