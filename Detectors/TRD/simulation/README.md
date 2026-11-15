@@ -25,6 +25,17 @@ o2-sim -m PIPE MAG TRD -n 1000 -g boxgen --configKeyValues 'BoxGun.pdg=211;BoxGu
 --configKeyValues 'TRDSimParams.doTR=false;TRDSimParams.maxMCStepSize=0.1'
 ```
 
+The charge of a hit in the gas comes from one of two models, selected with `TRDSimParams.ionisationModel`:
+- `0`: the Geant4 energy deposit in the gas divided by Wion. Geant4 then uses the PAI model in the TRD gas
+  (`Detectors/gconfig/g4config_trd_pai.in`, applied by `g4Config.C`).
+- `1`: the TRD collision model (`src/IonisationModel.cxx`). Geant4 runs without PAI in the gas. The tables are made
+  with `macros/makeIonisationTables.cxx` from Geant4's PAI cross-section, for the 10 keV delta-ray cut of the gas.
+  Slow tracks keep the energy deposit.
+```
+--configKeyValues 'TRDSimParams.ionisationModel=1'
+```
+A custom `G4.configMacroFile` replaces `g4config.in` and the PAI file; it must contain the PAI lines itself if wanted.
+
 # Generate Raw data from MonteCarlo:
 
 ```

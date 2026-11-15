@@ -72,6 +72,8 @@ R__LOAD_LIBRARY(libgeant4vmc)
 #include "DetectorsBase/VMCSeederService.h"
 #include "CLHEP/Random/Random.h"
 #include "TRandom.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include <boost/property_tree/ptree.hpp>
 #include "DetectorsBase/MTWorkerHooks.h"
 #include "G4RunManager.hh"
 #include "G4Threading.hh"
@@ -83,6 +85,16 @@ R__LOAD_LIBRARY(libgeant4vmc)
 
 // skips particles unknown to Geant4 (e.g. some ions) with a warning instead of a crash
 constexpr const char* kSkipUnknownParticles = "/mcPrimaryGenerator/skipUnknownParticles true";
+
+// whether the TRD charge comes from the Geant4 energy deposit (TRDSimParams.ionisationModel=0), true without TRD
+bool trdUsesEnergyDeposit()
+{
+  try {
+    return o2::conf::ConfigurableParam::getValueAs<int>("TRDSimParams.ionisationModel") == 0;
+  } catch (...) {
+    return true;
+  }
+}
 
 // Configuration macro for Geant4 VirtualMC
 void Config()
@@ -233,6 +245,11 @@ void Config()
     /// Customise Geant4 setting
     /// (verbose level, global range cut, ..)
     geant4->ProcessGeantMacro(configm1.Data());
+
+    // PAI in the TRD gas only when the TRD charge comes from the energy deposit
+    if (trdUsesEnergyDeposit()) {
+      geant4->ProcessGeantMacro((configm + "/Detectors/gconfig/g4config_trd_pai.in").Data());
+    }
   }
   if (!mtMode) {
     geant4->ProcessGeantCommand(kSkipUnknownParticles);
