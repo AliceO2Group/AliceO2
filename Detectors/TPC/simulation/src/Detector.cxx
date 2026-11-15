@@ -210,6 +210,11 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   Int_t numberOfElectrons = 0;
   // I.H. - the type expected in addHit is float
 
+  // ---| Stepsize in cm and beta*gamma after the step |---
+  const double stepSize = fMC->TrackStep();
+  const double betaGamma = momentum.P() / fMC->TrackMass();
+  constexpr double minBetaGamma = 7.e-3; // validity limit of the collision model below
+
   // use Geant4 energy deposit directly for ionisation (Kr-83m calibration simulations)
   if (detParam.UseGeant4Edep) {
     // We have multiple collisions and add fluctuations: smear nel using
@@ -229,16 +234,14 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
     // The number of electrons is stored as a float in the HitGroup: maximum cap at
     // 2^24 (16777216) ==> largest integer a IEEE-754 float can represent exactly
     numberOfElectrons = TMath::Min(numberOfElectrons, 16777216);
+  } else if (betaGamma < minBetaGamma && stepSize > 0.) {
+    // a finite step ending below the validity limit, e.g. a track that ranged out:
+    // ionisation electrons from the energy deposited in this step, Nel = Edep / Wion
+    numberOfElectrons = static_cast<int>(fMC->Edep() / static_cast<double>(gasParam.Wion));
   } else {
-    // ---| Stepsize in cm |---
-    const double stepSize = fMC->TrackStep();
-
-    double betaGamma = momentum.P() / fMC->TrackMass();
-    betaGamma = TMath::Max(betaGamma, 7.e-3); // protection against too small bg
-
-    // ---| number of primary ionisations per cm |---
+    // ---| number of primary ionisations per cm (zero-length steps give no collisions) |---
     const double primaryElectronsPerCM =
-      gasParam.Nprim * BetheBlochAleph(static_cast<float>(betaGamma), gasParam.BetheBlochParam[0],
+      gasParam.Nprim * BetheBlochAleph(static_cast<float>(TMath::Max(betaGamma, minBetaGamma)), gasParam.BetheBlochParam[0],
                                        gasParam.BetheBlochParam[1], gasParam.BetheBlochParam[2],
                                        gasParam.BetheBlochParam[3], gasParam.BetheBlochParam[4]);
 
