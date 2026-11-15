@@ -211,7 +211,8 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   // I.H. - the type expected in addHit is float
 
   // use Geant4 energy deposit directly for ionisation (Kr-83m calibration simulations)
-  if (detParam.UseGeant4Edep) {
+  // and for the step that ends a track, whose post-step momentum cannot describe the step
+  if (detParam.UseGeant4Edep || fMC->IsTrackStop()) {
     // We have multiple collisions and add fluctuations: smear nel using
     // gamma distr with mean = meanIon and variance = meanIon*FanoFactorG4.
     // These parameters were tuned for GEANT4.
