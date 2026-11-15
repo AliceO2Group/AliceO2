@@ -336,8 +336,19 @@ G4VPhysicalVolume* VecGeomG4Navigator::LocateGlobalPointAndSetup(const G4ThreeVe
       vecgeom::Transformation3D m;
       mCurState.TopMatrix(m);
       vecgeom::GlobalLocator::RelocatePointFromPathForceDifferent(m.Transform(q), mCurState);
-      mReloScratch.SetLastExited();
-      mCurState.SetLastExited(mReloScratch.GetLastExitedState());
+      // As G4Navigator, block the volume left that is a daughter of the deepest volume both paths share.
+      int shared = 0;
+      while (!mCurState.IsOutside() && shared + 1 < static_cast<int>(mCurState.GetCurrentLevel()) &&
+             shared + 1 < static_cast<int>(mReloScratch.GetCurrentLevel()) &&
+             mCurState.At(shared + 1) == mReloScratch.At(shared + 1)) {
+        ++shared;
+      }
+      mPathScratch = mReloScratch;
+      while (static_cast<int>(mPathScratch.GetCurrentLevel()) > shared + 2) {
+        mPathScratch.Pop();
+      }
+      mPathScratch.SetLastExited();
+      mCurState.SetLastExited(mPathScratch.GetLastExitedState());
       setExited(mReloScratch, true);
     }
     mLocatedOnBoundary = true;
