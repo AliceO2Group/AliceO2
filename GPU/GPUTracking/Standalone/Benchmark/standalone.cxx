@@ -124,6 +124,7 @@ int32_t ReadConfiguration(int argc, char** argv)
   setlocale(LC_ALL, "en_US.utf-8");
   setlocale(LC_NUMERIC, "en_US.utf-8");
   if (configStandalone.cpuAffinity != -1) {
+#ifdef __linux__
     cpu_set_t mask;
     CPU_ZERO(&mask);
     CPU_SET(configStandalone.cpuAffinity, &mask);
@@ -133,8 +134,13 @@ int32_t ReadConfiguration(int argc, char** argv)
       printf("Error setting CPU affinity\n");
       return 1;
     }
+#else
+    printf("CPU affinity not supported on this platform\n");
+    return 1;
+#endif
   }
   if (configStandalone.fifoScheduler) {
+#ifdef __linux__
     printf("Setting FIFO scheduler\n");
     sched_param param;
     sched_getparam(0, &param);
@@ -143,13 +149,21 @@ int32_t ReadConfiguration(int argc, char** argv)
       printf("Error setting scheduler\n");
       return 1;
     }
+#else
+    printf("FIFO scheduler not supported on this platform\n");
+    return 1;
+#endif
   }
 #ifdef __FAST_MATH__
   if (configStandalone.fpe == 1) {
 #else
   if (configStandalone.fpe) {
 #endif
+#ifdef __linux__
     feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);
+#else
+    printf("Trapping floating point exceptions not supported on this platform\n");
+#endif
   }
   bool detMode = false, noFTZMode = false;
 #ifdef GPUCA_DETERMINISTIC_MODE
@@ -655,7 +669,7 @@ int32_t LoadEvent(int32_t iEvent, int32_t x)
   return 0;
 }
 
-void OutputStat(GPUChainTracking* t, int64_t* nTracksTotal = nullptr, int64_t* nClustersTotal = nullptr)
+void OutputStat(GPUChainTracking* t, size_t* nTracksTotal = nullptr, size_t* nClustersTotal = nullptr)
 {
   int32_t nTracks = 0;
   if (t->GetProcessingSettings().createO2Output) {
@@ -673,7 +687,7 @@ void OutputStat(GPUChainTracking* t, int64_t* nTracksTotal = nullptr, int64_t* n
   }
 }
 
-int32_t RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingUse, int32_t runs, int32_t iEvent, int64_t* nTracksTotal, int64_t* nClustersTotal, int32_t threadId = 0, HighResTimer* timerPipeline = nullptr)
+int32_t RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingUse, int32_t runs, int32_t iEvent, size_t* nTracksTotal, size_t* nClustersTotal, int32_t threadId = 0, HighResTimer* timerPipeline = nullptr)
 {
   int32_t iRun = 0, iteration = 0;
   while ((iteration = nIteration.fetch_add(1)) < runs) {
@@ -907,8 +921,8 @@ int32_t main(int argc, char** argv)
     if (configStandalone.runs2 > 1) {
       printf("\nRUN2: %d\n", iRunOuter);
     }
-    int64_t nTracksTotal = 0;
-    int64_t nClustersTotal = 0;
+    size_t nTracksTotal = 0;
+    size_t nClustersTotal = 0;
     int32_t nEventsProcessed = 0;
 
     if (configStandalone.noEvents) {
@@ -1010,7 +1024,7 @@ int32_t main(int argc, char** argv)
       }
     }
     if (nEventsProcessed > 1) {
-      printf("Total: %ld clusters, %ld tracks\n", nClustersTotal, nTracksTotal);
+      printf("Total: %zu clusters, %zu tracks\n", nClustersTotal, nTracksTotal);
     }
   }
 
@@ -1021,7 +1035,9 @@ breakrun:
 
 #ifndef _WIN32
   if (configStandalone.proc.runQA && configStandalone.fpe) {
+#ifdef __linux__
     fedisableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);
+#endif
   }
 #endif
 

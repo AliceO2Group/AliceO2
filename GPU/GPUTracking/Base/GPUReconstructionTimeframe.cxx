@@ -233,7 +233,7 @@ int32_t GPUReconstructionTimeframe::LoadCreateTimeFrame(int32_t iEvent)
     return (2);
   }
 
-  int64_t nBunch = -DRIFT_TIME / config.bunchSpacing;
+  int32_t nBunch = -DRIFT_TIME / config.bunchSpacing;
   int64_t lastBunch = config.timeFrameLen / config.bunchSpacing;
   int64_t lastTFBunch = lastBunch - DRIFT_TIME / config.bunchSpacing;
   int32_t nCollisions = 0, nBorderCollisions = 0, nTrainCollissions = 0, nMultipleCollisions = 0, nTrainMultipleCollisions = 0;
@@ -290,7 +290,7 @@ int32_t GPUReconstructionTimeframe::LoadCreateTimeFrame(int32_t iEvent)
             return (1);
           }
           nTotalClusters += nClusters;
-          printf("Placing event %4d+%d (ID %4d) at z %7.3f (time %'dns) %s(collisions %4d, bunch %6ld, train %3d) (%'10d clusters, %'10d MC labels, %'10d track MC info)\n", nCollisions, nBorderCollisions, useEvent, shift, (int32_t)(nBunch * config.bunchSpacing), inTF ? " inside" : "outside",
+          printf("Placing event %4d+%d (ID %4d) at z %7.3f (time %'dns) %s(collisions %4d, bunch %6d, train %3d) (%'10d clusters, %'10d MC labels, %'10d track MC info)\n", nCollisions, nBorderCollisions, useEvent, shift, (int32_t)(nBunch * config.bunchSpacing), inTF ? " inside" : "outside",
                  nCollisions, nBunch, nTrain, nClusters, mChain->mIOPtrs.nMCLabelsTPC, mChain->mIOPtrs.nMCInfosTPC);
           nInBunchPileUp++;
           nCollisionsInTrain++;
