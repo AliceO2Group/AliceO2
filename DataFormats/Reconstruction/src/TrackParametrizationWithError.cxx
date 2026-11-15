@@ -1418,18 +1418,31 @@ GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(value_t x
   constexpr value_t kMSConst2 = 0.0136f * 0.0136f;
   constexpr value_t kMinP = 0.01f; // kill below this momentum
 
-  value_t csp2 = (1.f - this->getSnp()) * (1.f + this->getSnp()); // cos(phi)^2
-  value_t cst2I = (1.f + this->getTgl() * this->getTgl());        // 1/cos(lambda)^2
-  if (anglecorr) {                                                // Apply angle correction, if requested
+  if (x2x0 == 0.f && xrho == 0.f) {
+    checkCovariance();
+    return true;
+  }
+
+  value_t csp2 = 0.f, cst2I = 0.f;
+  if (anglecorr || x2x0 != 0.f) {
+    csp2 = (1.f - this->getSnp()) * (1.f + this->getSnp()); // cos(phi)^2
+    cst2I = 1.f + this->getTgl() * this->getTgl();          // 1/cos(lambda)^2
+  }
+  if (anglecorr) {
     value_t angle = math_utils::detail::sqrt<value_t>(cst2I / csp2);
     x2x0 *= angle;
     xrho *= angle;
   }
   auto m = this->getPID().getMass();
   int charge2 = this->getAbsCharge() * this->getAbsCharge();
-  value_t p = this->getP(), p0 = p, p02 = p * p, e2 = p02 + this->getPID().getMass2(), massInv = 1.f / m, bg = p * massInv, dETot = 0.f;
-  value_t e = math_utils::detail::sqrt<value_t>(e2), e0 = e;
-  if (m > 0 && xrho != 0.f) {
+  const bool applyELoss = m > 0 && xrho != 0.f;
+  value_t p02 = 0.f, e2 = 0.f, pscale = 1.f, elossVariance = 0.f;
+  if (applyELoss) {
+    value_t p = this->getP(), p0 = p;
+    p02 = p * p;
+    e2 = p02 + this->getPID().getMass2();
+    value_t massInv = 1.f / m, bg = p * massInv;
+    value_t e = math_utils::detail::sqrt<value_t>(e2), e0 = e;
     value_t ekin = e - m, dedx = this->getdEdxBBOpt(bg);
 #ifdef _BB_NONCONST_CORR_
     value_t dedxDer = 0.f, dedx1 = dedx;
@@ -1460,11 +1473,11 @@ GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(value_t x
       }
 #endif
       e += dE;
-      if (e > m) { // stopped
-        p = math_utils::detail::sqrt<value_t>(e * e - this->getPID().getMass2());
-      } else {
+      const value_t p2 = e * e - this->getPID().getMass2();
+      if (!(e > m && p2 >= kMinP * kMinP)) {
         return false;
       }
+      p = math_utils::detail::sqrt<value_t>(p2);
       if (na) {
         bg = p * massInv;
         dedx = this->getdEdxBBOpt(bg);
@@ -1481,10 +1494,15 @@ GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(value_t x
       }
     }
 
-    if (p < kMinP) {
-      return false;
-    }
-    dETot = e - e0;
+    // Compute the variance directly: the square root of |dE| would be squared again.
+    constexpr value_t knst = 0.0007f; // To be tuned.
+    const value_t factor = knst * e0 / p02 * this->getCharge2Pt();
+    elossVariance = gpu::CAMath::Abs(e - e0) * factor * factor;
+    pscale = p0 / p;
+  } else if (x2x0 != 0.f) {
+    // Scattering needs squared momentum and energy, but no energy-loss square roots.
+    p02 = this->getP2();
+    e2 = p02 + this->getPID().getMass2();
   } // end of e.loss correction
 
   // Calculating the multiple scattering corrections******************
@@ -1516,17 +1534,17 @@ GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(value_t x
     //    cC44 = theta2*getTgl()*this->getQ2Pt()*getTgl()*this->getQ2Pt();
   }
 
-  // the energy loss correction contribution to cov.matrix: approximate energy loss fluctuation (M.Ivanov)
-  constexpr value_t knst = 0.0007f; // To be tuned.
-  value_t sigmadE = knst * math_utils::detail::sqrt<value_t>(gpu::CAMath::Abs(dETot)) * e0 / p02 * this->getCharge2Pt();
-  cC44 += sigmadE * sigmadE;
+  // Energy-loss fluctuation contribution to the momentum variance (M. Ivanov).
+  cC44 += elossVariance;
 
   // Applying the corrections*****************************
   fC22 += cC22;
   fC33 += cC33;
   fC43 += cC43;
   fC44 += cC44;
-  this->setQ2Pt(this->getQ2Pt() * p0 / p);
+  if (applyELoss) {
+    this->setQ2Pt(this->getQ2Pt() * pscale);
+  }
 
   checkCovariance();
 
@@ -1549,19 +1567,31 @@ GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(TrackPara
   constexpr value_t kMSConst2 = 0.0136f * 0.0136f;
   constexpr value_t kMinP = 0.01f; // kill below this momentum
 
-  value_t csp2 = (1.f - linRef.getSnp()) * (1.f + linRef.getSnp()); // cos(phi)^2
-  value_t cst2I = (1.f + linRef.getTgl() * linRef.getTgl());        // 1/cos(lambda)^2
-  if (anglecorr) {                                                  // Apply angle correction, if requested
+  if (x2x0 == 0.f && xrho == 0.f) {
+    checkCovariance();
+    return true;
+  }
+
+  value_t csp2 = 0.f, cst2I = 0.f;
+  if (anglecorr || x2x0 != 0.f) {
+    csp2 = (1.f - linRef.getSnp()) * (1.f + linRef.getSnp()); // cos(phi)^2
+    cst2I = 1.f + linRef.getTgl() * linRef.getTgl();          // 1/cos(lambda)^2
+  }
+  if (anglecorr) {
     value_t angle = math_utils::detail::sqrt<value_t>(cst2I / csp2);
     x2x0 *= angle;
     xrho *= angle;
   }
-  auto pid = linRef.getPID();
-  auto m = pid.getMass();
+  auto m = linRef.getPID().getMass();
   int charge2 = linRef.getAbsCharge() * linRef.getAbsCharge();
-  value_t p = linRef.getP(), p0 = p, p02 = p * p, e2 = p02 + pid.getMass2(), massInv = 1.f / m, bg = p * massInv, dETot = 0.f;
-  value_t e = math_utils::detail::sqrt<value_t>(e2), e0 = e;
-  if (m > 0 && xrho != 0.f) {
+  const bool applyELoss = m > 0 && xrho != 0.f;
+  value_t p02 = 0.f, e2 = 0.f, pscale = 1.f, elossVariance = 0.f;
+  if (applyELoss) {
+    value_t p = linRef.getP(), p0 = p;
+    p02 = p * p;
+    e2 = p02 + linRef.getPID().getMass2();
+    value_t massInv = 1.f / m, bg = p * massInv;
+    value_t e = math_utils::detail::sqrt<value_t>(e2), e0 = e;
     value_t ekin = e - m, dedx = this->getdEdxBBOpt(bg);
 #ifdef _BB_NONCONST_CORR_
     value_t dedxDer = 0.f, dedx1 = dedx;
@@ -1592,11 +1622,11 @@ GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(TrackPara
       }
 #endif
       e += dE;
-      if (e > m) { // stopped
-        p = math_utils::detail::sqrt<value_t>(e * e - pid.getMass2());
-      } else {
+      const value_t p2 = e * e - linRef.getPID().getMass2();
+      if (!(e > m && p2 >= kMinP * kMinP)) {
         return false;
       }
+      p = math_utils::detail::sqrt<value_t>(p2);
       if (na) {
         bg = p * massInv;
         dedx = this->getdEdxBBOpt(bg);
@@ -1613,10 +1643,15 @@ GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(TrackPara
       }
     }
 
-    if (p < kMinP) {
-      return false;
-    }
-    dETot = e - e0;
+    // Compute the variance directly: the square root of |dE| would be squared again.
+    constexpr value_t knst = 0.0007f; // To be tuned.
+    const value_t factor = knst * e0 / p02 * linRef.getCharge2Pt();
+    elossVariance = gpu::CAMath::Abs(e - e0) * factor * factor;
+    pscale = p0 / p;
+  } else if (x2x0 != 0.f) {
+    // Scattering needs squared momentum and energy, but no energy-loss square roots.
+    p02 = linRef.getP2();
+    e2 = p02 + linRef.getPID().getMass2();
   } // end of e.loss correction
 
   // Calculating the multiple scattering corrections******************
@@ -1648,19 +1683,18 @@ GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(TrackPara
     //    cC44 = theta2*getTgl()*this->getQ2Pt()*getTgl()*this->getQ2Pt();
   }
 
-  // the energy loss correction contribution to cov.matrix: approximate energy loss fluctuation (M.Ivanov)
-  constexpr value_t knst = 0.0007f; // To be tuned.
-  value_t sigmadE = knst * math_utils::detail::sqrt<value_t>(gpu::CAMath::Abs(dETot)) * e0 / p02 * linRef.getCharge2Pt();
-  cC44 += sigmadE * sigmadE;
+  // Energy-loss fluctuation contribution to the momentum variance (M. Ivanov).
+  cC44 += elossVariance;
 
   // Applying the corrections*****************************
   fC22 += cC22;
   fC33 += cC33;
   fC43 += cC43;
   fC44 += cC44;
-  auto pscale = p0 / p;
-  linRef.setQ2Pt(linRef.getQ2Pt() * pscale);
-  this->setQ2Pt(this->getQ2Pt() * pscale);
+  if (applyELoss) {
+    linRef.setQ2Pt(linRef.getQ2Pt() * pscale);
+    this->setQ2Pt(this->getQ2Pt() * pscale);
+  }
 
   checkCovariance();
 
