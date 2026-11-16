@@ -158,3 +158,9 @@ inline void GPUReconstructionMetal::runKernelBackend<GPUTPCGMMergerMergeBorders,
 {
   RunOnHost<GPUTPCGMMergerMergeBorders, 2>(_xyz, &mProcessorsShadow->tpcMerger, 1, 1, iSector, mergeMode);
 }
+
+template <>
+inline void GPUReconstructionMetal::runKernelBackend<GPUTPCExtrapolationTracking, 0>(const krnlSetupTime& _xyz)
+{
+  RunOnHost<GPUTPCExtrapolationTracking, 0>(_xyz, mProcessorsShadow->tpcTrackers, GPUTPCGeometry::NSECTORS, getNKernelHostThreads(false));
+}
