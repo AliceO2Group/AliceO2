@@ -83,3 +83,13 @@ inline void GPUReconstructionMetal::runKernelBackend<GPUTPCGMO2Output, GPUTPCGMO
 {
   SortOnHost(_xyz, mProcessorsShadow->tpcMerger.TrackSortO2(), [&] { return HostPointer(mProcessorsShadow->tpcMerger.Memory())->nO2Tracks; }, internal::GPUTPCGMO2OutputSort_comp());
 }
+
+template <>
+inline void GPUReconstructionMetal::runKernelBackend<GPUTPCGMMergerMergeBorders, 3>(const krnlSetupTime& _xyz, gputpcgmmergertypes::GPUTPCGMBorderRange* const& range, int32_t const& N, int32_t const& cmpMax)
+{
+  if (cmpMax) {
+    SortOnHost(_xyz, range, [&] { return N; }, internal::MergeBorderTracks_compMax());
+  } else {
+    SortOnHost(_xyz, range, [&] { return N; }, internal::MergeBorderTracks_compMin());
+  }
+}
