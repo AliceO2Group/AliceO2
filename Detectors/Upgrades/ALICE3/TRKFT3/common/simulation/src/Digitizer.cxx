@@ -229,7 +229,7 @@ void Digitizer<DetID>::fillOutputContainer(uint32_t frameLast, int layer)
         auto& preDig = iter->second; // preDigit
         if (preDig.charge >= mParams.getChargeThreshold()) {
           int digID = mDigits->size();
-          mDigits->emplace_back(chip.getChipIndex(), preDig.row, preDig.col, preDig.charge, preDig.toa);
+          mDigits->emplace_back(chip.getChipIndex(), preDig.row, preDig.col, preDig.charge, mParams.encodeTimestamp(preDig.toa, mROFrameMin, layer));
           LOG(debug) << "Adding digit ID: " << digID << " with chipID: " << chip.getChipIndex() << ", row: " << preDig.row << ", col: " << preDig.col << ", charge: " << preDig.charge << ", ToA: " << preDig.toa;
           mMCLabels->addElement(digID, preDig.labelRef.label);
           auto& nextRef = preDig.labelRef; // extra contributors are in extra array
