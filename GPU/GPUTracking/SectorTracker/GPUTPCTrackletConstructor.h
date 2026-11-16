@@ -62,8 +62,10 @@ class GPUTPCTrackletConstructor : public GPUKernelTemplate
   };
 
   struct GPUSharedMemory {
+#ifndef __METAL__                                                 // see GPUCA_TRACKLET_CONSTRUCTOR_ROW
     GPUCA_SHARED_STORAGE(GPUTPCRow mRows[GPUTPCGeometry::NROWS]); // rows
-    uint32_t mNStartHits;                                         // Total number of start hits
+#endif
+    uint32_t mNStartHits; // Total number of start hits
 
 #ifdef GPUCA_TRACKLET_CONSTRUCTOR_DO_PROFILE
     int32_t fMaxSync; // temporary shared variable during profile creation

@@ -29,6 +29,15 @@
 
 using namespace o2::gpu;
 
+// Metal reads the rows from device memory: their 12 KB of threadgroup memory
+// limit how many groups fit on a core, and with more groups the GPU hides
+// more of the latency of the row-by-row hit and transformation reads.
+#ifdef __METAL__
+#define GPUCA_TRACKLET_CONSTRUCTOR_ROW(row, iRow, s) const GPUglobalref() GPUTPCRow& GPUrestrict() row = tracker.Row(iRow)
+#else
+#define GPUCA_TRACKLET_CONSTRUCTOR_ROW(row, iRow, s) GPUCA_MAKE_SHARED_REF(GPUTPCRow, row, tracker.Row(iRow), s.mRows[iRow])
+#endif
+
 GPUdii() void GPUTPCTrackletConstructor::InitTracklet(GPUTPCTrackParam& GPUrestrict() tParam)
 {
   // Initialize Tracklet Parameters using default values
@@ -96,7 +105,7 @@ GPUd() void GPUTPCTrackletConstructor::StoreTracklet(int32_t /*nBlocks*/, int32_
     calink ih = rowHits[iRow];
     tracker.TrackletRowHits()[hitout + (iRow - r.mFirstRow)] = ih;
     if (ih != CALINK_INVAL && ih != CALINK_DEAD_CHANNEL) {
-      GPUCA_MAKE_SHARED_REF(GPUTPCRow, row, tracker.Row(iRow), s.mRows[iRow]);
+      GPUCA_TRACKLET_CONSTRUCTOR_ROW(row, iRow, s);
       tracker.MaximizeHitWeight(row, ih, w);
     }
   }
@@ -106,7 +115,7 @@ template <class T>
 GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int32_t /*nBlocks*/, int32_t /*nThreads*/, int32_t /*iBlock*/, int32_t /*iThread*/, GPUsharedref() T& s, GPUTPCThreadMemory& GPUrestrict() r, GPUconstantref() GPUTPCTracker& GPUrestrict() tracker, GPUTPCTrackParam& GPUrestrict() tParam, int32_t iRow, calink& rowHit, calink* rowHits)
 {
   // reconstruction of tracklets, tracklets update step
-  GPUCA_MAKE_SHARED_REF(GPUTPCRow, row, tracker.Row(iRow), s.mRows[iRow]);
+  GPUCA_TRACKLET_CONSTRUCTOR_ROW(row, iRow, s);
 
   float y0 = row.Grid().YMin();
   float stepY = row.HstepY();
@@ -482,7 +491,9 @@ GPUdii() void GPUTPCTrackletConstructor::Thread(int32_t nBlocks, int32_t nThread
   if (get_local_id(0) == 0) {
     sMem.mNStartHits = *tracker.NStartHits();
   }
+#ifndef __METAL__
   GPUCA_SHARED_CACHE(&sMem.mRows[0], tracker.TrackingDataRows(), GPUTPCGeometry::NROWS * sizeof(GPUTPCRow));
+#endif
   GPUbarrier();
 
   GPUTPCThreadMemory rMem;
@@ -509,3 +520,5 @@ GPUd() int32_t GPUTPCTrackletConstructor::GPUTPCTrackletConstructorExtrapolation
   }
   return (rMem.mNHits);
 }
+
+#undef GPUCA_TRACKLET_CONSTRUCTOR_ROW
