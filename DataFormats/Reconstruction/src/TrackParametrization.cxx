@@ -946,11 +946,11 @@ GPUd() bool TrackParametrization<value_T>::correctForELoss(value_t xrho, bool an
       }
 #endif
       e += dE;
-      if (e > m) { // stopped
-        p = math_utils::detail::sqrt<value_t>(e * e - getPID().getMass2());
-      } else {
+      const value_t p2mod = e * e - getPID().getMass2();
+      if (!(e > m && p2mod >= kMinP * kMinP)) {
         return false;
       }
+      p = math_utils::detail::sqrt<value_t>(p2mod);
       if (na) {
         bg = p * massInv;
         dedx = getdEdxBBOpt(bg);
@@ -967,9 +967,6 @@ GPUd() bool TrackParametrization<value_T>::correctForELoss(value_t xrho, bool an
       }
     }
 
-    if (p < kMinP) {
-      return false;
-    }
     setQ2Pt(getQ2Pt() * p0 / p);
   }
 
