@@ -1,3 +1,15 @@
+# Configuration processor rollout
+
+`FITDCSConfigProcessor.h` provides the common base for detector processors that
+handle dead-channel maps and FEE configurations. Detector implementations supply
+their own `init()` and `run()` methods and use the protected setup and parsing
+helpers. HV configuration support is deferred.
+
+The FT0, FDD, and FV0 processors currently handle dead-channel maps only and
+pass an empty FEE data description to the common base. Detector-specific FEE
+readers and outputs can be added in subsequent changes. Dead-channel maps use
+`FITDeadChannelMapReader`, formerly named `FITDCSConfigReader`.
+
 # Testing DCS workflow locally
 
 ## Local CCDB instance

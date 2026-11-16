@@ -14,9 +14,3 @@ o2_add_test(FITFEEConfigurationReader
             LABELS fit
             PUBLIC_LINK_LIBRARIES O2::DataFormatsFIT O2::FITDCSMonitoring
             SOURCES dcsmonitoring/FITFEEConfigurationReaderTest.cxx)
-
-o2_add_test(FITHvConfigurationReader
-            COMPONENT_NAME fit_hv_config_reader
-            LABELS fit
-            PUBLIC_LINK_LIBRARIES O2::DataFormatsFIT O2::FITDCSMonitoring
-            SOURCES dcsmonitoring/FITHvConfigurationReaderTest.cxx)
