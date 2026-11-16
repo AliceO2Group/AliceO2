@@ -112,24 +112,39 @@ const double epoxyThickness = 0.0012;
 const double effectiveCarbonThickness_Stave = 0.02; // foam + shell
 const double staveOpeningAngle = 60 * TMath::DegToRad();
 const double sinTheta = TMath::Sin(staveOpeningAngle / 2);
+const double cosTheta = TMath::Cos(staveOpeningAngle / 2);
 const double alpha = TMath::Pi() / 2 - staveOpeningAngle / 2; // bottom angles
 const double staveSensorGap = 0.21;                           // 2.1mm bonding region on each side: 54.4mm stave width
 const double staveWidth = sensor1x2_width + 2 * staveSensorGap;
-const double staveTriangleHeight = staveWidth / 2.0 / tan(staveOpeningAngle / 2.0);
 /*
- * Now describe the offset of every other stave in z to avoid overlaps
- * ______      ______
- * \    /______\    / | <-- z_offsetStave
- *  \  / \    / \  /
- *   \/   \  /   \/
- *         \/
+ * The stave is created from two carbon legs, and the FPC is its face -- being glued
+ * onto carbon wings that stick out:
+ * _      _  <-- wings
+ *  \    /
+ *   \  /  <-- legs
+ *    \/
  */
+const double staveLegLength = 3.76;
+const double staveLegHalfSpan = staveLegLength * sinTheta; // foot, from x = 0
+const double staveHeight = staveLegLength * cosTheta;      // apex, behind the face
+/*
+ * Now describe the offset of every other stave in z to avoid overlaps. The
+ * horizontal bars are the FPC faces, the Vs the legs behind them.
+ * ________      ________
+ *  \    /________\    /   | <-- z_offsetStave
+ *   \  /  \    /  \  /
+ *    \/    \  /    \/
+ *           \/
+ */
+const double staveFaceThickness = 0.05; // more than combined thickness of FCP (~470um)
+const double staveStackThickness = staveFaceThickness + effectiveCarbonThickness_Stave;
+
 // If midpoint spacing becomes non constant, this becomes a function
-// TODO: add some tolerance to avoid overlaps?
 inline const double z_offsetStave(double x_midpoint_spacing)
 {
-  return staveTriangleHeight *
-         (2 - x_midpoint_spacing / (sensor1x2_width / 2 + staveSensorGap));
+  const double legSlope = staveHeight / staveLegHalfSpan;
+  const double faceOverhang = staveWidth / 2 + staveLegHalfSpan - x_midpoint_spacing;
+  return TMath::Max(legSlope * faceOverhang + staveStackThickness, staveStackThickness);
 }
 
 /*

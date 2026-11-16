@@ -168,60 +168,75 @@ PositionTypes FT3Module::fill_stave_exact(const std::vector<Constants::StaveFill
 }
 
 /*
- * Create the vertices of the triangles that make up the stave cross section
+ * Create the cross section of the two carbon legs the stave hangs from.
  *
- * Each array of 3 corresponds to x or z values of the 3 triangle vertices,
- * and the outer array corresponds to which triangle:
+ * The FPC is the face of the stave, so there is no carbon plate across the
+ * front: the cross section is an open V with wings.
+ * Vertex indices are all shown below in the xz plane.
+ * All vertices are at y_mid since extrusion is in y.
+ *          _________________________________
+ *          |_______________________________|   <- FPC on top of carbon wings
+ *                          |
+ *                          V
+ *          3_______2               0_______9
+ * Wing ->  |________\             /________|   <- Wing
+ *          4       5\\           //7       8
+ *                    \\         //
+ *                     \\       //
+ *                      \\     //
+ *                       \\   //
+ *                        \\ //
+ *                         \1/
+ *                          6
  *
- * [x_outer, z_outer, x_inner, z_inner], each of which has three values
+ * Returns: [x, z], each of which has ten values
  */
-std::array<std::array<double, 3>, 4> buildStaveTriangle(int direction)
+std::array<std::array<double, 10>, 2> buildStaveLegs(int direction)
 {
   // Set some constants for readability
-  double d = Constants::effectiveCarbonThickness_Stave;
-  double H = Constants::staveTriangleHeight;
+  const double d = Constants::effectiveCarbonThickness_Stave;
+  const double H = Constants::staveHeight;
+  const double xFoot = Constants::staveLegHalfSpan;
+  const double xWing = Constants::staveWidth / 2;
+  // the legs run BEHIND the face, away from the sensors
+  const double s = (direction == 1) ? -1.0 : 1.0;
+
   /*
-   * Inner and outer vertices of the stave cross section triangle
-   * all vertices are at y_mid, we simply extend the triangle into y dir.
-   * We work in the local coordinate system of the stave, but still
-   * call the coordinates x and z for readability.
-   *
-   * 1. Get all local coordinates of the two triangle vertices
-   * 2. Extrude a volume from the subtracted triangle cross section area
-   * 3. Rotate the volume around the x-axis since it is by default in xy,
-   *    and extruded in z. Rotate by -90 for xz -> xy, otherwise xz -> x(-y)
-   * 4. Translate the volume to the given position (arguments)
-   *
+   * The inner surface of a leg is its outer surface moved d towards the inside
+   * of the V. Cut flat at the face, that moves the foot d / cos(theta) inwards
+   * along the face; on the axis the two inner surfaces meet d / sin(theta)
+   * short of the outer apex. Both follow from the leg standing at theta =
+   * staveOpeningAngle / 2 to the stave axis.
    */
-  std::array<double, 3> xv_inner, xv_outer, zv_inner, zv_outer;
-  // calculate the coordinates of the triangle vertices
-  // Top/bottom vertex (apex)
-  xv_outer[0] = 0;
-  zv_outer[0] = (direction == 1) ? -H
-                                 : H;
-  ;
-  // right
-  xv_outer[1] = Constants::sensor1x2_width / 2 + Constants::staveSensorGap;
-  zv_outer[1] = 0;
-  // left
-  xv_outer[2] = -xv_outer[1];
-  zv_outer[2] = 0;
+  const double footInset = d / Constants::cosTheta;
+  const double apexInset = d / Constants::sinTheta;
+  const double wingRoot = xFoot - d * Constants::sinTheta / Constants::cosTheta;
 
-  // now get inner vertices, shifted inwards by effective carbon thickness
-  xv_inner[0] = xv_outer[0];
-  double z_shift_inner = d / Constants::sinTheta;
-  zv_inner[0] = (direction == 1) ? zv_outer[0] + z_shift_inner
-                                 : zv_outer[0] - z_shift_inner;
-  // face vertices, first right
-  zv_inner[1] = (direction == 1) ? zv_outer[1] - d
-                                 : zv_outer[1] + d;
-  double x_shift_abs = d / TMath::Tan(Constants::alpha / 2);
-  xv_inner[1] = xv_outer[1] - x_shift_abs;
-  // left
-  zv_inner[2] = zv_inner[1];
-  xv_inner[2] = -xv_inner[1];
+  std::array<double, 10> xv, zv;
+  // inner surface: right foot -> apex -> left foot
+  xv[0] = xFoot - footInset;
+  zv[0] = 0;
+  xv[1] = 0;
+  zv[1] = s * (H - apexInset);
+  xv[2] = -xv[0];
+  zv[2] = 0;
+  // left wing, outer surface back over the apex, right wing
+  xv[3] = -xWing;
+  zv[3] = 0;
+  xv[4] = -xWing;
+  zv[4] = s * d;
+  xv[5] = -wingRoot;
+  zv[5] = s * d;
+  xv[6] = 0;
+  zv[6] = s * H;
+  xv[7] = wingRoot;
+  zv[7] = s * d;
+  xv[8] = xWing;
+  zv[8] = s * d;
+  xv[9] = xWing;
+  zv[9] = 0;
 
-  return {xv_outer, zv_outer, xv_inner, zv_inner};
+  return {xv, zv};
 }
 
 /*
@@ -231,7 +246,7 @@ std::array<std::array<double, 3>, 4> buildStaveTriangle(int direction)
 void FT3Module::addStaveVolume(
   TGeoVolume* motherVolume, std::string volumeName, int direction,
   unsigned* volume_count, double staveLength,
-  std::array<std::array<double, 3>, 4> staveTriangles,
+  std::array<std::array<double, 10>, 2> staveLegs,
   std::pair<double, double>& absAllowedYRange,
   double x_mid, double y_mid, double z_stave_shift_forward)
 {
@@ -274,21 +289,12 @@ void FT3Module::addStaveVolume(
    * Note also that we first need to check if the length is allowed given the inner
    * and outer radius of the layer.
    */
-  TGeoXtru* staveFull = new TGeoXtru(2);
-  staveFull->SetName((volumeName + "_Xtru_outer").c_str());
-  staveFull->DefinePolygon(3, staveTriangles[0].data(), staveTriangles[1].data());
-  staveFull->DefineSection(0, 0);
-  staveFull->DefineSection(1, staveLengthToUse);
+  TGeoXtru* staveShape = new TGeoXtru(2);
+  staveShape->SetName((volumeName + "_shape").c_str());
+  staveShape->DefinePolygon(10, staveLegs[0].data(), staveLegs[1].data());
+  staveShape->DefineSection(0, 0);
+  staveShape->DefineSection(1, staveLengthToUse);
 
-  TGeoXtru* staveInner = new TGeoXtru(2);
-  staveInner->SetName((volumeName + "_Xtru_inner").c_str());
-  staveInner->DefinePolygon(3, staveTriangles[2].data(), staveTriangles[3].data());
-  staveInner->DefineSection(0, 0);
-  staveInner->DefineSection(1, staveLengthToUse);
-
-  TGeoCompositeShape* staveShape = new TGeoCompositeShape(
-    (volumeName + "_shape").c_str(),
-    Form("%s - %s", staveFull->GetName(), staveInner->GetName()));
   TGeoVolume* staveVolume = new TGeoVolume(
     (volumeName).c_str(),
     staveShape,
@@ -542,27 +548,27 @@ void FT3Module::addEndOfStaveCard(
 void FT3Module::add_stave_volumes(
   TGeoVolume* motherVolume, int layerNumber, int direction,
   const Constants::StaveConfig& staveConfig, unsigned i_stave,
-  const std::array<std::array<double, 3>, 4>& staveTriangles,
-  double z_offset_to_carbon_face, std::pair<double, double>& absAllowedYRange,
+  const std::array<std::array<double, 10>, 2>& staveLegs,
+  double z_offset_to_stave_face, std::pair<double, double>& absAllowedYRange,
   double y_midpoint, bool mirrorStaveAroundX, unsigned* staveVolumeCount)
 {
   // Get whether the stave is shifted backward or not before creating
   double z_stave_shift_abs = staveConfig.staveOnFront[i_stave] ? 0 : Constants::z_offsetStave(staveConfig.x_midpoint_spacing);
   double z_stave_shift_forward = // move staves more inward to fit in layer volume
-    -z_offset_to_carbon_face + z_stave_shift_abs;
+    -z_offset_to_stave_face + z_stave_shift_abs;
   std::string stave_volume_name =
     "FT3_Stave_" + std::to_string(direction) + "_" + std::to_string(layerNumber) +
     "_" + std::to_string(i_stave);
 
   addStaveVolume(
     motherVolume, stave_volume_name, direction, staveVolumeCount,
-    staveConfig.y_lengths[i_stave], staveTriangles, absAllowedYRange,
+    staveConfig.y_lengths[i_stave], staveLegs, absAllowedYRange,
     staveConfig.x_midpoints[i_stave], y_midpoint, z_stave_shift_forward);
   // Now create the mirrored stave
   if (mirrorStaveAroundX) {
     addStaveVolume(
       motherVolume, stave_volume_name + "_mirrored", direction, staveVolumeCount,
-      staveConfig.y_lengths[i_stave], staveTriangles, absAllowedYRange,
+      staveConfig.y_lengths[i_stave], staveLegs, absAllowedYRange,
       staveConfig.x_midpoints[i_stave], -y_midpoint, z_stave_shift_forward);
   }
 
@@ -585,7 +591,7 @@ void FT3Module::add_stave_volumes(
     // Per-stave sensor silicon z in the layer frame, reconstructed from the
     // carbon-face offset exactly as the sensor-placement loop does, so the card
     // starts right after the sensors.
-    const double z_offset_to_silicon = z_offset_to_carbon_face +
+    const double z_offset_to_silicon = z_offset_to_stave_face +
                                        Constants::epoxyThickness + Constants::kaptonThickness +
                                        Constants::copperThickness + Constants::epoxyThickness +
                                        Constants::siliconThickness / 2;
@@ -621,8 +627,8 @@ void FT3Module::add_stave_volumes(
 void FT3Module::build_staves_exact(
   TGeoVolume* motherVolume, int layerNumber, int direction,
   const Constants::StaveConfig& staveConfig,
-  const std::array<std::array<double, 3>, 4>& staveTriangles,
-  double z_offset_to_carbon_face,
+  const std::array<std::array<double, 10>, 2>& staveLegs,
+  double z_offset_to_stave_face,
   std::vector<PosNegPositionTypes>& y_positionsPosNeg,
   unsigned& staveVolumeCount)
 {
@@ -642,7 +648,7 @@ void FT3Module::build_staves_exact(
     std::pair<double, double> absAllowedYRange = {0., std::numeric_limits<double>::max()};
 
     add_stave_volumes(motherVolume, layerNumber, direction, staveConfig, i_stave,
-                      staveTriangles, z_offset_to_carbon_face, absAllowedYRange,
+                      staveLegs, z_offset_to_stave_face, absAllowedYRange,
                       y_midpoint, mirrorStaveAroundX, &staveVolumeCount);
 
     /*
@@ -685,8 +691,8 @@ void FT3Module::build_staves_exact(
 void FT3Module::build_staves_greedy(
   TGeoVolume* motherVolume, int layerNumber, int direction, double Rin, double Rout,
   const Constants::StaveConfig& staveConfig,
-  const std::array<std::array<double, 3>, 4>& staveTriangles,
-  double z_offset_to_carbon_face,
+  const std::array<std::array<double, 10>, 2>& staveLegs,
+  double z_offset_to_stave_face,
   std::vector<PosNegPositionTypes>& y_positionsPosNeg, unsigned& staveVolumeCount)
 {
   auto& ft3Params = o2::ft3::FT3BaseParam::Instance();
@@ -767,7 +773,7 @@ void FT3Module::build_staves_greedy(
 
     // Create the stave volumes and fill the y positions where to put sensors on the stave
     add_stave_volumes(motherVolume, layerNumber, direction, staveConfig, i_stave,
-                      staveTriangles, z_offset_to_carbon_face, absAllowedYRange,
+                      staveLegs, z_offset_to_stave_face, absAllowedYRange,
                       y_midpoint, mirrorStaveAroundX, &staveVolumeCount);
 
     // now add the sensor positions on the stave
@@ -810,8 +816,12 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
    * then glue & materials towards the stave. Depending on direction,
    * the distance from the center will be mirrored.
    *
-   * | SILICON SENSOR | GLUE | COPPER | KAPTON | GLUE | CARBON STAVE |
-   * ----------------------------------------------------------------> z
+   * | SILICON SENSOR | GLUE | COPPER | KAPTON | GLUE |
+   * --------------------------------------------------> z
+   *
+   * The FPC is the face of the stave: nothing carbon lies across the front, and
+   * the two legs rise from the back of this stack. The trailing GLUE is the
+   * layer that used to bond the FPC to a carbon plate; it is kept for now.
    *
    * Naturally, this will be mirrored for layers in the backwards direction,
    * such that the face of the sensors always face the interaction region.
@@ -827,27 +837,27 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
   double totalSensorMaterialThickness =
     Constants::epoxyThickness + Constants::kaptonThickness + Constants::copperThickness +
     Constants::epoxyThickness + Constants::siliconThickness;
-  double z_offset_to_carbon_face = z_offset_local - totalSensorMaterialThickness - 0.1;
+  double z_offset_to_stave_face = z_offset_local - totalSensorMaterialThickness - 0.1;
   double z_offset_to_glue_Ka =
-    z_offset_to_carbon_face + Constants::epoxyThickness / 2;
+    z_offset_to_stave_face + Constants::epoxyThickness / 2;
   double z_offset_to_kapton =
-    z_offset_to_carbon_face + Constants::epoxyThickness +
+    z_offset_to_stave_face + Constants::epoxyThickness +
     Constants::kaptonThickness / 2;
   double z_offset_to_copper =
-    z_offset_to_carbon_face + Constants::epoxyThickness +
+    z_offset_to_stave_face + Constants::epoxyThickness +
     Constants::kaptonThickness + Constants::copperThickness / 2;
   double z_offset_to_glue_Si =
-    z_offset_to_carbon_face + Constants::epoxyThickness + Constants::kaptonThickness +
+    z_offset_to_stave_face + Constants::epoxyThickness + Constants::kaptonThickness +
     Constants::copperThickness + Constants::epoxyThickness / 2;
   double z_offset_to_silicon =
-    z_offset_to_carbon_face + Constants::epoxyThickness +
+    z_offset_to_stave_face + Constants::epoxyThickness +
     Constants::kaptonThickness + Constants::copperThickness +
     Constants::epoxyThickness + Constants::siliconThickness / 2;
 
   // initialise all y_positions, vector over all staves/columns
   std::vector<PosNegPositionTypes> y_positionsPosNeg;
   // stave triangle cross sections are the same for every stave (direction based)
-  std::array<std::array<double, 3>, 4> staveTriangles = buildStaveTriangle(direction);
+  std::array<std::array<double, 10>, 2> staveLegs = buildStaveLegs(direction);
   unsigned staveVolumeCount = 0;
   /*
    * Either read the module positions out of the tabulated layout, or work them
@@ -859,11 +869,11 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
    * the parameter is set, so that the discs which do have one can use it.
    */
   if (ft3Params.useExactStavePlacement && !staveConfig.exactStaveFills.empty()) {
-    build_staves_exact(motherVolume, layerNumber, direction, staveConfig, staveTriangles,
-                       z_offset_to_carbon_face, y_positionsPosNeg, staveVolumeCount);
+    build_staves_exact(motherVolume, layerNumber, direction, staveConfig, staveLegs,
+                       z_offset_to_stave_face, y_positionsPosNeg, staveVolumeCount);
   } else {
     build_staves_greedy(motherVolume, layerNumber, direction, Rin, Rout, staveConfig,
-                        staveTriangles, z_offset_to_carbon_face, y_positionsPosNeg,
+                        staveLegs, z_offset_to_stave_face, y_positionsPosNeg,
                         staveVolumeCount);
   }
 
@@ -906,7 +916,7 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
       // define starting midpoint: y = y_start +- distance to middle of sensor
       for (unsigned i_y_pos = 0; i_y_pos < positions.size(); i_y_pos++) {
         // place FCP layers for the whole module, with gaps included and then sensors on top (z)
-        double moduleHeight = Constants::getStackHeight(nSensors);
+        double moduleHeight = Constants::getStackHeight(positions[i_y_pos].second);
         double y_mid_module = positions[i_y_pos].first + y_sign * moduleHeight / 2;
         // ------------ (2) Epoxy glue layer between silicon and copper (FPC) ------------
         addNx2GlueVolume(
