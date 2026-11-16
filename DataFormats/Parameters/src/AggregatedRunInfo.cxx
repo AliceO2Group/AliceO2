@@ -133,7 +133,7 @@ void AggregatedRunInfo::adjust_from_MC(o2::ccdb::CCDBManagerInstance& ccdb,
   }
 
   // adjust SOR for some MC productions, where the ITS "ramp-up shift" of SOR was not a multiple of NOrbitsPerTF.
-  // (several MC productions are affected, before the problem was fixed on Oct 2, 2026)
+  // (several MC productions are affected (MC-prod-2026-v12 and v13), before the problem was fixed on Oct 4, 2026)
   static constexpr std::string_view validTags[] = {
     "LHC25f1c",
     "LHC26j18_G4list",
