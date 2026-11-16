@@ -346,6 +346,44 @@ BOOST_AUTO_TEST_CASE(CalDetTypeTest)
   BOOST_CHECK(testDict == true);
 }
 
+BOOST_AUTO_TEST_CASE(CalDetPadFlags_ROOTIO)
+{
+  // CalArray<PadFlags>::mData has a custom member streamer (TPCFlagsMemberCustomStreamer.cxx);
+  // a write + read round trip must give back every flag at its own pad (a pattern in which
+  // adjacent pads always differ, so that a swap of neighbouring pads shows up)
+  CalDet<PadFlags> flags("flags", PadSubset::Region);
+  const PadFlags bad = PadFlags::flagSkip | PadFlags::flagLowPad;
+  size_t n = 0;
+  for (auto& arr : flags.getData()) {
+    for (size_t i = 0; i < arr.getData().size(); ++i, ++n) {
+      arr.setValue(i, (n % 3 == 0) ? bad : PadFlags::flagGoodPad);
+    }
+  }
+
+  auto f = TFile::Open("CalDetPadFlags_ROOTIO.root", "recreate");
+  f->WriteObject(&flags, "flags");
+  f->Close();
+  delete f;
+
+  f = TFile::Open("CalDetPadFlags_ROOTIO.root");
+  auto* read = f->Get<CalDet<PadFlags>>("flags");
+  BOOST_REQUIRE(read != nullptr);
+  BOOST_REQUIRE_EQUAL(read->getData().size(), flags.getData().size());
+  size_t nDiffer = 0;
+  for (size_t iarr = 0; iarr < flags.getData().size(); ++iarr) {
+    const auto& written = flags.getCalArray(iarr).getData();
+    const auto& back = read->getCalArray(iarr).getData();
+    BOOST_REQUIRE_EQUAL(back.size(), written.size());
+    for (size_t i = 0; i < written.size(); ++i) {
+      nDiffer += back[i] != written[i];
+    }
+  }
+  BOOST_CHECK_EQUAL(nDiffer, 0);
+  delete read;
+  f->Close();
+  delete f;
+}
+
 BOOST_AUTO_TEST_CASE(CalDetStreamerTest)
 {
   // simple code executing the TPC IDCPadFlags loading in a standalone env --> easy to valgrind
