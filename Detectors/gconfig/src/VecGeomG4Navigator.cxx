@@ -160,13 +160,18 @@ G4double VecGeomG4Navigator::ComputeStep(const G4ThreeVector& globalPoint, const
   G4double step = std::max(vgStep, 0.) * kVGToG4;
   const bool entering = mStepState.GetCurrentLevel() > mCurState.GetCurrentLevel();
 
-  // A track that is not moving, handled as G4Navigator does: after ten zero steps the step is
-  // lengthened by 100 kCarTolerance, after twenty-five the event is aborted.
+  // A track that is not moving, with G4Navigator's thresholds: after ten zero steps the step is
+  // lengthened, after twenty-five the event is aborted.
   if (step < 0.05 * kCarTolerance) {
     ++mZeroStepCount;
     if (++mNzeroSteps >= kActionThresholdNoZeroSteps) {
       ++mStuckPushCount;
-      step += 100. * kCarTolerance;
+      // The push grows from Geant4's 100 kCarTolerance fourfold per try to a micron and doubles from the
+      // eleventh try on: a track tangent to a curved face stays within the tolerance of it for microns.
+      const int tries = mNzeroSteps - kActionThresholdNoZeroSteps;
+      constexpr double kMicron = 1.e-3 * CLHEP::mm;
+      step += tries < 10 ? std::min(100. * kCarTolerance * std::pow(4., tries), kMicron)
+                         : kMicron * static_cast<double>(2 << (tries - 10));
       if (mNzeroSteps >= kAbandonThresholdNoZeroSteps) {
         ++mAbandonCount;
         std::ostringstream msg;
