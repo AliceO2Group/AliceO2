@@ -129,20 +129,5 @@ struct ChannelsConfig {
 
   ClassDefNV(ChannelsConfig<NChannels>, 1);
 };
-
-template <std::size_t NChannels>
-struct HvChannelsConfig {
-  float gain[NChannels];
-
-  constexpr HvChannelsConfig()
-  {
-    config_helpers::fillDefaultArray(gain);
-  }
-  bool operator==(const HvChannelsConfig& other) const
-  {
-    return std::equal(std::begin(gain), std::end(gain), std::begin(other.gain));
-  }
-  ClassDefNV(HvChannelsConfig<NChannels>, 1);
-};
 } // namespace o2::fit
 #endif
