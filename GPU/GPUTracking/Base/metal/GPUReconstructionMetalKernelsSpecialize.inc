@@ -122,7 +122,32 @@ inline void GPUReconstructionMetal::RunOnHost(const krnlSetupTime& _xyz, typenam
 template <>
 inline void GPUReconstructionMetal::runKernelBackend<GPUTPCGMMergerSortTracks, 0>(const krnlSetupTime& _xyz)
 {
-  SortOnHost(_xyz, mProcessorsShadow->tpcMerger.TrackOrderProcess(), [&] { return HostPointer(mProcessorsShadow->tpcMerger.Memory())->nMergedTracks; }, internal::GPUTPCGMMergerSortTracks_comp(HostPointer(mProcessorsShadow->tpcMerger.MergedTracks())));
+  // The fit runs one track per thread, in this order. Tracks of similar length
+  // keep the threads of a SIMD group busy for as long as each other; within a
+  // length bucket of 16 clusters, tracks of the same sector and side then read
+  // the same pages of the cluster, transformation and calibration data, which
+  // the Metal GPU, bound by its address translation in the fit, needs more than
+  // the exact length order.
+  const GPUTPCGMMergedTrack* trk = HostPointer(mProcessorsShadow->tpcMerger.MergedTracks());
+  auto comp = [trk](const int32_t aa, const int32_t bb) {
+    const GPUTPCGMMergedTrack& a = trk[aa];
+    const GPUTPCGMMergedTrack& b = trk[bb];
+    if (a.OK() != b.OK()) {
+      return a.OK();
+    }
+    if (a.CCE() != b.CCE()) {
+      return a.CCE() > b.CCE();
+    }
+    if (a.NClusters() / 16 != b.NClusters() / 16) {
+      return a.NClusters() / 16 > b.NClusters() / 16;
+    }
+    const bool sideA = a.GetParam().GetZ() < 0, sideB = b.GetParam().GetZ() < 0;
+    if (sideA != sideB || a.GetAlpha() != b.GetAlpha()) {
+      return sideA != sideB ? sideA < sideB : a.GetAlpha() < b.GetAlpha();
+    }
+    return aa < bb;
+  };
+  SortOnHost(_xyz, mProcessorsShadow->tpcMerger.TrackOrderProcess(), [&] { return HostPointer(mProcessorsShadow->tpcMerger.Memory())->nMergedTracks; }, comp);
 }
 
 template <>
