@@ -58,7 +58,7 @@ struct AlmiraParam : public o2::conf::ConfigurableParamHelper<AlmiraParam> {
   }
   int getNClockCyclesPerROF(int layer) const { return computeNClockCycles(getROFLengthInBC(layer), getClockPeriod(layer)); }
 
-  /// timestamp [frame | clock cycle in ROF] of a signal with time toa (ns) w.r.t. the start of the ROF with index rofIndex
+  /// timestamp [frame (ROF counter) | clock cycle in ROF] of a signal with time toa (ns) w.r.t. the start of the ROF with index rofIndex
   /// (ROFs counted continuously by the digitizer from the first sampled IR). The frame is a free-running ROF counter which
   /// rolls over at 2^(nTimestampBits - nFineBits). toa < 0 means that the signal started in the previous ROF and is still
   /// above threshold in this one: the timestamp refers to the ROF where the signal started.

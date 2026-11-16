@@ -54,7 +54,7 @@ class Digit
   UShort_t mRow = 0;
   UShort_t mCol = 0;
   UShort_t mCharge = 0;
-  uint16_t mTimestampToA = 0; ///< Time of Arrival timestamp: [frame | clock cycle in ROF], see AlmiraParam::encodeTimestamp. https://indico.cern.ch/event/1724141/contributions/7252329/attachments/3336751/5980668/data_throughput_estimation.pdf
+  uint16_t mTimestampToA = 0; ///< Time of Arrival timestamp: [frame (ROF counter) | clock cycle in ROF], see AlmiraParam::encodeTimestamp. https://indico.cern.ch/event/1724141/contributions/7252329/attachments/3336751/5980668/data_throughput_estimation.pdf
 
   ClassDefNV(Digit, 3);
 };

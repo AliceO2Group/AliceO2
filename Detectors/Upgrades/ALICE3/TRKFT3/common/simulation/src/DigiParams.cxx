@@ -69,7 +69,7 @@ void DigiParams<DetIDV>::print() const
   printf("Number of charge sharing steps : %d\n", mNSimSteps);
   printf("ELoss to N electrons factor    : %e\n", mEnergyToNElectrons);
   printf("Noise rate per pixel           : %e/s\n", mNoisePerPixel);
-  printf("Timestamp [frame | clock cycle in ROF] per layer:\n");
+  printf("Timestamp [frame (ROF counter) | clock cycle in ROF] per layer:\n");
   for (size_t i = 0; i < MaxLayers; ++i) {
     if (mClockPeriod[i] > 0) { // layers in use
       printf("  layer %2zu: ROF %d BC, clock period %.2f ns, %d clock cycles per ROF\n",
