@@ -87,10 +87,12 @@ R__LOAD_LIBRARY(libgeant4vmc)
 constexpr const char* kSkipUnknownParticles = "/mcPrimaryGenerator/skipUnknownParticles true";
 
 // whether the TRD charge comes from the Geant4 energy deposit (TRDSimParams.ionisationModel=0), true without TRD
-bool trdUsesEnergyDeposit()
+bool trdUsesEnergyDeposit(bool useG4HepEm)
 {
   try {
-    return o2::conf::ConfigurableParam::getValueAs<int>("TRDSimParams.ionisationModel") == 0;
+    const int model = o2::conf::ConfigurableParam::getValueAs<int>("TRDSimParams.ionisationModel");
+    // -1 selects the collision tables (1) with G4HepEm and the energy deposit (0) otherwise
+    return model == 0 || (model < 0 && !useG4HepEm);
   } catch (...) {
     return true;
   }
@@ -247,7 +249,7 @@ void Config()
     geant4->ProcessGeantMacro(configm1.Data());
 
     // PAI in the TRD gas only when the TRD charge comes from the energy deposit
-    if (trdUsesEnergyDeposit()) {
+    if (trdUsesEnergyDeposit(g4Params.isG4HepEmActive())) {
       geant4->ProcessGeantMacro((configm + "/Detectors/gconfig/g4config_trd_pai.in").Data());
     }
   }

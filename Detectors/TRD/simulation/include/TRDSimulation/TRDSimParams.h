@@ -38,7 +38,7 @@ struct TRDSimParams : public o2::conf::ConfigurableParamHelper<TRDSimParams> {
   bool doTR = true;                                       ///< switch for transition radiation
   SimParam::GasMixture gas = SimParam::GasMixture::Xenon; ///< the gas mixture in the TRD
   // ionisation in the gas
-  int ionisationModel = 0;             ///< charge from 0: Geant4 energy deposit with PAI, 1: TRD collision tables, no PAI
+  int ionisationModel = -1;            ///< charge from 0: Geant4 energy deposit with PAI, 1: TRD collision tables, no PAI, -1: 1 with G4HepEm, else 0
   float ionisationMinBetaGamma = 0.04; ///< below this beta*gamma the charge comes from the energy deposit
   float ionisationMinEkin = 30e3;      ///< (eV) below this kinetic energy the charge comes from the energy deposit
   // TRF parameters
@@ -46,6 +46,8 @@ struct TRDSimParams : public o2::conf::ConfigurableParamHelper<TRDSimParams> {
   float trf_landau_mu = 0.;     // Mu of the Landau distribution used to describe TRF
   float trf_landau_sigma = .03; // Sigma of the Landau distribution used to describe TRF
   float t0 = -0.170;            // Time delay before start of amplification peak, in us
+  /// the ionisation model in use, resolving -1 by whether G4HepEm transports e-, e+ and gamma
+  int activeIonisationModel(bool useG4HepEm) const { return ionisationModel >= 0 ? ionisationModel : (useG4HepEm ? 1 : 0); }
   O2ParamDef(TRDSimParams, "TRDSimParams");
 };
 
