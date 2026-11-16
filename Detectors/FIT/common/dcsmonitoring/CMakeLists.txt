@@ -11,6 +11,7 @@
 
 o2_add_library(FITDCSMonitoring
                SOURCES src/FITDCSConfigReader.cxx
+                       src/FITDCSBaseConfigReader.cxx
                        src/FITDCSDataProcessor.cxx
                        src/FITDCSDataReader.cxx
                PUBLIC_LINK_LIBRARIES O2::DataFormatsFIT
