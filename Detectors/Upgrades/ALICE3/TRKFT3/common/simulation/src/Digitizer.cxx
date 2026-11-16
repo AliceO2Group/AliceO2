@@ -117,10 +117,10 @@ void Digitizer<DetID>::process(const std::vector<Hit>* hits, int evID, int srcID
 {
   // digitize single event, the time must have been set beforehand
 
-  LOG(info) << " Digitizing " << mGeometry->getName() << " (ID: " << mGeometry->getDetID()
-            << ") hits of event " << evID << " from source " << srcID
-            << " at time " << mEventTime.getTimeNS() << " ROFrame = " << mNewROFrame
-            << " Min/Max ROFrames " << mROFrameMin << "/" << mROFrameMax << " layer " << layer;
+  LOG(debug) << " Digitizing " << mGeometry->getName() << " (ID: " << mGeometry->getDetID()
+             << ") hits of event " << evID << " from source " << srcID
+             << " at time " << mEventTime.getTimeNS() << " ROFrame = " << mNewROFrame
+             << " Min/Max ROFrames " << mROFrameMin << "/" << mROFrameMax << " layer " << layer;
 
   // std::cout << "Printing segmentation info: " << std::endl;
   // SegmentationChip::Print();
@@ -138,7 +138,7 @@ void Digitizer<DetID>::process(const std::vector<Hit>* hits, int evID, int srcID
             [hits](auto lhs, auto rhs) {
               return (*hits)[lhs].GetDetectorID() < (*hits)[rhs].GetDetectorID();
             });
-  LOG(info) << "Processing " << nHits << " hits";
+  LOG(debug) << "Processing " << nHits << " hits";
   std::vector<float> respMatrix; // the hits' charge response, reused from hit to hit within the event
   for (int i : hitIdx | std::views::filter([&](int idx) {
                  if (layer < 0) {
@@ -199,7 +199,7 @@ void Digitizer<DetID>::fillOutputContainer(uint32_t frameLast, int layer)
   }
   // // make sure all buffers for extra digits are created up to the maxFrame
   getExtraDigBuffer(mROFrameMax);
-  LOG(info) << "Filling " << mGeometry->getName() << " digits output for RO frames " << mROFrameMin << ":"
+  LOG(debug) << "Filling " << mGeometry->getName() << " digits output for RO frames " << mROFrameMin << ":"
             << frameLast;
 
   o2::trkft3::ROFRecord rcROF; /// using temporarly trkft3::ROFRecord
