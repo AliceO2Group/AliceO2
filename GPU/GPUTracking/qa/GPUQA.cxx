@@ -2355,10 +2355,31 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
   }
 
   if (mConfig.enableLocalOutput && !mConfig.inputHistogramsOnly && (mQATasks & taskTrackingEff) && mcPresent()) {
-    GPUInfo("QA Stats: Eff: Tracks Prim %d (Eta %d, Pt %d) %f%% (%f%%) Sec %d (Eta %d, Pt %d) %f%% (%f%%) -  Res: Tracks %d (Eta %d, Pt %d)", (int32_t)mEff[3][1][0][0]->GetEntries(), (int32_t)mEff[3][1][0][3]->GetEntries(), (int32_t)mEff[3][1][0][4]->GetEntries(),
-            mEff[0][0][0][0]->GetSumOfWeights() / std::max(1., mEff[3][0][0][0]->GetSumOfWeights()), mEff[0][1][0][0]->GetSumOfWeights() / std::max(1., mEff[3][1][0][0]->GetSumOfWeights()), (int32_t)mEff[3][1][1][0]->GetEntries(), (int32_t)mEff[3][1][1][3]->GetEntries(),
-            (int32_t)mEff[3][1][1][4]->GetEntries(), mEff[0][0][1][0]->GetSumOfWeights() / std::max(1., mEff[3][0][1][0]->GetSumOfWeights()), mEff[0][1][1][0]->GetSumOfWeights() / std::max(1., mEff[3][1][1][0]->GetSumOfWeights()), (int32_t)mRes2[0][0]->GetEntries(),
-            (int32_t)mRes2[0][3]->GetEntries(), (int32_t)mRes2[0][4]->GetEntries());
+    GPUInfo("QA Stats: Tracking performance vs Pt: average over the Pt bins (all tracks)");
+    static constexpr const char* names[4] = {"Prim findable", "Prim all", "Sec findable", "Sec all"};
+    for (int32_t j = 0; j < 4; j++) {
+      const int32_t iFindable = j % 2, iSec = j / 2; // index 0 of the findable dimension are the findable tracks, index 1 all tracks
+      double sumNum[3] = {}, sumDen[3] = {}, sumRatio[3] = {};
+      int32_t nBins[3] = {};
+      for (int32_t bin = 1; bin <= mEff[0][iFindable][iSec][4]->GetNbinsX(); bin++) {
+        const double rec = mEff[0][iFindable][iSec][4]->GetBinContent(bin), clone = mEff[1][iFindable][iSec][4]->GetBinContent(bin), fake = mEff[2][iFindable][iSec][4]->GetBinContent(bin);
+        const double num[3] = {rec, clone, fake}, den[3] = {mEff[5][iFindable][iSec][4]->GetBinContent(bin), rec + clone, rec + clone + fake}; // Same ratios as in the plots
+        for (int32_t l = 0; l < 3; l++) {
+          sumNum[l] += num[l];
+          sumDen[l] += den[l];
+          if (den[l] > 0.) {
+            sumRatio[l] += num[l] / den[l];
+            nBins[l]++;
+          }
+        }
+      }
+      double avg[3], total[3];
+      for (int32_t l = 0; l < 3; l++) {
+        avg[l] = nBins[l] ? 100. * sumRatio[l] / nBins[l] : 0.;
+        total[l] = sumDen[l] > 0. ? 100. * sumNum[l] / sumDen[l] : 0.;
+      }
+      GPUInfo("QA Stats: %-13s - Eff %5.2f (%6.2f) - Clone %5.2f (%6.2f) - Fake %5.2f (%6.2f)", names[j], avg[0], total[0], avg[1], total[1], avg[2], total[2]);
+    }
   }
 
   int32_t flagShowVsPtLog = (mConfig.enableLocalOutput || mConfig.shipToQCAsCanvas) ? 1 : 0;
