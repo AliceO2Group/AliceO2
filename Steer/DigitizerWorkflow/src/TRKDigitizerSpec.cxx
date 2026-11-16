@@ -138,8 +138,9 @@ class TRKFT3DPLDigitizerTask : BaseDPLDigitizer
       auto& digitsAccum = pc.outputs().make<std::vector<trkft3::Digit>>(Output{Origin, "DIGITS", iLayer});
 
       const int roFrameLengthInBC = mDigitizer.getParams().getROFrameLengthInBC(iLayer);
-      const int nROFsPerOrbit = o2::constants::lhc::LHCMaxBunches / roFrameLengthInBC;
-      const int nROFsTF = nROFsPerOrbit * raw::HBFUtils::Instance().getNOrbitsPerTF();
+      const long tfLengthInBC = long(o2::constants::lhc::LHCMaxBunches) * raw::HBFUtils::Instance().getNOrbitsPerTF();
+      const int nROFsTF = (tfLengthInBC + roFrameLengthInBC - 1) / roFrameLengthInBC; // rounded up: the last ROF may be truncated by the end of the TF
+
       mROFRecordsAccum[iLayer].reserve(nROFsTF);
 
       auto accumulate = [this, &digitsAccum, &iLayer]() {
@@ -288,6 +289,10 @@ class TRKFT3DPLDigitizerTask : BaseDPLDigitizer
 
       // FT3's discs take the AlmiraParam entries after TRK's barrel layers, which it reserves for them.
       constexpr int firstParLayer = N == o2::detectors::DetID::TRK ? 0 : o2::trk::AlmiraParam::getNLayers() - o2::trk::constants::MLOTDisks::nLayers;
+      if (aopt.nTimestampBits > 16 || aopt.nFineBits < 0 || aopt.nFineBits > aopt.nTimestampBits) { // TODO: check once the bits division has been definitively chosen
+        LOGP(fatal, "Invalid timestamp format: {} bits with {} fine bits (the digit timestamp is a uint16_t)", aopt.nTimestampBits, aopt.nFineBits);
+      }
+
       for (int iLayer = 0; iLayer < mLayers; ++iLayer) {
         const int parLayer = std::min<int>(firstParLayer + iLayer, o2::trk::AlmiraParam::getNLayers() - 1);
         const auto roFrameLengthInBC = aopt.getROFLengthInBC(parLayer);
@@ -299,6 +304,19 @@ class TRKFT3DPLDigitizerTask : BaseDPLDigitizer
         const auto strobeLengthCont = aopt.getStrobeLengthCont(parLayer);
         digipar.setStrobeLength(strobeLengthCont > 0 ? strobeLengthCont : frameNS - aopt.getStrobeDelay(parLayer), iLayer);
         digipar.setROFrameLength(frameNS, iLayer);
+        digipar.setClockPeriod(aopt.getClockPeriod(parLayer), iLayer); // after setROFrameLengthInBC: computes and sets the clock cycles per ROF
+
+        const int nCycles = digipar.getNClockCyclesPerROF(iLayer);
+        const long tfLengthInBC = long(o2::constants::lhc::LHCMaxBunches) * o2::raw::HBFUtils::Instance().getNOrbitsPerTF();
+        if (tfLengthInBC % roFrameLengthInBC != 0) {
+          LOGP(warning, "{} layer {}: ROF length {} BC does not divide the TF length {} BC: the last ROF of the TF is truncated", ID.getName(), iLayer, roFrameLengthInBC, tfLengthInBC);
+        }
+        if ((1L << (aopt.nTimestampBits - aopt.nFineBits)) * roFrameLengthInBC <= o2::constants::lhc::LHCMaxBunches) {
+          LOGP(warning, "{} layer {}: the timestamp frame counter ({} bits) rolls over within an orbit with ROF length {} BC", ID.getName(), iLayer, aopt.nTimestampBits - aopt.nFineBits, roFrameLengthInBC);
+        }
+        if (nCycles > (1 << aopt.nFineBits)) {
+          LOGP(fatal, "{} layer {}: {} clock cycles per ROF do not fit in the {} fine bits of the timestamp. Possible values: 16 BC for VD; 16,32,64 BC for MLOT/FT3.", ID.getName(), iLayer, nCycles, aopt.nFineBits);
+        }
       }
       // parameters of signal time response: flat-top duration, max rise time and q @ which rise time is 0
       digipar.getSignalShape().setParameters(dopt.strobeFlatTop, dopt.strobeMaxRiseTime, dopt.strobeQRiseTime0);
