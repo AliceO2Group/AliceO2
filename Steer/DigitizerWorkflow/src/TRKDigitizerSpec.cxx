@@ -160,7 +160,7 @@ class TRKFT3DPLDigitizerTask : BaseDPLDigitizer
         if (mWithMCTruth) {
           mLabelsAccum[iLayer].mergeAtBack(mLabels[iLayer]);
         }
-        LOG(info) << "Added " << mDigits[iLayer].size() << " digits on layer " << iLayer;
+        LOG(debug) << "Added " << mDigits[iLayer].size() << " digits on layer " << iLayer;
         mLabels[iLayer].clear();
         mDigits[iLayer].clear();
         mROFRecords[iLayer].clear();
