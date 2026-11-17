@@ -200,7 +200,7 @@ void Digitizer<DetID>::fillOutputContainer(uint32_t frameLast, int layer)
   // // make sure all buffers for extra digits are created up to the maxFrame
   getExtraDigBuffer(mROFrameMax);
   LOG(debug) << "Filling " << mGeometry->getName() << " digits output for RO frames " << mROFrameMin << ":"
-            << frameLast;
+             << frameLast;
 
   o2::trkft3::ROFRecord rcROF; /// using temporarly trkft3::ROFRecord
 
