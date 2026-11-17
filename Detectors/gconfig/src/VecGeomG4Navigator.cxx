@@ -213,7 +213,7 @@ G4double VecGeomG4Navigator::ComputeStep(const G4ThreeVector& globalPoint, const
 /// under a field is the momentum. Nor does it descend back into `avoid`, the volume the crossing
 /// exited: on a face a helix touches tangentially chord and momentum disagree about the side.
 void VecGeomG4Navigator::leaveFlushVolumes(const V3& point, const V3& dir, int minLevel,
-                                           vecgeom::VPlacedVolume const* avoid)
+                                           vecgeom::NavigationState const* avoid)
 {
   for (int round = 0; round < 4; ++round) {
     vecgeom::VPlacedVolume const* left = nullptr;
@@ -247,12 +247,14 @@ void VecGeomG4Navigator::leaveFlushVolumes(const V3& point, const V3& dir, int m
       return; // no daughter holds the point
     }
     if (avoid != nullptr && mCurState.GetCurrentLevel() > level) {
-      // Undo a descent into the volume the crossing exited, at whatever depth the search put it.
-      mPathScratch = mCurState;
-      while (mPathScratch.GetCurrentLevel() > level && mPathScratch.Top() != avoid) {
-        mPathScratch.Pop();
+      // Undo a descent into the volume the crossing exited. It is told by its whole path: the same
+      // placement also sits in every other copy of its mother, where the track may well go.
+      const int exited = avoid->GetCurrentLevel();
+      bool back = static_cast<int>(mCurState.GetCurrentLevel()) >= exited;
+      for (int l = exited - 1; back && l > 0; --l) {
+        back = mCurState.At(l) == avoid->At(l);
       }
-      if (mPathScratch.GetCurrentLevel() > level) {
+      if (back) {
         while (mCurState.GetCurrentLevel() > level) {
           mCurState.Pop();
         }
@@ -369,7 +371,7 @@ G4VPhysicalVolume* VecGeomG4Navigator::LocateGlobalPointAndSetup(const G4ThreeVe
   }
   if (crossing) {
     leaveFlushVolumes(q, dir, entering ? static_cast<int>(mNextState.GetCurrentLevel()) : 0,
-                      entering ? nullptr : topOf(mReloScratch));
+                      entering || topOf(mReloScratch) == nullptr ? nullptr : &mReloScratch);
     updateCrossingFlags(entering);
   }
   mWouldEnter = false;

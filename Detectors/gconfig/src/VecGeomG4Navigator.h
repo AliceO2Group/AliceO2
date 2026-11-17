@@ -65,7 +65,7 @@ class VecGeomG4Navigator : public VecGeomG4NavigatorBase
   G4VPhysicalVolume* updateG4History();
   void locateFromWorld(const V3& point);
   /// Go up past every volume the point is on the surface of and heading out of, then down again.
-  void leaveFlushVolumes(const V3& point, const V3& dir, int minLevel, vecgeom::VPlacedVolume const* avoid);
+  void leaveFlushVolumes(const V3& point, const V3& dir, int minLevel, vecgeom::NavigationState const* avoid);
   /// Sets fEnteredDaughter and fExitedMother from the paths before (mReloScratch) and after a crossing.
   void updateCrossingFlags(bool entering);
   void clearLastExited()
