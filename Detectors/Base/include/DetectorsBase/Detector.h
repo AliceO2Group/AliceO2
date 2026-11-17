@@ -42,6 +42,8 @@
 
 #include <fairmq/FwdDecls.h>
 
+class TParticle;
+
 namespace o2::base
 {
 
@@ -182,6 +184,11 @@ class Detector : public FairDetector
     }
     return trackID + (trackID < nprimaries ? primaryOffset : secondaryOffset);
   }
+
+  // Hook called at the end of the transport of an event (or of a sub-event in a simulation worker),
+  // before the hits are written/shipped. It receives the primaries of the (sub-)event and allows
+  // detectors to create hits directly from them (fast simulation without transport).
+  virtual void finishEventHook(const std::vector<TParticle>& /*primaries*/) {}
 
   // interfaces to attach properly encoded hit information to a FairMQ message
   // and to decode it

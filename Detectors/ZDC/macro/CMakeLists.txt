@@ -20,6 +20,10 @@ o2_add_test_root_macro(CreateSimCondition_pp.C
                        LABELS zdc)
 
 
+o2_add_test_root_macro(CreateFastSimModel.C
+                       PUBLIC_LINK_LIBRARIES O2::ZDCBase O2::ZDCSimulation O2::CCDB
+                       LABELS zdc)
+
 o2_add_test_root_macro(CreateModuleConfig.C
                        PUBLIC_LINK_LIBRARIES O2::ZDCBase O2::CCDB
                        LABELS zdc)
