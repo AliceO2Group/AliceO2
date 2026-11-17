@@ -18,6 +18,7 @@
 #include "DataFormatsParameters/GRPLHCIFData.h"
 #include "CommonConstants/LHCConstants.h"
 #include "Framework/Logger.h"
+#include <cmath>
 #include <map>
 
 using namespace o2::parameters;
@@ -188,9 +189,14 @@ void AggregatedRunInfo::adjust_from_MC(o2::ccdb::CCDBManagerInstance& ccdb,
     int nOrbitsCorrection = 4; // a shift (number of orbits for correction) if orbitsPerTF=32 or 8
     if (orbitsPerTF == 6) {
       nOrbitsCorrection = 2; // correction if orbitsPerTF=6, e.g. Pb-Pb MC LHC26h3
+    } else if (orbitsPerTF == 128) {
+      nOrbitsCorrection = 36; // correction if orbitsPerTF=128, e.g. MB gap trigger PbPb 2024 apass3 LHC26a7
+    }
+    if (lpm_prod_tag == "LHC26j17") {
+      nOrbitsCorrection = 30; // special case: ITS ramp-up time of 90 s instead of 5 s (for orbitsPerTF=32)
     }
     orbitSOR += nOrbitsCorrection;
-    sor += nOrbitsCorrection * o2::constants::lhc::LHCOrbitMUS * 1000;
+    sor += std::llround(nOrbitsCorrection * o2::constants::lhc::LHCOrbitMUS / 1000.);
     LOG(warn) << "AggregatedRunInfo.adjust_from_MC(): Applying SOR adjustment by " << nOrbitsCorrection << " orbits for MC production " << lpm_prod_tag << " and run number " << run_number;
   }
 }
