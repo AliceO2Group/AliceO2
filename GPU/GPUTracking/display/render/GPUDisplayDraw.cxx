@@ -170,7 +170,7 @@ void GPUDisplay::DrawClusters(int32_t iSector)
         } else if ((mCfgH.markAdjacentClusters & 16) && (attach & gputpcgmmergertypes::attachHighIncl)) {
           select = tMARKED;
         } else if (mCfgH.markAdjacentClusters & 8) {
-          if (fabsf(mIOPtrs->mergedTracks[attach & gputpcgmmergertypes::attachTrackMask].GetParam().GetQPt()) > 20.f) {
+          if (fabsf(mIOPtrs->mergedTracks[gputpcgmmergertypes::getAttachedTrackId(attach)].GetParam().GetQPt()) > 20.f) {
             select = tMARKED;
           }
         }

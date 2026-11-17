@@ -206,7 +206,7 @@ void GPUTPCGMMerger::DumpFitPrepare(std::ostream& out) const
       if (j++ % 10 == 0) {
         out << "\n    Cluster attachment ";
       }
-      out << i << ": " << (mClusterAttachment[i] & attachTrackMask) << " / " << (mClusterAttachment[i] & attachFlagMask) << " - ";
+      out << i << ": " << getAttachedTrackId(mClusterAttachment[i]) << " / " << (mClusterAttachment[i] & attachFlagMask) << " - ";
     }
   }
   out << "\n";
@@ -255,7 +255,7 @@ void GPUTPCGMMerger::DumpFinal(std::ostream& out) const
       if (++j % 10 == 0) {
         out << "    Cluster attachment ";
       }
-      out << i << ": " << (mClusterAttachment[i] & attachTrackMask) << " / " << (mClusterAttachment[i] & attachFlagMask) << " - ";
+      out << i << ": " << getAttachedTrackId(mClusterAttachment[i]) << " / " << (mClusterAttachment[i] & attachFlagMask) << " - ";
       if (j % 10 == 0) {
         out << "\n";
       }
