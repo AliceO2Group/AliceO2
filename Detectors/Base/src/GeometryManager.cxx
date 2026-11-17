@@ -19,6 +19,9 @@
 #include <TGeoNavigator.h>    // for TGeoNavigator
 #include <TGeoNode.h>         // for TGeoNode
 #include <TGeoPhysicalNode.h> // for TGeoPhysicalNode, TGeoPNEntry
+#include <TGeoVolume.h>
+#include <TGeoVoxelFinder.h>
+#include <stdexcept>
 #include <string>
 #include <cassert>
 #include <cstddef> // for NULL
@@ -66,6 +69,126 @@ using namespace o2::base;
 /// the look-up table mapping unique volume indices to symbolic volume names. For that, it
 /// collects several static methods
 std::mutex GeometryManager::sTGMutex;
+std::atomic<int> GeometryManager::sMaxThreads{0};
+std::atomic<int> GeometryManager::sGeneration{0};
+TGeoManager* GeometryManager::sGeo = nullptr;
+
+//_____________________________________________________________________________________
+bool GeometryManager::isMTActive()
+{
+  // A TGeoManager which was not put in multithread mode by setMaxThreads (e.g. a geometry loaded after
+  // the previous one was deleted, possibly at the same address) is detected by the IsMultiThread() check.
+  if (sMaxThreads.load() == 0) {
+    return false;
+  }
+  if (gGeoManager && gGeoManager == sGeo && gGeoManager->IsMultiThread()) {
+    return true;
+  }
+  std::lock_guard<std::mutex> guard(sTGMutex);
+  if (sMaxThreads.load() != 0 && !(gGeoManager && gGeoManager == sGeo && gGeoManager->IsMultiThread())) {
+    LOG(warning) << "TGeoManager was replaced: per-thread TGeo navigation is disabled until GeometryManager::setMaxThreads is called again";
+    sMaxThreads = 0;
+    sGeo = nullptr;
+    sGeneration++; // invalidates the navigators held by threads
+  }
+  return false;
+}
+
+//_____________________________________________________________________________________
+int GeometryManager::getMaxThreads()
+{
+  return isMTActive() ? sMaxThreads.load() : 0;
+}
+
+//_____________________________________________________________________________________
+void GeometryManager::rebuildVoxels()
+{
+  // TGeoVoxelFinder rebuilds its voxels lazily at the first navigation into a volume flagged by
+  // SetNeedRebuild() (e.g. mothers of TGeoPhysicalNode::Align-ed nodes). The voxel structures are shared
+  // between all navigators, so this has to be done serially, not concurrently from the worker threads.
+  if (!gGeoManager) {
+    LOG(fatal) << "geometry is not loaded";
+  }
+  std::lock_guard<std::mutex> guard(sTGMutex);
+  TIter next(gGeoManager->GetListOfVolumes());
+  while (auto* vol = static_cast<TGeoVolume*>(next())) {
+    if (auto* voxels = vol->GetVoxels(); voxels && voxels->NeedRebuild()) {
+      voxels->Voxelize(); // resets the NeedRebuild flag
+      vol->FindOverlaps();
+    }
+  }
+}
+
+//_____________________________________________________________________________________
+int GeometryManager::setMaxThreads(int nThreads)
+{
+  if (!gGeoManager) {
+    LOG(fatal) << "geometry is not loaded";
+  }
+  if (nThreads < 1) {
+    return getMaxThreads();
+  }
+  if (isMTActive()) {
+    const int cur = sMaxThreads.load();
+    if (nThreads > cur) {
+      // TGeoManager::SetMaxThreads would clear the thread slots (and the per-volume thread data) of the
+      // threads which already navigate, so the capacity cannot be raised once it is enabled.
+      LOG(error) << "GeometryManager::setMaxThreads(" << nThreads << ") refused: multithreaded navigation was already enabled for "
+                 << cur << " threads and cannot be extended. Call setMaxThreads once with the maximum number of threads";
+    }
+    return cur;
+  }
+  rebuildVoxels();
+  std::lock_guard<std::mutex> guard(sTGMutex);
+  gGeoManager->SetMaxThreads(nThreads); // one-way in TGeoManager
+  // The map of thread slots is static in TGeoManager (it is not reset with the geometry, and the threads cache
+  // their slot), so slots used with a previous geometry stay consumed. The calling thread takes a slot first.
+  const int ownerSlot = TGeoManager::ThreadId();
+  if (ownerSlot > nThreads) {
+    LOG(warning) << "TGeo thread slots were already consumed (calling thread has slot " << ownerSlot
+                 << ", capacity " << nThreads << "): per-thread navigators will not be available";
+  }
+  sGeo = gGeoManager;
+  sGeneration++;
+  sMaxThreads = nThreads;
+  return nThreads;
+}
+
+//_____________________________________________________________________________________
+TGeoNavigator* GeometryManager::getThreadNavigator()
+{
+  struct Holder {
+    TGeoNavigator* nav = nullptr;
+    int gen = -1; // value of sGeneration the navigator belongs to
+    ~Holder()
+    {
+      if (nav) {
+        std::lock_guard<std::mutex> guard(sTGMutex);
+        if (gen == sGeneration.load() && gGeoManager && gGeoManager == sGeo) { // else the navigator died with its geometry
+          gGeoManager->RemoveNavigator(nav);                                   // the TGeo thread slot of this thread stays consumed
+        }
+      }
+    }
+  };
+  thread_local Holder h;
+  if (!isMTActive()) {
+    return nullptr;
+  }
+  if (h.nav && h.gen == sGeneration.load()) {
+    return h.nav;
+  }
+  h.nav = nullptr; // none yet, or the one from the previous geometry
+  std::lock_guard<std::mutex> guard(sTGMutex);
+  h.gen = sGeneration.load();
+  // The slot (TGeoManager::ThreadId) is what indexes the per-volume thread data: it must be within the
+  // reserved range, otherwise TGeo would access beyond its arrays.
+  if (TGeoManager::ThreadId() > gGeoManager->GetMaxThreads()) {
+    throw std::runtime_error("GeometryManager: more threads use TGeo than declared in GeometryManager::setMaxThreads(" +
+                             std::to_string(sMaxThreads.load()) + ")");
+  }
+  h.nav = gGeoManager->AddNavigator();
+  return h.nav;
+}
 
 //______________________________________________________________________
 Bool_t GeometryManager::getOriginalMatrix(const char* symname, TGeoHMatrix& m)
@@ -76,15 +199,21 @@ Bool_t GeometryManager::getOriginalMatrix(const char* symname, TGeoHMatrix& m)
     ;
     return kFALSE;
   }
-  std::lock_guard<std::mutex> guard(sTGMutex);
+  // navigator of the calling thread if setMaxThreads was called, otherwise the shared one under the mutex
+  std::unique_lock<std::mutex> guard(sTGMutex, std::defer_lock);
+  TGeoNavigator* nav = getThreadNavigator();
+  if (!nav) {
+    guard.lock();
+    nav = gGeoManager->GetCurrentNavigator();
+  }
   if (!gGeoManager->GetListOfPhysicalNodes()) {
     LOG(warning) << "gGeoManager doesn't contain any aligned nodes!";
 
-    if (!gGeoManager->cd(symname)) {
+    if (!nav->cd(symname)) {
       LOG(error) << "Volume path " << symname << " not valid!";
       return kFALSE;
     } else {
-      m = *gGeoManager->GetCurrentMatrix();
+      m = *nav->GetCurrentMatrix();
       return kTRUE;
     }
   }
@@ -101,6 +230,9 @@ Bool_t GeometryManager::getOriginalMatrix(const char* symname, TGeoHMatrix& m)
     path = symname;
   }
 
+  if (guard.owns_lock()) { // getOriginalMatrixFromPath takes the (non-recursive) mutex itself
+    guard.unlock();
+  }
   return getOriginalMatrixFromPath(path, m);
 }
 
@@ -113,19 +245,25 @@ Bool_t GeometryManager::getOriginalMatrixFromPath(const char* path, TGeoHMatrix&
     LOG(error) << "Can't get the original global matrix! gGeoManager doesn't exist or it is still opened!";
     return kFALSE;
   }
-  std::lock_guard<std::mutex> guard(sTGMutex);
-  if (!gGeoManager->CheckPath(path)) {
+  // navigator of the calling thread if setMaxThreads was called, otherwise the shared one under the mutex
+  std::unique_lock<std::mutex> guard(sTGMutex, std::defer_lock);
+  TGeoNavigator* nav = getThreadNavigator();
+  if (!nav) {
+    guard.lock();
+    nav = gGeoManager->GetCurrentNavigator();
+  }
+  if (!nav->CheckPath(path)) {
     LOG(error) << "Volume path " << path << " not valid!";
     return kFALSE;
   }
 
   TIter next(gGeoManager->GetListOfPhysicalNodes());
-  gGeoManager->cd(path);
+  nav->cd(path);
 
-  while (gGeoManager->GetLevel()) {
+  while (nav->GetLevel()) {
     TGeoPhysicalNode* physNode = nullptr;
     next.Reset();
-    TGeoNode* node = gGeoManager->GetCurrentNode();
+    TGeoNode* node = nav->GetCurrentNode();
 
     while ((physNode = (TGeoPhysicalNode*)next())) {
       if (physNode->GetNode() == node) {
@@ -145,7 +283,7 @@ Bool_t GeometryManager::getOriginalMatrixFromPath(const char* path, TGeoHMatrix&
 
     m.MultiplyLeft(lm);
 
-    gGeoManager->CdUp();
+    nav->CdUp();
   }
   return kTRUE;
 }
@@ -375,9 +513,15 @@ GeometryManager::MatBudgetExt GeometryManager::meanMaterialBudgetExt(float x0, f
   for (int i = 3; i--;) {
     dir[i] *= invlen;
   }
-  std::lock_guard<std::mutex> guard(sTGMutex);
+  // per-thread navigator if setMaxThreads was called, otherwise the shared one under the mutex
+  std::unique_lock<std::mutex> guard(sTGMutex, std::defer_lock);
+  TGeoNavigator* nav = getThreadNavigator();
+  if (!nav) {
+    guard.lock();
+    nav = gGeoManager->GetCurrentNavigator();
+  }
   // Initialize start point and direction
-  TGeoNode* currentnode = gGeoManager->InitTrack(startD, dir);
+  TGeoNode* currentnode = nav->InitTrack(startD, dir);
   if (!currentnode) {
     LOG(error) << "start point out of geometry: " << x0 << ':' << y0 << ':' << z0;
     return MatBudgetExt(); // return empty struct
@@ -389,11 +533,11 @@ GeometryManager::MatBudgetExt GeometryManager::meanMaterialBudgetExt(float x0, f
 
   // Locate next boundary within length without computing safety.
   // Propagate either with length (if no boundary found) or just cross boundary
-  gGeoManager->FindNextBoundaryAndStep(length, kFALSE);
+  nav->FindNextBoundaryAndStep(length, kFALSE);
   Double_t stepTot = 0.0; // Step made
-  Double_t step = gGeoManager->GetStep();
+  Double_t step = nav->GetStep();
   // If no boundary within proposed length, return current step data
-  if (!gGeoManager->IsOnBoundary()) {
+  if (!nav->IsOnBoundary()) {
     budStep.meanX2X0 = budStep.length / budStep.meanX2X0;
     return MatBudgetExt(budStep);
   }
@@ -408,7 +552,7 @@ GeometryManager::MatBudgetExt GeometryManager::meanMaterialBudgetExt(float x0, f
     if (nzero > 3) {
       // This means navigation has problems on one boundary
       // Try to cross by making a small step
-      const double* curPos = gGeoManager->GetCurrentPoint();
+      const double* curPos = nav->GetCurrentPoint();
       LOG(warning) << "Cannot cross boundary at (" << curPos[0] << ',' << curPos[1] << ',' << curPos[2] << ')';
       budTotal.normalize(stepTot);
       budTotal.nCross = -1; // flag failed navigation
@@ -426,14 +570,14 @@ GeometryManager::MatBudgetExt GeometryManager::meanMaterialBudgetExt(float x0, f
     if (step >= length) {
       break;
     }
-    currentnode = gGeoManager->GetCurrentNode();
+    currentnode = nav->GetCurrentNode();
     if (!currentnode) {
       break;
     }
     length -= step;
     accountMaterial(currentnode->GetVolume()->GetMedium()->GetMaterial(), budStep);
-    gGeoManager->FindNextBoundaryAndStep(length, kFALSE);
-    step = gGeoManager->GetStep();
+    nav->FindNextBoundaryAndStep(length, kFALSE);
+    step = nav->GetStep();
   }
   budTotal.normalize(stepTot);
   return MatBudgetExt(budTotal);
@@ -470,11 +614,14 @@ o2::base::MatBudget GeometryManager::meanMaterialBudget(float x0, float y0, floa
   for (int i = 3; i--;) {
     dir[i] *= invlen;
   }
-  // A caller that passes its own navigator owns it exclusively, so no locking is needed. A caller
-  // that passes none shares gGeoManager's current navigator and must still serialize. Deciding
-  // this from the argument keeps the choice local: it does not depend on -- and cannot be broken
-  // by -- process-global state such as TGeoManager::GetMaxThreads().
+  // A caller that passes its own navigator (or, with multithreading enabled by setMaxThreads, gets the one of
+  // its thread) owns it exclusively, so no locking is needed. Otherwise the shared navigator is used under a mutex.
+  // In multithread mode a thread without navigator must never touch the shared one (GetCurrentNavigator would
+  // return nullptr for it and the per-volume thread data is indexed by the thread slot).
   std::unique_lock<std::mutex> guard(sTGMutex, std::defer_lock);
+  if (!nav) {
+    nav = getThreadNavigator();
+  }
   if (!nav) {
     guard.lock();
     nav = gGeoManager->GetCurrentNavigator();

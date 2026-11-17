@@ -175,28 +175,26 @@ void MatLayerCylSet::populateFromTGeo(int ntrPerCell, int nThreads, MatbudGeomBa
   Clock::time_point tFillStart, tFillEnd;
   if (backend == MatbudGeomBackend::ROOT) {
     // TGeo has to be told that several threads will navigate it, and each thread needs its own
-    // navigator. SetMaxThreads() is one-way -- TGeoManager has no API to return to
-    // single-threaded mode -- so we do not pretend to restore it; that is harmless because
-    // meanMaterialBudget() decides whether to lock from its own argument, not from this global.
-    // The navigators we book are ours, though, so those we do give back.
-    gGeoManager->SetMaxThreads(nThreads);
-
-    tbb::enumerable_thread_specific<TGeoNavigator*> threadNavigators(
-      []() { return gGeoManager->AddNavigator(); });
+    // navigator. Use the same per-thread navigator mechanism (and thread slots) as the Propagator: the
+    // navigators are thread_local and are released when their threads exit. The capacity can be set only
+    // once per geometry: if the caller has already enabled fewer threads, do not use more than that (the
+    // calling thread participates in the parallel_for in addition to the nCap workers).
+    const int nCap = GeometryManager::setMaxThreads(nThreads);
+    const int nUse = std::max(1, std::min(nThreads, nCap + 1));
+    if (nUse < nThreads) {
+      LOG(warning) << "TGeo multithreading was enabled for " << nCap << " threads only, using " << nUse << " instead of " << nThreads;
+    }
 
     tFillStart = Clock::now();
     {
-      tbb::global_control threadControl(tbb::global_control::max_allowed_parallelism, nThreads);
+      tbb::global_control threadControl(tbb::global_control::max_allowed_parallelism, nUse);
       tbb::parallel_for(tbb::blocked_range<size_t>(0, totalCells),
-                        [&fillRange, &threadNavigators](const tbb::blocked_range<size_t>& range) {
-                          fillRange(range, threadNavigators.local());
+                        [&fillRange](const tbb::blocked_range<size_t>& range) {
+                          fillRange(range, GeometryManager::getThreadNavigator());
                         });
     }
     tFillEnd = Clock::now();
 
-    for (TGeoNavigator* nav : threadNavigators) {
-      gGeoManager->RemoveNavigator(nav);
-    }
   } else {
     // VecGeom navigation needs no per-thread navigator bookkeeping. Trigger the lazy world
     // build/BVH init before tFillStart so it counts as "setup", not fill time.

@@ -26,6 +26,7 @@
 #include "GPUCommonLogger.h" // for LOG
 #include "MathUtils/Cartesian.h"
 #include "DetectorsBase/MatCell.h"
+#include <atomic>
 #include <mutex>
 #include <vector>
 class TGeoHMatrix; // lines 11-11
@@ -105,8 +106,40 @@ class GeometryManager : public TObject
     ClassDefNV(MatBudgetExt, 1);
   };
 
+  /// Multithreaded TGeo navigation (used by Propagator and MatLayerCylSet).
+  ///
+  /// setMaxThreads(n): enable per-thread navigation for up to n threads in addition to the calling one.
+  /// It wraps TGeoManager::SetMaxThreads, which is one-way and not re-entrant, hence:
+  ///  * call it once, serially, after the geometry is loaded/aligned and BEFORE the threads start navigating,
+  ///    with n >= the maximum number of threads which will ever call TGeo (the TGeo thread slots are never
+  ///    released: a slot is consumed by every distinct thread which navigated, even after it exited);
+  ///  * repeated calls with n <= current capacity are no-ops; a larger n is refused (error logged), since TGeo
+  ///    would reset the thread slots of the threads already navigating;
+  ///  * after TGeoPhysicalNode::Align, call rebuildVoxels() while no thread is navigating;
+  ///  * replacing gGeoManager disables multithreading (threads that navigated before must not be reused).
+  /// Returns the effective capacity (0 if not enabled).
+  /// While not enabled, everything behaves as before: the shared TGeo navigator is used under a mutex.
+  /// Once enabled, a thread navigates through its own navigator, obtained by getThreadNavigator(). This is done
+  /// internally by meanMaterialBudget(Ext), getOriginalMatrix* and thus Propagator. Direct use of the gGeoManager
+  /// navigation API (cd, InitTrack, GetCurrentNode, ...) is safe only in a thread which has called
+  /// getThreadNavigator() before (or which called setMaxThreads): gGeoManager->GetCurrentNavigator() returns
+  /// nullptr for any other thread, and any TGeo navigation from a new thread consumes one of the thread slots.
+  /// Prefer calling the methods of the navigator returned by getThreadNavigator().
+  static int setMaxThreads(int nThreads);
+  static int getMaxThreads(); // capacity set by setMaxThreads for the current geometry, 0 if not enabled
+
+  /// Voxel structures are shared by all navigators and rebuilt lazily at the first navigation after
+  /// TGeoPhysicalNode::Align. Do it explicitly (serially, with no thread navigating). Called by setMaxThreads.
+  static void rebuildVoxels();
+
+  /// Navigator owned by the calling thread (created on the first call, released at the thread exit), to be
+  /// passed to meanMaterialBudget(..., nav). Returns nullptr if multithreading is not enabled (=> mutexed shared
+  /// navigator). Throws std::runtime_error if more threads than declared in setMaxThreads() ask for a navigator.
+  static TGeoNavigator* getThreadNavigator();
+
   /// Mean material budget between two points. Pass a navigator owned by the calling thread to
-  /// run lock-free from several threads; with nav = nullptr the shared navigator is used under
+  /// run lock-free from several threads. With nav = nullptr: the calling thread's own navigator if setMaxThreads()
+  /// was called, otherwise the shared navigator is used under
   /// a mutex, as before.
   static o2::base::MatBudget meanMaterialBudget(float x0, float y0, float z0, float x1, float y1, float z1,
                                                 TGeoNavigator* nav = nullptr);
@@ -182,6 +215,10 @@ class GeometryManager : public TObject
   static constexpr UInt_t sDetOffsetLarge = 17;                            /// detector identifier will start from this bit for detectors after the FOC
   static constexpr UInt_t sSensorMaskLarge = (0x1 << sDetOffsetLarge) - 1; /// mask=max sensitive volumes allowed per detector (131071)
   static std::mutex sTGMutex;
+  static std::atomic<int> sMaxThreads; // TGeo multithreading capacity, 0: not enabled
+  static std::atomic<int> sGeneration; // bumped when multithreading is (re)enabled or invalidated
+  static TGeoManager* sGeo;            // TGeoManager multithreading was enabled for
+  static bool isMTActive();            // multithreading enabled for the current gGeoManager (resets stale state)
 
   ClassDefOverride(GeometryManager, 0); // Manager of geometry information for alignment
 };
