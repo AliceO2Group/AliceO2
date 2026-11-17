@@ -107,6 +107,7 @@ class VecGeomG4Navigator : public VecGeomG4NavigatorBase
   bool mWouldEnter = false; ///< the last ComputeStep ends by entering a daughter
   bool mWouldExit = false;  ///< the last ComputeStep ends by leaving the current volume
   G4ThreeVector mNextPoint{-1e8, -1e8, -1e8};
+  vecgeom::Vector3D<double> mNextDir{0., 0., 1.}; ///< direction of the step that found the boundary
   G4ThreeVector mLastLocatedPoint{-1e8, -1e8, -1e8};
   bool mLocatedOnBoundary = false;
   G4ThreeVector mSafetyOrig{-1e8, -1e8, -1e8}; ///< the last point a safety was computed for

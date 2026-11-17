@@ -190,6 +190,7 @@ G4double VecGeomG4Navigator::ComputeStep(const G4ThreeVector& globalPoint, const
     mWouldEnter = entering;
     mWouldExit = !entering;
     mNextPoint = globalPoint + step * direction;
+    mNextDir = toDir(direction);
     if (entering) {
       mNextState = mStepState;
     }
@@ -209,9 +210,9 @@ G4double VecGeomG4Navigator::ComputeStep(const G4ThreeVector& globalPoint, const
 /// the surface of and heading out of, then look down again from there, never back into the volume
 /// just left, which stays blocked for the next step. Bounded, because popping and descending can
 /// meet another flush face. It never pops to or above minLevel: a daughter the step entered stays
-/// entered, because the step decided that with the chord direction, and the direction a locate gets
-/// under a field is the momentum. Nor does it descend back into `avoid`, the volume the crossing
-/// exited: on a face a helix touches tangentially chord and momentum disagree about the side.
+/// entered, as the step decided. Nor does it descend back into `avoid`, the volume the crossing
+/// exited. Both guard the decision of the step against a locate direction that disagrees with it
+/// about the side of the face.
 void VecGeomG4Navigator::leaveFlushVolumes(const V3& point, const V3& dir, int minLevel,
                                            vecgeom::NavigationState const* avoid)
 {
@@ -301,7 +302,10 @@ G4VPhysicalVolume* VecGeomG4Navigator::LocateGlobalPointAndSetup(const G4ThreeVe
   const bool crossing = onBoundary && (mWouldEnter || mWouldExit) && direction != nullptr;
   const bool entering = crossing && mWouldEnter;
   const V3 p = toVG(point);
-  const V3 dir = direction != nullptr ? toDir(*direction) : V3(0., 0., 0.);
+  // A crossing is located along the direction of the step that found the boundary. The direction given
+  // here is the one after the step, which multiple scattering can have turned back into the volume left;
+  // the track then belongs to what lies behind the face, as G4Navigator does, not to the mother of the two.
+  const V3 dir = crossing ? mNextDir : (direction != nullptr ? toDir(*direction) : V3(0., 0., 0.));
   const double push = (onBoundary && direction != nullptr) ? boundaryPush(p, dir) : 0.;
   const V3 q = p + push * dir;
 
