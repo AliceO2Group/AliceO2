@@ -227,7 +227,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
       float uncorrectedY = -1e6f;
       if (param.rec.tpc.rebuildTrackInFit && iWay == wayRebuildStart + 1 && !(param.rec.tpc.disableRebuildAttachment & 1)) {
         uncorrectedY = FindBestInterpolatedHit(merger, inter, cluster.sector, cluster.row, deltaZ, sumInvSqrtCharge, nAvgCharge, prop, iTrk, false, adjacentInRebuild && !(param.rec.tpc.disableMarkAdjacent & 1) ? adjacentLeg : 0); // TODO: Check whether we do not need to use track Y for some rejection steps
-      } else if (adjacentInRebuild ? iWay == wayRebuildStart + 1 : (param.rec.tpc.mergerInterpolateErrors ? (finalFit && !inter.isValid()) : allowChangeClusters)) {
+      } else if (adjacentInRebuild ? iWay == wayRebuildStart + 1 : (param.rec.tpc.mergerInterpolateErrors ? (finalFit && !inter.isAdjacentDone()) : allowChangeClusters)) {
         uncorrectedY = FindAdjacentClusters(merger, cluster.sector, cluster.row, iTrk, track.Leg() == 0, prop);
       }
       if (param.rec.tpc.rejectEdgeClustersInTrackFit && uncorrectedY <= -1e6f) {
@@ -723,6 +723,7 @@ GPUd() int32_t GPUTPCGMTrackParam::InterpolateReject(const GPUTPCGMMerger& GPUre
       param.GetClusterErrors2(sector, row, ImP1, mP[2], mP[3], -1.f, 0.f, 0.f, clErr2Y, clErr2Z); // TODO: Use correct time/avgCharge
       FindAdjacentClustersUncorrectedPos(merger, sector, row, iTrk, doAttach == 2, uncorrectedY, uncorrectedZ, ImP1, clErr2Y + CAMath::Abs(ImC0), clErr2Z + CAMath::Abs(ImC2));
     }
+    inter->markAdjacentDone();
   }
   if (GPUTPCGMPropagator::RejectCluster(chi2Y * param.rec.tpc.clusterRejectChi2TolleranceY, chi2Z * param.rec.tpc.clusterRejectChi2TolleranceZ, clusterState)) { // TODO: Relative Pt resolution decreases slightly, why?
     // printf("Reject Cluster chiy2 %f chiz2 %f (Pos Y: %f - %f %f ; Pos Z: %f - %f %f)\n", chi2Y, chi2Z, posY, mP[0], (float)inter->posY, posZ, mP[1], (float)inter->posZ + deltaZ);
