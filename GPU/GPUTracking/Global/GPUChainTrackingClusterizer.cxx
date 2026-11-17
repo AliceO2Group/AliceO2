@@ -941,9 +941,9 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   std::unique_ptr<ClusterNative[]> tmpNativeClusterBuffer;
 
   const bool buildNativeGPU = doGPU && NeedTPCClustersOnGPU();
-  const bool buildNativeHost = (mRec->GetRecoStepsOutputs() & gpudatatypes::InOutType::TPCClusters) || GetProcessingSettings().deterministicGPUReconstruction; // TODO: Should do this also when clusters are needed for later steps on the host but not requested as output
+  const bool buildNativeHost = (mRec->GetRecoStepsOutputs() & gpudatatypes::InOutType::TPCClusters) || GetProcessingSettings().deterministicGPUReconstruction || GetProcessingSettings().tpcSortClusters; // TODO: Should do this also when clusters are needed for later steps on the host but not requested as output
   const bool propagateMCLabels = buildNativeHost && GetProcessingSettings().runMC && processors()->ioPtrs.tpcPackedDigits && processors()->ioPtrs.tpcPackedDigits->tpcDigitsMC;
-  const bool sortClusters = buildNativeHost && (GetProcessingSettings().deterministicGPUReconstruction || GetProcessingSettings().debugLevel >= 4);
+  const bool sortClusters = buildNativeHost && (GetProcessingSettings().deterministicGPUReconstruction || GetProcessingSettings().debugLevel >= 4 || GetProcessingSettings().tpcSortClusters);
 
   if (GetProcessingSettings().runMC && (!processors()->ioPtrs.tpcPackedDigits || !processors()->ioPtrs.tpcPackedDigits->tpcDigitsMC)) {
     GPUWarning("Requested to process MC labels, but no labels present");
