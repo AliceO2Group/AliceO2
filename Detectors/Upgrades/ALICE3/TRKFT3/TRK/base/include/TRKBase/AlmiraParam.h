@@ -50,12 +50,12 @@ struct AlmiraParam : public o2::conf::ConfigurableParamHelper<AlmiraParam> {
     return (layer < constants::VD::petal::nLayers ? 1 : 4) * o2::constants::lhc::LHCBunchSpacingNS; // the clock is synchronous with the LHC: 1 BC (VD), 4 BC (ML/OT/disks)
   }
 
-  /// number of clock cycles in a ROF; if the ROF is not a multiple of the clock period, the last cycle is shorter
-  /// (e.g. ROF 18 BC, clock 4 BC -> 4.5 -> 5 cycles). Tolerance for the float rounding: 18 BC / 24.95 ns must give 18, not 19
+  /// number of clock cycles in a ROF (the ROF length is a multiple of the clock period, as required by the ALMIRA design)
   static int computeNClockCycles(int rofLengthInBC, float clockPeriod)
   {
-    return std::ceil(rofLengthInBC * o2::constants::lhc::LHCBunchSpacingNS / clockPeriod - 1e-3); // - 1e-3: tolerance for float rounding
+    return std::round(rofLengthInBC * o2::constants::lhc::LHCBunchSpacingNS / clockPeriod);
   }
+
   int getNClockCyclesPerROF(int layer) const { return computeNClockCycles(getROFLengthInBC(layer), getClockPeriod(layer)); }
 
   /// timestamp [frame (ROF counter) | clock cycle in ROF] of a signal with time toa (ns) w.r.t. the start of the ROF with index rofIndex

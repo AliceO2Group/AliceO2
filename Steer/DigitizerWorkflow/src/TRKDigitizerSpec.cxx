@@ -139,7 +139,8 @@ class TRKFT3DPLDigitizerTask : BaseDPLDigitizer
 
       const int roFrameLengthInBC = mDigitizer.getParams().getROFrameLengthInBC(iLayer);
       const long tfLengthInBC = long(o2::constants::lhc::LHCMaxBunches) * raw::HBFUtils::Instance().getNOrbitsPerTF();
-      const int nROFsTF = (tfLengthInBC + roFrameLengthInBC - 1) / roFrameLengthInBC; // rounded up: the last ROF may be truncated by the end of the TF
+      const int nROFsTF = (tfLengthInBC + roFrameLengthInBC - 1) / roFrameLengthInBC; // rounded up: if the TF length is not a multiple of the ROF length, the last ROF is truncated by the end of the TF
+                                                                                      // (simulation artifact: the handling of ROFs across the TF boundary is still to be defined with DAQ)
 
       mROFRecordsAccum[iLayer].reserve(nROFsTF);
 
@@ -307,6 +308,12 @@ class TRKFT3DPLDigitizerTask : BaseDPLDigitizer
         digipar.setClockPeriod(aopt.getClockPeriod(parLayer), iLayer); // after setROFrameLengthInBC: computes and sets the clock cycles per ROF
 
         const int nCycles = digipar.getNClockCyclesPerROF(iLayer);
+        const float clockPeriod = digipar.getClockPeriod(iLayer);
+        if (std::abs(nCycles * clockPeriod - frameNS) > 1e-3f * clockPeriod) { // tolerance for the float comparison only
+          LOGP(fatal, "{} layer {}: ROF length {} BC ({:.2f} ns) is not a multiple of the clock period ({:.2f} ns), as required by the ALMIRA design",
+               ID.getName(), iLayer, roFrameLengthInBC, frameNS, clockPeriod);
+        }
+
         const long tfLengthInBC = long(o2::constants::lhc::LHCMaxBunches) * o2::raw::HBFUtils::Instance().getNOrbitsPerTF();
         if (tfLengthInBC % roFrameLengthInBC != 0) {
           LOGP(warning, "{} layer {}: ROF length {} BC does not divide the TF length {} BC: the last ROF of the TF is truncated", ID.getName(), iLayer, roFrameLengthInBC, tfLengthInBC);
