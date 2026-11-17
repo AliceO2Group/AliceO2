@@ -18,6 +18,7 @@
 #include "DataFormatsParameters/GRPLHCIFData.h"
 #include "CommonConstants/LHCConstants.h"
 #include "Framework/Logger.h"
+#include <charconv>
 #include <cmath>
 #include <map>
 
@@ -110,6 +111,7 @@ std::map<std::string, std::string> AggregatedRunInfo::getMCProdInfo(o2::ccdb::CC
   metaDataFilter["LPMProductionTag"] = lpm_prod_tag;
 
   // fetch the meta information for MC productions
+  // no not-after limit here: MCProdInfo corrections published after a train's snapshot must stay visible (O2-7335)
   auto header_data = ccdb.getCCDBAccessor().retrieveHeaders(getFullPath_MC(username, lpm_prod_tag), metaDataFilter, run_number);
   return header_data;
 }
@@ -133,72 +135,29 @@ void AggregatedRunInfo::adjust_from_MC(o2::ccdb::CCDBManagerInstance& ccdb,
     LOG(warn) << "No OrbitsPerTF information found for MC production " << lpm_prod_tag << " and run number " << run_number;
   }
 
-  // adjust SOR for some MC productions, where the ITS "ramp-up shift" of SOR was not a multiple of NOrbitsPerTF.
-  // (several MC productions are affected (MC-prod-2026-v12 and v13), before the problem was fixed on Oct 4, 2026)
-  static constexpr std::string_view validTags[] = {
-    "LHC25f1c",
-    "LHC26j18_G4list",
-    "LHC26j18",
-    "LHC26j17",
-    "LHC26j16",
-    "LHC26j14",
-    "LHC26e9b",
-    "LHC26i9_5",
-    "LHC26i9_4",
-    "LHC26i9_3",
-    "LHC26i9_2",
-    "LHC26i8_5",
-    "LHC26i8_4",
-    "LHC26i8_3",
-    "LHC26i8_2",
-    "LHC26j13",
-    "LHC26j12_Plus10",
-    "LHC26j12_Minus10",
-    "LHC26j11",
-    "LHC26j10",
-    "LHC26j8",
-    "LHC26j7",
-    "LHC26j6",
-    "LHC26j5",
-    "LHC26j4_Plus10",
-    "LHC26j4_Minus10",
-    "LHC26j1",
-    "LHC26i5_5",
-    "LHC26i5_4",
-    "LHC26i5_3",
-    "LHC26i5_2",
-    "LHC26i7",
-    "LHC26i6",
-    "LHC26i4",
-    "LHC26h2",
-    "LHC26g11",
-    "LHC26i10_Plus10",
-    "LHC26i10_Minus10",
-    "LHC26h3_nodelta",
-    "LHC26a5a_gp_v12",
-    "LHC26h3",
-    "LHC26e8",
-    "LHC26f3",
-    "EP26d1",
-    "LHC26c12",
-    "LHC26b10",
-    "LHC26a7"};
-
-  if (std::ranges::find(validTags, lpm_prod_tag) != std::end(validTags)) {
-    // apply the SOR adjustment for this specific MC production
-    int nOrbitsCorrection = 4; // a shift (number of orbits for correction) if orbitsPerTF=32 or 8
-    if (orbitsPerTF == 6) {
-      nOrbitsCorrection = 2; // correction if orbitsPerTF=6, e.g. Pb-Pb MC LHC26h3
-    } else if (orbitsPerTF == 128) {
-      nOrbitsCorrection = 36; // correction if orbitsPerTF=128, e.g. MB gap trigger PbPb 2024 apass3 LHC26a7
+  // align the TF borders with the MC, whose TFs start at FirstOrbitMC + k * orbitsPerTF (O2-7335)
+  iter = header_data.find("FirstOrbitMC");
+  int64_t firstOrbitMC = 0;
+  if (iter != header_data.end() && std::from_chars(iter->second.data(), iter->second.data() + iter->second.size(), firstOrbitMC).ec == std::errc{}) {
+    if (orbitsPerTF <= 0) {
+      LOG(error) << "AggregatedRunInfo.adjust_from_MC(): invalid orbitsPerTF " << orbitsPerTF << " for MC production " << lpm_prod_tag << " (run " << run_number << "), no TF alignment applied";
+      return;
     }
-    if (lpm_prod_tag == "LHC26j17") {
-      nOrbitsCorrection = 30; // special case: ITS ramp-up time of 90 s instead of 5 s (for orbitsPerTF=32)
+    const int64_t shift = tfAlignmentShift(firstOrbitMC, orbitSOR, orbitsPerTF);
+    if (shift != 0) {
+      LOG(warn) << "AggregatedRunInfo.adjust_from_MC(): Shifting orbitSOR by " << shift << " orbits to align with the TFs of MC production " << lpm_prod_tag << " (run " << run_number << ", FirstOrbitMC " << firstOrbitMC << ")";
+      orbitSOR += shift;
+      sor += std::llround(shift * o2::constants::lhc::LHCOrbitMUS / 1000.);
     }
-    orbitSOR += nOrbitsCorrection;
-    sor += std::llround(nOrbitsCorrection * o2::constants::lhc::LHCOrbitMUS / 1000.);
-    LOG(warn) << "AggregatedRunInfo.adjust_from_MC(): Applying SOR adjustment by " << nOrbitsCorrection << " orbits for MC production " << lpm_prod_tag << " and run number " << run_number;
   }
+}
+
+int64_t AggregatedRunInfo::tfAlignmentShift(int64_t firstOrbitMC, int64_t orbitSOR, int64_t orbitsPerTF)
+{
+  if (orbitsPerTF <= 0) {
+    return 0;
+  }
+  return ((firstOrbitMC - orbitSOR) % orbitsPerTF + orbitsPerTF) % orbitsPerTF;
 }
 
 AggregatedRunInfo AggregatedRunInfo::buildAggregatedRunInfo(o2::ccdb::CCDBManagerInstance& ccdb, int run_number, std::string const& lpm_prod_tag, std::string const& username)
