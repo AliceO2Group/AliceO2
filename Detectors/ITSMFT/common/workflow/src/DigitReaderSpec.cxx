@@ -291,7 +291,7 @@ void DigitReader<N>::setBranchAddress(const std::string& base, Ptr& addr, int la
 namespace
 {
 template <int N>
-std::vector<OutputSpec> makeOutChannels(bool mctruth, bool doStag, bool useCalib)
+std::vector<OutputSpec> makeOutChannels(bool mctruth, bool doStag, bool useCalib, bool useTriggers)
 {
   constexpr o2::header::DataOrigin Origin{N == o2::detectors::DetID::ITS ? o2::header::gDataOriginITS : o2::header::gDataOriginMFT};
   std::vector<OutputSpec> outputs;
@@ -307,7 +307,9 @@ std::vector<OutputSpec> makeOutChannels(bool mctruth, bool doStag, bool useCalib
   if (useCalib) {
     outputs.emplace_back(Origin, "GBTCALIB", 0, Lifetime::Timeframe);
   }
-  outputs.emplace_back(Origin, "PHYSTRIG", 0, Lifetime::Timeframe);
+  if (useTriggers) {
+    outputs.emplace_back(Origin, "PHYSTRIG", 0, Lifetime::Timeframe);
+  }
   return outputs;
 }
 } // namespace
@@ -317,7 +319,7 @@ DataProcessorSpec getITSDigitReaderSpec(bool useMC, bool doStag, bool useCalib, 
   return DataProcessorSpec{
     .name = "its-digit-reader",
     .inputs = Inputs{},
-    .outputs = makeOutChannels<o2::detectors::DetID::ITS>(useMC, doStag, useCalib),
+    .outputs = makeOutChannels<o2::detectors::DetID::ITS>(useMC, doStag, useCalib, useTriggers),
     .algorithm = AlgorithmSpec{adaptFromTask<ITSDigitReader>(useMC, doStag, useCalib, useTriggers)},
     .options = Options{
       {"its-digit-infile", VariantType::String, defname, {"Name of the input digit file"}},
@@ -329,7 +331,7 @@ DataProcessorSpec getMFTDigitReaderSpec(bool useMC, bool doStag, bool useCalib, 
   return DataProcessorSpec{
     .name = "mft-digit-reader",
     .inputs = Inputs{},
-    .outputs = makeOutChannels<o2::detectors::DetID::MFT>(useMC, doStag, useCalib),
+    .outputs = makeOutChannels<o2::detectors::DetID::MFT>(useMC, doStag, useCalib, useTriggers),
     .algorithm = AlgorithmSpec{adaptFromTask<MFTDigitReader>(useMC, doStag, useCalib, useTriggers)},
     .options = Options{
       {"mft-digit-infile", VariantType::String, defname, {"Name of the input digit file"}},
