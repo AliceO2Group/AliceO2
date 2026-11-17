@@ -195,6 +195,7 @@ struct GPUTrackingInOutPointers {
   uint32_t nOutputClusRefsTPCO2 = 0;
   const o2::MCCompLabel* outputTracksTPCO2MC = nullptr;
   const o2::tpc::CompressedClustersFlat* tpcCompressedClusters = nullptr;
+  const o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>* tpcCompressedClustersMC = nullptr;
   const o2::tpc::ClusterNativeAccess* clustersNativeReduced = nullptr;
 
   // TPC links

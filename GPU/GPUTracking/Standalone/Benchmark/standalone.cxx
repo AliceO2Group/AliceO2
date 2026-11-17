@@ -208,6 +208,13 @@ int32_t ReadConfiguration(int argc, char** argv)
     printf("Cannot run asynchronous processing with double pipeline\n");
     return 1;
   }
+  if (configStandalone.testSyncAsyncMC) {
+    if (!configStandalone.testSyncAsync || configStandalone.QA.noMC) {
+      printf("testSyncAsyncMC requires syncAsync and cannot be used with QA.noMC\n");
+      return 1;
+    }
+    configStandalone.proc.tpcSortClusters = true;
+  }
   if (configStandalone.proc.doublePipeline && (configStandalone.runs < 4 || !configStandalone.outputcontrolmem)) {
     printf("Double pipeline mode needs at least 4 runs per event and external output. To cycle though multiple events, use --preloadEvents and --runs n for n iterations round-robin\n");
     return 1;
@@ -531,7 +538,7 @@ int32_t SetupReconstruction()
     steps.inputs.setBits(gpudatatypes::InOutType::TPCClusters, false);
     steps.inputs.setBits(gpudatatypes::InOutType::TPCCompressedClusters, true);
     steps.outputs.setBits(gpudatatypes::InOutType::TPCCompressedClusters, false);
-    procSet.runMC = false;
+    procSet.runMC = configStandalone.testSyncAsyncMC;
     procSet.runQA = runAsyncQA;
     procSet.eventDisplay = eventDisplay.get();
     procSet.runCompressionStatistics = 0;
@@ -598,10 +605,11 @@ int32_t ReadEvent(int32_t n)
   }
 #if !defined(GPUCA_RUN2) && defined(GPUCA_BUILD_QA) && defined(GPUCA_STANDALONE)
   if ((configStandalone.proc.runQA || configStandalone.eventDisplay) && !configStandalone.QA.noMC) {
-    chainTracking->ForceInitQA();
-    chainTracking->GetQA()->UpdateChain(chainTracking);
-    if (chainTracking->GetQA()->ReadO2MCData((eventsDir + "mc." + std::to_string(n) + ".dump").c_str()) &&
-        chainTracking->GetQA()->ReadO2MCData((eventsDir + "mc.0.dump").c_str()) && configStandalone.proc.runQA) {
+    GPUChainTracking* chain = (configStandalone.testSyncAsyncMC && !configStandalone.testSyncAsyncQcInSync) ? chainTrackingAsync : chainTracking;
+    chain->ForceInitQA();
+    chain->GetQA()->UpdateChain(chain);
+    if (chain->GetQA()->ReadO2MCData((eventsDir + "mc." + std::to_string(n) + ".dump").c_str()) &&
+        chain->GetQA()->ReadO2MCData((eventsDir + "mc.0.dump").c_str()) && configStandalone.proc.runQA) {
       throw std::runtime_error("Error reading O2 MC dump");
     }
   }
@@ -753,6 +761,9 @@ int32_t RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingU
         chainTrackingAsync->mIOPtrs.nRawClusters[i] = 0;
       }
       chainTrackingAsync->mIOPtrs.clustersNative = nullptr;
+      if (configStandalone.testSyncAsyncMC) {
+        chainTrackingAsync->GenerateCompressionMCLabels(*chainTracking);
+      }
       if (configStandalone.runsInit > 0 && configStandalone.proc.debugCSV.empty()) {
         recAsync->SetResetTimers(iRun < configStandalone.runsInit);
       }
