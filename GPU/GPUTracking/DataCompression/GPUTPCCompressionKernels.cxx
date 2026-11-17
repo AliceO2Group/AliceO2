@@ -189,9 +189,11 @@ GPUd() bool GPUTPCCompressionKernels::GPUTPCCompressionKernels_Compare<4>::opera
 
 GPUd() bool GPUTPCCompression::rejectCluster(int32_t idx, const GPUParam& GPUrestrict() param, const GPUTrackingInOutPointers& GPUrestrict() ioPtrs) const
 {
-  if (mClusterStatus[idx]) {
-    return true;
-  }
+  return mClusterStatus[idx] || isClusterRejected(idx, param, ioPtrs);
+}
+
+GPUd() bool GPUTPCCompression::isClusterRejected(int32_t idx, const GPUParam& GPUrestrict() param, const GPUTrackingInOutPointers& GPUrestrict() ioPtrs)
+{
   int32_t attach = ioPtrs.mergedTrackHitAttachment[idx];
   bool unattached = attach == 0;
 
