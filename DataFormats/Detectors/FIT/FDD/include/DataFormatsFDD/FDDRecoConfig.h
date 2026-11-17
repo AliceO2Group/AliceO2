@@ -41,12 +41,13 @@ struct FDDRecoConfig : o2::conf::ConfigurableParamHelper<FDDRecoConfig> {
   }
 
   int16_t CollisionTimeAmpltudeUpper[2] = {4096, 4096};
-  int16_t CollisionTimeAmplitudeLower[2] = {6, 0};
-  int16_t CollisionTimeTimeLower = -500;
-  int16_t CollisionTimeTimeUpper = 500;
+  int16_t CollisionTimeAmplitudeLower[2] = {0, 0};
+  int16_t CollisionTimeTimeLower = -153;
+  int16_t CollisionTimeTimeUpper = 153;
 
-  uint8_t CollisionTimeValidPmInputFlagMask = static_cast<uint8_t>(~(1u << ChannelData::kNumberADC));
-  uint8_t CollisionTimeValidPmInputFlags = static_cast<uint8_t>((1u << ChannelData::kIsCFDinADCgate) | (1u << ChannelData::kIsEventInTVDC));
+  // Match FT0 TimeFilterParam: reject invalid or lost time information.
+  uint8_t CollisionTimeValidPmInputFlagMask = static_cast<uint8_t>((1u << ChannelData::kIsTimeInfoNOTvalid) | (1u << ChannelData::kIsTimeInfoLost));
+  uint8_t CollisionTimeValidPmInputFlags = 0;
   bool isChannelDataGoodForCollisionTime(uint8_t flags) const
   {
     return (flags & CollisionTimeValidPmInputFlagMask) == CollisionTimeValidPmInputFlags;
@@ -59,7 +60,7 @@ struct FDDRecoConfig : o2::conf::ConfigurableParamHelper<FDDRecoConfig> {
   bool SwTriggerCoincidenceMode = true;
   bool SwTriggerEnabled = false;
 
-  uint8_t SwTriggerValidPmInputFlagMask = static_cast<uint8_t>(~((1u << ChannelData::kNumberADC) | (1u << ChannelData::kIsEventInTVDC)));
+  uint8_t SwTriggerValidPmInputFlagMask = static_cast<uint8_t>(~((1u << ChannelData::kNumberADC) | (1u << ChannelData::kIsEventInTVDC) | (1u << ChannelData::kIsAmpHigh)));
   uint8_t SwTriggerValidPmInputFlags = static_cast<uint8_t>(1u << ChannelData::kIsCFDinADCgate);
   bool isChannelDataGoodForSwTrigger(uint8_t flags) const
   {
