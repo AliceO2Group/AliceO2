@@ -14,6 +14,9 @@
 #include <boost/test/unit_test.hpp>
 #include <fmt/format.h>
 #include "EMCALBase/Geometry.h"
+#include "EMCALBase/ShishKebabTrd1Module.h"
+#include <array>
+#include <cmath>
 #include <iostream>
 #include <fstream>
 
@@ -63,4 +66,37 @@ std::tuple<int, int, int, int> GetRefCellIndex(int CellId)
   }
 
   return std::make_tuple(smod, mod, iphi, ieta);
+}
+
+/// \macro Test that neighbouring EMCAL modules touch exactly
+///
+/// Test coverage:
+/// - the eta side faces of adjacent ShishKebabTrd1Modules coincide
+/// - the first module's inner face starts on the inner radius and its left face lies on z = 0
+BOOST_AUTO_TEST_CASE(ModuleFaces_test)
+{
+  auto geo = o2::emcal::Geometry::GetInstanceFromRunNumber(300000);
+  const auto& modules = geo->GetShishKebabTrd1Modules();
+  const double dx1 = geo->GetEtaModuleSize() / 2., dx2 = geo->Get2Trd1Dx2() / 2., dz = geo->GetLongModuleSize() / 2.;
+  const double r0 = geo->GetIPDistance() + geo->GetSteelFrontThickness();
+  // corner of a module in (z, r): s = -1 inner / +1 outer end, t = -1 small z / +1 large z side
+  auto corner = [&](const o2::emcal::ShishKebabTrd1Module& m, int s, int t) {
+    const double th = m.GetTheta(), dx = s < 0 ? dx1 : dx2;
+    const auto& c = m.GetCenterOfModule();
+    return std::array<double, 2>{c.X() + s * dz * std::cos(th) + t * dx * std::sin(th),
+                                 c.Y() + s * dz * std::sin(th) - t * dx * std::cos(th)};
+  };
+  const double tolerance = 1e-10; // cm
+  BOOST_CHECK_SMALL(corner(modules[0], -1, +1)[1] - r0, tolerance);
+  BOOST_CHECK_SMALL(corner(modules[0], -1, -1)[0], tolerance);
+  BOOST_CHECK_SMALL(corner(modules[0], +1, -1)[0], tolerance);
+  for (std::size_t i = 0; i + 1 < modules.size(); ++i) {
+    // distance of the next module's small-z face corners from this module's large-z face
+    const auto a = corner(modules[i], -1, +1), b = corner(modules[i], +1, +1);
+    const double nz = b[1] - a[1], nr = -(b[0] - a[0]), norm = std::hypot(nz, nr);
+    for (int s : {-1, +1}) {
+      const auto p = corner(modules[i + 1], s, -1);
+      BOOST_CHECK_SMALL(((p[0] - a[0]) * nz + (p[1] - a[1]) * nr) / norm, tolerance);
+    }
+  }
 }

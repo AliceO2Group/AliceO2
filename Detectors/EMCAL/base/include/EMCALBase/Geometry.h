@@ -222,7 +222,7 @@ class Geometry
   Int_t GetNCells() const { return mNCells; }
   Float_t GetLongModuleSize() const { return mLongModuleSize; }
   Float_t GetTrd1Angle() const { return mTrd1Angle; }
-  Float_t Get2Trd1Dx2() const { return m2Trd1Dx2; }
+  Double_t Get2Trd1Dx2() const { return m2Trd1Dx2; }
   Float_t GetTrd1AlFrontThick() const { return mTrd1AlFrontThick; }
   Float_t GetTrd1BondPaperThick() const { return mTrd1BondPaperThick; }
   // --
@@ -699,7 +699,7 @@ class Geometry
 
   // TRD1 options - 30-sep-04
   Float_t mTrd1Angle = 0;   ///< angle in x-z plane (in degree)
-  Float_t m2Trd1Dx2 = 0;    ///< 2*dx2 for TRD1
+  Double_t m2Trd1Dx2 = 0;   ///< 2*dx2 for TRD1
   Float_t mPhiGapForSM = 0; ///< Gap betweeen supermodules in phi direction
 
   // Oct 26,2010

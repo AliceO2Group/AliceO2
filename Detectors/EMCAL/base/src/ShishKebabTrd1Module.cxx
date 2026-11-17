@@ -189,7 +189,7 @@ void ShishKebabTrd1Module::DefineFirstModule(const Int_t key)
     mTheta = 89.25 * TMath::DegToRad();
     Double_t al1 = sangle / 2.;
     Double_t x = 0.5 * (sa * TMath::Cos(al1) + sb * TMath::Sin(al1));
-    Double_t y = 0.5 * (sb + sa * TMath::Sin(al1)) * TMath::Cos(al1);
+    Double_t y = 0.5 * (sb * TMath::Cos(al1) + sa * TMath::Sin(al1)); // inner right corner on r = sr, as in Init()
     mOK.Set(x, sr + y);
     // parameters of right line : y = A*z + B in system where zero point is IP.
     mThetaA = mTheta - sangle / 2.;
@@ -223,7 +223,7 @@ Bool_t ShishKebabTrd1Module::SetParameters()
 
   sr += mGeometry->GetSteelFrontThickness();
 
-  sa2 = Double_t(mGeometry->Get2Trd1Dx2());
+  sa2 = mGeometry->Get2Trd1Dx2();
   // PH  PrintShish(0);
   return kTRUE;
 }
