@@ -1155,7 +1155,7 @@ GPUd() void GPUTPCGMTrackParam::FindAdjacentClustersUncorrectedPos(const GPUTPCG
   const int32_t nBinsY = row.Grid().Ny();
   const int32_t idOffset = tracker.Data().ClusterIdOffset();
   const int32_t* ids = &(tracker.Data().ClusterDataIndex()[row.HitNumberOffset()]);
-  uint32_t myWeight = merger.TrackOrderAttach()[iTrack] | gputpcgmmergertypes::attachAttached | gputpcgmmergertypes::attachTube;
+  uint32_t myWeight = (merger.TrackOrderAttach()[iTrack] << gputpcgmmergertypes::nPureFlags) | gputpcgmmergertypes::attachAttached | gputpcgmmergertypes::attachTube;
   GPUAtomic(uint32_t)* const weights = merger.ClusterAttachment();
   if (goodLeg) {
     myWeight |= gputpcgmmergertypes::attachGoodLeg;
