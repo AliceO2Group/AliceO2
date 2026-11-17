@@ -17,6 +17,7 @@
 #define ALICEO2_TPC_Digitizer_H_
 
 #include "TPCSimulation/DigitContainer.h"
+#include "TPCSimulation/DigitizerCalibrations.h"
 #include "TPCSimulation/Point.h"
 #include "TPCBase/Mapper.h"
 
@@ -66,8 +67,11 @@ class Digitizer
   Digitizer(const Digitizer&) = delete;
   Digitizer& operator=(const Digitizer&) = delete;
 
-  /// Initializer
+  /// Initializer, with the calibrations set by setCalibrations or else read from the CDBInterface
   void init();
+
+  /// Use this calibration snapshot from the next init() on; digitizers in several threads share one snapshot
+  void setCalibrations(std::shared_ptr<const DigitizerCalibrations> calib) { mCalibrations = std::move(calib); }
 
   /// Process a single hit group
   /// \param hits Container with TPC hit groups
@@ -164,6 +168,8 @@ class Digitizer
  private:
   /// Fill the random rings of the sector seeding, if not done yet
   void initSectorSeeding();
+  /// the calibration snapshot, read from the CDBInterface if none was set
+  const DigitizerCalibrations& calibrations();
 
   ElectronTransport& electronTransport();
   GEMAmplification& gemAmplification();
@@ -176,6 +182,8 @@ class Digitizer
   ULong64_t mSeedingTimeframe = 0;                       //!< Timeframe identifier for sector seeding
   bool mUseSectorSeeding = false;                        //!< Whether sector seeding is used
   bool mFlushDebugStreamer = true;                       //!< Whether flush() flushes the debug streamer
+
+  std::shared_ptr<const DigitizerCalibrations> mCalibrations; //!< Calibration snapshot used by init()
 
   DigitContainer mDigitContainer;        ///< Container for the Digits
   std::vector<float> mSignalArray;       //!< Workspace for the shaped signal of one electron

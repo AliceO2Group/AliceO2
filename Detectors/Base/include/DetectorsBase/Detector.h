@@ -313,7 +313,13 @@ template <typename T>
 TBranch* getOrMakeBranch(TTree& tree, const char* brname, T* ptr)
 {
   if (auto br = tree.GetBranch(brname)) {
-    br->SetAddress(static_cast<void*>(&ptr));
+    if constexpr (std::is_pointer_v<T>) {
+      // ptr is the address of the caller's pointer to the object
+      br->SetAddress(ptr);
+    } else {
+      // the branch keeps the object address itself, as for a branch made with Branch() below
+      br->SetObject(ptr);
+    }
     return br;
   }
   // otherwise make it

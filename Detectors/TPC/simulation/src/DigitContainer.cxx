@@ -14,14 +14,11 @@
 /// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
 
 #include "TPCSimulation/DigitContainer.h"
-#include <atomic>
 #include <memory>
 #include <type_traits>
 #include <fairlogger/Logger.h>
 #include "TPCBase/Mapper.h"
-#include "TPCBaseRecSim/CDBInterface.h"
 #include "TPCBase/ParameterElectronics.h"
-#include "TPCBase/IonTailSettings.h"
 #include "SimConfig/DigiParams.h"
 
 using namespace o2::tpc;
@@ -135,51 +132,16 @@ void DigitContainer::fillOutputContainer(std::vector<Digit>& output,
 
 void DigitContainer::updateCalibrations()
 {
-  const auto& eleParam = ParameterElectronics::Instance();
-  auto& cdb = CDBInterface::instance();
-
-  // ion tail per pad parameters
-  mPadParams[0] = mPadParams[1] = mPadParams[2] = nullptr;
-  if (eleParam.doIonTailPerPad) {
-    const auto& itSettings = IonTailSettings::Instance();
-    if (itSettings.padITCorrFile.size()) {
-      cdb.setFEEParamsFromFile(itSettings.padITCorrFile);
-    }
-    mPadParams[0] = &cdb.getITFraction();
-    mPadParams[1] = &cdb.getITExpLambda();
-  }
-  if (eleParam.doCommonModePerPad) {
-    mPadParams[2] = &cdb.getCMkValues();
-  }
-
-  // dead channel map
-  mDeadMap = nullptr;
-  mDeadMapCopy.reset();
-  if (eleParam.applyDeadMap) {
-    mDeadMapCopy = std::make_unique<CalDet<bool>>(cdb.getDeadChannelMap());
-    mDeadMap = mDeadMapCopy.get();
-  }
-
-  // common mode correction in the FEE, needed to resolve DigiMode Auto
-  mCMCEnabled = (eleParam.DigiMode == DigitzationMode::Auto) && cdb.getFEEConfig().isCMCEnabled();
-
-  mCalibrationsUpdated = true;
-
-  static std::atomic<bool> reportedSettings{false};
-  if (!reportedSettings.exchange(true)) {
-    reportSettings();
-    if (mDeadMap) {
-      LOGP(info, "Using dead map with {} masked pads", mDeadMap->getSum<int>());
-    }
-  }
+  updateCalibrations(DigitizerCalibrations::fetch());
 }
 
-void DigitContainer::reportSettings()
+void DigitContainer::updateCalibrations(std::shared_ptr<const DigitizerCalibrations> calib)
 {
-  auto& cdb = CDBInterface::instance();
-  const auto& eleParam = ParameterElectronics::Instance();
-  const auto& feeConfig = cdb.getFEEConfig();
-  LOGP(info, "ParameterElectronics:  doIonTail={}, doIonTailPerPad={}, doCommonModePerPad={}, doSaturationTail={}, doNoiseEmptyPads={}, applyDeadMap={}, commonModeCoupling={}, DigiMode={}",
-       eleParam.doIonTail, eleParam.doIonTailPerPad, eleParam.doCommonModePerPad, eleParam.doSaturationTail, eleParam.doNoiseEmptyPads, eleParam.applyDeadMap, eleParam.commonModeCoupling, (int)eleParam.DigiMode);
-  feeConfig.printShort();
+  mCalibrations = std::move(calib);
+  std::copy(std::begin(mCalibrations->padParams), std::end(mCalibrations->padParams), std::begin(mPadParams));
+  mDeadMap = mCalibrations->deadMap.get();
+  // common mode correction in the FEE, needed to resolve DigiMode Auto
+  mCMCEnabled = mCalibrations->cmcEnabled;
+
+  mCalibrationsUpdated = true;
 }

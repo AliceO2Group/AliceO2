@@ -125,6 +125,13 @@ void GEMAmplification::updateParameters()
   mGainMap = &(cdb.getGainMap());
 }
 
+void GEMAmplification::updateParameters(const DigitizerCalibrations& calib)
+{
+  mGEMParam = &(ParameterGEM::Instance());
+  mGasParam = &(ParameterGas::Instance());
+  mGainMap = calib.gainMap;
+}
+
 int GEMAmplification::getStackAmplification(int nElectrons)
 {
   /// We start with an arbitrary number of electrons given to the first amplification stage

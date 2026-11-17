@@ -42,6 +42,18 @@ void SAMPAProcessing::updateParameters(float vdrift)
   mVDrift = vdrift > 0 ? vdrift : mGasParam->DriftV;
 }
 
+void SAMPAProcessing::updateParameters(float vdrift, const DigitizerCalibrations& calib)
+{
+  mGasParam = &(ParameterGas::Instance());
+  mDetParam = &(ParameterDetector::Instance());
+  mEleParam = &(ParameterElectronics::Instance());
+  mPedestalMap = calib.pedestals;
+  mPedestalMapCRU = calib.pedestalsCRU;
+  mNoiseMap = calib.noise;
+  mZeroSuppression = calib.zeroSuppression;
+  mVDrift = vdrift > 0 ? vdrift : mGasParam->DriftV;
+}
+
 void SAMPAProcessing::getShapedSignal(float ADCsignal, float driftTime, std::vector<float>& signalArray) const
 {
   const float timeBinTime = getTimeBinTime(driftTime);
