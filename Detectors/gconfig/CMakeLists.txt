@@ -80,6 +80,18 @@ o2_add_test(StaticTLSReserve
             PUBLIC_LINK_LIBRARIES O2::SimSetup
             LABELS simsetup)
 
+if(G4SETUP_WITH_VECGEOM)
+  o2_add_test(VecGeomG4Navigator
+              SOURCES test/testVecGeomG4Navigator.cxx
+              COMPONENT_NAME SimSetup
+              TARGETVARNAME targetNavigatorTest
+              PUBLIC_LINK_LIBRARIES O2::G4Setup TGeo2VecGeom::TGeo2VecGeom
+              LABELS simsetup)
+  if(targetNavigatorTest)
+    target_compile_definitions(${targetNavigatorTest} PRIVATE O2_WITH_VECGEOM)
+  endif()
+endif()
+
 o2_add_test_root_macro(UserDecay.C
                        PUBLIC_LINK_LIBRARIES O2::SimSetup
                        LABELS simsetup)
