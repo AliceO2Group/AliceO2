@@ -143,6 +143,32 @@ std::vector<Visit> withNavigator(G4Navigator& nav, const double* p, const double
   return visits;
 }
 
+/// Where the navigator is after each boundary along a ray. The locate after boundary `turnAt` gets the
+/// reversed direction, as after a scattering at the face, and the walk ends there.
+std::vector<std::string> afterBoundaries(G4Navigator& nav, const double* p, const double* d, int turnAt)
+{
+  std::vector<std::string> paths;
+  G4ThreeVector point(p[0] * cm, p[1] * cm, p[2] * cm);
+  const G4ThreeVector dir(d[0], d[1], d[2]);
+  auto* pv = nav.LocateGlobalPointAndSetup(point, &dir, false, false);
+  for (int k = 0; k < 10000 && pv != nullptr; ++k) {
+    G4double safety = 0.;
+    const double step = nav.ComputeStep(point, dir, 1.e6 * cm, safety);
+    if (!(step < 1.e6 * cm)) {
+      break;
+    }
+    point += step * dir;
+    nav.SetGeometricallyLimitedStep();
+    const G4ThreeVector after = k == turnAt ? -dir : dir;
+    pv = nav.LocateGlobalPointAndSetup(point, &after, true, false);
+    paths.push_back(pv != nullptr ? touchablePath(nav) : "");
+    if (k == turnAt) {
+      break;
+    }
+  }
+  return paths;
+}
+
 std::vector<Visit> withTGeo(const double* p, const double* d)
 {
   std::vector<Visit> visits;
@@ -203,4 +229,37 @@ BOOST_AUTO_TEST_CASE(rays_visit_the_volumes_tgeo_visits)
   BOOST_CHECK_EQUAL(differentLength, 0);
   // every face here coincides with others, and none of them is a place to stop
   BOOST_CHECK_EQUAL(zeroSteps, 0);
+}
+
+BOOST_AUTO_TEST_CASE(a_turn_at_the_face_does_not_change_the_volume_entered)
+{
+  auto& f = fixture();
+  std::mt19937_64 gen(2);
+  std::uniform_real_distribution<double> u(-1., 1.);
+  std::normal_distribution<double> g;
+  int boundaries = 0, different = 0;
+  std::string firstDifference;
+  for (int r = 0; r < 2000; ++r) {
+    const double p[3] = {9.9 * u(gen), 9.9 * u(gen), 9.9 * u(gen)};
+    double d[3] = {g(gen), g(gen), 0.3 * g(gen)};
+    const double norm = std::sqrt(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]);
+    for (auto& x : d) {
+      x /= norm;
+    }
+    const auto straight = afterBoundaries(*f.navigator, p, d, -1);
+    for (int k = 0; k < static_cast<int>(straight.size()); ++k) {
+      const auto turned = afterBoundaries(*f.navigator, p, d, k);
+      ++boundaries;
+      if (turned.size() != static_cast<std::size_t>(k) + 1 || turned.back() != straight[k]) {
+        ++different;
+        if (firstDifference.empty()) {
+          firstDifference = Form("ray %d boundary %d: %s, without the turn %s", r, k, turned.empty() ? "-" : turned.back().c_str(), straight[k].c_str());
+        }
+      }
+    }
+  }
+  BOOST_TEST_MESSAGE("boundaries " << boundaries << " " << firstDifference);
+  BOOST_CHECK_GT(boundaries, 10000);
+  // the step decides which volume is entered, not the direction the track has after it
+  BOOST_CHECK_MESSAGE(different == 0, different << " boundaries where the turn changed the volume; " << firstDifference);
 }
