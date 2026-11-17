@@ -253,7 +253,7 @@ int32_t GPUChainTracking::RunTPCDecompression()
     auto& decompressTimer = getTimer<TPCClusterDecompressor>("TPCDecompression", 0);
     auto allocatorUse = runFiltering ? std::function<ClusterNative*(size_t)>{allocatorTmp} : std::function<ClusterNative*(size_t)>{allocatorFinal};
     decompressTimer.Start();
-    if (decomp.decompress(mIOPtrs.tpcCompressedClusters, *mClusterNativeAccess, allocatorUse, param(), GetProcessingSettings().deterministicGPUReconstruction)) {
+    if (decomp.decompress(mIOPtrs.tpcCompressedClusters, *mClusterNativeAccess, allocatorUse, param(), GetProcessingSettings().deterministicGPUReconstruction || GetProcessingSettings().debugLevel >= 4 || GetProcessingSettings().tpcSortClusters)) {
       GPUError("Error decompressing clusters");
       return 1;
     }
@@ -433,15 +433,8 @@ int32_t GPUChainTracking::RunTPCDecompression()
     }
     if (GetProcessingSettings().deterministicGPUReconstruction || GetProcessingSettings().debugLevel >= 4 || GetProcessingSettings().tpcSortClusters) {
       runKernel<GPUTPCDecompressionUtilKernels, GPUTPCDecompressionUtilKernels::sortPerSectorRow>(GetGridAutoStep(unattachedStream, RecoStep::TPCDecompression));
-      const ClusterNativeAccess* decoded = mIOPtrs.clustersNative;
       if (doGPU) {
-        for (uint32_t i = 0; i < NSECTORS; i++) {
-          for (uint32_t j = 0; j < GPUTPCGeometry::NROWS; j++) {
-            ClusterNative* begin = mInputsHost->mPclusterNativeOutput + decoded->clusterOffset[i][j];
-            ClusterNative* end = begin + decoded->nClusters[i][j];
-            std::sort(begin, end);
-          }
-        }
+        SortClusters(false, false, mClusterNativeAccess.get(), mInputsHost->mPclusterNativeOutput);
       }
       SynchronizeStream(unattachedStream);
     }
@@ -453,8 +446,56 @@ int32_t GPUChainTracking::RunTPCDecompression()
     tmpParam.reset();
     WriteConstantParams();
   }
+  if (mIOPtrs.tpcCompressedClustersMC) {
+    if (mIOPtrs.tpcCompressedClustersMC->getIndexedSize() != mIOPtrs.clustersNative->nClustersTotal) {
+      GPUError("Number of MC labels for compressed clusters (%u) does not match number of decoded clusters (%u)", (uint32_t)mIOPtrs.tpcCompressedClustersMC->getIndexedSize(), (uint32_t)mIOPtrs.clustersNative->nClustersTotal);
+      return 1;
+    }
+    mClusterNativeAccess->clustersMCTruth = mIOPtrs.tpcCompressedClustersMC;
+  }
   DoDebugDump(GPUChainTrackingDebugFlags::TPCDecompressedClusters, &GPUChainTracking::DumpClusters, *mDebugFile, mIOPtrs.clustersNative);
   return 0;
+}
+
+namespace
+{
+template <class T>
+void writeReducedClusterLabels(const ClusterNativeAccess& clusters, std::pair<o2::dataformats::ConstMCLabelContainer*, o2::dataformats::ConstMCLabelContainerView*> labelBuffer, T&& rejectCluster)
+{
+  o2::dataformats::MCLabelContainer tmpContainer;
+  uint32_t nOutput = 0;
+  for (uint32_t i = 0; i < clusters.nClustersTotal; i++) {
+    if (!rejectCluster(i)) {
+      for (const auto& element : clusters.clustersMCTruth->getLabels(i)) {
+        tmpContainer.addElement(nOutput, element);
+      }
+      nOutput++;
+    }
+  }
+  tmpContainer.flatten_to(*labelBuffer.first);
+  *labelBuffer.second = *labelBuffer.first;
+}
+} // namespace
+
+void GPUChainTracking::GenerateCompressionMCLabels(const GPUChainTracking& chainSync)
+{
+  const GPUTrackingInOutPointers& ioPtrs = chainSync.mIOPtrs;
+  if (!ioPtrs.clustersNative || !ioPtrs.clustersNative->clustersMCTruth || !ioPtrs.mergedTrackHitAttachment || !ioPtrs.mergedTracks) {
+    throw std::runtime_error("Cannot generate MC labels for compressed clusters, need clusters with MC labels and merged tracks with cluster attachment of the sync chain");
+  }
+  for (uint32_t i = 0; i < NSECTORS; i++) { // The decoded clusters get sorted, so the labels match only if the clusters before the compression were sorted as well
+    for (uint32_t j = 0; j < GPUTPCGeometry::NROWS; j++) {
+      for (uint32_t k = 1; k < ioPtrs.clustersNative->nClusters[i][j]; k++) {
+        if (ioPtrs.clustersNative->clusters[i][j][k] < ioPtrs.clustersNative->clusters[i][j][k - 1]) {
+          throw std::runtime_error("Cannot generate MC labels for compressed clusters, clusters of sync chain are not sorted");
+        }
+      }
+    }
+  }
+  mIOMem.clusterNativeMCView = std::make_unique<o2::dataformats::ConstMCLabelContainerView>();
+  mIOMem.clusterNativeMCBuffer = std::make_unique<o2::dataformats::ConstMCLabelContainer>();
+  writeReducedClusterLabels(*ioPtrs.clustersNative, {mIOMem.clusterNativeMCBuffer.get(), mIOMem.clusterNativeMCView.get()}, [&chainSync, &ioPtrs](uint32_t i) { return GPUTPCCompression::isClusterRejected(i, chainSync.GetParam(), ioPtrs); });
+  mIOPtrs.tpcCompressedClustersMC = mIOMem.clusterNativeMCView.get();
 }
 
 void GPUChainTracking::WriteReducedClusters()
@@ -491,21 +532,14 @@ void GPUChainTracking::WriteReducedClusters()
   }
 
   nOutput = 0;
-  o2::dataformats::MCLabelContainer tmpContainer;
   for (uint32_t i = 0; i < mIOPtrs.clustersNative->nClustersTotal; i++) {
     if (!Compressor.rejectCluster(i, param(), mIOPtrs)) {
-      if (mIOPtrs.clustersNative->clustersMCTruth) {
-        for (const auto& element : mIOPtrs.clustersNative->clustersMCTruth->getLabels(i)) {
-          tmpContainer.addElement(nOutput, element);
-        }
-      }
       clBuffer[nOutput++] = mIOPtrs.clustersNative->clustersLinear[i];
     }
   }
   mIOPtrs.clustersNativeReduced = mClusterNativeAccessReduced.get();
   if (mIOPtrs.clustersNative->clustersMCTruth) {
-    tmpContainer.flatten_to(*labelBuffer.first);
-    *labelBuffer.second = *labelBuffer.first;
+    writeReducedClusterLabels(*mIOPtrs.clustersNative, labelBuffer, [this, &Compressor](uint32_t i) { return Compressor.rejectCluster(i, param(), mIOPtrs); });
     mClusterNativeAccessReduced->clustersMCTruth = labelBuffer.second;
   }
 }
