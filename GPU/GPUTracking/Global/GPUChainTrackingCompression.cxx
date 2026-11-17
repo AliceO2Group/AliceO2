@@ -431,7 +431,7 @@ int32_t GPUChainTracking::RunTPCDecompression()
       GPUMemCpy(RecoStep::TPCDecompression, mInputsHost->mPclusterNativeOutput, DecompressorShadow.mNativeClustersBuffer, sizeof(Decompressor.mNativeClustersBuffer[0]) * nClustersFinal, unattachedStream, false);
       SynchronizeStream(unattachedStream);
     }
-    if (GetProcessingSettings().deterministicGPUReconstruction || GetProcessingSettings().debugLevel >= 4) {
+    if (GetProcessingSettings().deterministicGPUReconstruction || GetProcessingSettings().debugLevel >= 4 || GetProcessingSettings().tpcSortClusters) {
       runKernel<GPUTPCDecompressionUtilKernels, GPUTPCDecompressionUtilKernels::sortPerSectorRow>(GetGridAutoStep(unattachedStream, RecoStep::TPCDecompression));
       const ClusterNativeAccess* decoded = mIOPtrs.clustersNative;
       if (doGPU) {
