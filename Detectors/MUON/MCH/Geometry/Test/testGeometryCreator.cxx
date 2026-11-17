@@ -20,11 +20,15 @@
 
 #include "MCHGeometryCreator/Geometry.h"
 #include "MCHGeometryTest/Helpers.h"
+#include "TGeoBBox.h"
 #include "TGeoManager.h"
+#include "TGeoMatrix.h"
 #include "boost/format.hpp"
 #include <boost/test/data/test_case.hpp>
+#include <algorithm>
 #include <iomanip>
 #include <iostream>
+#include <set>
 #include <fmt/format.h>
 
 namespace bdata = boost::unit_test::data;
@@ -113,6 +117,68 @@ BOOST_AUTO_TEST_CASE(GetRightNumberOfSlats)
 {
   auto slats = getSlatNodes();
   BOOST_CHECK_EQUAL(slats.size(), 140);
+}
+
+/// The faces normal to the slat plane (along z, in the slat frame) of every volume in the slat, collected
+/// by walking its assemblies.
+void collectSlatFaces(TGeoVolume* vol, TGeoHMatrix const& matrix, std::vector<double>& faces)
+{
+  auto nodes = vol->GetNodes();
+  if (nodes == nullptr || nodes->GetEntriesFast() == 0 || !vol->IsAssembly()) {
+    auto box = dynamic_cast<TGeoBBox const*>(vol->GetShape());
+    if (box == nullptr) {
+      return;
+    }
+    double zmin = 1e30, zmax = -1e30;
+    for (int corner = 0; corner < 8; ++corner) {
+      const double local[3] = {box->GetOrigin()[0] + ((corner & 1) ? 1 : -1) * box->GetDX(),
+                               box->GetOrigin()[1] + ((corner & 2) ? 1 : -1) * box->GetDY(),
+                               box->GetOrigin()[2] + ((corner & 4) ? 1 : -1) * box->GetDZ()};
+      double master[3];
+      matrix.LocalToMaster(local, master);
+      zmin = std::min(zmin, master[2]);
+      zmax = std::max(zmax, master[2]);
+    }
+    faces.push_back(zmin);
+    faces.push_back(zmax);
+    return;
+  }
+  for (int i = 0; i < nodes->GetEntriesFast(); ++i) {
+    auto node = static_cast<TGeoNode*>(nodes->At(i));
+    TGeoHMatrix next = matrix;
+    next.Multiply(node->GetMatrix());
+    collectSlatFaces(node->GetVolume(), next, faces);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(SlatLayersTouchExactly)
+{
+  // The layers of a slat are stacked face to face. Faces a fraction of a nanometre apart leave a gap of the mother
+  // medium between two layers, in which a navigator that does not jump it stops a low-energy electron.
+  std::set<TGeoVolume*> done;
+  int slats = 0, nearFaces = 0;
+  std::string first;
+  for (auto node : getSlatNodes()) {
+    if (!done.insert(node->GetVolume()).second) {
+      continue;
+    }
+    ++slats;
+    std::vector<double> faces;
+    collectSlatFaces(node->GetVolume(), TGeoHMatrix(), faces);
+    std::sort(faces.begin(), faces.end());
+    for (std::size_t i = 1; i < faces.size(); ++i) {
+      const double gap = faces[i] - faces[i - 1];
+      // below 1e-12 cm two faces touch up to rounding; navigator tolerances start at 1e-10 cm
+      if (gap > 1.e-12 && gap < 1.e-7) {
+        ++nearFaces;
+        if (first.empty()) {
+          first = fmt::format("{}: faces at z = {:.12f} and {:.12f} cm", node->GetVolume()->GetName(), faces[i - 1], faces[i]);
+        }
+      }
+    }
+  }
+  BOOST_CHECK_GT(slats, 10);
+  BOOST_CHECK_MESSAGE(nearFaces == 0, nearFaces << " pairs of faces less than 1 nm apart without touching; " << first);
 }
 
 BOOST_AUTO_TEST_CASE(GetRightNumberOfQuadrants)

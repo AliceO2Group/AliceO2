@@ -43,69 +43,69 @@ namespace mch
 ///  Constants
 
 // gas
-const float kGasLength = 40.;
-const float kGasHalfHeight = 40. / 2;
-const float kGasHalfThickness = 0.25;
+const double kGasLength = 40.;
+const double kGasHalfHeight = 40. / 2;
+const double kGasHalfThickness = 0.25;
 
 // PCB = gas + 2*(cathode + insulator)
-const float kPCBLength = kGasLength;
-const float kShortPCBLength = 35.;
-const float kRoundedPCBLength = 42.5;
-const float kR1PCBLength = 19.25;
-const float kPCBHalfHeight = 58. / 2;
+const double kPCBLength = kGasLength;
+const double kShortPCBLength = 35.;
+const double kRoundedPCBLength = 42.5;
+const double kR1PCBLength = 19.25;
+const double kPCBHalfHeight = 58. / 2;
 
-const float kCathodeHalfThickness = 0.002 / 2;
-const float kInsuHalfThickness = 0.04 / 2;
+const double kCathodeHalfThickness = 0.002 / 2;
+const double kInsuHalfThickness = 0.04 / 2;
 
-const float kPCBHalfThickness = kGasHalfThickness + 2 * (kCathodeHalfThickness + kInsuHalfThickness);
+const double kPCBHalfThickness = kGasHalfThickness + 2 * (kCathodeHalfThickness + kInsuHalfThickness);
 
 // slat panel = honeycomb nomex + 2 carbon fiber skins
-const float kSlatPanelHalfHeight = 42.5 / 2;
+const double kSlatPanelHalfHeight = 42.5 / 2;
 
-const float kGlueHalfThickness = 0.004 / 2;
-const float kNomexBulkHalfThickness = 0.025 / 2;
-const float kCarbonHalfThickness = 0.02 / 2;
-const float kNomexHalfThickness = 0.8 / 2;
+const double kGlueHalfThickness = 0.004 / 2;
+const double kNomexBulkHalfThickness = 0.025 / 2;
+const double kCarbonHalfThickness = 0.02 / 2;
+const double kNomexHalfThickness = 0.8 / 2;
 
 // spacers (noryl)
-const float kSpacerHalfThickness = kGasHalfThickness;
-const float kHoriSpacerHalfHeight = 1.95 / 2;
-const float kVertSpacerHalfLength = 2.5 / 2;
-const float kRoundedSpacerHalfLength = 1.;
+const double kSpacerHalfThickness = kGasHalfThickness;
+const double kHoriSpacerHalfHeight = 1.95 / 2;
+const double kVertSpacerHalfLength = 2.5 / 2;
+const double kRoundedSpacerHalfLength = 1.;
 
 // border (rohacell)
-const float kBorderHalfHeight = 2.5;
-const float kBorderHalfThickness = kGasHalfThickness;
+const double kBorderHalfHeight = 2.5;
+const double kBorderHalfThickness = kGasHalfThickness;
 
 // DualSampas (parameters from the PRR)
-const float kDualSampaHalfLength = 3.2 / 2;
-const float kDualSampaHalfHeight = 2.5;
-const float kDualSampaHalfThickness = 0.027 / 2; // to be confirmed
-const float kDualSampaYPos = 0.45 + kSlatPanelHalfHeight + kDualSampaHalfHeight;
+const double kDualSampaHalfLength = 3.2 / 2;
+const double kDualSampaHalfHeight = 2.5;
+const double kDualSampaHalfThickness = 0.027 / 2; // to be confirmed
+const double kDualSampaYPos = 0.45 + kSlatPanelHalfHeight + kDualSampaHalfHeight;
 
 /// Cables (copper)
 // Low voltage (values from AliRoot)
-const float kLVCableHalfHeight = 2.6 / 2;
-const float kLVCableHalfThickness = 0.026 / 2;
+const double kLVCableHalfHeight = 2.6 / 2;
+const double kLVCableHalfThickness = 0.026 / 2;
 
 /// Support panels
-const float kCarbonSupportHalfThickness = 0.03 / 2;
-const float kGlueSupportHalfThickness = 0.02 / 2;
-const float kNomexSupportHalfThickness = 1.5 / 2;
-const float kSt3SupportHalfHeight = 361. / 2;
-const float kSt4SupportHalfHeight = 530. / 2;
-const float kSt5SupportHalfHeight = 570. / 2;
-const float kCh5SupportHalfLength = 162. / 2;
-const float kCh6SupportHalfLength = 167. / 2;
-const float kSt45SupportHalfLength = 260. / 2;
+const double kCarbonSupportHalfThickness = 0.03 / 2;
+const double kGlueSupportHalfThickness = 0.02 / 2;
+const double kNomexSupportHalfThickness = 1.5 / 2;
+const double kSt3SupportHalfHeight = 361. / 2;
+const double kSt4SupportHalfHeight = 530. / 2;
+const double kSt5SupportHalfHeight = 570. / 2;
+const double kCh5SupportHalfLength = 162. / 2;
+const double kCh6SupportHalfLength = 167. / 2;
+const double kSt45SupportHalfLength = 260. / 2;
 
 // Inner radii
-const float kSt3Radius = 29.5;
-const float kSt45Radius = 37.5;
+const double kSt3Radius = 29.5;
+const double kSt45Radius = 37.5;
 
 // Y position of the rounded slats
-const float kSt3RoundedSlatYPos = 37.8;
-const float kSt45RoundedSlatYPos = 38.2;
+const double kSt3RoundedSlatYPos = 37.8;
+const double kSt45RoundedSlatYPos = 38.2;
 
 // PCB types {name, number of DualSampa array = (nUP bending, nDOWN bending, nUP non-bending, nDOWN non-bending)}
 const map<string, array<int, 4>> kPcbTypes = {{"B1N1", {10, 10, 7, 7}}, {"B2N2-", {5, 5, 4, 3}}, {"B2N2+", {5, 5, 3, 4}}, {"B3-N3", {3, 2, 2, 2}}, {"B3+N3", {2, 3, 2, 2}}, {"R1", {3, 4, 2, 3}}, {"R2", {13, 4, 9, 3}}, {"R3", {13, 1, 10, 0}}, {"S2-", {4, 5, 3, 3}}, {"S2+", {5, 4, 3, 3}}};
@@ -149,7 +149,7 @@ bool isShort(string name)
   return name.find('S') < name.size();
 }
 
-TGeoCompositeShape* getRoundedShape(const char* name, float halfThickness, float xPos, float yPos, float radius)
+TGeoCompositeShape* getRoundedShape(const char* name, double halfThickness, double xPos, double yPos, double radius)
 {
   /// Function creating a rounded shape by creating a hole in a box (previously created !)
 
@@ -200,7 +200,7 @@ void createPCBs()
 
   // Define some necessary variables
   string bendName, nonbendName;
-  float y = 0., shift = 0., length = 0.; // useful parameters for dimensions and positions
+  double y = 0., shift = 0., length = 0.; // useful parameters for dimensions and positions
   int nDualSampas = 0;
 
   // get the DualSampa volume
@@ -213,10 +213,10 @@ void createPCBs()
     auto pcb = new TGeoVolumeAssembly(name);
 
     // Reset shift variables
-    float gasShift = 0., pcbShift = 0.;
+    double gasShift = 0., pcbShift = 0.;
 
-    float gasLength = kGasLength;
-    float pcbLength = kPCBLength;
+    double gasLength = kGasLength;
+    double pcbLength = kPCBLength;
 
     int numb = pcbName[1] - '0'; // char -> int conversion
 
@@ -243,14 +243,14 @@ void createPCBs()
         nonbendName = (numb == 3) ? pcbName.substr(3) : pcbName.substr(2);
     }
 
-    float borderLength = pcbLength;
+    double borderLength = pcbLength;
 
     // create the volume of each material (a box by default)
     // sensitive gas
     auto gas = new TGeoVolume(Form("%s gas", name), new TGeoBBox(Form("%sGasBox", name), gasLength / 2., kGasHalfHeight, kGasHalfThickness), assertMedium(Medium::Gas));
 
-    float x = pcbLength / 2;
-    float halfHeight = kPCBHalfHeight;
+    double x = pcbLength / 2;
+    double halfHeight = kPCBHalfHeight;
 
     // bending cathode
     auto bend = new TGeoVolume(bendName.data(), new TGeoBBox(Form("%sBendBox", name), x, halfHeight, kCathodeHalfThickness), assertMedium(Medium::Copper));
@@ -267,7 +267,7 @@ void createPCBs()
     // change the volume shape if we are creating a rounded PCB
     if (isRounded(pcbName)) {
       // LHC beam pipe radius ("R3" -> it is a slat of a station 4 or 5)
-      float radius = (numb == 3) ? kSt45Radius : kSt3Radius;
+      double radius = (numb == 3) ? kSt45Radius : kSt3Radius;
       // y position of the PCB center w.r.t the beam pipe shape
       switch (numb) {
         case 1:
@@ -281,7 +281,7 @@ void createPCBs()
           break;
       }
       // compute the radius of curvature of the PCB we want to create
-      float curvRad = radius + 2 * kRoundedSpacerHalfLength;
+      double curvRad = radius + 2 * kRoundedSpacerHalfLength;
 
       x = kRoundedPCBLength - gasLength / 2 - kVertSpacerHalfLength;
       gas->SetShape(getRoundedShape(Form("%sGas", name), kGasHalfThickness, x, -y, curvRad));
@@ -303,9 +303,9 @@ void createPCBs()
     }
 
     /// place all the layers in the PCB
-    float halfThickness = kGasHalfThickness;
+    double halfThickness = kGasHalfThickness;
     pcb->AddNode(gas, 1, new TGeoTranslation(gasShift / 2, 0., 0.));
-    float z = halfThickness;
+    double z = halfThickness;
 
     halfThickness = kCathodeHalfThickness;
     x = pcbShift / 2;
@@ -351,7 +351,7 @@ void createPCBs()
                                          y, z));
       }
     } // end of the MANUs loop
-  }   // end of the PCBs loop
+  } // end of the PCBs loop
 }
 
 //______________________________________________________________________________
@@ -375,17 +375,17 @@ void createSlats()
     auto slat = new TGeoVolumeAssembly(name);
 
     // Reset slat variables
-    float direction = TMath::Power(-1, isRounded(typeName)); // rounded and "normal" slats are built in opposite x-axis direction (mapping convention)
-    float halfLength = 2 * 2 * kVertSpacerHalfLength;        // vertical spacers
-    float center = (pcbVector.size() - 1) * kGasLength / 2;
-    float panelShift = 0.;
+    double direction = TMath::Power(-1, isRounded(typeName)); // rounded and "normal" slats are built in opposite x-axis direction (mapping convention)
+    double halfLength = 2 * 2 * kVertSpacerHalfLength;        // vertical spacers
+    double center = (pcbVector.size() - 1) * kGasLength / 2;
+    double panelShift = 0.;
     int iVol = 0;
 
     // loop over the number of PCBs in the current slat
     for (const auto& pcb : pcbVector) {
 
-      float gasLength = kGasLength;
-      float pcbLength = kPCBLength;
+      double gasLength = kGasLength;
+      double pcbLength = kPCBLength;
 
       switch (pcb.front()) {
         case 'R':
@@ -411,7 +411,7 @@ void createSlats()
     halfLength /= 2;
 
     // compute the LV cable length
-    float cableHalfLength = (typeName.find('3') < typeName.size()) ? kSt45SupportHalfLength : kCh5SupportHalfLength;
+    double cableHalfLength = (typeName.find('3') < typeName.size()) ? kSt45SupportHalfLength : kCh5SupportHalfLength;
     if (typeName == "122200N") {
       cableHalfLength = kCh6SupportHalfLength;
     }
@@ -420,7 +420,7 @@ void createSlats()
       cableHalfLength -= kGasLength / 2;
     }
 
-    float rightSpacerHalfHeight = kSlatPanelHalfHeight;
+    double rightSpacerHalfHeight = kSlatPanelHalfHeight;
     if (isRounded(typeName)) {
       halfLength -= kVertSpacerHalfLength;    // don't count the vertical spacer length twice in the case of rounded slat
       rightSpacerHalfHeight = kGasHalfHeight; // to avoid overlaps with the horizontal spacers
@@ -433,8 +433,8 @@ void createSlats()
     // glue a slat panel on each side of the PCBs
     auto panel = new TGeoVolumeAssembly(Form("%s panel", name));
 
-    float x = halfLength;
-    float halfHeight = kSlatPanelHalfHeight;
+    double x = halfLength;
+    double halfHeight = kSlatPanelHalfHeight;
 
     // glue
     auto glue = new TGeoVolume(Form("%s panel glue", name), new TGeoBBox(Form("%sGlueBox", name), x, halfHeight, kGlueHalfThickness), assertMedium(Medium::Glue));
@@ -452,15 +452,15 @@ void createSlats()
     if (isRounded(typeName)) {
 
       // LHC beam pipe radius ("NR3" -> it is a slat of a station 4 or 5)
-      float radius = (typeName.back() == '3') ? kSt45Radius : kSt3Radius;
+      double radius = (typeName.back() == '3') ? kSt45Radius : kSt3Radius;
 
       // extreme angle values for the rounded spacer
-      float angMin = 90., angMax = 180.;
+      double angMin = 90., angMax = 180.;
 
       // position of the slat center w.r.t the beam pipe center
       x = halfLength - kVertSpacerHalfLength;
-      float y = 0.;
-      float xRoundedPos = x + panelShift;
+      double y = 0.;
+      double xRoundedPos = x + panelShift;
 
       // change the LV cable length for st.3 slats
       cableHalfLength = (isShort(typeName)) ? kCh5SupportHalfLength : kCh6SupportHalfLength;
@@ -506,8 +506,8 @@ void createSlats()
 
     // place all the layers in the slat panel volume assembly (the panel origin is on the glue edge !)
 
-    float halfThickness = kGlueHalfThickness;
-    float z = halfThickness;
+    double halfThickness = kGlueHalfThickness;
+    double z = halfThickness;
     panel->AddNode(glue, 1, new TGeoTranslation(0., 0., z));
     z += halfThickness;
 
@@ -553,7 +553,7 @@ void createSlats()
     auto LVcable = gGeoManager->MakeBox(Form("%s LV cable", name), assertMedium(Medium::Copper), cableHalfLength + kVertSpacerHalfLength, kLVCableHalfHeight, kLVCableHalfThickness);
     x = direction * (x + cableHalfLength + direction * panelShift);
 
-    float y = kPCBHalfHeight - kLVCableHalfHeight;
+    double y = kPCBHalfHeight - kLVCableHalfHeight;
     slat->AddNode(LVcable, 1, new TGeoTranslation(x, y, 0));
     slat->AddNode(LVcable, 2, new TGeoTranslation(x, -y, 0));
 
@@ -566,7 +566,7 @@ void createSupportPanels()
   /// Function building the half-chamber support panels (one different per chamber)
 
   // dimensions
-  float halfLength = 0., halfHeight = 0.;
+  double halfLength = 0., halfHeight = 0.;
 
   for (int i = 5; i <= 10; i++) {
 
@@ -582,12 +582,12 @@ void createSupportPanels()
     }
 
     // LHC beam pipe radius at the given chamber z position
-    float radius = (i <= 6) ? kSt3Radius : kSt45Radius;
+    double radius = (i <= 6) ? kSt3Radius : kSt45Radius;
 
-    float x = -halfLength + kVertSpacerHalfLength;
+    double x = -halfLength + kVertSpacerHalfLength;
 
-    float halfThickness = kNomexSupportHalfThickness;
-    float z = 0.;
+    double halfThickness = kNomexSupportHalfThickness;
+    double z = 0.;
 
     // create a box for the nomex volume
     const char* nomexName = Form("NomexSupportPanelCh%d", i);
