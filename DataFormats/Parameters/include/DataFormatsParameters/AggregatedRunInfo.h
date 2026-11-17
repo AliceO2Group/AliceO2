@@ -51,6 +51,9 @@ struct AggregatedRunInfo {
   static std::map<std::string, std::string> getMCProdInfo(o2::ccdb::CCDBManagerInstance& ccdb, int runnumber,
                                                           std::string const& lpm_prod_tag, std::string const& username = "aliprod");
 
+  // orbits to add to orbitSOR so that TF borders coincide with MC TFs starting at firstOrbitMC (0 if orbitsPerTF <= 0)
+  static int64_t tfAlignmentShift(int64_t firstOrbitMC, int64_t orbitSOR, int64_t orbitsPerTF);
+
   // function that adjusts with values from MC
   void adjust_from_MC(o2::ccdb::CCDBManagerInstance& ccdb, int run_number, std::string const& lpm_prod_tag, std::string const& username = "aliprod");
 

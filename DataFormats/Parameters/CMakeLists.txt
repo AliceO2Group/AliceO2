@@ -28,6 +28,12 @@ o2_target_root_dictionary(DataFormatsParameters
                                   include/DataFormatsParameters/AggregatedRunInfo.h
                           LINKDEF src/ParametersDataLinkDef.h)
 
+o2_add_test(AggregatedRunInfo
+            SOURCES test/testAggregatedRunInfo.cxx
+            COMPONENT_NAME DataFormatsParameters
+            PUBLIC_LINK_LIBRARIES O2::DataFormatsParameters
+            LABELS dataformats)
+
 o2_add_executable(simgrp-tool
                   COMPONENT_NAME grp
                   SOURCES src/GRPTool.cxx
