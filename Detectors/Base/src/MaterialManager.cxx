@@ -157,7 +157,7 @@ float MaterialManager::getDensity(std::string const& modname, std::string const&
   // global factor
   const auto global = o2::conf::SimMaterialParams::Instance().globalDensityFactor;
   if (debug && global != 1.0) {
-    LOG(info) << "MatManager - " << modname << "/" << matname << " : applying global density " << iter->second;
+    LOG(info) << "MatManager - " << modname << "/" << matname << " : applying global density " << global;
   }
   return global;
 }
