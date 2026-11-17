@@ -21,7 +21,7 @@ struct FDDRecoConfig : o2::conf::ConfigurableParamHelper<FDDRecoConfig> {
   enum DetectorSide { SideA = 0,
                       SideC = 1 };
   int16_t ChannelAmplitudeUpper[2] = {4096, 4096};
-  int16_t ChannelAmplitudeLower[2] = {6, 0};
+  int16_t ChannelAmplitudeLower[2] = {0, 0};
 
   int16_t ChannelTimeLower = -2050;
   int16_t ChannelTimeUpper = 2050;
