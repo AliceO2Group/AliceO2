@@ -21,6 +21,7 @@
 #include "TPCBase/ParameterGas.h"
 #include "TPCBase/Sector.h"
 #include "SpacePoints/TrackResiduals.h"
+#include "SpacePoints/SpacePointsCalibConfParam.h"
 #include "DataFormatsTPC/Defs.h"
 #include "TPCFastTransform.h"
 #include "ChebyshevFit1D.h"
@@ -513,21 +514,83 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
   knotsDouble[0].reserve(nY2Xbins);
   knotsDouble[1].reserve(nZ2Xbins);
 
-  // to get enouth measurements, make a spline knot at every second bin. Boundary bins are always included.
+  // the spline knots, in the coordinate of the knot calculation below (y/x of row 0, z/x): the bin centres and widths of the voxels
+  std::vector<double> binCentres[2];
+  std::vector<double> binWidths[2];
+  for (int i = 0; i < nY2Xbins; i++) {
+    binCentres[0].push_back(trackResiduals.getY2X(0, i));
+    binWidths[0].push_back(1. / trackResiduals.getDY2XI(0, i));
+  }
+  for (int i = 0; i < nZ2Xbins; i++) {
+    binCentres[1].push_back(trackResiduals.getZ2X(i));
+    binWidths[1].push_back(trackResiduals.getDZ2X(i));
+  }
+  // explicit knots (setY2XKnots / setZ2XKnots) are given in the coordinate of the voxel binning: y/x scaled to -1..1, z/x scaled to 0..1
+  const double knotScale[2] = {trackResiduals.getMaxY2X(0), o2::tpc::SpacePointsCalibConfParam::Instance().maxZ2X};
+  const std::vector<double>* explicitKnots[2] = {&mY2XKnots, &mZ2XKnots};
 
-  for (int i = 0, j = nY2Xbins - 1; i <= j; i += 2, j -= 2) {
-    knotsDouble[0].push_back(trackResiduals.getY2X(0, i));
-    if (j >= i + 1) {
-      knotsDouble[0].push_back(trackResiduals.getY2X(0, j));
+  for (int dim = 0; dim < 2; dim++) {
+    const auto& centres = binCentres[dim];
+    auto& knots = knotsDouble[dim];
+    if (explicitKnots[dim]->empty()) {
+      // default: to get enough measurements, a spline knot at every second bin, counted from both ends. Boundary bins are always included.
+      for (int i = 0, j = int(centres.size()) - 1; i <= j; i += 2, j -= 2) {
+        knots.push_back(centres[i]);
+        if (j >= i + 1) {
+          knots.push_back(centres[j]);
+        }
+      }
+      continue;
+    }
+    // explicit knots: the spline of a row spans its first to its last bin centre, so those are knots and the others must lie between them.
+    // A knot closer than half the narrowest voxel bin to its neighbouring knot is dropped: the knots are put on an integer grid with 1/10 of
+    // the smallest knot distance as step, and the spline stores a table with one entry per grid step, so nearly coinciding knots would make
+    // the correction object arbitrarily large
+    const double first = centres.front();
+    const double last = centres.back();
+    const double eps = 1.e-6 * std::abs(last - first);
+    const double minKnotDistance = 0.5 * *std::min_element(binWidths[dim].begin(), binWidths[dim].end());
+    std::vector<double> innerKnots;
+    int nOutside = 0;
+    for (const double k : *explicitKnots[dim]) {
+      const double u = k * knotScale[dim];
+      if (u < first - eps || u > last + eps) {
+        ++nOutside;
+      } else {
+        innerKnots.push_back(u);
+      }
+    }
+    std::sort(innerKnots.begin(), innerKnots.end());
+    int nTooClose = 0;
+    knots.push_back(first);
+    for (const double u : innerKnots) {
+      if (std::abs(u - knots.back()) <= eps || std::abs(u - last) <= eps) {
+        continue; // a repeated knot, or the first / the last bin centre given explicitly
+      }
+      if (u - knots.back() < minKnotDistance || last - u < minKnotDistance) {
+        ++nTooClose;
+        continue;
+      }
+      knots.push_back(u);
+    }
+    knots.push_back(last);
+    if (nOutside > 0) {
+      LOG(warning) << "fast space charge correction helper: " << nOutside << (dim == 0 ? " y/x" : " z/x") << " knots outside the first and the last bin centre dropped";
+    }
+    if (nTooClose > 0) {
+      LOG(warning) << "fast space charge correction helper: " << nTooClose << (dim == 0 ? " y/x" : " z/x") << " knots closer than half the narrowest voxel bin ("
+                   << minKnotDistance / knotScale[dim] << ") to the neighbouring knot dropped";
+    }
+    // a knot interval without a voxel centre (endpoints included) leaves the spline there without data
+    for (size_t i = 1; i < knots.size(); i++) {
+      const bool covered = std::any_of(centres.begin(), centres.end(), [&](double c) { return c >= knots[i - 1] - eps && c <= knots[i] + eps; });
+      if (!covered) {
+        LOG(warning) << "fast space charge correction helper: no " << (dim == 0 ? "y/x" : "z/x") << " voxel centre between the knots " << knots[i - 1] / knotScale[dim] << " and " << knots[i] / knotScale[dim];
+      }
     }
   }
-
-  for (int i = 0, j = nZ2Xbins - 1; i <= j; i += 2, j -= 2) {
-    knotsDouble[1].push_back(trackResiduals.getZ2X(i));
-    if (j >= i + 1) {
-      knotsDouble[1].push_back(trackResiduals.getZ2X(j));
-    }
-  }
+  LOG(info) << "fast space charge correction helper: " << knotsDouble[0].size() << " y/x knots for " << nY2Xbins << " bins (" << (mY2XKnots.empty() ? "default" : "explicit") << "), "
+            << knotsDouble[1].size() << " z/x knots for " << nZ2Xbins << " bins (" << (mZ2XKnots.empty() ? "default" : "explicit") << ")";
 
   std::vector<int> knotsInt[2];
 
