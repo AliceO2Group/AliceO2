@@ -2825,7 +2825,7 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
     }
   }
 
-  uint64_t attachClusterCounts[N_CLS_HIST];
+  uint64_t attachClusterCounts[N_CLS_HIST + 4]; // + correctly attached / all clusters in the pt bins entirely above 50 MeV and above 200 MeV
   if (mQATasks & taskClusterAttach) {
     // Process Cluster Attachment Histograms
     if (mConfig.inputHistogramsOnly == 0) {
@@ -2848,6 +2848,17 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
           mClusters[2 * N_CLS_HIST - 1 + i]->SetBinContent(j, val / totalVal);
         }
         attachClusterCounts[i] = val;
+      }
+      for (int32_t i = 0; i < 2; i++) {
+        double valAttached = 0, valAll = 0;
+        for (int32_t j = 1; j < mClusters[CL_all]->GetXaxis()->GetNbins() + 2; j++) {
+          if (mClusters[CL_all]->GetXaxis()->GetBinLowEdge(j) >= (i ? 0.2 : 0.05)) {
+            valAttached += mClusters[CL_attached]->GetBinContent(j);
+            valAll += mClusters[CL_all]->GetBinContent(j);
+          }
+        }
+        attachClusterCounts[N_CLS_HIST + 2 * i] = valAttached;
+        attachClusterCounts[N_CLS_HIST + 2 * i + 1] = valAll;
       }
 
       if (!CLUST_HIST_INT_SUM) {
@@ -3324,6 +3335,8 @@ int32_t GPUQA::DoClusterCounts(uint64_t* attachClusterCounts, int32_t mode)
     PrintClusterCount(mode, num, "Unattached", attachClusterCounts[N_CLS_HIST - 1] - attachClusterCounts[CL_att_adj], mClusterCounts.nTotal);
     PrintClusterCount(mode, num, "Removed (Strategy A)", attachClusterCounts[CL_att_adj] - attachClusterCounts[CL_prot], mClusterCounts.nTotal); // Attached + Adjacent (also fake) - protected
     PrintClusterCount(mode, num, "Unaccessible", mClusterCounts.nUnaccessible, mClusterCounts.nTotal);                                           // No contribution from track >= 10 MeV, unattached or fake-attached/adjacent
+    PrintClusterCount(mode, num, "Correctly attached (> 50 MeV)", attachClusterCounts[N_CLS_HIST], attachClusterCounts[N_CLS_HIST + 1]);         // Normalized to all clusters of particles above the threshold
+    PrintClusterCount(mode, num, "Correctly attached (> 200 MeV)", attachClusterCounts[N_CLS_HIST + 2], attachClusterCounts[N_CLS_HIST + 3]);
   } else {
     PrintClusterCount(mode, num, "All Clusters", mClusterCounts.nTotal, mClusterCounts.nTotal);
     PrintClusterCount(mode, num, "Used in Physics", mClusterCounts.nPhysics, mClusterCounts.nTotal);
