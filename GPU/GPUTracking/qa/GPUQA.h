@@ -143,7 +143,7 @@ class GPUQA
   int32_t loadHistograms(std::vector<TH1F>& i1, std::vector<TH2F>& i2, std::vector<TH1D>& i3, std::vector<TGraphAsymmErrors>& i4, int32_t tasks = -1);
   void* AllocateScratchBuffer(size_t nBytes);
 
-  static constexpr int32_t N_CLS_HIST = 8;
+  static constexpr int32_t N_CLS_HIST = 10;
   static constexpr int32_t N_CLS_TYPE = 3;
 
   static constexpr int32_t MC_LABEL_INVALID = -1e9;
@@ -156,7 +156,7 @@ class GPUQA
   };
 
   struct additionalClusterParameters {
-    int32_t attached, fakeAttached, adjacent, fakeAdjacent;
+    int32_t attached, fakeAttached, adjacent, fakeAdjacent, rejected;
     float pt;
   };
 
@@ -254,7 +254,7 @@ class GPUQA
   std::vector<additionalClusterParameters> mClusterParam;
   int32_t mNTotalFakes = 0;
 
-  TH1F* mEff[6][2][2][5]; // eff,clone,fake,all,all-fake - findable - secondaries - y,z,phi,eta,pt - work,result
+  TH1F* mEff[6][2][2][5]; // eff,clone,fake,all,all-fake,all-filled-internal - findable - secondaries - y,z,phi,eta,pt - work,result
   TGraphAsymmErrors* mEffResult[4][2][2][5];
   TCanvas* mCEff[6];
   TPad* mPEff[6][4];
@@ -276,11 +276,13 @@ class GPUQA
                   CL_fake = 1,
                   CL_att_adj = 2,
                   CL_fakeAdj = 3,
-                  CL_tracks = 4,
-                  CL_physics = 5,
-                  CL_prot = 6,
-                  CL_all = 7 };
-  TH1D* mClusters[N_CLS_TYPE * N_CLS_HIST - 1]; // attached, fakeAttached, attach+adjacent, fakeAdjacent, physics, protected, tracks, all / count, rel, integral
+                  CL_adjNoRej = 4,
+                  CL_fakeAdjNoReject = 5,
+                  CL_tracks = 6,
+                  CL_physics = 7,
+                  CL_prot = 8,
+                  CL_all = 9 };
+  TH1D* mClusters[N_CLS_TYPE * N_CLS_HIST - 1]; // attached, fakeAttached, attach+adjacent, fakeAdjacent, adjacent not rejected, fakeAdjacent not rejected, tracks, physics, protected, all / count, rel, integral
   TCanvas* mCClust[N_CLS_TYPE];
   TPad* mPClust[N_CLS_TYPE];
   TLegend* mLClust[N_CLS_TYPE];
