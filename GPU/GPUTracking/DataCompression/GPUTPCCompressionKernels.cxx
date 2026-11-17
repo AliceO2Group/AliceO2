@@ -53,7 +53,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0at
 
       int32_t hitId = hit.num;
       int32_t attach = ioPtrs.mergedTrackHitAttachment[hitId];
-      if ((attach & gputpcgmmergertypes::attachTrackMask) != i) {
+      if (gputpcgmmergertypes::getAttachedTrackId(attach) != i) {
         continue; // Main attachment to different track
       }
       bool rejectCluster = processors.param.rec.tpc.rejectionStrategy >= GPUSettings::RejectionStrategyA && !(attach & gputpcgmmergertypes::attachProtect) && (rejectTrk || GPUTPCClusterRejection::GetIsRejected(attach));
@@ -206,7 +206,7 @@ GPUd() bool GPUTPCCompression::rejectCluster(int32_t idx, const GPUParam& GPUres
     if (attach & gputpcgmmergertypes::attachProtect) {
       return false;
     }
-    int32_t id = attach & gputpcgmmergertypes::attachTrackMask;
+    int32_t id = gputpcgmmergertypes::getAttachedTrackId(attach);
     auto& trk = ioPtrs.mergedTracks[id];
     if (GPUTPCClusterRejection::IsTrackRejected(trk, param)) {
       return true;

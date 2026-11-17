@@ -27,10 +27,13 @@ enum attachTypes { attachProtect = 0x80000000,
                    attachGood = 0x20000000,
                    attachGoodLeg = 0x10000000,
                    attachTube = 0x08000000,
-                   attachHighIncl = 0x04000000,
-                   attachTrackMask = 0x03FFFFFF,
-                   attachFlagMask = 0xFC000000,
+                   attachHighIncl = 0x1,
+                   attachTrackMask = 0x07FFFFFE,
+                   attachFlagMask = 0xF8000001,
+                   nPureFlags = 1, // Number of flag bits below the track id (do not influence which track wins the attachment)
                    attachZero = 0 };
+
+GPUdi() static constexpr uint32_t getAttachedTrackId(uint32_t v) { return (v & attachTrackMask) >> nPureFlags; }
 
 struct InterpolationErrorHit {
   float posY, posZ;
