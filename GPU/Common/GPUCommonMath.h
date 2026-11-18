@@ -236,6 +236,19 @@ class GPUCommonMath
 
 typedef GPUCommonMath CAMath;
 
+#ifdef __CUDACC__
+template <>
+GPUhd() half GPUCommonMath::Min(const half x, const half y) // BUG: CUDA __hmin / __hmax is not constexpr, fix once fixed in CUDA
+{
+  return __hmin(x, y);
+}
+template <>
+GPUhd() half GPUCommonMath::Max(const half x, const half y)
+{
+  return __hmax(x, y);
+}
+#endif
+
 template <typename... Args>
 GPUhdi() constexpr float GPUCommonMath::Sum2(float w, Args... args)
 {
