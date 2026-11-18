@@ -39,9 +39,7 @@ GPUReconstructionCPUDevice::GPUReconstructionCPUDevice(const GPUSettingsDeviceBa
 {
   if (mMaster == nullptr) {
     mInternals = new GPUReconstructionCPUDeviceInternals;
-    *mParDevice = *mParCPU;                     // We run the CPU kernels on the "device", so we use the CPU kernel parameters
-    mParDevice->par_ALTERNATE_BORDER_SORT = 1;  // Required by the GPU code path without RTC
-    mParDevice->par_CF_SCAN_WORKGROUP_SIZE = 1; // No block-wide scan with 1 thread per block, the clusterizer uses the CPU stream compaction
+    *mParDevice = *mParCPU; // We run the host-compiled CPU kernels on the "device", so the device parameters must be the CPU kernel parameters. Other values are possible only with RTC (genRTC), checked in InitDevice_Runtime
     for (auto& v : mParDevice->par_LB_maxThreads) {
       v = 1;
     }
@@ -70,6 +68,14 @@ int32_t GPUReconstructionCPUDevice::InitDevice_Runtime()
   if (GetProcessingSettings().rtc.enable && GetProcessingSettings().rtctech.runTest == 2) {
     genAndLoadRTC();
     exit(0);
+  }
+
+  if (mProcessingSettings->alternateBorderSort == -1) {
+    mProcessingSettings->alternateBorderSort = 1; // Required by the GPU code path without RTC
+  }
+  if (!GetProcessingSettings().rtc.enable && memcmp(&mParDevice->par_LB_forceBlocks + 1, &mParCPU->par_LB_forceBlocks + 1, (const char*)(mParCPU + 1) - (const char*)(&mParCPU->par_LB_forceBlocks + 1))) { // All members behind the launch bounds
+    GPUError("CPUDevice kernel parameters differ from the parameters the host kernels were compiled with, this is possible only with RTC");
+    return 1;
   }
 
   if (mMaster == nullptr) {

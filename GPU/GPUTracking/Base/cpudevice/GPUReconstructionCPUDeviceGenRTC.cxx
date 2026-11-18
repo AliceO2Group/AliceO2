@@ -60,6 +60,7 @@ int32_t GPUReconstructionCPUDevice::genRTC(std::string& filename, uint32_t& nCom
   const std::string baseCommand = rtc::baseCommand(proc, std::string_view(_binary_GPUReconstructionCPUDevicertc_command_start, _binary_GPUReconstructionCPUDevicertc_command_len)) + " " + proc.rtctech.overrideArchitecture;
   const std::string noFastMath(_binary_GPUReconstructionCPUDevicertc_command_no_fast_math_start, _binary_GPUReconstructionCPUDevicertc_command_no_fast_math_len);
 
+  mParDevice->par_CF_SCAN_WORKGROUP_SIZE = 1; // Must match the 1 thread per block for the scan kernels to compile, the clusterizer uses the CPU stream compaction
   rtc::loadLaunchBounds(proc, *mParDevice);
   const std::string launchBounds = rtc::launchBoundsCode(proc, *mParDevice, 0, mWarpSize);
   if (proc.rtctech.printLaunchBounds >= 2) {
