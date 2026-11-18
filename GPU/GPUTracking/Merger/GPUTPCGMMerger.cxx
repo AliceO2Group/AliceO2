@@ -34,6 +34,7 @@
 #include "GPUTPCTracker.h"
 #include "GPUTPCTrackParam.h"
 #include "GPUTPCGMMerger.h"
+#include "GPUTPCGMMergerRebuildInternal.h"
 #include "GPUO2DataTypes.h"
 #include "TPCFastTransformPOD.h"
 #include "GPUTPCConvertImpl.h"
@@ -407,8 +408,6 @@ void* GPUTPCGMMerger::SetPointersMerger(void* mem)
   computePointerWithAlignment(mem, mLoopData, mNMaxTracks); // GPUTPCGMMergerTrackFit - GPUTPCGMMergerFollowLoopers, Reducing mNMaxTracks does not save memory, other parts are larger anyway
   if (mRec->GetParam().rec.tpc.rebuildTrackInFit) {
     computePointerWithAlignment(mem, mSharedCount2, mNClusters);
-    computePointerWithAlignment(mem, mClusterCandidates, mNMaxTracks * GPUTPCGeometry::NROWS * Param().rec.tpc.rebuildTrackInFitClusterCandidates);
-    computePointerWithAlignment(mem, mTrackRebuildHelper, mNMaxTracks);
     computePointerWithAlignment(mem, mHitWeights, mNClusters);
   }
   if (mRec->GetParam().rec.tpc.retryRefit) {
@@ -424,6 +423,15 @@ void* GPUTPCGMMerger::SetPointersMerger(void* mem)
 void* GPUTPCGMMerger::SetPointersMemory(void* mem)
 {
   computePointerWithAlignment(mem, mMemory);
+  return mem;
+}
+
+void* GPUTPCGMMerger::SetPointersRebuild(void* mem)
+{
+  const size_t nTracks = HostProcessor(this).NMergedTracks(); // Allocated once the number of merged tracks is known on the host
+  computePointerWithAlignment(mem, mClusterCandidates, nTracks * GPUTPCGeometry::NROWS * mRec->GetParam().rec.tpc.rebuildTrackInFitClusterCandidates);
+  computePointerWithAlignment(mem, mTrackRebuildHelperRow, nTracks * GPUTPCGeometry::NROWS);
+  computePointerWithAlignment(mem, mTrackRebuildHelper, nTracks);
   return mem;
 }
 
@@ -503,6 +511,7 @@ void GPUTPCGMMerger::RegisterMemoryAllocation()
       mMemoryResOutputO2MC = mRec->RegisterMemoryAllocation(this, &GPUTPCGMMerger::SetPointersOutputO2MC, GPUMemoryResource::MEMORY_OUTPUT_FLAG | GPUMemoryResource::MEMORY_HOST | GPUMemoryResource::MEMORY_CUSTOM, "TPCMergerOutputO2MC");
     }
   }
+  mMemoryResRebuild = mRec->RegisterMemoryAllocation(this, &GPUTPCGMMerger::SetPointersRebuild, GPUMemoryResource::MEMORY_SCRATCH | GPUMemoryResource::MEMORY_STACK | GPUMemoryResource::MEMORY_CUSTOM, "TPCMergerRebuild");
   mMemoryResMemory = mRec->RegisterMemoryAllocation(this, &GPUTPCGMMerger::SetPointersMemory, GPUMemoryResource::MEMORY_PERMANENT, "TPCMergerMemory");
 }
 
@@ -1697,7 +1706,7 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int32_t nBlocks, int32_t nThread
           const GPUTPCTracker& trk = GetConstantMem()->tpcTrackers[t->Sector()];
           const GPUTPCHitId& ic = trk.TrackHits()[t->OrigTrack()->FirstHitID() + i];
           uint32_t id = trk.Data().ClusterDataIndex(trk.Data().Row(ic.RowIndex()), ic.HitIndex()) + GetConstantMem()->ioPtrs.clustersNative->clusterOffset[t->Sector()][0];
-          *c2 = trackCluster{.id = id, .row = (uint8_t)ic.RowIndex(), .sector = t->Sector(), .error = 0.f, .weight = 0, .best = 0};
+          *c2 = trackCluster{id, (uint8_t)ic.RowIndex(), t->Sector()};
         }
         nHits += nTrackHits;
       }
@@ -2166,6 +2175,16 @@ GPUd() uint32_t GPUTPCGMMerger::MinHitsForQPt(float qPt, float err2QPt) const
   return Param().tpcMinHitsB5Abs((CAMath::Abs(qPt) + CAMath::Min(CAMath::Sqrt(CAMath::Max(0.f, err2QPt)), Param().rec.tpc.trackFitMinHitsMaxQPtIncrease * CAMath::Abs(qPt))) * Param().qptB5Scaler);
 }
 
+GPUd() uint32_t GPUTPCGMMerger::CandidateId(uint32_t clusterId, uint8_t sector, uint8_t row) const
+{
+  return clusterId - GetConstantMem()->ioPtrs.clustersNative->clusterOffset[sector][row];
+}
+
+GPUd() uint32_t GPUTPCGMMerger::CandidateClusterId(trackRebuildHelperCandidate candidate, uint8_t row) const
+{
+  return GetConstantMem()->ioPtrs.clustersNative->clusterOffset[candidate.getSector()][row] + candidate.getId();
+}
+
 GPUd() void GPUTPCGMMerger::PrepareHitWeights(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread)
 {
   for (uint32_t i = iBlock * nThreads + iThread; i < mNClusters; i += nBlocks * nThreads) {
@@ -2186,10 +2205,10 @@ GPUd() void GPUTPCGMMerger::PrepareHitWeights(int32_t nBlocks, int32_t nThreads,
       for (uint32_t j = 0; j < trk.NClusters(); j++) {
         const auto& cl = mClusters[trk.FirstClusterRef() + j];
         auto* candidates = &mClusterCandidates[(i * GPUTPCGeometry::NROWS + cl.row) * nMaxCandidates];
-        if ((!(cl.state & GPUTPCGMMergedTrackHit::flagReject) || trk.GetParam().GetNDF() <= 0) && (candidates[0].id == 0 || cl.row == lastRow)) { // Row not searched: the original clusters of the row compete as normal candidates with fixed error
+        if ((!(cl.state & GPUTPCGMMergedTrackHit::flagReject) || trk.GetParam().GetNDF() <= 0) && (candidates[0].isEmpty() || cl.row == lastRow)) { // Row not searched: the original clusters of the row compete as normal candidates with fixed error
           for (uint32_t k = 0; k < nMaxCandidates; k++) {
-            if (candidates[k].id == 0) {
-              candidates[k] = {.id = cl.num + 2, .row = cl.row, .sector = cl.sector, .error = Param().rec.tpc.rebuildTrackFallbackErr, .weight = 0, .best = 0};
+            if (candidates[k].isEmpty()) {
+              candidates[k].set(CandidateId(cl.num, cl.sector, cl.row), cl.sector, (CAMath::half_t)Param().rec.tpc.rebuildTrackFallbackErr);
               break;
             }
           }
@@ -2208,16 +2227,17 @@ GPUd() void GPUTPCGMMerger::ComputeHitWeights(int32_t nBlocks, int32_t nThreads,
       continue;
     }
     for (uint32_t j = 0; j < GPUTPCGeometry::NROWS; j++) {
-      auto* candidates = &mClusterCandidates[(i * GPUTPCGeometry::NROWS + j) * Param().rec.tpc.rebuildTrackInFitClusterCandidates];
-      if (candidates[0].best == 0) {
-        if (candidates[iteration].id >= 2 && (iteration == 0 || candidates[iteration].error <= CAMath::Max(Param().rec.tpc.rebuildTrackAltCandidateGoodErr, candidates[0].error * Param().rec.tpc.rebuildTrackAltCandidateMaxErrFactor))) {                                                                                    // Don't fall back to a much worse candidate, the best one is then rather a shared cluster
-          float weightf = (trk.GetParam().GetNDF() > 0 ? (trk.GetParam().GetNDF() + 5) * trk.GetParam().GetNDF() * 64 / trk.GetParam().GetChi2() : (2 * (int32_t)trk.NClusters() - 5) * 128 / Param().rec.tpc.rebuildTrackFallbackTrackChi2) / (1.f + Param().rec.tpc.rebuildErrorWeightFactor * candidates[iteration].error); // Tracks with NDF <= 0 use their nominal number of clusters and assume a fixed chi2 per cluster
-          int32_t weight = weightf > 0.f ? (weightf > 2e9f ? 2e9f : (int32_t)weightf) : 0;
-          candidates[iteration].weight = weight;
-          CAMath::AtomicMax(&mHitWeights[candidates[iteration].id - 2], weight);
-          CADEBUG(printf("REBUILD: iTrk %d Iteration %d Row %d Cluster %d Weight %d\n", i, iteration, j, candidates[iteration].id - 2, weight));
+      auto* c = &mClusterCandidates[(i * GPUTPCGeometry::NROWS + j) * Param().rec.tpc.rebuildTrackInFitClusterCandidates];
+      auto& helper = mTrackRebuildHelperRow[i * GPUTPCGeometry::NROWS + j];
+      if (helper.getBest() == 0) {
+        if (c[iteration].hasCluster() && (iteration == 0 || c[iteration].error <= CAMath::Max<CAMath::half_t>((CAMath::half_t)Param().rec.tpc.rebuildTrackAltCandidateGoodErr, c[0].error * (CAMath::half_t)Param().rec.tpc.rebuildTrackAltCandidateMaxErrFactor))) { // Don't fall back to a much worse candidate, the best one is then rather a shared cluster
+          float weightf = (trk.GetParam().GetNDF() > 0 ? (trk.GetParam().GetNDF() + 5) * trk.GetParam().GetNDF() * 64 / trk.GetParam().GetChi2() : (2 * (int32_t)trk.NClusters() - 5) * 128 / Param().rec.tpc.rebuildTrackFallbackTrackChi2);                         // Nominal number of clusters and fixed chi2 per cluster for NDF <= 0
+          weightf /= (1.f + Param().rec.tpc.rebuildErrorWeightFactor * (float)c[iteration].error);
+          const int32_t weight = helper.setWeight(weightf);
+          CAMath::AtomicMax(&mHitWeights[CandidateClusterId(c[iteration], j)], weight);
+          CADEBUG(printf("REBUILD: iTrk %d Iteration %d Row %d Cluster %d Weight %d\n", i, iteration, j, CandidateClusterId(c[iteration], j), weight));
         } else {
-          candidates[0].best = -2;
+          helper.setBest(trackRebuildHelperRow::bestNoCandidate);
         }
       }
     }
@@ -2233,10 +2253,9 @@ GPUd() void GPUTPCGMMerger::ResolveHitWeights1(int32_t nBlocks, int32_t nThreads
     }
     for (unsigned int j = 0; j < GPUTPCGeometry::NROWS; j++) {
       auto* candidates = &mClusterCandidates[(i * GPUTPCGeometry::NROWS + j) * Param().rec.tpc.rebuildTrackInFitClusterCandidates];
-      if (candidates[0].best == 0) {
-        if (candidates[iteration].weight == mHitWeights[candidates[iteration].id - 2]) {
-          candidates[0].best = iteration + 1;
-        }
+      auto& helper = mTrackRebuildHelperRow[i * GPUTPCGeometry::NROWS + j];
+      if (helper.getBest() == 0 && helper.getWeight() == mHitWeights[CandidateClusterId(candidates[iteration], j)]) {
+        helper.setBest(iteration + 1);
       }
     }
   }
@@ -2256,15 +2275,17 @@ GPUd() void GPUTPCGMMerger::ResolveHitWeights2(int32_t nBlocks, int32_t nThreads
     uint8_t nSharedRowCandidates = 0;
     for (unsigned int j = 0; j < GPUTPCGeometry::NROWS; j++) {
       auto* candidates = &mClusterCandidates[(i * GPUTPCGeometry::NROWS + j) * Param().rec.tpc.rebuildTrackInFitClusterCandidates];
-      if (candidates[0].best == 0 && candidates[nIter - 1].weight == mHitWeights[candidates[nIter - 1].id - 2]) {
-        candidates[0].best = nIter;
+      auto& helper = mTrackRebuildHelperRow[i * GPUTPCGeometry::NROWS + j]; // the helper weight is from the last computed iteration: the one that set best, or the last one if best is still 0
+      if (helper.getBest() == 0 && helper.getWeight() == mHitWeights[CandidateClusterId(candidates[nIter - 1], j)]) {
+        helper.setBest(nIter);
       }
-      if (candidates[0].best > 0) {
+      if (helper.getBest() > 0 && helper.getBest() < trackRebuildHelperRow::bestRowRemoved) {
         nHits++;
-        if (candidates[candidates[0].best - 1].weight != mHitWeights[candidates[candidates[0].best - 1].id - 2]) {
-          mSharedCount2[candidates[candidates[0].best - 1].id - 2] = 1; // shared between tracks of different iterations
+        const uint32_t id = CandidateClusterId(candidates[helper.getBest() - 1], j);
+        if (helper.getWeight() != mHitWeights[id]) {
+          mSharedCount2[id] = 1; // shared between tracks of different iterations
         }
-      } else if (candidates[0].best != -1 && candidates[0].id >= 2) {
+      } else if (helper.getBest() != trackRebuildHelperRow::bestRowRemoved && candidates[0].hasCluster()) {
         sharedRowCandidates[nSharedRowCandidates++] = j;
       }
     }
@@ -2274,16 +2295,16 @@ GPUd() void GPUTPCGMMerger::ResolveHitWeights2(int32_t nBlocks, int32_t nThreads
       if (nShared) {
         const uint32_t n = Param().rec.tpc.rebuildTrackInFitClusterCandidates;
         const auto* candidates = &mClusterCandidates[i * GPUTPCGeometry::NROWS * n];
-        GPUCommonAlgorithm::sort(sharedRowCandidates, sharedRowCandidates + nSharedRowCandidates, [n, candidates](const uint8_t& a, const uint8_t& b) {
+        GPUCommonAlgorithm::sort(sharedRowCandidates, sharedRowCandidates + nSharedRowCandidates, [n, candidates, this](const uint8_t& a, const uint8_t& b) {
           const auto& ca = candidates[a * n];
           const auto& cb = candidates[b * n];
-          return GPUCA_DETERMINISTIC_CODE(ca.error == cb.error ? ca.id < cb.id : ca.error < cb.error, ca.error < cb.error);
+          return GPUCA_DETERMINISTIC_CODE(ca.error == cb.error ? CandidateClusterId(ca, a) < CandidateClusterId(cb, b) : ca.error < cb.error, ca.error < cb.error);
         });
         for (uint32_t j = 0; j < nShared; j++) {
           auto* cj = &mClusterCandidates[(i * GPUTPCGeometry::NROWS + sharedRowCandidates[j]) * Param().rec.tpc.rebuildTrackInFitClusterCandidates];
-          CADEBUG(printf("REBUILD: iTrk %d Recovering shared %d / %d: row %d %d, error %f\n", i, j, nShared, (int)sharedRowCandidates[j], cj[0].id - 2, cj[0].error));
-          cj[0].best = 1;
-          mSharedCount2[cj[0].id - 2] = 1; // TODO: Should we also recover iter0 clusters?
+          CADEBUG(printf("REBUILD: iTrk %d Recovering shared %d / %d: row %d %d, error %f\n", i, j, nShared, (int)sharedRowCandidates[j], CandidateClusterId(cj[0], sharedRowCandidates[j]), cj[0].error));
+          mTrackRebuildHelperRow[i * GPUTPCGeometry::NROWS + sharedRowCandidates[j]].setBest(1);
+          mSharedCount2[CandidateClusterId(cj[0], sharedRowCandidates[j])] = 1; // TODO: Should we also recover iter0 clusters?
         }
         nHits += nShared;
       }
@@ -2304,17 +2325,18 @@ GPUd() void GPUTPCGMMerger::ResolveHitWeights2(int32_t nBlocks, int32_t nThreads
     const bool reverse = mTrackRebuildHelper[i].reverse; // TODO: CE tracks may have clusters on both sides in the rows around the crossing: make sure the track crosses the CE only once, by cutting at the best row and removing the clusters on the wrong side of the cut
     for (unsigned int j = 0; j < GPUTPCGeometry::NROWS; j++) {
       const auto& candidates = &mClusterCandidates[(i * GPUTPCGeometry::NROWS + j) * Param().rec.tpc.rebuildTrackInFitClusterCandidates];
-      if (candidates[0].best > 0) {
+      if (mTrackRebuildHelperRow[i * GPUTPCGeometry::NROWS + j].getBest() > 0 && mTrackRebuildHelperRow[i * GPUTPCGeometry::NROWS + j].getBest() < trackRebuildHelperRow::bestRowRemoved) {
         auto& outCl = mClusters[iOut + (reverse ? (written) : (nHits - 1 - written))];
-        const auto& best = candidates[candidates[0].best - 1];
-        const ClusterNative& GPUrestrict() cl = GetConstantMem()->ioPtrs.clustersNative->clustersLinear[best.id - 2];
+        const auto& best = candidates[mTrackRebuildHelperRow[i * GPUTPCGeometry::NROWS + j].getBest() - 1];
+        const uint32_t id = CandidateClusterId(best, j);
+        const ClusterNative& GPUrestrict() cl = GetConstantMem()->ioPtrs.clustersNative->clustersLinear[id];
         uint8_t flags = (uint8_t)(cl.getFlags() & GPUTPCGMMergedTrackHit::clustererAndSharedFlags);
         if ((mTrackRebuildHelper[i].highInclRowLow != 255 && j <= mTrackRebuildHelper[i].highInclRowLow) || (mTrackRebuildHelper[i].highInclRowHigh != 255 && j >= mTrackRebuildHelper[i].highInclRowHigh)) {
           flags |= GPUTPCGMMergedTrackHit::flagHighIncl;
         }
-        outCl = {.num = best.id - 2, .sector = best.sector, .row = (uint8_t)j, .state = flags};
+        outCl = {.num = id, .sector = best.getSector(), .row = (uint8_t)j, .state = flags};
         written++;
-        CADEBUG(printf("REBUILD: iTrk %d Assigned Cluster Row %d Hit %d\n", i, j, best.id - 2));
+        CADEBUG(printf("REBUILD: iTrk %d Assigned Cluster Row %d Hit %d\n", i, j, id));
       }
     }
   }
