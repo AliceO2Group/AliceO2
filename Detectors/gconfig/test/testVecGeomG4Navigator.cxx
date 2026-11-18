@@ -263,3 +263,52 @@ BOOST_AUTO_TEST_CASE(a_turn_at_the_face_does_not_change_the_volume_entered)
   // the step decides which volume is entered, not the direction the track has after it
   BOOST_CHECK_MESSAGE(different == 0, different << " boundaries where the turn changed the volume; " << firstDifference);
 }
+
+BOOST_AUTO_TEST_CASE(a_track_tangent_to_a_field_boundary_is_freed_along_its_momentum)
+{
+  // A track on the top face of a lead tile, as under a field: the chord points into the tile, the momentum out of it.
+  auto& nav = *fixture().navigator;
+  const G4ThreeVector face(-5. * cm, -5. * cm, -8.45 * cm);
+  const G4ThreeVector chord = G4ThreeVector(1., 0., -1.e-3).unit();
+  const G4ThreeVector momentum = G4ThreeVector(1., 0., 1.e-3).unit();
+  G4double safety = 0.;
+  // reach the face along the chord from the paper above, so the track ends in the lead
+  G4ThreeVector point = face - 1. * mm * chord;
+  nav.LocateGlobalPointAndSetup(point, &chord, false, false);
+  const double first = nav.ComputeStep(point, chord, 1.e6 * cm, safety);
+  BOOST_REQUIRE_CLOSE(first, 1. * mm, 1.e-6);
+  point += first * chord;
+  nav.SetGeometricallyLimitedStep();
+  nav.LocateGlobalPointAndSetup(point, &momentum, true, false);
+  BOOST_REQUIRE_EQUAL(touchablePath(nav).substr(touchablePath(nav).rfind('/')), "/LEAD_1");
+
+  // Geant4 alternates a straight step along the momentum, which leaves the lead, and a chord step, which enters it again.
+  int zeroSteps = 0, pushedChords = 0;
+  bool moved = false, freed = false;
+  for (int k = 0; k < 24 && !freed; ++k) {
+    const bool alongMomentum = k % 2 == 0;
+    const G4ThreeVector& dir = alongMomentum ? momentum : chord;
+    const double step = nav.ComputeStep(point, dir, 1.e6 * cm, safety);
+    BOOST_TEST_MESSAGE("step " << k << (alongMomentum ? " momentum " : " chord ") << step << " mm in " << touchablePath(nav));
+    if (step < 1.e-10 * mm) {
+      ++zeroSteps;
+    } else if (alongMomentum) {
+      // the lengthened momentum step moves the track off the face
+      point += step * dir;
+      moved = true;
+    } else if (moved) {
+      // the chord reaches the lead only after a real step: the track is off the face
+      freed = true;
+    } else {
+      ++pushedChords;
+      break;
+    }
+    nav.SetGeometricallyLimitedStep();
+    nav.LocateGlobalPointAndSetup(point, &momentum, true, false);
+  }
+  BOOST_TEST_MESSAGE("zero steps " << zeroSteps);
+  BOOST_CHECK_GE(zeroSteps, 10);
+  // a lengthened chord step is a miss for the field propagator, which then never crosses
+  BOOST_CHECK_EQUAL(pushedChords, 0);
+  BOOST_CHECK(freed);
+}

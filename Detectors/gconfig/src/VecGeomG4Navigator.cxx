@@ -164,26 +164,33 @@ G4double VecGeomG4Navigator::ComputeStep(const G4ThreeVector& globalPoint, const
   // lengthened, after twenty-five the event is aborted.
   if (step < 0.05 * kCarTolerance) {
     ++mZeroStepCount;
+    // Without a field Geant4 asks along the momentum it located the track with, and takes a lengthened step.
+    // The field propagator asks along chords and takes a step longer than its chord for a miss.
+    const bool linear = (direction - mLastLocatedDir).mag2() < 1.e-18;
+    mZeroLinearSeen = mZeroLinearSeen || linear;
     if (++mNzeroSteps >= kActionThresholdNoZeroSteps) {
-      ++mStuckPushCount;
-      // The push grows from Geant4's 100 kCarTolerance fourfold per try to a micron and doubles from the
-      // eleventh try on: a track tangent to a curved face stays within the tolerance of it for microns.
-      const int tries = mNzeroSteps - kActionThresholdNoZeroSteps;
-      constexpr double kMicron = 1.e-3 * CLHEP::mm;
-      step += tries < 10 ? std::min(100. * kCarTolerance * std::pow(4., tries), kMicron)
-                         : kMicron * static_cast<double>(2 << (tries - 10));
+      // A track going back and forth over a face between a medium with a field and one without is tangent
+      // to the face: the chord crosses it one way and the momentum the other way. The crossing along the
+      // chord is left at zero length, so that it takes place, and the step along the momentum is lengthened.
+      if (linear || !mZeroLinearSeen) {
+        ++mStuckPushCount;
+        // The push grows fourfold per try from 100 kCarTolerance, capped below the thinnest layers (15 um).
+        constexpr double kMaxStuckPush = 10. * CLHEP::um;
+        const int tries = mNzeroSteps - kActionThresholdNoZeroSteps;
+        step += std::min(100. * kCarTolerance * std::pow(4., tries), kMaxStuckPush);
+      }
       if (mNzeroSteps >= kAbandonThresholdNoZeroSteps) {
         ++mAbandonCount;
         std::ostringstream msg;
         msg << "Track stuck or not moving: " << mNzeroSteps << " zero steps in " << top->GetLabel() << " at ("
             << globalPoint.x() << ", " << globalPoint.y() << ", " << globalPoint.z() << ") mm. Event aborted, as "
             << "G4Navigator does.";
-        mNzeroSteps = 0;
+        resetZeroSteps();
         G4Exception("VecGeomG4Navigator::ComputeStep()", "GeomNav0003", EventMustBeAborted, msg.str().c_str());
       }
     }
   } else {
-    mNzeroSteps = 0;
+    resetZeroSteps();
   }
 
   if (boundaryLimited) {
@@ -314,11 +321,12 @@ G4VPhysicalVolume* VecGeomG4Navigator::LocateGlobalPointAndSetup(const G4ThreeVe
   fExitedMother = false;
   mLocatedOnBoundary = false;
   mLastLocatedPoint = point;
+  mLastLocatedDir = direction != nullptr ? *direction : G4ThreeVector(0., 0., 0.);
   mSafetyOrig = kNoPoint;
   clearLastExited();
 
   if (!relativeSearch) {
-    mNzeroSteps = 0; // a new track: nothing of the previous one applies
+    resetZeroSteps(); // a new track: nothing of the previous one applies
     locateFromWorld(p);
   } else if (topOf(mCurState) == nullptr) {
     locateFromWorld(p);
@@ -383,7 +391,8 @@ G4VPhysicalVolume* VecGeomG4Navigator::LocateGlobalPointAndSetup(const G4ThreeVe
   return updateG4History();
 }
 
-G4VPhysicalVolume* VecGeomG4Navigator::ResetHierarchyAndLocate(const G4ThreeVector& point, const G4ThreeVector&,
+G4VPhysicalVolume* VecGeomG4Navigator::ResetHierarchyAndLocate(const G4ThreeVector& point,
+                                                               const G4ThreeVector& direction,
                                                                const G4TouchableHistory& history)
 {
   // A track resumes from a stored touchable, usually a secondary starting where its parent's step
@@ -395,8 +404,9 @@ G4VPhysicalVolume* VecGeomG4Navigator::ResetHierarchyAndLocate(const G4ThreeVect
   mWouldExit = false;
   mLocatedOnBoundary = false;
   mLastLocatedPoint = point;
+  mLastLocatedDir = direction;
   mSafetyOrig = kNoPoint;
-  mNzeroSteps = 0;
+  resetZeroSteps();
   fHistory = *history.GetHistory();
   const V3 p = toVG(point);
   bool kept = false;
