@@ -21,6 +21,7 @@
 #include "GPUTPCTracker.h"
 #include "GPUTPCTrackParam.h"
 #include "GPUTPCGMMerger.h"
+#include "GPUTPCGMMergerRebuildInternal.h"
 #include "GPUO2DataTypes.h"
 #include "GPUCommonMath.h"
 #include "GPUTPCTrackParam.h"
@@ -273,14 +274,14 @@ void GPUTPCGMMerger::DumpInterpolatedHits(std::ostream& out) const
       out << "Track " << i << ":";
       for (uint32_t j = 0; j < GPUTPCGeometry::NROWS; j++) {
         auto* candidates = &mClusterCandidates[(i * GPUTPCGeometry::NROWS + j) * Param().rec.tpc.rebuildTrackInFitClusterCandidates];
-        if (candidates[0].id) {
-          out << "  Row " << j << ": ";
-          if (candidates[0].best) {
-            out << "  Best " << candidates[0].best << " - ";
+        if (!candidates[0].isEmpty()) {
+          out << "  Row " << j << " (weight " << mTrackRebuildHelperRow[i * GPUTPCGeometry::NROWS + j].getWeight() << "): ";
+          if (mTrackRebuildHelperRow[i * GPUTPCGeometry::NROWS + j].getBest()) {
+            out << "  Best " << mTrackRebuildHelperRow[i * GPUTPCGeometry::NROWS + j].getBest() << " - ";
           }
           for (uint32_t k = 0; k < Param().rec.tpc.rebuildTrackInFitClusterCandidates; k++) {
-            if (candidates[k].id) {
-              out << k << ": id " << candidates[k].id << " err " << candidates[k].error << " weight " << candidates[k].weight << " - ";
+            if (!candidates[k].isEmpty()) {
+              out << k << ": id " << (candidates[k].hasCluster() ? CandidateClusterId(candidates[k], j) + 2 : candidates[k].getValue()) << " err " << (float)candidates[k].error << " - ";
             }
           }
           out << ";  ";

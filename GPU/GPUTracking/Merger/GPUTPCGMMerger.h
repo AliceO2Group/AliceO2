@@ -25,6 +25,7 @@
 #include "GPUTPCGMMergerTypes.h"
 #include "GPUGeneralKernels.h"
 #include "GPUTPCGeometry.h"
+#include "GPUCommonMath.h"
 
 #if !defined(GPUCA_GPUCODE)
 #include <cmath>
@@ -79,20 +80,15 @@ class GPUTPCGMMerger : public GPUProcessor
     GPUAtomic(uint32_t) nLooperMatchCandidates;
   };
 
-  struct trackCluster { // TODO: Reduce size of this struct!
+  struct trackCluster {
     uint32_t id;
     uint8_t row;
     uint8_t sector;
-    float error;
-    int32_t weight;
-    int32_t best;
   };
 
-  struct trackRebuildHelper {
-    uint8_t reverse;
-    uint8_t highInclRowLow;
-    uint8_t highInclRowHigh;
-  };
+  struct trackRebuildHelperCandidate; // Rebuild structs are defined in GPUTPCGMMergerRebuildInternal.h
+  struct trackRebuildHelper;
+  struct trackRebuildHelperRow;
 
   struct tmpSort {
     uint32_t x;
@@ -113,6 +109,7 @@ class GPUTPCGMMerger : public GPUProcessor
   void SetMaxData(const GPUTrackingInOutPointers& io);
   void* SetPointersMerger(void* mem);
   void* SetPointersRefitScratch(void* mem);
+  void* SetPointersRebuild(void* mem);
   void* SetPointersOutput(void* mem);
   void* SetPointersOutputO2(void* mem);
   void* SetPointersOutputO2Clus(void* mem);
@@ -136,7 +133,8 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUhdi() uint32_t NMergedTrackClusters() const { return mMemory->nMergedTrackClusters; }
   GPUhdi() const GPUTPCGMMergedTrackHit* Clusters() const { return mClusters; }
   GPUhdi() GPUTPCGMMergedTrackHit* Clusters() { return mClusters; }
-  GPUhdi() trackCluster* ClusterCandidates() { return mClusterCandidates; }
+  GPUhdi() trackRebuildHelperCandidate* ClusterCandidates() { return mClusterCandidates; }
+  GPUhdi() trackRebuildHelperRow* TrackRebuildHelperRow() { return mTrackRebuildHelperRow; }
   GPUhdi() trackRebuildHelper* TrackRebuildHelper() { return mTrackRebuildHelper; }
   GPUhdi() int32_t* HitWeights() { return mHitWeights; }
   GPUhdi() GPUAtomic(uint32_t) * ClusterAttachment() const { return mClusterAttachment; }
@@ -173,6 +171,7 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUd() uint16_t MemoryResOutputO2Clus() const { return mMemoryResOutputO2Clus; }
   GPUd() uint16_t MemoryResOutputO2MC() const { return mMemoryResOutputO2MC; }
   GPUd() uint16_t MemoryResOutputO2Scratch() const { return mMemoryResOutputO2Scratch; }
+  GPUd() uint16_t MemoryResRebuild() const { return mMemoryResRebuild; }
 
   GPUd() int32_t RefitSectorTrack(GPUTPCGMSectorTrack& sectorTrack, const GPUTPCTrack* inTrack, float alpha, int32_t sector);
   GPUd() void SetTrackClusterT(GPUTPCGMSectorTrack& track, int32_t iSector, const GPUTPCTrack* sectorTr);
@@ -210,6 +209,8 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUd() void MergeLoopersInit(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
   GPUd() void MergeLoopersSort(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
   GPUd() void MergeLoopersMain(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
+  GPUd() uint32_t CandidateId(uint32_t clusterId, uint8_t sector, uint8_t row) const;           // Id for trackRebuildHelperCandidate (index in the sector row) of a global cluster id
+  GPUd() uint32_t CandidateClusterId(trackRebuildHelperCandidate candidate, uint8_t row) const; // Global cluster id of a candidate with cluster
   GPUd() void PrepareHitWeights(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
   GPUd() void ComputeHitWeights(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iteration);
   GPUd() void ResolveHitWeights1(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iteration);
@@ -294,11 +295,13 @@ class GPUTPCGMMerger : public GPUProcessor
   uint16_t mMemoryResOutputO2Clus = (uint16_t)-1;
   uint16_t mMemoryResOutputO2MC = (uint16_t)-1;
   uint16_t mMemoryResOutputO2Scratch = (uint16_t)-1;
+  uint16_t mMemoryResRebuild = (uint16_t)-1;
 
-  int32_t mNSectorHits = 0;                         // Total number of incoming clusters (from sector tracks)
-  GPUTPCGMMergedTrack* mMergedTracks = nullptr;     //* array of output merged tracks
+  int32_t mNSectorHits = 0;                     // Total number of incoming clusters (from sector tracks)
+  GPUTPCGMMergedTrack* mMergedTracks = nullptr; //* array of output merged tracks
   o2::MCCompLabel* mMergedTrackMC = nullptr;
-  trackCluster* mClusterCandidates = nullptr;
+  trackRebuildHelperCandidate* mClusterCandidates = nullptr;
+  trackRebuildHelperRow* mTrackRebuildHelperRow = nullptr;
   trackRebuildHelper* mTrackRebuildHelper = nullptr;
   int32_t* mHitWeights = nullptr;
 

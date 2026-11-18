@@ -19,6 +19,7 @@
 #include "GPUO2DataTypes.h"
 #include "GPUQA.h"
 #include "GPUTPCGMMerger.h"
+#include "GPUTPCGMMergerRebuildInternal.h"
 #include "GPUConstantMem.h"
 #include "GPUTPCGMMergerGPU.h"
 #include "GPUTPCGMO2Output.h"
@@ -206,6 +207,9 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
     Merger.CheckCollectedTracks();
   }
 
+  if (param().rec.tpc.rebuildTrackInFit) {
+    mRec->PushNonPersistentMemory(qStr2Tag("TPCREBLD")); // The rebuild memory is freed after the fit, before the O2 output
+  }
   runKernel<GPUMemClean16>({{numBlocks, -ThreadCount(), 0, deviceType, RecoStep::TPCMerging}}, MergerShadow.SharedCount(), Merger.NClusters() * sizeof(*MergerShadow.SharedCount()));
   runKernel<GPUMemClean16>({{numBlocks, -ThreadCount(), 0, deviceType, RecoStep::TPCMerging}}, MergerShadow.ClusterAttachment(), Merger.NClusters() * sizeof(*MergerShadow.ClusterAttachment()));
   runKernel<GPUTPCGMMergerPrepareForFit, 0>(GetGridAuto(0, deviceType));
@@ -233,7 +237,10 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   }
 
   if (param().rec.tpc.rebuildTrackInFit) {
+    AllocateRegisteredMemory(Merger.MemoryResRebuild()); // Sized by the number of merged tracks, which was transferred to the host above
+    WriteToConstantMemory(RecoStep::TPCMerging, (char*)&processors()->tpcMerger - (char*)processors(), &MergerShadow, sizeof(MergerShadow), 0);
     runKernel<GPUMemClean16>({{numBlocks, -ThreadCount(), 0, deviceType, RecoStep::TPCMerging}}, MergerShadow.ClusterCandidates(), Merger.NMergedTracks() * GPUTPCGeometry::NROWS * param().rec.tpc.rebuildTrackInFitClusterCandidates * sizeof(*MergerShadow.ClusterCandidates()));
+    runKernel<GPUMemClean16>({{numBlocks, -ThreadCount(), 0, deviceType, RecoStep::TPCMerging}}, MergerShadow.TrackRebuildHelperRow(), Merger.NMergedTracks() * GPUTPCGeometry::NROWS * sizeof(*MergerShadow.TrackRebuildHelperRow()));
   }
   // mRec->SetNActiveThreads(1); // For GPUTPCGMTrackParam:: GPUCA_CADEBUG: run the host kernels from here on with 1 thread, reset below
   runKernel<GPUTPCGMMergerTrackFit, GPUTPCGMMergerTrackFit::def>(doGPU ? GetGrid(Merger.NMergedTracks(), 0) : GetGridAuto(0));
@@ -254,6 +261,9 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   }
   if (param().rec.tpc.retryRefit) {
     runKernel<GPUTPCGMMergerTrackFit, GPUTPCGMMergerTrackFit::retry>(GetGridAuto(0));
+  }
+  if (param().rec.tpc.rebuildTrackInFit) {
+    mRec->PopNonPersistentMemory(RecoStep::TPCMerging, qStr2Tag("TPCREBLD"));
   }
 
   runKernel<GPUTPCGMMergerFollowLoopers>(GetGridAuto(0));
