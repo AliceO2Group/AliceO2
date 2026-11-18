@@ -158,9 +158,8 @@ struct TrackingParameters {
   float VtxNSigmaCut = -1.f;
   float VtxDuplicateZCut = -1.f;
   float VtxDuplicateZScale = -1.f;
-  float VtxFineZWindow = -1.f;
-  int VtxFineMinDensity = -1;
-  float VtxFineMaxDrift = -1.f;
+  float VtxAdaptiveZWindowAlpha = 0.3f; // per-line z window, see VertexerParamConfig::adaptiveZWindowAlpha
+  float VtxAdaptiveZWindowMin = 0.0075f;
   float VtxGoodLineChi2Cut = -1.f;
   float VtxGoodLinePtCut = -1.f;
   float VtxGoodContributorsSignificance = -1.f;

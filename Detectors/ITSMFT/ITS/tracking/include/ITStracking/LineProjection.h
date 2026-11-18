@@ -17,6 +17,7 @@
 #define O2_ITS_TRACKING_LINE_PROJECTION_H_
 
 #include "GPUCommonDef.h"
+#include "GPUCommonMath.h"
 #include "DataFormatsITS/TimeEstBC.h"
 #include <cstdint>
 #include <vector>
@@ -29,6 +30,28 @@ struct LineWindow {
   int lo{0};
   int hi{0};
 };
+
+// Every line gets its own z window: from the number n of time-compatible lines within +-hMax,
+// h = hMax (n/4)^-alpha, clamped to [hMin, hMax]. Peaks compare count/h.
+constexpr int AdaptiveZWindowNRef = 4;         // up to this many lines the window keeps its full width hMax
+constexpr float AdaptiveSeedWindowScale = 2.f; // the seed fit uses the lines within +-2h (at most +-hMax)
+
+GPUhdi() float computeAdaptiveZWindow(const int n, const float alpha, const float hMin, const float hMax)
+{
+  if (n <= AdaptiveZWindowNRef) {
+    return hMax;
+  }
+  const float h = hMax * o2::gpu::CAMath::Pow(static_cast<float>(n) / AdaptiveZWindowNRef, -alpha);
+  return o2::gpu::CAMath::Min(o2::gpu::CAMath::Max(h, hMin), hMax);
+}
+
+// True if line j (density dj over half-width hj, at zj) beats line i: higher dj/hj, ties to the smaller z
+GPUhdi() bool isDenser(const int dj, const float hj, const float zj, const int di, const float hi, const float zi)
+{
+  const float a = dj * hi;
+  const float b = di * hj;
+  return a > b || (a == b && zj < zi);
+}
 
 // Per-line quality estimators carried alongside the projected line.
 struct LineQuality {
@@ -79,7 +102,6 @@ struct VertexCand {
   int size;
   uint8_t ok;   // 1 if the candidate passed the fit cuts
   uint8_t keep; // 1 if it survived duplicate suppression (subset of ok)
-  uint8_t fine;
 };
 
 } // namespace gpu

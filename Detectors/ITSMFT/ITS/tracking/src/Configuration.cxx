@@ -315,9 +315,8 @@ std::vector<TrackingParameters> TrackingMode::getTrackingParameters(TrackingMode
     seedingPass.VtxNSigmaCut = vc.nSigmaCut;
     seedingPass.VtxDuplicateZCut = vc.duplicateZCut;
     seedingPass.VtxDuplicateZScale = vc.duplicateZScale;
-    seedingPass.VtxFineZWindow = vc.fineZWindow;
-    seedingPass.VtxFineMinDensity = vc.fineMinDensity;
-    seedingPass.VtxFineMaxDrift = vc.fineMaxDrift;
+    seedingPass.VtxAdaptiveZWindowAlpha = vc.adaptiveZWindowAlpha;
+    seedingPass.VtxAdaptiveZWindowMin = vc.adaptiveZWindowMin;
     seedingPass.VtxGoodLineChi2Cut = vc.goodLineChi2Cut;
     seedingPass.VtxGoodLinePtCut = vc.goodLinePtCut;
     seedingPass.VtxGoodContributorsSignificance = vc.goodContributorsSignificance;

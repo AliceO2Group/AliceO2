@@ -166,9 +166,9 @@ class TimeFrameGPU : public TimeFrame<NLayers>
   int* getDeviceLineDensity() { return mLineDensityDevice; }
   gpu::LineWindow* getDeviceLineWin() { return mLineWinDevice; }
   uint8_t* getDeviceLineIsPeak() { return mLineIsPeakDevice; }
-  int* getDeviceLineDensityFine() { return mLineDensityFineDevice; }
-  gpu::LineWindow* getDeviceLineWinFine() { return mLineWinFineDevice; }
-  uint8_t* getDeviceLineIsPeakFine() { return mLineIsPeakFineDevice; }
+  gpu::LineWindow* getDeviceLineWinPeak() { return mLineWinPeakDevice; }
+  float* getDeviceLineHalfWidth() { return mLineHalfWidthDevice; }
+  gpu::LineWindow* getDeviceLineWinSeed() { return mLineWinSeedDevice; }
   int* getDevicePeakScan() { return mPeakScanDevice; }
   int* getDevicePeakLineIdx() { return mPeakLineIdxDevice; }
   int* getDevicePeakOffsets() { return mPeakOffsetsDevice; }
@@ -327,12 +327,12 @@ class TimeFrameGPU : public TimeFrame<NLayers>
   int* mLinesSortedIdx{nullptr};
   int* mLineRofSortedDevice{nullptr};       // per (sorted) line's ROF
   int* mRofLineOffsetsDevice{nullptr};      // CSR offsets into the (rof,z)-sorted lines, size nRofs+1
-  int* mLineDensityDevice{nullptr};         // per (sorted) line: count of time-compatible neighbours in its z-window
-  gpu::LineWindow* mLineWinDevice{nullptr}; // per (sorted) line: [lo,hi) bounds of its z-window (sorted coords)
-  uint8_t* mLineIsPeakDevice{nullptr};      // per (sorted) line: 1 if it is a local density peak (vertex candidate)
-  int* mLineDensityFineDevice{nullptr};
-  gpu::LineWindow* mLineWinFineDevice{nullptr};
-  uint8_t* mLineIsPeakFineDevice{nullptr};
+  int* mLineDensityDevice{nullptr};             // per (sorted) line: count of time-compatible neighbours in its own z window (+-h)
+  gpu::LineWindow* mLineWinDevice{nullptr};     // per (sorted) line: [lo,hi) bounds of +-zWindow, where members are collected (sorted coords)
+  uint8_t* mLineIsPeakDevice{nullptr};          // per (sorted) line: 1 if it is a local density peak (vertex candidate)
+  gpu::LineWindow* mLineWinPeakDevice{nullptr}; // per (sorted) line: [lo,hi) bounds of its own z window +-h (peak search)
+  float* mLineHalfWidthDevice{nullptr};         // per (sorted) line: h
+  gpu::LineWindow* mLineWinSeedDevice{nullptr}; // per (sorted) line: [lo,hi) bounds of the seed-fit window +-2h
   int* mPeakScanDevice{nullptr};    // per (sorted) line: number of peaks strictly before it
   int* mPeakLineIdxDevice{nullptr}; // per peak slot: the sorted line index it came from
   int* mPeakOffsetsDevice{nullptr}; // CSR offsets into the compacted peaks

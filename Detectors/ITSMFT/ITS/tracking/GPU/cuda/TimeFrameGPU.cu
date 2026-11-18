@@ -581,9 +581,9 @@ void TimeFrameGPU<NLayers>::createLinesDevice(const int nCells)
   mLineDensityDevice = allocDeviceAsync<int>(nCells, mGpuStreams[0], kStack);
   mLineWinDevice = allocDeviceAsync<gpu::LineWindow>(nCells, mGpuStreams[0], kStack);
   mLineIsPeakDevice = allocDeviceAsync<uint8_t>(nCells, mGpuStreams[0], kStack);
-  mLineDensityFineDevice = allocDeviceAsync<int>(nCells, mGpuStreams[0], kStack);
-  mLineWinFineDevice = allocDeviceAsync<gpu::LineWindow>(nCells, mGpuStreams[0], kStack);
-  mLineIsPeakFineDevice = allocDeviceAsync<uint8_t>(nCells, mGpuStreams[0], kStack);
+  mLineWinPeakDevice = allocDeviceAsync<gpu::LineWindow>(nCells, mGpuStreams[0], kStack);
+  mLineHalfWidthDevice = allocDeviceAsync<float>(nCells, mGpuStreams[0], kStack);
+  mLineWinSeedDevice = allocDeviceAsync<gpu::LineWindow>(nCells, mGpuStreams[0], kStack);
   mPeakScanDevice = allocDeviceAsync<int>((nCells + 1), mGpuStreams[0], kStack);
   mPeakLineIdxDevice = allocDeviceAsync<int>(nCells, mGpuStreams[0], kStack);
   mPeakOffsetsDevice = allocDeviceAsync<int>((this->getNrof(1) + 1), mGpuStreams[0], kStack);
