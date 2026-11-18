@@ -107,6 +107,13 @@ class CDBInterface
   /// \return gain map object
   const CalPad& getGainMap();
 
+  /// Return the gain map object applied in the simulation
+  ///
+  /// As getGainMap, but from the CCDB the gain map for MC (TPC/Calib/PadGainFullMC) is used, so that the simulation
+  /// can apply a different gain map than the one the reconstruction corrects with.
+  /// \return gain map object
+  const CalPad& getGainMapMC();
+
   /// Return the ion tail coupling fraction
   ///
   /// \return ion tail fraction
