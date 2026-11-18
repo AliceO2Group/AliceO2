@@ -75,6 +75,7 @@ class HistoManager : public TObjArray
 
   void purify(bool emptyToo = kFALSE);
 
+  using TObjArray::Print;
   void Print(Option_t* option = "") const override;
   void Clear(Option_t* option = "") override;
   void Delete(Option_t* option = "") override;
