@@ -121,6 +121,13 @@ class VecGeomG4Navigator : public VecGeomG4NavigatorBase
   static constexpr int kActionThresholdNoZeroSteps = 10;
   static constexpr int kAbandonThresholdNoZeroSteps = 25;
   int mNzeroSteps = 0;
+  bool mZeroLinearSeen = false; ///< a step along the located momentum occurred in the current run of zero steps
+  void resetZeroSteps()
+  {
+    mNzeroSteps = 0;
+    mZeroLinearSeen = false;
+  }
+  G4ThreeVector mLastLocatedDir; ///< the direction the last locate was given
 
   // What the navigator had to work around, reported at the end.
   long mZeroStepCount = 0;
