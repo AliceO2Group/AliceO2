@@ -22,7 +22,7 @@
 
 // This is a temporary workaround required for clang (with c++20), until we can go to C++23 with P2280R4, which allows getting constexpr static values from references
 
-#if defined(__clang__) && __cplusplus >= 202002L && __cplusplus < 202302L
+#if (defined(__clang__) && __cplusplus >= 202002L && __cplusplus < 202302L) || defined(__CPUDEVICE__) // BUG: The workaround is needed for GCC if used inside a templated function.
 
 namespace o2::gpu::internal
 {

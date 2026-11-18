@@ -196,7 +196,7 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
     waitForTransfer = 1;
   }
 
-  const bool mergerSortTracks = GetProcessingSettings().mergerSortTracks == -1 ? mRec->getGPUParameters(doGPU).par_SORT_BEFORE_FIT : GetProcessingSettings().mergerSortTracks;
+  const bool mergerSortTracks = mRec->getGPUParameters(doGPU).par_SORT_BEFORE_FIT;
   if (mergerSortTracks) {
     runKernel<GPUTPCGMMergerSortTracksPrepare>(GetGridAuto(0, deviceType));
     CondWaitEvent(waitForTransfer, &mEvents->single);
@@ -236,7 +236,7 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
     runKernel<GPUMemClean16>({{numBlocks, -ThreadCount(), 0, deviceType, RecoStep::TPCMerging}}, MergerShadow.ClusterCandidates(), Merger.NMergedTracks() * GPUTPCGeometry::NROWS * param().rec.tpc.rebuildTrackInFitClusterCandidates * sizeof(*MergerShadow.ClusterCandidates()));
   }
   // mRec->SetNActiveThreads(1); // For GPUTPCGMTrackParam:: GPUCA_CADEBUG: run the host kernels from here on with 1 thread, reset below
-  runKernel<GPUTPCGMMergerTrackFit>(doGPU ? GetGrid(Merger.NMergedTracks(), 0) : GetGridAuto(0), mergerSortTracks ? 1 : 0, 0);
+  runKernel<GPUTPCGMMergerTrackFit, GPUTPCGMMergerTrackFit::def>(doGPU ? GetGrid(Merger.NMergedTracks(), 0) : GetGridAuto(0));
   if (param().rec.tpc.rebuildTrackInFit) {
     runKernel<GPUMemClean16>({{numBlocks, -ThreadCount(), 0, deviceType, RecoStep::TPCMerging}}, MergerShadow.HitWeights(), Merger.NClusters() * sizeof(*MergerShadow.HitWeights()));
     runKernel<GPUTPCGMMergerHitWeights, GPUTPCGMMergerHitWeights::prepare>(doGPU ? GetGrid(Merger.NMergedTracks(), 0) : GetGridAuto(0), 0);
@@ -250,10 +250,10 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
     DoDebugAndDump(RecoStep::TPCMerging, GPUChainTrackingDebugFlags::TPCMergingRefit, Merger, &GPUTPCGMMerger::DumpInterpolatedHits, *mDebugFile);
     runKernel<GPUTPCGMMergerHitWeights, GPUTPCGMMergerHitWeights::resolveShared>(doGPU ? GetGrid(Merger.NMergedTracks(), 0) : GetGridAuto(0), 0);
     DoDebugAndDump(RecoStep::TPCMerging, GPUChainTrackingDebugFlags::TPCMergingRefit, Merger, &GPUTPCGMMerger::DumpRebuiltTracks, *mDebugFile);
-    runKernel<GPUTPCGMMergerTrackFit>(doGPU ? GetGrid(Merger.NMergedTracks(), 0) : GetGridAuto(0), mergerSortTracks ? 1 : 0, 1);
+    runKernel<GPUTPCGMMergerTrackFit, GPUTPCGMMergerTrackFit::rebuild>(doGPU ? GetGrid(Merger.NMergedTracks(), 0) : GetGridAuto(0));
   }
   if (param().rec.tpc.retryRefit) {
-    runKernel<GPUTPCGMMergerTrackFit>(GetGridAuto(0), -1, param().rec.tpc.rebuildTrackInFit);
+    runKernel<GPUTPCGMMergerTrackFit, GPUTPCGMMergerTrackFit::retry>(GetGridAuto(0));
   }
 
   runKernel<GPUTPCGMMergerFollowLoopers>(GetGridAuto(0));

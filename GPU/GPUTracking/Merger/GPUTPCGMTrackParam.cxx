@@ -56,11 +56,13 @@ static thread_local bool CADEBUG_CONDITION = true;
 using namespace o2::gpu;
 using namespace o2::tpc;
 
-GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_t iTrk, int32_t& GPUrestrict() N, int32_t& GPUrestrict() NTolerated, float& GPUrestrict() Alpha, GPUTPCGMMergedTrack& GPUrestrict() track, bool rebuilt, bool retryAttempt)
+template <bool rebuiltKernel, bool retryAttempt>
+GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_t iTrk, int32_t& GPUrestrict() N, int32_t& GPUrestrict() NTolerated, float& GPUrestrict() Alpha, GPUTPCGMMergedTrack& GPUrestrict() track)
 {
   constexpr float maxSinPhi = constants::MAX_SIN_PHI;
 
   const GPUParam& GPUrestrict() param = merger.Param();
+  const bool rebuilt = retryAttempt ? param.rec.tpc.rebuildTrackInFit : rebuiltKernel; // The retry runs on the rebuilt tracks if the rebuild is enabled
   const float maxSinForUpdate = param.rec.tpc.maxSinPhiForFitUpdate;
   GPUTPCGMMergedTrackHit* GPUrestrict() clusters = merger.Clusters() + track.FirstClusterRef();
 
@@ -1488,11 +1490,13 @@ GPUd() bool GPUTPCGMTrackParam::CheckNumericalQuality(float overrideCovYY) const
   return ok;
 }
 
-GPUdii() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& GPUrestrict() track, int32_t iTrk, GPUTPCGMMerger& GPUrestrict() merger, bool rebuilt, bool retryAttempt)
+template <bool rebuiltKernel, bool retryAttempt>
+GPUdii() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& GPUrestrict() track, int32_t iTrk, GPUTPCGMMerger& GPUrestrict() merger)
 {
   if (!track.OK()) {
     return;
   }
+  const bool rebuilt = retryAttempt ? merger.Param().rec.tpc.rebuildTrackInFit : rebuiltKernel;
 
   CADEBUG3(if (GPUCA_CADEBUG_ENABLED >= 2) { static const std::set<int32_t> dbgTracks = []() { std::set<int32_t> m; if (const char* e = getenv("DEBUG_TRACK")) { std::string s(e); for (char* t = strtok(s.data(), ";, \n\t"); t; t = strtok(nullptr, ";, \n\t")) { m.insert(atoi(t)); } } return m; }(); CADEBUG_CONDITION = dbgTracks.count(iTrk); });
 
@@ -1500,7 +1504,7 @@ GPUdii() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& GPUrestrict() 
   int32_t NTolerated = 0; // Clusters not fit but tollerated for track length cut
   GPUTPCGMTrackParam t = track.Param();
   float Alpha = track.Alpha();
-  bool ok = t.Fit(merger, iTrk, nTrackHits, NTolerated, Alpha, track, rebuilt, retryAttempt);
+  bool ok = t.Fit<rebuiltKernel, retryAttempt>(merger, iTrk, nTrackHits, NTolerated, Alpha, track);
   CADEBUG(if (!merger.Param().rec.tpc.rebuildTrackInFit || rebuilt) printf("Finished Fit Track %7d --- OUTPUT hits %d -> %d+%d = %d, QPt %f -> %f, SP %f, OK %d chi2 %f chi2ndf %f\n", iTrk, track.NClusters(), nTrackHits, NTolerated, nTrackHits + NTolerated, track.GetParam().GetQPt(), t.QPt(), t.SinPhi(), (int32_t)ok, t.Chi2(), t.Chi2() / CAMath::Max(1, nTrackHits)));
 
   if (!ok && (!merger.Param().rec.tpc.rebuildTrackInFit || rebuilt) && !retryAttempt && merger.Param().rec.tpc.retryRefit) {
@@ -1535,6 +1539,12 @@ GPUdii() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& GPUrestrict() 
 
   // if (track.OK()) merger.DebugRefitMergedTrack(track);
 }
+
+#ifndef GPUCA_GPUCODE // The host needs explicit instantiations, RefitTrack is called from another compilation unit
+template void GPUTPCGMTrackParam::RefitTrack<false, false>(GPUTPCGMMergedTrack& track, int32_t iTrk, GPUTPCGMMerger& merger);
+template void GPUTPCGMTrackParam::RefitTrack<true, false>(GPUTPCGMMergedTrack& track, int32_t iTrk, GPUTPCGMMerger& merger);
+template void GPUTPCGMTrackParam::RefitTrack<false, true>(GPUTPCGMMergedTrack& track, int32_t iTrk, GPUTPCGMMerger& merger);
+#endif
 
 GPUd() void GPUTPCGMTrackParam::Rotate(float alpha)
 {
