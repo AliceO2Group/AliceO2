@@ -40,7 +40,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"draw-external-only", VariantType::Bool, false, {"just draw content of comma-separated list of histomanagers from checkresid.ext_hm_list"}},
     {"postproc-external-only", VariantType::Bool, false, {"just post-process raw content of comma-separated list of histomanagers from checkresid.ext_hm_list"}},
     {"track-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of track sources to use"}},
-    {"cluster-sources", VariantType::String, "ITS", {"comma-separated list of cluster sources to use"}},
+    {"cluster-sources", VariantType::String, "ITS", {"comma-separated list of cluster sources to use (ITS, optionally TRD and/or TOF to get also extrapolation residuals to TRD tracklets / TOF clusters)"}},
     {"disable-root-input", VariantType::Bool, false, {"disable root-files input reader"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
 
@@ -61,7 +61,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   bool postProcOnly = configcontext.options().get<bool>("postproc-external-only");
   bool doStag = o2::itsmft::DPLAlpideParamInitializer::isITSStaggeringEnabled(configcontext);
   GID::mask_t allowedSourcesTrc = GID::getSourcesMask("ITS,ITS-TPC,ITS-TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
-  GID::mask_t allowedSourcesClus = GID::getSourcesMask("ITS");
+  GID::mask_t allowedSourcesClus = GID::getSourcesMask("ITS,TRD,TOF");
 
   // Update the (declared) parameters if changed from the command line
   const std::string PVDef = "pvertexer.useMeanVertexConstraint=false;pvertexer.meanVertexExtraErrSelection=0.2;pvertexer.iniScale2=100;pvertexer.acceptableScale2=10.;pvertexer.useTimeInChi2=false;";
