@@ -16,6 +16,7 @@
 #define GPUTPCGMMERGERTYPES_H
 
 #include "GPUTPCDef.h"
+#include "GPUCommonMath.h"
 #include "GPUGeneralKernels.h"
 
 namespace o2::gpu::gputpcgmmergertypes

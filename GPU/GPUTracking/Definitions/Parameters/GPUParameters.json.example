@@ -588,10 +588,10 @@
     "MERGER_INTERPOLATION_ERROR_TYPE": {
       "default":      "float",
       "default_cpu":  "float",
-      "MI100":        "half",
-      "VEGA":         "half",
-      "AMPERE":       "half",
-      "TURING":       "half"
+      "MI100":        "CAMath::half_t",
+      "VEGA":         "CAMath::half_t",
+      "AMPERE":       "CAMath::half_t",
+      "TURING":       "CAMath::half_t"
     },
     "COMP_GATHER_KERNEL": {
       "default":      0,

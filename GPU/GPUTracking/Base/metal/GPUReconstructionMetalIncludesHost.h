@@ -22,9 +22,6 @@
 #ifndef __METAL_VERSION__
 // __METAL_VERSION__ is only defined in device code.
 #define __METAL_HOST__
-// The parameter table picks MSL's `half` for the device layouts this translation
-// unit has to agree with; _Float16 is the same IEEE binary16 type.
-using half = _Float16;
 #endif
 
 #import <Foundation/Foundation.h>

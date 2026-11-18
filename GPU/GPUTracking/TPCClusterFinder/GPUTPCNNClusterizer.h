@@ -15,12 +15,13 @@
 #ifndef O2_GPUTPCNNCLUSTERIZER_H
 #define O2_GPUTPCNNCLUSTERIZER_H
 
+#include "GPUCommonMath.h"
 #include "CfChargePos.h"
 #include "GPUProcessor.h"
 
 namespace o2::OrtDataType
 {
-struct Float16_t;
+using Float16_t = o2::gpu::GPUCommonMath::half_t;
 }
 
 namespace o2::gpu

@@ -13,7 +13,6 @@
 /// \author Christian Sonnabend
 
 #include "GPUReconstruction.h"
-#include "ML/3rdparty/GPUORTFloat16.h"
 #include "GPUTPCNNClusterizer.h"
 #include "GPUSettings.h"
 #include "GPUCommonLogger.h"

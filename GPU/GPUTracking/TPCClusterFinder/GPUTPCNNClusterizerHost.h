@@ -29,11 +29,6 @@ struct Env;
 struct MemoryInfo;
 } // namespace Ort
 
-namespace o2::OrtDataType
-{
-struct Float16_t;
-}
-
 namespace o2::gpu
 {
 

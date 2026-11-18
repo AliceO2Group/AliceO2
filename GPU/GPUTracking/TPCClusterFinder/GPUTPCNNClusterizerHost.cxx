@@ -17,7 +17,6 @@
 #include "GPUTPCNNClusterizerHost.h"
 #include "GPUTPCNNClusterizer.h"
 #include "GPUSettings.h"
-#include "ML/3rdparty/GPUORTFloat16.h"
 #include "GPUReconstruction.h"
 #include "GPUTPCGeometry.h"
 #include "DataFormatsTPC/Constants.h"
