@@ -107,14 +107,14 @@ inline T RegularSpline1D::getSpline(const int32_t iknot1, T f0, T f1, T f2, T f3
   f2 -= f1;
   f3 -= f1;
 
-  const T half(0.5f);
+  const T half_value(0.5f);
 
   // Scale u so that the knot1 is at 0.0 and the knot2 is at 1.0
   T x = T((mNumberOfKnots - 1) * u - iknot1);
   T x2 = x * x;
 
-  T z1 = half * (f2 - f0); // scaled u derivative at the knot 1
-  T z2 = half * f3;        // scaled u derivative at the knot 2
+  T z1 = half_value * (f2 - f0); // scaled u derivative at the knot 1
+  T z2 = half_value * f3;        // scaled u derivative at the knot 2
 
   // f(u) = a*u^3 + b*u^2 + c*u + d
   //

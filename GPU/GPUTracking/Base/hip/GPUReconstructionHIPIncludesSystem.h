@@ -25,5 +25,6 @@
 #include <thrust/sort.h>
 #include <thrust/execution_policy.h>
 #include <thrust/device_ptr.h>
+#include <hip/hip_fp16.h>
 
 #endif // O2_GPU_RECONSTRUCTIONHIPINCLUDESSYSTEM_H

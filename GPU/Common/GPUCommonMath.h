@@ -19,6 +19,11 @@
 
 #if defined(__CUDACC__) && !defined(__clang__) && !defined(GPUCA_GPUCODE_COMPILEKERNELS) && !defined(GPUCA_GPUCODE_HOSTONLY)
 #include <sm_20_atomic_functions.h>
+#include <cuda_fp16.h>
+#endif
+
+#if defined(__HIPCC__) && !defined(GPUCA_GPUCODE_COMPILEKERNELS) && !defined(GPUCA_GPUCODE_HOSTONLY)
+#include <hip/hip_fp16.h>
 #endif
 
 #if !defined(GPUCA_GPUCODE_DEVICE)
@@ -27,6 +32,9 @@
 #include <atomic>
 #include <limits>
 #include <cstring>
+#if __cplusplus >= 202302L && __has_include(<stdfloat>)
+#include <stdfloat>
+#endif
 #endif
 
 #if !defined(GPUCA_GPUCODE_COMPILEKERNELS) && (!defined(GPUCA_GPUCODE_DEVICE) || defined(__CUDACC__) || defined(__HIPCC__))
@@ -48,6 +56,14 @@ namespace o2::gpu
 class GPUCommonMath
 {
  public:
+#if (defined(GPUCA_GPUCODE_DEVICE) && !defined(__CPUDEVICE__)) || defined(__CUDACC__)
+  using half_t = half;
+#elif __cplusplus >= 202302L && defined(__STDCPP_FLOAT16_T__)
+  using half_t = std::float16_t;
+#else
+  using half_t = _Float16;
+#endif
+
   GPUd() static float2 MakeFloat2(float x, float y); // TODO: Find better appraoch that is constexpr
 
   template <class T>
