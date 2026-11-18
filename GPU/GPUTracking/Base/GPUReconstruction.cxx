@@ -301,9 +301,6 @@ int32_t GPUReconstruction::InitPhaseBeforeDevice()
   if (!GetProcessingSettings().createO2Output || !IsGPU()) {
     mProcessingSettings->clearO2OutputFromGPU = false;
   }
-  if (!(mRecoSteps.stepsGPUMask & gpudatatypes::RecoStep::TPCMerging)) {
-    mProcessingSettings->mergerSortTracks = false;
-  }
   if (GetProcessingSettings().debugLevel > 3 || !IsGPU() || GetProcessingSettings().deterministicGPUReconstruction) {
     mProcessingSettings->delayedOutput = false;
   }

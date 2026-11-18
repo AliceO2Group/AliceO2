@@ -35,8 +35,11 @@ class GPUTPCGMMergerGeneral : public GPUKernelTemplate
 class GPUTPCGMMergerTrackFit : public GPUTPCGMMergerGeneral
 {
  public:
+  enum K { def = 0,
+           rebuild = 1,
+           retry = 2 };
   template <int32_t iKernel = defaultKernel>
-  GPUd() static void Thread(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& merger, int32_t mode, int32_t rebuilt);
+  GPUd() static void Thread(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& merger);
 };
 
 class GPUTPCGMMergerFollowLoopers : public GPUTPCGMMergerGeneral
