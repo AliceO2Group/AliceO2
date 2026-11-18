@@ -176,6 +176,17 @@ const CalPad& CDBInterface::getGainMap()
 }
 
 //______________________________________________________________________________
+const CalPad& CDBInterface::getGainMapMC()
+{
+  // a gain map from file or the default one is the same for the simulation and the reconstruction
+  if (mGainMapFileName.size() || mUseDefaults) {
+    return getGainMap();
+  }
+
+  return getObjectFromCDB<CalPad>(CDBTypeMap.at(CDBType::CalPadGainFullMC));
+}
+
+//______________________________________________________________________________
 const CalPad& CDBInterface::getITFraction()
 {
   // ===| load gain map from file if requested |=====================
