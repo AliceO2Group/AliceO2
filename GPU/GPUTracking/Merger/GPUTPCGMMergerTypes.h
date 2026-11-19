@@ -40,8 +40,7 @@ struct InterpolationErrorHit {
   GPUCA_PAR_MERGER_INTERPOLATION_ERROR_TYPE_A errorY, errorZ;
   GPUdi() bool isValid() const { return errorY >= (GPUCA_PAR_MERGER_INTERPOLATION_ERROR_TYPE_A)0; }
   GPUdi() void markInvalid() { errorY = (GPUCA_PAR_MERGER_INTERPOLATION_ERROR_TYPE_A)-1; }
-  GPUdi() bool isAdjacentDone() const { return errorY == (GPUCA_PAR_MERGER_INTERPOLATION_ERROR_TYPE_A)-2; }
-  GPUdi() void markAdjacentDone() { errorY = (GPUCA_PAR_MERGER_INTERPOLATION_ERROR_TYPE_A)-2; } // Adjacent clusters were searched at the interpolated position of this entry, the entry is invalid afterwards
+  GPUdi() void markAdjacentSearch() { errorY = (GPUCA_PAR_MERGER_INTERPOLATION_ERROR_TYPE_A)-2; } // Invalidates an entry the interpolation rejection did not use, such that the last way searches adjacent clusters for the hit (distinct from the -1 of markInvalid)
 };
 
 struct InterpolationErrors {
