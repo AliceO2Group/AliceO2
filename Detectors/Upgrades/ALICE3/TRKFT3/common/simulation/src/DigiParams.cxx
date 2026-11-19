@@ -79,6 +79,9 @@ void DigiParams<DetIDV>::print() const
 
   printf("Charge time-response:\n");
   mSignalShape.print();
+
+  printf("ALMIRA front-end signal:\n");
+  mAlmiraSignal.print();
 }
 
 template <int DetIDV>

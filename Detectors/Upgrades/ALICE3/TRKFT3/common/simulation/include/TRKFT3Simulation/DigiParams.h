@@ -24,6 +24,7 @@
 #include "ITSMFTSimulation/AlpideSignalTrapezoid.h"
 #include "ITSMFTSimulation/AlpideSimResponse.h"
 #include "TRKBase/AlmiraParam.h"
+#include "TRKFT3Simulation/AlmiraSignal.h"
 
 ////////////////////////////////////////////////////////////
 //                                                        //
@@ -120,6 +121,8 @@ class DigiParams
   const SignalShape& getSignalShape() const { return mSignalShape; }
   SignalShape& getSignalShape() { return (SignalShape&)mSignalShape; }
 
+  const AlmiraSignal& getAlmiraSignal() const { return mAlmiraSignal; }
+
   virtual void print() const;
 
   void setClockPeriod(float ns, int layer) // also sets the clock cycles per ROF: call after setROFrameLengthInBC
@@ -157,6 +160,7 @@ class DigiParams
   std::array<float, MaxLayers> mStrobeLayerDelay;     ///< staggering strobe delay in ns per layer
 
   o2::itsmft::AlpideSignalTrapezoid mSignalShape; ///< signal timeshape parameterization
+  AlmiraSignal mAlmiraSignal;                     ///< ALMIRA front-end signal: time walk and time over threshold
 
   std::unique_ptr<o2::trkft3::ChipSimResponse> mResponse; //!< pointer on external response
 
