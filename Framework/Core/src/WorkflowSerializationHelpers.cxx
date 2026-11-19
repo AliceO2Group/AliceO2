@@ -66,6 +66,7 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     IN_INPUT_DESCRIPTION_REF,
     IN_INPUT_SUBSPEC_REF,
     IN_INPUT_LIFETIME,
+    IN_INPUT_ENABLED,
     IN_INPUT_STARTTIME,
     IN_INPUT_MATCHER,
     IN_INPUT_MATCHER_OPERATION,
@@ -78,6 +79,7 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     IN_OUTPUT_DESCRIPTION,
     IN_OUTPUT_SUBSPEC,
     IN_OUTPUT_LIFETIME,
+    IN_OUTPUT_ENABLED,
     IN_OUTPUT_OPTIONS,
     IN_OPTION,
     IN_OPTION_NAME,
@@ -192,6 +194,9 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       case State::IN_INPUT_LIFETIME:
         s << "IN_INPUT_LIFETIME";
         break;
+      case State::IN_INPUT_ENABLED:
+        s << "IN_INPUT_ENABLED";
+        break;
       case State::IN_INPUT_STARTTIME:
         s << "IN_INPUT_STARTTIME";
         break;
@@ -215,6 +220,9 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
         break;
       case State::IN_OUTPUT_LIFETIME:
         s << "IN_OUTPUT_LIFETIME";
+        break;
+      case State::IN_OUTPUT_ENABLED:
+        s << "IN_OUTPUT_ENABLED";
         break;
       case State::IN_OUTPUT_OPTIONS:
         s << "IN_OUTPUT_OPTIONS";
@@ -371,6 +379,9 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       } else {
         dataProcessors.back().inputs.push_back(InputSpec({binding}, std::move(*matcher), lifetime, inputOptions));
       }
+      dataProcessors.back().inputs.back().enabled = enabled;
+      // "enabled" is optional in the JSON, so reset to the default
+      enabled = true;
       inputMatcherNodes.clear();
       inputOptions.clear();
 
@@ -434,6 +445,9 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       } else {
         dataProcessors.back().outputs.push_back(OutputSpec({binding}, {origin, description}, lifetime, outputOptions));
       }
+      dataProcessors.back().outputs.back().enabled = enabled;
+      // "enabled" is optional in the JSON, so reset to the default
+      enabled = true;
       outputOptions.clear();
       outputHasSubSpec = false;
     } else if (in(State::IN_OPTION)) {
@@ -649,6 +663,8 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       push(State::IN_INPUT_STARTTIME);
     } else if (in(State::IN_INPUT) && strncmp(str, "lifetime", length) == 0) {
       push(State::IN_INPUT_LIFETIME);
+    } else if (in(State::IN_INPUT) && strncmp(str, "enabled", length) == 0) {
+      push(State::IN_INPUT_ENABLED);
     } else if (in(State::IN_INPUT) && strncmp(str, "starttime", length) == 0) {
       push(State::IN_INPUT_STARTTIME);
     } else if (in(State::IN_INPUT) && strncmp(str, "metadata", length) == 0) {
@@ -664,6 +680,8 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       outputHasSubSpec = true;
     } else if (in(State::IN_OUTPUT) && strncmp(str, "lifetime", length) == 0) {
       push(State::IN_OUTPUT_LIFETIME);
+    } else if (in(State::IN_OUTPUT) && strncmp(str, "enabled", length) == 0) {
+      push(State::IN_OUTPUT_ENABLED);
     } else if (in(State::IN_OUTPUT) && strncmp(str, "metadata", length) == 0) {
       push(State::IN_OUTPUT_OPTIONS);
     } else if (in(State::IN_DATAPROCESSOR) && strncmp(str, "name", length) == 0) {
@@ -848,6 +866,18 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     return true;
   }
 
+  bool Bool(bool b)
+  {
+    O2_SIGNPOST_EVENT_EMIT(workflow_importer, _o2_signpost_id_t{(int64_t)states.size()}, "import", "Bool(%s)", b ? "true" : "false");
+    if (in(State::IN_INPUT_ENABLED)) {
+      enabled = b;
+    } else if (in(State::IN_OUTPUT_ENABLED)) {
+      enabled = b;
+    }
+    pop();
+    return true;
+  }
+
   bool Int(int i)
   {
     O2_SIGNPOST_EVENT_EMIT(workflow_importer, _o2_signpost_id_t{(int64_t)states.size()}, "import", "Int(%d)", i);
@@ -918,6 +948,7 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
   size_t subspec;
   size_t ref;
   Lifetime lifetime;
+  bool enabled = true;
   std::string metadatumKey;
   std::string metadatumValue;
   std::string optionName;
@@ -1117,6 +1148,8 @@ void WorkflowSerializationHelpers::dump(std::ostream& out,
       }
       w.Key("lifetime");
       w.Uint((int)input.lifetime);
+      w.Key("enabled");
+      w.Bool(input.enabled);
       if (input.metadata.empty() == false) {
         w.Key("metadata");
         w.StartArray();
@@ -1166,6 +1199,8 @@ void WorkflowSerializationHelpers::dump(std::ostream& out,
       }
       w.Key("lifetime");
       w.Uint((int)output.lifetime);
+      w.Key("enabled");
+      w.Bool(output.enabled);
       if (output.metadata.empty() == false) {
         w.Key("metadata");
         w.StartArray();
