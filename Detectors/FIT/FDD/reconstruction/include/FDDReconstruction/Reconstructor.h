@@ -46,11 +46,11 @@ class Reconstructor
 
   bool isInAmplitudeWindow(int16_t amplitude, FDDRecoConfig::DetectorSide side)
   {
-    return amplitude > FDDRecoConfig::Instance().ChannelAmplitudeLower[side] && amplitude < FDDRecoConfig::Instance().ChannelAmplitudeUpper[side];
+    return amplitude >= FDDRecoConfig::Instance().ChannelAmplitudeLower[side] && amplitude <= FDDRecoConfig::Instance().ChannelAmplitudeUpper[side];
   }
   bool isInTimeWindow(int16_t time)
   {
-    return time > FDDRecoConfig::Instance().ChannelTimeLower && time < FDDRecoConfig::Instance().ChannelTimeUpper;
+    return time >= FDDRecoConfig::Instance().ChannelTimeLower && time <= FDDRecoConfig::Instance().ChannelTimeUpper;
   }
   bool isChannelDataGood(uint8_t channelBits)
   {
@@ -59,11 +59,11 @@ class Reconstructor
 
   bool isInCollisionTimeAmplitudeWindow(int16_t amplitude, FDDRecoConfig::DetectorSide side)
   {
-    return amplitude > FDDRecoConfig::Instance().CollisionTimeAmplitudeLower[side] && amplitude < FDDRecoConfig::Instance().CollisionTimeAmpltudeUpper[side];
+    return amplitude >= FDDRecoConfig::Instance().CollisionTimeAmplitudeLower[side] && amplitude <= FDDRecoConfig::Instance().CollisionTimeAmpltudeUpper[side];
   }
   bool isInCollisionTimeTimeWindow(int16_t time)
   {
-    return time > FDDRecoConfig::Instance().CollisionTimeTimeLower && time < FDDRecoConfig::Instance().CollisionTimeTimeUpper;
+    return time >= FDDRecoConfig::Instance().CollisionTimeTimeLower && time <= FDDRecoConfig::Instance().CollisionTimeTimeUpper;
   }
   bool isChannelDataGoodForCollisionTime(uint8_t channelBits)
   {
