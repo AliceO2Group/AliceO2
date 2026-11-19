@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 
 # NOTE!!!! - Whenever this file is changed, move it over to alidist/resources
-# FindO2GPU.cmake Version 24
+# FindO2GPU.cmake Version 25
 
 set(CUDA_COMPUTETARGET_DEFAULT_FULL 80-real;86-real;89-real;120-real;75-virtual)
 set(HIP_AMDGPUTARGET_DEFAULT_FULL gfx906;gfx908)
@@ -146,12 +146,13 @@ if(DEFINED ENV{O2_OVERRIDE_GPUCA_DETERMINISTIC_MODE})
   set(GPUCA_DETERMINISTIC_MODE $ENV{O2_OVERRIDE_GPUCA_DETERMINISTIC_MODE})
 endif()
 # set(GPUCA_DETERMINISTIC_MODE WHOLEO2)          # Override
-set(GPUCA_DETERMINISTIC_MODE_MAP_OFF 0)
-set(GPUCA_DETERMINISTIC_MODE_MAP_NO_FAST_MATH 1) # No -ffast-math and similar compile flags for GPU folder
-set(GPUCA_DETERMINISTIC_MODE_MAP_OPTO2 2)        # In addition, -O2 optimization on host for GPU folder
-set(GPUCA_DETERMINISTIC_MODE_MAP_GPU 3)          # In addition, GPUCA_DETERMINISTIC_MODE define for GPU folder
-set(GPUCA_DETERMINISTIC_MODE_MAP_ON 3)           # Synonym for GPU
-set(GPUCA_DETERMINISTIC_MODE_MAP_WHOLEO2 4)      # As GPU but for whole O2 code
+set(GPUCA_DETERMINISTIC_MODE_MAP_OFF 0)          # Off - best performance
+set(GPUCA_DETERMINISTIC_MODE_MAP_INVALID 1)      # Invalid value, so people do not use 1 accidentally
+set(GPUCA_DETERMINISTIC_MODE_MAP_NO_FAST_MATH 2) # No -ffast-math and similar compile flags for GPU folder
+set(GPUCA_DETERMINISTIC_MODE_MAP_OPTO2 3)        # In addition, -O2 optimization on host for GPU folder
+set(GPUCA_DETERMINISTIC_MODE_MAP_GPU 4)          # In addition, GPUCA_DETERMINISTIC_MODE define for GPU folder
+set(GPUCA_DETERMINISTIC_MODE_MAP_ON 4)           # Synonym for GPU
+set(GPUCA_DETERMINISTIC_MODE_MAP_WHOLEO2 5)      # As GPU but for whole O2 code
 if(NOT DEFINED GPUCA_DETERMINISTIC_MODE)
   set(GPUCA_DETERMINISTIC_MODE 0)
 elseif(NOT GPUCA_DETERMINISTIC_MODE MATCHES "^[0-9]+$")
@@ -159,6 +160,9 @@ elseif(NOT GPUCA_DETERMINISTIC_MODE MATCHES "^[0-9]+$")
     message(FATAL_ERROR "Invalid setting ${GPUCA_DETERMINISTIC_MODE} for GPUCA_DETERMINISTIC_MODE")
   endif()
   set(GPUCA_DETERMINISTIC_MODE ${GPUCA_DETERMINISTIC_MODE_MAP_${GPUCA_DETERMINISTIC_MODE}})
+endif()
+if(GPUCA_DETERMINISTIC_MODE STREQUAL 1)
+  message(FATAL_ERROR "GPUCA_DETERMINISTIC_MODE = 1 is invalid and not supported, use ON or GPU or see FindO2GPU.cmake for details")
 endif()
 if(GPUCA_DETERMINISTIC_NO_FTZ)
   set(GPUCA_CXX_DENORMALS_FLAGS "")
