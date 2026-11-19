@@ -693,7 +693,6 @@ void TrackerTraitsGPU<NLayers>::findRoads(const int iteration)
                                                                mTimeFrameGPU->getDeviceROFrameClusters(),
                                                                mTimeFrameGPU->getDeviceTrackITSExt(),
                                                                mTimeFrameGPU->getDeviceTrackIndices(),
-                                                               mTimeFrameGPU->getDeviceTrackSeedIndices(),
                                                                mTimeFrameGPU->getDeviceTrackCounter(),
                                                                capacity,
                                                                extendTracks ? mTimeFrameGPU->getDeviceActiveTrackExtensionHypotheses() : nullptr,

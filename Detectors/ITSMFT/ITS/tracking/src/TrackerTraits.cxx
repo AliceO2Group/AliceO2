@@ -245,6 +245,9 @@ void TrackerTraits<NLayers>::computeLayerTracklets(const int iteration, int iVer
     const bool trackletsAlreadyGrouped = seedingPass && mTaskArena->max_concurrency() > 1;
     tbb::parallel_for(0, static_cast<int>(topology.nLinks), [&](const int linkId) {
       if (trackletsAlreadyGrouped) {
+#ifdef GPUCA_DETERMINISTIC_MODE // the grouped emit keeps the search order within a cluster: sort it as with one thread
+        tbb::parallel_sort(mTimeFrame->getTracklets()[linkId].begin(), mTimeFrame->getTracklets()[linkId].end());
+#endif
         return;
       }
       /// Sort tracklets & remove duplicates
@@ -557,7 +560,6 @@ void TrackerTraits<NLayers>::computeVertices(const int iteration)
   const float beamX = mTimeFrame->getBeamX();
   const float beamY = mTimeFrame->getBeamY();
   const auto& tp = mTrkParams[iteration];
-  const float maxZ = tp.VtxMaxZPositionAllowed;
   const float clusterCut = tp.VtxClusterCut;
   const float pairCut2 = tp.VtxPairCut * tp.VtxPairCut;
   const float zWindow = 0.5f * clusterCut;
@@ -583,59 +585,39 @@ void TrackerTraits<NLayers>::computeVertices(const int iteration)
     if (n < 2) {
       return;
     }
-    const auto lineSpan = gsl::span<const Line>(lines.data(), lines.size());
 
-    // project every line onto the beam line
-    bounded_vector<float> zc(mMemoryPool.get());
-    bounded_vector<TimeEstBC> tc(mMemoryPool.get());
-    bounded_vector<int> lic(mMemoryPool.get());
-    zc.reserve(n);
-    tc.reserve(n);
-    lic.reserve(n);
+    // project every line onto the beam line, as linearizeCellsKernel (the |z| < maxZ cut was applied per cell)
+    bounded_vector<float> zc(n, mMemoryPool.get());
     for (int i = 0; i < n; ++i) {
-      const auto& line = lines[i];
-      float z;
-      if (!Line::getZAtBeam(line, beamX, beamY, z)) {
-        continue;
+      if (!Line::getZAtBeam(lines[i], beamX, beamY, zc[i])) {
+        zc[i] = lines[i].originPoint[2];
       }
-      if (!(o2::gpu::CAMath::Abs(z) < maxZ)) {
-        continue;
-      }
-      zc.push_back(z);
-      tc.push_back(line.mTime);
-      lic.push_back(i);
-    }
-    const int m = static_cast<int>(zc.size());
-    if (m < 2) {
-      return;
     }
 
-    // sort by z
-    bounded_vector<int> order(m, mMemoryPool.get());
-    std::iota(order.begin(), order.end(), 0);
-    std::sort(order.begin(), order.end(), [&](const int a, const int b) { return zc[a] < zc[b]; });
-    bounded_vector<float> Z(m, mMemoryPool.get());
-    bounded_vector<TimeEstBC> T(m, mMemoryPool.get());
-    bounded_vector<int> LI(m, mMemoryPool.get());
-    for (int i = 0; i < m; ++i) {
-      Z[i] = zc[order[i]];
-      T[i] = tc[order[i]];
-      LI[i] = lic[order[i]];
+    // sort by z, ties by line index as RofZLess
+    bounded_vector<int> LI(n, mMemoryPool.get());
+    std::iota(LI.begin(), LI.end(), 0);
+    std::sort(LI.begin(), LI.end(), [&](const int a, const int b) { return zc[a] != zc[b] ? zc[a] < zc[b] : a < b; });
+    bounded_vector<float> Z(n, mMemoryPool.get());
+    bounded_vector<TimeEstBC> T(n, mMemoryPool.get());
+    for (int i = 0; i < n; ++i) {
+      Z[i] = zc[LI[i]];
+      T[i] = lines[LI[i]].mTime;
     }
 
     // every line gets its own z window, sized by the density of time-compatible lines around it
-    bounded_vector<LineWindow> win(m, mMemoryPool.get());     // +-zWindow: where the members are collected
-    bounded_vector<LineWindow> winPeak(m, mMemoryPool.get()); // +-h: the peak search
-    bounded_vector<LineWindow> winSeed(m, mMemoryPool.get()); // +-2h: the seed fit
-    bounded_vector<int> density(m, mMemoryPool.get());        // time-compatible lines in +-h
-    bounded_vector<float> halfWidth(m, mMemoryPool.get());    // h
+    bounded_vector<LineWindow> win(n, mMemoryPool.get());     // +-zWindow: where the members are collected
+    bounded_vector<LineWindow> winPeak(n, mMemoryPool.get()); // +-h: the peak search
+    bounded_vector<LineWindow> winSeed(n, mMemoryPool.get()); // +-2h: the seed fit
+    bounded_vector<int> density(n, mMemoryPool.get());        // time-compatible lines in +-h
+    bounded_vector<float> halfWidth(n, mMemoryPool.get());    // h
     computeDensities(Z, T, zWindow, zWindowAlpha, zWindowMin, mMemoryPool.get(), win, winPeak, density, halfWidth, winSeed);
 
     // peaks: lines with the highest density per unit length in their own window
-    bounded_vector<uint8_t> isPeak(m, mMemoryPool.get());
+    bounded_vector<uint8_t> isPeak(n, mMemoryPool.get());
     markPeaks(density, halfWidth, Z, winPeak, mMemoryPool.get(), isPeak);
     bounded_vector<int> peaks(mMemoryPool.get());
-    for (int k = 0; k < m; ++k) {
+    for (int k = 0; k < n; ++k) {
       if (isPeak[k]) {
         peaks.push_back(k);
       }
@@ -645,8 +627,9 @@ void TrackerTraits<NLayers>::computeVertices(const int iteration)
       return;
     }
 
-    // one candidate per peak: seed fit over the window, prune outliers, refit, apply the cuts
-    bounded_vector<ClusterLines> cand(np, mMemoryPool.get());
+    // one candidate per peak: seed fit over the window, prune outliers, refit, apply the cuts. LaneFit sums the lines
+    // like fitPeaksKernel (lane = offset in the window), so CPU and GPU candidates are bit-identical
+    bounded_vector<LineFit> cand(np, mMemoryPool.get());
     bounded_vector<uint8_t> ok(np, mMemoryPool.get());
     bounded_vector<int> nGoodCand(np, 0, mMemoryPool.get());
     bounded_vector<bounded_vector<int>> candMembers(withMC ? np : 0, bounded_vector<int>(mMemoryPool.get()), mMemoryPool.get());
@@ -654,38 +637,25 @@ void TrackerTraits<NLayers>::computeVertices(const int iteration)
     const int nQual = static_cast<int>(linesQuality.size());
     for (int p = 0; p < np; p++) {
       const int k = peaks[p];
-      bounded_vector<int> members(mMemoryPool.get());
-      members.reserve(win[k].hi - win[k].lo);
-      for (int j = win[k].lo; j < win[k].hi; ++j) {
-        if (T[k].isCompatible(T[j])) {
-          members.push_back(LI[j]);
-        }
-      }
-      if (members.size() < 2) {
-        ok[p] = 0;
-        continue;
-      }
-      // the seed is fitted on the lines of the narrower seed window only; members still come from +-zWindow
-      bounded_vector<int> seedLines(mMemoryPool.get());
+      // the seed is fitted on the narrower seed window (inside +-zWindow, so 2 seed lines imply 2 members)
+      LaneFit<> seed;
+      int nSeedLines = 0;
       for (int j = winSeed[k].lo; j < winSeed[k].hi; ++j) {
         if (T[k].isCompatible(T[j])) {
-          seedLines.push_back(LI[j]);
+          seed.add(lines[LI[j]], j - winSeed[k].lo);
+          ++nSeedLines;
         }
       }
-      if (seedLines.size() < 2) {
+      seed.reduce();
+      seed.computeClusterCentroid();
+      if (nSeedLines < 2 || !seed.isValid()) {
         ok[p] = 0;
         continue;
       }
-      ClusterLines seed{gsl::span<const int>{seedLines.data(), seedLines.size()}, lineSpan};
-      if (!seed.isValid()) {
-        ok[p] = 0;
-        continue;
-      }
-      bounded_vector<int> kept(mMemoryPool.get());
-      kept.reserve(members.size());
-      for (const int idx : members) {
-        if (Line::getDistance2FromPoint(lines[idx], seed.getVertex()) < pairCut2) {
-          kept.push_back(idx);
+      bounded_vector<int> kept(mMemoryPool.get()); // z-sorted positions; the line is LI[j], its lane slot j - win[k].lo
+      for (int j = win[k].lo; j < win[k].hi; ++j) {
+        if (T[k].isCompatible(T[j]) && Line::getDistance2FromPoint(lines[LI[j]], seed.getVertex()) < pairCut2) {
+          kept.push_back(j);
         }
       }
       if (kept.size() < 2) {
@@ -696,7 +666,8 @@ void TrackerTraits<NLayers>::computeVertices(const int iteration)
       if (nQual == 0) {
         nGood = static_cast<int>(kept.size());
       } else {
-        for (const int idx : kept) {
+        for (const int j : kept) {
+          const int idx = LI[j];
           const float chi2 = idx < nQual ? linesQuality[idx].chi2 : -1.f;
           const float pt = idx < nQual ? linesQuality[idx].pt : -1.f;
           const bool okChi2 = goodLineChi2Cut <= 0.f || chi2 <= goodLineChi2Cut;
@@ -705,16 +676,31 @@ void TrackerTraits<NLayers>::computeVertices(const int iteration)
         }
       }
       nGoodCand[p] = nGood;
-      ClusterLines fit{gsl::span<const int>{kept.data(), kept.size()}, lineSpan};
-      const float bd2 = (beamX - fit.getVertex()[0]) * (beamX - fit.getVertex()[0]) +
-                        (beamY - fit.getVertex()[1]) * (beamY - fit.getVertex()[1]);
-      if (!fit.isValid() || static_cast<int>(fit.getSize()) < minContributors || !(bd2 < nSigmaCut)) {
+      LaneFit<> fit;
+      for (const int j : kept) {
+        fit.add(lines[LI[j]], j - win[k].lo);
+      }
+      fit.reduce();
+      fit.computeClusterCentroid();
+      if (!fit.isValid()) {
         ok[p] = 0;
         continue;
       }
-      cand[p] = std::move(fit);
+      const float bd2 = (beamX - fit.getVertex()[0]) * (beamX - fit.getVertex()[0]) +
+                        (beamY - fit.getVertex()[1]) * (beamY - fit.getVertex()[1]);
+      if (static_cast<int>(fit.getSize()) < minContributors || !(bd2 < nSigmaCut)) {
+        ok[p] = 0;
+        continue;
+      }
+      for (const int j : kept) {
+        fit.addResidual(lines[LI[j]], fit.getVertex(), j - win[k].lo);
+      }
+      fit.reduceResiduals(static_cast<int>(kept.size()));
+      cand[p] = fit;
       if (withMC) {
-        candMembers[p] = std::move(kept);
+        for (const int j : kept) {
+          candMembers[p].push_back(LI[j]);
+        }
       }
       ok[p] = 1;
     }
@@ -1547,7 +1533,7 @@ void TrackerTraits<NLayers>::findRoads(const int iteration)
     bounded_vector<int> trackIndices(tracks.size(), mMemoryPool.get());
     std::iota(trackIndices.begin(), trackIndices.end(), 0);
     std::sort(trackIndices.begin(), trackIndices.end(), [&tracks](int a, int b) {
-      return track::isBetter(tracks[a], tracks[b]);
+      return track::isBetterOrdered(tracks[a], tracks[b]);
     });
 
     acceptTracks(iteration, tracks, trackIndices, firstClusters);

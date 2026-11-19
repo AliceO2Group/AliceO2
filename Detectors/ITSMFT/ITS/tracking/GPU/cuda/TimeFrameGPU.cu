@@ -706,7 +706,6 @@ void TimeFrameGPU<NLayers>::createTrackITSExtDevice(const size_t capacity)
   }
   GPULog("gpu-allocation: reserving {} track indices, for {:.2f} MB.", capacity, capacity * sizeof(int) / constants::MB);
   mTrackIndicesDevice = allocDevice<int>(capacity, o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK);
-  mTrackSeedIndicesDevice = allocDevice<int>(capacity, o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK);
   mTrackCounterDevice = allocDevice<int>(1, o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK);
 }
 

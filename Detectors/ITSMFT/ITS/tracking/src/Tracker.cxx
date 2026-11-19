@@ -17,6 +17,7 @@
 #include "GenericTracking/BoundedAllocator.h"
 #include "ITSMFTTracking/Constants.h"
 #include "ITStracking/TrackerTraits.h"
+#include "ITStracking/TrackHelpers.h"
 #include "ITSMFTTracking/ITSTrackingConfigParam.h"
 
 #include <cassert>
@@ -291,7 +292,7 @@ void Tracker<NLayers>::sortTracks()
     if (aLower != bLower) {
       return aLower < bLower;
     }
-    return a.isBetter(b, 1e9); // then sort tracks in quality
+    return track::isBetterOrdered(a, b); // then in quality, ties broken by content
   });
   bounded_vector<TrackITSExt> sortedTrks(mMemoryPool.get());
   sortedTrks.reserve(trks.size());

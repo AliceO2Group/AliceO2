@@ -16,6 +16,7 @@
 #include <vector>
 #include <array>
 #ifndef GPUCA_GPUCODE
+#include <algorithm>
 #include <cmath>
 #else
 #include "GPUCommonAlgorithm.h" // warp reductions of WarpFit
@@ -64,7 +65,20 @@ struct Line final {
     return d2;
   }
 
+  /// std::hypot on the host keeps the old vertexer bit-exact; DeviceHypot makes the host round like the device
+  template <bool DeviceHypot>
+  GPUhdi() static float dcaHypot(float a, float b)
+  {
+#ifndef GPUCA_GPUCODE
+    if constexpr (!DeviceHypot) {
+      return std::hypot(a, b);
+    }
+#endif
+    return o2::gpu::GPUCommonMath::Hypot(a, b);
+  }
+
   /// Packed symmetric DCA components in {XX, XY, YY, XZ, YZ, ZZ} order
+  template <bool DeviceHypot = false>
   GPUhdi() static void getDCAComponents(const Line& line, const float point[3], float out[6])
   {
     float delta[3], proj = 0.f;
@@ -79,15 +93,9 @@ struct Line final {
     out[0] = r[0];
     out[2] = r[1];
     out[5] = r[2];
-#ifndef GPUCA_GPUCODE
-    out[1] = std::hypot(r[0], r[1]);
-    out[3] = std::hypot(r[0], r[2]);
-    out[4] = std::hypot(r[1], r[2]);
-#else
-    out[1] = o2::gpu::GPUCommonMath::Hypot(r[0], r[1]);
-    out[3] = o2::gpu::GPUCommonMath::Hypot(r[0], r[2]);
-    out[4] = o2::gpu::GPUCommonMath::Hypot(r[1], r[2]);
-#endif
+    out[1] = dcaHypot<DeviceHypot>(r[0], r[1]);
+    out[3] = dcaHypot<DeviceHypot>(r[0], r[2]);
+    out[4] = dcaHypot<DeviceHypot>(r[1], r[2]);
   }
 
   GPUhdi() static bool getZAtBeam(const Line& line, const float beamX, const float beamY, float& z)
@@ -149,7 +157,10 @@ class LineFit
 {
  public:
   /// Accumulate one line
-  GPUhdi() bool add(const Line& line)
+  GPUhdi() bool add(const Line& line) { return accumulate(line, mA, mB); }
+
+  /// Accumulate one line into the given normal equations
+  GPUhdi() static bool accumulate(const Line& line, double A[6], double B[3])
   {
     const double d0 = line.cosinesDirector[0], d1 = line.cosinesDirector[1], d2 = line.cosinesDirector[2];
     const double o0 = line.originPoint[0], o1 = line.originPoint[1], o2 = line.originPoint[2];
@@ -157,16 +168,16 @@ class LineFit
     if (det <= 0.) {
       return false;
     }
-    mA[0] += (det - d0 * d0) / det;
-    mA[1] += (-d0 * d1) / det;
-    mA[2] += (-d0 * d2) / det;
-    mA[3] += (det - d1 * d1) / det;
-    mA[4] += (-d1 * d2) / det;
-    mA[5] += (det - d2 * d2) / det;
+    A[0] += (det - d0 * d0) / det;
+    A[1] += (-d0 * d1) / det;
+    A[2] += (-d0 * d2) / det;
+    A[3] += (det - d1 * d1) / det;
+    A[4] += (-d1 * d2) / det;
+    A[5] += (det - d2 * d2) / det;
     const double dDotO = d0 * o0 + d1 * o1 + d2 * o2;
-    mB[0] += (d0 * dDotO - det * o0) / det;
-    mB[1] += (d1 * dDotO - det * o1) / det;
-    mB[2] += (d2 * dDotO - det * o2) / det;
+    B[0] += (d0 * dDotO - det * o0) / det;
+    B[1] += (d1 * dDotO - det * o1) / det;
+    B[2] += (d2 * dDotO - det * o2) / det;
     return true;
   }
 
@@ -314,6 +325,80 @@ struct WarpFit : public LineFit {
 
   double rms2Sum[6] = {0., 0., 0., 0., 0., 0.};
   double dist2Sum = 0.;
+};
+#else
+/// Lanes of the device warp fit that LaneFit replicates: wave64 of the EPN AMD GPUs (an NVIDIA warp of 32 will not match)
+constexpr int HostWarpFitLanes = 64;
+
+/// Host replica of WarpFit: the line at offset `slot` of its window accumulates into lane slot % Width, and the lanes
+/// are combined in the butterfly order of warp_reduce_add, so the sums round exactly like on the device
+template <int Width = HostWarpFitLanes>
+class LaneFit : public LineFit
+{
+ public:
+  void add(const Line& line, const int slot)
+  {
+    const int lane = slot % Width;
+    if (accumulate(line, mLaneA[lane], mLaneB[lane])) {
+      mTLo = std::max(mTLo, line.mTime.lower());
+      mTHi = std::min(mTHi, line.mTime.upper());
+      ++mNContributors;
+    }
+  }
+
+  void reduce()
+  {
+    for (int i = 0; i < 6; ++i) {
+      mA[i] = butterfly([&](const int lane) { return mLaneA[lane][i]; });
+    }
+    for (int i = 0; i < 3; ++i) {
+      mB[i] = butterfly([&](const int lane) { return mLaneB[lane][i]; });
+    }
+    mTime = TimeEstBC{mTLo, mTHi - mTLo};
+  }
+
+  void addResidual(const Line& line, const float vertex[3], const int slot)
+  {
+    const int lane = slot % Width;
+    float dca[6];
+    Line::getDCAComponents<true>(line, vertex, dca);
+    for (int i = 0; i < 6; ++i) {
+      mLaneRMS2[lane][i] += dca[i];
+    }
+    mLaneDist2[lane] += Line::getDistance2FromPoint(line, vertex);
+  }
+
+  void reduceResiduals(const int n)
+  {
+    for (int i = 0; i < 6; ++i) {
+      mRMS2[i] = butterfly([&](const int lane) { return mLaneRMS2[lane][i]; }) / n;
+    }
+    mAvgDistance2 = butterfly([&](const int lane) { return mLaneDist2[lane]; }) / n;
+  }
+
+ private:
+  /// warp_reduce_add: at each step lane l adds lane l ^ m, which leaves the same sum in every lane
+  template <typename Get>
+  static double butterfly(Get get)
+  {
+    double v[Width], next[Width];
+    for (int lane = 0; lane < Width; ++lane) {
+      v[lane] = get(lane);
+    }
+    for (int m = Width / 2; m > 0; m >>= 1) {
+      for (int lane = 0; lane < Width; ++lane) {
+        next[lane] = v[lane] + v[lane ^ m];
+      }
+      std::copy(next, next + Width, v);
+    }
+    return v[0];
+  }
+
+  double mLaneA[Width][6] = {};
+  double mLaneB[Width][3] = {};
+  double mLaneRMS2[Width][6] = {};
+  double mLaneDist2[Width] = {};
+  uint32_t mTLo = 0, mTHi = 0xffffffffu;
 };
 #endif
 

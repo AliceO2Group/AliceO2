@@ -42,10 +42,10 @@ struct VertexerParamConfig : public o2::conf::ConfigurableParamHelper<VertexerPa
   float maxZPositionAllowed = 25.f; // 4x sZ of the beam
 
   // Artefacts selections
-  int clusterContributorsCut = 2;  // minimum number of contributors for an accepted final vertex
-  int suppressLowMultDebris = 16;  // suppress all vertices below this threshold if a vertex was already found in a rof
-  float lineMinPt = 0.10f;         // drop soft lines before the density scan
-  float lineCurvatureScale = 0.5f; // q/pT scale when propagating a seeding line to its xy-DCA to the beam
+  int clusterContributorsCut = 2;     // minimum number of contributors for an accepted final vertex
+  int suppressLowMultDebris = 16;     // suppress all vertices below this threshold if a vertex was already found in a rof
+  float lineMinPt = 0.10f;            // drop soft lines before the density scan
+  float lineCurvatureScale = 0.5f;    // q/pT scale when propagating a seeding line to its xy-DCA to the beam
   float adaptiveZWindowAlpha = 0.3f;  // z window per line: h = (clusterCut/2) (n/4)^-adaptiveZWindowAlpha where n is the number of time-compatible lines within +-clusterCut/2
   float adaptiveZWindowMin = 0.0075f; // z windows is clamped to [adaptiveZWindowMin, clusterCut/2]
   float goodLineChi2Cut = 5.f;

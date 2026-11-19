@@ -197,7 +197,6 @@ class TimeFrameGPU : public TimeFrame<NLayers>
   int** getDeviceArrayNeighboursCellLUT() const { return mNeighboursCellLUTDeviceArray; }
   CellSeed** getDeviceArrayCells() { return mCellsDeviceArray; }
   TrackSeedN* getDeviceTrackSeeds() { return mTrackSeedsDevice; }
-  int* getDeviceTrackSeedIndices() { return mTrackSeedIndicesDevice; }
   int* getDeviceTrackCounter() { return mTrackCounterDevice; }
   auto getNTrackSeeds() const { return mNTracks; }
 
@@ -300,7 +299,6 @@ class TimeFrameGPU : public TimeFrame<NLayers>
   std::array<CellSeed*, MaxCells> mCellsDevice{};
   CellSeed** mCellsDeviceArray{nullptr};
   TrackSeedN* mTrackSeedsDevice{nullptr};
-  int* mTrackSeedIndicesDevice{nullptr}; ///< which seed each emitted track was fitted from
   int* mTrackCounterDevice{nullptr};
   unsigned int mNTracks{0};
 
@@ -325,17 +323,17 @@ class TimeFrameGPU : public TimeFrame<NLayers>
   float* mLineZsSortedDevice{nullptr};
   o2::its::TimeEstBC* mLineTimesSortedDevice{nullptr};
   int* mLinesSortedIdx{nullptr};
-  int* mLineRofSortedDevice{nullptr};       // per (sorted) line's ROF
-  int* mRofLineOffsetsDevice{nullptr};      // CSR offsets into the (rof,z)-sorted lines, size nRofs+1
+  int* mLineRofSortedDevice{nullptr};           // per (sorted) line's ROF
+  int* mRofLineOffsetsDevice{nullptr};          // CSR offsets into the (rof,z)-sorted lines, size nRofs+1
   int* mLineDensityDevice{nullptr};             // per (sorted) line: count of time-compatible neighbours in its own z window (+-h)
   gpu::LineWindow* mLineWinDevice{nullptr};     // per (sorted) line: [lo,hi) bounds of +-zWindow, where members are collected (sorted coords)
   uint8_t* mLineIsPeakDevice{nullptr};          // per (sorted) line: 1 if it is a local density peak (vertex candidate)
   gpu::LineWindow* mLineWinPeakDevice{nullptr}; // per (sorted) line: [lo,hi) bounds of its own z window +-h (peak search)
   float* mLineHalfWidthDevice{nullptr};         // per (sorted) line: h
   gpu::LineWindow* mLineWinSeedDevice{nullptr}; // per (sorted) line: [lo,hi) bounds of the seed-fit window +-2h
-  int* mPeakScanDevice{nullptr};    // per (sorted) line: number of peaks strictly before it
-  int* mPeakLineIdxDevice{nullptr}; // per peak slot: the sorted line index it came from
-  int* mPeakOffsetsDevice{nullptr}; // CSR offsets into the compacted peaks
+  int* mPeakScanDevice{nullptr};                // per (sorted) line: number of peaks strictly before it
+  int* mPeakLineIdxDevice{nullptr};             // per peak slot: the sorted line index it came from
+  int* mPeakOffsetsDevice{nullptr};             // CSR offsets into the compacted peaks
   VertexCand* mVertexCandsDevice{nullptr};
   int mNLinesCapacity{0}; // = nCells the line buffers were sized for
   bounded_vector<o2::its::Line> mLinesHost;

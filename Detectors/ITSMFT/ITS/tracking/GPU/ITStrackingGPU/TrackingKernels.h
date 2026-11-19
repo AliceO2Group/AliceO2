@@ -154,7 +154,6 @@ struct TrackingKernels {
                                      const int** ROFClusters,
                                      o2::its::TrackITSExt* tracks,
                                      int* trackIndices,
-                                     int* trackSeedIndices,
                                      int* outputCounter,
                                      const int trackCapacity,
                                      TrackExtensionHypothesis<NLayers>* activeHypotheses,

@@ -72,17 +72,10 @@ namespace gpu
 
 struct compare_track_index_chi2 {
   const TrackITSExt* tracks;
-  const int* seedIndices;
 
   GPUhd() bool operator()(const int a, const int b) const
   {
-    if (o2::its::track::isBetter(tracks[a], tracks[b])) {
-      return true;
-    }
-    if (o2::its::track::isBetter(tracks[b], tracks[a])) {
-      return false;
-    }
-    return seedIndices[a] < seedIndices[b];
+    return o2::its::track::isBetterOrdered(tracks[a], tracks[b]);
   }
 };
 
@@ -119,7 +112,6 @@ GPUg() void __launch_bounds__(GPUThreads, (ExtendTracks ? MinBlocks.fitTrackSeed
   const int** clustersIndexTables,
   const int** ROFClusters,
   o2::its::TrackITSExt* tracks,
-  int* trackSeedIndices,
   int* outputCounter,
   const int trackCapacity,
   TrackExtensionHypothesis<NLayers>* activeHypothesesScratch,
@@ -187,7 +179,6 @@ GPUg() void __launch_bounds__(GPUThreads, (ExtendTracks ? MinBlocks.fitTrackSeed
     if (bestDiff) {
       tracks[slot].setExtendedLayerPattern<NLayers>(bestDiff);
     }
-    trackSeedIndices[slot] = iCurrentTrackSeedIndex;
   }
 }
 
@@ -721,7 +712,7 @@ GPUg() void __launch_bounds__(GPUThreads, (std::is_same_v<CurrentSeed, CellSeed>
   TrackSeed<NLayers>* updatedCellSeeds,
   int* updatedCellsIds,
   int* updatedCellTopologyIds,
-  int* updatedSourceSeeds,
+  uint64_t* updatedSortKeys, // (source seed, neighbour entry): a total order of the outputs, deterministic mode only
   int* outputCounter,
   const int outputCapacity,
   const TrackingFrameInfo** foundTrackingFrameInfo,
@@ -782,8 +773,8 @@ GPUg() void __launch_bounds__(GPUThreads, (std::is_same_v<CurrentSeed, CellSeed>
         updatedCellsIds[outputIndex] = neighbourCellId;
         updatedCellTopologyIds[outputIndex] = neighbourCellTopologyId;
         updatedCellSeeds[outputIndex] = seed;
-        if (updatedSourceSeeds != nullptr) {
-          updatedSourceSeeds[outputIndex] = static_cast<int>(iCurrentCell);
+        if (updatedSortKeys != nullptr) {
+          updatedSortKeys[outputIndex] = (static_cast<uint64_t>(iCurrentCell) << 32) | static_cast<uint32_t>(candidate.neighbourEntry);
         }
       }
     }
@@ -1642,13 +1633,16 @@ void TrackingKernels<NLayers>::linearizeCellsToLinesHandler(const int nCells,
     linePt);
 }
 
-// Orders lines by (ROF, z): primary key the ROF, secondary the projected z within the ROF.
+// Orders lines by (ROF, z, line index): a total order, so equal z keep the line order as on the CPU
 struct RofZLess {
   const int* rof;
   const float* z;
   GPUhdi() bool operator()(const int a, const int b) const
   {
-    return rof[a] != rof[b] ? rof[a] < rof[b] : z[a] < z[b];
+    if (rof[a] != rof[b]) {
+      return rof[a] < rof[b];
+    }
+    return z[a] != z[b] ? z[a] < z[b] : a < b;
   }
 };
 
@@ -1840,6 +1834,7 @@ void TrackingKernels<NLayers>::processNeighboursHandler(const int startLevel,
   alloc->pushTagOnStack(Tag);
   auto allocInt = gpu::TypedAllocator<int>(alloc);
   auto allocTrackSeed = gpu::TypedAllocator<TrackSeed<NLayers>>(alloc);
+  auto allocKey = gpu::TypedAllocator<uint64_t>(alloc);
   auto nosync_policy = THRUST_NAMESPACE::par_nosync(gpu::TypedAllocator<char>(alloc)).on(gpu::Stream::DefaultStream);
   auto outputCounter = allocInt.allocate(1);
 
@@ -1890,7 +1885,8 @@ void TrackingKernels<NLayers>::processNeighboursHandler(const int startLevel,
     const int outIdx = filled == 0 ? 1 : 0;
     Slab& out = slabs[outIdx];
     thrust::device_ptr<TrackSeed<NLayers>> staged{};
-    thrust::device_ptr<int> stagedCellIds{}, stagedCellTopologyIds{}, sourceSeeds{};
+    thrust::device_ptr<int> stagedCellIds{}, stagedCellTopologyIds{};
+    thrust::device_ptr<uint64_t> sortKeys{};
     const int emitted = runOnSlab(
       estimator, roadKey(level), static_cast<double>(nLevelSeeds), [&](const int capacity) {
         ensureCapacity(out, capacity);
@@ -1898,7 +1894,7 @@ void TrackingKernels<NLayers>::processNeighboursHandler(const int startLevel,
         staged = allocTrackSeed.allocate(out.capacity);
         stagedCellIds = allocInt.allocate(out.capacity);
         stagedCellTopologyIds = allocInt.allocate(out.capacity);
-        sourceSeeds = allocInt.allocate(out.capacity);
+        sortKeys = allocKey.allocate(out.capacity);
 #else
         staged = out.seeds;
         stagedCellIds = out.cellIds;
@@ -1943,7 +1939,7 @@ void TrackingKernels<NLayers>::processNeighboursHandler(const int startLevel,
             thrust::raw_pointer_cast(staged),
             thrust::raw_pointer_cast(stagedCellIds),
             thrust::raw_pointer_cast(stagedCellTopologyIds),
-            thrust::raw_pointer_cast(sourceSeeds),
+            thrust::raw_pointer_cast(sortKeys),
             thrust::raw_pointer_cast(outputCounter),
             out.capacity,
             foundTrackingFrameInfo, layerxX0, bz, maxChi2ClusterAttachment, propagator, matCorrType);
@@ -1962,7 +1958,7 @@ void TrackingKernels<NLayers>::processNeighboursHandler(const int startLevel,
     if (emitted > 0) {
       auto permutation = allocInt.allocate(emitted);
       thrust::sequence(nosync_policy, permutation, permutation + emitted);
-      thrust::stable_sort_by_key(nosync_policy, sourceSeeds, sourceSeeds + emitted, permutation);
+      thrust::sort_by_key(nosync_policy, sortKeys, sortKeys + emitted, permutation);
       thrust::gather(nosync_policy, permutation, permutation + emitted, staged, out.seeds);
       thrust::gather(nosync_policy, permutation, permutation + emitted, stagedCellIds, out.cellIds);
       thrust::gather(nosync_policy, permutation, permutation + emitted, stagedCellTopologyIds, out.cellTopologyIds);
@@ -2012,7 +2008,6 @@ int TrackingKernels<NLayers>::computeTrackSeedHandler(TrackSeed<NLayers>* trackS
                                                       const int** ROFClusters,
                                                       o2::its::TrackITSExt* tracks,
                                                       int* trackIndices,
-                                                      int* trackSeedIndices,
                                                       int* outputCounter,
                                                       const int trackCapacity,
                                                       TrackExtensionHypothesis<NLayers>* activeHypotheses,
@@ -2075,7 +2070,6 @@ int TrackingKernels<NLayers>::computeTrackSeedHandler(TrackSeed<NLayers>* trackS
                                                                                           clustersIndexTables,      // int**
                                                                                           ROFClusters,              // int**
                                                                                           tracks,                   // TrackITSExt*
-                                                                                          trackSeedIndices,         // int*
                                                                                           outputCounter,            // int*
                                                                                           trackCapacity,            // const int
                                                                                           activeHypotheses,         // TrackExtensionHypothesis*
@@ -2116,7 +2110,7 @@ int TrackingKernels<NLayers>::computeTrackSeedHandler(TrackSeed<NLayers>* trackS
   auto sync_policy = THRUST_NAMESPACE::par(gpu::TypedAllocator<char>(alloc));
   thrust::device_ptr<int> trackIndicesPtr(trackIndices);
   thrust::sequence(sync_policy, trackIndicesPtr, trackIndicesPtr + emitted);
-  thrust::sort(sync_policy, trackIndicesPtr, trackIndicesPtr + emitted, gpu::compare_track_index_chi2{tracks, trackSeedIndices});
+  thrust::sort(sync_policy, trackIndicesPtr, trackIndicesPtr + emitted, gpu::compare_track_index_chi2{tracks});
 
   if (emitted > 0) {
     auto allocTrack = gpu::TypedAllocator<o2::its::TrackITSExt>(alloc);
