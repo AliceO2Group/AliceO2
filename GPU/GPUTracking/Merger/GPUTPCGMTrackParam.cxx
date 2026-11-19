@@ -89,6 +89,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
     ConstrainZ(merger, clusters[0].sector, CAMath::Max(t0, tN), CAMath::Min(t0, tN));
   }
   int32_t ihitStart = 0;
+  int32_t ihitStartInterpolateReject = 0; // First hit of the interpolation rejection way, the hits beyond are not covered by its search for adjacent clusters
   int32_t interpolatedStart = 0;
   float covYYUpd = 0.f;
   float deltaZ = 0.f;
@@ -127,6 +128,9 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
     const bool inFlyDirection = iWay & 1;
     const int32_t wayDirection = (iWay & 1) ? -1 : 1;
 
+    if (param.rec.tpc.mergerInterpolateErrors && iWay == nWays - 2) {
+      ihitStartInterpolateReject = ihitStart;
+    }
     for (int32_t ihit = ihitStart, interpolationIndex = interpolatedStart; ihit >= 0 && ihit < maxN; ihit += wayDirection) {
       if (lastIndexRow != 255) { // One index per pad row (2 if the track has clusters of 2 sectors in the row), counted also for hits skipped below, such that all ways use the same index for a hit
         interpolationIndex += (clusters[ihit].row == lastIndexRow ? (int32_t)(clusters[ihit].sector != lastIndexSector) : CAMath::Abs(clusters[ihit].row - lastIndexRow)) * wayDirection;
@@ -211,6 +215,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
         MarkClusters(clusters, ihitMergeFirst, ihit, wayDirection, GPUTPCGMMergedTrackHit::flagHighIncl);
         nMissedHard++;
         NTolerated++;
+        MarkAdjacentSearch(param, iWay, inter);
         if (param.rec.tpc.rebuildTrackInFit && iWay == wayRebuildStart + 1 && param.rec.tpc.rebuildTrackMaxNonIntCov > 0 && !(param.rec.tpc.disableRebuildAttachment & 4)) {
           FindBestInterpolatedHit(merger, inter, cluster.sector, cluster.row, deltaZ, sumInvSqrtCharge, nAvgCharge, prop, iTrk, true, adjacentInRebuild && !(param.rec.tpc.disableMarkAdjacent & 1) ? adjacentLeg : 0);
         }
@@ -224,14 +229,15 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
         if (param.rec.tpc.rebuildTrackInFit && iWay == wayRebuildStart + 1 && param.rec.tpc.rebuildTrackMaxNonIntCov > 0 && !(param.rec.tpc.disableRebuildAttachment & 4)) {
           InterpolateMissingRows(merger, interpolation, clusters, ihit, interpolationIndex, cluster.row, deltaZ, sumInvSqrtCharge, nAvgCharge, prop, iTrk, adjacentInRebuild && !(param.rec.tpc.disableMarkAdjacent & 1) ? adjacentLeg : 0);
         }
+        MarkAdjacentSearch(param, iWay, inter);
         fitBroken = true;
         break; // bad chi2 for the whole track, stop the fit
       }
 
       float uncorrectedY = -1e6f;
       if (param.rec.tpc.rebuildTrackInFit && iWay == wayRebuildStart + 1 && !(param.rec.tpc.disableRebuildAttachment & 1)) {
-        uncorrectedY = FindBestInterpolatedHit(merger, inter, cluster.sector, cluster.row, deltaZ, sumInvSqrtCharge, nAvgCharge, prop, iTrk, false, adjacentInRebuild && !(param.rec.tpc.disableMarkAdjacent & 1) ? adjacentLeg : 0); // TODO: Check whether we do not need to use track Y for some rejection steps
-      } else if (adjacentInRebuild ? iWay == wayRebuildStart + 1 : (param.rec.tpc.mergerInterpolateErrors ? (finalFit && !inter.isAdjacentDone()) : allowChangeClusters)) {
+        uncorrectedY = FindBestInterpolatedHit(merger, inter, cluster.sector, cluster.row, deltaZ, sumInvSqrtCharge, nAvgCharge, prop, iTrk, false, adjacentInRebuild && !(param.rec.tpc.disableMarkAdjacent & 1) ? adjacentLeg : 0);                                                       // TODO: Check whether we do not need to use track Y for some rejection steps
+      } else if (adjacentInRebuild ? iWay == wayRebuildStart + 1 : (param.rec.tpc.mergerInterpolateErrors ? (finalFit && (retryAttempt || !inter.isValid() || (ihit - ihitStartInterpolateReject) * wayDirection > 0 || (param.rec.tpc.disableMarkAdjacent & 1))) : allowChangeClusters)) { // With interpolation rejection: in the last way all hits InterpolateReject did not search: in a retry, beyond its first hit, or without interpolated position (also invalidated where it skipped a hit)
         uncorrectedY = FindAdjacentClusters(merger, cluster.sector, cluster.row, iTrk, track.Leg() == 0, prop);
       }
       if (param.rec.tpc.rejectEdgeClustersInTrackFit && uncorrectedY <= -1e6f) {
@@ -249,6 +255,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
       if (currentClusterStatus) {
         nMissed++;
         nMissedHard++;
+        MarkAdjacentSearch(param, iWay, inter);
         continue;
       }
 
@@ -286,6 +293,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
             }
             // TODO: We can perhaps break here, if we pick up remaining rows
           }
+          MarkAdjacentSearch(param, iWay, inter);
           continue;
         }
       }
@@ -526,6 +534,13 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
   return true;
 }
 
+GPUdi() void GPUTPCGMTrackParam::MarkAdjacentSearch(const GPUParam& GPUrestrict() param, int32_t iWay, gputpcgmmergertypes::InterpolationErrorHit& GPUrestrict() inter)
+{
+  if (param.rec.tpc.mergerInterpolateErrors && iWay == param.rec.tpc.nWays - 2) { // Hit not passed to InterpolateReject, search adjacent clusters in the last way
+    inter.markAdjacentSearch();
+  }
+}
+
 GPUdii() void GPUTPCGMTrackParam::FitAddRow(const int32_t iRow, const uint8_t sector, const int32_t iTrk, const GPUTPCGMMergedTrack& GPUrestrict() track, GPUTPCGMPropagator& GPUrestrict() prop, const bool inFlyDirection, GPUTPCGMMerger& GPUrestrict() merger, uint8_t* GPUrestrict() dEdxSubThresholdRow, const bool dodEdx, const bool doAttach, const uint8_t doInterpolate, gputpcgmmergertypes::InterpolationErrorHit& GPUrestrict() inter, const float deltaZ, const float sumInvSqrtCharge, const int32_t nAvgCharge)
 {
   if (CAMath::Abs(mP[2]) > constants::MAX_SIN_PHI || CAMath::Abs(mP[0]) > CAMath::Abs(mX) * CAMath::Tan(GPUTPCGeometry::kSectAngle() / 2.f)) {
@@ -586,6 +601,7 @@ GPUdii() int32_t GPUTPCGMTrackParam::FitHit(GPUTPCGMMerger& GPUrestrict() merger
   float threshold = 3.f + (lastUpdateX >= 0 ? (CAMath::Abs(mX - lastUpdateX) / 2) : 0.f);
   if (mNDF > (int32_t)param.rec.tpc.mergerNonInterpolateRejectMinNDF && (CAMath::Abs(yy - mP[0]) > threshold || CAMath::Abs(zz - mP[1]) > threshold)) {
     retValUpd = GPUTPCGMPropagator::updateErrorClusterRejectedDistance;
+    MarkAdjacentSearch(param, iWay, inter);
     if (param.rec.tpc.rebuildTrackInFit && (finalOutInFit || iWay < wayRebuildStart + 2)) {
       MarkClusters(clusters, ihitMergeFirst, ihit, wayDirection, GPUTPCGMMergedTrackHit::flagRejectDistance); // Will enable rejectChi2 in further rounds
     }
@@ -726,7 +742,6 @@ GPUd() int32_t GPUTPCGMTrackParam::InterpolateReject(const GPUTPCGMMerger& GPUre
       param.GetClusterErrors2(sector, row, ImP1, mP[2], mP[3], -1.f, 0.f, 0.f, clErr2Y, clErr2Z); // TODO: Use correct time/avgCharge
       FindAdjacentClustersUncorrectedPos(merger, sector, row, iTrk, doAttach == 2, uncorrectedY, uncorrectedZ, ImP1, clErr2Y + CAMath::Abs(ImC0), clErr2Z + CAMath::Abs(ImC2));
     }
-    inter->markAdjacentDone();
   }
   if (GPUTPCGMPropagator::RejectCluster(chi2Y * param.rec.tpc.clusterRejectChi2TolleranceY, chi2Z * param.rec.tpc.clusterRejectChi2TolleranceZ, clusterState)) { // TODO: Relative Pt resolution decreases slightly, why?
     // printf("Reject Cluster chiy2 %f chiz2 %f (Pos Y: %f - %f %f ; Pos Z: %f - %f %f)\n", chi2Y, chi2Z, posY, mP[0], (float)inter->posY, posZ, mP[1], (float)inter->posZ + deltaZ);
