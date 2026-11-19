@@ -32,6 +32,13 @@ namespace
 /// Geant4 abandons a track after ~50 zero steps, so a stalled step is nudged forward by this much
 /// (in Geant4 units) rather than returned as zero.
 const double kNudge = 1.e-3;
+
+/// Two points closer than 1e-10 mm are the same point.
+constexpr double kSamePointDist2 = 1.e-20;
+/// A located point within 1e-8 mm of the end point of the last step is that end point.
+constexpr double kStepEndDist2 = 1.e-16;
+
+bool samePoint(const G4ThreeVector& a, const G4ThreeVector& b) { return a.diff2(b) < kSamePointDist2; }
 } // namespace
 
 namespace o2::simsetup
@@ -76,7 +83,7 @@ G4double VecGeomG4PropagatingNavigator::ComputeStep(const G4ThreeVector& globalP
   // The adopted state marks the volume the crossing left. As in Geant4, it is blocked in the first
   // step after the exit only, and only while the direction points away from it; a track turning
   // back into it must see its boundary.
-  const bool block = mExitBlockPending && globalPoint.diff2(mLocatedPoint) < 1.e-20 &&
+  const bool block = mExitBlockPending && samePoint(globalPoint, mLocatedPoint) &&
                      directionLeaves(mPrevState, toVG(globalPoint), toDir(direction));
   mExitBlockPending = false;
   if (!block) {
@@ -130,11 +137,14 @@ G4VPhysicalVolume* VecGeomG4PropagatingNavigator::ResetHierarchyAndLocate(const 
 {
   // Geant4 hands back a touchable it saved earlier, e.g. when resuming a track whose secondaries
   // were followed first. The VecGeom state is rebuilt from it.
+  fWasLimitedByGeometry = false;
   fEnteredDaughter = false;
   fExitedMother = false;
   mWouldEnter = false;
   mWouldExit = false;
   mOnBoundary = false;
+  mCrossed = false;
+  mExitBlockPending = false;
   mHaveNextState = false;
   mLastSafety = -1.;
   fHistory = *history.GetHistory();
@@ -150,35 +160,35 @@ G4VPhysicalVolume* VecGeomG4PropagatingNavigator::LocateGlobalPointAndSetup(cons
                                                                             const G4ThreeVector*,
                                                                             const G4bool relativeSearch, const G4bool)
 {
-  bool onBoundary = fWasLimitedByGeometry;
-  if (mHaveNextState && point.diff2(mNextPoint) < 1.e-16) {
-    onBoundary = true;
-  }
+  // As in G4Navigator, only a relative search can cross a boundary, and the locate consumes the flag.
+  const bool onBoundary = relativeSearch && (fWasLimitedByGeometry || (mHaveNextState && point.diff2(mNextPoint) < kStepEndDist2));
+  fWasLimitedByGeometry = false;
 
   mPrevState = mCurState;
   mLocatedPoint = point;
   mExitBlockPending = false;
   mLastSafety = -1.;
 
-  if (!mForceReInit && relativeSearch && onBoundary && mHaveNextState) {
+  if (!mForceReInit && onBoundary && mHaveNextState) {
     // The state on the far side of the boundary was already worked out, and relocated, by the step
     // that found it. Adopting it is cheaper than locating again.
     mCurState = mNextState;
     mExitBlockPending = mWouldExit;
-  } else if (mForceReInit || !relativeSearch || onBoundary) {
+  } else {
     mCurState.Clear();
     vecgeom::GlobalLocator::LocateGlobalPoint(vecgeom::GeoManager::Instance().GetWorld(), toVG(point), mCurState, true);
     mForceReInit = false;
     ++mGlobalRelocates;
   }
-  // Otherwise the point only moved inside the volume the state already names.
 
   auto* target = updateHistory(mCurState);
   mCrossed = onBoundary;
-  if (onBoundary) {
-    fExitedMother = mWouldExit;
-    fEnteredDaughter = mWouldEnter;
-    mOnBoundary = true;
+  mOnBoundary = onBoundary;
+  fExitedMother = onBoundary && mWouldExit;
+  fEnteredDaughter = onBoundary && mWouldEnter;
+  if (!onBoundary) {
+    // Kept after a crossing only, where GetGlobalExitNormal still reads mWouldExit.
+    mWouldEnter = mWouldExit = false;
   }
   mHaveNextState = false;
   return target;
@@ -199,7 +209,14 @@ void VecGeomG4PropagatingNavigator::LocateGlobalPointWithinVolume(const G4ThreeV
 G4double VecGeomG4PropagatingNavigator::ComputeSafety(const G4ThreeVector& globalPoint, const G4double proposedMaxLength,
                                                       const G4bool)
 {
-  if (mZeroSafety || mOnBoundary || mCrossed || fEnteredDaughter || fExitedMother || mWouldEnter || mWouldExit) {
+  if (mZeroSafety) {
+    return 0.;
+  }
+  // Zero only on the face: where a crossing was located, or where the last step ends on a boundary.
+  if (mCrossed && samePoint(globalPoint, mLocatedPoint)) {
+    return 0.;
+  }
+  if ((mWouldEnter || mWouldExit) && samePoint(globalPoint, mNextPoint)) {
     return 0.;
   }
   if (mCurState.Top() == nullptr) {

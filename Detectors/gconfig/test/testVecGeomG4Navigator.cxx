@@ -12,7 +12,8 @@
 /// The relocating VecGeom navigator against TGeo on a geometry of coinciding faces: two copies of a tower
 /// side by side that fill their mother, each a stack of tiles that reach the tower's faces, as in a sampling
 /// calorimeter. A ray has to visit the same volumes in the same order, and never stop for a zero-length step
-/// in a mother it only touches. Every case runs with the default locate and with the lean one.
+/// in a mother it only touches. Every case runs with the default locate and with the lean one. The propagating
+/// navigator has to answer a zero safety only on the face it crossed.
 
 #define BOOST_TEST_MODULE Test SimSetup VecGeomG4Navigator
 #define BOOST_TEST_MAIN
@@ -24,6 +25,7 @@
 
 #include "../src/VecGeomG4Map.h"
 #include "../src/VecGeomG4Navigator.h"
+#include "../src/VecGeomG4PropagatingNavigator.h"
 
 #include "TG4RootDetectorConstruction.h"
 
@@ -49,6 +51,7 @@
 
 using o2::simsetup::VecGeomG4Map;
 using o2::simsetup::VecGeomG4Navigator;
+using o2::simsetup::VecGeomG4PropagatingNavigator;
 
 namespace
 {
@@ -57,6 +60,7 @@ struct Fixture {
   VecGeomG4Map map;
   std::unique_ptr<VecGeomG4Navigator> navigator;
   std::unique_ptr<VecGeomG4Navigator> lean; // the same with G4.vecgeomLeanLocate
+  std::unique_ptr<VecGeomG4PropagatingNavigator> propagating;
 
   Fixture()
   {
@@ -93,6 +97,8 @@ struct Fixture {
     navigator->SetWorldVolume(world);
     lean = std::make_unique<VecGeomG4Navigator>(map, 1.e-9, false, nullptr, true);
     lean->SetWorldVolume(world);
+    propagating = std::make_unique<VecGeomG4PropagatingNavigator>(map, false);
+    propagating->SetWorldVolume(world);
   }
 };
 
@@ -179,6 +185,24 @@ std::vector<std::string> afterBoundaries(G4Navigator& nav, const double* p, cons
   }
   return paths;
 }
+
+/// A new track in the paper of the first tile, 1 mm above its lead, steps down into the lead; returns the crossing point.
+G4ThreeVector enterLead(G4Navigator& nav)
+{
+  const G4ThreeVector down(0., 0., -1.);
+  G4ThreeVector point(-5. * cm, -5. * cm, -8.35 * cm);
+  nav.LocateGlobalPointAndSetup(point, &down, false, false);
+  G4double safety = 0.;
+  point += nav.ComputeStep(point, down, 1.e6 * cm, safety) * down;
+  nav.SetGeometricallyLimitedStep();
+  nav.LocateGlobalPointAndSetup(point, &down, true, false);
+  BOOST_REQUIRE(nav.EnteredDaughterVolume());
+  BOOST_REQUIRE_EQUAL(touchablePath(nav).substr(touchablePath(nav).rfind('/')), "/LEAD_1");
+  return point;
+}
+
+/// A point in the paper of the fourth tile, 0.5 mm above its lower face and 1.5 mm below its lead.
+const G4ThreeVector inPaper(-5. * cm, -5. * cm, -1.70 * cm);
 
 std::vector<Visit> withTGeo(const double* p, const double* d)
 {
@@ -457,4 +481,38 @@ BOOST_AUTO_TEST_CASE(a_track_pushed_from_place_to_place_is_aborted_after_its_fou
       BOOST_CHECK_EQUAL(steps, 15);
     }
   }
+}
+
+BOOST_AUTO_TEST_CASE(the_propagating_navigator_has_a_zero_safety_only_on_the_face_it_crossed)
+{
+  auto& nav = *fixture().propagating;
+  const G4ThreeVector down(0., 0., -1.);
+  const G4ThreeVector face = enterLead(nav);
+  BOOST_CHECK_EQUAL(nav.ComputeSafety(face), 0.);
+  // a 0.2 mm step into the lead; Geant4 asks for the safety at its end before the next locate
+  G4double safety = 0.;
+  BOOST_REQUIRE_GT(nav.ComputeStep(face, down, 0.2 * mm, safety), 0.2 * mm);
+  BOOST_CHECK_CLOSE(nav.ComputeSafety(face + 0.2 * mm * down), 0.2 * mm, 1.e-4);
+}
+
+BOOST_AUTO_TEST_CASE(a_new_track_after_a_crossing_is_not_on_a_boundary)
+{
+  auto& nav = *fixture().propagating;
+  enterLead(nav);
+  const G4ThreeVector up(0., 0., 1.);
+  nav.LocateGlobalPointAndSetup(inPaper, &up, false, false);
+  BOOST_CHECK(!nav.EnteredDaughterVolume());
+  BOOST_CHECK(!nav.ExitedMotherVolume());
+  BOOST_CHECK_CLOSE(nav.ComputeSafety(inPaper), 0.5 * mm, 1.e-4);
+}
+
+BOOST_AUTO_TEST_CASE(a_resumed_track_after_a_crossing_is_not_on_a_boundary)
+{
+  auto& nav = *fixture().propagating;
+  const G4ThreeVector up(0., 0., 1.);
+  nav.LocateGlobalPointAndSetup(inPaper, &up, false, false);
+  std::unique_ptr<G4TouchableHistory> touchable(nav.CreateTouchableHistory());
+  enterLead(nav);
+  nav.ResetHierarchyAndLocate(inPaper, up, *touchable);
+  BOOST_CHECK_CLOSE(nav.ComputeSafety(inPaper), 0.5 * mm, 1.e-4);
 }
