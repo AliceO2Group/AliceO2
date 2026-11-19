@@ -19,9 +19,9 @@ namespace o2::simsetup
 
 /// A lighter VecGeom navigator for Geant4, selected with G4.vecgeomNavigator=kPropagated. ComputeStep
 /// uses VecGeom's combined step-and-relocate, and a boundary locate adopts the state that step
-/// propagated instead of locating again. Safety is zero for the whole step after a crossing, a stuck
-/// step is nudged forward, and the exit normal follows the direction of motion. It does less work per
-/// step and per crossing than VecGeomG4Navigator.
+/// propagated instead of locating again. Safety is zero only on the face of a crossing, a stuck step
+/// is nudged forward, and the exit normal follows the direction of motion. It does less work per step
+/// and per crossing than VecGeomG4Navigator.
 class VecGeomG4PropagatingNavigator : public VecGeomG4NavigatorBase
 {
  public:
