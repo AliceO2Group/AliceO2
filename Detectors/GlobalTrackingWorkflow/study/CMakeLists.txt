@@ -33,6 +33,10 @@ o2_add_library(GlobalTrackingStudy
                                      O2::GlobalTrackingWorkflowHelpers
                                      O2::DataFormatsGlobalTracking
                                      O2::DetectorsVertexing
+                                     O2::TRDBase
+                                     O2::TOFBase
+                                     O2::DataFormatsTRD
+                                     O2::DataFormatsTOF
                                      O2::TPCWorkflow
                                      O2::SimulationDataFormat)
 

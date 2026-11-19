@@ -23,6 +23,13 @@ struct CheckResidConfig : o2::conf::ConfigurableParamHelper<CheckResidConfig> {
   float maxPt = 50.f;
   float maxTgl = 2.f;
   float rCompIBOB = 12.f;
+  float sigYZ2TOF = 0.75f;    ///< assumed TOF cluster error^2 (Y and Z), as in SpacePoints calibration
+  bool trdApplyXOR = false;   ///< apply XOR in the TRD tracklet transformer
+  bool trdApplyShift = false; ///< apply artificial pad shift in the TRD tracklet transformer
+  int trdUseAngularPull = 3;  ///< as rec.trd.useAngularPull: 0 = tracklet error w/o angular pull; >0 = error increased with it; >=3 also y corrected with it
+  float trdCorrDVT = 0.f;     ///< correction to Vdrift*t of TRD tracklets (equivalent to a shift in X at which Y is evaluated)
+  float maxSnpExt = 0.85f;    ///< max snp when extrapolating ITS tracks to TRD / TOF
+  float maxStepExt = 2.f;     ///< max propagation step when extrapolating ITS tracks to TRD / TOF
 
   bool pvcontribOnly = true;
   bool addPVAsCluster = true;

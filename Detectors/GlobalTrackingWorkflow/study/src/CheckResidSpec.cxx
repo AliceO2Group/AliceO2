@@ -46,6 +46,20 @@
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "ReconstructionDataFormats/PrimaryVertex.h"
+#include "DataFormatsTRD/TrackTRD.h"
+#include "DataFormatsTRD/Tracklet64.h"
+#include "DataFormatsTRD/CalibratedTracklet.h"
+#include "DataFormatsTRD/Constants.h"
+#include "DataFormatsTOF/Cluster.h"
+#include "TRDBase/Geometry.h"
+#include "TRDBase/PadPlane.h"
+#include "TOFBase/Geo.h"
+#include "GPUTRDRecoParam.h"
+#include "TRDBase/TrackletTransformer.h"
+#include "DataFormatsTRD/CalVdriftExB.h"
+#include <TGeoManager.h>
+#include <TGeoMatrix.h>
+#include <TGeoPhysicalNode.h>
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "DetectorsVertexing/PVertexer.h"
@@ -86,9 +100,12 @@ using timeEst = o2::dataformats::TimeStampWithError<float, float>;
 class CheckResidSpec final : public Task
 {
  public:
-  CheckResidSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, GTrackID::mask_t src, bool drawOnly, bool postProcOnly)
+  CheckResidSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, GTrackID::mask_t src, GTrackID::mask_t srcCl, bool drawOnly, bool postProcOnly)
     : mDataRequest(dr), mGGCCDBRequest(gr), mTracksSrc(src), mDrawOnly(drawOnly), mPostProcOnly(postProcOnly)
   {
+    // residuals wrt TRD tracklets / TOF clusters are possible only if these clusters and the tracks matched to them are requested
+    mDoTRD = srcCl[GTrackID::TRD] && (src[GTrackID::ITSTPCTRD] || src[GTrackID::ITSTPCTRDTOF]);
+    mDoTOF = srcCl[GTrackID::TOF] && (src[GTrackID::ITSTPCTOF] || src[GTrackID::ITSTPCTRDTOF]);
   }
   ~CheckResidSpec() final = default;
   void init(InitContext& ic) final;
@@ -101,7 +118,10 @@ class CheckResidSpec final : public Task
   void updateTimeDependentParams(ProcessingContext& pc);
   bool refitPV(o2::dataformats::PrimaryVertex& pv, int vid);
   bool refitITStrack(o2::track::TrackParCov& track, GTrackID gid);
-  bool processITSTrack(const o2::its::TrackITS& iTrack, const o2::dataformats::PrimaryVertex& pv, o2::checkresid::Track& resTrack, o2::track::PID pid);
+  bool processITSTrack(const o2::its::TrackITS& iTrack, const o2::dataformats::PrimaryVertex& pv, o2::checkresid::Track& resTrack, o2::track::PID pid, std::vector<Point>* extPts);
+  void extrapolateToTRDTOF(const o2::track::TrackParCov& trkOut, GTrackID gid, std::vector<Point>& pts) const;
+  void initTRDTOFGeometry();
+  void prepareTRDTracklets();
   void bookHistos();
   void fillHistos(const o2::checkresid::Track& trc);
   void postProcessHistos();
@@ -122,6 +142,16 @@ class CheckResidSpec final : public Task
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOut;
   GTrackID::mask_t mTracksSrc{};
 
+  bool mDoTRD = false; ///< calculate residuals of the ITS track extrapolation wrt TRD tracklets
+  bool mDoTOF = false; ///< calculate residuals of the ITS track extrapolation wrt TOF clusters
+  o2::gpu::GPUTRDRecoParam mTRDRecoParam;
+  const o2::trd::Geometry* mTRDGeo = nullptr;
+  std::unique_ptr<o2::trd::TrackletTransformer> mTRDTransformer;
+  const o2::trd::CalVdriftExB* mTRDCalVdriftExB = nullptr;
+  std::vector<o2::trd::CalibratedTracklet> mTRDTrackletsLoc; ///< tracklets in the local frame of their chambers, recalibrated
+  std::vector<TGeoHMatrix> mTRDT2L;                          ///< TRK->LOC matrices of TRD chambers (current geometry), by detector
+  std::vector<TGeoHMatrix> mTOFT2L;                          ///< TRK->LOC matrices of TOF strips (current geometry), by continuous strip number
+  std::vector<char> mTRDT2LValid, mTOFT2LValid;
   bool mDrawOnly = false;
   bool mPostProcOnly = false;
   bool mDraw = false;
@@ -231,6 +261,9 @@ void CheckResidSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   pc.inputs().get<o2::dataformats::MeanVertexObject*>("meanvtx");
+  if (mDoTRD) {
+    pc.inputs().get<o2::trd::CalVdriftExB*>("calvdexb"); // triggers finaliseCCDB
+  }
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
     const auto& params = o2::checkresid::CheckResidConfig::Instance();
@@ -247,6 +280,19 @@ void CheckResidSpec::updateTimeDependentParams(ProcessingContext& pc)
     geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G, o2::math_utils::TransformType::T2G));
     o2::conf::ConfigurableParam::updateFromString("pvertexer.useTimeInChi2=false;");
     mVertexer.init();
+    initTRDTOFGeometry();
+  }
+  if (mDoTRD && !mTRDTransformer) {
+    mTRDRecoParam.init(o2::base::Propagator::Instance()->getNominalBz());
+    mTRDTransformer = std::make_unique<o2::trd::TrackletTransformer>();
+    if (o2::checkresid::CheckResidConfig::Instance().trdApplyXOR) {
+      mTRDTransformer->setApplyXOR();
+    }
+    mTRDTransformer->setApplyShift(o2::checkresid::CheckResidConfig::Instance().trdApplyShift);
+    mTRDTransformer->init();
+  }
+  if (mDoTRD) {
+    mTRDTransformer->setCalVdriftExB(mTRDCalVdriftExB);
   }
   if (mMeanVertexUpdated) {
     mMeanVertexUpdated = false;
@@ -289,6 +335,9 @@ void CheckResidSpec::process()
   }
   mITSClustersArray.finalize();
 
+  if (mDoTRD) {
+    prepareTRDTracklets();
+  }
   auto pvvec = mRecoData->getPrimaryVertices();
   auto trackIndex = mRecoData->getPrimaryVertexMatchedTracks(); // Global ID's for associated tracks
   auto vtxRefs = mRecoData->getPrimaryVertexMatchedTrackRefs(); // references from vertex to these track IDs
@@ -298,6 +347,8 @@ void CheckResidSpec::process()
   std::vector<std::vector<checkresid::Track>> slots;
   mPVUsed.clear();
   slots.resize(mNThreads);
+  std::vector<std::vector<std::vector<Point>>> slotsExt(mNThreads); // TRD/TOF residuals, parallel to slots: entry per track, empty if no TRD/TOF contribution
+  const bool doExt = mDoTRD || mDoTOF;
   int nvGood = 0, nvUse = 0, nvRefFail = 0;
   long pvFitDuration{};
   for (int iv = 0; iv < nv; iv++) {
@@ -380,23 +431,32 @@ void CheckResidSpec::process()
         }
 #ifdef WITH_OPENMP
         auto& accum = slots[omp_get_thread_num()];
+        auto& accumExt = slotsExt[omp_get_thread_num()];
 #else
         auto& accum = slots[0];
+        auto& accumExt = slotsExt[0];
 #endif
         auto& resTrack = accum.emplace_back();
+        auto& extPts = accumExt.emplace_back();
         resTrack.gid = vid;
-        if (!processITSTrack(itsTrack, pve, resTrack, pidITS)) {
+        if (!processITSTrack(itsTrack, pve, resTrack, pidITS, doExt ? &extPts : nullptr)) {
           accum.pop_back();
+          accumExt.pop_back();
           continue;
         }
       }
     }
   }
   // output
-  for (const auto& accum : slots) {
-    for (const auto& tr : accum) {
+  for (size_t is = 0; is < slots.size(); is++) {
+    const auto& accum = slots[is];
+    for (size_t it = 0; it < accum.size(); it++) {
+      const auto& tr = accum[it];
       if (mDBGOut) {
         (*mDBGOut) << "res" << "tr=" << tr << "\n";
+        if (doExt) { // parallel tree: one (possibly empty) entry per entry of the "res" tree
+          (*mDBGOut) << "resTRDTOF" << "pts=" << slotsExt[is][it] << "\n";
+        }
       }
       if (mHMan) {
         fillHistos(tr);
@@ -418,7 +478,7 @@ void CheckResidSpec::process()
   TFCount++;
 }
 
-bool CheckResidSpec::processITSTrack(const o2::its::TrackITS& iTrack, const o2::dataformats::PrimaryVertex& pv, o2::checkresid::Track& resTrack, o2::track::PID pid)
+bool CheckResidSpec::processITSTrack(const o2::its::TrackITS& iTrack, const o2::dataformats::PrimaryVertex& pv, o2::checkresid::Track& resTrack, o2::track::PID pid, std::vector<Point>* extPts)
 {
   const auto itsClRefs = mRecoData->getITSTracksClusterRefs();
   auto trFitInw = iTrack.getParamOut(); // seed for inward refit
@@ -538,6 +598,10 @@ bool CheckResidSpec::processITSTrack(const o2::its::TrackITS& iTrack, const o2::
     }
   }
 
+  if (extPts) { // extrapolate the outward fit through the ITS clusters to TRD / TOF, failure is not fatal for the ITS residuals
+    extrapolateToTRDTOF(trFitOut, resTrack.gid, *extPts);
+  }
+
   // extrapolate the IB(OB) sub-track, w/o intermediate updates, to the cluster (or PV pseudo-cluster) of an OB(IB) layer, for the IOB residuals
   auto extrapIOB = [&](const o2::track::TrackParCov& srcTr, int i) -> std::array<float, 4> { // {dy, dz, sig2y, sig2z}, sig2y<=0 : invalid
     o2::track::TrackParCov tr = srcTr;
@@ -590,6 +654,174 @@ bool CheckResidSpec::processITSTrack(const o2::its::TrackITS& iTrack, const o2::
     }
   }
   return true;
+}
+
+void CheckResidSpec::initTRDTOFGeometry()
+{
+  // TRK->LOC matrices of TRD chambers and TOF strips from the geometry in use, as done in O2Align (Volume, SensorTRD, SensorTOF):
+  // the recalibrated tracklet / cluster positions in the local frames are brought to the tracking frame with them
+  auto getPN = [](const std::string& sym) -> TGeoPhysicalNode* {
+    auto* pne = gGeoManager->GetAlignableEntry(sym.c_str());
+    if (!pne) {
+      return nullptr;
+    }
+    auto* pn = pne->GetPhysicalNode();
+    return pn ? pn : gGeoManager->MakePhysicalNode(pne->GetTitle());
+  };
+  auto makeT2L = [](const TGeoHMatrix& l2g, double alpha) {
+    TGeoHMatrix t2l;
+    t2l.RotateZ(alpha * TMath::RadToDeg()); // TRK -> GLO
+    t2l.MultiplyLeft(l2g.Inverse());        // GLO -> LOC
+    return t2l;
+  };
+  if (mDoTRD) {
+    mTRDGeo = o2::trd::Geometry::instance();
+    mTRDT2L.assign(o2::trd::constants::MAXCHAMBER, TGeoHMatrix());
+    mTRDT2LValid.assign(o2::trd::constants::MAXCHAMBER, 0);
+    for (int isec = 0; isec < o2::trd::constants::NSECTOR; isec++) {
+      for (int ilr = 0; ilr < o2::trd::constants::NLAYER; ilr++) {
+        for (int ist = 0; ist < o2::trd::constants::NSTACK; ist++) {
+          auto* pn = getPN(fmt::format("TRD/sm{:02d}/st{}/pl{}", isec, ist, ilr));
+          if (!pn) { // disabled supermodule or missing chamber
+            continue;
+          }
+          TGeoHMatrix rxy; // the TRD chamber local frame is rotated wrt the standard convention
+          rxy.RotateX(-90.);
+          rxy.RotateY(-90.);
+          TGeoHMatrix l2g = *pn->GetMatrix();
+          l2g *= rxy;
+          int det = o2::trd::Geometry::getDetector(ilr, ist, isec);
+          mTRDT2L[det] = makeT2L(l2g, o2::math_utils::sector2Angle(isec));
+          mTRDT2LValid[det] = 1;
+        }
+      }
+    }
+  }
+  if (mDoTOF) {
+    mTOFT2L.assign(o2::tof::Geo::NSTRIPS, TGeoHMatrix());
+    mTOFT2LValid.assign(o2::tof::Geo::NSTRIPS, 0);
+    int cnt = 0;
+    for (int isec = 0; isec < o2::tof::Geo::NSECTORS; isec++) {
+      for (int istr = 1; istr <= o2::tof::Geo::NSTRIPXSECTOR; istr++) {
+        int sid = cnt++; // continuous strip number, as at the geometry creation
+        auto* pn = getPN(fmt::format("TOF/sm{:02d}/strip{:02d}", isec, istr));
+        if (!pn) { // disabled supermodule or TOF hole
+          continue;
+        }
+        mTOFT2L[sid] = makeT2L(*pn->GetMatrix(), o2::math_utils::sector2Angle(isec));
+        mTOFT2LValid[sid] = 1;
+      }
+    }
+  }
+}
+
+void CheckResidSpec::prepareTRDTracklets()
+{
+  // recalibrate (vDrift, ExB, ...) all tracklets of the TF, the result is in the local frames of the chambers
+  const auto trackletsRaw = mRecoData->getTRDTracklets();
+  mTRDTrackletsLoc.clear();
+  mTRDTrackletsLoc.reserve(trackletsRaw.size());
+  for (const auto& tracklet : trackletsRaw) {
+    mTRDTrackletsLoc.push_back(mTRDTransformer->transformTracklet(tracklet, false));
+  }
+}
+
+void CheckResidSpec::extrapolateToTRDTOF(const o2::track::TrackParCov& trkOut, GTrackID gid, std::vector<Point>& pts) const
+{
+  // Extrapolate ITS track (outward fit) to the TRD layers with tracklets and to the TOF cluster of the global track gid, storing the
+  // residuals as in TrackInterpolation::extrapolateTrack of the TPC SpacePoints calibration. The extrapolation is done on a copy,
+  // the ITS outward fit is left at its last update point. The tracklet and cluster positions are recalibrated as in O2Align
+  // (DetectorTRD, DetectorTOF): tracklets by the TrackletTransformer, clusters from their main contributing channel, both brought to
+  // the tracking frame with the matrices of the geometry in use.
+  // Point.clSize = DetID (TRD or TOF), Point.lr = TRD layer (0-5) or 0 for TOF, Point.sens = TRD chamber or TOF pad in sector,
+  // Point.sig2y,sig2z = combined (tracklet / cluster + track extrapolation) errors, Point.sig2yIOB,sig2zIOB = errors of the track extrapolation only,
+  // Point.dyIOB = angular pull of the TRD tracklet (0 for TOF).
+  const auto& params = CheckResidConfig::Instance();
+  auto prop = o2::base::Propagator::Instance();
+  const auto gidTable = mRecoData->getSingleDetectorRefs(gid);
+  o2::track::TrackParCov trk = trkOut;
+  auto addPoint = [&trk, &pts](float dy, float dz, float pull, float s2y, float s2z, float zMeas, int detID, int lr, int sens) {
+    float phi = trk.getPhiPos();
+    o2::math_utils::bringTo02Pi(phi);
+    pts.emplace_back(dy, dz, s2y + trk.getSigmaY2(), s2z + trk.getSigmaZ2(), pull, 0.f, trk.getSigmaY2(), trk.getSigmaZ2(), phi, zMeas, trk.getSnp(), int16_t(detID), int16_t(sens), int8_t(lr));
+  };
+  bool stop = false;
+  if (mDoTRD && gidTable[GTrackID::ITSTPCTRD].isIndexSet()) {
+    const auto& trkTRD = mRecoData->getITSTPCTRDTrack<o2::trd::TrackTRD>(gidTable[GTrackID::ITSTPCTRD]);
+    const auto trdTracklets = mRecoData->getTRDTracklets();
+    for (int iLayer = 0; iLayer < o2::trd::constants::NLAYER; iLayer++) {
+      int trkltIdx = trkTRD.getTrackletIndex(iLayer);
+      if (trkltIdx < 0) { // no tracklet in this layer
+        continue;
+      }
+      const auto& trdTrklt = trdTracklets[trkltIdx];
+      const auto& trkltLoc = mTRDTrackletsLoc[trkltIdx];
+      int det = trdTrklt.getDetector();
+      if (!mTRDT2LValid[det]) {
+        continue;
+      }
+      // recalibrated tracklet to the tracking frame
+      const double locXYZ[3] = {trkltLoc.getX(), trkltLoc.getY(), trkltLoc.getZ()};
+      double traXYZ[3];
+      mTRDT2L[det].MasterToLocal(locXYZ, traXYZ);
+      int sec = o2::trd::Geometry::getSector(det);
+      if (sec != o2::math_utils::angle2Sector(trk.getAlpha()) && !trk.rotate(o2::math_utils::sector2Angle(sec))) {
+        LOGP(debug, "Failed to rotate to TRD sector {} for layer {}", sec, iLayer);
+        stop = true;
+        break;
+      }
+      if (!prop->PropagateToXBxByBz(trk, traXYZ[0], params.maxSnpExt, params.maxStepExt)) {
+        LOGP(debug, "Failed propagation to TRD layer {}", iLayer);
+        stop = true;
+        break;
+      }
+      const auto* pad = mTRDGeo->getPadPlane(det);
+      const float tilt = std::tan(TMath::DegToRad() * pad->getTiltingAngle()); // tilt is signed! and returned in degrees
+      const float padLength = pad->getRowSize(trdTrklt.getPadRow());
+      const float snp = trk.getSnp();
+      // angular pull: tracklet slope wrt the one expected from the track snp, as in TRD QC tracking
+      const float dyTiltCorr = tilt * trk.getTgl() * mTRDGeo->cdrHght();
+      const float pull = (trkltLoc.getDy() + dyTiltCorr - mTRDRecoParam.convertAngleToDy(snp)) / std::sqrt(mTRDRecoParam.getDyRes(snp, 0));
+      // tilted pads report y at the pad row centre: correct with the track z, if the track is within the pad length of the row centre
+      const float dzRow = traXYZ[2] - trk.getZ();
+      const bool applyTilt = std::abs(dzRow) < padLength && trk.getSigmaZ2() < padLength * padLength / 12.f;
+      float yTrklt = traXYZ[1] - (applyTilt ? tilt * dzRow : 0.f);
+      const float zTrklt = traXYZ[2] + mTRDRecoParam.getZCorrCoeffNRC() * trk.getTgl();
+      if (std::abs(params.trdCorrDVT) > 1e-9f) {
+        yTrklt += snp / std::sqrt((1.f - snp) * (1.f + snp)) * params.trdCorrDVT;
+      }
+      if (params.trdUseAngularPull >= 3) {
+        yTrklt -= pull * mTRDRecoParam.getCorrYDy(snp);
+      }
+      std::array<float, 3> trkltCov{};
+      mTRDRecoParam.recalcTrkltCov(tilt, snp, padLength, trkltCov, params.trdUseAngularPull != 0 ? pull : 0.f);
+      addPoint(yTrklt - trk.getY(), zTrklt - trk.getZ(), pull, trkltCov[0], trkltCov[2], zTrklt, DetID::TRD, iLayer, det);
+    }
+  }
+  if (!stop && mDoTOF && gidTable[GTrackID::TOF].isIndexSet()) {
+    const auto& clTOF = mRecoData->getTOFClusters()[gidTable[GTrackID::TOF]];
+    // cluster position is defined by its main contributing channel, in the local frame of its strip
+    const int channel = clTOF.getMainContributingChannel();
+    int detInd[5] = {};
+    o2::tof::Geo::getVolumeIndices(channel, detInd);
+    const int clTOFSec = channel / o2::tof::Geo::NPADSXSECTOR;
+    const int sid = o2::tof::Geo::getStripNumberPerSM(detInd[1], detInd[2]) + clTOFSec * o2::tof::Geo::NSTRIPXSECTOR;
+    if (sid < 0 || sid >= int(mTOFT2LValid.size()) || !mTOFT2LValid[sid]) {
+      return;
+    }
+    const double locXYZ[3] = {(detInd[4] + 0.5) * o2::tof::Geo::XPAD - o2::tof::Geo::XHALFSTRIP, 0., (detInd[3] - 0.5) * o2::tof::Geo::ZPAD};
+    double traXYZ[3];
+    mTOFT2L[sid].MasterToLocal(locXYZ, traXYZ);
+    if (trk.getAlpha() != o2::math_utils::sector2Angle(clTOFSec) && !trk.rotate(o2::math_utils::sector2Angle(clTOFSec))) {
+      LOGP(debug, "Failed to rotate into TOF cluster sector frame");
+      return;
+    }
+    if (!prop->PropagateToXBxByBz(trk, traXYZ[0], params.maxSnpExt, params.maxStepExt)) {
+      LOGP(debug, "Failed final propagation to TOF radius");
+      return;
+    }
+    addPoint(traXYZ[1] - trk.getY(), traXYZ[2] - trk.getZ(), 0.f, params.sigYZ2TOF, params.sigYZ2TOF, traXYZ[2], DetID::TOF, 0, channel % o2::tof::Geo::NPADSXSECTOR);
+  }
 }
 
 bool CheckResidSpec::refitPV(o2::dataformats::PrimaryVertex& pv, int vid)
@@ -1378,6 +1610,11 @@ void CheckResidSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
     return;
   }
+  if (matcher == ConcreteDataMatcher("TRD", "CALVDRIFTEXB", 0)) {
+    LOG(info) << "TRD CalVdriftExB updated";
+    mTRDCalVdriftExB = (const o2::trd::CalVdriftExB*)obj;
+    return;
+  }
   if (matcher == ConcreteDataMatcher("GLO", "MEANVERTEX", 0)) {
     LOG(info) << "Imposing new MeanVertex: " << ((const o2::dataformats::MeanVertexObject*)obj)->asString();
     mMeanVtx = *(const o2::dataformats::MeanVertexObject*)obj;
@@ -1402,6 +1639,9 @@ DataProcessorSpec getCheckResidSpec(GTrackID::mask_t srcTracks, GTrackID::mask_t
     dataRequest->requestClusters(srcClusters, useMC);
     dataRequest->requestPrimaryVertices(useMC);
     dataRequest->inputs.emplace_back("meanvtx", "GLO", "MEANVERTEX", 0, Lifetime::Condition, ccdbParamSpec("GLO/Calib/MeanVertex", {}, 1));
+    if (srcClusters[GTrackID::TRD] && (srcTracks[GTrackID::ITSTPCTRD] || srcTracks[GTrackID::ITSTPCTRDTOF])) {
+      dataRequest->inputs.emplace_back("calvdexb", "TRD", "CALVDRIFTEXB", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/CalVdriftExB"));
+    }
   }
   auto ggRequest = drawOnly ? std::make_shared<o2::base::GRPGeomRequest>(false, false, false, false, false, o2::base::GRPGeomRequest::None, dataRequest->inputs) : std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
                                                                                                                                                                                                               true,                              // GRPECS=true
@@ -1424,7 +1664,7 @@ DataProcessorSpec getCheckResidSpec(GTrackID::mask_t srcTracks, GTrackID::mask_t
     "check-resid",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<CheckResidSpec>(dataRequest, ggRequest, srcTracks, drawOnly, postProcOnly)},
+    AlgorithmSpec{adaptFromTask<CheckResidSpec>(dataRequest, ggRequest, srcTracks, srcClusters, drawOnly, postProcOnly)},
     opts};
 }
 
