@@ -123,7 +123,11 @@ void installVecGeomNavigator()
     LOG(info) << "VecGeom navigation: propagating navigator";
     navigator = new VecGeomG4PropagatingNavigator(map, g4Params.vecgeomZeroSafety);
   } else {
-    navigator = new VecGeomG4Navigator(map, g4Params.vecgeomPushDepth, g4Params.vecgeomZeroSafety, parallelWorldPtr);
+    if (g4Params.vecgeomLeanLocate) {
+      LOG(info) << "VecGeom relocating navigator with the lean locate";
+    }
+    navigator = new VecGeomG4Navigator(map, g4Params.vecgeomPushDepth, g4Params.vecgeomZeroSafety, parallelWorldPtr,
+                                       g4Params.vecgeomLeanLocate);
   }
   navigator->SetWorldVolume(detConstruction->GetTopPV());
 

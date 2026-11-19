@@ -19,6 +19,7 @@
 
 #include <VecGeom/base/Transformation3D.h>
 #include <VecGeom/management/GeoManager.h>
+#include <VecGeom/navigation/BVHNavigatorV.h>
 #include <VecGeom/navigation/GlobalLocator.h>
 #include <VecGeom/navigation/VNavigator.h>
 #include <VecGeom/navigation/VSafetyEstimator.h>
@@ -48,8 +49,12 @@ namespace o2::simsetup
 {
 
 VecGeomG4Navigator::VecGeomG4Navigator(VecGeomG4Map const& map, double pushDepth, bool zeroSafety,
-                                       VecGeomParallelWorld const* parallelWorld)
-  : VecGeomG4NavigatorBase(map), mPushDepth(pushDepth), mZeroSafety(zeroSafety), mParallelWorld(parallelWorld)
+                                       VecGeomParallelWorld const* parallelWorld, bool leanLocate)
+  : VecGeomG4NavigatorBase(map),
+    mPushDepth(pushDepth),
+    mZeroSafety(zeroSafety),
+    mLeanLocate(leanLocate),
+    mParallelWorld(parallelWorld)
 {
   mEmptyState.Clear();
 }
@@ -119,7 +124,10 @@ G4double VecGeomG4Navigator::ComputeStep(const G4ThreeVector& globalPoint, const
   if (top == nullptr) { // the track is outside the world
     return kInfinity;
   }
-  auto const* navigator = top->GetLogicalVolume()->GetNavigator();
+  auto const* lvol = top->GetLogicalVolume();
+  // The lean locate relies on the BVH navigator refusing a daughter the ray leaves, also for small mothers.
+  auto const* navigator = mLeanLocate && lvol->GetDaughtersp()->size() > 0 ? vecgeom::BVHNavigatorV<>::Instance()
+                                                                           : lvol->GetNavigator();
 
   // On the point a boundary locate left the track on, the safety is zero; a point seen before
   // reuses its safety. Otherwise the navigator computes it with the step.
@@ -135,7 +143,11 @@ G4double VecGeomG4Navigator::ComputeStep(const G4ThreeVector& globalPoint, const
   // while the direction points away from it; a track turning back into it must see its boundary.
   mStepState = mCurState;
   bool blockExited = false;
-  if (mExitBlockPending) {
+  bool leanExitPending = false; // a parallel world node left by the lean locate is blocked by the same rule
+  if (mExitBlockPending && mLeanLocate) {
+    leanExitPending = samePoint(globalPoint, mLastLocatedPoint);
+    mExitBlockPending = false;
+  } else if (mExitBlockPending) {
     const bool block = samePoint(globalPoint, mLastLocatedPoint) &&
                        (mExitNormalFromPush ? directionLeaves(mPushNormal, toDir(direction))
                                             : directionLeaves(mExitedState, toVG(globalPoint), toDir(direction)));
@@ -158,6 +170,9 @@ G4double VecGeomG4Navigator::ComputeStep(const G4ThreeVector& globalPoint, const
     const V3 p = toVG(globalPoint);
     double pwStep = std::min(std::max(vgStep, 0.), limit);
     parallelHit = mParallelWorld->distanceToIn(p, toDir(direction), pwStep, [&](int node) {
+      if (leanExitPending) {
+        return mParallelWorld->isInNode(node, mExitedState) && directionLeaves(mExitedState, p, toDir(direction));
+      }
       return blockExited && mParallelWorld->isInNode(node, mExitedState);
     });
     if (parallelHit >= 0) {
@@ -355,7 +370,7 @@ G4VPhysicalVolume* VecGeomG4Navigator::LocateGlobalPointAndSetup(const G4ThreeVe
   // here is the one after the step, which multiple scattering can have turned back into the volume left;
   // the track then belongs to what lies behind the face, as G4Navigator does, not to the mother of the two.
   const V3 dir = crossing ? mNextDir : (direction != nullptr ? toDir(*direction) : V3(0., 0., 0.));
-  const double push = (onBoundary && direction != nullptr) ? boundaryPush(p, dir) : 0.;
+  const double push = (onBoundary && direction != nullptr) ? (mLeanLocate ? kLeanPush : boundaryPush(p, dir)) : 0.;
   const V3 q = p + push * dir;
 
   fWasLimitedByGeometry = false;
@@ -388,6 +403,18 @@ G4VPhysicalVolume* VecGeomG4Navigator::LocateGlobalPointAndSetup(const G4ThreeVe
     mReloScratch = mCurState;
     if (mCurState.GetCurrentLevel() <= 1) {
       mCurState.Clear(); // left the world
+    } else if (mLeanLocate) {
+      // The volume left is popped whatever the point; ten nanometres past the face, containment pops
+      // every flush mother too. The next step refuses the volume left by the BVH navigator's rule.
+      vecgeom::Transformation3D m;
+      mCurState.TopMatrix(m);
+      vecgeom::GlobalLocator::RelocatePointFromPathForceDifferent(m.Transform(q), mCurState);
+      if (topOf(mCurState) == nullptr) {
+        mCurState.Clear();
+      }
+      if (mParallelWorld != nullptr) {
+        setExited(mReloScratch, false);
+      }
     } else {
       vecgeom::Transformation3D m;
       mCurState.TopMatrix(m);
@@ -418,7 +445,7 @@ G4VPhysicalVolume* VecGeomG4Navigator::LocateGlobalPointAndSetup(const G4ThreeVe
     }
     mLocatedOnBoundary = onBoundary;
   }
-  if (crossing) {
+  if (crossing && !mLeanLocate) {
     leaveFlushVolumes(q, dir, entering ? static_cast<int>(mNextState.GetCurrentLevel()) : 0,
                       entering || topOf(mReloScratch) == nullptr ? nullptr : &mReloScratch);
   }
