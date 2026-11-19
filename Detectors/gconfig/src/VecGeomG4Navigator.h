@@ -30,6 +30,10 @@ class VecGeomParallelWorld;
 ///   The point is first pushed across the face by a small depth, and afterwards leaves every volume
 ///   it is flush with and heading out of. As in Geant4, the volume left is blocked only in the first
 ///   ComputeStep after the exit, and only while the direction points away from it.
+/// - With the lean locate (G4.vecgeomLeanLocate) the point is pushed 10 nm along the step instead,
+///   which takes it past every coincident face, so no flush-volume loop is needed. Every mother with
+///   daughters is then stepped with the BVH navigator, whose daughter query refuses at zero distance a
+///   daughter the ray is leaving; that is the block of the volume just left, without a normal.
 /// - Safety is zero only at the boundary point itself. A bounded query is answered from the last safety
 ///   computed in the same volume when that covers the bound.
 ///
@@ -41,8 +45,10 @@ class VecGeomG4Navigator : public VecGeomG4NavigatorBase
   /// \param pushDepth how far past a face (cm, measured across it) a boundary point is pushed before
   /// it is located. \param zeroSafety answers zero to every safety query.
   /// \param parallelWorld the prioritised placements, or null if there are none.
+  /// \param leanLocate locates a crossing as VecGeom relocates: 10 nm along the step, no face normal, no
+  /// flush-volume loop; the volume left is refused by the BVH navigator's rule for a daughter the ray leaves.
   VecGeomG4Navigator(VecGeomG4Map const& map, double pushDepth, bool zeroSafety,
-                     VecGeomParallelWorld const* parallelWorld = nullptr);
+                     VecGeomParallelWorld const* parallelWorld = nullptr, bool leanLocate = false);
   ~VecGeomG4Navigator() override;
 
   G4double ComputeStep(const G4ThreeVector& globalPoint, const G4ThreeVector& direction,
@@ -96,6 +102,9 @@ class VecGeomG4Navigator : public VecGeomG4NavigatorBase
 
   double mPushDepth = 1.e-9; ///< cm
   bool mZeroSafety = false;
+  bool mLeanLocate = false;
+  /// The push of the lean locate, VecGeom's own after a boundary (VNavigator::MovePointAfterBoundary), cm.
+  static constexpr double kLeanPush = 1.e-6;
   VecGeomParallelWorld const* mParallelWorld = nullptr;
   bool mInParallelNode = false; ///< the track is in a parallel world node; changed by the locates only
 
