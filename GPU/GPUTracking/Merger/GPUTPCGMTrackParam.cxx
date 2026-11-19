@@ -94,6 +94,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, int32_
   const int8_t adjacentLeg = 1 + (track.Leg() == 0);
 
   for (int32_t iWay = rebuilt ? (wayRebuildStart + 2) : 0; iWay < nWays; iWay++) { // TODO DR: Unrolling has no performance improvement on GPU, why?
+    GPUbarrierWarp();                                                              // TODO: Validate on different GPUs, check if we should do similar things in other places
     int32_t nMissed = 0, nMissedHard = 0;                                          // nMissed: cluster rejected, fit failure. nMissedHard: also propagation failure / high incl.
     float sumInvSqrtCharge = 0.f;                                                  // TODO: Compute in first iteration and store!
     int32_t nAvgCharge = 0;
