@@ -222,7 +222,7 @@ int NonUniformMuInteractionSampler::getBCJump() const
   double U = gRandom->Rndm();    // uniform (0,1)
   double T = -std::log(1.0 - U); // threshold
   double sumMu = 0.0;
-  int offset = 0;
+  int offset = 1;
   auto bcStart = mCurrBCIdx; // the current bc
 
   while (sumMu < T) {
