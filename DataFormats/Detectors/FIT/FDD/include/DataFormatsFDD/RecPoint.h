@@ -56,6 +56,9 @@ class RecPoint
   enum ETriggerBits { kSwOrTrgSideA = 5,
                       kSwOrTrgSideC = 6,
                       kSwVtxTrg = 7 };
+  enum ETechnicalBits { kLaser = 0,             // laser was triggered in this BC
+                        kOutputsAreBlocked = 1, // trigger outputs are blocked in this BC
+                        kDataIsValid = 2 };     // data is valid for processing
   RecPoint() = default;
   RecPoint(const std::array<int, 2>& collisiontime, int first, int ne,
            o2::InteractionRecord iRec, o2::fdd::Triggers triggers, bool swOrTrgSideA, bool swOrTrgSideC, bool swVtxTrg)
@@ -76,6 +79,7 @@ class RecPoint
   void setCollisionTime(Float_t time, TimeTypeIndex type) { mCollisionTimePs[type] = time; }
 
   const o2::fdd::Triggers getTrigger() const { return mTriggers; }
+  uint8_t getTechnicalWord() const { return mTechnicalWords; }
   o2::InteractionRecord getInteractionRecord() const { return mIntRecord; };
   gsl::span<const ChannelDataFloat> getBunchChannelData(const gsl::span<const ChannelDataFloat> tfdata) const
   {
