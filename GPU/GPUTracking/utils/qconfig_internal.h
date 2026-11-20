@@ -20,9 +20,9 @@
 
 #ifdef QCONFIG_PARSE
 
-#define QCONFIG_COMPARE(name, optname, optnameshort)                                                                                                                                           \
-  (thisoption[0] == '-' && ((thisoption[1] == '-' && optname[0] != 0 && strcmp(&thisoption[2], optname) == 0) ||                                                                               \
-                            (preoptshort == 0 && thisoption[1] == optnameshort && thisoption[2] == 0) || (thisoption[1] == '-' && strlen(preopt) == 0 && strcmp(&thisoption[2], name) == 0) || \
+#define QCONFIG_COMPARE(name, optname, optnameshort)                                                                                                                                                                 \
+  (thisoption[0] == '-' && ((thisoption[1] == '-' && optname[0] != 0 && strcmp(&thisoption[2], optname) == 0) ||                                                                                                     \
+                            (preoptshort == 0 && thisoption[1] == optnameshort && thisoption[2] == 0) || (thisoption[1] == '-' && thisoption[2] != 0 && strlen(preopt) == 0 && strcmp(&thisoption[2], name) == 0) || \
                             (preoptshort != 0 && thisoption[1] == preoptshort && thisoption[2] == optnameshort && thisoption[3] == 0) || (thisoption[1] == '-' && strlen(preopt) && strncmp(&thisoption[2], preopt, strlen(preopt)) == 0 && strcmp(&thisoption[2 + strlen(preopt)], name) == 0)))
 
 #define AddOption(name, type, default, optname, optnameshort, ...)                                 \
