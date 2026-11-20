@@ -272,12 +272,12 @@ void GPUTPCGMMerger::DumpInterpolatedHits(std::ostream& out) const
     const auto& trk = mMergedTracks[i];
     if (trk.OK() && trk.GetParam().GetNDF() >= 0 && trk.NClusters()) {
       out << "Track " << i << ":";
-      for (uint32_t j = 0; j < GPUTPCGeometry::NROWS; j++) {
-        auto* candidates = &mClusterCandidates[(i * GPUTPCGeometry::NROWS + j) * Param().rec.tpc.rebuildTrackInFitClusterCandidates];
+      for (uint32_t j = RebuildFirstRow(i), jLast = RebuildLastRow(i); j <= jLast; j++) {
+        auto* candidates = ClusterCandidates(i, j);
         if (!candidates[0].isEmpty()) {
-          out << "  Row " << j << " (weight " << mTrackRebuildHelperRow[i * GPUTPCGeometry::NROWS + j].getWeight() << "): ";
-          if (mTrackRebuildHelperRow[i * GPUTPCGeometry::NROWS + j].getBest()) {
-            out << "  Best " << mTrackRebuildHelperRow[i * GPUTPCGeometry::NROWS + j].getBest() << " - ";
+          out << "  Row " << j << " (weight " << TrackRebuildHelperRow(i, j).getWeight() << "): ";
+          if (TrackRebuildHelperRow(i, j).getBest()) {
+            out << "  Best " << TrackRebuildHelperRow(i, j).getBest() << " - ";
           }
           for (uint32_t k = 0; k < Param().rec.tpc.rebuildTrackInFitClusterCandidates; k++) {
             if (!candidates[k].isEmpty()) {

@@ -539,6 +539,10 @@
       "default":      1,
       "default_cpu":  0
     },
+    "TPC_MERGER_REBUILD_CONSTRAINED_ROW_MEMORY": {
+      "default":      0,
+      "default_cpu":  0
+    },
     "NEIGHBOURS_FINDER_MAX_NNEIGHUP": {
       "default":      6,
       "default_cpu":  0,
