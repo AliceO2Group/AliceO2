@@ -666,7 +666,7 @@ Bool_t
     // to Pythia particle table only. These codes are deliberately not added to TDatabasePDG:
     // importParticles() runs in a TBB worker thread under GeneratorHybrid, while other threads
     // read the same process-wide table (TParticle's constructor, PrimaryGenerator::AddTrack),
-    // and ROOT locks neither side. Given that those nuclei haven't been transported until now, 
+    // and ROOT locks neither side. Given that those nuclei haven't been transported until now,
     // they are set as "not to be tracked", which disables directly the warning.
     // This behaviour could change in the future, if we decide to add the remnant codes to TDatabasePDG.
     const bool isRemnant = O2DatabasePDG::isNucleusRemnantCode(pdg);
