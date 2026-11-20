@@ -195,6 +195,8 @@ class GPUReconstruction
   void PrintMemoryStatistics();
   void PrintMemoryOverview();
   void PrintMemoryMax();
+  void QueryHostMemoryUSS(const char* where); // With queryHostMemoryUSS: query the USS of the process and keep track of the maximum
+  void PrintHostMemoryUSSMax();
   void SetMemoryExternalInput(int16_t res, void* ptr);
   GPUMemorySizeScalers* MemoryScalers() { return mMemoryScalers.get(); }
 
@@ -350,6 +352,8 @@ class GPUReconstruction
   void* mHostMemoryPoolBlocked = nullptr;   // Ptr to end of pool
   size_t mHostMemorySize = 0;               // Size of host memory buffer
   size_t mHostMemoryUsedMax = 0;            // Maximum host memory size used over time
+  size_t mHostMemoryUSSMax = 0;             // Maximum USS of the process seen by QueryHostMemoryUSS
+  std::string mHostMemoryUSSMaxWhere;       // and where it was seen
   void* mDeviceMemoryBase = nullptr;        // Same for device ...
   void* mDeviceMemoryPermanent = nullptr;   // ...
   void* mDeviceMemoryPool = nullptr;        // ...
