@@ -24,7 +24,9 @@
 #include <limits>
 #include <optional>
 #include <stdexcept>
+#include <string>
 #include <tuple>
+#include <unordered_map>
 #define QCONFIG_INTERNAL
 #include "qconfig.h"
 #undef QCONFIG_INTERNAL
@@ -116,8 +118,24 @@ inline int32_t qConfigTypeSpecialized<std::tuple<X...>>::qAddOptionMain(qConfigS
 }
 
 template <typename T>
+struct qConfigArgType { // First argument of an option of this type can be omitted
+  static constexpr bool isTuple = false, optional = std::is_same_v<T, bool>;
+};
+template <typename A, typename... X>
+struct qConfigArgType<std::tuple<A, X...>> {
+  static constexpr bool isTuple = true, optional = std::is_same_v<A, bool>;
+};
+
+template <typename T>
 struct qConfigType : public qConfigSettingsParser<T> {
   using qConfigSettingsParser<T>::qConfigGetSettings;
+
+  template <typename... Args>
+  static inline int8_t qNeedsArg(const char* /*help*/, Args&&... args) // 0 = no argument, 1 = argument required, 2 = argument optional
+  {
+    auto settings = qConfigGetSettings(args...);
+    return settings.doSet ? 0 : ((qConfigArgType<T>::optional || (settings.doDefault && !qConfigArgType<T>::isTuple)) ? 2 : 1);
+  }
 
   template <typename... Args>
   static inline int32_t qAddOption(T& ref, int32_t& i, const char** argv, const int argc, T def, const char* /*help*/, Args&&... args)
@@ -159,12 +177,12 @@ struct qConfigType : public qConfigSettingsParser<T> {
       if (retVal) {
         return (retVal != qcrArgMissing || i == iFirst ? retVal : 0);
       }
-      if (i - iFirst >= count) {
+      if (i - iFirst > count) {
         printf("Too many values provided for option %s\n", getOptName(argv, i));
         return (qcrArrayOverflow);
       }
       if (i == iFirst || i != iLast) {
-        ref[i - iFirst] = tmp;
+        ref[i == iFirst ? 0 : i - iFirst - 1] = tmp; // i points to the argument just read
       }
     } while (i != iLast);
     return (0);
@@ -407,19 +425,92 @@ static inline void qConfigHelp(const char* subConfig = nullptr, int32_t followSu
 }
 
 // Create parser for configuration
-int32_t qConfigParse(int argc, const char** argv, const char* /*filename*/)
-{
-  for (int32_t i = 1; i < argc; i++) {
-    const char* thisoption = argv[i];
-  repeat:
-    bool found = false;
+struct qConfigOption {
+  int32_t handler = -1;          // Index in mHandlers, -1 = no option
+  int8_t needsArg = 0;           // 0 = no argument, 1 = argument required, 2 = argument optional
+  const char* forward = nullptr; // Shortcut: option to continue with after the handler
+};
+
+struct qConfigOptionRegistry {
+  std::vector<std::function<int32_t(int32_t& i, const char** argv, const int argc)>> mHandlers;
+  std::unordered_map<std::string, qConfigOption> mLong; // Full name after --
+  std::vector<qConfigOption> mShort;                    // Index (preoptshort << 8) | optnameshort
+
+  void add(const char* preopt, char preoptshort, const char* name, const char* optname, char optnameshort, int8_t needsArg, const char* forward, std::function<int32_t(int32_t&, const char**, const int)> handler)
+  {
+    const qConfigOption opt{(int32_t)mHandlers.size(), needsArg, forward};
+    mHandlers.emplace_back(std::move(handler));
+    if (optname[0] && !mLong.try_emplace(optname, opt).second) {
+      throw std::runtime_error(std::string("qConfig: option name registered twice: --") + optname);
+    }
+    if (name[0] && std::string(preopt) + name != optname && !mLong.try_emplace(std::string(preopt) + name, opt).second) {
+      throw std::runtime_error(std::string("qConfig: option name registered twice: --") + preopt + name);
+    }
+    if (optnameshort) {
+      const size_t index = ((size_t)(uint8_t)preoptshort << 8) | (uint8_t)optnameshort;
+      if (index >= mShort.size()) {
+        mShort.resize(index + 1);
+      }
+      if (mShort[index].handler >= 0) {
+        throw std::runtime_error(std::string("qConfig: short option registered twice: -") + (preoptshort ? std::string(1, preoptshort) : std::string()) + optnameshort);
+      }
+      mShort[index] = opt;
+    }
+  }
+
+  const qConfigOption* find(const char* option) const // --name, -x or -px
+  {
+    if (option[0] != '-' || option[1] == 0) {
+      return nullptr;
+    }
+    if (option[1] == '-') {
+      const auto it = mLong.find(&option[2]);
+      return it == mLong.end() ? nullptr : &it->second;
+    }
+    if (option[2] != 0 && option[3] != 0) {
+      return nullptr;
+    }
+    const size_t index = option[2] ? (((size_t)(uint8_t)option[1] << 8) | (uint8_t)option[2]) : (uint8_t)option[1];
+    return index < mShort.size() && mShort[index].handler >= 0 ? &mShort[index] : nullptr;
+  }
+
+  qConfigOptionRegistry()
+  {
 #define QCONFIG_PARSE
 #include "qconfig_internal.h"
 #undef QCONFIG_PARSE
-    if (found == false) {
-      printf("Invalid argument: %s\n", argv[i]);
-      return (1);
-      goto repeat; // Suppress GCC warnings, this is never executed, label might be accessed from qconfig.h
+  }
+};
+
+int32_t qConfigParse(int argc, const char** argv, const char* /*filename*/)
+{
+  static const qConfigOptionRegistry registry;
+  for (int32_t i = 1; i < argc; i++) {
+    const char* thisoption = argv[i];
+    while (true) {
+      const qConfigOption* opt = registry.find(thisoption);
+      if (opt == nullptr) {
+        printf("Invalid argument: %s\n", argv[i]);
+        return (1);
+      }
+      if (opt->forward == nullptr) {
+        const char* next = i + 1 < argc ? argv[i + 1] : nullptr;
+        if (opt->needsArg == 0 && next && next[0] != '-') {
+          printf("Option %s does not take an argument (%s)\n", argv[i], next);
+          return (qcrError);
+        }
+        if (opt->needsArg == 1 && (next == nullptr || next[0] == 0 || (next[0] == '-' && next[1] == '-'))) {
+          printf("Argument missing for option %s!\n", argv[i]);
+          return (qcrArgMissing);
+        }
+      }
+      if (int32_t retVal = registry.mHandlers[opt->handler](i, argv, argc)) {
+        return (retVal);
+      }
+      if (opt->forward == nullptr) {
+        break;
+      }
+      thisoption = opt->forward;
     }
   }
   return (0);

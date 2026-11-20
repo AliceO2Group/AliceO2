@@ -59,7 +59,7 @@ AddOption(bFieldStepSize, float, 5.0f, "", 0, "Set field line step size")
 AddOption(bFieldStepCount, int32_t, 100, "", 0, "Set field line step count")
 AddOption(bFieldLinesCount, int32_t, 2000, "", 0, "Set field lines count")
 AddOption(invertColors, bool, false, "", 0, "Invert colors")
-AddHelp("help", 'h')
+AddHelp("help", 0)
 EndConfig()
 
 // Heavy settings concerning the event display (can be changed only with rebuilding vertices)
@@ -83,7 +83,7 @@ AddOption(hideUnmatchedClusters, int32_t, 0, "", 0, "Hide unmatched clusters")
 AddOption(trackFilter, int32_t, 0, "", 0, "Apply filter on tracks to be displayed")
 AddOption(projectXY, int32_t, 0, "", 0, "Project everything on the XY-plane")
 AddOption(xzAdd, float, 0, "", 0, "Separate sectors, increase X coordinate", min(0.f), max(300.f))
-AddHelp("help", 'h')
+AddHelp("help", 0)
 EndConfig()
 
 // Camera, window, and renderer settings for the event display
@@ -101,7 +101,7 @@ AddOption(fpsRate, int32_t, 100, "", 0, "Target frame rate (frames per second) f
 AddOption(useGLIndirectDraw, bool, true, "", 0, "Use OpenGL indirect draws to reduce number of draw calls")
 AddOption(screenshotScaleFactor, int32_t, 1, "", 0, "Resolution scale factor when taking screenshots", min(1), max(4))
 AddOption(fov, float, 45.f, "", 0, "Display FOV", min(5.f), max(175.f))
-AddHelp("help", 'h')
+AddHelp("help", 0)
 EndConfig()
 
 // Vulkan Display Settings
@@ -109,7 +109,7 @@ BeginSubConfig(GPUSettingsDisplayVulkan, vulkan, configStandalone.display, "GLV"
 AddOption(nFramesInFlight, uint32_t, 3, "", 0, "Max number of render frames in flight")
 AddOption(uniformBuffersInDeviceMemory, bool, 1, "", 0, "Have uniform buffers in host-accessible device memory")
 AddOption(forceDevice, int32_t, -1, "", 0, "Force Vulkan device number to use")
-AddHelp("help", 'h')
+AddHelp("help", 0)
 EndConfig()
 
 // Internal display settings (GUI protocol, console, info texts)
@@ -123,7 +123,7 @@ AddOption(consoleHistorySize, uint32_t, 1000000, "", 0, "Number of console lines
 AddOption(setInfoTime, float, 5.0f, "", 0, "Time in seconds an info message (SetInfo) is shown fully opaque")
 AddOption(setInfoTransition, float, 1.0f, "", 0, "Time in seconds an info message fades out after setInfoTime")
 AddOption(consolePrintToTerminal, bool, false, "", 0, "Also write the replies of console commands to the terminal")
-AddHelp("help", 'h')
+AddHelp("help", 0)
 EndConfig()
 
 // Settings concerning the event display (fixed settings, cannot be changed)
@@ -143,7 +143,7 @@ AddSubConfig(GPUSettingsDisplayHeavy, heavy)
 AddSubConfig(GPUSettingsDisplayRenderer, renderer)
 AddSubConfig(GPUSettingsDisplayVulkan, vulkan)
 AddSubConfig(GPUSettingsDisplayInternal, internal)
-AddHelp("help", 'h')
+AddHelp("help", 0)
 EndConfig()
 
 EndNamespace() // o2::gpu
