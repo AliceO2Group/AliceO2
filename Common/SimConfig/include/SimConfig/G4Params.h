@@ -61,9 +61,10 @@ struct G4Params : public o2::conf::ConfigurableParamHelper<G4Params> {
   // which of the two VecGeom navigators
   EVecGeomNav vecgeomNavigator = EVecGeomNav::kRelocating;
   double vecgeomPushDepth = 1.e-9;      // cm; how far past a face, measured across it, a boundary
-                                        // point is pushed before it is located
-  bool vecgeomLeanLocate = false;       // kRelocating: locate a crossing 10 nm along the step, as VecGeom
-                                        // relocates, instead of across the face with the flush-volume loop
+                                        // point is pushed before it is located (previous locate only)
+  bool vecgeomLeanLocate = true;        // kRelocating: locate a crossing 10 nm along the step, as VecGeom
+                                        // relocates; false is the previous locate across the face with the
+                                        // flush-volume loop, kept as a fallback
   bool vecgeomZeroSafety = false;       // answer zero to every safety query; conservative, but it
                                         // shortens steps and so changes the random history
   bool vecgeomFlattenAssemblies = true; // dissolve TGeo assemblies into their content when converting

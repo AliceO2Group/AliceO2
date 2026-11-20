@@ -737,6 +737,23 @@ bool usesBvhAcceleration(vecgeom::LogicalVolume const* vol)
   return vol->GetDaughtersp()->size() > 2;
 }
 
+/// The current choice of setVecGeomBvhForSmallMothers.
+bool sSmallMothersUseBvh = false;
+
+/// Navigator and safety estimator of a volume below the BVH threshold, always as a matched pair.
+void setSmallVolumeNavigation(vecgeom::LogicalVolume* vol, bool bvh)
+{
+#ifdef O2_VECGEOM_HAS_BVH_VNAVIGATOR
+  vol->SetNavigator(bvh ? vecgeom::BVHNavigatorV<>::Instance() : vecgeom::NewSimpleNavigator<>::Instance());
+  vol->SetSafetyEstimator(bvh ? vecgeom::BVHSafetyEstimator::Instance() : vecgeom::SimpleSafetyEstimator::Instance());
+#else
+  if (bvh) {
+    LOG(fatal) << "The BVH navigator for small volumes needs a VecGeom with BVHNavigatorV";
+  }
+  vol->SetNavigator(vecgeom::NewSimpleNavigator<>::Instance());
+#endif
+}
+
 /// Converts the currently loaded TGeo geometry to VecGeom and sets up navigators, once per
 /// process, the first time the VecGeom backend is requested. Not part of loadGeometry(),
 /// which every job calls regardless of whether it ever uses the VecGeom backend.
@@ -783,11 +800,10 @@ void GeometryManager::buildVecGeomGeometry(bool flattenAssemblies, int booleanTh
     for (auto& lvol : vecgeom::GeoManager::Instance().GetLogicalVolumesMap()) {
       auto* vol = lvol.second;
       if (!usesBvhAcceleration(vol)) {
-        vol->SetNavigator(vecgeom::NewSimpleNavigator<>::Instance());
+        setSmallVolumeNavigation(vol, false);
 #ifdef O2_VECGEOM_HAS_BVH_VNAVIGATOR
         vol->SetLevelLocator(vol->ContainsAssembly() ? vecgeom::SimpleAssemblyLevelLocator::GetInstance()
                                                      : vecgeom::SimpleLevelLocator::GetInstance());
-        vol->SetSafetyEstimator(vecgeom::SimpleSafetyEstimator::Instance());
 #else
         vol->SetLevelLocator(vecgeom::SimpleLevelLocator::GetInstance());
 #endif
@@ -823,6 +839,21 @@ void GeometryManager::buildVecGeomGeometry(bool flattenAssemblies, int booleanTh
     }
   });
 }
+
+//_____________________________________________________________________________________
+void GeometryManager::setVecGeomBvhForSmallMothers(bool bvh)
+{
+  sSmallMothersUseBvh = bvh;
+  for (auto& lvol : vecgeom::GeoManager::Instance().GetLogicalVolumesMap()) {
+    auto* vol = lvol.second;
+    if (!usesBvhAcceleration(vol) && vol->GetDaughtersp()->size() > 0) {
+      setSmallVolumeNavigation(vol, bvh);
+    }
+  }
+}
+
+//_____________________________________________________________________________________
+bool GeometryManager::vecGeomSmallMothersUseBvh() { return sSmallMothersUseBvh; }
 
 //_____________________________________________________________________________________
 o2::base::MatBudget GeometryManager::vecGeomMaterialBudget(float x0, float y0, float z0, float x1, float y1, float z1)
@@ -904,6 +935,7 @@ o2::base::MatBudget GeometryManager::vecGeomMaterialBudget(float x0, float y0, f
         ? static_cast<double>(vecgeom::BVHNavigator::ComputeStepAndPropagatedState(currPoint, dirr, remainingDist, *currnavstate, *newnavstate))
         : static_cast<double>(lvol->GetNavigator()->ComputeStepAndPropagatedState(currPoint, dirr, remainingDist, *currnavstate, *newnavstate));
 #else
+    // After setVecGeomBvhForSmallMothers(true) small mothers step with BVHNavigatorV here too: same answer.
     const double step = static_cast<double>(lvol->GetNavigator()->ComputeStepAndPropagatedState(currPoint, dirr, remainingDist, *currnavstate, *newnavstate));
 #endif
     if (step < 2.E-10) {
