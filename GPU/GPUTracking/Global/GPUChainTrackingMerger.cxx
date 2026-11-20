@@ -207,11 +207,11 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
     Merger.CheckCollectedTracks();
   }
 
-  const bool rebuildConstrainedRows = param().rec.tpc.rebuildTrackInFit && mRec->getGPUParameters(doGPU).par_TPC_MERGER_REBUILD_CONSTRAINED_ROW_MEMORY;
   if (param().rec.tpc.rebuildTrackInFit) {
     mRec->PushNonPersistentMemory(qStr2Tag("TPCREBLD")); // The rebuild memory is freed after the fit, before the O2 output
   }
-  if (rebuildConstrainedRows) {
+  const int32_t rebuildConstrainedRows = param().rec.tpc.rebuildTrackInFit ? mRec->getGPUParameters(doGPU).par_TPC_MERGER_REBUILD_CONSTRAINED_ROW_MEMORY : 0; // 1: row ranges estimated before the fit, 2: filled row ranges stored by the fit (host only)
+  if (rebuildConstrainedRows == 1) {
     AllocateRegisteredMemory(Merger.MemoryResRebuild2());
     WriteToConstantMemory(RecoStep::TPCMerging, (char*)&processors()->tpcMerger - (char*)processors(), &MergerShadow, sizeof(MergerShadow), 0);
   }
@@ -222,7 +222,7 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   runKernel<GPUTPCGMMergerSortTracksQPt>(GetGridAuto(0, deviceType));
   runKernel<GPUTPCGMMergerPrepareForFit, 1>(GetGridAuto(0, deviceType));
   runKernel<GPUTPCGMMergerPrepareForFit, 2>(GetGridAuto(0, deviceType));
-  if (doGPU && rebuildConstrainedRows) { // PrepareForFit1 computed nRebuildTrackRow, needed on the host to allocate the rebuild memory, waited for below
+  if (doGPU && rebuildConstrainedRows == 1) { // PrepareForFit1 computed nRebuildTrackRow, needed on the host to allocate the rebuild memory, waited for below
     ReleaseEvent(mEvents->single);
     TransferMemoryResourceLinkToHost(RecoStep::TPCMerging, Merger.MemoryResMemory(), 0, &mEvents->single);
     waitForTransfer = 1;
@@ -249,9 +249,11 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   if (param().rec.tpc.rebuildTrackInFit) {
     AllocateRegisteredMemory(Merger.MemoryResRebuild()); // With constrained rows sized by nRebuildTrackRow, which was transferred to the host above
     WriteToConstantMemory(RecoStep::TPCMerging, (char*)&processors()->tpcMerger - (char*)processors(), &MergerShadow, sizeof(MergerShadow), 0);
-    const size_t nRebuildRows = rebuildConstrainedRows ? (size_t)Merger.Memory()->nRebuildTrackRow : (size_t)Merger.NMergedTracks() * GPUTPCGeometry::NROWS;
-    runKernel<GPUMemClean16>({{numBlocks, -ThreadCount(), 0, deviceType, RecoStep::TPCMerging}}, MergerShadow.ClusterCandidates(), nRebuildRows * param().rec.tpc.rebuildTrackInFitClusterCandidates * sizeof(*MergerShadow.ClusterCandidates()));
-    runKernel<GPUMemClean16>({{numBlocks, -ThreadCount(), 0, deviceType, RecoStep::TPCMerging}}, MergerShadow.TrackRebuildHelperRow(), nRebuildRows * sizeof(*MergerShadow.TrackRebuildHelperRow()));
+    if (rebuildConstrainedRows != 2) { // 2: no cleaning, the fit stores complete rows and untouched memory shall not become physical
+      const size_t nRebuildRows = rebuildConstrainedRows == 1 ? (size_t)Merger.Memory()->nRebuildTrackRow : (size_t)Merger.NMergedTracks() * GPUTPCGeometry::NROWS;
+      runKernel<GPUMemClean16>({{numBlocks, -ThreadCount(), 0, deviceType, RecoStep::TPCMerging}}, MergerShadow.ClusterCandidates(), nRebuildRows * param().rec.tpc.rebuildTrackInFitClusterCandidates * sizeof(*MergerShadow.ClusterCandidates()));
+      runKernel<GPUMemClean16>({{numBlocks, -ThreadCount(), 0, deviceType, RecoStep::TPCMerging}}, MergerShadow.TrackRebuildHelperRow(), nRebuildRows * sizeof(*MergerShadow.TrackRebuildHelperRow()));
+    }
   }
   // mRec->SetNActiveThreads(1); // For GPUTPCGMTrackParam:: GPUCA_CADEBUG: run the host kernels from here on with 1 thread, reset below
   runKernel<GPUTPCGMMergerTrackFit, GPUTPCGMMergerTrackFit::def>(doGPU ? GetGrid(Merger.NMergedTracks(), 0) : GetGridAuto(0));

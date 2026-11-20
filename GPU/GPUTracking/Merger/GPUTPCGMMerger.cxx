@@ -428,20 +428,26 @@ void* GPUTPCGMMerger::SetPointersMemory(void* mem)
 
 void* GPUTPCGMMerger::SetPointersRebuild(void* mem)
 {
-  const bool constrained = mRec->getGPUParameters(mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCMerging).par_TPC_MERGER_REBUILD_CONSTRAINED_ROW_MEMORY;
-  const uint64_t nRows = constrained ? (uint64_t)HostProcessor(this).mMemory->nRebuildTrackRow : (uint64_t)HostProcessor(this).NMergedTracks() * GPUTPCGeometry::NROWS;
+  const int32_t mode = mRec->getGPUParameters(mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCMerging).par_TPC_MERGER_REBUILD_CONSTRAINED_ROW_MEMORY; // 1: sum of the estimated row ranges, 2: scaled, the fit stores the filled row ranges
+  const uint64_t nRows = mode == 1 ? (uint64_t)HostProcessor(this).mMemory->nRebuildTrackRow : (uint64_t)HostProcessor(this).NMergedTracks() * (mode == 2 ? mRec->MemoryScalers()->NTPCRebuildRows() : GPUTPCGeometry::NROWS);
   if (nRows * mRec->GetParam().rec.tpc.rebuildTrackInFitClusterCandidates > 0xFFFFFFFFu) {
     throw std::bad_alloc();
   }
   computePointerWithAlignment(mem, mClusterCandidates, nRows * mRec->GetParam().rec.tpc.rebuildTrackInFitClusterCandidates);
   computePointerWithAlignment(mem, mTrackRebuildHelperRow, nRows);
+  mNRebuildTrackRow = nRows;
   computePointerWithAlignment(mem, mTrackRebuildHelper, HostProcessor(this).NMergedTracks());
+  if (mode == 2) {
+    computePointerWithAlignment(mem, mTrackRebuildHelperRowInfo, HostProcessor(this).NMergedTracks());
+  }
   return mem;
 }
 
 void* GPUTPCGMMerger::SetPointersRebuild2(void* mem)
 {
-  computePointerWithAlignment(mem, mTrackRebuildHelperRowInfo, mNMaxTracks); // Needed before the row ranges are known, only with par_TPC_MERGER_REBUILD_CONSTRAINED_ROW_MEMORY
+  if (mRec->getGPUParameters(mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCMerging).par_TPC_MERGER_REBUILD_CONSTRAINED_ROW_MEMORY == 1) {
+    computePointerWithAlignment(mem, mTrackRebuildHelperRowInfo, mNMaxTracks); // Needed before the row ranges are known
+  }
   return mem;
 }
 
@@ -1910,7 +1916,7 @@ GPUd() void GPUTPCGMMerger::PrepareForFit1(int32_t nBlocks, int32_t nThreads, in
         }
         CAMath::AtomicAdd(&mSharedCount[mClusters[trk.FirstClusterRef() + j].num], 1u);
       }
-      if constexpr (GPUCA_PAR_TPC_MERGER_REBUILD_CONSTRAINED_ROW_MEMORY >= 1) {
+      if constexpr (GPUCA_PAR_TPC_MERGER_REBUILD_CONSTRAINED_ROW_MEMORY == 1) {
         if (Param().rec.tpc.rebuildTrackInFit) { // Row range the rebuild can use: cluster rows and the radii the helix can reach, plus margin
           const auto& GPUrestrict() p = trk.GetParam();
           const float k = -p.GetQPt() * Param().bzCLight;
