@@ -266,6 +266,7 @@ AddOption(cacheSize, uint32_t, 10, "", 0, "Maximum number of RTC cache files per
 AddOption(prependCommand, std::string, "", "", 0, "Prepend RTC compilation commands by this string")
 AddOption(overrideArchitecture, std::string, "", "", 0, "Override arhcitecture part of RTC compilation command line") // Part of cmdLine, so checked against the cache
 AddOption(loadLaunchBoundsFromFile, std::string, "", "", 0, "Load a parameter object containing the launch bounds from a file")
+AddOption(overrideRTCParameters, std::string, "", "", 0, "Semicolon-separated list of overrides of launch bounds and parameters for RTC compilation: 'kernel=64;kernel2=[64,4];par1=1;par2=foo'")
 AddOption(keepTempFiles, bool, false, "", 0, "Keep temporary source and object files")
 AddHelp("help", 'h')
 EndConfig()
