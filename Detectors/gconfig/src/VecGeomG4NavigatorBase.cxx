@@ -24,12 +24,6 @@
 
 #include <algorithm>
 
-namespace
-{
-/// Deepest Geant4 touchable the ALICE geometry can produce, with headroom.
-constexpr int kMaxDepth = 64;
-} // namespace
-
 namespace o2::simsetup
 {
 
@@ -61,11 +55,11 @@ G4VPhysicalVolume* VecGeomG4NavigatorBase::historyFromState(vecgeom::NavigationS
 {
   // Collect the Geant4 volumes the state stands for, then keep the levels the history already has
   // right and rebuild only from the first difference down: NewLevel composes a transform per level.
-  G4VPhysicalVolume* want[kMaxDepth];
+  G4VPhysicalVolume* want[kMaxHistoryDepth];
   int n = 0;
   if (!state.IsOutside()) {
     const int levels = state.GetCurrentLevel();
-    for (int l = 0; l < levels && n < kMaxDepth; ++l) {
+    for (int l = 0; l < levels && n < kMaxHistoryDepth; ++l) {
       auto const* placed = state.At(l);
       if (placed == nullptr) {
         break;
@@ -76,7 +70,7 @@ G4VPhysicalVolume* VecGeomG4NavigatorBase::historyFromState(vecgeom::NavigationS
         LOG(fatal) << "VecGeom placement " << placed->GetLabel() << " (id " << placed->id() << ") at level " << l
                    << " has no Geant4 counterpart";
       }
-      for (unsigned c = 0; c < size && n < kMaxDepth; ++c) {
+      for (unsigned c = 0; c < size && n < kMaxHistoryDepth; ++c) {
         want[n++] = chain[c];
       }
     }
@@ -107,6 +101,78 @@ G4VPhysicalVolume* VecGeomG4NavigatorBase::historyFromState(vecgeom::NavigationS
     fHistory.NewLevel(want[k], kNormal, want[k]->GetCopyNo());
   }
   return fHistory.GetTopVolume();
+}
+
+G4VPhysicalVolume* VecGeomG4NavigatorBase::updateHistory(vecgeom::NavigationState const& state)
+{
+  if (mHistoryValid && state.HasSamePathAsOther(mHistoryState)) {
+    return fHistory.GetTopVolume();
+  }
+  if (mHistoryExact && updateHistoryByOneLevel(state)) {
+    ++mHistoryStepCount;
+    return fHistory.GetTopVolume();
+  }
+  ++mHistoryRebuildCount;
+  mHistoryState = state;
+  mHistoryValid = true;
+  auto* top = historyFromState(state);
+  // A history at the depth limit may have been cut short.
+  mHistoryExact = static_cast<int>(fHistory.GetDepth()) + 1 < kMaxHistoryDepth;
+  return top;
+}
+
+/// The levels and transforms are those historyFromState makes: it keeps the common Geant4 levels and calls
+/// NewLevel for the rest, as here.
+bool VecGeomG4NavigatorBase::updateHistoryByOneLevel(vecgeom::NavigationState const& state)
+{
+  if (state.IsOutside() || mHistoryState.IsOutside()) {
+    return false;
+  }
+  const int cur = state.GetCurrentLevel();
+  const int old = mHistoryState.GetCurrentLevel();
+  const int levels = static_cast<int>(fHistory.GetDepth()) + 1;
+  unsigned left = 0, size = 0;
+  G4VPhysicalVolume* const* chain = nullptr;
+  if (cur == old + 1) { // into a daughter
+    mHistoryChild = state;
+    mHistoryChild.Pop();
+    if (!mHistoryChild.HasSamePathAsOther(mHistoryState)) {
+      return false;
+    }
+    chain = mMap.chain(state.Top()->id(), size);
+  } else if (cur + 1 == old) { // out to the mother
+    mHistoryParent = mHistoryState;
+    mHistoryParent.Pop();
+    if (!mHistoryParent.HasSamePathAsOther(state)) {
+      return false;
+    }
+    mMap.chain(mHistoryState.Top()->id(), left);
+  } else if (cur == old && cur > 1) { // into a sibling
+    mHistoryChild = state;
+    mHistoryChild.Pop();
+    mHistoryParent = mHistoryState;
+    mHistoryParent.Pop();
+    if (!mHistoryChild.HasSamePathAsOther(mHistoryParent)) {
+      return false;
+    }
+    mMap.chain(mHistoryState.Top()->id(), left);
+    chain = mMap.chain(state.Top()->id(), size);
+  } else {
+    return false;
+  }
+  if ((chain != nullptr && size == 0) || (cur <= old && left == 0) || static_cast<int>(left) >= levels ||
+      levels - static_cast<int>(left) + static_cast<int>(size) > kMaxHistoryDepth) {
+    return false;
+  }
+  if (left > 0) {
+    fHistory.BackLevel(left);
+  }
+  for (unsigned c = 0; c < size; ++c) {
+    // The copy number is filled exactly as historyFromState fills it.
+    fHistory.NewLevel(chain[c], kNormal, chain[c]->GetCopyNo());
+  }
+  mHistoryState = state;
+  return true;
 }
 
 bool VecGeomG4NavigatorBase::stateFromHistory(vecgeom::NavigationState& state) const
