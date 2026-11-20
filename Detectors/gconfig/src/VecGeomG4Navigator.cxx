@@ -9,6 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+// before the VecGeom headers, which define a VECGEOM macro
+#include "DetectorsBase/GeometryManager.h"
+
 #include "VecGeomG4Navigator.h"
 
 #include "VecGeomParallelWorld.h"
@@ -19,7 +22,6 @@
 
 #include <VecGeom/base/Transformation3D.h>
 #include <VecGeom/management/GeoManager.h>
-#include <VecGeom/navigation/BVHNavigatorV.h>
 #include <VecGeom/navigation/GlobalLocator.h>
 #include <VecGeom/navigation/VNavigator.h>
 #include <VecGeom/navigation/VSafetyEstimator.h>
@@ -124,10 +126,8 @@ G4double VecGeomG4Navigator::ComputeStep(const G4ThreeVector& globalPoint, const
   if (top == nullptr) { // the track is outside the world
     return kInfinity;
   }
-  auto const* lvol = top->GetLogicalVolume();
-  // The lean locate relies on the BVH navigator refusing a daughter the ray leaves, also for small mothers.
-  auto const* navigator = mLeanLocate && lvol->GetDaughtersp()->size() > 0 ? vecgeom::BVHNavigatorV<>::Instance()
-                                                                           : lvol->GetNavigator();
+  // With the lean locate, the geometry setup gives every mother with daughters the BVH navigator.
+  auto const* navigator = top->GetLogicalVolume()->GetNavigator();
 
   // On the point a boundary locate left the track on, the safety is zero; a point seen before
   // reuses its safety. Otherwise the navigator computes it with the step.
@@ -384,6 +384,9 @@ G4VPhysicalVolume* VecGeomG4Navigator::LocateGlobalPointAndSetup(const G4ThreeVe
 
   if (!relativeSearch) {
     resetZeroSteps(); // a new track: nothing of the previous one applies
+    if (mLeanLocate && !o2::base::GeometryManager::vecGeomSmallMothersUseBvh()) {
+      LOG(fatal) << "The lean locate needs GeometryManager::setVecGeomBvhForSmallMothers(true)";
+    }
     locateFromWorld(p);
   } else if (topOf(mCurState) == nullptr) {
     locateFromWorld(p);
