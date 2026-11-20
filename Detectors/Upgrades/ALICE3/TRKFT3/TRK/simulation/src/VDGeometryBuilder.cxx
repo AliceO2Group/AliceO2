@@ -600,7 +600,7 @@ static void addIRISServiceModules(TGeoVolume* petalAsm, int nPetals)
 
 //     Only the A-side "inside vacuum" piece participates in the cutout.
 // rOutMax: the service sectors are moved inwards if needed so that they do not reach beyond the petal outer wall
-static void addIRISServiceModulesSegmented(TGeoVolume* petalAsm, int nPetals, double rOutMax = 1e9)
+[[maybe_unused]] static void addIRISServiceModulesSegmented(TGeoVolume* petalAsm, int nPetals, double rOutMax = 1e9)
 {
   if (!petalAsm) {
     LOGP(error, "addIRISServiceModulesSegmented: petalAsm is null");
@@ -778,7 +778,8 @@ static TGeoVolume* buildPetalAssembly(int nPetals,
   // addDisks(petalAsm, nPetals, petalID, fullCylinders); // disks removed according to the v3b layout
 
   addColdPlate(petalAsm, nPetals, petalID, /*fullCylinders=*/false);
-  addIRISServiceModulesSegmented(petalAsm, nPetals, petalOuterWallRadius(nPetals) + kWallThick_cm);
+  // IRIS services are not built for now (the A-side piece outside the vacuum would reach into the A-side beam pipe when the IRIS4a petals open)
+  // addIRISServiceModulesSegmented(petalAsm, nPetals, petalOuterWallRadius(nPetals) + kWallThick_cm);
 
   return petalAsm;
 }
@@ -819,7 +820,7 @@ static TGeoVolume* buildFullCylAssembly(int petalID, bool withDisks)
                   /*fullCylinders=*/true);
 
   addColdPlate(petalAsm, 1, petalID, /*fullCylinders=*/true);
-  addIRISServiceModulesSegmented(petalAsm, /*nPetals=*/1);
+  // addIRISServiceModulesSegmented(petalAsm, /*nPetals=*/1); // IRIS services are not built for now
 
   // Optionally add full 360° disks
   if (withDisks) {
