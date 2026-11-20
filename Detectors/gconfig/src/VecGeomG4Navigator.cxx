@@ -67,17 +67,8 @@ VecGeomG4Navigator::~VecGeomG4Navigator()
   if (mPushRestartCount > 0) {
     LOG(info) << "VecGeom stuck tracks: " << mPushRestartCount << " runs of zero steps restarted after a push";
   }
-}
-
-G4VPhysicalVolume* VecGeomG4Navigator::updateG4History()
-{
-  // The history is a function of the VecGeom state alone, so it is rebuilt only when that changed.
-  if (mHistoryValid && mCurState.HasSamePathAsOther(mHistoryState)) {
-    return fHistory.GetTopVolume();
-  }
-  mHistoryState = mCurState;
-  mHistoryValid = true;
-  return historyFromState(mCurState);
+  LOG(debug) << "VecGeom history: " << mHistoryStepCount << " updated by one level, " << mHistoryRebuildCount
+             << " rebuilt";
 }
 
 void VecGeomG4Navigator::locateFromWorld(const V3& point)
@@ -439,7 +430,7 @@ G4VPhysicalVolume* VecGeomG4Navigator::LocateGlobalPointAndSetup(const G4ThreeVe
   }
   mWouldEnter = false;
   mWouldExit = false;
-  return updateG4History();
+  return updateHistory(mCurState);
 }
 
 /// TGeo's rule: the node added first among those holding the point is where the track is. The
@@ -525,12 +516,11 @@ G4VPhysicalVolume* VecGeomG4Navigator::ResetHierarchyAndLocate(const G4ThreeVect
   }
   if (kept) {
     // The touchable's history is the path of the state: keep it rather than rebuild it.
-    mHistoryState = mCurState;
-    mHistoryValid = true;
+    keepTouchableHistory(mCurState);
     return fHistory.GetTopVolume();
   }
-  mHistoryValid = false;
-  return updateG4History();
+  invalidateHistory();
+  return updateHistory(mCurState);
 }
 
 void VecGeomG4Navigator::LocateGlobalPointWithinVolume(const G4ThreeVector& position)

@@ -36,6 +36,8 @@ class VecGeomG4NavigatorBase : public G4Navigator
   using V3 = vecgeom::Vector3D<double>;
   static constexpr double kG4ToVG = 1. / CLHEP::cm;
   static constexpr double kVGToG4 = CLHEP::cm;
+  /// Deepest Geant4 touchable the ALICE geometry can produce, with headroom.
+  static constexpr int kMaxHistoryDepth = 64;
 
   explicit VecGeomG4NavigatorBase(VecGeomG4Map const& map) : mMap(map) {}
 
@@ -45,6 +47,23 @@ class VecGeomG4NavigatorBase : public G4Navigator
   /// Rewrites fHistory to stand for \a state, keeping the levels it already has right. Returns the
   /// top volume, or null if the state is outside the world.
   G4VPhysicalVolume* historyFromState(vecgeom::NavigationState const& state);
+
+  /// Makes fHistory stand for \a state: nothing if it already does, one placement's chain of Geant4 levels for
+  /// a step into a daughter, out to the mother or into a sibling, historyFromState otherwise.
+  G4VPhysicalVolume* updateHistory(vecgeom::NavigationState const& state);
+  /// fHistory was taken from a touchable that names \a state; it is kept, but not changed by one level.
+  void keepTouchableHistory(vecgeom::NavigationState const& state)
+  {
+    mHistoryState = state;
+    mHistoryValid = true;
+    mHistoryExact = false;
+  }
+  /// fHistory no longer follows the states updateHistory was given.
+  void invalidateHistory()
+  {
+    mHistoryValid = false;
+    mHistoryExact = false;
+  }
 
   /// Builds \a state from fHistory, extending past the Geant4 levels assembly flattening dissolved.
   /// False if a level matches no VecGeom placement; \a state is then empty.
@@ -80,6 +99,17 @@ class VecGeomG4NavigatorBase : public G4Navigator
   }
 
   VecGeomG4Map const& mMap;
+  long mHistoryStepCount = 0;    ///< history updates by one level
+  long mHistoryRebuildCount = 0; ///< history updates by historyFromState
+
+ private:
+  bool updateHistoryByOneLevel(vecgeom::NavigationState const& state);
+
+  vecgeom::NavigationState mHistoryState;  ///< the state fHistory was built from
+  vecgeom::NavigationState mHistoryChild;  ///< scratch
+  vecgeom::NavigationState mHistoryParent; ///< scratch
+  bool mHistoryValid = false;
+  bool mHistoryExact = false; ///< fHistory is what historyFromState makes of mHistoryState
 };
 
 } // namespace o2::simsetup

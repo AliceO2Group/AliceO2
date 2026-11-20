@@ -47,6 +47,8 @@ VecGeomG4PropagatingNavigator::~VecGeomG4PropagatingNavigator()
 {
   LOG(info) << "VecGeom navigation: " << mNudgedSteps << " stalled steps nudged forward, " << mGlobalRelocates
             << " relocations restarted from the world";
+  LOG(debug) << "VecGeom history: " << mHistoryStepCount << " updated by one level, " << mHistoryRebuildCount
+             << " rebuilt";
 }
 
 G4double VecGeomG4PropagatingNavigator::ComputeStep(const G4ThreeVector& globalPoint, const G4ThreeVector& direction,
@@ -136,6 +138,7 @@ G4VPhysicalVolume* VecGeomG4PropagatingNavigator::ResetHierarchyAndLocate(const 
   mHaveNextState = false;
   mLastSafety = -1.;
   fHistory = *history.GetHistory();
+  invalidateHistory();
   if (!stateFromHistory(mCurState) && fHistory.GetVolume(0) != nullptr) {
     LOG(fatal) << "Geant4 handed back a touchable that matches no VecGeom path";
   }
@@ -170,7 +173,7 @@ G4VPhysicalVolume* VecGeomG4PropagatingNavigator::LocateGlobalPointAndSetup(cons
   }
   // Otherwise the point only moved inside the volume the state already names.
 
-  auto* target = historyFromState(mCurState);
+  auto* target = updateHistory(mCurState);
   mCrossed = onBoundary;
   if (onBoundary) {
     fExitedMother = mWouldExit;

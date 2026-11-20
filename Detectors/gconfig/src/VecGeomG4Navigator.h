@@ -65,8 +65,6 @@ class VecGeomG4Navigator : public VecGeomG4NavigatorBase
   G4ThreeVector GetGlobalExitNormal(const G4ThreeVector& point, G4bool* valid) override;
 
  private:
-  /// Rewrites the Geant4 history from mCurState, unless it already stands for it.
-  G4VPhysicalVolume* updateG4History();
   void locateFromWorld(const V3& point);
   /// Go up past every volume the point is on the surface of and heading out of, then down again.
   void leaveFlushVolumes(const V3& point, const V3& dir, int minLevel, vecgeom::NavigationState const* avoid);
@@ -101,20 +99,18 @@ class VecGeomG4Navigator : public VecGeomG4NavigatorBase
   VecGeomParallelWorld const* mParallelWorld = nullptr;
   bool mInParallelNode = false; ///< the track is in a parallel world node; changed by the locates only
 
-  vecgeom::NavigationState mCurState;     ///< the volume the track is in; changed by the locates only
-  vecgeom::NavigationState mNextState;    ///< the state entering the daughter the last ComputeStep hit
-  vecgeom::NavigationState mStepState;    ///< scratch: a trial step
-  vecgeom::NavigationState mReloScratch;  ///< scratch: the state before a crossing
-  vecgeom::NavigationState mPathScratch;  ///< scratch: path comparisons
-  vecgeom::NavigationState mHistoryState; ///< the state fHistory was built from
-  vecgeom::NavigationState mEmptyState;   ///< permanently empty; its last-exited entry clears others
-  vecgeom::NavigationState mNormalState;  ///< the volume whose surface the last boundary step ended on
-  vecgeom::NavigationState mExitedState;  ///< the volume the last crossing left
-  bool mExitBlockPending = false;         ///< the next ComputeStep is the first after that exit
-  bool mExitNormalFromPush = false;       ///< mPushNormal is the outward normal of the volume left
-  V3 mPushNormal;                         ///< global normal of the face the last push crossed
+  vecgeom::NavigationState mCurState;    ///< the volume the track is in; changed by the locates only
+  vecgeom::NavigationState mNextState;   ///< the state entering the daughter the last ComputeStep hit
+  vecgeom::NavigationState mStepState;   ///< scratch: a trial step
+  vecgeom::NavigationState mReloScratch; ///< scratch: the state before a crossing
+  vecgeom::NavigationState mPathScratch; ///< scratch: path comparisons
+  vecgeom::NavigationState mEmptyState;  ///< permanently empty; its last-exited entry clears others
+  vecgeom::NavigationState mNormalState; ///< the volume whose surface the last boundary step ended on
+  vecgeom::NavigationState mExitedState; ///< the volume the last crossing left
+  bool mExitBlockPending = false;        ///< the next ComputeStep is the first after that exit
+  bool mExitNormalFromPush = false;      ///< mPushNormal is the outward normal of the volume left
+  V3 mPushNormal;                        ///< global normal of the face the last push crossed
   bool mPushNormalValid = false;
-  bool mHistoryValid = false;
 
   bool mWouldEnter = false; ///< the last ComputeStep ends by entering a daughter
   bool mWouldExit = false;  ///< the last ComputeStep ends by leaving the current volume
