@@ -415,6 +415,7 @@ AddOption(debugOnFailureMaxSize, uint32_t, 0, "", 0, "Max size of existing dumps
 AddOption(debugOnFailureDirectory, std::string, ".", "", 0, "Target folder for debug / dump")
 AddOption(ROOTDumpFile, std::string, "gpudebug.root", "", 0, "File name for ROOT dump (default gpudebug.root)")
 AddOption(memoryStat, bool, false, "", 0, "Print memory statistics")
+AddOption(queryHostMemoryUSS, int8_t, 0, "", 0, "Query the unique set size (private resident memory) of the process after every kernel and after every pop of the non-persistent memory stack, and print the maximum (2: print every query). Slow, Linux only", def(1))
 AddVariable(runsStandalone, bool, false)
 AddVariable(eventDisplay, o2::gpu::GPUDisplayFrontendInterface*, nullptr)
 AddSubConfig(GPUSettingsProcessingRTC, rtc)

@@ -333,6 +333,9 @@ int32_t GPUReconstructionCPU::RunChains()
     mTimerTotal.Reset();
   }
 
+  if (GetProcessingSettings().queryHostMemoryUSS) {
+    PrintHostMemoryUSSMax();
+  }
   if (GetProcessingSettings().memoryStat) {
     PrintMemoryStatistics();
   } else if (GetProcessingSettings().debugLevel >= 2) {
