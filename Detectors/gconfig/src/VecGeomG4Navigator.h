@@ -134,10 +134,28 @@ class VecGeomG4Navigator : public VecGeomG4NavigatorBase
   static constexpr int kAbandonThresholdNoZeroSteps = 25;
   int mNzeroSteps = 0;
   bool mZeroLinearSeen = false; ///< a step along the located momentum occurred in the current run of zero steps
+  /// Restarts of a run of zero steps after a push, at most this many until the next finite step.
+  static constexpr int kMaxPushRestarts = 3;
+  int mPushRestarts = 0;
+  bool mPushPending = false; ///< the last zero step was lengthened
+  G4ThreeVector mPushOrigin; ///< where that step started
+  double mPushLength = 0.;   ///< mm
+  static constexpr int kRecordZeroRun = kActionThresholdNoZeroSteps - 2;
+  /// The volumes the current run of zero steps alternates between, from its kRecordZeroRun-th step.
+  vecgeom::NavigationState mZeroRun[2];
+  int mZeroRunSize = 0;
+  bool inZeroRun(vecgeom::NavigationState const& st) const
+  {
+    return (mZeroRunSize > 0 && mZeroRun[0].HasSamePathAsOther(st)) ||
+           (mZeroRunSize > 1 && mZeroRun[1].HasSamePathAsOther(st));
+  }
   void resetZeroSteps()
   {
     mNzeroSteps = 0;
     mZeroLinearSeen = false;
+    mPushRestarts = 0;
+    mPushPending = false;
+    mZeroRunSize = 0;
   }
   G4ThreeVector mLastLocatedDir; ///< the direction the last locate was given
 
@@ -151,6 +169,7 @@ class VecGeomG4Navigator : public VecGeomG4NavigatorBase
   long mNoNormalCount = 0;
   long mParallelEntries = 0;   ///< steps that ended on a parallel world node
   long mParallelRelocated = 0; ///< locates the parallel world overrode
+  long mPushRestartCount = 0;  ///< runs of zero steps restarted after a push
 };
 
 } // namespace o2::simsetup

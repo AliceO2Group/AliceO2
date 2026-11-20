@@ -64,6 +64,9 @@ VecGeomG4Navigator::~VecGeomG4Navigator()
     LOG(info) << "VecGeom parallel world: " << mParallelEntries << " steps ended on a node, " << mParallelRelocated
               << " locates overridden";
   }
+  if (mPushRestartCount > 0) {
+    LOG(info) << "VecGeom stuck tracks: " << mPushRestartCount << " runs of zero steps restarted after a push";
+  }
 }
 
 G4VPhysicalVolume* VecGeomG4Navigator::updateG4History()
@@ -192,11 +195,26 @@ G4double VecGeomG4Navigator::ComputeStep(const G4ThreeVector& globalPoint, const
   // lengthened, after twenty-five the event is aborted.
   if (step < 0.05 * kCarTolerance) {
     ++mZeroStepCount;
+    // A push that took the track off its face and into a volume this run of zero steps did not alternate
+    // between starts a new run there, with its own chords and momentum. Bounded until the next finite step.
+    if (mPushPending && mPushRestarts < kMaxPushRestarts &&
+        (globalPoint - mPushOrigin).mag2() >= 0.25 * mPushLength * mPushLength && !inZeroRun(mCurState)) {
+      mNzeroSteps = 0;
+      mZeroLinearSeen = false;
+      mZeroRunSize = 0;
+      ++mPushRestarts;
+      ++mPushRestartCount;
+    }
+    mPushPending = false;
     // Without a field Geant4 asks along the momentum it located the track with, and takes a lengthened step.
     // The field propagator asks along chords and takes a step longer than its chord for a miss.
     const bool linear = (direction - mLastLocatedDir).mag2() < 1.e-18;
     mZeroLinearSeen = mZeroLinearSeen || linear;
-    if (++mNzeroSteps >= kActionThresholdNoZeroSteps) {
+    // The volumes the run alternates between, recorded only when it gets near the threshold.
+    if (++mNzeroSteps >= kRecordZeroRun && mZeroRunSize < 2 && !inZeroRun(mCurState)) {
+      mZeroRun[mZeroRunSize++] = mCurState;
+    }
+    if (mNzeroSteps >= kActionThresholdNoZeroSteps) {
       // A track going back and forth over a face between a medium with a field and one without is tangent
       // to the face: the chord crosses it one way and the momentum the other way. The crossing along the
       // chord is left at zero length, so that it takes place, and the step along the momentum is lengthened.
@@ -205,7 +223,11 @@ G4double VecGeomG4Navigator::ComputeStep(const G4ThreeVector& globalPoint, const
         // The push grows fourfold per try from 100 kCarTolerance, capped below the thinnest layers (15 um).
         constexpr double kMaxStuckPush = 10. * CLHEP::um;
         const int tries = mNzeroSteps - kActionThresholdNoZeroSteps;
-        step += std::min(100. * kCarTolerance * std::pow(4., tries), kMaxStuckPush);
+        const double push = std::min(100. * kCarTolerance * std::pow(4., tries), kMaxStuckPush);
+        step += push;
+        mPushPending = true;
+        mPushOrigin = globalPoint;
+        mPushLength = push;
       }
       if (mNzeroSteps >= kAbandonThresholdNoZeroSteps) {
         ++mAbandonCount;

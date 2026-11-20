@@ -27,8 +27,10 @@
 
 #include "TG4RootDetectorConstruction.h"
 
+#include "G4StateManager.hh"
 #include "G4SystemOfUnits.hh"
 #include "G4TouchableHistory.hh"
+#include "G4VExceptionHandler.hh"
 #include "G4VPhysicalVolume.hh"
 
 #include <TGeoManager.h>
@@ -182,6 +184,53 @@ std::vector<Visit> withTGeo(const double* p, const double* d)
   }
   return visits;
 }
+/// Counts the events Geant4 would abort instead of aborting the test.
+struct AbortCounter : public G4VExceptionHandler {
+  int aborts = 0;
+  G4bool Notify(const char*, const char* code, G4ExceptionSeverity severity, const char*) override
+  {
+    aborts += severity == EventMustBeAborted && std::string(code) == "GeomNav0003";
+    return false;
+  }
+};
+
+/// The top face of the lead tile of the first paper of a tower: module (1-3), tower (1, 2), x offset (cm).
+G4ThreeVector leadFace(int module, int tower, double dx = 0.)
+{
+  const double mx[] = {0., 0., 40.}, my[] = {-5., 5., 0.};
+  return G4ThreeVector((mx[module - 1] + (tower == 1 ? -5. : 5.) + dx) * cm, my[module - 1] * cm, -8.45 * cm);
+}
+
+/// Puts the track at \a p, as a boundary step there would, without a crossing.
+void moveTo(G4Navigator& nav, const G4ThreeVector& p)
+{
+  const G4ThreeVector momentum(0., 1., 0.);
+  nav.LocateGlobalPointWithinVolume(p);
+  nav.SetGeometricallyLimitedStep();
+  nav.LocateGlobalPointAndSetup(p, &momentum, true, false);
+}
+
+/// Chords only, as under a field, alternately into the lead tile below \a p and out of it, at \a p. Returns the
+/// first lengthened step (0 if none in \a maxSteps) and counts the zero steps before it.
+double chordsUntilPush(G4Navigator& nav, const G4ThreeVector& p, int& zeroSteps, int maxSteps = 30)
+{
+  // Along y, parallel to the faces between towers, so that a push along them stays in the tower.
+  const G4ThreeVector in = G4ThreeVector(0., 1., -1.e-3).unit(), out = G4ThreeVector(0., 1., 2.e-3).unit();
+  const G4ThreeVector momentum(0., 1., 0.); // never the direction of a step: every step is a chord
+  zeroSteps = 0;
+  for (int k = 0; k < maxSteps; ++k) {
+    G4double safety = 0.;
+    const bool inLead = touchablePath(nav).find("LEAD") != std::string::npos;
+    const double step = nav.ComputeStep(p, inLead ? out : in, 1.e6 * cm, safety);
+    nav.SetGeometricallyLimitedStep();
+    nav.LocateGlobalPointAndSetup(p, &momentum, true, false);
+    if (step > 1.e-10 * mm) {
+      return step;
+    }
+    ++zeroSteps;
+  }
+  return 0.;
+}
 } // namespace
 
 BOOST_AUTO_TEST_CASE(rays_visit_the_volumes_tgeo_visits)
@@ -311,4 +360,67 @@ BOOST_AUTO_TEST_CASE(a_track_tangent_to_a_field_boundary_is_freed_along_its_mome
   // a lengthened chord step is a miss for the field propagator, which then never crosses
   BOOST_CHECK_EQUAL(pushedChords, 0);
   BOOST_CHECK(freed);
+}
+
+BOOST_AUTO_TEST_CASE(a_push_restarts_the_run_of_zero_steps_only_in_another_volume_it_reached)
+{
+  auto& nav = *fixture().navigator;
+  const G4ThreeVector momentum(0., 1., 0.);
+  int zero = 0;
+  // A run of chords on the lead face of tower 1, 2 nm from tower 2: the tenth zero step is pushed by 0.1 nm.
+  const G4ThreeVector p(-2.e-7 * cm, -5. * cm, -8.45 * cm);
+  nav.LocateGlobalPointAndSetup(p, &momentum, false, false);
+  BOOST_CHECK_CLOSE(chordsUntilPush(nav, p, zero), 1.e-7 * mm, 0.01);
+  BOOST_CHECK_EQUAL(zero, 9);
+  // Moved along the same face by ten times the push, still in the volumes of the run: no restart, the next zero
+  // step is pushed at once, and the push goes on growing.
+  const G4ThreeVector same(-1.e-7 * cm, -5. * cm, -8.45 * cm);
+  moveTo(nav, same);
+  double push = 0.;
+  for (int k = 1; k < 4; ++k) {
+    push = chordsUntilPush(nav, same, zero);
+    BOOST_CHECK_EQUAL(zero, 0);
+    BOOST_CHECK_CLOSE(push, 1.e-7 * mm * std::pow(4., k), 0.01);
+  }
+  // Into tower 2, a volume the run never visited, but by less than half the last push: no restart either.
+  const G4ThreeVector close(1.e-7 * cm, -5. * cm, -8.45 * cm);
+  BOOST_REQUIRE_LT((close - same).mag(), 0.5 * push);
+  moveTo(nav, close);
+  BOOST_CHECK_NE(touchablePath(nav).find("TOWR_2"), std::string::npos);
+  BOOST_CHECK_GT(chordsUntilPush(nav, close, zero), 0.);
+  BOOST_CHECK_EQUAL(zero, 0);
+  // Into another module, far and new: the run starts again.
+  const G4ThreeVector far = leadFace(2, 1);
+  moveTo(nav, far);
+  BOOST_CHECK_GT(chordsUntilPush(nav, far, zero), 0.);
+  BOOST_CHECK_EQUAL(zero, 9);
+}
+
+BOOST_AUTO_TEST_CASE(a_track_pushed_from_place_to_place_is_aborted_after_its_fourth_run)
+{
+  auto& nav = *fixture().navigator;
+  static AbortCounter handler; // registered with Geant4 for the rest of the process
+  handler.aborts = 0;
+  const G4ThreeVector momentum(0., 1., 0.);
+  int zero = 0;
+  // Four places, each reached by a push and each a volume the previous run did not visit: three restarts.
+  const G4ThreeVector places[] = {leadFace(1, 1), leadFace(1, 2), leadFace(2, 1), leadFace(2, 2)};
+  nav.LocateGlobalPointAndSetup(places[0], &momentum, false, false);
+  for (const auto& p : places) {
+    if (&p != &places[0]) {
+      moveTo(nav, p);
+    }
+    BOOST_CHECK_GT(chordsUntilPush(nav, p, zero), 0.);
+    BOOST_CHECK_EQUAL(zero, 9);
+  }
+  // A fifth place does not restart the run: it goes on to the abort.
+  const G4ThreeVector last = leadFace(3, 1);
+  moveTo(nav, last);
+  int steps = 0;
+  for (; steps < 30 && handler.aborts == 0; ++steps) {
+    chordsUntilPush(nav, last, zero, 1);
+  }
+  BOOST_CHECK_EQUAL(handler.aborts, 1);
+  // The fourth run had reached ten zero steps, so fifteen more reach the abort at twenty-five.
+  BOOST_CHECK_EQUAL(steps, 15);
 }
