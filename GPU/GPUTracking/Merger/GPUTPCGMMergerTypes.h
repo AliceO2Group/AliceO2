@@ -19,6 +19,13 @@
 #include "GPUCommonMath.h"
 #include "GPUGeneralKernels.h"
 
+namespace o2::gpu
+{
+template <int32_t tmpMode>
+struct GPUTPCGMMergerRebuildTmpRows;
+using GPUTPCGMMergerRebuildTmp = GPUTPCGMMergerRebuildTmpRows<GPUCA_PAR_TPC_MERGER_REBUILD_CONSTRAINED_ROW_MEMORY == 2 ? 2 : 0>;
+} // namespace o2::gpu
+
 namespace o2::gpu::gputpcgmmergertypes
 {
 
@@ -44,7 +51,7 @@ struct InterpolationErrorHit {
 };
 
 struct InterpolationErrors {
-  static constexpr size_t size = constants::MERGER_MAX_TRACK_CLUSTERS;
+  enum : uint32_t { size = constants::MERGER_MAX_TRACK_CLUSTERS }; // Not a static data member: Metal and OpenCL allow program-scope variables only in the constant address space
   InterpolationErrorHit hit[size];
 };
 

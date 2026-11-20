@@ -65,7 +65,7 @@ class GPUTPCGMMerger : public GPUProcessor
   ~GPUTPCGMMerger() = default;
   GPUTPCGMMerger(const GPUTPCGMMerger&) = delete;
   const GPUTPCGMMerger& operator=(const GPUTPCGMMerger&) const = delete;
-  static GPUglobalconstexpr() const int32_t NSECTORS = GPUTPCGeometry::NSECTORS; //* N sectors
+  static GPUglobalconstexpr() const int32_t NSECTORS = GPUTPCGeometry::NSECTORS;
 
   struct memory {
     GPUAtomic(uint32_t) nRetryRefit;
@@ -73,7 +73,7 @@ class GPUTPCGMMerger : public GPUProcessor
     GPUAtomic(uint32_t) nUnpackedTracks;
     GPUAtomic(uint32_t) nMergedTracks;
     GPUAtomic(uint32_t) nMergedTrackClusters;
-    GPUAtomic(uint32_t) nRebuildTrackRow; // Sum of the row ranges of all tracks for the rebuild
+    GPUAtomic(uint32_t) nRebuildTrackRow;
     GPUAtomic(uint32_t) nO2Tracks;
     GPUAtomic(uint32_t) nO2ClusRefs;
     const GPUTPCTrack* firstExtrapolatedTracks[NSECTORS];
@@ -87,7 +87,7 @@ class GPUTPCGMMerger : public GPUProcessor
     uint8_t sector;
   };
 
-  struct trackRebuildHelperCandidate; // Rebuild structs are defined in GPUTPCGMMergerRebuildInternal.h
+  struct trackRebuildHelperCandidate;
   struct trackRebuildHelper;
   struct trackRebuildHelperRowInfo;
   struct trackRebuildHelperRow;
@@ -141,6 +141,17 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUdi() trackRebuildHelperCandidate* ClusterCandidates(int32_t iTrk, uint32_t row) const;
   GPUdi() trackRebuildHelperRow& TrackRebuildHelperRow(int32_t iTrk, uint32_t row) const;
   GPUdi() bool RebuildRowInRange(int32_t iTrk, uint32_t row) const;
+  // Variants for the fit: use the temporary rows of the track if tmpRows is set (only with GPUCA_PAR_TPC_MERGER_REBUILD_CONSTRAINED_ROW_MEMORY == 2)
+  template <class T> // T = GPUTPCGMMergerRebuildTmp, template only to discard the code if it is empty
+  GPUdi() trackRebuildHelperCandidate* ClusterCandidates(int32_t iTrk, uint32_t row, T* tmpRows) const;
+  template <class T> // T = GPUTPCGMMergerRebuildTmp, template only to discard the code if it is empty
+  GPUdi() trackRebuildHelperRow& TrackRebuildHelperRow(int32_t iTrk, uint32_t row, T* tmpRows) const;
+  template <class T> // T = GPUTPCGMMergerRebuildTmp, template only to discard the code if it is empty
+  GPUdi() bool RebuildRowInRange(int32_t iTrk, uint32_t row, T* tmpRows) const;
+  template <class T> // T = GPUTPCGMMergerRebuildTmp, template only to discard the code if it is empty
+  GPUdi() void ClearRebuildTmpRows(int32_t iTrk, T* tmpRows) const;
+  template <class T> // T = GPUTPCGMMergerRebuildTmp, template only to discard the code if it is empty
+  GPUdi() bool StoreRebuildTmpRows(int32_t iTrk, const T* tmpRows);
   GPUdi() uint32_t RebuildFirstRow(int32_t iTrk) const; // Row range of the track for the rebuild, all rows without GPUCA_PAR_TPC_MERGER_REBUILD_CONSTRAINED_ROW_MEMORY
   GPUdi() uint32_t RebuildLastRow(int32_t iTrk) const;
   GPUhdi() trackRebuildHelper* TrackRebuildHelper() { return mTrackRebuildHelper; }
@@ -292,6 +303,7 @@ class GPUTPCGMMerger : public GPUProcessor
 
   uint32_t mNTotalSectorTracks = 0;      // maximum number of incoming sector tracks
   uint32_t mNMaxTracks = 0;              // maximum number of output tracks
+  uint32_t mNRebuildTrackRow = 0;        // number of rows allocated for the rebuild
   uint32_t mNMaxSingleSectorTracks = 0;  // max N tracks in one sector
   uint32_t mNMaxMergedTrackClusters = 0; // max number of clusters in output tracks (double-counting shared clusters)
   uint32_t mNClusters = 0;               // max total unique clusters (in event)

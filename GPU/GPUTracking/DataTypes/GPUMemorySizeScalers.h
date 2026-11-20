@@ -66,6 +66,7 @@ struct GPUMemorySizeScalers : public GPUSettingsProcessingScaling {
   size_t NTPCMergedTracks(size_t tpcSectorTracks);
   size_t NTPCMergedTrackHits(size_t tpcSectorTrackHitss);
   size_t NTPCUnattachedHitsBase1024(int32_t type);
+  size_t NTPCRebuildRows();
 };
 
 } // namespace o2::gpu

@@ -343,10 +343,11 @@ AddOption(tpcSectorTrackHitsPerHitWithRejection, float, 1.0, "", 0, "Scaling Fac
 AddOption(tpcMergedTrackPerSectorTrack, float, 1.0, "", 0, "Scaling Factor: tpcMergedTrackPerSectorTrack")
 AddOption(tpcMergedTrackHitPerSectorHit, float, 1.1, "", 0, "Scaling Factor: tpcMergedTrackHitPerSectorHit")
 AddOptionArray(tpcCompressedUnattachedHitsBase1024, int32_t, 3, (900, 900, 500), "", 0, "Scaling Factor: tpcCompressedUnattachedHitsBase1024")
-AddOption(conservativeMemoryEstimate, bool, false, "", 0, "Use some more conservative defaults for larger buffers during TPC processing")
 AddOption(tpcDecodingClusterRatioFactor1, float, 1.5, "", 0, "Scaling Factor: for first margin of dynamic buffer allocation for attached clusters in TPC Decoding")
 AddOption(tpcDecodingClusterRatioFactor2, float, 3.5, "", 0, "Scaling Factor: for second margin of dynamic buffer allocation for attached clusters in TPC Decoding")
+AddOption(tpcTrackRebuildRowFraction, float, 0.69, "", 0, "Scaling Factor: Fraction of rows for which to allocate rebuild memory") // 87 of 152 in average with 20% margin
 AddOption(tpcDecodingSafetyBuffer, uint16_t, 1000, "", 0, "Scaling Factor: safety cluster buffer to add to dynamic buffer allocation for attached clusters in TPC Decoding")
+AddOption(conservativeMemoryEstimate, bool, false, "", 0, "Use some more conservative defaults for larger buffers during TPC processing")
 AddHelp("help", 0)
 EndConfig()
 
