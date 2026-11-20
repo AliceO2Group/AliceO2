@@ -43,6 +43,11 @@ struct GPUTPCGMMerger::trackRebuildHelperCandidate { // Per track, row and candi
 };
 static_assert(sizeof(GPUTPCGMMerger::trackRebuildHelperCandidate) == 6);
 
+struct __attribute__((packed)) GPUTPCGMMerger::trackRebuildHelperRowInfo { // Per track, only with GPUCA_PAR_TPC_MERGER_REBUILD_CONSTRAINED_ROW_MEMORY
+  uint32_t firstRowIndex;                                                  // Index of firstRow of the track in mTrackRebuildHelperRow and (times the number of candidates) in mClusterCandidates
+  uint8_t firstRow, lastRow;                                               // Row range the rebuild can use for the track, set in PrepareForFit1
+};
+
 struct GPUTPCGMMerger::trackRebuildHelper { // Per track
   uint8_t reverse;
   uint8_t highInclRowLow;
@@ -58,6 +63,51 @@ struct GPUTPCGMMerger::trackRebuildHelperRow { // Per track and row: weight (low
   GPUdi() int32_t getWeight() const { return data & 0x0FFFFFFF; }
   GPUdi() int32_t setWeight(float w) { return (data = (data & 0xF0000000) | (w > 0.5f ? (w < 2147483648.f ? CAMath::Float2UIntReint(w) - 0x3F000000 : 0x0FFFFFFF) : 0)) & 0x0FFFFFFF; }
 };
+
+GPUdi() uint32_t GPUTPCGMMerger::RebuildFirstRow(int32_t iTrk) const
+{
+  if constexpr (GPUCA_PAR_TPC_MERGER_REBUILD_CONSTRAINED_ROW_MEMORY >= 1) {
+    return mTrackRebuildHelperRowInfo[iTrk].firstRow;
+  } else {
+    return 0;
+  }
+}
+
+GPUdi() uint32_t GPUTPCGMMerger::RebuildLastRow(int32_t iTrk) const
+{
+  if constexpr (GPUCA_PAR_TPC_MERGER_REBUILD_CONSTRAINED_ROW_MEMORY >= 1) {
+    return mTrackRebuildHelperRowInfo[iTrk].lastRow;
+  } else {
+    return GPUTPCGeometry::NROWS - 1;
+  }
+}
+
+GPUdi() bool GPUTPCGMMerger::RebuildRowInRange(int32_t iTrk, uint32_t row) const
+{
+  if constexpr (GPUCA_PAR_TPC_MERGER_REBUILD_CONSTRAINED_ROW_MEMORY >= 1) {
+    return row - mTrackRebuildHelperRowInfo[iTrk].firstRow <= (uint32_t)(mTrackRebuildHelperRowInfo[iTrk].lastRow - mTrackRebuildHelperRowInfo[iTrk].firstRow);
+  } else {
+    return true; // No guard needed, the memory covers all rows
+  }
+}
+
+GPUdi() GPUTPCGMMerger::trackRebuildHelperCandidate* GPUTPCGMMerger::ClusterCandidates(int32_t iTrk, uint32_t row) const
+{
+  if constexpr (GPUCA_PAR_TPC_MERGER_REBUILD_CONSTRAINED_ROW_MEMORY >= 1) {
+    return &mClusterCandidates[(mTrackRebuildHelperRowInfo[iTrk].firstRowIndex + row - mTrackRebuildHelperRowInfo[iTrk].firstRow) * Param().rec.tpc.rebuildTrackInFitClusterCandidates];
+  } else {
+    return &mClusterCandidates[(iTrk * GPUTPCGeometry::NROWS + row) * Param().rec.tpc.rebuildTrackInFitClusterCandidates];
+  }
+}
+
+GPUdi() GPUTPCGMMerger::trackRebuildHelperRow& GPUTPCGMMerger::TrackRebuildHelperRow(int32_t iTrk, uint32_t row) const
+{
+  if constexpr (GPUCA_PAR_TPC_MERGER_REBUILD_CONSTRAINED_ROW_MEMORY >= 1) {
+    return mTrackRebuildHelperRow[mTrackRebuildHelperRowInfo[iTrk].firstRowIndex + row - mTrackRebuildHelperRowInfo[iTrk].firstRow];
+  } else {
+    return mTrackRebuildHelperRow[iTrk * GPUTPCGeometry::NROWS + row];
+  }
+}
 
 } // namespace o2::gpu
 
