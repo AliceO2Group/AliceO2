@@ -15,12 +15,14 @@ o2_add_library(IOTOFWorkflow
                        src/DigitWriterSpec.cxx
                        src/ClustererSpec.cxx
                        src/ClusterWriterSpec.cxx
+                       src/ClusterReaderSpec.cxx
                        src/RecoWorkflow.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::DataFormatsIOTOF
                                      O2::DataFormatsITSMFT
                                      O2::IOTOFReconstruction
                                      O2::DPLUtils
+                                     O2::SimulationDataFormat
                                      )
 
 o2_add_executable(reco-workflow
