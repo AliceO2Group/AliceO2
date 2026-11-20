@@ -191,7 +191,7 @@ AddOptionRTC(rebuildTrackFallbackMaxNCl, uint8_t, 20, "", 0, "For tracks with at
 AddOptionRTC(rebuildTrackNonIntMinNDF, uint8_t, 10, "", 0, "NDF the track must exceed for non-interpolated cluster attachment (one-sided search and extrapolation) during rebuild")
 AddOptionArray(PID_remap, int8_t, 9, (0, 1, 2, 3, 4, 5, 6, 7, 8), "", 0, "Remap Ipid to PID_reamp[Ipid] (no remap if<0)") // BUG: CUDA cannot yet handle AddOptionArrayRTC
 AddVariableRTC(nWays, uint8_t, 0)
-AddHelp("help", 'h')
+AddHelp("help", 0)
 EndConfig()
 
 // Reconstruction parameters for TRD, no bool in here !!!
@@ -216,12 +216,12 @@ AddOptionRTC(matCorrType, uint8_t, 2, "", 0, "Material correction to use: 0 - no
 AddOptionRTC(pileupFwdNBC, uint8_t, 70, "", 0, "Post-trigger Pile-up integration time in BCs")
 AddOptionRTC(pileupBwdNBC, uint8_t, 130, "", 0, "Pre-trigger Pile-up integration time in BCs")
 AddOptionRTC(useAngularPull, uint8_t, 3, "", 0, "0 = don't use angular pull; 1 = additional error based on angular pull for refit only; 2 = add error also for chi2; 3 and 4 = correction of the average position based on angular pull")
-AddHelp("help", 'h')
+AddHelp("help", 0)
 EndConfig()
 
 // Dynamic reconstruction parameters, no bool in here!!!, must NOT use AddOptionRTC(...) !!!
 BeginSubConfig(GPUSettingsRecDynamic, dyn, configStandalone.rec, "RECDYN", 0, "Reconstruction settings", rec_dyn)
-AddHelp("help", 'h')
+AddHelp("help", 0)
 EndConfig()
 
 // Global reconstruction parameters, no bool in here !!!
@@ -238,7 +238,7 @@ AddCustomCPP(void SetMinTrackPtB5(float v) { maxTrackQPtB5 = v > 0.001f ? (1.f /
 AddSubConfig(GPUSettingsRecTPC, tpc)
 AddSubConfig(GPUSettingsRecTRD, trd)
 AddSubConfig(GPUSettingsRecDynamic, dyn)
-AddHelp("help", 'h')
+AddHelp("help", 0)
 EndConfig()
 
 #if !defined(__OPENCL__) && !defined(__METAL__) // these use std::string / std::vector, which device code does not have
@@ -251,7 +251,7 @@ AddOption(deterministic, bool, false, "", 0, "Compile RTC in deterministic mode,
 AddOption(compilePerKernel, bool, true, "", 0, "Run one RTC compilation per kernel")
 AddOption(enable, bool, false, "", 0, "Use RTC to optimize GPU code")
 AddOption(overrideWarpSize, int32_t, -1, "", 0, "Override the warp size to be used for RTC")
-AddHelp("help", 'h')
+AddHelp("help", 0)
 EndConfig()
 
 // Technical parameters for RunTimeCompilation, which do not change the RTC code
@@ -268,7 +268,7 @@ AddOption(overrideArchitecture, std::string, "", "", 0, "Override arhcitecture p
 AddOption(loadLaunchBoundsFromFile, std::string, "", "", 0, "Load a parameter object containing the launch bounds from a file")
 AddOption(overrideRTCParameters, std::string, "", "", 0, "Semicolon-separated list of overrides of launch bounds and parameters for RTC compilation: 'kernel=64;kernel2=[64,4];par1=1;par2=foo'")
 AddOption(keepTempFiles, bool, false, "", 0, "Keep temporary source and object files")
-AddHelp("help", 'h')
+AddHelp("help", 0)
 EndConfig()
 
 // Parameters that steer reconstruction that do not go to the device, or only in derrived form.
@@ -276,7 +276,7 @@ BeginSubConfig(GPUSettingsProcessingParam, param, configStandalone.proc, "PARAM"
 AddOptionArray(tpcErrorParamY, float, 4, (0.06f, 0.24f, 0.12f, 0.1f), "", 0, "TPC Cluster Y Error Parameterization")
 AddOptionArray(tpcErrorParamZ, float, 4, (0.06f, 0.24f, 0.15f, 0.1f), "", 0, "TPC Cluster Z Error Parameterization")
 AddOption(tpcTriggerHandling, bool, true, "", 0, "Enable TPC trigger handling")
-AddHelp("help", 'h')
+AddHelp("help", 0)
 EndConfig()
 
 // Settings steering the processing of NN Clusterization
@@ -323,7 +323,7 @@ AddOption(nnCCDBRegressionLayerType, std::string, "FC", "", 0, "Distinguishes be
 AddOption(nnCCDBBeamType, std::string, "pp", "", 0, "Distinguishes between networks trained for different beam types. Options: pp, pPb, PbPb")
 AddOption(nnCCDBInteractionRate, std::string, "500", "", 0, "Distinguishes between networks for different interaction rates [kHz]")
 AddOption(nnCCDBExtraMetadata, std::string, "", "", 0, "Extra metadata to distinguish between networks, e.g. for different internal datatypes, etc")
-AddHelp("help", 'h')
+AddHelp("help", 0)
 EndConfig()
 
 // Scaling factors for gpu buffer size estimation
@@ -347,7 +347,7 @@ AddOption(conservativeMemoryEstimate, bool, false, "", 0, "Use some more conserv
 AddOption(tpcDecodingClusterRatioFactor1, float, 1.5, "", 0, "Scaling Factor: for first margin of dynamic buffer allocation for attached clusters in TPC Decoding")
 AddOption(tpcDecodingClusterRatioFactor2, float, 3.5, "", 0, "Scaling Factor: for second margin of dynamic buffer allocation for attached clusters in TPC Decoding")
 AddOption(tpcDecodingSafetyBuffer, uint16_t, 1000, "", 0, "Scaling Factor: safety cluster buffer to add to dynamic buffer allocation for attached clusters in TPC Decoding")
-AddHelp("help", 'h')
+AddHelp("help", 0)
 EndConfig()
 
 // Debug Settings
@@ -355,7 +355,7 @@ BeginSubConfig(GPUSettingsProcessingDebug, debug, configStandalone.proc, "DEBUG"
 AddOption(memoryScalingFuzz, uint64_t, 0, "", 0, "Fuzz the memoryScalingFactor (0 disable, 1 enable, >1 set seed", def(1))
 AddOption(mergerMCLabels, bool, false, "", 0, "Create MC labels for merged tracks before refit for debugging")
 AddOption(mergerDumpTrackNCl, bool, false, "", 0, "Dump file with nCl per merged track fit")
-AddHelp("help", 'h')
+AddHelp("help", 0)
 EndConfig()
 
 // Settings steering the processing once the device was selected, only available on the host
@@ -459,7 +459,7 @@ AddSubConfig(GPUSettingsProcessingParam, param)
 AddSubConfig(GPUSettingsProcessingNNclusterizer, nn)
 AddSubConfig(GPUSettingsProcessingScaling, scaling)
 AddSubConfig(GPUSettingsProcessingDebug, debug)
-AddHelp("help", 'h')
+AddHelp("help", 0)
 EndConfig()
 #endif // !__OPENCL__ && !__METAL__
 
@@ -498,7 +498,7 @@ AddOption(perfFigure, std::string, "", "", 0, "Show as performance figure, provi
 AddOption(plotsDir, std::string, "plots", "", 0, "Directory to write plots to")
 AddOption(plotsNoTitle, bool, false, "", 0, "Do not print titles on figures")
 AddShortcut("compare", 0, "--QAinput", "Compare QA histograms", "-c", "--qa", "--QAinputHistogramsOnly")
-AddHelp("help", 'h')
+AddHelp("help", 0)
 EndConfig()
 
 // Settings for the O2 workflow
