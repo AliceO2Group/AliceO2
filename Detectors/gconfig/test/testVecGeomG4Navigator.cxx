@@ -93,7 +93,7 @@ struct Fixture {
     BOOST_REQUIRE(world != nullptr);
     o2::base::GeometryManager::buildVecGeomGeometry(true);
     map.build(*construction, true);
-    navigator = std::make_unique<VecGeomG4Navigator>(map, 1.e-9, false);
+    navigator = std::make_unique<VecGeomG4Navigator>(map, 1.e-9, false, nullptr, false);
     navigator->SetWorldVolume(world);
     lean = std::make_unique<VecGeomG4Navigator>(map, 1.e-9, false, nullptr, true);
     lean->SetWorldVolume(world);
@@ -108,10 +108,23 @@ Fixture& fixture()
   return f;
 }
 
-/// Both locates: the default one and the lean one.
+/// Both locates: the previous one and the lean one.
 std::vector<std::pair<std::string, VecGeomG4Navigator*>> navigators()
 {
-  return {{"default locate", fixture().navigator.get()}, {"lean locate", fixture().lean.get()}};
+  return {{"previous locate", fixture().navigator.get()}, {"lean locate", fixture().lean.get()}};
+}
+
+/// The navigator, with the small mothers set up for its locate as installVecGeomNavigator does.
+VecGeomG4Navigator& withSetup(VecGeomG4Navigator& nav)
+{
+  o2::base::GeometryManager::setVecGeomBvhForSmallMothers(nav.leanLocate());
+  return nav;
+}
+
+VecGeomG4PropagatingNavigator& withSetup(VecGeomG4PropagatingNavigator& nav)
+{
+  o2::base::GeometryManager::setVecGeomBvhForSmallMothers(false);
+  return nav;
 }
 
 /// The path of the navigator's touchable, in TGeo's notation.
@@ -269,7 +282,7 @@ double chordsUntilPush(G4Navigator& nav, const G4ThreeVector& p, int& zeroSteps,
 BOOST_AUTO_TEST_CASE(rays_visit_the_volumes_tgeo_visits)
 {
   for (auto& [name, navp] : navigators()) {
-    auto& nav = *navp;
+    auto& nav = withSetup(*navp);
     BOOST_TEST_CONTEXT(name)
     {
       std::mt19937_64 gen(1);
@@ -321,7 +334,7 @@ BOOST_AUTO_TEST_CASE(rays_visit_the_volumes_tgeo_visits)
 BOOST_AUTO_TEST_CASE(a_turn_at_the_face_does_not_change_the_volume_entered)
 {
   for (auto& [name, navp] : navigators()) {
-    auto& nav = *navp;
+    auto& nav = withSetup(*navp);
     BOOST_TEST_CONTEXT(name)
     {
       std::mt19937_64 gen(2);
@@ -359,7 +372,7 @@ BOOST_AUTO_TEST_CASE(a_turn_at_the_face_does_not_change_the_volume_entered)
 BOOST_AUTO_TEST_CASE(a_track_tangent_to_a_field_boundary_is_freed_along_its_momentum)
 {
   for (auto& [name, navp] : navigators()) {
-    auto& nav = *navp;
+    auto& nav = withSetup(*navp);
     BOOST_TEST_CONTEXT(name)
     {
       // A track on the top face of a lead tile, as under a field: the chord points into the tile, the momentum out of it.
@@ -413,7 +426,7 @@ BOOST_AUTO_TEST_CASE(a_track_tangent_to_a_field_boundary_is_freed_along_its_mome
 BOOST_AUTO_TEST_CASE(a_push_restarts_the_run_of_zero_steps_only_in_another_volume_it_reached)
 {
   for (auto& [name, navp] : navigators()) {
-    auto& nav = *navp;
+    auto& nav = withSetup(*navp);
     BOOST_TEST_CONTEXT(name)
     {
       const G4ThreeVector momentum(0., 1., 0.);
@@ -452,7 +465,7 @@ BOOST_AUTO_TEST_CASE(a_push_restarts_the_run_of_zero_steps_only_in_another_volum
 BOOST_AUTO_TEST_CASE(a_track_pushed_from_place_to_place_is_aborted_after_its_fourth_run)
 {
   for (auto& [name, navp] : navigators()) {
-    auto& nav = *navp;
+    auto& nav = withSetup(*navp);
     BOOST_TEST_CONTEXT(name)
     {
       static AbortCounter handler; // registered with Geant4 for the rest of the process
@@ -485,7 +498,7 @@ BOOST_AUTO_TEST_CASE(a_track_pushed_from_place_to_place_is_aborted_after_its_fou
 
 BOOST_AUTO_TEST_CASE(the_propagating_navigator_has_a_zero_safety_only_on_the_face_it_crossed)
 {
-  auto& nav = *fixture().propagating;
+  auto& nav = withSetup(*fixture().propagating);
   const G4ThreeVector down(0., 0., -1.);
   const G4ThreeVector face = enterLead(nav);
   BOOST_CHECK_EQUAL(nav.ComputeSafety(face), 0.);
@@ -497,7 +510,7 @@ BOOST_AUTO_TEST_CASE(the_propagating_navigator_has_a_zero_safety_only_on_the_fac
 
 BOOST_AUTO_TEST_CASE(a_new_track_after_a_crossing_is_not_on_a_boundary)
 {
-  auto& nav = *fixture().propagating;
+  auto& nav = withSetup(*fixture().propagating);
   enterLead(nav);
   const G4ThreeVector up(0., 0., 1.);
   nav.LocateGlobalPointAndSetup(inPaper, &up, false, false);
@@ -508,7 +521,7 @@ BOOST_AUTO_TEST_CASE(a_new_track_after_a_crossing_is_not_on_a_boundary)
 
 BOOST_AUTO_TEST_CASE(a_resumed_track_after_a_crossing_is_not_on_a_boundary)
 {
-  auto& nav = *fixture().propagating;
+  auto& nav = withSetup(*fixture().propagating);
   const G4ThreeVector up(0., 0., 1.);
   nav.LocateGlobalPointAndSetup(inPaper, &up, false, false);
   std::unique_ptr<G4TouchableHistory> touchable(nav.CreateTouchableHistory());

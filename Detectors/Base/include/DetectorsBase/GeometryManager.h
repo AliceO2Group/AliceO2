@@ -176,6 +176,10 @@ class GeometryManager : public TObject
   /// assemblies into their content. \param booleanThreshold lets VecGeom turn Boolean solids with at
   /// least this many components into MultiUnions; 0 keeps them as converted.
   static void buildVecGeomGeometry(bool flattenAssemblies, int booleanThreshold = 0);
+  /// BVH navigator and safety estimator (true) or the simple ones (false, as built) for volumes with one or two daughters.
+  static void setVecGeomBvhForSmallMothers(bool bvh);
+  /// Whether volumes with one or two daughters currently have the BVH pair.
+  static bool vecGeomSmallMothersUseBvh();
 #else
   static constexpr bool isVecGeomAvailable() { return false; }
 #endif
