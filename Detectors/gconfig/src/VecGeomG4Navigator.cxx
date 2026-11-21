@@ -9,6 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+// before the VecGeom headers, which define a VECGEOM macro
+#include "DetectorsBase/GeometryManager.h"
+
 #include "VecGeomG4Navigator.h"
 
 #include "VecGeomParallelWorld.h"
@@ -48,8 +51,12 @@ namespace o2::simsetup
 {
 
 VecGeomG4Navigator::VecGeomG4Navigator(VecGeomG4Map const& map, double pushDepth, bool zeroSafety,
-                                       VecGeomParallelWorld const* parallelWorld)
-  : VecGeomG4NavigatorBase(map), mPushDepth(pushDepth), mZeroSafety(zeroSafety), mParallelWorld(parallelWorld)
+                                       VecGeomParallelWorld const* parallelWorld, bool leanLocate)
+  : VecGeomG4NavigatorBase(map),
+    mPushDepth(pushDepth),
+    mZeroSafety(zeroSafety),
+    mLeanLocate(leanLocate),
+    mParallelWorld(parallelWorld)
 {
   mEmptyState.Clear();
 }
@@ -64,17 +71,11 @@ VecGeomG4Navigator::~VecGeomG4Navigator()
     LOG(info) << "VecGeom parallel world: " << mParallelEntries << " steps ended on a node, " << mParallelRelocated
               << " locates overridden";
   }
-}
-
-G4VPhysicalVolume* VecGeomG4Navigator::updateG4History()
-{
-  // The history is a function of the VecGeom state alone, so it is rebuilt only when that changed.
-  if (mHistoryValid && mCurState.HasSamePathAsOther(mHistoryState)) {
-    return fHistory.GetTopVolume();
+  if (mPushRestartCount > 0) {
+    LOG(info) << "VecGeom stuck tracks: " << mPushRestartCount << " runs of zero steps restarted after a push";
   }
-  mHistoryState = mCurState;
-  mHistoryValid = true;
-  return historyFromState(mCurState);
+  LOG(debug) << "VecGeom history: " << mHistoryStepCount << " updated by one level, " << mHistoryRebuildCount
+             << " rebuilt";
 }
 
 void VecGeomG4Navigator::locateFromWorld(const V3& point)
@@ -125,6 +126,7 @@ G4double VecGeomG4Navigator::ComputeStep(const G4ThreeVector& globalPoint, const
   if (top == nullptr) { // the track is outside the world
     return kInfinity;
   }
+  // With the lean locate, the geometry setup gives every mother with daughters the BVH navigator.
   auto const* navigator = top->GetLogicalVolume()->GetNavigator();
 
   // On the point a boundary locate left the track on, the safety is zero; a point seen before
@@ -141,7 +143,11 @@ G4double VecGeomG4Navigator::ComputeStep(const G4ThreeVector& globalPoint, const
   // while the direction points away from it; a track turning back into it must see its boundary.
   mStepState = mCurState;
   bool blockExited = false;
-  if (mExitBlockPending) {
+  bool leanExitPending = false; // a parallel world node left by the lean locate is blocked by the same rule
+  if (mExitBlockPending && mLeanLocate) {
+    leanExitPending = samePoint(globalPoint, mLastLocatedPoint);
+    mExitBlockPending = false;
+  } else if (mExitBlockPending) {
     const bool block = samePoint(globalPoint, mLastLocatedPoint) &&
                        (mExitNormalFromPush ? directionLeaves(mPushNormal, toDir(direction))
                                             : directionLeaves(mExitedState, toVG(globalPoint), toDir(direction)));
@@ -164,6 +170,9 @@ G4double VecGeomG4Navigator::ComputeStep(const G4ThreeVector& globalPoint, const
     const V3 p = toVG(globalPoint);
     double pwStep = std::min(std::max(vgStep, 0.), limit);
     parallelHit = mParallelWorld->distanceToIn(p, toDir(direction), pwStep, [&](int node) {
+      if (leanExitPending) {
+        return mParallelWorld->isInNode(node, mExitedState) && directionLeaves(mExitedState, p, toDir(direction));
+      }
       return blockExited && mParallelWorld->isInNode(node, mExitedState);
     });
     if (parallelHit >= 0) {
@@ -192,11 +201,26 @@ G4double VecGeomG4Navigator::ComputeStep(const G4ThreeVector& globalPoint, const
   // lengthened, after twenty-five the event is aborted.
   if (step < 0.05 * kCarTolerance) {
     ++mZeroStepCount;
+    // A push that took the track off its face and into a volume this run of zero steps did not alternate
+    // between starts a new run there, with its own chords and momentum. Bounded until the next finite step.
+    if (mPushPending && mPushRestarts < kMaxPushRestarts &&
+        (globalPoint - mPushOrigin).mag2() >= 0.25 * mPushLength * mPushLength && !inZeroRun(mCurState)) {
+      mNzeroSteps = 0;
+      mZeroLinearSeen = false;
+      mZeroRunSize = 0;
+      ++mPushRestarts;
+      ++mPushRestartCount;
+    }
+    mPushPending = false;
     // Without a field Geant4 asks along the momentum it located the track with, and takes a lengthened step.
     // The field propagator asks along chords and takes a step longer than its chord for a miss.
     const bool linear = (direction - mLastLocatedDir).mag2() < 1.e-18;
     mZeroLinearSeen = mZeroLinearSeen || linear;
-    if (++mNzeroSteps >= kActionThresholdNoZeroSteps) {
+    // The volumes the run alternates between, recorded only when it gets near the threshold.
+    if (++mNzeroSteps >= kRecordZeroRun && mZeroRunSize < 2 && !inZeroRun(mCurState)) {
+      mZeroRun[mZeroRunSize++] = mCurState;
+    }
+    if (mNzeroSteps >= kActionThresholdNoZeroSteps) {
       // A track going back and forth over a face between a medium with a field and one without is tangent
       // to the face: the chord crosses it one way and the momentum the other way. The crossing along the
       // chord is left at zero length, so that it takes place, and the step along the momentum is lengthened.
@@ -205,7 +229,11 @@ G4double VecGeomG4Navigator::ComputeStep(const G4ThreeVector& globalPoint, const
         // The push grows fourfold per try from 100 kCarTolerance, capped below the thinnest layers (15 um).
         constexpr double kMaxStuckPush = 10. * CLHEP::um;
         const int tries = mNzeroSteps - kActionThresholdNoZeroSteps;
-        step += std::min(100. * kCarTolerance * std::pow(4., tries), kMaxStuckPush);
+        const double push = std::min(100. * kCarTolerance * std::pow(4., tries), kMaxStuckPush);
+        step += push;
+        mPushPending = true;
+        mPushOrigin = globalPoint;
+        mPushLength = push;
       }
       if (mNzeroSteps >= kAbandonThresholdNoZeroSteps) {
         ++mAbandonCount;
@@ -342,7 +370,7 @@ G4VPhysicalVolume* VecGeomG4Navigator::LocateGlobalPointAndSetup(const G4ThreeVe
   // here is the one after the step, which multiple scattering can have turned back into the volume left;
   // the track then belongs to what lies behind the face, as G4Navigator does, not to the mother of the two.
   const V3 dir = crossing ? mNextDir : (direction != nullptr ? toDir(*direction) : V3(0., 0., 0.));
-  const double push = (onBoundary && direction != nullptr) ? boundaryPush(p, dir) : 0.;
+  const double push = (onBoundary && direction != nullptr) ? (mLeanLocate ? kLeanPush : boundaryPush(p, dir)) : 0.;
   const V3 q = p + push * dir;
 
   fWasLimitedByGeometry = false;
@@ -356,6 +384,9 @@ G4VPhysicalVolume* VecGeomG4Navigator::LocateGlobalPointAndSetup(const G4ThreeVe
 
   if (!relativeSearch) {
     resetZeroSteps(); // a new track: nothing of the previous one applies
+    if (mLeanLocate && !o2::base::GeometryManager::vecGeomSmallMothersUseBvh()) {
+      LOG(fatal) << "The lean locate needs GeometryManager::setVecGeomBvhForSmallMothers(true)";
+    }
     locateFromWorld(p);
   } else if (topOf(mCurState) == nullptr) {
     locateFromWorld(p);
@@ -375,6 +406,18 @@ G4VPhysicalVolume* VecGeomG4Navigator::LocateGlobalPointAndSetup(const G4ThreeVe
     mReloScratch = mCurState;
     if (mCurState.GetCurrentLevel() <= 1) {
       mCurState.Clear(); // left the world
+    } else if (mLeanLocate) {
+      // The volume left is popped whatever the point; ten nanometres past the face, containment pops
+      // every flush mother too. The next step refuses the volume left by the BVH navigator's rule.
+      vecgeom::Transformation3D m;
+      mCurState.TopMatrix(m);
+      vecgeom::GlobalLocator::RelocatePointFromPathForceDifferent(m.Transform(q), mCurState);
+      if (topOf(mCurState) == nullptr) {
+        mCurState.Clear();
+      }
+      if (mParallelWorld != nullptr) {
+        setExited(mReloScratch, false);
+      }
     } else {
       vecgeom::Transformation3D m;
       mCurState.TopMatrix(m);
@@ -405,7 +448,7 @@ G4VPhysicalVolume* VecGeomG4Navigator::LocateGlobalPointAndSetup(const G4ThreeVe
     }
     mLocatedOnBoundary = onBoundary;
   }
-  if (crossing) {
+  if (crossing && !mLeanLocate) {
     leaveFlushVolumes(q, dir, entering ? static_cast<int>(mNextState.GetCurrentLevel()) : 0,
                       entering || topOf(mReloScratch) == nullptr ? nullptr : &mReloScratch);
   }
@@ -417,7 +460,7 @@ G4VPhysicalVolume* VecGeomG4Navigator::LocateGlobalPointAndSetup(const G4ThreeVe
   }
   mWouldEnter = false;
   mWouldExit = false;
-  return updateG4History();
+  return updateHistory(mCurState);
 }
 
 /// TGeo's rule: the node added first among those holding the point is where the track is. The
@@ -503,12 +546,11 @@ G4VPhysicalVolume* VecGeomG4Navigator::ResetHierarchyAndLocate(const G4ThreeVect
   }
   if (kept) {
     // The touchable's history is the path of the state: keep it rather than rebuild it.
-    mHistoryState = mCurState;
-    mHistoryValid = true;
+    keepTouchableHistory(mCurState);
     return fHistory.GetTopVolume();
   }
-  mHistoryValid = false;
-  return updateG4History();
+  invalidateHistory();
+  return updateHistory(mCurState);
 }
 
 void VecGeomG4Navigator::LocateGlobalPointWithinVolume(const G4ThreeVector& position)

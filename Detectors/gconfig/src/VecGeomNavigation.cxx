@@ -85,6 +85,9 @@ void installVecGeomNavigator()
   o2::base::GeometryManager::buildVecGeomGeometry(g4Params.vecgeomFlattenAssemblies, g4Params.vecgeomBooleanThreshold);
   timer.Stop();
   LOG(info) << "VecGeom geometry built in " << timer.RealTime() << " s";
+  // The lean locate needs every mother with daughters stepped with the BVH navigator; kPropagated keeps the build's.
+  const bool leanLocate = g4Params.vecgeomLeanLocate && g4Params.vecgeomNavigator == o2::conf::EVecGeomNav::kRelocating;
+  o2::base::GeometryManager::setVecGeomBvhForSmallMothers(leanLocate);
 
   timer.Start();
   // Owned here for the lifetime of the process; the navigator keeps a reference to it.
@@ -123,7 +126,9 @@ void installVecGeomNavigator()
     LOG(info) << "VecGeom navigation: propagating navigator";
     navigator = new VecGeomG4PropagatingNavigator(map, g4Params.vecgeomZeroSafety);
   } else {
-    navigator = new VecGeomG4Navigator(map, g4Params.vecgeomPushDepth, g4Params.vecgeomZeroSafety, parallelWorldPtr);
+    LOG(info) << "VecGeom relocating navigator with the " << (leanLocate ? "lean" : "previous") << " locate";
+    navigator = new VecGeomG4Navigator(map, g4Params.vecgeomPushDepth, g4Params.vecgeomZeroSafety, parallelWorldPtr,
+                                       leanLocate);
   }
   navigator->SetWorldVolume(detConstruction->GetTopPV());
 
