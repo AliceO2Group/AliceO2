@@ -239,6 +239,7 @@ add_executable(o2-test-framework-core
               test/test_FrameworkDataFlowToO2Control.cxx
               test/test_Graphviz.cxx
               test/test_GroupSlicer.cxx
+              test/test_GroupedCombinations.cxx
               test/test_HistogramRegistry.cxx
               test/test_HTTPParser.cxx
               test/test_IndexBuilder.cxx
