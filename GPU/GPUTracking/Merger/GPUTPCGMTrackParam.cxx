@@ -713,6 +713,9 @@ GPUdi() void GPUTPCGMTrackParam::AttachClustersLooperFollow(const GPUTPCGMMerger
       }
       CADEBUG(printf("\tPropagated to y = %f: X %f Z %f SinPhi %f\n", mX, mP[0], mP[1], mP[2]));
       for (uint32_t j = 0; j < GPUTPCGeometry::NROWS; j++) { // TODO: Avoid iterating over all rows
+        while (j < GPUTPCGeometry::NROWS - 1 && !(CAMath::Abs(GPUTPCGeometry::Row2X(j) - (-mP[0] * lrFactor)) < 1.5f)) {
+          j++; // Skip the rows out of reach in a loop of its own, so that the threads of a GPU warp reach the attachment together
+        }
         float rowX = GPUTPCGeometry::Row2X(j);
         if (CAMath::Abs(rowX - (-mP[0] * lrFactor)) < 1.5f) {
           CADEBUG(printf("\t\tAttempt row %d (X %f Y %f Z %f)\n", j, rowX, mX * lrFactor, mP[1]));
