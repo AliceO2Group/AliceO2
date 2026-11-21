@@ -351,6 +351,14 @@ void Digitizer::setMeanLumiDistortionsDerivative(float meanLumi)
   mSpaceChargeDer->setMeanLumi(meanLumi);
 }
 
+void Digitizer::setRecalcDistortionsMethod(int method)
+{
+  if ((method != 0) && (method != 1)) {
+    LOGP(fatal, "Unknown method {} for the recalculation of the distortions (0: inversion of the scaled corrections, 1: scaled derivative corrections applied to the distortions)", method);
+  }
+  mRecalcDistortionsMethod = method;
+}
+
 void Digitizer::recalculateDistortions()
 {
   if (!mSpaceCharge || !mSpaceChargeDer) {
@@ -362,15 +370,24 @@ void Digitizer::recalculateDistortions()
   if (mSpaceCharge->getMeanLumi() != CorrMapParam::Instance().lumiInst) {
     for (int iside = 0; iside < 2; ++iside) {
       const o2::tpc::Side side = (iside == 0) ? Side::A : Side::C;
-      // this needs to be done only once
-      LOGP(info, "Calculating corrections for average distortions");
-      mSpaceCharge->calcGlobalCorrWithGlobalDistIterative(side, nullptr, 0);
-
       LOGP(info, "Calculating corrections for derivative distortions");
       mSpaceChargeDer->calcGlobalCorrWithGlobalDistIterative(side, nullptr, 0);
 
-      LOGP(info, "Calculating scaled distortions with scaling factor {}", mLumiScaleFactor);
-      mSpaceCharge->calcGlobalDistWithGlobalCorrIterativeLinearCartesian(side, mSpaceChargeDer, mLumiScaleFactor);
+      if (mRecalcDistortionsMethod == 0) {
+        // invert the average distortions, then invert the scaled corrections C_avg + s * C_der
+        LOGP(info, "Calculating corrections for average distortions");
+        mSpaceCharge->calcGlobalCorrWithGlobalDistIterative(side, nullptr, 0);
+
+        LOGP(info, "Calculating scaled distortions with scaling factor {}", mLumiScaleFactor);
+        mSpaceCharge->calcGlobalDistWithGlobalCorrIterativeLinearCartesian(side, mSpaceChargeDer, mLumiScaleFactor);
+      } else {
+        // apply the scaled derivative corrections directly to the average distortions (no inversion of the average distortions)
+        LOGP(info, "Scaling distortions with the derivative corrections and scaling factor {}", mLumiScaleFactor);
+        if (!mSpaceCharge->scaleGlobalDistWithDerivativeCorr(side, *mSpaceChargeDer, mLumiScaleFactor)) {
+          // continuing would use the unscaled average distortions for the rest of the job
+          LOGP(fatal, "Distortions of side {} could not be scaled with the derivative map", static_cast<int>(side));
+        }
+      }
     }
     // set new lumi of avg map
     mSpaceCharge->setMeanLumi(CorrMapParam::Instance().lumiInst);

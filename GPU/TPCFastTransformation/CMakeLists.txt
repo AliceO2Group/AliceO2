@@ -47,7 +47,7 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
                  PUBLIC_LINK_LIBRARIES O2::GPUCommon
                                        O2::GPUUtils
                                        O2::GPUDataTypes
-                                       O2::TPCSpaceCharge
+                                       O2::DataFormatsTPC
                                        Vc::Vc
                                        ROOT::Core ROOT::Matrix ROOT::Tree ROOT::Gpad ROOT::Minuit
                              )
