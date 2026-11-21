@@ -62,6 +62,18 @@ GPUd() void ClusterAccumulator::finalize(const CfChargePos& pos, const Charge q,
 {
   mQtot += q;
 
+#ifdef __METAL__
+  // Metal's fast-math division and sqrt are not correctly rounded, which moves
+  // widths that sit within an ulp of a packing step. Do the operations the
+  // arm64 -ffast-math CPU build does here: reciprocal, products, fused variance.
+  const float invQ = metal::precise::divide(1.f, mQtot);
+  mPadMean *= invQ;
+  mTimeMean *= invQ;
+  const float padMean2 = mPadMean * mPadMean;
+  const float timeMean2 = mTimeMean * mTimeMean;
+  mPadSigma = metal::precise::sqrt(metal::fma(mPadSigma, invQ, -padMean2));
+  mTimeSigma = metal::precise::sqrt(metal::fma(mTimeSigma, invQ, -timeMean2));
+#else
   mPadMean /= mQtot;
   mTimeMean /= mQtot;
   mPadSigma /= mQtot;
@@ -69,6 +81,7 @@ GPUd() void ClusterAccumulator::finalize(const CfChargePos& pos, const Charge q,
 
   mPadSigma = CAMath::Sqrt(mPadSigma - mPadMean * mPadMean);
   mTimeSigma = CAMath::Sqrt(mTimeSigma - mTimeMean * mTimeMean);
+#endif
 
   Pad pad = pos.pad();
   mPadMean += pad;
