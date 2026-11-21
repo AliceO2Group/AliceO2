@@ -36,6 +36,9 @@ struct OutputSpec {
   std::variant<ConcreteDataMatcher, ConcreteDataTypeMatcher> matcher;
 #endif
   enum Lifetime lifetime = Lifetime::Timeframe;
+  /// Whether the output is enabled. Disabled outputs are optional outputs
+  /// which are not going to be produced.
+  bool enabled = true;
 
   /// Build a fully qualified tuple for the OutputSpec
   OutputSpec(OutputLabel const& inBinding, header::DataOrigin inOrigin, header::DataDescription inDescription,

@@ -169,14 +169,16 @@ TEST_CASE("TestDDS")
                     &quot;origin&quot;: &quot;TST&quot;,
                     &quot;description&quot;: &quot;A1&quot;,
                     &quot;subspec&quot;: 0,
-                    &quot;lifetime&quot;: 0
+                    &quot;lifetime&quot;: 0,
+                    &quot;enabled&quot;: true
                 },
                 {
                     &quot;binding&quot;: &quot;TST/A2/0&quot;,
                     &quot;origin&quot;: &quot;TST&quot;,
                     &quot;description&quot;: &quot;A2&quot;,
                     &quot;subspec&quot;: 0,
-                    &quot;lifetime&quot;: 0
+                    &quot;lifetime&quot;: 0,
+                    &quot;enabled&quot;: true
                 }
             ],
             &quot;options&quot;: [],
@@ -195,7 +197,8 @@ TEST_CASE("TestDDS")
                     &quot;origin&quot;: &quot;TST&quot;,
                     &quot;description&quot;: &quot;A1&quot;,
                     &quot;subspec&quot;: 0,
-                    &quot;lifetime&quot;: 0
+                    &quot;lifetime&quot;: 0,
+                    &quot;enabled&quot;: true
                 }
             ],
             &quot;outputs&quot;: [
@@ -204,7 +207,8 @@ TEST_CASE("TestDDS")
                     &quot;origin&quot;: &quot;TST&quot;,
                     &quot;description&quot;: &quot;B1&quot;,
                     &quot;subspec&quot;: 0,
-                    &quot;lifetime&quot;: 0
+                    &quot;lifetime&quot;: 0,
+                    &quot;enabled&quot;: true
                 }
             ],
             &quot;options&quot;: [],
@@ -223,7 +227,8 @@ TEST_CASE("TestDDS")
                     &quot;origin&quot;: &quot;TST&quot;,
                     &quot;description&quot;: &quot;A2&quot;,
                     &quot;subspec&quot;: 0,
-                    &quot;lifetime&quot;: 0
+                    &quot;lifetime&quot;: 0,
+                    &quot;enabled&quot;: true
                 }
             ],
             &quot;outputs&quot;: [
@@ -232,7 +237,8 @@ TEST_CASE("TestDDS")
                     &quot;origin&quot;: &quot;TST&quot;,
                     &quot;description&quot;: &quot;C1&quot;,
                     &quot;subspec&quot;: 0,
-                    &quot;lifetime&quot;: 0
+                    &quot;lifetime&quot;: 0,
+                    &quot;enabled&quot;: true
                 }
             ],
             &quot;options&quot;: [],
@@ -251,14 +257,16 @@ TEST_CASE("TestDDS")
                     &quot;origin&quot;: &quot;TST&quot;,
                     &quot;description&quot;: &quot;B1&quot;,
                     &quot;subspec&quot;: 0,
-                    &quot;lifetime&quot;: 0
+                    &quot;lifetime&quot;: 0,
+                    &quot;enabled&quot;: true
                 },
                 {
                     &quot;binding&quot;: &quot;y&quot;,
                     &quot;origin&quot;: &quot;TST&quot;,
                     &quot;description&quot;: &quot;C1&quot;,
                     &quot;subspec&quot;: 0,
-                    &quot;lifetime&quot;: 0
+                    &quot;lifetime&quot;: 0,
+                    &quot;enabled&quot;: true
                 }
             ],
             &quot;outputs&quot;: [],
@@ -434,14 +442,16 @@ TEST_CASE("TestDDSExpendable")
                     &quot;origin&quot;: &quot;TST&quot;,
                     &quot;description&quot;: &quot;A1&quot;,
                     &quot;subspec&quot;: 0,
-                    &quot;lifetime&quot;: 0
+                    &quot;lifetime&quot;: 0,
+                    &quot;enabled&quot;: true
                 },
                 {
                     &quot;binding&quot;: &quot;TST/A2/0&quot;,
                     &quot;origin&quot;: &quot;TST&quot;,
                     &quot;description&quot;: &quot;A2&quot;,
                     &quot;subspec&quot;: 0,
-                    &quot;lifetime&quot;: 0
+                    &quot;lifetime&quot;: 0,
+                    &quot;enabled&quot;: true
                 }
             ],
             &quot;options&quot;: [],
@@ -460,7 +470,8 @@ TEST_CASE("TestDDSExpendable")
                     &quot;origin&quot;: &quot;TST&quot;,
                     &quot;description&quot;: &quot;A1&quot;,
                     &quot;subspec&quot;: 0,
-                    &quot;lifetime&quot;: 0
+                    &quot;lifetime&quot;: 0,
+                    &quot;enabled&quot;: true
                 }
             ],
             &quot;outputs&quot;: [
@@ -469,7 +480,8 @@ TEST_CASE("TestDDSExpendable")
                     &quot;origin&quot;: &quot;TST&quot;,
                     &quot;description&quot;: &quot;B1&quot;,
                     &quot;subspec&quot;: 0,
-                    &quot;lifetime&quot;: 0
+                    &quot;lifetime&quot;: 0,
+                    &quot;enabled&quot;: true
                 }
             ],
             &quot;options&quot;: [],
@@ -488,7 +500,8 @@ TEST_CASE("TestDDSExpendable")
                     &quot;origin&quot;: &quot;TST&quot;,
                     &quot;description&quot;: &quot;A2&quot;,
                     &quot;subspec&quot;: 0,
-                    &quot;lifetime&quot;: 0
+                    &quot;lifetime&quot;: 0,
+                    &quot;enabled&quot;: true
                 }
             ],
             &quot;outputs&quot;: [
@@ -497,7 +510,8 @@ TEST_CASE("TestDDSExpendable")
                     &quot;origin&quot;: &quot;TST&quot;,
                     &quot;description&quot;: &quot;C1&quot;,
                     &quot;subspec&quot;: 0,
-                    &quot;lifetime&quot;: 0
+                    &quot;lifetime&quot;: 0,
+                    &quot;enabled&quot;: true
                 }
             ],
             &quot;options&quot;: [],
@@ -516,14 +530,16 @@ TEST_CASE("TestDDSExpendable")
                     &quot;origin&quot;: &quot;TST&quot;,
                     &quot;description&quot;: &quot;B1&quot;,
                     &quot;subspec&quot;: 0,
-                    &quot;lifetime&quot;: 0
+                    &quot;lifetime&quot;: 0,
+                    &quot;enabled&quot;: true
                 },
                 {
                     &quot;binding&quot;: &quot;y&quot;,
                     &quot;origin&quot;: &quot;TST&quot;,
                     &quot;description&quot;: &quot;C1&quot;,
                     &quot;subspec&quot;: 0,
-                    &quot;lifetime&quot;: 0
+                    &quot;lifetime&quot;: 0,
+                    &quot;enabled&quot;: true
                 }
             ],
             &quot;outputs&quot;: [],

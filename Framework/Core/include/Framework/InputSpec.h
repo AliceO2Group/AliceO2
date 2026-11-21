@@ -72,6 +72,10 @@ struct InputSpec {
 
   enum Lifetime lifetime;
 
+  /// Whether the input is enabled. Disabled inputs are optional inputs
+  /// which are not going to be used.
+  bool enabled = true;
+
   /// A set of configurables which can be used to customise the InputSpec.
   std::vector<ConfigParamSpec> metadata;
 
