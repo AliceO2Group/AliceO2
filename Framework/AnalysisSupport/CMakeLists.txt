@@ -19,6 +19,7 @@ endif()
 o2_add_library(FrameworkOnDemandTablesSupport
                SOURCES src/OnDemandPlugin.cxx
                        src/AODReaderHelpers.cxx
+                       src/AODSliceHelpers.cxx
                PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
                PUBLIC_LINK_LIBRARIES O2::Framework ${EXTRA_TARGETS})
 
