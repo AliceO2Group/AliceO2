@@ -14,10 +14,10 @@
 ///
 /// \author Andreas Molander <andreas.molander@cern.ch>, University of Jyvaskyla, Finland
 
-#ifndef O2_FDD_DCSCONFIGPROCESSOR_H
-#define O2_FDD_DCSCONFIGPROCESSOR_H
+#ifndef O2_FDD_DCSCONFIGPROCESSORSPEC_H
+#define O2_FDD_DCSCONFIGPROCESSORSPEC_H
 
-#include "FITDCSMonitoring/FITDCSConfigProcessorSpec.h"
+#include "FDDDCSMonitoring/FDDDCSConfigProcessor.h"
 #include "DetectorsCalibration/Utils.h"
 #include "Framework/WorkflowSpec.h"
 #include "Headers/DataHeader.h"
@@ -43,7 +43,7 @@ DataProcessorSpec getFDDDCSConfigProcessorSpec()
     Inputs{{"inputConfig", o2::header::gDataOriginFDD, "DCS_CONFIG_FILE", Lifetime::Sporadic},
            {"inputConfigFileName", o2::header::gDataOriginFDD, "DCS_CONFIG_NAME", Lifetime::Sporadic}},
     outputs,
-    AlgorithmSpec{adaptFromTask<o2::fit::FITDCSConfigProcessor>("FDD", ddDChM)},
+    AlgorithmSpec{adaptFromTask<o2::fdd::FDDDCSConfigProcessor>("FDD", ddDChM, o2::header::DataDescription{})},
     Options{{"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}},
             {"filename-dchm", VariantType::String, "FDD-deadchannels.txt", {"Dead channel map file name"}},
             {"valid-days-dchm", VariantType::UInt32, 180u, {"Dead channel map validity in days"}},
@@ -53,4 +53,4 @@ DataProcessorSpec getFDDDCSConfigProcessorSpec()
 } // namespace framework
 } // namespace o2
 
-#endif // O2_FDD_DCSCONFIGPROCESSOR_H
+#endif // O2_FDD_DCSCONFIGPROCESSORSPEC_H

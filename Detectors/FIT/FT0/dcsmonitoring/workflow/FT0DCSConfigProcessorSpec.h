@@ -14,11 +14,10 @@
 ///
 /// \author Andreas Molander <andreas.molander@cern.ch>, University of Jyvaskyla, Finland
 
-#ifndef O2_FT0_DCSCONFIGPROCESSOR_H
-#define O2_FT0_DCSCONFIGPROCESSOR_H
+#ifndef O2_FT0_DCSCONFIGPROCESSORSPEC_H
+#define O2_FT0_DCSCONFIGPROCESSORSPEC_H
 
-#include "FITDCSMonitoring/FITDCSConfigProcessorSpec.h"
-#include "FT0DCSMonitoring/FT0DCSConfigReader.h"
+#include "FT0DCSMonitoring/FT0DCSConfigProcessor.h"
 #include "DetectorsCalibration/Utils.h"
 #include "Framework/WorkflowSpec.h"
 #include "Headers/DataHeader.h"
@@ -28,25 +27,6 @@
 
 namespace o2
 {
-namespace ft0
-{
-
-class FT0DCSConfigProcessor : public o2::fit::FITDCSConfigProcessor
-{
-  // Example of how to use another DCS config reader (subclass of o2::fit::FITDCSConfigReader)
- public:
-  FT0DCSConfigProcessor(const std::string& detectorName, const o2::header::DataDescription& dataDescriptionDChM)
-    : o2::fit::FITDCSConfigProcessor(detectorName, dataDescriptionDChM) {}
-
- protected:
-  void initDCSConfigReader() override
-  {
-    mDCSConfigReader = std::make_unique<FT0DCSConfigReader>(FT0DCSConfigReader());
-  }
-};
-
-} // namespace ft0
-
 namespace framework
 {
 
@@ -62,7 +42,7 @@ DataProcessorSpec getFT0DCSConfigProcessorSpec()
     Inputs{{"inputConfig", o2::header::gDataOriginFT0, "DCS_CONFIG_FILE", Lifetime::Sporadic},
            {"inputConfigFileName", o2::header::gDataOriginFT0, "DCS_CONFIG_NAME", Lifetime::Sporadic}},
     outputs,
-    AlgorithmSpec{adaptFromTask<o2::ft0::FT0DCSConfigProcessor>("FT0", ddDChM)},
+    AlgorithmSpec{adaptFromTask<o2::ft0::FT0DCSConfigProcessor>("FT0", ddDChM, o2::header::DataDescription{})},
     Options{{"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}},
             {"filename-dchm", VariantType::String, "FT0-deadchannels.txt", {"Dead channel map file name"}},
             {"valid-days-dchm", VariantType::UInt32, 180u, {"Dead channel map validity in days"}},
@@ -72,4 +52,4 @@ DataProcessorSpec getFT0DCSConfigProcessorSpec()
 } // namespace framework
 } // namespace o2
 
-#endif // O2_FT0_DCSCONFIGPROCESSOR_H
+#endif // O2_FT0_DCSCONFIGPROCESSORSPEC_H
