@@ -268,6 +268,7 @@ add_executable(o2-test-framework-core
               test/test_TopologyPolicies.cxx
               test/test_Variants.cxx
               test/test_WorkflowHelpers.cxx
+              test/test_WorkflowDefinition.cxx
               test/test_WorkflowSerialization.cxx
               test/test_DataOutputDirector.cxx
               test/unittest_SimpleOptionsRetriever.cxx
@@ -446,6 +447,35 @@ o2_add_test(
     --consumer
     "--global-config consumer-config --local-option hello-aliceo2 --a-boolean3 --an-int2 20 --a-double2 22. --an-int64-2 50000000000000"
   )
+
+# runs the workflows of two plugins built in DSOs, loaded with --workflow-plugin
+o2_add_test(
+  WorkflowPlugins NAME test_Framework_test_WorkflowPlugins
+  SOURCES test/test_WorkflowPlugins.cxx
+  COMPONENT_NAME Framework
+  LABELS framework workflow
+  TIMEOUT 30
+  PUBLIC_LINK_LIBRARIES O2::Framework
+  TARGETVARNAME workflowPluginsTest
+  NO_BOOST_TEST
+  COMMAND_LINE_ARGS
+    --workflow-plugin O2TestFrameworkWorkflowPluginAPlugin:TestFrameworkWorkflowPluginA,O2TestFrameworkWorkflowPluginBPlugin:TestFrameworkWorkflowPluginB
+    --shared 3 --run --shm-segment-size 20000000 ${DPL_WORKFLOW_TESTS_EXTRA_OPTIONS}
+  ENVIRONMENT "DYLD_LIBRARY_PATH=${CMAKE_LIBRARY_OUTPUT_DIRECTORY}:$ENV{DYLD_LIBRARY_PATH};LD_LIBRARY_PATH=${CMAKE_LIBRARY_OUTPUT_DIRECTORY}:$ENV{LD_LIBRARY_PATH}"
+  )
+if(workflowPluginsTest)
+  foreach(p A B)
+    o2_add_executable(WorkflowPlugin${p} SOURCES test/test_WorkflowPlugin${p}.cxx
+                      COMPONENT_NAME Framework PUBLIC_LINK_LIBRARIES O2::Framework
+                      IS_TEST NO_INSTALL WORKFLOW_PLUGIN TARGETVARNAME workflowPlugin)
+    add_dependencies(${workflowPluginsTest} ${workflowPlugin})
+  endforeach()
+  add_test(NAME test_Framework_test_WorkflowPluginsDump
+           COMMAND ${CMAKE_CURRENT_LIST_DIR}/test/test_WorkflowPluginsDump.sh $<TARGET_FILE:${workflowPluginsTest}>)
+  set_property(TEST test_Framework_test_WorkflowPluginsDump PROPERTY LABELS framework)
+  set_property(TEST test_Framework_test_WorkflowPluginsDump PROPERTY ENVIRONMENT
+               "DYLD_LIBRARY_PATH=${CMAKE_LIBRARY_OUTPUT_DIRECTORY}:$ENV{DYLD_LIBRARY_PATH};LD_LIBRARY_PATH=${CMAKE_LIBRARY_OUTPUT_DIRECTORY}:$ENV{LD_LIBRARY_PATH}")
+endif()
 
 # the test is compiled from the ExternalFairMQDeviceWorkflow test and run with
 # command line option to include the output proxy

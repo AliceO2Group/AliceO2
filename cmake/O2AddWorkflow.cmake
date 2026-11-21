@@ -17,7 +17,8 @@ include_guard()
 # file via <executable-name> --dump so that it can be easily registered and
 # deployed e.g. in the train infrastructure.
 #
-# For most of the options please see how o2_add_executable works.
+# For most of the options, e.g. WORKFLOW_PLUGIN, please see how
+# o2_add_executable works.
 #
 # The installed executable will be named as regular executables (see
 # o2_add_executable for details)
@@ -28,14 +29,17 @@ include_guard()
 
 function(o2_add_dpl_workflow baseTargetName)
 
-  cmake_parse_arguments(PARSE_ARGV 1 A "" "COMPONENT_NAME;TARGETVARNAME"
+  cmake_parse_arguments(PARSE_ARGV 1 A "WORKFLOW_PLUGIN" "COMPONENT_NAME;TARGETVARNAME"
                         "SOURCES;PUBLIC_LINK_LIBRARIES;JOB_POOL")
 
   if(A_UNPARSED_ARGUMENTS)
     message(FATAL_ERROR "Got trailing arguments ${A_UNPARSED_ARGUMENTS}")
   endif()
 
-  o2_add_executable(${baseTargetName}
+  if(A_WORKFLOW_PLUGIN)
+    set(workflowPlugin WORKFLOW_PLUGIN)
+  endif()
+  o2_add_executable(${baseTargetName} ${workflowPlugin}
     COMPONENT_NAME ${A_COMPONENT_NAME} TARGETVARNAME targetExeName
     SOURCES ${A_SOURCES}
     PUBLIC_LINK_LIBRARIES O2::Framework ${A_PUBLIC_LINK_LIBRARIES})
