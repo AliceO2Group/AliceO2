@@ -29,7 +29,8 @@ o2_add_library(TRDCalibration
                                      O2::DetectorsCalibration
                                      O2::MathUtils
                                      O2::GPUTracking
-                                     O2::DetectorsDCS)
+                                     O2::DetectorsDCS
+                                     O2::FT0Reconstruction)
 
  o2_target_root_dictionary(TRDCalibration
                            HEADERS include/TRDCalibration/TrackBasedCalib.h

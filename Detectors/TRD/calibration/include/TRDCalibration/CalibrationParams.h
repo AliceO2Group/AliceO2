@@ -48,6 +48,7 @@ struct TRDCalibParams : public o2::conf::ConfigurableParamHelper<TRDCalibParams>
 
   // Creation of PH plots
   float pileupCut = 0.7;
+  int digitsThreshold = 13;
 
   // parameters related to noise calibration
   size_t minNumberOfDigits = 1'000'000'000UL; ///< when reached, noise calibration will be finalized
