@@ -1582,7 +1582,7 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
     mInputsHost->mPclusterNativeAccess->setOffsetPtrs();
     TransferMemoryResourceLinkToGPU(RecoStep::TPCClusterFinding, mInputsHost->mResourceClusterNativeAccess, 0);
   }
-  if (doGPU && synchronizeOutput) {
+  if (doGPU && (synchronizeOutput || sortClusters)) { // SortClusters works on the host copy of the clusters, which is transferred on this stream
     SynchronizeStream(mRec->NStreams() - 1);
   }
   if (doGPU && synchronizeCalibUpdate) {
