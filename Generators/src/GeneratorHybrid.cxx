@@ -329,8 +329,16 @@ Bool_t GeneratorHybrid::Init()
     // in sequential mode we have one queue per generator
     mResultQueue.resize(gens.size());
   }
-  // Create a task arena with a specified number of threads
-  mTaskArena.initialize(GeneratorHybridParam::Instance().num_workers);
+  // Create a task arena with a specified number of threads.
+  // Workers beyond the number of generators defined in the JSON are
+  // never busy so a cap is applied to avoid wasting resources
+  const int requestedWorkers = GeneratorHybridParam::Instance().num_workers;
+  const int nWorkers = std::max(1, std::min(requestedWorkers, static_cast<int>(gens.size())));
+  if (nWorkers != requestedWorkers) {
+    LOG(info) << "GeneratorHybrid.num_workers = " << requestedWorkers << " adjusted to " << nWorkers
+              << " (number of generators: " << gens.size() << ")";
+  }
+  mTaskArena.initialize(nWorkers);
 
   // the process task function actually calls event generation
   // when it is done it notifies the outside world by pushing it's index into an appropriate queue
