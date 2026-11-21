@@ -12,7 +12,8 @@
 /// The relocating VecGeom navigator against TGeo on a geometry of coinciding faces: two copies of a tower
 /// side by side that fill their mother, each a stack of tiles that reach the tower's faces, as in a sampling
 /// calorimeter. A ray has to visit the same volumes in the same order, and never stop for a zero-length step
-/// in a mother it only touches.
+/// in a mother it only touches. Every case runs with the default locate and with the lean one. The propagating
+/// navigator has to answer a zero safety only on the face it crossed.
 
 #define BOOST_TEST_MODULE Test SimSetup VecGeomG4Navigator
 #define BOOST_TEST_MAIN
@@ -24,11 +25,14 @@
 
 #include "../src/VecGeomG4Map.h"
 #include "../src/VecGeomG4Navigator.h"
+#include "../src/VecGeomG4PropagatingNavigator.h"
 
 #include "TG4RootDetectorConstruction.h"
 
+#include "G4StateManager.hh"
 #include "G4SystemOfUnits.hh"
 #include "G4TouchableHistory.hh"
+#include "G4VExceptionHandler.hh"
 #include "G4VPhysicalVolume.hh"
 
 #include <TGeoManager.h>
@@ -47,6 +51,7 @@
 
 using o2::simsetup::VecGeomG4Map;
 using o2::simsetup::VecGeomG4Navigator;
+using o2::simsetup::VecGeomG4PropagatingNavigator;
 
 namespace
 {
@@ -54,6 +59,8 @@ struct Fixture {
   std::unique_ptr<TG4RootDetectorConstruction> construction;
   VecGeomG4Map map;
   std::unique_ptr<VecGeomG4Navigator> navigator;
+  std::unique_ptr<VecGeomG4Navigator> lean; // the same with G4.vecgeomLeanLocate
+  std::unique_ptr<VecGeomG4PropagatingNavigator> propagating;
 
   Fixture()
   {
@@ -88,6 +95,10 @@ struct Fixture {
     map.build(*construction, true);
     navigator = std::make_unique<VecGeomG4Navigator>(map, 1.e-9, false);
     navigator->SetWorldVolume(world);
+    lean = std::make_unique<VecGeomG4Navigator>(map, 1.e-9, false, nullptr, true);
+    lean->SetWorldVolume(world);
+    propagating = std::make_unique<VecGeomG4PropagatingNavigator>(map, false);
+    propagating->SetWorldVolume(world);
   }
 };
 
@@ -95,6 +106,12 @@ Fixture& fixture()
 {
   static Fixture f;
   return f;
+}
+
+/// Both locates: the default one and the lean one.
+std::vector<std::pair<std::string, VecGeomG4Navigator*>> navigators()
+{
+  return {{"default locate", fixture().navigator.get()}, {"lean locate", fixture().lean.get()}};
 }
 
 /// The path of the navigator's touchable, in TGeo's notation.
@@ -169,6 +186,24 @@ std::vector<std::string> afterBoundaries(G4Navigator& nav, const double* p, cons
   return paths;
 }
 
+/// A new track in the paper of the first tile, 1 mm above its lead, steps down into the lead; returns the crossing point.
+G4ThreeVector enterLead(G4Navigator& nav)
+{
+  const G4ThreeVector down(0., 0., -1.);
+  G4ThreeVector point(-5. * cm, -5. * cm, -8.35 * cm);
+  nav.LocateGlobalPointAndSetup(point, &down, false, false);
+  G4double safety = 0.;
+  point += nav.ComputeStep(point, down, 1.e6 * cm, safety) * down;
+  nav.SetGeometricallyLimitedStep();
+  nav.LocateGlobalPointAndSetup(point, &down, true, false);
+  BOOST_REQUIRE(nav.EnteredDaughterVolume());
+  BOOST_REQUIRE_EQUAL(touchablePath(nav).substr(touchablePath(nav).rfind('/')), "/LEAD_1");
+  return point;
+}
+
+/// A point in the paper of the fourth tile, 0.5 mm above its lower face and 1.5 mm below its lead.
+const G4ThreeVector inPaper(-5. * cm, -5. * cm, -1.70 * cm);
+
 std::vector<Visit> withTGeo(const double* p, const double* d)
 {
   std::vector<Visit> visits;
@@ -182,133 +217,302 @@ std::vector<Visit> withTGeo(const double* p, const double* d)
   }
   return visits;
 }
+/// Counts the events Geant4 would abort instead of aborting the test.
+struct AbortCounter : public G4VExceptionHandler {
+  int aborts = 0;
+  G4bool Notify(const char*, const char* code, G4ExceptionSeverity severity, const char*) override
+  {
+    aborts += severity == EventMustBeAborted && std::string(code) == "GeomNav0003";
+    return false;
+  }
+};
+
+/// The top face of the lead tile of the first paper of a tower: module (1-3), tower (1, 2), x offset (cm).
+G4ThreeVector leadFace(int module, int tower, double dx = 0.)
+{
+  const double mx[] = {0., 0., 40.}, my[] = {-5., 5., 0.};
+  return G4ThreeVector((mx[module - 1] + (tower == 1 ? -5. : 5.) + dx) * cm, my[module - 1] * cm, -8.45 * cm);
+}
+
+/// Puts the track at \a p, as a boundary step there would, without a crossing.
+void moveTo(G4Navigator& nav, const G4ThreeVector& p)
+{
+  const G4ThreeVector momentum(0., 1., 0.);
+  nav.LocateGlobalPointWithinVolume(p);
+  nav.SetGeometricallyLimitedStep();
+  nav.LocateGlobalPointAndSetup(p, &momentum, true, false);
+}
+
+/// Chords only, as under a field, alternately into the lead tile below \a p and out of it, at \a p. Returns the
+/// first lengthened step (0 if none in \a maxSteps) and counts the zero steps before it.
+double chordsUntilPush(G4Navigator& nav, const G4ThreeVector& p, int& zeroSteps, int maxSteps = 30)
+{
+  // Along y, parallel to the faces between towers, so that a push along them stays in the tower.
+  const G4ThreeVector in = G4ThreeVector(0., 1., -1.e-3).unit(), out = G4ThreeVector(0., 1., 2.e-3).unit();
+  const G4ThreeVector momentum(0., 1., 0.); // never the direction of a step: every step is a chord
+  zeroSteps = 0;
+  for (int k = 0; k < maxSteps; ++k) {
+    G4double safety = 0.;
+    const bool inLead = touchablePath(nav).find("LEAD") != std::string::npos;
+    const double step = nav.ComputeStep(p, inLead ? out : in, 1.e6 * cm, safety);
+    nav.SetGeometricallyLimitedStep();
+    nav.LocateGlobalPointAndSetup(p, &momentum, true, false);
+    if (step > 1.e-10 * mm) {
+      return step;
+    }
+    ++zeroSteps;
+  }
+  return 0.;
+}
 } // namespace
 
 BOOST_AUTO_TEST_CASE(rays_visit_the_volumes_tgeo_visits)
 {
-  auto& f = fixture();
-  std::mt19937_64 gen(1);
-  std::uniform_real_distribution<double> u(-1., 1.);
-  std::normal_distribution<double> g;
-  int rays = 0, differentCount = 0, differentPath = 0, differentLength = 0, zeroSteps = 0, crossings = 0;
-  std::string firstDifference;
-  for (int r = 0; r < 20000; ++r) {
-    // start inside the two touching modules, off every face
-    const double p[3] = {9.9 * u(gen), 9.9 * u(gen), 9.9 * u(gen)};
-    double d[3] = {g(gen), g(gen), 0.3 * g(gen)};
-    const double norm = std::sqrt(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]);
-    for (auto& x : d) {
-      x /= norm;
-    }
-    const auto expected = withTGeo(p, d);
-    const auto found = withNavigator(*f.navigator, p, d, zeroSteps);
-    ++rays;
-    crossings += expected.size();
-    if (found.size() != expected.size()) {
-      ++differentCount;
-      if (firstDifference.empty()) {
-        firstDifference = Form("ray %d: %zu visits, TGeo %zu", r, found.size(), expected.size());
-      }
-      continue;
-    }
-    for (std::size_t i = 0; i < found.size(); ++i) {
-      if (found[i].path != expected[i].path) {
-        ++differentPath;
-        if (firstDifference.empty()) {
-          firstDifference = Form("ray %d visit %zu: %s, TGeo %s", r, i, found[i].path.c_str(), expected[i].path.c_str());
+  for (auto& [name, navp] : navigators()) {
+    auto& nav = *navp;
+    BOOST_TEST_CONTEXT(name)
+    {
+      std::mt19937_64 gen(1);
+      std::uniform_real_distribution<double> u(-1., 1.);
+      std::normal_distribution<double> g;
+      int rays = 0, differentCount = 0, differentPath = 0, differentLength = 0, zeroSteps = 0, crossings = 0;
+      std::string firstDifference;
+      for (int r = 0; r < 20000; ++r) {
+        // start inside the two touching modules, off every face
+        const double p[3] = {9.9 * u(gen), 9.9 * u(gen), 9.9 * u(gen)};
+        double d[3] = {g(gen), g(gen), 0.3 * g(gen)};
+        const double norm = std::sqrt(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]);
+        for (auto& x : d) {
+          x /= norm;
         }
-        break;
+        const auto expected = withTGeo(p, d);
+        const auto found = withNavigator(nav, p, d, zeroSteps);
+        ++rays;
+        crossings += expected.size();
+        if (found.size() != expected.size()) {
+          ++differentCount;
+          if (firstDifference.empty()) {
+            firstDifference = Form("ray %d: %zu visits, TGeo %zu", r, found.size(), expected.size());
+          }
+          continue;
+        }
+        for (std::size_t i = 0; i < found.size(); ++i) {
+          if (found[i].path != expected[i].path) {
+            ++differentPath;
+            if (firstDifference.empty()) {
+              firstDifference = Form("ray %d visit %zu: %s, TGeo %s", r, i, found[i].path.c_str(), expected[i].path.c_str());
+            }
+            break;
+          }
+          differentLength += std::abs(found[i].length - expected[i].length) > 1.e-6;
+        }
       }
-      differentLength += std::abs(found[i].length - expected[i].length) > 1.e-6;
+      BOOST_TEST_MESSAGE("rays " << rays << ", volumes crossed " << crossings << ", zero-length steps " << zeroSteps << " " << firstDifference);
+      BOOST_CHECK_GT(crossings, 100000);
+      BOOST_CHECK_MESSAGE(differentCount == 0, differentCount << " rays with a different number of volumes; " << firstDifference);
+      BOOST_CHECK_MESSAGE(differentPath == 0, differentPath << " rays with a different volume; " << firstDifference);
+      BOOST_CHECK_EQUAL(differentLength, 0);
+      // every face here coincides with others, and none of them is a place to stop
+      BOOST_CHECK_EQUAL(zeroSteps, 0);
     }
   }
-  BOOST_TEST_MESSAGE("rays " << rays << ", volumes crossed " << crossings << ", zero-length steps " << zeroSteps << " " << firstDifference);
-  BOOST_CHECK_GT(crossings, 100000);
-  BOOST_CHECK_MESSAGE(differentCount == 0, differentCount << " rays with a different number of volumes; " << firstDifference);
-  BOOST_CHECK_MESSAGE(differentPath == 0, differentPath << " rays with a different volume; " << firstDifference);
-  BOOST_CHECK_EQUAL(differentLength, 0);
-  // every face here coincides with others, and none of them is a place to stop
-  BOOST_CHECK_EQUAL(zeroSteps, 0);
 }
 
 BOOST_AUTO_TEST_CASE(a_turn_at_the_face_does_not_change_the_volume_entered)
 {
-  auto& f = fixture();
-  std::mt19937_64 gen(2);
-  std::uniform_real_distribution<double> u(-1., 1.);
-  std::normal_distribution<double> g;
-  int boundaries = 0, different = 0;
-  std::string firstDifference;
-  for (int r = 0; r < 2000; ++r) {
-    const double p[3] = {9.9 * u(gen), 9.9 * u(gen), 9.9 * u(gen)};
-    double d[3] = {g(gen), g(gen), 0.3 * g(gen)};
-    const double norm = std::sqrt(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]);
-    for (auto& x : d) {
-      x /= norm;
-    }
-    const auto straight = afterBoundaries(*f.navigator, p, d, -1);
-    for (int k = 0; k < static_cast<int>(straight.size()); ++k) {
-      const auto turned = afterBoundaries(*f.navigator, p, d, k);
-      ++boundaries;
-      if (turned.size() != static_cast<std::size_t>(k) + 1 || turned.back() != straight[k]) {
-        ++different;
-        if (firstDifference.empty()) {
-          firstDifference = Form("ray %d boundary %d: %s, without the turn %s", r, k, turned.empty() ? "-" : turned.back().c_str(), straight[k].c_str());
+  for (auto& [name, navp] : navigators()) {
+    auto& nav = *navp;
+    BOOST_TEST_CONTEXT(name)
+    {
+      std::mt19937_64 gen(2);
+      std::uniform_real_distribution<double> u(-1., 1.);
+      std::normal_distribution<double> g;
+      int boundaries = 0, different = 0;
+      std::string firstDifference;
+      for (int r = 0; r < 2000; ++r) {
+        const double p[3] = {9.9 * u(gen), 9.9 * u(gen), 9.9 * u(gen)};
+        double d[3] = {g(gen), g(gen), 0.3 * g(gen)};
+        const double norm = std::sqrt(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]);
+        for (auto& x : d) {
+          x /= norm;
+        }
+        const auto straight = afterBoundaries(nav, p, d, -1);
+        for (int k = 0; k < static_cast<int>(straight.size()); ++k) {
+          const auto turned = afterBoundaries(nav, p, d, k);
+          ++boundaries;
+          if (turned.size() != static_cast<std::size_t>(k) + 1 || turned.back() != straight[k]) {
+            ++different;
+            if (firstDifference.empty()) {
+              firstDifference = Form("ray %d boundary %d: %s, without the turn %s", r, k, turned.empty() ? "-" : turned.back().c_str(), straight[k].c_str());
+            }
+          }
         }
       }
+      BOOST_TEST_MESSAGE("boundaries " << boundaries << " " << firstDifference);
+      BOOST_CHECK_GT(boundaries, 10000);
+      // the step decides which volume is entered, not the direction the track has after it
+      BOOST_CHECK_MESSAGE(different == 0, different << " boundaries where the turn changed the volume; " << firstDifference);
     }
   }
-  BOOST_TEST_MESSAGE("boundaries " << boundaries << " " << firstDifference);
-  BOOST_CHECK_GT(boundaries, 10000);
-  // the step decides which volume is entered, not the direction the track has after it
-  BOOST_CHECK_MESSAGE(different == 0, different << " boundaries where the turn changed the volume; " << firstDifference);
 }
 
 BOOST_AUTO_TEST_CASE(a_track_tangent_to_a_field_boundary_is_freed_along_its_momentum)
 {
-  // A track on the top face of a lead tile, as under a field: the chord points into the tile, the momentum out of it.
-  auto& nav = *fixture().navigator;
-  const G4ThreeVector face(-5. * cm, -5. * cm, -8.45 * cm);
-  const G4ThreeVector chord = G4ThreeVector(1., 0., -1.e-3).unit();
-  const G4ThreeVector momentum = G4ThreeVector(1., 0., 1.e-3).unit();
-  G4double safety = 0.;
-  // reach the face along the chord from the paper above, so the track ends in the lead
-  G4ThreeVector point = face - 1. * mm * chord;
-  nav.LocateGlobalPointAndSetup(point, &chord, false, false);
-  const double first = nav.ComputeStep(point, chord, 1.e6 * cm, safety);
-  BOOST_REQUIRE_CLOSE(first, 1. * mm, 1.e-6);
-  point += first * chord;
-  nav.SetGeometricallyLimitedStep();
-  nav.LocateGlobalPointAndSetup(point, &momentum, true, false);
-  BOOST_REQUIRE_EQUAL(touchablePath(nav).substr(touchablePath(nav).rfind('/')), "/LEAD_1");
+  for (auto& [name, navp] : navigators()) {
+    auto& nav = *navp;
+    BOOST_TEST_CONTEXT(name)
+    {
+      // A track on the top face of a lead tile, as under a field: the chord points into the tile, the momentum out of it.
+      const G4ThreeVector face(-5. * cm, -5. * cm, -8.45 * cm);
+      const G4ThreeVector chord = G4ThreeVector(1., 0., -1.e-3).unit();
+      const G4ThreeVector momentum = G4ThreeVector(1., 0., 1.e-3).unit();
+      G4double safety = 0.;
+      // reach the face along the chord from the paper above, so the track ends in the lead
+      G4ThreeVector point = face - 1. * mm * chord;
+      nav.LocateGlobalPointAndSetup(point, &chord, false, false);
+      const double first = nav.ComputeStep(point, chord, 1.e6 * cm, safety);
+      BOOST_REQUIRE_CLOSE(first, 1. * mm, 1.e-6);
+      point += first * chord;
+      nav.SetGeometricallyLimitedStep();
+      nav.LocateGlobalPointAndSetup(point, &momentum, true, false);
+      BOOST_REQUIRE_EQUAL(touchablePath(nav).substr(touchablePath(nav).rfind('/')), "/LEAD_1");
 
-  // Geant4 alternates a straight step along the momentum, which leaves the lead, and a chord step, which enters it again.
-  int zeroSteps = 0, pushedChords = 0;
-  bool moved = false, freed = false;
-  for (int k = 0; k < 24 && !freed; ++k) {
-    const bool alongMomentum = k % 2 == 0;
-    const G4ThreeVector& dir = alongMomentum ? momentum : chord;
-    const double step = nav.ComputeStep(point, dir, 1.e6 * cm, safety);
-    BOOST_TEST_MESSAGE("step " << k << (alongMomentum ? " momentum " : " chord ") << step << " mm in " << touchablePath(nav));
-    if (step < 1.e-10 * mm) {
-      ++zeroSteps;
-    } else if (alongMomentum) {
-      // the lengthened momentum step moves the track off the face
-      point += step * dir;
-      moved = true;
-    } else if (moved) {
-      // the chord reaches the lead only after a real step: the track is off the face
-      freed = true;
-    } else {
-      ++pushedChords;
-      break;
+      // Geant4 alternates a straight step along the momentum, which leaves the lead, and a chord step, which enters it again.
+      int zeroSteps = 0, pushedChords = 0;
+      bool moved = false, freed = false;
+      for (int k = 0; k < 24 && !freed; ++k) {
+        const bool alongMomentum = k % 2 == 0;
+        const G4ThreeVector& dir = alongMomentum ? momentum : chord;
+        const double step = nav.ComputeStep(point, dir, 1.e6 * cm, safety);
+        BOOST_TEST_MESSAGE("step " << k << (alongMomentum ? " momentum " : " chord ") << step << " mm in " << touchablePath(nav));
+        if (step < 1.e-10 * mm) {
+          ++zeroSteps;
+        } else if (alongMomentum) {
+          // the lengthened momentum step moves the track off the face
+          point += step * dir;
+          moved = true;
+        } else if (moved) {
+          // the chord reaches the lead only after a real step: the track is off the face
+          freed = true;
+        } else {
+          ++pushedChords;
+          break;
+        }
+        nav.SetGeometricallyLimitedStep();
+        nav.LocateGlobalPointAndSetup(point, &momentum, true, false);
+      }
+      BOOST_TEST_MESSAGE("zero steps " << zeroSteps);
+      BOOST_CHECK_GE(zeroSteps, 10);
+      // a lengthened chord step is a miss for the field propagator, which then never crosses
+      BOOST_CHECK_EQUAL(pushedChords, 0);
+      BOOST_CHECK(freed);
     }
-    nav.SetGeometricallyLimitedStep();
-    nav.LocateGlobalPointAndSetup(point, &momentum, true, false);
   }
-  BOOST_TEST_MESSAGE("zero steps " << zeroSteps);
-  BOOST_CHECK_GE(zeroSteps, 10);
-  // a lengthened chord step is a miss for the field propagator, which then never crosses
-  BOOST_CHECK_EQUAL(pushedChords, 0);
-  BOOST_CHECK(freed);
+}
+
+BOOST_AUTO_TEST_CASE(a_push_restarts_the_run_of_zero_steps_only_in_another_volume_it_reached)
+{
+  for (auto& [name, navp] : navigators()) {
+    auto& nav = *navp;
+    BOOST_TEST_CONTEXT(name)
+    {
+      const G4ThreeVector momentum(0., 1., 0.);
+      int zero = 0;
+      // A run of chords on the lead face of tower 1, 2 nm from tower 2: the tenth zero step is pushed by 0.1 nm.
+      const G4ThreeVector p(-2.e-7 * cm, -5. * cm, -8.45 * cm);
+      nav.LocateGlobalPointAndSetup(p, &momentum, false, false);
+      BOOST_CHECK_CLOSE(chordsUntilPush(nav, p, zero), 1.e-7 * mm, 0.01);
+      BOOST_CHECK_EQUAL(zero, 9);
+      // Moved along the same face by ten times the push, still in the volumes of the run: no restart, the next zero
+      // step is pushed at once, and the push goes on growing.
+      const G4ThreeVector same(-1.e-7 * cm, -5. * cm, -8.45 * cm);
+      moveTo(nav, same);
+      double push = 0.;
+      for (int k = 1; k < 4; ++k) {
+        push = chordsUntilPush(nav, same, zero);
+        BOOST_CHECK_EQUAL(zero, 0);
+        BOOST_CHECK_CLOSE(push, 1.e-7 * mm * std::pow(4., k), 0.01);
+      }
+      // Into tower 2, a volume the run never visited, but by less than half the last push: no restart either.
+      const G4ThreeVector close(1.e-7 * cm, -5. * cm, -8.45 * cm);
+      BOOST_REQUIRE_LT((close - same).mag(), 0.5 * push);
+      moveTo(nav, close);
+      BOOST_CHECK_NE(touchablePath(nav).find("TOWR_2"), std::string::npos);
+      BOOST_CHECK_GT(chordsUntilPush(nav, close, zero), 0.);
+      BOOST_CHECK_EQUAL(zero, 0);
+      // Into another module, far and new: the run starts again.
+      const G4ThreeVector far = leadFace(2, 1);
+      moveTo(nav, far);
+      BOOST_CHECK_GT(chordsUntilPush(nav, far, zero), 0.);
+      BOOST_CHECK_EQUAL(zero, 9);
+    }
+  }
+}
+
+BOOST_AUTO_TEST_CASE(a_track_pushed_from_place_to_place_is_aborted_after_its_fourth_run)
+{
+  for (auto& [name, navp] : navigators()) {
+    auto& nav = *navp;
+    BOOST_TEST_CONTEXT(name)
+    {
+      static AbortCounter handler; // registered with Geant4 for the rest of the process
+      handler.aborts = 0;
+      const G4ThreeVector momentum(0., 1., 0.);
+      int zero = 0;
+      // Four places, each reached by a push and each a volume the previous run did not visit: three restarts.
+      const G4ThreeVector places[] = {leadFace(1, 1), leadFace(1, 2), leadFace(2, 1), leadFace(2, 2)};
+      nav.LocateGlobalPointAndSetup(places[0], &momentum, false, false);
+      for (const auto& p : places) {
+        if (&p != &places[0]) {
+          moveTo(nav, p);
+        }
+        BOOST_CHECK_GT(chordsUntilPush(nav, p, zero), 0.);
+        BOOST_CHECK_EQUAL(zero, 9);
+      }
+      // A fifth place does not restart the run: it goes on to the abort.
+      const G4ThreeVector last = leadFace(3, 1);
+      moveTo(nav, last);
+      int steps = 0;
+      for (; steps < 30 && handler.aborts == 0; ++steps) {
+        chordsUntilPush(nav, last, zero, 1);
+      }
+      BOOST_CHECK_EQUAL(handler.aborts, 1);
+      // The fourth run had reached ten zero steps, so fifteen more reach the abort at twenty-five.
+      BOOST_CHECK_EQUAL(steps, 15);
+    }
+  }
+}
+
+BOOST_AUTO_TEST_CASE(the_propagating_navigator_has_a_zero_safety_only_on_the_face_it_crossed)
+{
+  auto& nav = *fixture().propagating;
+  const G4ThreeVector down(0., 0., -1.);
+  const G4ThreeVector face = enterLead(nav);
+  BOOST_CHECK_EQUAL(nav.ComputeSafety(face), 0.);
+  // a 0.2 mm step into the lead; Geant4 asks for the safety at its end before the next locate
+  G4double safety = 0.;
+  BOOST_REQUIRE_GT(nav.ComputeStep(face, down, 0.2 * mm, safety), 0.2 * mm);
+  BOOST_CHECK_CLOSE(nav.ComputeSafety(face + 0.2 * mm * down), 0.2 * mm, 1.e-4);
+}
+
+BOOST_AUTO_TEST_CASE(a_new_track_after_a_crossing_is_not_on_a_boundary)
+{
+  auto& nav = *fixture().propagating;
+  enterLead(nav);
+  const G4ThreeVector up(0., 0., 1.);
+  nav.LocateGlobalPointAndSetup(inPaper, &up, false, false);
+  BOOST_CHECK(!nav.EnteredDaughterVolume());
+  BOOST_CHECK(!nav.ExitedMotherVolume());
+  BOOST_CHECK_CLOSE(nav.ComputeSafety(inPaper), 0.5 * mm, 1.e-4);
+}
+
+BOOST_AUTO_TEST_CASE(a_resumed_track_after_a_crossing_is_not_on_a_boundary)
+{
+  auto& nav = *fixture().propagating;
+  const G4ThreeVector up(0., 0., 1.);
+  nav.LocateGlobalPointAndSetup(inPaper, &up, false, false);
+  std::unique_ptr<G4TouchableHistory> touchable(nav.CreateTouchableHistory());
+  enterLead(nav);
+  nav.ResetHierarchyAndLocate(inPaper, up, *touchable);
+  BOOST_CHECK_CLOSE(nav.ComputeSafety(inPaper), 0.5 * mm, 1.e-4);
 }
