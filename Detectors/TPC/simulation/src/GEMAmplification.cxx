@@ -122,7 +122,7 @@ void GEMAmplification::updateParameters()
   auto& cdb = CDBInterface::instance();
   mGEMParam = &(ParameterGEM::Instance());
   mGasParam = &(ParameterGas::Instance());
-  mGainMap = &(cdb.getGainMap());
+  mGainMap = &(cdb.getGainMapMC());
 }
 
 int GEMAmplification::getStackAmplification(int nElectrons)

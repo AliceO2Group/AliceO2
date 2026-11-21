@@ -90,6 +90,7 @@ enum class CDBType {
                         ///
   DistortionMapMC,      ///< full distortions (static + IR dependant) for MC used in the digitizer
   DistortionMapDerivMC, ///< derivative distortions for MC used in the digitizer for scaling
+  CalPadGainFullMC,     ///< Full pad gain map for MC used in the digitizer
 
   AltroSyncSignal ///< timing of Altro chip sync. signal
 };
@@ -163,6 +164,8 @@ const std::unordered_map<CDBType, const std::string> CDBTypeMap{
   // distortion maps
   {CDBType::DistortionMapMC, "TPC/Calib/DistortionMapMC"},
   {CDBType::DistortionMapDerivMC, "TPC/Calib/DistortionMapDerivativeMC"},
+  // gain map for MC
+  {CDBType::CalPadGainFullMC, "TPC/Calib/PadGainFullMC"},
   // AltroSyncSignal
   {CDBType::AltroSyncSignal, "TPC/Config/AltroSyncSignal"},
 };
