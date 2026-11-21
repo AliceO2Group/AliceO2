@@ -167,7 +167,21 @@
       "AMPERE":   1024,
       "TURING":   1024
     },
-    "GPUTPCGMMergerTrackFit": {
+    "GPUTPCGMMergerTrackFit_def": {
+      "default":  256,
+      "MI100":    [192, 2],
+      "VEGA":     [64, 7],
+      "AMPERE":   [64, 4],
+      "TURING":   [32, 8]
+    },
+    "GPUTPCGMMergerTrackFit_rebuild": {
+      "default":  256,
+      "MI100":    [192, 2],
+      "VEGA":     [64, 7],
+      "AMPERE":   [64, 4],
+      "TURING":   [32, 8]
+    },
+    "GPUTPCGMMergerTrackFit_retry": {
       "default":  256,
       "MI100":    [192, 2],
       "VEGA":     [64, 7],
@@ -523,6 +537,10 @@
     },
     "SORT_STARTHITS": {
       "default":      1,
+      "default_cpu":  0
+    },
+    "TPC_MERGER_REBUILD_CONSTRAINED_ROW_MEMORY": {
+      "default":      0,
       "default_cpu":  0
     },
     "NEIGHBOURS_FINDER_MAX_NNEIGHUP": {

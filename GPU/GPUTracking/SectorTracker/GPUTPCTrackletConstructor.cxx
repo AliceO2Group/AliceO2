@@ -56,8 +56,8 @@ GPUd() void GPUTPCTrackletConstructor::StoreTracklet(int32_t /*nBlocks*/, int32_
 {
   // reconstruction of tracklets, tracklet store step
   const uint32_t nHits = r.mLastRow + 1 - r.mFirstRow;
-  if (nHits == 0 || r.mNHits == 0 || (r.mNHits < tracker.Param().tpcMinHitsB5(tParam.QPt() * tracker.Param().qptB5Scaler) || !CheckCov(tParam) || CAMath::Abs(tParam.GetQPt() * tracker.Param().qptB5Scaler) > tracker.Param().rec.maxTrackQPtB5)) {
-    CADEBUG(printf("    Rejected: nHits %d QPt %f MinHits %d MaxQPt %f CheckCov %d\n", r.mNHits, tParam.QPt(), tracker.Param().tpcMinHitsB5(tParam.QPt() * tracker.Param().qptB5Scaler), tracker.Param().rec.maxTrackQPtB5, (int32_t)CheckCov(tParam)));
+  if (nHits == 0 || r.mNHits == 0 || (r.mNHits < tracker.Param().tpcMinHitsB5Abs(CAMath::Abs(tParam.QPt() * tracker.Param().qptB5Scaler)) || !CheckCov(tParam) || CAMath::Abs(tParam.GetQPt() * tracker.Param().qptB5Scaler) > tracker.Param().rec.maxTrackQPtB5)) {
+    CADEBUG(printf("    Rejected: nHits %d QPt %f MinHits %d MaxQPt %f CheckCov %d\n", r.mNHits, tParam.QPt(), tracker.Param().tpcMinHitsB5Abs(CAMath::Abs(tParam.QPt() * tracker.Param().qptB5Scaler)), tracker.Param().rec.maxTrackQPtB5, (int32_t)CheckCov(tParam)));
     return;
   }
 
@@ -199,7 +199,7 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int32_t /*nBlocks*/,
           const float sErr2 = tracker.Param().GetSystematicClusterErrorIFC2(x, tParam.GetY(), tParam.GetZ(), tracker.ISector() >= 18);
           err2Y += sErr2;
           err2Z += sErr2;
-          const float kFactor = tracker.Param().rec.tpc.hitPickUpFactor * tracker.Param().rec.tpc.hitPickUpFactor * 3.5f * 3.5f;
+          const float kFactor = tracker.GetChiSeedFactor();
           float sy2 = kFactor * (tParam.Err2Y() + err2Y);
           float sz2 = kFactor * (tParam.Err2Z() + err2Z);
           if (sy2 > tracker.Param().rec.tpc.hitSearchArea2) {
@@ -307,7 +307,7 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int32_t /*nBlocks*/,
           const float kFactor = tracker.Param().rec.tpc.hitPickUpFactor * tracker.Param().rec.tpc.hitPickUpFactor * 7.0f * 7.0f;
           const float maxWindow2 = tracker.Param().rec.tpc.hitSearchArea2;
           const float sy2 = CAMath::Min(maxWindow2, kFactor * (tParam.Err2Y() + err2Y));
-          const float sz2 = CAMath::Min(maxWindow2, kFactor * (tParam.Err2Z() + err2Z));
+          const float sz2 = CAMath::Min(maxWindow2, kFactor * (tParam.Err2Z() + err2Z)); // TODO: Double check if the factors are enough, errors could be larger with flags
 
           int32_t bin, ny, nz;
           row.Grid().GetBinArea(yUncorrected, zUncorrected + tParam.ZOffset(), CAMath::Sqrt(sy2), CAMath::Sqrt(sz2), bin, ny, nz);

@@ -34,13 +34,13 @@ AddOption(noEventRepeat, int32_t, 0, "", 0, "0: Place random events, 1: Place ev
 AddOption(nTotalEventsInTF, int32_t, 0, "", 0, "Total number of collisions to be placed in the interior of all time frames (excluding borders)")
 AddOption(eventStride, int32_t, 0, "", 0, "Do not select random event, but walk over array of events in stride steps")
 AddOption(overlayRaw, bool, false, "", 0, "Overlay raw TPC data instead of spatial clusters")
-AddHelp("help", 'h')
+AddHelp("help", 0)
 EndConfig()
 
 // Settings concerning standalone toy event generator
 BeginSubConfig(GPUSettingsEG, EG, configStandalone, "EG", 0, "Event generator settings")
 AddOption(numberOfTracks, int32_t, 1, "", 0, "Number of tracks per generated event")
-AddHelp("help", 'h')
+AddHelp("help", 0)
 EndConfig()
 
 // Settings for the standalone benchmark
@@ -60,7 +60,7 @@ AddOption(runsInit, int32_t, 1, "", 0, "Number of initial iterations excluded fr
 AddOption(eventsDir, const char*, "pp", "events", 'e', "Directory with events to process", message("Reading events from Directory %s"))
 AddOption(absoluteEventsDir, bool, false, "", 0, "Events directory is absolute, and not inside './events/'")
 AddOption(noEvents, bool, false, "", 0, "Run without data (e.g. for field visualization)")
-AddOption(eventDisplay, int32_t, 0, "display", 'd', "Show standalone event display", def(1))
+AddOption(eventDisplay, int32_t, 0, "display", 0, "Show standalone event display", def(1))
 AddOption(eventGenerator, bool, false, "", 0, "Run event generator")
 AddOption(cont, bool, false, "", 0, "Process continuous timeframe data, even if input is triggered")
 AddOption(setMaxTimeBin, int32_t, -2, "", 0, "maximum time bin of continuous data, 0 for triggered events, -1 for automatic continuous mode, -2 for automatic continuous / triggered")
@@ -82,6 +82,8 @@ AddOption(printSettings, int32_t, 0, "", 0, "Print all settings", def(1))
 AddOption(testSyncAsync, bool, false, "syncAsync", 0, "Test first synchronous and then asynchronous processing")
 AddOption(testSync, bool, false, "sync", 0, "Test settings for synchronous phase")
 AddOption(testSyncAsyncQcInSync, bool, false, "syncAsyncSyncQC", 0, "Run QC in sync phase of testSyncAsync")
+AddOption(testSyncAsyncNoSyncSettings, bool, false, "", 0, "Do not apply the settings for synchronous processing in testSyncAsync / testSync")
+AddOption(testSyncAsyncMC, bool, false, "", 0, "Propagate the TPC cluster MC labels of the clusters surviving the compression to the asynchronous phase of testSyncAsync (enforces tpcSortClusters)")
 AddOption(timeFrameTime, bool, false, "tfTime", 0, "Print some debug information about time frame processing time")
 AddOption(controlProfiler, bool, false, "", 0, "Issues GPU profiler stop and start commands to profile only the relevant processing part")
 AddOption(preloadEvents, bool, false, "", 0, "Preload events into host memory before start processing")

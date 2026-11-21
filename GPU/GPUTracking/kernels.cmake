@@ -51,7 +51,9 @@ o2_gpu_add_kernel("GPUTPCGlobalDebugSortKernels, mergedTracks2"           "= TPC
 o2_gpu_add_kernel("GPUTPCGlobalDebugSortKernels, borderTracks"            "= TPCMERGER"                                           NO int8_t parameter)
 o2_gpu_add_kernel("GPUTPCCreateOccupancyMap, fill"                        "= TPCOCCUPANCY"                                        LB GPUTPCClusterOccupancyMapBin* map)
 o2_gpu_add_kernel("GPUTPCCreateOccupancyMap, fold"                        "= TPCOCCUPANCY"                                        LB GPUTPCClusterOccupancyMapBin* map uint32_t* output)
-o2_gpu_add_kernel("GPUTPCGMMergerTrackFit"                                "GPUTPCGMMergerGPU TPCMERGER TPCTRACKER MATLUT TPCDEDX" LB int32_t mode)
+o2_gpu_add_kernel("GPUTPCGMMergerTrackFit, def"                           "GPUTPCGMMergerGPU TPCMERGER TPCTRACKER MATLUT TPCDEDX" LB)
+o2_gpu_add_kernel("GPUTPCGMMergerTrackFit, rebuild"                       "GPUTPCGMMergerGPU TPCMERGER TPCTRACKER MATLUT TPCDEDX" LB)
+o2_gpu_add_kernel("GPUTPCGMMergerTrackFit, retry"                         "GPUTPCGMMergerGPU TPCMERGER TPCTRACKER MATLUT TPCDEDX" LB)
 o2_gpu_add_kernel("GPUTPCGMMergerFollowLoopers"                           "GPUTPCGMMergerGPU TPCMERGER TPCTRACKER MATLUT"         LB)
 o2_gpu_add_kernel("GPUTPCGMMergerUnpackResetIds"                          "GPUTPCGMMergerGPU TPCMERGER"                           LB int32_t iSector)
 o2_gpu_add_kernel("GPUTPCGMMergerSectorRefit"                             "GPUTPCGMMergerGPU TPCMERGER MATLUT"                    LB int32_t iSector)
@@ -84,6 +86,11 @@ o2_gpu_add_kernel("GPUTPCGMMergerFinalize, step2"                         "GPUTP
 o2_gpu_add_kernel("GPUTPCGMMergerMergeLoopers, step0"                     "GPUTPCGMMergerGPU TPCMERGER"                           LB)
 o2_gpu_add_kernel("GPUTPCGMMergerMergeLoopers, step1"                     "GPUTPCGMMergerGPU TPCMERGER"                           LB)
 o2_gpu_add_kernel("GPUTPCGMMergerMergeLoopers, step2"                     "GPUTPCGMMergerGPU TPCMERGER"                           LB)
+o2_gpu_add_kernel("GPUTPCGMMergerHitWeights, prepare"                     "GPUTPCGMMergerGPU TPCMERGER"                           LB int32_t iteration)
+o2_gpu_add_kernel("GPUTPCGMMergerHitWeights, compute"                     "GPUTPCGMMergerGPU TPCMERGER"                           LB int32_t iteration)
+o2_gpu_add_kernel("GPUTPCGMMergerHitWeights, resolve1"                    "GPUTPCGMMergerGPU TPCMERGER"                           LB int32_t iteration)
+o2_gpu_add_kernel("GPUTPCGMMergerHitWeights, resolve2"                    "GPUTPCGMMergerGPU TPCMERGER"                           LB int32_t iteration)
+o2_gpu_add_kernel("GPUTPCGMMergerHitWeights, resolveShared"               "GPUTPCGMMergerGPU TPCMERGER"                           LB int32_t iteration)
 o2_gpu_add_kernel("GPUTPCGMO2Output, prepare"                             "= TPCMERGER"                                           LB)
 o2_gpu_add_kernel("GPUTPCGMO2Output, sort"                                "= TPCMERGER")
 o2_gpu_add_kernel("GPUTPCGMO2Output, output"                              "= TPCMERGER"                                           LB)
@@ -137,18 +144,19 @@ o2_gpu_add_kernel("GPUTPCNNClusterizerKernels, publishClass2Regression"   "= TPC
 o2_gpu_add_kernel("GPUTPCNNClusterizerKernels, publishDeconvolutionFlags" "= TPCNNCLUSTERFINDER"                                  LB uint8_t sector int8_t dtype int8_t withMC uint32_t batchStart)
 endif()
 
-o2_gpu_kernel_add_parameter(NEIGHBOURS_FINDER_MAX_NNEIGHUP  # Number of neighhbours finder hits to cache in shared memory
-                            NEIGHBOURS_FINDER_UNROLL_GLOBAL # Unroll factor for neighbours finder iterating hits in local memory
-                            NEIGHBOURS_FINDER_UNROLL_SHARED # Fully unroll iteration over neighbours finder hits in shared memory [0/1]
-                            TRACKLET_SELECTOR_HITS_REG_SIZE # Number of hits to cache in shared memory in tracklet selector
-                            ALTERNATE_BORDER_SORT           # Use alternative border sort approach [0/1]
-                            SORT_BEFORE_FIT                 # Sort tracks after length to reduce warp serialization [0/1]
-                            NO_ATOMIC_PRECHECK              # Skip atomic precheck to reduce posterior synchronization [0/1]
-                            COMP_GATHER_KERNEL              # Default kernel to use for Compression Gather Operation [0 - 4]
-                            COMP_GATHER_MODE                # TPC Compression Gather Mode [0 - 3]
-                            SORT_STARTHITS                  # Sort start hits to improve cache locality during tracklet construction [0/1]
-                            CF_SCAN_WORKGROUP_SIZE          # Work group size to use in clusterizer scan operation
-			    AMD_EUS_PER_CU)	  	    # Number of SIMD units per Compute Unit (only for AMD GPUs)
+o2_gpu_kernel_add_parameter(NEIGHBOURS_FINDER_MAX_NNEIGHUP            # Number of neighhbours finder hits to cache in shared memory
+                            NEIGHBOURS_FINDER_UNROLL_GLOBAL           # Unroll factor for neighbours finder iterating hits in local memory
+                            NEIGHBOURS_FINDER_UNROLL_SHARED           # Fully unroll iteration over neighbours finder hits in shared memory [0/1]
+                            TRACKLET_SELECTOR_HITS_REG_SIZE           # Number of hits to cache in shared memory in tracklet selector
+                            ALTERNATE_BORDER_SORT                     # Use alternative border sort approach [0/1]
+                            SORT_BEFORE_FIT                           # Sort tracks after length to reduce warp serialization [0/1]
+                            NO_ATOMIC_PRECHECK                        # Skip atomic precheck to reduce posterior synchronization [0/1]
+                            COMP_GATHER_KERNEL                        # Default kernel to use for Compression Gather Operation [0 - 4]
+                            COMP_GATHER_MODE                          # TPC Compression Gather Mode [0 - 3]
+                            SORT_STARTHITS                            # Sort start hits to improve cache locality during tracklet construction [0/1]
+                            TPC_MERGER_REBUILD_CONSTRAINED_ROW_MEMORY # Allocate the track rebuild memory only for the row range a track can reach [0/1]
+                            CF_SCAN_WORKGROUP_SIZE                    # Work group size to use in clusterizer scan operation
+                            AMD_EUS_PER_CU)	                          # Number of SIMD units per Compute Unit (only for AMD GPUs)
 
 o2_gpu_kernel_add_string_parameter(DEDX_STORAGE_TYPE                # Data type to use for intermediate storage of dEdx truncated mean inputs
                                    MERGER_INTERPOLATION_ERROR_TYPE) # Data type for storing intermediate track residuals for interpolation

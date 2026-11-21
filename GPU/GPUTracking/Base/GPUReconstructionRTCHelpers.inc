@@ -69,23 +69,32 @@ static std::string baseCommand(const GPUSettingsProcessing& proc, std::string_vi
 
 static void loadLaunchBounds(const GPUSettingsProcessing& proc, GPUDefParameters& par)
 {
-  if (proc.rtctech.loadLaunchBoundsFromFile.size() == 0) {
-    return;
+  if (proc.rtctech.loadLaunchBoundsFromFile.size()) {
+    FILE* fp = fopen(proc.rtctech.loadLaunchBoundsFromFile.c_str(), "rb");
+    if (fp == nullptr) {
+      throw std::runtime_error("Cannot open launch bounds parameter module file");
+    }
+    fseek(fp, 0, SEEK_END);
+    size_t size = ftell(fp);
+    if (size != sizeof(par)) {
+      throw std::runtime_error("launch bounds parameter file has incorrect size");
+    }
+    fseek(fp, 0, SEEK_SET);
+    if (fread(&par, 1, size, fp) != size) {
+      throw std::runtime_error("Error reading launch bounds parameter file");
+    }
+    fclose(fp);
   }
-  FILE* fp = fopen(proc.rtctech.loadLaunchBoundsFromFile.c_str(), "rb");
-  if (fp == nullptr) {
-    throw std::runtime_error("Cannot open launch bounds parameter module file");
+  std::vector<std::string> overrides; // Split at ;, trim spaces, skip empty entries
+  const std::string& str = proc.rtctech.overrideRTCParameters;
+  for (size_t pos = 0; pos < str.size();) {
+    const size_t end = std::min(str.find(';', pos), str.size()), first = str.find_first_not_of(' ', pos);
+    if (first < end) {
+      overrides.emplace_back(str.substr(first, str.find_last_not_of(' ', end - 1) - first + 1));
+    }
+    pos = end + 1;
   }
-  fseek(fp, 0, SEEK_END);
-  size_t size = ftell(fp);
-  if (size != sizeof(par)) {
-    throw std::runtime_error("launch bounds parameter file has incorrect size");
-  }
-  fseek(fp, 0, SEEK_SET);
-  if (fread(&par, 1, size, fp) != size) {
-    throw std::runtime_error("Error reading launch bounds parameter file");
-  }
-  fclose(fp);
+  o2::gpu::internal::GPUDefParametersOverride(par, overrides);
 }
 
 static std::string launchBoundsCode(const GPUSettingsProcessing& proc, const GPUDefParameters& par, int32_t minBlockFactor, uint32_t warpSize) // Prints the launch bounds if requested
@@ -93,6 +102,7 @@ static std::string launchBoundsCode(const GPUSettingsProcessing& proc, const GPU
   std::string retVal = GPUDefParametersExport(par, true, minBlockFactor) + "#define GPUCA_WARP_SIZE " + std::to_string(warpSize) + "\n";
   if (proc.rtctech.printLaunchBounds || proc.debugLevel >= 3) {
     GPUInfo("RTC Launch Bounds:\n%s", retVal.c_str());
+    fflush(stdout); // printLaunchBounds == 2 ends the process via an exception, which would lose buffered output
   }
   return retVal;
 }

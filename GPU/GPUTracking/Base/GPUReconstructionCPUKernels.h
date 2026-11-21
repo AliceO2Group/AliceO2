@@ -76,6 +76,9 @@ inline void GPUReconstructionCPU::runKernelInterface(krnlSetup&& setup, Args con
   if (GPUDebug(GetKernelName<S, I>(), stream, GetProcessingSettings().serializeGPU & 1)) {
     throw std::runtime_error("kernel failure");
   }
+  if (GetProcessingSettings().queryHostMemoryUSS) {
+    QueryHostMemoryUSS(GetKernelName<S, I>());
+  }
   if (GetProcessingSettings().debugLevel >= 1) {
     if (t) {
       if (deviceTimerTime != 0.) {

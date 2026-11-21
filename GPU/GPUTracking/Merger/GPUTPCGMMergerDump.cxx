@@ -21,6 +21,7 @@
 #include "GPUTPCTracker.h"
 #include "GPUTPCTrackParam.h"
 #include "GPUTPCGMMerger.h"
+#include "GPUTPCGMMergerRebuildInternal.h"
 #include "GPUO2DataTypes.h"
 #include "GPUCommonMath.h"
 #include "GPUTPCTrackParam.h"
@@ -150,6 +151,15 @@ void GPUTPCGMMerger::DumpTrackParam(std::ostream& out) const
   out << std::setprecision(ss);
 }
 
+void GPUTPCGMMerger::DumpRebuiltTracks(std::ostream& out) const
+{
+  out << "\nTPC Merger Rebuilt Tracks\n";
+  out << "  Cluster Attachment\n";
+  DumpTrackClusters(out, false, true);
+  out << "  Track Params\n";
+  DumpTrackParam(out);
+}
+
 void GPUTPCGMMerger::DumpMergeCE(std::ostream& out) const
 {
   DumpTrackLinks(out, true, " for CE merging");
@@ -192,12 +202,12 @@ void GPUTPCGMMerger::DumpFitPrepare(std::ostream& out) const
   out << "  Track Clusters";
   DumpTrackClusters(out);
   uint32_t j = 0;
-  for (uint32_t i = 0; i < mNMaxClusters; i++) {
+  for (uint32_t i = 0; i < mNClusters; i++) {
     if ((mClusterAttachment[i] & attachFlagMask) != 0) {
       if (j++ % 10 == 0) {
         out << "\n    Cluster attachment ";
       }
-      out << i << ": " << (mClusterAttachment[i] & attachTrackMask) << " / " << (mClusterAttachment[i] & attachFlagMask) << " - ";
+      out << i << ": " << getAttachedTrackId(mClusterAttachment[i]) << " / " << (mClusterAttachment[i] & attachFlagMask) << " - ";
     }
   }
   out << "\n";
@@ -241,15 +251,43 @@ void GPUTPCGMMerger::DumpFinal(std::ostream& out) const
   out << "Track Clusters\n";
   DumpTrackClusters(out, true);
   uint32_t j = 0;
-  for (uint32_t i = 0; i < mNMaxClusters; i++) {
+  for (uint32_t i = 0; i < mNClusters; i++) {
     if ((mClusterAttachment[i] & attachFlagMask) != 0) {
       if (++j % 10 == 0) {
         out << "    Cluster attachment ";
       }
-      out << i << ": " << (mClusterAttachment[i] & attachTrackMask) << " / " << (mClusterAttachment[i] & attachFlagMask) << " - ";
+      out << i << ": " << getAttachedTrackId(mClusterAttachment[i]) << " / " << (mClusterAttachment[i] & attachFlagMask) << " - ";
       if (j % 10 == 0) {
         out << "\n";
       }
+    }
+  }
+  out << "\n";
+}
+
+void GPUTPCGMMerger::DumpInterpolatedHits(std::ostream& out) const
+{
+  out << "\nTPC Merger Interpolated Hits\n";
+  for (uint32_t i = 0; i < mMemory->nMergedTracks; i++) {
+    const auto& trk = mMergedTracks[i];
+    if (trk.OK() && trk.GetParam().GetNDF() >= 0 && trk.NClusters()) {
+      out << "Track " << i << ":";
+      for (uint32_t j = RebuildFirstRow(i), jLast = RebuildLastRow(i); j <= jLast; j++) {
+        auto* candidates = ClusterCandidates(i, j);
+        if (!candidates[0].isEmpty()) {
+          out << "  Row " << j << " (weight " << TrackRebuildHelperRow(i, j).getWeight() << "): ";
+          if (TrackRebuildHelperRow(i, j).getBest()) {
+            out << "  Best " << TrackRebuildHelperRow(i, j).getBest() << " - ";
+          }
+          for (uint32_t k = 0; k < Param().rec.tpc.rebuildTrackInFitClusterCandidates; k++) {
+            if (!candidates[k].isEmpty()) {
+              out << k << ": id " << (candidates[k].hasCluster() ? CandidateClusterId(candidates[k], j) + 2 : candidates[k].getValue()) << " err " << (float)candidates[k].error << " - ";
+            }
+          }
+          out << ";  ";
+        }
+      }
+      out << "\n";
     }
   }
   out << "\n";

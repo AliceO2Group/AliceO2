@@ -19,6 +19,13 @@
 #include "GPUCommonMath.h"
 #include "GPUGeneralKernels.h"
 
+namespace o2::gpu
+{
+template <int32_t tmpMode>
+struct GPUTPCGMMergerRebuildTmpRows;
+using GPUTPCGMMergerRebuildTmp = GPUTPCGMMergerRebuildTmpRows<GPUCA_PAR_TPC_MERGER_REBUILD_CONSTRAINED_ROW_MEMORY == 2 ? 2 : 0>;
+} // namespace o2::gpu
+
 namespace o2::gpu::gputpcgmmergertypes
 {
 
@@ -27,18 +34,25 @@ enum attachTypes { attachProtect = 0x80000000,
                    attachGood = 0x20000000,
                    attachGoodLeg = 0x10000000,
                    attachTube = 0x08000000,
-                   attachHighIncl = 0x04000000,
-                   attachTrackMask = 0x03FFFFFF,
-                   attachFlagMask = 0xFC000000,
+                   attachHighIncl = 0x1,
+                   attachTrackMask = 0x07FFFFFE,
+                   attachFlagMask = 0xF8000001,
+                   nPureFlags = 1, // Number of flag bits below the track id (do not influence which track wins the attachment)
                    attachZero = 0 };
+
+GPUdi() static constexpr uint32_t getAttachedTrackId(uint32_t v) { return (v & attachTrackMask) >> nPureFlags; }
 
 struct InterpolationErrorHit {
   float posY, posZ;
   GPUCA_PAR_MERGER_INTERPOLATION_ERROR_TYPE_A errorY, errorZ;
+  GPUdi() bool isValid() const { return errorY >= (GPUCA_PAR_MERGER_INTERPOLATION_ERROR_TYPE_A)0; }
+  GPUdi() void markInvalid() { errorY = (GPUCA_PAR_MERGER_INTERPOLATION_ERROR_TYPE_A)-1; }
+  GPUdi() void markAdjacentSearch() { errorY = (GPUCA_PAR_MERGER_INTERPOLATION_ERROR_TYPE_A)-2; } // Invalidates an entry the interpolation rejection did not use, such that the last way searches adjacent clusters for the hit (distinct from the -1 of markInvalid)
 };
 
 struct InterpolationErrors {
-  InterpolationErrorHit hit[constants::MERGER_MAX_TRACK_CLUSTERS];
+  enum : uint32_t { size = constants::MERGER_MAX_TRACK_CLUSTERS }; // Not a static data member: Metal and OpenCL allow program-scope variables only in the constant address space
+  InterpolationErrorHit hit[size];
 };
 
 struct GPUResolveSharedMemory : public GPUKernelTemplate::GPUSharedMemoryScan64<int16_t, GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCGMMergerResolve_step3)> {

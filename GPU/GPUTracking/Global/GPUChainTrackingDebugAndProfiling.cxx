@@ -187,8 +187,8 @@ void GPUChainTracking::PrintMemoryRelations()
     GPUInfo("MEMREL SectorTrackHits NCl %d NTrkH %d", processors()->tpcTrackers[i].NHitsTotal(), *processors()->tpcTrackers[i].NTrackHits());
   }
   if (processors()->tpcMerger.Memory()) {
-    GPUInfo("MEMREL Tracks NCl %d NTrk %d", processors()->tpcMerger.NMaxClusters(), processors()->tpcMerger.NMergedTracks());
-    GPUInfo("MEMREL TrackHitss NCl %d NTrkH %d", processors()->tpcMerger.NMaxClusters(), processors()->tpcMerger.NMergedTrackClusters());
+    GPUInfo("MEMREL Tracks NCl %d NTrk %d", processors()->tpcMerger.NClusters(), processors()->tpcMerger.NMergedTracks());
+    GPUInfo("MEMREL TrackHitss NCl %d NTrkH %d", processors()->tpcMerger.NClusters(), processors()->tpcMerger.NMergedTrackClusters());
   }
 }
 
@@ -217,7 +217,7 @@ void GPUChainTracking::PrintKernelDebugOutput()
 void GPUChainTracking::PrintOutputStat()
 {
   int32_t nTracks = 0, nAttachedClusters = 0, nAttachedClustersFitted = 0, nAdjacentClusters = 0;
-  uint32_t nCls = GetProcessingSettings().doublePipeline ? mIOPtrs.clustersNative->nClustersTotal : processors()->tpcMerger.NMaxClusters();
+  uint32_t nCls = GetProcessingSettings().doublePipeline ? mIOPtrs.clustersNative->nClustersTotal : processors()->tpcMerger.NClusters();
   if (GetProcessingSettings().createO2Output > 1) {
     nTracks = mIOPtrs.nOutputTracksTPCO2;
     nAttachedClusters = mIOPtrs.nMergedTrackHits;
@@ -418,4 +418,27 @@ void GPUChainTracking::DoDebugRawDump()
   GPUInfo("Doing debug raw dump");
   mRec->DumpSettings((dirName + "/").c_str());
   DumpData((dirName + "/event.0.dump").c_str(), &ioPtrs);
+}
+
+void GPUChainTracking::DoDebugMergerNClDump(const GPUTPCGMMerger& merger)
+{
+  if (GetProcessingSettings().debug.mergerDumpTrackNCl) {
+#ifndef GPUCA_DETERMINISTIC_MODE
+    GPUError("GPUCA_DETERMINISTIC_MODE not enabled, track dump will not be deterministic");
+#endif
+    if (!GetProcessingSettings().deterministicGPUReconstruction) {
+      GPUError("deterministicGPUReconstruction not enabled, track dump will not be deterministic");
+    }
+    if (GetRecoStepsGPU() & RecoStep::TPCMerging) {
+      SynchronizeGPU();
+    }
+    FILE* fout = fopen("merger_tracks_ncl.txt", "w+");
+    if (fout == nullptr) {
+      throw std::runtime_error("Error Opening Debug File");
+    }
+    for (int32_t i = 0; i < merger.NMergedTracks(); i++) {
+      fprintf(fout, "Track %7d NCl %5u\n", i, merger.MergedTracks()[i].OK() ? merger.MergedTracks()[i].NClustersFitted() : 0u);
+    }
+    fclose(fout);
+  }
 }

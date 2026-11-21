@@ -295,14 +295,11 @@ int32_t GPUReconstruction::InitPhaseBeforeDevice()
   if (GetProcessingSettings().deterministicGPUReconstruction && GetProcessingSettings().debugLevel >= 6) {
     mProcessingSettings->nTPCClustererLanes = 1;
   }
-  if (GetProcessingSettings().createO2Output > 1 && GetProcessingSettings().runQA && GetProcessingSettings().qcRunFraction == 100.f) {
+  if (GetProcessingSettings().createO2Output > 1 && ((GetProcessingSettings().runQA && GetProcessingSettings().qcRunFraction == 100.f) || GetProcessingSettings().debug.mergerDumpTrackNCl)) {
     mProcessingSettings->createO2Output = 1;
   }
   if (!GetProcessingSettings().createO2Output || !IsGPU()) {
     mProcessingSettings->clearO2OutputFromGPU = false;
-  }
-  if (!(mRecoSteps.stepsGPUMask & gpudatatypes::RecoStep::TPCMerging)) {
-    mProcessingSettings->mergerSortTracks = false;
   }
   if (GetProcessingSettings().debugLevel > 3 || !IsGPU() || GetProcessingSettings().deterministicGPUReconstruction) {
     mProcessingSettings->delayedOutput = false;
@@ -934,6 +931,9 @@ void GPUReconstruction::PopNonPersistentMemory(RecoStep step, uint64_t tag, cons
     mNonPersistentIndividualDirectAllocations.resize(std::get<3>(mNonPersistentMemoryStack.back()));
     mNonPersistentMemoryStack.pop_back();
   }
+  if (!proc && GetProcessingSettings().queryHostMemoryUSS) { // Outside of the lock above
+    QueryHostMemoryUSS(("pop " + qTag2Str(tag)).c_str());
+  }
 }
 
 void GPUReconstruction::BlockStackedMemory(GPUReconstruction* rec)
@@ -993,6 +993,40 @@ void GPUReconstruction::UpdateMaxMemoryUsed()
 void GPUReconstruction::PrintMemoryMax()
 {
   printf("Maximum Memory Allocation: Host %'zu / Device %'zu\n", mHostMemoryUsedMax, mDeviceMemoryUsedMax);
+}
+
+void GPUReconstruction::QueryHostMemoryUSS(const char* where)
+{
+#ifdef __linux__
+  size_t uss = 0;
+  if (FILE* fp = fopen("/proc/self/smaps_rollup", "r")) {
+    char line[256];
+    while (fgets(line, sizeof(line), fp)) {
+      size_t val;
+      if (sscanf(line, "Private_Clean: %zu kB", &val) == 1 || sscanf(line, "Private_Dirty: %zu kB", &val) == 1 || sscanf(line, "Private_Hugetlb: %zu kB", &val) == 1) {
+        uss += val * 1024;
+      }
+    }
+    fclose(fp);
+  }
+  stdspinlock spinlock(mMemoryMutex);
+  if (uss > mHostMemoryUSSMax) {
+    mHostMemoryUSSMax = uss;
+    mHostMemoryUSSMaxWhere = where;
+  }
+  if (GetProcessingSettings().queryHostMemoryUSS >= 2) {
+    printf("Host Memory USS after %s: %'zu\n", where, uss);
+  }
+#endif
+}
+
+void GPUReconstruction::PrintHostMemoryUSSMax()
+{
+#ifdef __linux__
+  printf("Maximum Host Memory USS: %'zu (after %s)\n", mHostMemoryUSSMax, mHostMemoryUSSMaxWhere.c_str());
+#else
+  printf("Host Memory USS query not supported on this platform\n");
+#endif
 }
 
 void GPUReconstruction::PrintMemoryOverview()

@@ -18,117 +18,62 @@
 #include "qconfig_general.h"
 #include "qconfig_helpers.h"
 
-#ifdef QCONFIG_PARSE
+#ifdef QCONFIG_PARSE // Included in the constructor of qConfigOptionRegistry: registers the names and the handler of each option
 
-#define QCONFIG_COMPARE(name, optname, optnameshort)                                                                                                                                           \
-  (thisoption[0] == '-' && ((thisoption[1] == '-' && optname[0] != 0 && strcmp(&thisoption[2], optname) == 0) ||                                                                               \
-                            (preoptshort == 0 && thisoption[1] == optnameshort && thisoption[2] == 0) || (thisoption[1] == '-' && strlen(preopt) == 0 && strcmp(&thisoption[2], name) == 0) || \
-                            (preoptshort != 0 && thisoption[1] == preoptshort && thisoption[2] == optnameshort && thisoption[3] == 0) || (thisoption[1] == '-' && strlen(preopt) && strncmp(&thisoption[2], preopt, strlen(preopt)) == 0 && strcmp(&thisoption[2 + strlen(preopt)], name) == 0)))
+#define AddOption(name, type, default, optname, optnameshort, ...) \
+  add(preopt, preoptshort, #name, optname, optnameshort, qConfigType<type>::qNeedsArg(__VA_ARGS__), nullptr, [ref = &tmp.name](int32_t& i, const char** argv, const int argc) -> int32_t { return qConfigType<type>::qAddOption(*ref, i, argv, argc, default, __VA_ARGS__); });
 
-#define AddOption(name, type, default, optname, optnameshort, ...)                                 \
-  else if (QCONFIG_COMPARE(#name, optname, optnameshort))                                          \
-  {                                                                                                \
-    int32_t retVal = qConfigType<type>::qAddOption(tmp.name, i, argv, argc, default, __VA_ARGS__); \
-    if (retVal) {                                                                                  \
-      return (retVal);                                                                             \
-    }                                                                                              \
-  }
+#define AddOptionSet(name, type, value, optname, optnameshort, ...) \
+  add(preopt, preoptshort, optname, "", optnameshort, 0, nullptr, [ref = &tmp.name](int32_t& i, const char**, const int) -> int32_t { return qConfigType<type>::qAddOption(*ref, i, nullptr, 0, value, __VA_ARGS__, set(value)); });
 
-#define AddOptionSet(name, type, value, optname, optnameshort, ...)                                          \
-  else if (QCONFIG_COMPARE(optname, "", optnameshort))                                                       \
-  {                                                                                                          \
-    int32_t retVal = qConfigType<type>::qAddOption(tmp.name, i, nullptr, 0, value, __VA_ARGS__, set(value)); \
-    if (retVal) {                                                                                            \
-      return (retVal);                                                                                       \
-    }                                                                                                        \
-  }
+#define AddOptionVec(name, type, optname, optnameshort, ...) \
+  add(preopt, preoptshort, #name, optname, optnameshort, qConfigType<type>::qNeedsArg(__VA_ARGS__), nullptr, [ref = &tmp.name](int32_t& i, const char** argv, const int argc) -> int32_t { return qConfigType<type>::qAddOptionVec(*ref, i, argv, argc, __VA_ARGS__); });
 
-#define AddOptionVec(name, type, optname, optnameshort, ...)                                 \
-  else if (QCONFIG_COMPARE(#name, optname, optnameshort))                                    \
-  {                                                                                          \
-    int32_t retVal = qConfigType<type>::qAddOptionVec(tmp.name, i, argv, argc, __VA_ARGS__); \
-    if (retVal) {                                                                            \
-      return (retVal);                                                                       \
-    }                                                                                        \
-  }
-
-#define AddOptionArray(name, type, count, default, optname, optnameshort, ...)                        \
-  else if (QCONFIG_COMPARE(#name, optname, optnameshort))                                             \
-  {                                                                                                   \
-    int32_t retVal = qConfigType<type>::qAddOptionArray(tmp.name, count, i, argv, argc, __VA_ARGS__); \
-    if (retVal) {                                                                                     \
-      return (retVal);                                                                                \
-    }                                                                                                 \
-  }
+#define AddOptionArray(name, type, count, default, optname, optnameshort, ...) \
+  add(preopt, preoptshort, #name, optname, optnameshort, qConfigType<type>::qNeedsArg(__VA_ARGS__), nullptr, [ref = &tmp.name](int32_t& i, const char** argv, const int argc) -> int32_t { return qConfigType<type>::qAddOptionArray(*ref, count, i, argv, argc, __VA_ARGS__); });
 
 #define AddSubConfig(name, instance)
 
-#define BeginConfig(name, instance)       \
-  {                                       \
-    constexpr const char* preopt = "";    \
-    constexpr const char preoptshort = 0; \
-    name& tmp = instance;                 \
-    bool tmpfound = true;                 \
-    if (found) {                          \
-    }
+#define BeginConfig(name, instance)                        \
+  {                                                        \
+    [[maybe_unused]] constexpr const char* preopt = "";    \
+    [[maybe_unused]] constexpr const char preoptshort = 0; \
+    [[maybe_unused]] name& tmp = instance;
 
 #define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr, ...) \
   {                                                                                     \
     [[maybe_unused]] constexpr const char* preopt = preoptname;                         \
     [[maybe_unused]] constexpr const char preoptshort = preoptnameshort;                \
-    [[maybe_unused]] name& tmp = parent.instance;                                       \
-    bool tmpfound = true;                                                               \
-    if (found) {                                                                        \
-    }
+    [[maybe_unused]] name& tmp = parent.instance;
 
-#define BeginHiddenConfig(name, instance) \
-  {                                       \
-    bool tmpfound;                        \
-    if (0) {                              \
-    }
+#define BeginHiddenConfig(name, instance) {
 
-// clang-format off
-#define EndConfig()            \
-    else { tmpfound = false; } \
-    if (tmpfound) {            \
-      found = true;            \
-    }                          \
-  }
-// clang-format on
+#define EndConfig() }
 
-#define AddHelp(cmd, cmdshort)                 \
-  else if (QCONFIG_COMPARE(cmd, "", cmdshort)) \
-  {                                            \
-    const char* arg = getArg(i, argv, argc);   \
-    qConfigHelp(arg ? arg : preopt);           \
-    return (qcrHelp);                          \
-  }
+#define AddHelp(cmd, cmdshort)                                                                                                              \
+  add(preopt, preoptshort, cmd, "", cmdshort, 2, nullptr, [helpConfig = preopt](int32_t& i, const char** argv, const int argc) -> int32_t { \
+    const char* arg = getArg(i, argv, argc);                                                                                                \
+    qConfigHelp(arg ? arg : helpConfig);                                                                                                    \
+    return (qcrHelp);                                                                                                                       \
+  });
 
-#define AddHelpAll(cmd, cmdshort)              \
-  else if (QCONFIG_COMPARE(cmd, "", cmdshort)) \
-  {                                            \
-    const char* arg = getArg(i, argv, argc);   \
-    qConfigHelp(arg ? arg : "", true);         \
-    return (qcrHelp);                          \
-  }
+#define AddHelpAll(cmd, cmdshort)                                                                                        \
+  add(preopt, preoptshort, cmd, "", cmdshort, 2, nullptr, [](int32_t& i, const char** argv, const int argc) -> int32_t { \
+    const char* arg = getArg(i, argv, argc);                                                                             \
+    qConfigHelp(arg ? arg : "", true);                                                                                   \
+    return (qcrHelp);                                                                                                    \
+  });
 
 #define AddCommand(cmd, cmdshort, command, help) \
-  else if (QCONFIG_COMPARE(cmd, "", cmdshort))   \
-  {                                              \
-    if (command) {                               \
-      return (qcrCmd);                           \
-    }                                            \
-  }
+  add(preopt, preoptshort, cmd, "", cmdshort, 0, nullptr, [](int32_t&, const char**, const int) -> int32_t { return (command) ? qcrCmd : 0; });
 
-#define AddShortcut(cmd, cmdshort, forward, help, ...)                 \
-  else if (QCONFIG_COMPARE(cmd, "", cmdshort))                         \
-  {                                                                    \
-    const char* options[] = {"", __VA_ARGS__, nullptr};                \
-    const int32_t nOptions = sizeof(options) / sizeof(options[0]) - 1; \
-    qConfigParse(nOptions, options, nullptr);                          \
-    thisoption = forward;                                              \
-    goto repeat;                                                       \
-  }
+#define AddShortcut(cmd, cmdshort, forward, help, ...) /* Parses the listed options, then the parser continues with the forward option, which takes the arguments */ \
+  add(preopt, preoptshort, cmd, "", cmdshort, 0, forward, [](int32_t&, const char**, const int) -> int32_t {                                                         \
+    const char* options[] = {"", __VA_ARGS__, nullptr};                                                                                                              \
+    const int32_t nOptions = sizeof(options) / sizeof(options[0]) - 1;                                                                                               \
+    qConfigParse(nOptions, options, nullptr);                                                                                                                        \
+    return 0;                                                                                                                                                        \
+  });
 
 // End QCONFIG_PARSE
 #elif defined(QCONFIG_HELP)

@@ -27,7 +27,9 @@ GPUTPCCFDecodeZSLink,"""GPUCA_WARP_SIZE""",,"""GPUCA_WARP_SIZE""","""GPUCA_WARP_
 GPUTPCCFDecodeZSDenseLink,"""GPUCA_WARP_SIZE""",,"[""GPUCA_WARP_SIZE"", 4]","[""GPUCA_WARP_SIZE"", 14]",,,,,,"[""GPUCA_WARP_SIZE"", 14]","""GPUCA_WARP_SIZE""","[""GPUCA_WARP_SIZE"", 22]","[""GPUCA_WARP_SIZE"", 22]",,"[""GPUCA_WARP_SIZE"", 17]",,"[""GPUCA_WARP_SIZE"", 8]","[""GPUCA_WARP_SIZE"", 5]",
 GPUTPCCFGather,"[1024, 1]",,"[1024, 5]","[1024, 1]",,,,,,"[160, 11]","[1024, 1]",736,896,,"[928, 1]",,"[1024, 1]","[320, 2]",
 COMPRESSION_GATHER,1024,,1024,1024,,,,,,1024,1024,,1024,,,,,,
-GPUTPCGMMergerTrackFit,256,,"[192, 2]","[64, 7]",,,,,,"[32, 16]","[32, 8]","[32, 14]","[160, 2]",,"[32, 24]",,"[64, 8]","[64, 6]","[64, 4]"
+GPUTPCGMMergerTrackFit_def,256,,"[192, 2]","[64, 7]",,,,,,"[32, 16]","[32, 8]","[32, 14]","[160, 2]",,"[32, 24]",,"[64, 8]","[64, 6]","[64, 4]"
+GPUTPCGMMergerTrackFit_rebuild,256,,"[192, 2]","[64, 7]",,,,,,"[32, 16]","[32, 8]","[32, 14]","[160, 2]",,"[32, 24]",,"[64, 8]","[64, 6]","[64, 4]"
+GPUTPCGMMergerTrackFit_retry,256,,"[192, 2]","[64, 7]",,,,,,"[32, 16]","[32, 8]","[32, 14]","[160, 2]",,"[32, 24]",,"[64, 8]","[64, 6]","[64, 4]"
 GPUTPCGMMergerFollowLoopers,256,,"[256, 5]","[256, 4]",,,,,,"[256, 4]","[128, 4]","[1024, 1]",640,,"[128, 16]",,"[224, 3]","[256, 7]","[32, 64]"
 GPUTPCGMMergerSectorRefit,256,,"[64, 4]","[256, 2]",,,,,,"[32, 8]","[64, 5]","[32, 7]","[32, 7]",,"[32, 20]",,"[32, 10]","[64, 4]","[256, 8]"
 GPUTPCGMMergerUnpackResetIds,256,,256,256,,,,,,256,256,256,256,,256,,256,256,
@@ -52,6 +54,11 @@ GPUTPCGMMergerPrepareForFit_step2,256,,256,256,,,,,,256,256,256,256,,256,,256,25
 GPUTPCGMMergerFinalize_step0,256,,,256,,,,,,256,,256,256,,256,,256,256,
 GPUTPCGMMergerFinalize_step1,256,,,256,,,,,,256,,256,256,,256,,256,256,
 GPUTPCGMMergerFinalize_step2,256,,,256,,,,,,256,,256,256,,256,,256,256,
+GPUTPCGMMergerHitWeights_prepare,256,,,,,,,,,,,,,,,,,,
+GPUTPCGMMergerHitWeights_compute,256,,,,,,,,,,,,,,,,,,
+GPUTPCGMMergerHitWeights_resolve1,256,,,,,,,,,,,,,,,,,,
+GPUTPCGMMergerHitWeights_resolve2,256,,,,,,,,,,,,,,,,,,
+GPUTPCGMMergerHitWeights_resolveShared,256,,,,,,,,,,,,,,,,,,
 GPUTPCGMMergerMergeLoopers_step0,256,,,,,,,,,256,,256,256,,256,,256,256,
 GPUTPCGMMergerMergeLoopers_step1,256,,,,,,,,,256,,256,256,,256,,256,256,
 GPUTPCGMMergerMergeLoopers_step2,256,,,,,,,,,256,,256,256,,256,,256,256,
@@ -102,6 +109,7 @@ GPUTPCConvertKernel,,,,,,,,,,,,,,,256,,,256,
 PAR:,,,,,,,,,,,,,,,,,,,
 AMD_EUS_PER_CU,0,0,4,4,,,,,,,,,,,4,,0,4,
 SORT_STARTHITS,1,0,,,,,,,,1,,1,1,,1,,1,1,
+TPC_MERGER_REBUILD_CONSTRAINED_ROW_MEMORY,0,0,,,,,,,,,,,,,,,,,
 NEIGHBOURS_FINDER_MAX_NNEIGHUP,6,0,10,4,,,,,,4,4,4,4,,5,,2,5,
 NEIGHBOURS_FINDER_UNROLL_GLOBAL,4,0,4,2,,,,,,2,,8,8,,4,,2,2,
 NEIGHBOURS_FINDER_UNROLL_SHARED,1,0,0,0,,,,,,1,,1,0,,1,,1,1,

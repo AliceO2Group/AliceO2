@@ -25,6 +25,7 @@
 #include "GPUTPCGMMergerTypes.h"
 #include "GPUGeneralKernels.h"
 #include "GPUTPCGeometry.h"
+#include "GPUCommonMath.h"
 
 #if !defined(GPUCA_GPUCODE)
 #include <cmath>
@@ -64,7 +65,7 @@ class GPUTPCGMMerger : public GPUProcessor
   ~GPUTPCGMMerger() = default;
   GPUTPCGMMerger(const GPUTPCGMMerger&) = delete;
   const GPUTPCGMMerger& operator=(const GPUTPCGMMerger&) const = delete;
-  static GPUglobalconstexpr() const int32_t NSECTORS = GPUTPCGeometry::NSECTORS; //* N sectors
+  static GPUglobalconstexpr() const int32_t NSECTORS = GPUTPCGeometry::NSECTORS;
 
   struct memory {
     GPUAtomic(uint32_t) nRetryRefit;
@@ -72,6 +73,7 @@ class GPUTPCGMMerger : public GPUProcessor
     GPUAtomic(uint32_t) nUnpackedTracks;
     GPUAtomic(uint32_t) nMergedTracks;
     GPUAtomic(uint32_t) nMergedTrackClusters;
+    GPUAtomic(uint32_t) nRebuildTrackRow;
     GPUAtomic(uint32_t) nO2Tracks;
     GPUAtomic(uint32_t) nO2ClusRefs;
     const GPUTPCTrack* firstExtrapolatedTracks[NSECTORS];
@@ -84,6 +86,11 @@ class GPUTPCGMMerger : public GPUProcessor
     uint8_t row;
     uint8_t sector;
   };
+
+  struct trackRebuildHelperCandidate;
+  struct trackRebuildHelper;
+  struct trackRebuildHelperRowInfo;
+  struct trackRebuildHelperRow;
 
   struct tmpSort {
     uint32_t x;
@@ -104,6 +111,8 @@ class GPUTPCGMMerger : public GPUProcessor
   void SetMaxData(const GPUTrackingInOutPointers& io);
   void* SetPointersMerger(void* mem);
   void* SetPointersRefitScratch(void* mem);
+  void* SetPointersRebuild(void* mem);
+  void* SetPointersRebuild2(void* mem);
   void* SetPointersOutput(void* mem);
   void* SetPointersOutputO2(void* mem);
   void* SetPointersOutputO2Clus(void* mem);
@@ -114,18 +123,39 @@ class GPUTPCGMMerger : public GPUProcessor
 
   GPUhdi() int32_t NMergedTracks() const { return mMemory->nMergedTracks; }
   GPUhdi() const GPUTPCGMMergedTrack* MergedTracks() const { return mMergedTracks; }
+  GPUhdi() const o2::MCCompLabel* MergedTrackMC() const { return mMergedTrackMC; }
   GPUhdi() GPUTPCGMMergedTrack* MergedTracks() { return mMergedTracks; }
   GPUhdi() const GPUdEdxInfo* MergedTracksdEdx() const { return mMergedTracksdEdx; }
   GPUhdi() GPUdEdxInfo* MergedTracksdEdx() { return mMergedTracksdEdx; }
   GPUhdi() const GPUdEdxInfo* MergedTracksdEdxAlt() const { return mMergedTracksdEdxAlt; }
   GPUhdi() GPUdEdxInfo* MergedTracksdEdxAlt() { return mMergedTracksdEdxAlt; }
+  GPUhdi() uint32_t NSectorHits() const { return mNSectorHits; }
   GPUhdi() uint32_t NClusters() const { return mNClusters; }
-  GPUhdi() uint32_t NMaxClusters() const { return mNMaxClusters; }
   GPUhdi() uint32_t NMaxTracks() const { return mNMaxTracks; }
   GPUhdi() uint32_t NMaxMergedTrackClusters() const { return mNMaxMergedTrackClusters; }
   GPUhdi() uint32_t NMergedTrackClusters() const { return mMemory->nMergedTrackClusters; }
   GPUhdi() const GPUTPCGMMergedTrackHit* Clusters() const { return mClusters; }
-  GPUhdi() GPUTPCGMMergedTrackHit* Clusters() { return (mClusters); }
+  GPUhdi() GPUTPCGMMergedTrackHit* Clusters() { return mClusters; }
+  GPUhdi() trackRebuildHelperCandidate* ClusterCandidates() { return mClusterCandidates; }
+  GPUhdi() trackRebuildHelperRow* TrackRebuildHelperRow() { return mTrackRebuildHelperRow; }
+  GPUdi() trackRebuildHelperCandidate* ClusterCandidates(int32_t iTrk, uint32_t row) const;
+  GPUdi() trackRebuildHelperRow& TrackRebuildHelperRow(int32_t iTrk, uint32_t row) const;
+  GPUdi() bool RebuildRowInRange(int32_t iTrk, uint32_t row) const;
+  // Variants for the fit: use the temporary rows of the track if tmpRows is set (only with GPUCA_PAR_TPC_MERGER_REBUILD_CONSTRAINED_ROW_MEMORY == 2)
+  template <class T> // T = GPUTPCGMMergerRebuildTmp, template only to discard the code if it is empty
+  GPUdi() trackRebuildHelperCandidate* ClusterCandidates(int32_t iTrk, uint32_t row, T* tmpRows) const;
+  template <class T> // T = GPUTPCGMMergerRebuildTmp, template only to discard the code if it is empty
+  GPUdi() trackRebuildHelperRow& TrackRebuildHelperRow(int32_t iTrk, uint32_t row, T* tmpRows) const;
+  template <class T> // T = GPUTPCGMMergerRebuildTmp, template only to discard the code if it is empty
+  GPUdi() bool RebuildRowInRange(int32_t iTrk, uint32_t row, T* tmpRows) const;
+  template <class T> // T = GPUTPCGMMergerRebuildTmp, template only to discard the code if it is empty
+  GPUdi() void ClearRebuildTmpRows(int32_t iTrk, T* tmpRows) const;
+  template <class T> // T = GPUTPCGMMergerRebuildTmp, template only to discard the code if it is empty
+  GPUdi() bool StoreRebuildTmpRows(int32_t iTrk, const T* tmpRows);
+  GPUdi() uint32_t RebuildFirstRow(int32_t iTrk) const; // Row range of the track for the rebuild, all rows without GPUCA_PAR_TPC_MERGER_REBUILD_CONSTRAINED_ROW_MEMORY
+  GPUdi() uint32_t RebuildLastRow(int32_t iTrk) const;
+  GPUhdi() trackRebuildHelper* TrackRebuildHelper() { return mTrackRebuildHelper; }
+  GPUhdi() int32_t* HitWeights() { return mHitWeights; }
   GPUhdi() GPUAtomic(uint32_t) * ClusterAttachment() const { return mClusterAttachment; }
   GPUhdi() uint32_t* TrackOrderAttach() const { return mTrackOrderAttach; }
   GPUhdi() uint32_t* TrackOrderProcess() const { return mTrackOrderProcess; }
@@ -139,6 +169,7 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUhdi() tmpSort* TrackSortO2() { return mTrackSortO2; }
   GPUhdi() internal::MergeLooperParam* LooperCandidates() { return mLooperCandidates; }
   GPUhdi() GPUAtomic(uint32_t) * SharedCount() { return mSharedCount; }
+  GPUhdi() uint8_t* SharedCount2() { return mSharedCount2; }
   GPUhdi() gputpcgmmergertypes::GPUTPCGMBorderRange* BorderRange(int32_t i) { return mBorderRange[i]; }
   GPUhdi() const gputpcgmmergertypes::GPUTPCGMBorderRange* BorderRange(int32_t i) const { return mBorderRange[i]; }
   GPUhdi() GPUTPCGMBorderTrack* BorderTracks(int32_t i) { return mBorder[i]; }
@@ -159,6 +190,8 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUd() uint16_t MemoryResOutputO2Clus() const { return mMemoryResOutputO2Clus; }
   GPUd() uint16_t MemoryResOutputO2MC() const { return mMemoryResOutputO2MC; }
   GPUd() uint16_t MemoryResOutputO2Scratch() const { return mMemoryResOutputO2Scratch; }
+  GPUd() uint16_t MemoryResRebuild() const { return mMemoryResRebuild; }
+  GPUd() uint16_t MemoryResRebuild2() const { return mMemoryResRebuild2; }
 
   GPUd() int32_t RefitSectorTrack(GPUTPCGMSectorTrack& sectorTrack, const GPUTPCTrack* inTrack, float alpha, int32_t sector);
   GPUd() void SetTrackClusterT(GPUTPCGMSectorTrack& track, int32_t iSector, const GPUTPCTrack* sectorTr);
@@ -196,6 +229,15 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUd() void MergeLoopersInit(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
   GPUd() void MergeLoopersSort(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
   GPUd() void MergeLoopersMain(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
+  GPUd() uint32_t CandidateId(uint32_t clusterId, uint8_t sector, uint8_t row) const;           // Id for trackRebuildHelperCandidate (index in the sector row) of a global cluster id
+  GPUd() uint32_t CandidateClusterId(trackRebuildHelperCandidate candidate, uint8_t row) const; // Global cluster id of a candidate with cluster
+  GPUd() void PrepareHitWeights(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
+  GPUd() void ComputeHitWeights(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iteration);
+  GPUd() void ResolveHitWeights1(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iteration);
+  GPUd() void ResolveHitWeights2(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
+  GPUd() void ResolveHitWeightsShared(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
+  GPUd() uint32_t MinHitsForQPt(float qPt, float err2QPt) const; // QPt-dependent minimum number of hits, for QPt increased by 1 sigma (at most by the fraction trackFitMinHitsMaxQPtIncrease)
+  GPUd() void CreateMCLabels(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
 
 #ifndef GPUCA_GPUCODE
   void DumpSectorTracks(std::ostream& out) const;
@@ -209,6 +251,8 @@ class GPUTPCGMMerger : public GPUProcessor
   void DumpRefit(std::ostream& out) const;
   void DumpFinal(std::ostream& out) const;
   void DumpLoopers(std::ostream& out) const;
+  void DumpInterpolatedHits(std::ostream& out) const;
+  void DumpRebuiltTracks(std::ostream& out) const;
   void DumpTrackParam(std::ostream& out) const;
   void DumpTrackClusters(std::ostream& out, bool non0StateOnly = false, bool noNDF0 = false) const;
 
@@ -259,9 +303,10 @@ class GPUTPCGMMerger : public GPUProcessor
 
   uint32_t mNTotalSectorTracks = 0;      // maximum number of incoming sector tracks
   uint32_t mNMaxTracks = 0;              // maximum number of output tracks
+  uint32_t mNRebuildTrackRow = 0;        // number of rows allocated for the rebuild
   uint32_t mNMaxSingleSectorTracks = 0;  // max N tracks in one sector
   uint32_t mNMaxMergedTrackClusters = 0; // max number of clusters in output tracks (double-counting shared clusters)
-  uint32_t mNMaxClusters = 0;            // max total unique clusters (in event)
+  uint32_t mNClusters = 0;               // max total unique clusters (in event)
   uint32_t mNMaxLooperMatches = 0;       // Maximum number of candidate pairs for looper matching
 
   uint16_t mMemoryResMemory = (uint16_t)-1;
@@ -271,9 +316,18 @@ class GPUTPCGMMerger : public GPUProcessor
   uint16_t mMemoryResOutputO2Clus = (uint16_t)-1;
   uint16_t mMemoryResOutputO2MC = (uint16_t)-1;
   uint16_t mMemoryResOutputO2Scratch = (uint16_t)-1;
+  uint16_t mMemoryResRebuild = (uint16_t)-1;
+  uint16_t mMemoryResRebuild2 = (uint16_t)-1;
 
-  int32_t mNClusters = 0;                           // Total number of incoming clusters (from sector tracks)
-  GPUTPCGMMergedTrack* mMergedTracks = nullptr;     //* array of output merged tracks
+  int32_t mNSectorHits = 0;                     // Total number of incoming clusters (from sector tracks)
+  GPUTPCGMMergedTrack* mMergedTracks = nullptr; //* array of output merged tracks
+  o2::MCCompLabel* mMergedTrackMC = nullptr;
+  trackRebuildHelperCandidate* mClusterCandidates = nullptr;
+  trackRebuildHelperRow* mTrackRebuildHelperRow = nullptr;
+  trackRebuildHelper* mTrackRebuildHelper = nullptr;
+  trackRebuildHelperRowInfo* mTrackRebuildHelperRowInfo = nullptr;
+  int32_t* mHitWeights = nullptr;
+
   GPUdEdxInfo* mMergedTracksdEdx = nullptr;         //* dEdx information
   GPUdEdxInfo* mMergedTracksdEdxAlt = nullptr;      //* dEdx alternative information
   GPUTPCGMSectorTrack* mSectorTrackInfos = nullptr; //* additional information for sector tracks
@@ -294,6 +348,7 @@ class GPUTPCGMMerger : public GPUProcessor
   uint32_t* mTrackSort = nullptr;
   tmpSort* mTrackSortO2 = nullptr;
   GPUAtomic(uint32_t) * mSharedCount = nullptr; // Must be uint32_t unfortunately for atomic support
+  uint8_t* mSharedCount2 = nullptr;
   GPUTPCGMBorderTrack* mBorderMemory = nullptr; // memory for border tracks
   GPUTPCGMBorderTrack* mBorder[2 * NSECTORS];
   gputpcgmmergertypes::GPUTPCGMBorderRange* mBorderRangeMemory = nullptr; // memory for border tracks

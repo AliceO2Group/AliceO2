@@ -122,6 +122,7 @@ class GPUCommonMath
   GPUd() constexpr static double Copysignd(double x, double y);
   GPUd() constexpr static float TwoPi() { return 6.2831853f; }
   GPUd() constexpr static float Pi() { return 3.1415927f; }
+  GPUd() constexpr static float Deg2Rad() { return Pi() / 180.f; }
   GPUd() constexpr static float Round(float x);
   GPUd() constexpr static float Floor(float x) { return GPUCA_CHOICE(floorf(x), floorf(x), floor(x)); }
   GPUd() static uint32_t Float2UIntReint(const float& x);
@@ -234,6 +235,19 @@ class GPUCommonMath
 };
 
 typedef GPUCommonMath CAMath;
+
+#ifdef __CUDACC__
+template <>
+GPUhd() half GPUCommonMath::Min(const half x, const half y) // BUG: CUDA __hmin / __hmax is not constexpr, fix once fixed in CUDA
+{
+  return __hmin(x, y);
+}
+template <>
+GPUhd() half GPUCommonMath::Max(const half x, const half y)
+{
+  return __hmax(x, y);
+}
+#endif
 
 template <typename... Args>
 GPUhdi() constexpr float GPUCommonMath::Sum2(float w, Args... args)

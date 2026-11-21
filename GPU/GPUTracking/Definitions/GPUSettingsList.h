@@ -32,7 +32,7 @@ BeginNamespace(o2::gpu)
 
 // Reconstruction parameters for TPC, no bool in here !!!
 BeginSubConfig(GPUSettingsRecTPC, tpc, configStandalone.rec, "RECTPC", 0, "Reconstruction settings", rec_tpc)
-AddOptionRTC(rejectQPtB5, float, 1.f / 0.050f, "", 0, "QPt threshold to reject clusters of TPC tracks (Inverse Pt, scaled to B=0.5T!!!)")
+AddOptionRTC(rejectQPtB5, float, 1.f / 0.050f, "", 0, "QPt threshold to reject clusters of TPC tracks (Inverse Pt, scaled to B=0.5T!!!)") // TODO: Sort these options automatically for parameter size
 AddOptionRTC(hitPickUpFactor, float, 1.f, "", 0, "multiplier for the combined cluster+track error during track following")
 AddOptionRTC(hitSearchArea2, float, 2.f, "", 0, "square of maximum search road of hits during seeding")
 AddOptionRTC(neighboursSearchArea, float, 3.f, "", 0, "area in cm for the search of neighbours, for z only used if searchWindowDZDR = 0")
@@ -102,6 +102,20 @@ AddOptionRTC(rejectEdgeClustersMargin, float, 0.f, "", 0, "Margin in cm of Y pos
 AddOptionRTC(rejectEdgeClustersSigmaMargin, float, 0.f, "", 0, "Margin factor for trackSigmaY when rejecting edge clusters based on uncorrected track Y")
 AddOptionRTC(trackletMaxSharedFraction, float, 0.1f, "", 0, "Max fraction of shared clusters for tracklet")
 AddOptionRTC(trackletMinSharedNormFactor, float, 0.f, "", 0, "Max shared defined as trackletMinSharedNormFactor*max(current_nhits,trackletMinSharedNormFactor*minHits,1)")
+AddOptionRTC(trackFitMinHitsMaxQPtIncrease, float, 0.2f, "", 0, "For the QPt-dependent minimum number of hits of the track fit, abs(QPt) is increased by 1 sigma, but at most by this fraction (0 = use fitted QPt)")
+AddOptionRTC(rebuildTrackMaxSharedFraction, float, 0.1f, "", 0, "Max fraction of shared clusters for rebuilt tracks")
+AddOptionRTC(rebuildTrackMaxNonIntCov, float, 4.f, "", 0, "Max Err2 allowed for non-interpolated cluster attachment during rebuild")
+AddOptionRTC(rebuildErrorWeightFactor, float, 5.f, "", 0, "Factor for the error (distance^2) of a cluster candidate in its hit weight 1 / (1 + factor * error) during rebuild")
+AddOptionRTC(maxSinPhiForFitUpdate, float, 0.9396926f, "", 0, "Max abs(sinPhi) of the track to update it with a cluster in the track fit)") // default sin(70 deg = 0.9396926
+AddOptionRTC(rebuildTrackMaxQPtDrift, float, 0.5f, "", 0, "Stop the track extrapolation during rebuild when QPt changed by more than this fraction of max(1, abs(QPt)) compared to before the extrapolation (0 = disabled)")
+AddOptionRTC(rebuildTrackExtrMaxAvgChi2, float, 4.f, "", 0, "Max average chi2 per cluster to accept an extrapolated segment (0 = disabled)")
+AddOptionRTC(rebuildTrackFallbackErr, float, 1.f, "", 0, "Error (distance^2) assigned to the original clusters of a track used as fallback candidates in rows that could not be searched during rebuild")
+AddOptionRTC(rebuildTrackFallbackTrackChi2, float, 4.f, "", 0, "Chi2 per cluster assumed for the hit weight of tracks without successful fit (NDF <= 0) during rebuild")
+AddOptionRTC(rebuildTrackAltCandidateMaxErrFactor, float, 2.f, "", 0, "Alternative cluster candidates of a row are used only if their distance^2 is below this factor times the distance^2 of the best candidate")
+AddOptionRTC(rebuildTrackAltCandidateGoodErr, float, 0.25f, "", 0, "Alternative cluster candidates of a row with distance^2 below this value are always used")
+AddOptionRTC(rebuildTrackErrFactorOneSided, float, 1.5f, "", 0, "Factor applied to the error (distance^2) of cluster candidates found with the track position from only one side during rebuild")
+AddOptionRTC(rebuildTrackErrFactorExtrapolation, float, 1.f, "", 0, "Factor applied to the error (distance^2) of cluster candidates found by track extrapolation during rebuild")
+AddOptionRTC(rebuildTrackMaxInterpolationDistY, float, 4.f, "", 0, "Max distance in Y between the track positions from both sides to use their interpolation for the cluster search in rows without cluster during rebuild")
 AddOptionRTC(maxTimeBinAboveThresholdIn1000Bin, uint16_t, 500, "", 0, "Except pad from cluster finding if total number of charges in a fragment is above this baseline (disable = 0)")
 AddOptionRTC(maxConsecTimeBinAboveThreshold, uint16_t, 200, "", 0, "Except pad from cluster finding if number of consecutive charges in a fragment is above this baseline (disable = 0)")
 AddOptionRTC(noisyPadSaturationThreshold, uint16_t, 700, "", 0, "Threshold where a timebin is considered saturated, disabling the noisy pad check for that pad")
@@ -120,7 +134,9 @@ AddOptionRTC(mergerLooperQPtB5Limit, uint8_t, 4, "", 0, "Min Q/Pt (@B=0.5T) to r
 AddOptionRTC(mergerLooperSecondHorizontalQPtB5Limit, uint8_t, 2, "", 0, "Min Q/Pt (@B=0.5T) to attempt second horizontal merge between sectors after a vertical merge was found")
 AddOptionRTC(trackFollowingMaxRowGap, uint8_t, 4, "", 0, "Maximum number of consecutive rows without hit in track following")
 AddOptionRTC(trackFollowingMaxRowGapSeed, uint8_t, 2, "", 0, "Maximum number of consecutive rows without hit in track following during fit of seed")
-AddOptionRTC(trackFitMaxRowMissedHard, uint8_t, 10, "", 0, "Hard limit for number of missed rows in fit / propagation")
+AddOptionRTC(trackFitAbortNMissedHits, int8_t, 5, "", 0, "0: no limit on rejection or missed hits, >0: break after n rejected hits")
+AddOptionRTC(trackFitAbortNMissedHitsHard, uint8_t, 10, "", 0, "Hard limit for number of missed rows in fit / propagation")
+AddOptionRTC(rejectIFCLowRadiusCluster, uint8_t, 1, "", 0, "Reject clusters that get the IFC mask error during refit")
 AddOptionRTC(extrapolationTrackingRowRange, uint8_t, 45, "", 0, "Number of rows from the upped/lower limit to search for extrapolated track candidates in for")
 AddOptionRTC(extrapolationTrackingMinRows, uint8_t, 10, "", 0, "Min num of rows an additional extrapolated track must span over")
 AddOptionRTC(extrapolationTrackingMinHits, uint8_t, 8, "", 0, "Min num of hits for an additional extrapolated track")
@@ -134,13 +150,18 @@ AddOptionRTC(cfMinSplitNum, uint8_t, 1, "", 0, "Minimum number of split charges 
 AddOptionRTC(cfNoiseSuppressionEpsilon, uint8_t, 10, "", 0, "Cluster Finder: Difference between peak and charge for the charge to count as a minima during noise suppression")
 AddOptionRTC(cfNoiseSuppressionEpsilonRelative, uint8_t, 76, "", 0, "Cluster Finder: Difference between peak and charge for the charge to count as a minima during noise suppression, relative as fraction of 255")
 AddOptionRTC(cfEdgeTwoPads, uint8_t, 0, "", 0, "Flag clusters with peak on the 2 pads closes to the sector edge as edge cluster")
-AddOptionRTC(nWays, uint8_t, 3, "", 0, "Do N fit passes in final fit of merger (must be odd to end with inward fit)")
-AddOptionRTC(trackFitRejectMode, int8_t, 5, "", 0, "0: no limit on rejection or missed hits, >0: break after n rejected hits, <0: reject at max -n hits")
-AddOptionRTC(rejectIFCLowRadiusCluster, uint8_t, 1, "", 0, "Reject clusters that get the IFC mask error during refit")
+AddOptionRTC(mergerInitial3wayFit, uint8_t, 0, "", 0, "The track fit does 2 initial fit passes for a good track state before running the rebuild or the interpolation rejection, ads 2 fit iteration")
+AddOptionRTC(mergerInterpolateErrors, uint8_t, 0, "", 0, "Use interpolation instead of extrapolation for chi2 based cluster rejection, adds 2 fit iterations")
+AddOptionRTC(mergerInterpolateRejectAlsoOnCurrentPosition, uint8_t, 1, "", 0, "When using mergerInterpolateErrors, reject based on chi2 twice computed with interpolated and current track position starting from NDF > mergerNonInterpolateRejectMinNDF")
+AddOptionRTC(mergerNonInterpolateRejectMinNDF, uint8_t, 5, "", 0, "Minimum NDF of track for non-interpolated reject (both for chi2 and absolute distance)")
+AddOptionRTC(rebuildTrackInFit, uint8_t, 1, "", 0, "Rebuild track completely during fit based on clusters closed to interpolated track positions, adds 2 fit iterations")
+AddOptionRTC(rebuildTrackInFitClusterCandidates, uint8_t, 3, "", 0, "Number of cluster candidates per row for rebuilt track")
+AddOptionRTC(disableRebuildAttachment, uint8_t, 0, "", 0, "Bitmask to disable certain attachment steps during track rebuid (1: current row, 2: interpolate missing row, 4: one sided interpolation, 8: original hit, 16: extrapolation)")
+AddOptionRTC(disableMarkAdjacent, uint8_t, 0, "", 0, "Bitmask to disable certain steps during refit to mark adjacenrt clusters (1: current row, 2: interpolate missing rows, 4: extrapolate inwards / outwards, 8: loop following)") // TODO: Add history
 AddOptionRTC(dEdxTruncLow, uint8_t, 2, "", 0, "Low truncation threshold, fraction of 128")
 AddOptionRTC(dEdxTruncHigh, uint8_t, 77, "", 0, "High truncation threshold, fraction of 128")
 AddOptionRTC(extrapolationTracking, int8_t, 1, "", 0, "Enable Extrapolation Tracking (prolong tracks to adjacent sectors to find short segments)")
-AddOptionRTC(disableRefitAttachment, uint8_t, 0, "", 0, "Bitmask to disable certain attachment steps during refit (1: attachment, 2: propagation, 4: loop following, 8: mirroring)")
+AddOptionRTC(looperFollowMode, uint8_t, 1, "", 0, "0 = simple, 1 = advances, for disabling use disableMarkAdjacent = 4")
 AddOptionRTC(rejectionStrategy, uint8_t, o2::gpu::GPUSettings::RejectionStrategyA, "", 0, "Enable rejection of TPC clusters for compression (0 = no, 1 = strategy A, 2 = strategy B)")
 AddOptionRTC(mergeLoopersAfterburner, uint8_t, 1, "", 0, "Run afterburner for additional looper merging")
 AddOptionRTC(compressionTypeMask, uint8_t, o2::gpu::GPUSettings::CompressionFull, "", 0, "TPC Compression mode bits (1=truncate charge/width LSB, 2=differences, 4=track-model)")
@@ -148,11 +169,8 @@ AddOptionRTC(compressionSortOrder, uint8_t, o2::gpu::GPUSettings::SortTime, "", 
 AddOptionRTC(sigBitsCharge, uint8_t, 4, "", 0, "Number of significant bits for TPC cluster charge in compression mode 1")
 AddOptionRTC(sigBitsWidth, uint8_t, 3, "", 0, "Number of significant bits for TPC cluster width in compression mode 1")
 AddOptionRTC(dropLoopers, uint8_t, 0, "", 0, "Drop looping tracks starting from second loop")
-AddOptionRTC(mergerInterpolateErrors, uint8_t, 1, "", 0, "Use interpolation instead of extrapolation for chi2 based cluster rejection")
-AddOptionRTC(mergerInterpolateRejectAlsoOnCurrentPosition, uint8_t, 1, "", 0, "When using mergerInterpolateErrors, reject based on chi2 twice computed with interpolated and current track position starting from NDF > mergerNonInterpolateRejectMinNDF")
-AddOptionRTC(mergerNonInterpolateRejectMinNDF, uint8_t, 5, "", 0, "Minimum NDF of track for non-interpolated reject (both for chi2 and absolute distance)")
 AddOptionRTC(mergeCE, uint8_t, 1, "", 0, "Merge tracks accross the central electrode")
-AddOptionRTC(retryRefit, int8_t, 1, "", 0, "Retry refit with seeding errors and without cluster rejection when fit fails (=2 means retry in same kernel, =1 for separate kernel")
+AddOptionRTC(retryRefit, int8_t, 1, "", 0, "Retry refit with seeding errors and without chi2 cluster rejection when fit fails")
 AddOptionRTC(enablePID, int8_t, 1, "", 0, "Enable PID response")
 AddOptionRTC(PID_useNsigma, int8_t, 1, "", 0, "Use nSigma instead of absolute distance in PID response")
 AddOptionRTC(adddEdxSubThresholdClusters, int8_t, 1, "", 0, "Add sub threshold clusters in TPC dEdx computation")
@@ -162,9 +180,18 @@ AddOptionRTC(rejectEdgeClustersInSeeding, int8_t, 0, "", 0, "Reject edge cluster
 AddOptionRTC(rejectEdgeClustersInTrackFit, int8_t, 0, "", 0, "Reject edge clusters based on uncorrected track Y during track fit")
 AddOptionRTC(tubeExtraProtectMinRow, uint8_t, 20, "", 0, "Increase Protection, decrease removal by factor 2, when below this row")
 AddOptionRTC(tubeExtraProtectEdgePads, uint8_t, 2, "", 0, "Increase Protection, decrease removal by factor 2, when on this number of pads from the edge")
-
-AddOptionArray(PID_remap, int8_t, 9, (0, 1, 2, 3, 4, 5, 6, 7, 8), "", 0, "Remap Ipid to PID_reamp[Ipid] (no remap if<0)") // BUG: CUDA cannot yet hand AddOptionArrayRTC
-AddHelp("help", 'h')
+AddOptionRTC(rebuildTrackExtrMaxMissingRows, uint8_t, 20, "", 0, "Maximum total number of rows allowed to be missing during track extrapolation")
+AddOptionRTC(rebuildTrackExtrMinConsecGoodRows, uint8_t, 8, "", 0, "Minimum number of consecutive rows required to accept extrapolated segment")
+AddOptionRTC(rebuildTrackExtrMinConsecGoodRowsEdge, uint8_t, 3, "", 0, "Minimum number of consecutive rows required to accept extrapolated segment")
+AddOptionRTC(rebuildTrackExtrMaxRowsBack, uint8_t, 3, "", 0, "After the track extrapolation, propagate the track back to the last accepted cluster if it is at most this number of rows away, otherwise revert to the track before the extrapolation")
+AddOptionRTC(rebuildTrackExtrConsecGoodRowsMaxGap, uint8_t, 1, "", 0, "Max row gap size to consider the segment as consecutive rows")
+AddOptionRTC(rebuildTrackCandidateErrChi2, uint8_t, 0, "", 0, "Rank cluster candidates during rebuild by chi2 instead of distance^2 (rebuildTrackAltCandidateGoodErr is then in units of chi2)")
+AddOptionRTC(rebuildTrackMaxRowsFromEnd, uint8_t, 10, "", 0, "If the last fitted hit of the outward way of the rebuild is more than this number of rows away from the end of the track, the final fit starts from the original track parameters")
+AddOptionRTC(rebuildTrackFallbackMaxNCl, uint8_t, 20, "", 0, "For tracks with at most this number of clusters, keep the original cluster of a row as candidate during rebuild if no candidate was found but it passes the interpolated chi2 cut (0 = disabled)")
+AddOptionRTC(rebuildTrackNonIntMinNDF, uint8_t, 10, "", 0, "NDF the track must exceed for non-interpolated cluster attachment (one-sided search and extrapolation) during rebuild")
+AddOptionArray(PID_remap, int8_t, 9, (0, 1, 2, 3, 4, 5, 6, 7, 8), "", 0, "Remap Ipid to PID_reamp[Ipid] (no remap if<0)") // BUG: CUDA cannot yet handle AddOptionArrayRTC
+AddVariableRTC(nWays, uint8_t, 0)
+AddHelp("help", 0)
 EndConfig()
 
 // Reconstruction parameters for TRD, no bool in here !!!
@@ -189,12 +216,12 @@ AddOptionRTC(matCorrType, uint8_t, 2, "", 0, "Material correction to use: 0 - no
 AddOptionRTC(pileupFwdNBC, uint8_t, 70, "", 0, "Post-trigger Pile-up integration time in BCs")
 AddOptionRTC(pileupBwdNBC, uint8_t, 130, "", 0, "Pre-trigger Pile-up integration time in BCs")
 AddOptionRTC(useAngularPull, uint8_t, 3, "", 0, "0 = don't use angular pull; 1 = additional error based on angular pull for refit only; 2 = add error also for chi2; 3 and 4 = correction of the average position based on angular pull")
-AddHelp("help", 'h')
+AddHelp("help", 0)
 EndConfig()
 
 // Dynamic reconstruction parameters, no bool in here!!!, must NOT use AddOptionRTC(...) !!!
 BeginSubConfig(GPUSettingsRecDynamic, dyn, configStandalone.rec, "RECDYN", 0, "Reconstruction settings", rec_dyn)
-AddHelp("help", 'h')
+AddHelp("help", 0)
 EndConfig()
 
 // Global reconstruction parameters, no bool in here !!!
@@ -211,7 +238,7 @@ AddCustomCPP(void SetMinTrackPtB5(float v) { maxTrackQPtB5 = v > 0.001f ? (1.f /
 AddSubConfig(GPUSettingsRecTPC, tpc)
 AddSubConfig(GPUSettingsRecTRD, trd)
 AddSubConfig(GPUSettingsRecDynamic, dyn)
-AddHelp("help", 'h')
+AddHelp("help", 0)
 EndConfig()
 
 #if !defined(__OPENCL__) && !defined(__METAL__) // these use std::string / std::vector, which device code does not have
@@ -224,7 +251,7 @@ AddOption(deterministic, bool, false, "", 0, "Compile RTC in deterministic mode,
 AddOption(compilePerKernel, bool, true, "", 0, "Run one RTC compilation per kernel")
 AddOption(enable, bool, false, "", 0, "Use RTC to optimize GPU code")
 AddOption(overrideWarpSize, int32_t, -1, "", 0, "Override the warp size to be used for RTC")
-AddHelp("help", 'h')
+AddHelp("help", 0)
 EndConfig()
 
 // Technical parameters for RunTimeCompilation, which do not change the RTC code
@@ -239,8 +266,9 @@ AddOption(cacheSize, uint32_t, 10, "", 0, "Maximum number of RTC cache files per
 AddOption(prependCommand, std::string, "", "", 0, "Prepend RTC compilation commands by this string")
 AddOption(overrideArchitecture, std::string, "", "", 0, "Override arhcitecture part of RTC compilation command line") // Part of cmdLine, so checked against the cache
 AddOption(loadLaunchBoundsFromFile, std::string, "", "", 0, "Load a parameter object containing the launch bounds from a file")
+AddOption(overrideRTCParameters, std::string, "", "", 0, "Semicolon-separated list of overrides of launch bounds and parameters for RTC compilation: 'kernel=64;kernel2=[64,4];par1=1;par2=foo'")
 AddOption(keepTempFiles, bool, false, "", 0, "Keep temporary source and object files")
-AddHelp("help", 'h')
+AddHelp("help", 0)
 EndConfig()
 
 // Parameters that steer reconstruction that do not go to the device, or only in derrived form.
@@ -248,7 +276,7 @@ BeginSubConfig(GPUSettingsProcessingParam, param, configStandalone.proc, "PARAM"
 AddOptionArray(tpcErrorParamY, float, 4, (0.06f, 0.24f, 0.12f, 0.1f), "", 0, "TPC Cluster Y Error Parameterization")
 AddOptionArray(tpcErrorParamZ, float, 4, (0.06f, 0.24f, 0.15f, 0.1f), "", 0, "TPC Cluster Z Error Parameterization")
 AddOption(tpcTriggerHandling, bool, true, "", 0, "Enable TPC trigger handling")
-AddHelp("help", 'h')
+AddHelp("help", 0)
 EndConfig()
 
 // Settings steering the processing of NN Clusterization
@@ -295,7 +323,7 @@ AddOption(nnCCDBRegressionLayerType, std::string, "FC", "", 0, "Distinguishes be
 AddOption(nnCCDBBeamType, std::string, "pp", "", 0, "Distinguishes between networks trained for different beam types. Options: pp, pPb, PbPb")
 AddOption(nnCCDBInteractionRate, std::string, "500", "", 0, "Distinguishes between networks for different interaction rates [kHz]")
 AddOption(nnCCDBExtraMetadata, std::string, "", "", 0, "Extra metadata to distinguish between networks, e.g. for different internal datatypes, etc")
-AddHelp("help", 'h')
+AddHelp("help", 0)
 EndConfig()
 
 // Scaling factors for gpu buffer size estimation
@@ -315,11 +343,20 @@ AddOption(tpcSectorTrackHitsPerHitWithRejection, float, 1.0, "", 0, "Scaling Fac
 AddOption(tpcMergedTrackPerSectorTrack, float, 1.0, "", 0, "Scaling Factor: tpcMergedTrackPerSectorTrack")
 AddOption(tpcMergedTrackHitPerSectorHit, float, 1.1, "", 0, "Scaling Factor: tpcMergedTrackHitPerSectorHit")
 AddOptionArray(tpcCompressedUnattachedHitsBase1024, int32_t, 3, (900, 900, 500), "", 0, "Scaling Factor: tpcCompressedUnattachedHitsBase1024")
-AddOption(conservativeMemoryEstimate, bool, false, "", 0, "Use some more conservative defaults for larger buffers during TPC processing")
 AddOption(tpcDecodingClusterRatioFactor1, float, 1.5, "", 0, "Scaling Factor: for first margin of dynamic buffer allocation for attached clusters in TPC Decoding")
 AddOption(tpcDecodingClusterRatioFactor2, float, 3.5, "", 0, "Scaling Factor: for second margin of dynamic buffer allocation for attached clusters in TPC Decoding")
+AddOption(tpcTrackRebuildRowFraction, float, 0.69, "", 0, "Scaling Factor: Fraction of rows for which to allocate rebuild memory") // 87 of 152 in average with 20% margin
 AddOption(tpcDecodingSafetyBuffer, uint16_t, 1000, "", 0, "Scaling Factor: safety cluster buffer to add to dynamic buffer allocation for attached clusters in TPC Decoding")
-AddHelp("help", 'h')
+AddOption(conservativeMemoryEstimate, bool, false, "", 0, "Use some more conservative defaults for larger buffers during TPC processing")
+AddHelp("help", 0)
+EndConfig()
+
+// Debug Settings
+BeginSubConfig(GPUSettingsProcessingDebug, debug, configStandalone.proc, "DEBUG", 0, "Debugging Settings", proc_debug)
+AddOption(memoryScalingFuzz, uint64_t, 0, "", 0, "Fuzz the memoryScalingFactor (0 disable, 1 enable, >1 set seed", def(1))
+AddOption(mergerMCLabels, bool, false, "", 0, "Create MC labels for merged tracks before refit for debugging")
+AddOption(mergerDumpTrackNCl, bool, false, "", 0, "Dump file with nCl per merged track fit")
+AddHelp("help", 0)
 EndConfig()
 
 // Settings steering the processing once the device was selected, only available on the host
@@ -351,7 +388,6 @@ AddOption(memoryAllocationStrategy, int8_t, 0, "", 0, "Memory Allocation Strateg
 AddOption(forceMemoryPoolSize, uint64_t, 1, "memSize", 0, "Force size of allocated GPU / page locked host memory (0 = disable, 1 / 2 = auto, other values set the size of the memory pool)", min(uint64_t(0)))
 AddOption(forceHostMemoryPoolSize, uint64_t, 0, "hostMemSize", 0, "Force size of allocated host page locked host memory (overriding memSize)", min(uint64_t(0)))
 AddOption(memoryScalingFactor, float, 1.f, "", 0, "Factor to apply to all memory scalers")
-AddOption(memoryScalingFuzz, uint64_t, 0, "", 0, "Fuzz the memoryScalingFactor (0 disable, 1 enable, >1 set seed", def(1))
 AddOption(tpcInputWithClusterRejection, uint8_t, 0, "", 0, "Indicate whether the TPC input is CTF data with cluster rejection, to tune buffer estimations")
 AddOption(forceMaxMemScalers, uint64_t, 0, "", 0, "Force using the maximum values for all buffers, Set a value n > 1 to rescale all maximums to a memory size of n")
 AddOption(registerStandaloneInputMemory, bool, false, "registerInputMemory", 0, "Automatically register input memory buffers for the GPU")
@@ -363,7 +399,6 @@ AddOption(nStreams, int8_t, 8, "", 0, "Number of GPU streams / command queues")
 AddOption(nTPCClustererLanes, int8_t, -1, "", 0, "Number of TPC clusterers that can run in parallel (-1 = autoset)")
 AddOption(overrideClusterizerFragmentLen, int32_t, -1, "", 0, "Force the cluster max fragment len to a certain value (-1 = autodetect)")
 AddOption(delayedOutput, bool, true, "", 0, "Delay output to be parallel to track fit")
-AddOption(mergerSortTracks, int8_t, -1, "", 0, "Sort track indizes for GPU track fit (-1 = auto-device based on device parameters)")
 AddOption(alternateBorderSort, int8_t, -1, "", 0, "Alternative implementation for sorting of border tracks (-1 = auto-device based on device parameters)")
 AddOption(tpcCompressionGatherMode, int8_t, -1, "", 0, "TPC Compressed Clusters Gather Mode (0: DMA transfer gather gpu to host, 1: serial DMA to host and gather by copy on CPU, 2. gather via GPU kernal DMA access, 3. gather on GPU via kernel, dma afterwards, -1 = auto-device based on device parameters)")
 AddOption(tpcCompressionGatherModeKernel, int8_t, -1, "", 0, "TPC Compressed Clusters Gather Mode Kernel (0: unbufferd, 1-3: buffered, 4: multi-block, -1 = auto-device based on device parameters)")
@@ -398,7 +433,8 @@ AddOption(tpcUseOldCPUDecoding, bool, false, "", 0, "Enable old CPU-based TPC de
 AddOption(tpcApplyCFCutsAtDecoding, bool, false, "", 0, "Apply cluster cuts from clusterization during decoding of compressed clusters")
 AddOption(tpcApplyClusterFilterOnCPU, uint8_t, 0, "", 0, "Apply custom cluster filter of GPUTPCClusterFilter class, 0: off, 1: debug, 2: PbPb23")
 AddOption(tpcWriteClustersAfterRejection, bool, false, "", 0, "Apply TPC rejection strategy before writing clusters")
-AddOption(oclPlatformNum, int32_t, -1, "", 0, "Platform to use, in case the backend provides multiple platforms (OpenCL only, -1 = auto-select, -2 query all platforms (also incompatible))")
+AddOption(tpcSortClusters, bool, false, "", 0, "Enforce sorting TPC clusters")
+AddOption(oclPlatformNum, int32_t, -1, "", 0, "Platform to use, in case the backend provides multiple platforms (OpenCL only, -1 = auto-select, -2 query all platforms (also incompatible))") // TODO: Create some backend-specific options
 AddOption(oclCompileFromSources, bool, false, "", 0, "Compile OpenCL binary from included source code instead of using included spirv code")
 AddOption(oclOverrideSourceBuildFlags, std::string, "", "", 0, "Override OCL build flags for compilation from source, put a space for empty options")
 AddOption(metalOverrideSourceBuildFlags, std::string, "", "", 0, "Override Metal build flags for compilation from source, put a space for empty options")
@@ -415,6 +451,7 @@ AddOption(debugOnFailureMaxSize, uint32_t, 0, "", 0, "Max size of existing dumps
 AddOption(debugOnFailureDirectory, std::string, ".", "", 0, "Target folder for debug / dump")
 AddOption(ROOTDumpFile, std::string, "gpudebug.root", "", 0, "File name for ROOT dump (default gpudebug.root)")
 AddOption(memoryStat, bool, false, "", 0, "Print memory statistics")
+AddOption(queryHostMemoryUSS, int8_t, 0, "", 0, "Query the unique set size (private resident memory) of the process after every kernel and after every pop of the non-persistent memory stack, and print the maximum (2: print every query). Slow, Linux only", def(1))
 AddVariable(runsStandalone, bool, false)
 AddVariable(eventDisplay, o2::gpu::GPUDisplayFrontendInterface*, nullptr)
 AddSubConfig(GPUSettingsProcessingRTC, rtc)
@@ -422,7 +459,8 @@ AddSubConfig(GPUSettingsProcessingRTCtechnical, rtctech)
 AddSubConfig(GPUSettingsProcessingParam, param)
 AddSubConfig(GPUSettingsProcessingNNclusterizer, nn)
 AddSubConfig(GPUSettingsProcessingScaling, scaling)
-AddHelp("help", 'h')
+AddSubConfig(GPUSettingsProcessingDebug, debug)
+AddHelp("help", 0)
 EndConfig()
 #endif // !__OPENCL__ && !__METAL__
 
@@ -461,10 +499,10 @@ AddOption(perfFigure, std::string, "", "", 0, "Show as performance figure, provi
 AddOption(plotsDir, std::string, "plots", "", 0, "Directory to write plots to")
 AddOption(plotsNoTitle, bool, false, "", 0, "Do not print titles on figures")
 AddShortcut("compare", 0, "--QAinput", "Compare QA histograms", "-c", "--qa", "--QAinputHistogramsOnly")
-AddHelp("help", 'h')
+AddHelp("help", 0)
 EndConfig()
 
-//Settings for the O2 workflow
+// Settings for the O2 workflow
 #if !defined(QCONFIG_PARSER_CXX) && !defined(GPUCA_STANDALONE)
 BeginSubConfig(GPUSettingsO2, global, configStandalone, "O2", 0, "O2 workflow settings", global)
 AddOption(solenoidBzNominalGPU, float, -1e6f, "", 0, "Field strength of solenoid Bz in kGaus")
