@@ -24,6 +24,7 @@
 #include "ITStracking/FastMultEstConfig.h"
 #include "ITSMFTTracking/ROFLookupTables.h"
 #include <gsl/span>
+#include <algorithm>
 #include <array>
 
 namespace o2::its
@@ -62,10 +63,14 @@ struct FastMultEst {
       if (!multEstConf.isPassingVtxMultCut(vertex.getNContributors())) {
         const auto& timestamp{vertex.getTimeStamp()};
         for (int layer = 0; layer < NLayers; ++layer) {
-          uint32_t startROF = sel.getLayer(layer).getROF(timestamp.lower());
-          uint32_t endROF = sel.getLayer(layer).getROF(timestamp.upper());
-          for (uint32_t rof = startROF; rof <= endROF; ++rof) {
-            sel.setROFsEnabled(layer, rof, 0);
+          const auto& timing = sel.getLayer(layer);
+          if (timing.mNROFsTF == 0) {
+            continue;
+          }
+          const auto startROF = timing.getROF(timestamp.lower());
+          const auto endROF = std::min(timing.getROF(timestamp.upper()), timing.mNROFsTF - 1U);
+          if (startROF <= endROF && startROF < timing.mNROFsTF) {
+            sel.setROFsEnabled(layer, startROF, endROF - startROF + 1U, 0);
           }
         }
       }
