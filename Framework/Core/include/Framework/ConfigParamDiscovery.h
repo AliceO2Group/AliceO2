@@ -13,6 +13,9 @@
 #define O2_FRAMEWORK_CONFIGPARAMDISCOVERY_H_
 
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/Array2D.h"
+
+#include <string_view>
 
 namespace o2::framework
 {
@@ -20,6 +23,16 @@ namespace o2::framework
 // options.
 struct ConfigParamDiscovery {
   static std::vector<ConfigParamSpec> discover(ConfigParamRegistry&, int, char**);
+
+  /// Parse the value of aod-origin-level-mapping, "ORIGIN:LEVEL[,ORIGIN2:LEVEL2,...]",
+  /// into a LabeledArray with one row per origin and a single "level" column.
+  /// Throws std::runtime_error if the mapping is malformed.
+  static LabeledArray<int> parseOriginLevelMapping(std::string_view mapping);
+
+  /// Replace the plain aod-metadata-* options with the ones in the row of
+  /// aod-metadata-origins which corresponds to the origin this process reads
+  /// (aod-origin-replace, or AOD). Does nothing if there is no such row.
+  static void applyOriginMetadata(ConfigParamRegistry& registry);
 };
 
 struct ConfigDiscovery {
