@@ -273,6 +273,8 @@ class ChipPixelData
   std::vector<uint32_t>& getPixIds() { return mPixIds; }
   std::vector<int>& getPixelsOrder() { return mPixelsOrder; }
   uint32_t getOrderedPixId(int pos) const { return mPixIds[mPixelsOrder[pos]]; }
+  // Squashing can remove or reorder digits; otherwise their indices are contiguous.
+  uint32_t getDigitID(int pos) const { return mPixIds.empty() ? mStartID + pos : getOrderedPixId(pos); }
 
  private:
   uint8_t mROFlags = 0;                            // readout flags from the chip trailer
