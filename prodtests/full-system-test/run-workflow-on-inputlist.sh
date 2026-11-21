@@ -79,9 +79,10 @@ start_process ${DPL_WORKFLOW_FROM_OUTSIDE:-$GEN_TOPO_MYDIR/dpl-workflow.sh}
 
 if [[ "0$4" != "00" ]]; then
   sleep 1
-  tail -n 1000000 -f ${LOG_PREFIX}*.log &
-  ln -sf ${LOG_PREFIX}${NUM_PROCS}.log latest.log
+  PID_VAR="PID$NUM_PROCS"
+  tail -n 1000000 -f --pid=${!PID_VAR} ${LOG_PREFIX}*.log &
   PID_LOG=$!
+  ln -sf ${LOG_PREFIX}${NUM_PROCS}.log latest.log
 fi
 
 TIMEOUT_PHASE=0
@@ -97,8 +98,9 @@ while [[ `jobs -rl | grep -v " $PID_LOG Running" | wc -l` -ne 0 ]]; do
   fi
 done
 
+# tail exits by itself once the workflow is gone and its output is printed
 if [[ "0$4" != "00" ]]; then
-  kill $PID_LOG
+  wait $PID_LOG
 fi
 
 for i in `seq 1 $NUM_PROCS`; do
