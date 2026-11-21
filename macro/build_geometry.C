@@ -37,6 +37,7 @@
 #include <PHOSSimulation/Detector.h>
 #include <CPVSimulation/Detector.h>
 #include <ZDCSimulation/Detector.h>
+#include <ZDCSimulation/ZDCSimParam.h>
 #include <FOCALSimulation/Detector.h>
 #include <ExternalDetectors/ExternalDetector.h>
 #include <DetectorsPassive/Cave.h>
@@ -123,7 +124,8 @@ void build_geometry(FairRunSim* run = nullptr)
   // we always need the cave
   o2::passive::Cave* cave = new o2::passive::Cave("CAVE");
   // adjust size depending on content
-  cave->includeZDC(isActivated("ZDC"));
+  // with the ZDC fast simulation there is no ZDC geometry and hence no need for the long cave
+  cave->includeZDC(isActivated("ZDC") && !o2::zdc::ZDCSimParam::Instance().useZDCFastSim);
 #ifdef ENABLE_UPGRADES
   cave->includeRB24(!isActivated("TRK"));
 #endif

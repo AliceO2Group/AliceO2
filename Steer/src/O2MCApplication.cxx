@@ -443,6 +443,14 @@ void O2MCApplicationBase::finishEventCommon()
   LOG(info) << "This event/chunk did " << mStepCounter << " steps";
   LOG(info) << "Longest track time is " << mLongestTrackTime;
 
+  // give detectors the chance to produce hits directly from the primaries (fast simulations)
+  const auto& primaries = static_cast<o2::data::Stack*>(GetStack())->getPrimaries();
+  for (auto det : listActiveDetectors) {
+    if (auto o2det = dynamic_cast<o2::base::Detector*>(det)) {
+      o2det->finishEventHook(primaries);
+    }
+  }
+
   auto header = static_cast<o2::dataformats::MCEventHeader*>(fMCEventHeader);
   header->getMCEventStats().setNSteps(mStepCounter);
   header->setDetId2HitBitLUT(o2::base::Detector::getDetId2HitBitIndex());

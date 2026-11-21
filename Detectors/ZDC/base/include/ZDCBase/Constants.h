@@ -216,6 +216,7 @@ constexpr int DbgExtra = 4;
 // TODO: CcdbApi and BasicCCDBManager would also take string_view as an argument
 
 const std::string CCDBPathConfigSim = "ZDC/Config/Sim";
+const std::string CCDBPathFastSimModel = "ZDC/Config/FastSimModel";
 const std::string CCDBPathConfigModule = "ZDC/Config/Module";
 const std::string CCDBPathRecoConfigZDC = "ZDC/Calib/RecoConfigZDC";
 const std::string CCDBPathTDCCalib = "ZDC/Calib/TDCCalib";
