@@ -22,6 +22,7 @@ for i in EXTINPUT CTFINPUT RAWTFINPUT DIGITINPUT; do
 done
 
 NUM_PROCS=0
+PIDS_LOG=
 RETVAL=0
 START_TIME=`date +%s`
 LOG_PREFIX="log_$(date +%Y%m%d-%H%M%S)_"
@@ -79,13 +80,16 @@ start_process ${DPL_WORKFLOW_FROM_OUTSIDE:-$GEN_TOPO_MYDIR/dpl-workflow.sh}
 
 if [[ "0$4" != "00" ]]; then
   sleep 1
-  tail -n 1000000 -f ${LOG_PREFIX}*.log &
+  # a sentinel that lives until all processes are done (or this script is gone); tail prints all logs and exits after it
+  ( while kill -0 $$ 2> /dev/null; do sleep 0.5; done ) > /dev/null 2>&1 &
+  PID_SENTINEL=$!
+  tail -n 1000000 -f -s 0.1 --pid=$PID_SENTINEL ${LOG_PREFIX}*.log &
+  PIDS_LOG="$PID_SENTINEL|$!"
   ln -sf ${LOG_PREFIX}${NUM_PROCS}.log latest.log
-  PID_LOG=$!
 fi
 
 TIMEOUT_PHASE=0
-while [[ `jobs -rl | grep -v " $PID_LOG Running" | wc -l` -ne 0 ]]; do
+while [[ -n `jobs -rp | grep -v -x -E "${PIDS_LOG:-none}"` ]]; do
   sleep 1
   if [[ -n $3 && $(date +%s) -ge $(($START_TIME + $TIMEOUT_PHASE * 20 + $3)) ]]; then
     RETVAL=1
@@ -97,8 +101,18 @@ while [[ `jobs -rl | grep -v " $PID_LOG Running" | wc -l` -ne 0 ]]; do
   fi
 done
 
+# end the sentinel and give tail up to 10 s to print the rest of the logs
 if [[ "0$4" != "00" ]]; then
-  kill $PID_LOG
+  kill $PID_SENTINEL 2> /dev/null
+  for i in `seq 1 100`; do
+    [[ -z `jobs -rp` ]] && break
+    sleep 0.1
+  done
+  if [[ -n `jobs -rp` ]]; then
+    echo "WARNING: stopping the log output of ${LOG_PREFIX}*.log, it may be incomplete" 1>&2
+    kill `jobs -rp` 2> /dev/null
+  fi
+  wait ${PIDS_LOG//|/ } 2> /dev/null
 fi
 
 for i in `seq 1 $NUM_PROCS`; do
