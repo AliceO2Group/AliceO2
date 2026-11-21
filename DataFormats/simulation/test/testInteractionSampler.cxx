@@ -101,7 +101,7 @@ BOOST_AUTO_TEST_CASE(NonUniformSamplerUniformScalesIsPoisson)
   sampler.setMuPerBC(0.2);
   sampler.init();
   // the constructor already sets unit scales; setting them again also exercises the normalisation
-  sampler.setBCIntensityScales(std::vector<float>(sampler.getBunchFilling().getNBunches(), 1.f));
+  BOOST_REQUIRE(sampler.setBCIntensityScales(std::vector<float>(sampler.getBunchFilling().getNBunches(), 1.f)));
   auto st = countCrossings(sampler, nColl, 1, allOneClass);
 
   const double mu = sampler.getMuPerBC();
@@ -128,7 +128,7 @@ BOOST_AUTO_TEST_CASE(NonUniformSamplerPerBCPoisson)
   for (size_t i = 0; i < scales.size(); ++i) {
     scales[i] = scale[evenOdd(i)];
   }
-  sampler.setBCIntensityScales(scales);
+  BOOST_REQUIRE(sampler.setBCIntensityScales(scales));
   auto st = countCrossings(sampler, nColl, 2, evenOdd);
 
   for (int c = 0; c < 2; ++c) {
@@ -139,6 +139,19 @@ BOOST_AUTO_TEST_CASE(NonUniformSamplerPerBCPoisson)
     BOOST_CHECK_CLOSE(st.occupied[c] / st.slots[c], 1. - std::exp(-muC), 2.);
     BOOST_CHECK_CLOSE(st.colls[c] / st.slots[c], muC, 2.);
   }
+}
+
+// Scales of the wrong length must be rejected and leave the previous scales untouched
+BOOST_AUTO_TEST_CASE(NonUniformSamplerRejectsWrongScaleLength)
+{
+  o2::steer::NonUniformMuInteractionSampler sampler;
+  sampler.setMuPerBC(0.2);
+  sampler.init();
+  const auto nBC = sampler.getBunchFilling().getNBunches();
+  BOOST_REQUIRE(sampler.setBCIntensityScales(std::vector<float>(nBC, 1.f)));
+  const auto before = sampler.getBCIntensityScales();
+  BOOST_CHECK(!sampler.setBCIntensityScales(std::vector<float>(nBC + 1, 2.f)));
+  BOOST_CHECK(sampler.getBCIntensityScales() == before);
 }
 
 BOOST_AUTO_TEST_CASE(NonUniformSampler)
