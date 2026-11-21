@@ -301,7 +301,7 @@ int32_t GPUReconstruction::InitPhaseBeforeDevice()
   if (!GetProcessingSettings().createO2Output || !IsGPU()) {
     mProcessingSettings->clearO2OutputFromGPU = false;
   }
-  if (GetProcessingSettings().debugLevel > 3 || !IsGPU() || GetProcessingSettings().deterministicGPUReconstruction) {
+  if (GetProcessingSettings().debugLevel > 3 || !IsGPU() || GetProcessingSettings().deterministicGPUReconstruction || GetProcessingSettings().tpcSortClusters) {
     mProcessingSettings->delayedOutput = false;
   }
   if (!GetProcessingSettings().rtc.enable) {
