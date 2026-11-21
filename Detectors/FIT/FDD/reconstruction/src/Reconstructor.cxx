@@ -27,66 +27,100 @@ void Reconstructor::process(o2::fdd::Digit const& digitBC, gsl::span<const o2::f
                             std::vector<o2::fdd::RecPoint>& RecPoints, std::vector<o2::fdd::ChannelDataFloat>& outChData)
 // gsl::span<o2::fdd::ChannelDataFloat> outChData)
 {
-  // Compute charge weighted average time
-  Double_t timeFDA = 0, timeFDC = 0;
-  Double_t weightFDA = 0.0, weightFDC = 0.0;
-  Int_t nInTimeA = 0, nInTimeC = 0;
-  int firstEntry = outChData.size();
-  int nStored = 0;
-  int nch = inChData.size();
+  const int firstEntry = outChData.size();
 
-  for (int ich = 0; ich < nch; ich++) {
-    if (mDeadChannelMap && !mDeadChannelMap->isChannelAlive(inChData[ich].mPMNumber)) {
-      LOG(debug) << "Channel " << ich << " is dead - discarding data";
+  bool atLeastOneVertexChannel = false;
+  bool atLeastOneChannelInSwAmplitudeRange = false;
+
+  int64_t timeSideA = 0;
+  int64_t timeSideC = 0;
+  int64_t entriesNumSideA = 0;
+  int64_t entriesNumSideC = 0;
+  uint32_t storedEntries = 0;
+
+  bool swOrGateSideA = false;
+  bool swOrGateSideC = false;
+  int64_t swTimeSideA = 0;
+  int64_t swTimeSideC = 0;
+  int64_t swEntriesNumSideA = 0;
+  int64_t swEntriesNumSideC = 0;
+
+  bool coincidencePairsOrTrg[Nchannels] = {false};
+  int64_t coincidencePairsTime[Nchannels] = {0};
+
+  for (const auto& channelData : inChData) {
+    if (mDeadChannelMap && !mDeadChannelMap->isChannelAlive(channelData.mPMNumber)) {
+      LOG(debug) << "Channel " << channelData.mPMNumber << " is dead - discarding data";
       continue;
     }
-    bool inTime = inChData[ich].getFlag(ChannelData::EEventDataBit::kIsEventInTVDC);
-    bool inAdcGate = inChData[ich].getFlag(ChannelData::EEventDataBit::kIsCFDinADCgate);
-    if (inAdcGate) {
-      outChData.emplace_back((int)inChData[ich].mPMNumber, (inChData[ich].mTime) * timePerTDC,
-                             (double)inChData[ich].mChargeADC, inChData[ich].mFEEBits);
-      nStored++;
-    }
-
-    Float_t adc = inChData[ich].mChargeADC;
-    Float_t time = (inChData[ich].mTime) * timePerTDC;
-    if (time == o2::InteractionRecord::DummyTime) {
+    const auto side = channelData.mPMNumber >= sSideAStartId ? FDDRecoConfig::SideA : FDDRecoConfig::SideC;
+    if (!isInAmplitudeWindow(channelData.mChargeADC, side) || !isInTimeWindow(channelData.mTime) || !isChannelDataGood(channelData.mFEEBits)) {
       continue;
     }
-    Float_t timeErr = 1;
-    if (adc > FDDRecoConfig::Instance().AmplitudeCutOnCollisionTimeWeights) {
-      timeErr = 1. / adc;
+    const auto& chNum = channelData.mPMNumber;
+
+    outChData.emplace_back((int)chNum, (channelData.mTime) * timePerTDC,
+                           (double)channelData.mChargeADC, channelData.mFEEBits);
+    storedEntries++;
+
+    if (FDDRecoConfig::Instance().SwTriggerEnabled) {
+      coincidencePairsOrTrg[chNum] |= checkSwOrGateConditions(channelData, side);
+      coincidencePairsTime[chNum] = channelData.mTime;
+      if (FDDRecoConfig::Instance().SwTriggerCoincidenceMode && coincidencePairsOrTrg[chNum] && coincidencePairsOrTrg[coincidencePairs[chNum]]) {
+        if (chNum >= sSideAStartId) {
+          swOrGateSideA = true;
+          swTimeSideA += channelData.mTime + coincidencePairsTime[coincidencePairs[chNum]];
+          swEntriesNumSideA += 2;
+        } else {
+          swOrGateSideC = true;
+          swTimeSideC += channelData.mTime + coincidencePairsTime[coincidencePairs[chNum]];
+          swEntriesNumSideC += 2;
+        }
+      } else if (!FDDRecoConfig::Instance().SwTriggerCoincidenceMode && coincidencePairsOrTrg[chNum]) {
+        if (chNum >= sSideAStartId) {
+          swOrGateSideA = true;
+          swTimeSideA += channelData.mTime;
+          swEntriesNumSideA++;
+        } else {
+          swOrGateSideC = true;
+          swTimeSideC += channelData.mTime;
+          swEntriesNumSideC++;
+        }
+      }
     }
-    if ((int)inChData[ich].mPMNumber < 8) {
-      nInTimeC += inTime;
-      timeFDC += time / (timeErr * timeErr);
-      weightFDC += 1. / (timeErr * timeErr);
+
+    if (!isChannelDataGoodForCollisionTime(channelData.mFEEBits) || !isInCollisionTimeAmplitudeWindow(channelData.mChargeADC, side) || !isInCollisionTimeTimeWindow(channelData.mTime)) {
+      continue;
+    }
+
+    if (channelData.mPMNumber >= sSideAStartId) {
+      timeSideA += channelData.mTime;
+      entriesNumSideA++;
     } else {
-      nInTimeA += inTime;
-      timeFDA += time / (timeErr * timeErr);
-      weightFDA += 1. / (timeErr * timeErr);
+      timeSideC += channelData.mTime;
+      entriesNumSideC++;
     }
   }
-  const int nsToPs = 1e3;
+
+  constexpr float nsToPs = 1e3;
+  float meanTimeSideA = entriesNumSideA > 0 ? float(timeSideA) * timePerTDC / float(entriesNumSideA) : 0;
+  float meanTimeSideC = entriesNumSideC > 0 ? float(timeSideC) * timePerTDC / float(entriesNumSideC) : 0;
+
+  bool swVertexTrg = false;
+  if (FDDRecoConfig::Instance().SwTriggerEnabled) {
+    float swMeanTimeSideA = swEntriesNumSideA > 0 ? float(swTimeSideA) * timePerTDC / float(swEntriesNumSideA) : 0;
+    float swMeanTimeSideC = swEntriesNumSideC > 0 ? float(swTimeSideC) * timePerTDC / float(swEntriesNumSideC) : 0;
+    swVertexTrg = calculateSwTrigger(swMeanTimeSideA, swMeanTimeSideC, swOrGateSideA, swOrGateSideC);
+  }
+
   std::array<int, 2> mCollisionTime = {o2::fdd::RecPoint::sDummyCollissionTime, o2::fdd::RecPoint::sDummyCollissionTime};
-  /// Avg time for each side, only if one channel satisfy the TVDC condition (if not, also avg time is propagated for background study using AO2D)
-  if (nInTimeA > 0) {
-    mCollisionTime[o2::fdd::RecPoint::TimeA] = (weightFDA > 1) ? round(timeFDA / weightFDA * nsToPs)
-                                                               : o2::fdd::RecPoint::sDummyCollissionTime;
-  } else {
-    if (weightFDA > 0) {
-      mCollisionTime[o2::fdd::RecPoint::TimeA] = round(timeFDA / weightFDA * nsToPs);
-    }
+  if (entriesNumSideA > 0) {
+    mCollisionTime[o2::fdd::RecPoint::TimeA] = std::round(meanTimeSideA * nsToPs);
   }
-  if (nInTimeC > 0) {
-    mCollisionTime[o2::fdd::RecPoint::TimeC] = (weightFDC > 1) ? round(timeFDC / weightFDC * nsToPs)
-                                                               : o2::fdd::RecPoint::sDummyCollissionTime;
-  } else {
-    if (weightFDC > 0) {
-      mCollisionTime[o2::fdd::RecPoint::TimeC] = round(timeFDC / weightFDC * nsToPs);
-    }
+  if (entriesNumSideC > 0) {
+    mCollisionTime[o2::fdd::RecPoint::TimeC] = std::round(meanTimeSideC * nsToPs);
   }
-  RecPoints.emplace_back(mCollisionTime, firstEntry, nStored, digitBC.getIntRecord(), digitBC.mTriggers);
+  RecPoints.emplace_back(mCollisionTime, firstEntry, storedEntries, digitBC.getIntRecord(), digitBC.mTriggers, swOrGateSideA, swOrGateSideC, swVertexTrg);
 }
 //________________________________________________________
 void Reconstructor::finish()
