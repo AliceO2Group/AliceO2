@@ -670,6 +670,9 @@ GPUd() int16_t GPUTPCCFDecodeZSDenseLink::DecodeTB(
   int32_t timeBin = (linkBC + (uint64_t)(raw::RDHUtils::getHeartBeatOrbit(*rawDataHeader) - ctx.firstHBF) * o2::constants::lhc::LHCMaxBunches) / LHCBCPERTIMEBIN;
 
   int16_t nSamplesInTB = 0;
+#ifdef __METAL__
+  const uint8_t* const tbStart = ctx.page;
+#endif
 
   // Read timebin link headers
   for (uint8_t iLink = 0; iLink < nLinksInTimebin; iLink++) {
@@ -687,6 +690,15 @@ GPUd() int16_t GPUTPCCFDecodeZSDenseLink::DecodeTB(
       MAYBE_PAGE_OVERFLOW(ctx.page);
     }
 
+#ifdef __METAL__ // Channels collected after this loop, see below. Measured on Metal only, not yet timed on CUDA and HIP
+    if (ctx.iThread == 0) {
+      smem.linkBitmaskL2[iLink] = bitmaskL2;
+      smem.linkBitmaskOffset[iLink] = ctx.page - tbStart;
+    }
+
+    ConsumeBytes(ctx.page, CAMath::Popcount(bitmaskL2));
+    MAYBE_PAGE_OVERFLOW(ctx.page);
+#else
     int32_t nBytesBitmask = CAMath::Popcount(bitmaskL2);
 
     for (int32_t chan = ctx.iThread; chan < CAMath::nextMultipleOf<NTHREADS>(80); chan += NTHREADS) {
@@ -713,8 +725,38 @@ GPUd() int16_t GPUTPCCFDecodeZSDenseLink::DecodeTB(
     if (ctx.iThread == 0) {
       smem.samplesPerLinkEnd[iLink] = nSamplesInTB;
     }
+#endif
 
   } // for (uint8_t iLink = 0; iLink < nLinksInTimebin; iLink++)
+
+#ifdef __METAL__
+  GPUbarrierWarp(); // Ensure the link headers are in shared memory before reading them
+
+  // Collect the channels with data, one byte of a link's channel bitmask per thread. A thread per
+  // channel would need 3 warp-wide scans for each link, in a chain that is long enough as it is.
+  for (int32_t slot = ctx.iThread; slot < CAMath::nextMultipleOf<NTHREADS>(nLinksInTimebin * 10); slot += NTHREADS) {
+    const int32_t iLink = slot / 10;
+    const int32_t chanL2Idx = slot % 10;
+    uint8_t bitmask = 0;
+    if (iLink < nLinksInTimebin) {
+      const uint16_t bitmaskL2 = smem.linkBitmaskL2[iLink];
+      if (TEST_BIT(bitmaskL2, chanL2Idx)) {
+        const int32_t chanByteOffset = CAMath::Popcount(bitmaskL2) - 1 - CAMath::Popcount(bitmaskL2 >> (chanL2Idx + 1));
+        bitmask = PEEK_OVERFLOW(tbStart + smem.linkBitmaskOffset[iLink], chanByteOffset);
+      }
+    }
+    const int32_t nSamplesThread = CAMath::Popcount(bitmask);
+    const int32_t threadSampleEnd = warp_scan_inclusive_add(nSamplesThread);
+    int32_t sampleOffset = nSamplesInTB + threadSampleEnd - nSamplesThread;
+    for (uint32_t bits = bitmask; bits; bits &= bits - 1) {
+      smem.rawFECChannels[sampleOffset++] = chanL2Idx * 8 + CAMath::Ctz(bits);
+    }
+    if (chanL2Idx == 9 && iLink < nLinksInTimebin) {
+      smem.samplesPerLinkEnd[iLink] = nSamplesInTB + threadSampleEnd;
+    }
+    nSamplesInTB += warp_broadcast(threadSampleEnd, NTHREADS - 1);
+  }
+#endif
 
   GPUbarrierWarp(); // Ensure all writes to shared memory are finished, before reading it
 

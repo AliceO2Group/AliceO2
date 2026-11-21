@@ -33,17 +33,7 @@ using namespace o2::tpc::constants;
 
 GPUdi() static constexpr uint8_t getFlagsReject() { return GPUTPCGMMergedTrackHit::flagReject | GPUTPCGMMergedTrackHit::flagHighIncl; }
 
-namespace o2::gpu::internal
-{
-
-struct GPUTPCGMO2OutputSort_comp {
-  GPUd() bool operator()(const GPUTPCGMMerger::tmpSort& a, const GPUTPCGMMerger::tmpSort& b)
-  {
-    return GPUCA_DETERMINISTIC_CODE(a.y != b.y ? a.y > b.y : a.x > b.x, a.y > b.y);
-  }
-};
-
-} // namespace o2::gpu::internal
+#include "GPUTPCGMMergerSortComp.h"
 
 template <>
 GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::prepare>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger)

@@ -64,6 +64,12 @@ class GPUReconstructionMetal : public GPUReconstructionProcessing::KernelInterfa
   void CommitStream(int32_t stream);
   void DrainStream(int32_t stream);
   uint64_t EventValue(deviceEvent ev, bool next);
+  template <class T>
+  T* HostPointer(T* p);
+  template <class T, class N, class S>
+  void SortOnHost(const krnlSetupTime& _xyz, T* begin, const N& count, const S& comp);
+  template <class T, int32_t I, typename... Args>
+  void RunOnHost(const krnlSetupTime& _xyz, typename T::processorType* procs, uint32_t nProcs, uint32_t nBlocks, const Args&... args);
 
  private:
   int32_t AddKernels();
