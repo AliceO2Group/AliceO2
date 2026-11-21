@@ -129,8 +129,8 @@ class HistogramRegistry
   // HistogramName class providing the associated hash and a first guess for the index in the registry
   struct HistName {
     // ctor for histogram names that are already hashed at compile time via HIST("myHistName")
-    template <char... chars>
-    constexpr HistName(const ConstStr<chars...>& hashedHistName);
+    template <FixedString S>
+    constexpr HistName(const ConstStr<S>& hashedHistName);
     char const* const str{};
     const uint32_t hash{};
     const uint32_t idx{};
@@ -386,8 +386,8 @@ int HistFiller::getBaseElementSize(T* ptr)
 //--------------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------
 
-template <char... chars>
-constexpr HistogramRegistry::HistName::HistName(const ConstStr<chars...>& hashedHistName)
+template <FixedString S>
+constexpr HistogramRegistry::HistName::HistName(const ConstStr<S>& hashedHistName)
   : str(hashedHistName.str),
     hash(hashedHistName.hash),
     idx(hash & REGISTRY_BITMASK)
