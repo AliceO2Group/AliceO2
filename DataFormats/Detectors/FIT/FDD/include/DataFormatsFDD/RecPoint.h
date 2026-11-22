@@ -90,6 +90,10 @@ class RecPoint
   int getFirstEntry() const { return mRef.getFirstEntry(); }
   int getEntriesInCurrentBC() const { return mRef.getEntries(); }
 
+  bool getSwOrA() const { return (1u << kSwOrTrgSideA) & mTriggers.getTriggersignals(); }
+  bool getSwOrC() const { return (1u << kSwOrTrgSideC) & mTriggers.getTriggersignals(); }
+  bool getSwVtx() const { return (1u << kSwVtxTrg) & mTriggers.getTriggersignals(); }
+
   void print() const;
   bool operator==(const RecPoint&) const = default;
 

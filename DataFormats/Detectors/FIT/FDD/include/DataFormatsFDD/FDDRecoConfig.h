@@ -58,7 +58,7 @@ struct FDDRecoConfig : o2::conf::ConfigurableParamHelper<FDDRecoConfig> {
   int16_t SwOrTriggerAmplitudeHighThreshold[2] = {4095, 4095};
   int16_t SwVtxTriggerTimeWindow = 100;
   bool SwTriggerCoincidenceMode = true;
-  bool SwTriggerEnabled = false;
+  bool SwTriggerEnabled = true;
 
   uint8_t SwTriggerValidPmInputFlagMask = static_cast<uint8_t>(~((1u << ChannelData::kNumberADC) | (1u << ChannelData::kIsEventInTVDC) | (1u << ChannelData::kIsAmpHigh)));
   uint8_t SwTriggerValidPmInputFlags = static_cast<uint8_t>(1u << ChannelData::kIsCFDinADCgate);
