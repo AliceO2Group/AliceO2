@@ -12,6 +12,7 @@
 #ifndef O2_FIT_FITINTEGRATECLUSTERREADER_SPEC
 #define O2_FIT_FITINTEGRATECLUSTERREADER_SPEC
 
+#include "Framework/DeviceSpec.h"
 #include <vector>
 #include <boost/algorithm/string/predicate.hpp>
 
@@ -97,7 +98,7 @@ template <typename DataT>
 void IntegratedClusterReader<DataT>::run(ProcessingContext& pc)
 {
   // check time order inside the TChain
-  if (mChainEntry == 0) {
+  if (mIndices.empty()) {
     mIndices.clear();
     mIndices.reserve(mChain->GetEntries());
     // disable all branches except the firstTForbit branch to significantly speed up the loop over the TTree
@@ -111,8 +112,16 @@ void IntegratedClusterReader<DataT>::run(ProcessingContext& pc)
     std::sort(mIndices.begin(), mIndices.end());
   }
 
+  mChainEntry = pc.services().get<o2::framework::TimingInfo>().timeslice;
+  if (mChainEntry >= mIndices.size()) {
+    LOG(warning) << "No entry " << mChainEntry << " to read in chain with " << mIndices.size() << " entries";
+    pc.services().get<ControlService>().endOfStream();
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+    return;
+  }
+
   LOGP(debug, "Processing entry {}", mIndices[mChainEntry].second);
-  mChain->GetEntry(mIndices[mChainEntry++].second);
+  mChain->GetEntry(mIndices[mChainEntry].second);
 
   // inject correct timing informations
   auto& timingInfo = pc.services().get<o2::framework::TimingInfo>();
@@ -125,7 +134,7 @@ void IntegratedClusterReader<DataT>::run(ProcessingContext& pc)
   pc.outputs().snapshot(Output{FitType::getDataOrigin(), FitType::getDataDescriptionFITC()}, mFITC);
   usleep(100);
 
-  if (mChainEntry >= mChain->GetEntries()) {
+  if (mChainEntry + pc.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices >= mChain->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }

@@ -9,6 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "Framework/DeviceSpec.h"
+#include "Framework/TimingInfo.h"
 #include <vector>
 
 #include "TTree.h"
@@ -52,8 +54,13 @@ void TF3DigitReader::init(o2::framework::InitContext& ic)
 
 void TF3DigitReader::run(o2::framework::ProcessingContext& pc)
 {
-  auto ent = mTree->GetReadEntry() + 1;
-  assert(ent < mTree->GetEntries()); // this should not happen
+  long ent = pc.services().get<o2::framework::TimingInfo>().timeslice;
+  if (ent >= mTree->GetEntries()) {
+    LOG(warning) << "No entry " << ent << " to read in tree with " << mTree->GetEntries() << " entries";
+    pc.services().get<ControlService>().endOfStream();
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+    return;
+  }
 
   o2::dataformats::IOMCTruthContainerView* plabels = nullptr;
   if (mUseMC) {
@@ -78,7 +85,7 @@ void TF3DigitReader::run(o2::framework::ProcessingContext& pc)
     pc.outputs().snapshot(Output{mOrigin, "DIGITSMC2ROF", 0}, mDigMC2ROFs);
   }
 
-  if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
+  if (mTree->GetReadEntry() + pc.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }

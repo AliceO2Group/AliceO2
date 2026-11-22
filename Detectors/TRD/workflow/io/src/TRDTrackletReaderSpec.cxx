@@ -11,6 +11,8 @@
 
 /// @file   TRDTrackletReaderSpec.cxx
 
+#include "Framework/DeviceSpec.h"
+#include "Framework/TimingInfo.h"
 #include "TRDWorkflowIO/TRDTrackletReaderSpec.h"
 
 #include "Framework/ControlService.h"
@@ -67,8 +69,13 @@ void TRDTrackletReader::connectTree()
 
 void TRDTrackletReader::run(ProcessingContext& pc)
 {
-  auto currEntry = mTreeTrklt->GetReadEntry() + 1;
-  assert(currEntry < mTreeTrklt->GetEntries()); // this should not happen
+  long currEntry = pc.services().get<o2::framework::TimingInfo>().timeslice;
+  if (currEntry >= mTreeTrklt->GetEntries()) {
+    LOG(warning) << "No entry " << currEntry << " to read in tree with " << mTreeTrklt->GetEntries() << " entries";
+    pc.services().get<ControlService>().endOfStream();
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+    return;
+  }
   mTreeTrklt->GetEntry(currEntry);
   LOG(info) << "Pushing " << mTriggerRecords.size() << " TRD trigger records at entry " << currEntry;
   LOG(info) << "Pushing " << mTracklets.size() << " uncalibrated TRD tracklets for these trigger records";
@@ -88,7 +95,7 @@ void TRDTrackletReader::run(ProcessingContext& pc)
     pc.outputs().snapshot(Output{"TRD", "TRKLABELS", 0}, mLabels);
   }
 
-  if (mTreeTrklt->GetReadEntry() + 1 >= mTreeTrklt->GetEntries()) {
+  if (mTreeTrklt->GetReadEntry() + pc.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices >= mTreeTrklt->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }

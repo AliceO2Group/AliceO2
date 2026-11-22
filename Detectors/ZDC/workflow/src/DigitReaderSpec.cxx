@@ -11,6 +11,8 @@
 
 /// @file   DigitReaderSpec.cxx
 
+#include "Framework/DeviceSpec.h"
+#include "Framework/TimingInfo.h"
 #include <vector>
 
 #include "TTree.h"
@@ -65,7 +67,7 @@ void DigitReader::run(ProcessingContext& pc)
     mTree->SetBranchAddress("ZDCDigitLabels", &plabels);
   }
 
-  auto ent = mTree->GetReadEntry() < 0 ? mTree->GetReadEntry() + mFirstEntry + 1 : mTree->GetReadEntry() + 1;
+  long ent = pc.services().get<o2::framework::TimingInfo>().timeslice + mFirstEntry;
   // A timeframe holds no collision at all whenever the interaction rate is low enough, and
   // the tree then has no entry to read. Publish empty containers instead of reading past the
   // end and pushing branch addresses that GetEntry has not filled, so that the consumers
@@ -73,7 +75,7 @@ void DigitReader::run(ProcessingContext& pc)
   // every production build since ENABLE_CASSERT defaults to OFF.)
   const bool noEntry = ent >= mTree->GetEntries();
   if (noEntry) {
-    LOG(info) << "no entry to read, publishing empty output";
+    LOGP(warning, "No entry {} to read, tree contains {} entries, publishing empty output", ent, mTree->GetEntries());
   } else {
     mTree->GetEntry(ent);
   }
@@ -84,7 +86,7 @@ void DigitReader::run(ProcessingContext& pc)
   if (mUseMC) {
     pc.outputs().snapshot(Output{"ZDC", "DIGITSLBL", 0}, labels);
   }
-  uint64_t nextEntry = mTree->GetReadEntry() + 1;
+  uint64_t nextEntry = mTree->GetReadEntry() + pc.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices;
   if (noEntry || nextEntry >= mTree->GetEntries() || (mLastEntry >= 0 && nextEntry > mLastEntry)) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);

@@ -11,6 +11,8 @@
 
 /// @file   TriggerReaderSpec.cxx
 
+#include "Framework/DeviceSpec.h"
+#include "Framework/TimingInfo.h"
 #include <vector>
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -33,11 +35,17 @@ void TriggerReader::init(InitContext& ic)
 
 void TriggerReader::run(ProcessingContext& pc)
 {
-  auto ent = mTree->GetReadEntry() + 1;
+  long ent = pc.services().get<o2::framework::TimingInfo>().timeslice;
+  if (ent >= mTree->GetEntries()) {
+    LOG(warning) << "No entry " << ent << " to read in tree with " << mTree->GetEntries() << " entries";
+    pc.services().get<ControlService>().endOfStream();
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+    return;
+  }
   mTree->GetEntry(ent);
 
   pc.outputs().snapshot(Output{"TPC", "TRIGGERWORDS", 0}, *mTrig);
-  if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
+  if (mTree->GetReadEntry() + pc.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }

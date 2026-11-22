@@ -11,6 +11,7 @@
 
 /// @file   DigitReaderSpec.cxx
 
+#include "Framework/DeviceSpec.h"
 #include <vector>
 
 #include "TTree.h"
@@ -70,6 +71,14 @@ void DigitReader::run(ProcessingContext& pc)
       treeDig->SetBranchAddress("TOFDigitMCTruth", &mPlabels);
     }
 
+    mCurrentEntry = pc.services().get<o2::framework::TimingInfo>().timeslice;
+    if (mCurrentEntry >= treeDig->GetEntries()) {
+      LOG(warning) << "No entry " << mCurrentEntry << " to read in tree with " << treeDig->GetEntries() << " entries";
+      mState = 2;
+      pc.services().get<ControlService>().endOfStream();
+      pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+      return;
+    }
     treeDig->GetEntry(mCurrentEntry);
 
     // fill diagnostic frequencies
@@ -105,12 +114,10 @@ void DigitReader::run(ProcessingContext& pc)
     return;
   }
 
-  mCurrentEntry++;
-
-  if (mCurrentEntry >= treeDig->GetEntries()) {
+  if (mCurrentEntry + pc.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices >= treeDig->GetEntries()) {
     mState = 2;
-    //pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     pc.services().get<ControlService>().endOfStream();
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }
 }
 

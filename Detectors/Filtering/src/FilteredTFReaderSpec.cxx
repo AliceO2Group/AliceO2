@@ -11,6 +11,8 @@
 
 /// @file   FilteredTFReaderSpec.cxx
 
+#include "Framework/DeviceSpec.h"
+#include "Framework/TimingInfo.h"
 #include <cassert>
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -39,7 +41,7 @@ void FilteredTFReader::run(ProcessingContext& pc)
 {
   // FIXME: fill all output headers by TF specific info (extend findMessageHeaderStack)
 
-  auto ent = mTree->GetReadEntry() + 1;
+  long ent = pc.services().get<o2::framework::TimingInfo>().timeslice;
   // A timeframe holds no collision at all whenever the interaction rate is low enough, and
   // the tree then has no entry to read. Publish empty containers instead of reading past the
   // end and pushing branch addresses that GetEntry has not filled, so that the consumers
@@ -47,7 +49,7 @@ void FilteredTFReader::run(ProcessingContext& pc)
   // every production build since ENABLE_CASSERT defaults to OFF.)
   const bool noEntry = ent >= mTree->GetEntries();
   if (noEntry) {
-    LOG(info) << "no entry to read, publishing empty output";
+    LOGP(warning, "No entry {} to read, tree contains {} entries, publishing empty output", ent, mTree->GetEntries());
   } else {
     mTree->GetEntry(ent);
   }
@@ -64,7 +66,7 @@ void FilteredTFReader::run(ProcessingContext& pc)
   pc.outputs().snapshot(Output{"ITS", "COMPCLUSTERS", 0}, mFiltTF.ITSClusters);
   pc.outputs().snapshot(Output{"ITS", "PATTERNS", 0}, mFiltTF.ITSClusterPatterns);
 
-  if (noEntry || mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
+  if (noEntry || mTree->GetReadEntry() + pc.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }

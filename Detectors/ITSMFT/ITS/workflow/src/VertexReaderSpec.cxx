@@ -11,6 +11,8 @@
 
 /// @file   VertexReaderSpec.cxx
 
+#include "Framework/DeviceSpec.h"
+#include "Framework/TimingInfo.h"
 #include <vector>
 
 #include "Framework/ControlService.h"
@@ -36,7 +38,7 @@ void VertexReader::init(InitContext& ic)
 
 void VertexReader::run(ProcessingContext& pc)
 {
-  auto ent = mTree->GetReadEntry() + 1;
+  long ent = pc.services().get<o2::framework::TimingInfo>().timeslice;
   // A timeframe holds no collision at all whenever the interaction rate is low enough, and
   // the tree then has no entry to read. Publish empty containers instead of reading past the
   // end and pushing branch addresses that GetEntry has not filled, so that the consumers
@@ -44,7 +46,7 @@ void VertexReader::run(ProcessingContext& pc)
   // every production build since ENABLE_CASSERT defaults to OFF.)
   const bool noEntry = ent >= mTree->GetEntries();
   if (noEntry) {
-    LOG(info) << "no entry to read, publishing empty output";
+    LOGP(warning, "No entry {} to read, tree contains {} entries, publishing empty output", ent, mTree->GetEntries());
   } else {
     mTree->GetEntry(ent);
   }
@@ -53,7 +55,7 @@ void VertexReader::run(ProcessingContext& pc)
   pc.outputs().snapshot(Output{"ITS", "VERTICES", 0}, mVertices);
   pc.outputs().snapshot(Output{"ITS", "VERTICESROF", 0}, mVerticesROFRec);
 
-  if (noEntry || mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
+  if (noEntry || mTree->GetReadEntry() + pc.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }

@@ -11,6 +11,8 @@
 
 /// @file   ClusterReaderSpec.cxx
 
+#include "Framework/DeviceSpec.h"
+#include "Framework/TimingInfo.h"
 #include "TRKWorkflow/ClusterReaderSpec.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -67,12 +69,12 @@ template <int DetID>
 void ClusterReader<DetID>::run(ProcessingContext& pc)
 {
   constexpr auto origin = DetID == o2::detectors::DetID::TRK ? o2::header::gDataOriginTRK : o2::header::gDataOriginFT3;
-  const auto entry = mTree->GetReadEntry() + 1;
+  long entry = pc.services().get<o2::framework::TimingInfo>().timeslice;
   // A timeframe without a collision has no entry: publish empty streams, so
   // that the consumers still see the timeframe (as the digit reader does).
   const bool noEntry = entry >= mTree->GetEntries();
   if (noEntry) {
-    LOG(info) << detName<DetID>() << "ClusterReader: no entry to read, publishing empty output";
+    LOGP(warning, "{}ClusterReader: no entry {} to read, tree contains {} entries, publishing empty output", detName<DetID>(), entry, mTree->GetEntries());
   } else {
     mTree->GetEntry(entry);
   }
@@ -93,7 +95,7 @@ void ClusterReader<DetID>::run(ProcessingContext& pc)
       pc.outputs().snapshot(Output{origin, "CLUSTERSMCTR", subspec}, noEntry ? noLabels : *mLabels[layer]);
     }
   }
-  if (noEntry || mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
+  if (noEntry || mTree->GetReadEntry() + pc.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }

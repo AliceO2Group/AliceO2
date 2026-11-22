@@ -11,6 +11,8 @@
 
 /// @file   TRDPHReaderSpec.cxx
 
+#include "Framework/DeviceSpec.h"
+#include "Framework/TimingInfo.h"
 #include "TRDWorkflowIO/TRDPHReaderSpec.h"
 
 #include "Framework/ControlService.h"
@@ -49,14 +51,19 @@ void TRDPHReader::connectTree()
 
 void TRDPHReader::run(ProcessingContext& pc)
 {
-  auto currEntry = mTree->GetReadEntry() + 1;
-  assert(currEntry < mTree->GetEntries());
+  long currEntry = pc.services().get<o2::framework::TimingInfo>().timeslice;
+  if (currEntry >= mTree->GetEntries()) {
+    LOG(warning) << "No entry " << currEntry << " to read in tree with " << mTree->GetEntries() << " entries";
+    pc.services().get<ControlService>().endOfStream();
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+    return;
+  }
   mTree->GetEntry(currEntry);
 
   LOG(info) << "Pushing vector of PH values filled with " << mPHValues.size() << " entries at tree entry " << currEntry;
   pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "PULSEHEIGHT", 0}, mPHValues);
 
-  if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
+  if (mTree->GetReadEntry() + pc.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }
