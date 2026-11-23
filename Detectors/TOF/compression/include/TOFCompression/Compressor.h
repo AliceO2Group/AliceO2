@@ -183,9 +183,9 @@ class Compressor
   bool checkerCheck();
   void checkerCheckRDH();
 
-  uint32_t mEventCounter;
-  uint32_t mFatalCounter;
-  uint32_t mErrorCounter;
+  uint32_t mEventCounter = 0;
+  uint32_t mFatalCounter = 0;
+  uint32_t mErrorCounter = 0;
   bool mCheckerVerbose = false;
 
   struct DRMCounters_t {
