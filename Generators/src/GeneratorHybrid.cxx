@@ -251,8 +251,10 @@ Bool_t GeneratorHybrid::Init()
       LOG(info) << "Setting Trigger mode of generator " << gen << " to: " << mTriggerModes[count];
       o2::eventgen::Trigger trigger = nullptr;
       o2::eventgen::DeepTrigger deeptrigger = nullptr;
+      int nTriggersSet = 0;
       for (int trg = 0; trg < mTriggerMacros[count].size(); trg++) {
-        if (mTriggerMacros[count][trg].empty() || mTriggerFuncs[count][trg].empty()) {
+        // an empty function name is derived from the macro file name by GetFromMacro
+        if (mTriggerMacros[count][trg].empty()) {
           continue;
         }
         std::string expandedMacro = o2::utils::expandShellVarsInFileName(mTriggerMacros[count][trg]);
@@ -265,9 +267,8 @@ Bool_t GeneratorHybrid::Init()
           deeptrigger = o2::conf::GetFromMacro<o2::eventgen::DeepTrigger>(expandedMacro, mTriggerFuncs[count][trg], "o2::eventgen::DeepTrigger", "deeptrigger");
         }
         if (!trigger && !deeptrigger) {
-          LOG(warn) << "Failed to retrieve \'external trigger\': problem with configuration";
-          LOG(warn) << "Trigger " << trg << " of generator " << gen << " will not be included";
-          continue;
+          LOG(fatal) << "Failed to retrieve trigger " << trg << " of generator " << gen << ": problem with configuration";
+          return false;
         } else {
           LOG(info) << "Trigger " << trg << " of generator " << gen << " successfully set";
         }
@@ -276,6 +277,11 @@ Bool_t GeneratorHybrid::Init()
         } else {
           gens[count]->addDeepTrigger(deeptrigger);
         }
+        ++nTriggersSet;
+      }
+      if (nTriggersSet == 0) {
+        LOG(fatal) << "Trigger mode set for generator " << gen << " but no trigger macro given";
+        return false;
       }
     }
     count++;
@@ -767,6 +773,12 @@ Bool_t GeneratorHybrid::parseJSON(const std::string& path)
         mGroups.back().push_back(mInputGens.size() - 1);
       }
     }
+  }
+
+  // parallel mode takes each event from one shared queue and never collects the members of a cocktail
+  if (mGenerationMode == GenMode::kParallel && mCocktailMode) {
+    LOG(fatal) << "Cocktails cannot be used in parallel mode: use the sequential mode";
+    return false;
   }
 
   // Get fractions and put them in mFractions
