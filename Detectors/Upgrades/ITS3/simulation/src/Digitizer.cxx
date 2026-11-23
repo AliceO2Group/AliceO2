@@ -457,20 +457,20 @@ void Digitizer::registerDigits(o2::its3::ChipDigitsContainer& chip, uint32_t roF
         continue;
       }
       ExtraDig* extra = getExtraDigBuffer(roFr);
-      int& nxt = pd->labelRef.next;
+      int* nxt = &pd->labelRef.next;
       bool skip = false;
-      while (nxt >= 0) {
-        if ((*extra)[nxt].label == lbl) { // don't store the same label twice
+      while (*nxt >= 0) {
+        if ((*extra)[*nxt].label == lbl) { // don't store the same label twice
           skip = true;
           break;
         }
-        nxt = (*extra)[nxt].next;
+        nxt = &(*extra)[*nxt].next;
       }
       if (skip) {
         continue;
       }
       // new predigit will be added in the end of the chain
-      nxt = extra->size();
+      *nxt = extra->size();
       extra->emplace_back(lbl);
     }
   }
