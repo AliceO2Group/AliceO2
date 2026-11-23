@@ -21,6 +21,7 @@
 #include "SimulationDataFormat/MCEventHeader.h"
 #include "SimulationDataFormat/MCGenProperties.h"
 #include "SimulationDataFormat/ParticleStatus.h"
+#include "SimulationDataFormat/O2DatabasePDG.h"
 #if PYTHIA_VERSION_INTEGER >= 8310
 #include "Pythia8/HIInfo.h"
 #else
@@ -660,6 +661,15 @@ Bool_t
     // first particle is system
     auto particle = event[iparticle];
     auto pdg = particle.id();
+    // Pythia8/Angantyr adds one nucleus remnant per beam (Angantyr::addNucleusRemnants): a
+    // single lump with PDG code +-10LZZZAAA9 holding all the non-interacting nucleons, known
+    // to Pythia particle table only. These codes are deliberately not added to TDatabasePDG:
+    // importParticles() runs in a TBB worker thread under GeneratorHybrid, while other threads
+    // read the same process-wide table (TParticle's constructor, PrimaryGenerator::AddTrack),
+    // and ROOT locks neither side. Given that those nuclei haven't been transported until now,
+    // they are set as "not to be tracked", which disables directly the warning.
+    // This behaviour could change in the future, if we decide to add the remnant codes to TDatabasePDG.
+    const bool isRemnant = O2DatabasePDG::isNucleusRemnantCode(pdg);
     auto st = o2::mcgenstatus::MCGenStatusEncoding(particle.statusHepMC(), //
                                                    particle.status())      //
                 .fullEncoding;
@@ -677,8 +687,9 @@ Bool_t
                                    particle.yProd(),         // Production Y
                                    particle.zProd(),         // Production Z
                                    particle.tProd()));       // Production t
-    mParticles.back().SetBit(ParticleStatus::kToBeDone,      //
-                             particle.statusHepMC() == 1);
+    // nucleus remnants are spectators: they are final state, but they are never transported
+    mParticles.back().SetBit(ParticleStatus::kToBeDone, //
+                             particle.statusHepMC() == 1 && !isRemnant);
   }
 
   /** success **/
@@ -982,24 +993,18 @@ void GeneratorPythia8::getNremn(const Pythia8::Event& event, int& nProtonProj, i
   auto nparticles = event.size();
   for (int ipa = 0; ipa < nparticles; ++ipa) {
     const auto particle = event[ipa];
-    auto pdg = particle.id();
+    const auto pdg = particle.id();
 
-    // nuclear remnants have pdg code = ±10LZZZAAA9
-    if (pdg < 1000000000) {
-      continue; // must be nucleus
-    }
-    if (pdg % 10 != 9) {
-      continue; // first digit must be 9
+    // nuclear remnants have pdg code = 10LZZZAAA9. As before, only the positive codes are
+    // counted: the projectile/target assignment below goes by the sign of pz, so remnants of
+    // an anti-nucleus beam would be reported as if they were nuclei.
+    if (pdg < 0 || !O2DatabasePDG::isNucleusRemnantCode(pdg)) {
+      continue;
     }
     nNucRem++;
 
-    // extract A, Z and L from pdg code
-    pdg /= 10;
-    auto A = pdg % 1000;
-    pdg /= 1000;
-    auto Z = pdg % 1000;
-    pdg /= 1000;
-    auto L = pdg % 10;
+    int Z = 0, A = 0;
+    O2DatabasePDG::nucleusRemnantZA(pdg, Z, A);
 
     if (particle.pz() > 0.) {
       nProtonProj = Z;

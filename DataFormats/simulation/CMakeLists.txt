@@ -80,6 +80,11 @@ o2_add_test(MCCompLabel
             COMPONENT_NAME SimulationDataFormat
             PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat)
 
+o2_add_test(O2DatabasePDG
+            SOURCES test/testO2DatabasePDG.cxx
+            COMPONENT_NAME SimulationDataFormat
+            PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat)
+
 o2_add_test(MCEventLabel
             SOURCES test/testMCEventLabel.cxx
             COMPONENT_NAME SimulationDataFormat

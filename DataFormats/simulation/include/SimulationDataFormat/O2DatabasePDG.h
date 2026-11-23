@@ -86,20 +86,85 @@ class O2DatabasePDG
     return particle->Mass();
   }
 
+  // Returns true for the PDG codes that Pythia8/Angantyr gives to its nucleus remnants.
+  // NOTE: this is a test on the shape of the code, not proof of its origin. Geant4 uses the
+  // same I = 9 slot for an excited ion whose level index it does not know (G4IonTable::
+  // GetNucleusEncoding adds 9 when the excitation energy is non-zero and the level is not in
+  // 1..9), so transport can hand us codes that match this test and are not remnants at all.
+  // That is why Mass() below only uses the remnant formula once the database has nothing for
+  // the code and nothing for its ground state, and why L = 0 is required here: the formula
+  // counts nucleons only, so it would miss the Lambda mass of a hypernucleus entirely.
+  static bool isNucleusRemnantCode(int pdg)
+  {
+    const int abspdg = pdg < 0 ? -pdg : pdg;
+    return abspdg >= IONBASELOW && abspdg <= IONBASEHIGH && abspdg % 10 == 9 &&
+           (abspdg / 10000000) % 10 == 0;
+  }
+
+  // Z and A encoded in a +-10LZZZAAA9 nucleus remnant code; both 0 for any other code
+  static void nucleusRemnantZA(int pdg, int& Z, int& A)
+  {
+    Z = A = 0;
+    if (!isNucleusRemnantCode(pdg)) {
+      return;
+    }
+    const int code = (pdg < 0 ? -pdg : pdg) / 10;
+    A = code % 1000;
+    Z = (code / 1000) % 1000;
+  }
+
+  // Mass in GeV of a nucleus remnant as the sum of the free nucleon masses, Z * m_p +
+  // (A - Z) * m_n; -1 if pdg is not a remnant code or the nucleon masses are unavailable.
+  // For anything that does have a ground state, Mass() prefers that ground state, which also accounts for the
+  // binding energy this sum ignores: Angantyr gives its remnant the mass A * m_beam/A_beam
+  // (the spectator nucleons keep the effective, bound nucleon mass of the beam, measured as
+  // 11.17438 GeV for a Z=6, A=12 remnant of an O-16 beam), so this sum sits about 0.8 %
+  // high. Where the table does have a ground state it is the closer of the two, which is
+  // why Mass() prefers it.
+  static Double_t nucleusRemnantMass(int pdg, TDatabasePDG* db = O2DatabasePDG::Instance())
+  {
+    int Z = 0, A = 0;
+    nucleusRemnantZA(pdg, Z, A);
+    if (A < 1 || Z > A) {
+      return -1.;
+    }
+    const auto proton = db->GetParticle(2212);
+    const auto neutron = db->GetParticle(2112);
+    if (proton == nullptr || neutron == nullptr) {
+      return -1.;
+    }
+    return Z * proton->Mass() + (A - Z) * neutron->Mass();
+  }
+
   // determine particle to get mass for based on PDG
   static Double_t Mass(int pdg, bool& success, TDatabasePDG* db = O2DatabasePDG::Instance())
   {
-    if (pdg < IONBASELOW || pdg > IONBASEHIGH) {
-      // not an ion, return immediately
-      return MassImpl(db->GetParticle(pdg), success);
-    }
+    // giving priority here to value held in the database
     if (auto particle = db->GetParticle(pdg)) {
-      // see if this ion can be found
       return MassImpl(particle, success);
     }
-    // if we are here, try one last time to look for ground state of potential isomere state
-    pdg = pdg / 10 * 10;
-    return MassImpl(db->GetParticle(pdg), success);
+    const int abspdg = pdg < 0 ? -pdg : pdg;
+    if (abspdg < IONBASELOW || abspdg > IONBASEHIGH) {
+      // not an ion, and not in the database
+      return MassImpl(nullptr, success);
+    }
+    // an ion: try the ground state of a potential isomere state. The lookup goes through
+    // |pdg| so that an anti-nucleus gets the mass of its nucleus instead of -1, which is
+    // what it used to get.
+    if (auto particle = db->GetParticle(abspdg / 10 * 10)) {
+      return MassImpl(particle, success);
+    }
+    // Nothing in the table for the code or its ground state. If it looks like a Pythia8/
+    // Angantyr nucleus remnant, fall back to deriving the mass from the code itself. Only
+    // this last step is formula based, and it has to be: these codes are never added to
+    // TDatabasePDG (see the comment in GeneratorPythia8::importParticles -- the table is
+    // process wide and ROOT does not lock it, so writing to it while events are being
+    // generated would race with the readers), so no lookup can ever resolve them.
+    if (const auto mass = nucleusRemnantMass(pdg, db); mass > 0.) {
+      success = true;
+      return mass;
+    }
+    return MassImpl(nullptr, success);
   }
 
   // remove default constructor
