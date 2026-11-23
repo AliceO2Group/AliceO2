@@ -84,9 +84,18 @@ void GPUChainTracking::RegisterPermanentMemoryAndProcessors()
   }
 
   mRec->RegisterGPUProcessor(mInputsHost.get(), mRec->IsGPU());
-  if (GetRecoSteps() & RecoStep::TPCSectorTracking) {
-    for (uint32_t i = 0; i < NSECTORS; i++) {
+  for (uint32_t i = 0; i < NSECTORS; i++) {
+    if (GetRecoSteps() & RecoStep::TPCSectorTracking) {
+      processors()->tpcTrackers[i].SetSector(i);
       mRec->RegisterGPUProcessor(&processors()->tpcTrackers[i], GetRecoStepsGPU() & RecoStep::TPCSectorTracking);
+    }
+    if (GetRecoSteps() & RecoStep::TPCClusterFinding) {
+      processors()->tpcClusterer[i].mISector = i;
+      mRec->RegisterGPUProcessor(&processors()->tpcClusterer[i], GetRecoStepsGPU() & RecoStep::TPCClusterFinding);
+#ifdef GPUCA_HAS_ONNX
+      processors()->tpcNNClusterer[i].mISector = i;
+      mRec->RegisterGPUProcessor(&processors()->tpcNNClusterer[i], GetRecoStepsGPU() & RecoStep::TPCClusterFinding);
+#endif
     }
   }
   if (GetRecoSteps() & RecoStep::TPCMerging) {
@@ -103,14 +112,6 @@ void GPUChainTracking::RegisterPermanentMemoryAndProcessors()
   }
   if (GetRecoSteps() & RecoStep::TPCDecompression) {
     mRec->RegisterGPUProcessor(&processors()->tpcDecompressor, GetRecoStepsGPU() & RecoStep::TPCDecompression);
-  }
-  if (GetRecoSteps() & RecoStep::TPCClusterFinding) {
-    for (uint32_t i = 0; i < NSECTORS; i++) {
-      mRec->RegisterGPUProcessor(&processors()->tpcClusterer[i], GetRecoStepsGPU() & RecoStep::TPCClusterFinding);
-#ifdef GPUCA_HAS_ONNX
-      mRec->RegisterGPUProcessor(&processors()->tpcNNClusterer[i], GetRecoStepsGPU() & RecoStep::TPCClusterFinding);
-#endif
-    }
   }
   if (GetRecoSteps() & RecoStep::Refit) {
     mRec->RegisterGPUProcessor(&processors()->trackingRefit, GetRecoStepsGPU() & RecoStep::Refit);

@@ -94,13 +94,6 @@ GPUReconstruction::GPUReconstruction(const GPUSettingsDeviceBackend& cfg) : mHos
   }
   param().SetDefaults(mGRPSettings.get());
   mMemoryScalers.reset(new GPUMemorySizeScalers);
-  for (uint32_t i = 0; i < NSECTORS; i++) {
-    processors()->tpcTrackers[i].SetSector(i); // TODO: Move to a better place
-    processors()->tpcClusterer[i].mISector = i;
-#ifdef GPUCA_HAS_ONNX
-    processors()->tpcNNClusterer[i].mISector = i;
-#endif
-  }
 }
 
 GPUReconstruction::~GPUReconstruction()
