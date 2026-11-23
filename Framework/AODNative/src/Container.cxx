@@ -28,6 +28,10 @@ constexpr size_t kDirectoryReadSize = 64;
 // Read at open: the header, the top directory record and, as ROOT writes them
 // first, the key and directory record of the first DF, in one round trip.
 constexpr size_t kHeadReadSize = 4096;
+// Directory records and key lists of the next DFs read along with those of a
+// DF: at most this many DFs and this many bytes of key lists.
+constexpr size_t kListAheadDFs = 16;
+constexpr uint64_t kListAheadBytes = 1024 * 1024;
 // Largest gap between the TTrees of a DF still read together with them.
 constexpr uint64_t kMetadataGap = 4 * 1024;
 // Smallest possible key header: 32-bit seeks and three empty strings.
@@ -103,8 +107,7 @@ DirectoryInfo RootFile::readDirectory(uint64_t offset)
   if (offset >= mSource->size()) {
     throw CorruptData(mUrl, offset, "directory record past the end of the file");
   }
-  auto len = std::min<uint64_t>(kDirectoryReadSize, mSource->size() - offset);
-  auto buf = offset + len <= mHead.size() ? std::vector<uint8_t>(mHead.begin() + offset, mHead.begin() + offset + len) : readRange(*mSource, offset, len);
+  auto buf = readMetadata(offset, std::min<uint64_t>(kDirectoryReadSize, mSource->size() - offset));
   Cursor c{buf, mUrl, offset};
   DirectoryInfo d;
   d.version = c.i16();
@@ -124,7 +127,7 @@ std::vector<KeyInfo> RootFile::readKeyList(DirectoryInfo const& dir)
   if (dir.seekKeys == 0 || dir.nbytesKeys <= 0) {
     return {};
   }
-  auto buf = readRange(*mSource, dir.seekKeys, dir.nbytesKeys);
+  auto buf = readMetadata(dir.seekKeys, dir.nbytesKeys);
   auto header = parseKey(buf, dir.seekKeys);
   Cursor c{buf, mUrl, dir.seekKeys};
   c.seek(header.keylen);
@@ -142,6 +145,67 @@ std::vector<KeyInfo> RootFile::readKeyList(DirectoryInfo const& dir)
     c.seek(start + keys.back().keylen);
   }
   return keys;
+}
+
+std::vector<uint8_t> RootFile::readMetadata(uint64_t offset, size_t len)
+{
+  if (offset + len <= mHead.size()) {
+    return {mHead.begin() + offset, mHead.begin() + offset + len};
+  }
+  if (auto it = mAhead.find(offset); it != mAhead.end() && it->second.size() == len) {
+    return it->second;
+  }
+  return readRange(*mSource, offset, len);
+}
+
+void RootFile::listAhead(std::string const& df)
+{
+  mAhead.clear();
+  auto fetch = [this](std::vector<std::pair<uint64_t, size_t>> const& ranges) {
+    std::vector<ReadRequest> requests;
+    for (auto [offset, len] : ranges) {
+      auto& bytes = mAhead[offset];
+      bytes.resize(len);
+      requests.push_back({offset, len, bytes.data()});
+    }
+    if (!requests.empty()) {
+      mSource->readvInto(requests);
+    }
+  };
+  // The directory records of this DF and of the next ones, in read order.
+  std::vector<uint64_t> records;
+  std::vector<std::pair<uint64_t, size_t>> ranges;
+  if (mOrder.empty()) {
+    mOrder = dataFrames();
+  }
+  for (auto it = std::ranges::find(mOrder, df); it != mOrder.end() && records.size() < kListAheadDFs; ++it) {
+    auto key = findTopKey(*it);
+    auto offset = key ? key->seekKey + key->keylen : 0;
+    if (!key || (*it != df && mKeysOf.contains(*it)) || (key->className != "TDirectoryFile" && key->className != "TDirectory") || key->compressed() || offset + kDirectoryReadSize > mSource->size()) {
+      continue;
+    }
+    records.push_back(offset);
+    if (offset + kDirectoryReadSize > mHead.size()) {
+      ranges.emplace_back(offset, kDirectoryReadSize);
+    }
+  }
+  fetch(ranges);
+  // Then their key lists. Anything odd is left to the normal path, which reports it.
+  ranges.clear();
+  uint64_t bytes = 0;
+  for (auto offset : records) {
+    try {
+      auto dir = readDirectory(offset);
+      if (dir.seekKeys == 0 || dir.nbytesKeys <= 0 || dir.seekKeys > mSource->size() || (uint64_t)dir.nbytesKeys > mSource->size() - dir.seekKeys ||
+          (!ranges.empty() && bytes + dir.nbytesKeys > kListAheadBytes)) {
+        continue;
+      }
+      bytes += dir.nbytesKeys;
+      ranges.emplace_back(dir.seekKeys, dir.nbytesKeys);
+    } catch (FormatError const&) {
+    }
+  }
+  fetch(ranges);
 }
 
 const std::vector<KeyInfo>& RootFile::topKeys()
@@ -235,7 +299,16 @@ std::vector<KeyInfo> RootFile::keysOf(const std::string& df)
   if (key->compressed()) {
     throw UnsupportedLayout("compressed directory record for " + df + " in " + mUrl);
   }
-  auto dir = readDirectory(key->seekKey + key->keylen);
+  // The records of the next DFs are read ahead with those of this one; the
+  // first DF's directory record comes with the head, its key list does not.
+  auto offset = key->seekKey + key->keylen;
+  if (!mSource->canMap() && offset + kDirectoryReadSize > mHead.size() && !mAhead.contains(offset)) {
+    listAhead(df);
+  }
+  auto dir = readDirectory(offset);
+  if (!mSource->canMap() && !mAhead.contains(dir.seekKeys)) {
+    listAhead(df);
+  }
   auto keys = highestCycles(readKeyList(dir));
 
   // The TTrees of a DF are written next to each other: ranges less than
