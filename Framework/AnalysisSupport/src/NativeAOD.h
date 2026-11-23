@@ -133,8 +133,9 @@ class NativeAODInputFile : public AODInputFile
   static std::shared_ptr<NativeAODInputFile> open(std::string const& url, RootObjectReadingFactory& factory, o2::aod::native::Options const& options, std::string const& name = {});
   /// The same, reading from @a source (e.g. the replicas of a grid file).
   static std::shared_ptr<NativeAODInputFile> open(std::unique_ptr<o2::aod::native::ByteSource> source, RootObjectReadingFactory& factory, o2::aod::native::Options const& options, std::string const& name);
-  /// The storage element and the seconds the grid lookup and open took, for monitoring.
-  void setGridInfo(std::string se, double openTime);
+  /// For monitoring: the storage element, the seconds the catalogue lookup took,
+  /// and those the opening of the replica read took (failed replicas excluded).
+  void setGridInfo(std::string se, double accessTime, double replicaOpenTime);
   std::string monitoringDetails() const override;
 
   std::string name() const override { return mName; }
@@ -153,7 +154,9 @@ class NativeAODInputFile : public AODInputFile
   NativeAODInputFile() = default;
   std::string mName;
   std::string mSE;
-  double mOpenTime = 0;
+  double mAccessTime = 0;
+  double mOpenTime = 0;    // replica open and the reads of TFile::Init, as TJAlienFile
+  double mPrepareTime = 0; // parentFiles and the first DF's directory, keys and trees
   std::shared_ptr<o2::aod::native::RootFile> mFile;
   std::shared_ptr<NativeAODFileSystem> mFilesystem;
   std::map<std::string, std::string> mParentFiles;

@@ -13,6 +13,7 @@
 #include "AODNative/Errors.h"
 #include "Framework/RuntimeError.h"
 #include <algorithm>
+#include <chrono>
 #include <cstdio>
 
 namespace o2::framework
@@ -334,7 +335,16 @@ std::shared_ptr<NativeAODInputFile> NativeAODInputFile::open(std::unique_ptr<Byt
 {
   auto result = std::shared_ptr<NativeAODInputFile>(new NativeAODInputFile);
   result->mName = name;
+  auto start = std::chrono::steady_clock::now();
+  double failover = source->failoverSeconds();
   result->mFile = std::make_shared<RootFile>(std::move(source));
+  // What TFile::Init reads (header and keys) counts as opening, as for ROOT;
+  // the rest is the preparation of the first DF.
+  result->mFile->topKeys();
+  auto opened = std::chrono::steady_clock::now();
+  auto& file = result->mFile->source();
+  result->mOpenTime = std::chrono::duration<double>(opened - start).count() - (file.failoverSeconds() - failover);
+  failover = file.failoverSeconds();
   result->mFilesystem = std::make_shared<NativeAODFileSystem>(result->mFile, options, factory);
   result->mFilesystem->setName(result->mName);
   result->mParentFiles = result->mFile->readStringMap("parentFiles");
@@ -348,13 +358,15 @@ std::shared_ptr<NativeAODInputFile> NativeAODInputFile::open(std::unique_ptr<Byt
       }
     }
   }
+  result->mPrepareTime = std::chrono::duration<double>(std::chrono::steady_clock::now() - opened).count() - (file.failoverSeconds() - failover);
   return result;
 }
 
-void NativeAODInputFile::setGridInfo(std::string se, double openTime)
+void NativeAODInputFile::setGridInfo(std::string se, double accessTime, double replicaOpenTime)
 {
   mSE = std::move(se);
-  mOpenTime = openTime;
+  mAccessTime = accessTime;
+  mOpenTime += replicaOpenTime;
 }
 
 std::string NativeAODInputFile::monitoringDetails() const
@@ -362,9 +374,13 @@ std::string NativeAODInputFile::monitoringDetails() const
   if (mSE.empty()) {
     return "";
   }
-  char openTime[32];
-  std::snprintf(openTime, sizeof(openTime), "%.1f", mOpenTime);
-  return ",se=" + mSE + ",open_time=" + openTime;
+  // open_time covers what TJAlienFile::GetElapsed() does for ROOT: opening the
+  // replica which is read and TFile::Init. The other times come before it, so
+  // that open_time stays last in the open line, as for ROOT.
+  char times[256];
+  std::snprintf(times, sizeof(times), ",access_time=%.3f,failover_time=%.3f,prepare_time=%.3f,se=%s,open_time=%.1f",
+                mAccessTime, mFile->source().failoverSeconds(), mPrepareTime, mSE.c_str(), mOpenTime);
+  return times;
 }
 
 uint64_t NativeAODInputFile::size() const { return mFile->source().size(); }
