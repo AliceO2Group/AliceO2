@@ -188,7 +188,9 @@ class Detector : public FairDetector
   // Hook called at the end of the transport of an event (or of a sub-event in a simulation worker),
   // before the hits are written/shipped. It receives the primaries of the (sub-)event and allows
   // detectors to create hits directly from them (fast simulation without transport).
+  // Only detectors returning true from hasFinishEventHook() are considered (queried once, at the first event).
   virtual void finishEventHook(const std::vector<TParticle>& /*primaries*/) {}
+  virtual bool hasFinishEventHook() const { return false; }
 
   // interfaces to attach properly encoded hit information to a FairMQ message
   // and to decode it

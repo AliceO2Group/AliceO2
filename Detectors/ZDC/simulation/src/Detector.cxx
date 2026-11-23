@@ -2606,6 +2606,7 @@ void Detector::processFastSim(const std::vector<TParticle>& primaries)
   mFastSim->run(mFastSimInput, nPart, mFastSimOutput);
 
   const math_utils::Vector3D<float> xImp(0., 0., 0.); // not provided by the model
+  auto stack = static_cast<o2::data::Stack*>(fMC->GetStack());
   for (int i = 0; i < nPart; i++) {
     const int trackID = mFastSimIndices[i];
     const auto& p = primaries[trackID];
@@ -2629,6 +2630,9 @@ void Detector::processFastSim(const std::vector<TParticle>& primaries)
         // the digitizer reads the PMC light for the common channel and the PMQ one for the towers
         createOrAddHit(detector, sector, sector == Common ? mMediumPMCid : mMediumPMQid, false, nphe, trackID, trackID,
                        tof, p.Energy(), xImp, 0. /* eDep */, p.Vx(), p.Vy(), zDet, p.Px(), p.Py(), p.Pz());
+        // createOrAddHit does not touch the stack: flag the primary as having ZDC hits and count the hit
+        // (MCTrack hit mask and MCEventStats, used e.g. to filter out events without hits)
+        stack->addHitFromPrimary(GetDetId(), trackID);
       }
     }
   }

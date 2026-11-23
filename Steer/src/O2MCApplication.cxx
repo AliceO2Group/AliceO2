@@ -443,11 +443,23 @@ void O2MCApplicationBase::finishEventCommon()
   LOG(info) << "This event/chunk did " << mStepCounter << " steps";
   LOG(info) << "Longest track time is " << mLongestTrackTime;
 
-  // give detectors the chance to produce hits directly from the primaries (fast simulations)
-  const auto& primaries = static_cast<o2::data::Stack*>(GetStack())->getPrimaries();
-  for (auto det : listActiveDetectors) {
-    if (auto o2det = dynamic_cast<o2::base::Detector*>(det)) {
-      o2det->finishEventHook(primaries);
+  // give detectors the chance to produce hits directly from the primaries (fast simulations).
+  // The list of detectors using the hook is built at the first event, so that it is valid for
+  // every application instance (also the worker threads of multithreaded Geant4)
+  if (!mFinishEventHookDetectorsSet) {
+    for (auto det : listActiveDetectors) {
+      auto o2det = dynamic_cast<o2::base::Detector*>(det);
+      if (o2det && o2det->hasFinishEventHook()) {
+        LOG(info) << "Detector " << o2det->GetName() << " uses the end-of-event hook";
+        mFinishEventHookDetectors.push_back(o2det);
+      }
+    }
+    mFinishEventHookDetectorsSet = true;
+  }
+  if (!mFinishEventHookDetectors.empty()) {
+    const auto& primaries = static_cast<o2::data::Stack*>(GetStack())->getPrimaries();
+    for (auto det : mFinishEventHookDetectors) {
+      det->finishEventHook(primaries);
     }
   }
 

@@ -175,6 +175,11 @@ class Stack : public FairGenericStack
   /// Mark the current track as contributing to a hit created by another track
   /// \param iDet  Detector unique identifier
   void modifiesHit(int iDet);
+  /// Increment number of hits for a primary in a given detector, for hits created outside of
+  /// the transport of that primary (e.g. by a fast simulation at the end of the event)
+  /// \param iDet      Detector unique identifier
+  /// \param iPrimary  Index of the primary in the current (sub-)event
+  void addHitFromPrimary(int iDet, int iPrimary);
 
   TClonesArray* GetListOfParticles() override;
 

@@ -82,6 +82,7 @@ class Detector : public o2::base::DetImpl<Detector>
   /// hook called once all primaries of the (sub-)event were processed and before hits are shipped:
   /// used by the fast simulation, which turns primaries directly into hits
   void finishEventHook(const std::vector<TParticle>& primaries) final;
+  bool hasFinishEventHook() const final { return mUseFastSim; }
 
   /// is the detector response obtained from the fast simulation model (no geometry, no transport)
   bool isFastSim() const { return mUseFastSim; }
