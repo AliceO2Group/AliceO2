@@ -216,11 +216,13 @@ void GPUChainTracking::PrintKernelDebugOutput()
 
 void GPUChainTracking::PrintOutputStat()
 {
-  int32_t nTracks = 0, nAttachedClusters = 0, nAttachedClustersFitted = 0, nAdjacentClusters = 0;
+  int32_t nTracks = 0, nAttachedClusters = 0, nAttachedClustersFitted = 0, nAdjacentClusters = 0, nCompressedClusters = 0;
   uint32_t nCls = GetProcessingSettings().doublePipeline ? mIOPtrs.clustersNative->nClustersTotal : processors()->tpcMerger.NClusters();
+  const char* outputType = "";
   if (GetProcessingSettings().createO2Output > 1) {
     nTracks = mIOPtrs.nOutputTracksTPCO2;
     nAttachedClusters = mIOPtrs.nMergedTrackHits;
+    outputType = "O2";
   } else {
     for (uint32_t k = 0; k < mIOPtrs.nMergedTracks; k++) {
       if (mIOPtrs.mergedTracks[k].OK()) {
@@ -237,6 +239,11 @@ void GPUChainTracking::PrintOutputStat()
         nAdjacentClusters++;
       }
     }
+    outputType = "GPU";
+  }
+  if (mIOPtrs.tpcCompressedClusters) {
+    o2::tpc::CompressedClusters c = *mIOPtrs.tpcCompressedClusters;
+    nCompressedClusters = c.nAttachedClusters + c.nUnattachedClusters;
   }
 
   char trdText[1024] = "";
@@ -256,7 +263,7 @@ void GPUChainTracking::PrintOutputStat()
     }
     snprintf(trdText, 1024, " - TRD Tracker reconstructed %d tracks (%d tracklets)", nTRDTracks, nTRDTracklets);
   }
-  GPUInfo("Output Tracks: %d (%d / %d / %d / %d clusters (fitted / attached / adjacent / total) - %s format)%s", nTracks, nAttachedClustersFitted, nAttachedClusters, nAdjacentClusters, nCls, GetProcessingSettings().createO2Output > 1 ? "O2" : "GPU", trdText);
+  GPUInfo("Output Tracks (%s): %d - Clusters: %d / %d / %d / %d / %d (attached / total / compressed / fitted / adjacent)%s", outputType, nTracks, nAttachedClusters, nCls, nCompressedClusters, nAttachedClustersFitted, nAdjacentClusters, trdText);
 }
 
 void GPUChainTracking::OutputSanityCheck()
