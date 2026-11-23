@@ -149,6 +149,7 @@ std::shared_ptr<AODInputFile> openNativeAOD(std::string const& filename, RootObj
   }
   auto start = std::chrono::steady_clock::now();
   auto replicas = gridReplicas(filename);
+  auto accessed = std::chrono::steady_clock::now();
   if (replicas.empty()) {
     throw o2::aod::native::IoError(filename, "no replica the native reader can read");
   }
@@ -161,9 +162,10 @@ std::shared_ptr<AODInputFile> openNativeAOD(std::string const& filename, RootObj
   auto source = o2::aod::native::ByteSource::openReplicas(std::move(list), options, [filename](std::string const& message) {
     LOGP(info, "\"{}\": {}", filename, message);
   });
+  auto replicaOpen = std::chrono::duration<double>(std::chrono::steady_clock::now() - accessed).count() - source->failoverSeconds();
   auto se = source->replicaLabel();
   auto file = NativeAODInputFile::open(std::move(source), factory, options, filename);
-  file->setGridInfo(se, std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count());
+  file->setGridInfo(se, std::chrono::duration<double>(accessed - start).count(), replicaOpen);
   return file;
 }
 

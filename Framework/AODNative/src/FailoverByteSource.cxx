@@ -20,6 +20,20 @@ namespace o2::aod::native
 
 namespace
 {
+/// Adds the time until it goes out of scope to @a total, unless cancelled.
+struct FailoverTimer {
+  std::atomic<uint64_t>& total;
+  std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+  bool counting = true;
+  void cancel() { counting = false; }
+  ~FailoverTimer()
+  {
+    if (counting) {
+      total.fetch_add(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - start).count(), std::memory_order_relaxed);
+    }
+  }
+};
+
 std::string labelOf(Replica const& r)
 {
   return r.label.empty() ? r.url.substr(0, r.url.find('?')) : r.label;
@@ -33,10 +47,12 @@ FailoverByteSource::FailoverByteSource(std::vector<Replica> replicas, Options co
     throw IoError("(no replica)", "no replica to open");
   }
   for (mIndex = 0; mIndex < mReplicas.size(); ++mIndex) {
+    FailoverTimer timer{mFailoverNs};
     try {
       mSource = openReplica(mIndex);
       mSize = mSource->size();
       mRemote = mSource->isRemote();
+      timer.cancel();
       return;
     } catch (IoError const& e) {
       report("Could not open replica on " + labelOf(mReplicas[mIndex]) + ": " + e.what());
@@ -109,6 +125,7 @@ void FailoverByteSource::withFailover(std::function<void(ByteSource&)> const& re
       return;
     } catch (IoError const& e) {
       std::lock_guard lock{mMutex};
+      FailoverTimer timer{mFailoverNs};
       if (generation != mGeneration) {
         continue; // another read already replaced the replica: try the new one
       }

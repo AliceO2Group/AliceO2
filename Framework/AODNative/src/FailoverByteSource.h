@@ -46,6 +46,7 @@ class FailoverByteSource : public ByteSource
   uint64_t readCalls() const override;
   std::string url() const override { return current()->url(); }
   std::string replicaLabel() const override;
+  double failoverSeconds() const override { return mFailoverNs.load(std::memory_order_relaxed) / 1e9; }
 
  private:
   std::shared_ptr<ByteSource> current() const;
@@ -71,6 +72,7 @@ class FailoverByteSource : public ByteSource
   bool mRemote = false;
   std::atomic<uint64_t> mRetiredBytes = 0;
   std::atomic<uint64_t> mRetiredCalls = 0;
+  std::atomic<uint64_t> mFailoverNs = 0;
 };
 
 } // namespace o2::aod::native

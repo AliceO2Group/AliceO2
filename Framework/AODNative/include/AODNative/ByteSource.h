@@ -98,6 +98,9 @@ class ByteSource
   virtual std::string url() const = 0;
   /// The label of the replica being read, for a source opened with openReplicas().
   virtual std::string replicaLabel() const { return {}; }
+  /// Seconds spent so far on replicas which failed to open, retry delays and
+  /// reopens, for a source opened with openReplicas().
+  virtual double failoverSeconds() const { return 0; }
   static std::unique_ptr<ByteSource> open(std::string url, const Options&);
   /// Opens the first replica which opens, and on a read error retries it
   /// (Options::readRetries times, reopened) and then moves on to the next
