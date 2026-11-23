@@ -725,6 +725,8 @@ inline size_t EncodedBlocks<H, N, W>::fillTreeBranch(TTree& tree, const std::str
   if (!br) {
     br = tree.Branch(brname.c_str(), &dt, 512, splitLevel);
     br->SetCompressionLevel(compLevel);
+  } else {
+    br->SetObject(&dt); // dt may be a caller's local: never fill from where it was at the first call
   }
   return br->Fill();
 }
