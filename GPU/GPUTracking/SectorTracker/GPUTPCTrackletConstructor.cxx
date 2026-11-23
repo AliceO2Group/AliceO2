@@ -88,11 +88,7 @@ GPUd() void GPUTPCTrackletConstructor::StoreTracklet(int32_t /*nBlocks*/, int32_
   tracklet.SetParam(tParam.GetParam());
   int32_t w = tracker.CalculateHitWeight(r.mNHits, tParam.GetChi2());
   tracklet.SetHitWeight(w);
-#ifdef __HIPCC__ // Todo: fixme!
-  for (int32_t iRow = r.mFirstRow - 1; ++iRow <= (int32_t)r.mLastRow; /*iRow++*/) {
-#else
   for (uint32_t iRow = r.mFirstRow; iRow <= r.mLastRow; iRow++) {
-#endif
     calink ih = rowHits[iRow];
     tracker.TrackletRowHits()[hitout + (iRow - r.mFirstRow)] = ih;
     if (ih != CALINK_INVAL && ih != CALINK_DEAD_CHANNEL) {
@@ -313,20 +309,12 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int32_t /*nBlocks*/,
           row.Grid().GetBinArea(yUncorrected, zUncorrected + tParam.ZOffset(), CAMath::Sqrt(sy2), CAMath::Sqrt(sz2), bin, ny, nz);
           float ds = 1e6f;
 
-#ifdef __HIPCC__ // Todo: fixme!
-          for (int32_t k = -1; ++k <= nz; /*k++*/) {
-#else
           for (int32_t k = 0; k <= nz; k++) {
-#endif
             int32_t nBinsY = row.Grid().Ny();
             int32_t mybin = bin + k * nBinsY;
             uint32_t hitFst = firsthit[mybin];
             uint32_t hitLst = firsthit[mybin + ny + 1];
-#ifdef __HIPCC__ // Todo: fixme!
-            for (uint32_t ih = hitFst - 1; ++ih < hitLst; /*ih++*/) {
-#else
             for (uint32_t ih = hitFst; ih < hitLst; ih++) {
-#endif
               cahit2 hh = hits[ih];
               float y = y0 + hh.x * stepY;
               float z = z0 + hh.y * stepZ;
@@ -420,11 +408,7 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::DoTracklet(GPUconstantref() GPUTPCT
   r.mNHits = 0;
   CADEBUG(printf("Start tracklet\n"));
 
-#ifdef __HIPCC__ // Todo: fixme!
-  for (int32_t iStage = -1; ++iStage < 2; /*iStage++*/) {
-#else
   for (int32_t iStage = 0; iStage < 2; iStage++) {
-#endif
     for (; iRow != iRowEnd; iRow += r.mStage == 2 ? -1 : 1) {
       if (!r.mGo) {
         break;
