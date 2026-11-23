@@ -42,11 +42,7 @@ GPUdii() void GPUTPCStartHitsSorter::Thread<0>(int32_t nBlocks, int32_t nThreads
   GPUbarrier();
 
   int32_t startOffset = s.mStartOffset;
-#ifdef __HIPCC__ // TODO: Fixme
-  for (int32_t ir = -1; ++ir < (int32_t)s.mNRows;) {
-#else
   for (uint32_t ir = 0; ir < s.mNRows; ir++) {
-#endif
     GPUglobalref() GPUTPCHitId* const GPUrestrict() startHits = tracker.mTrackletStartHits;
     GPUglobalref() GPUTPCHitId* const GPUrestrict() tmpStartHits = tracker.mTrackletTmpStartHits + (s.mStartRow + ir) * tracker.mNMaxRowStartHits;
 
