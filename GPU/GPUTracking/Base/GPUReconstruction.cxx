@@ -746,20 +746,23 @@ void* GPUReconstruction::AllocateDirectMemory(size_t size, int32_t type)
   void*& pool = (type & GPUMemoryResource::MEMORY_GPU) ? mDeviceMemoryPool : mHostMemoryPool;
   void*& poolend = (type & GPUMemoryResource::MEMORY_GPU) ? mDeviceMemoryPoolEnd : mHostMemoryPoolEnd;
   char* retVal;
-  if ((type & GPUMemoryResource::MEMORY_STACK)) {
-    poolend = (char*)poolend - size; // TODO: Implement overflow check
+  if (size > (size_t)((char*)poolend - (char*)pool)) {
+    GPUError("Insufficient direct memory: requested %zu, available %td bytes", size, ptrDiff(poolend, pool));
+    throw std::bad_alloc();
+  } else if ((type & GPUMemoryResource::MEMORY_STACK)) {
+    poolend = (char*)poolend - size;
     poolend = (char*)poolend - GPUProcessor::getAlignmentMod<constants::GPU_MEMALIGN>(poolend);
     retVal = (char*)poolend;
   } else {
     GPUProcessor::computePointerWithAlignment(pool, retVal, size);
   }
   if (pool > poolend) {
-    GPUError("Insufficient unmanaged memory: missing %ld bytes", ptrDiff(pool, poolend));
+    GPUError("Insufficient direct memory: missing %td bytes", ptrDiff(pool, poolend));
     throw std::bad_alloc();
   }
   UpdateMaxMemoryUsed();
   if (GetProcessingSettings().allocDebugLevel >= 2) {
-    std::cout << "Allocated (unmanaged " << ((type & GPUMemoryResource::MEMORY_GPU) ? "gpu" : "host") << "): " << size << " - available: " << ptrDiff(poolend, pool) << "\n";
+    std::cout << "Allocated (direct " << ((type & GPUMemoryResource::MEMORY_GPU) ? "gpu" : "host") << "): " << size << " - available: " << ptrDiff(poolend, pool) << "\n";
   }
   return retVal;
 }
