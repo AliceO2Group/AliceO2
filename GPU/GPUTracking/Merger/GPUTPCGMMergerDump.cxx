@@ -381,7 +381,7 @@ std::vector<uint32_t> GPUTPCGMMerger::StreamerOccupancyBin(int32_t iSector, int3
   const int32_t bin = CAMath::Max(0.f, time / Param().rec.tpc.occupancyMapTimeBins);
   for (int32_t i = 0; i < 1 + 2 * size; i++) {
     const int32_t mybin = bin + i - size;
-    retVal[i] = (mybin >= 0 && mybin < (int32_t)GPUTPCClusterOccupancyMapBin::getNBins(Param())) ? Param().occupancyMap[mybin] : 0;
+    retVal[i] = (mybin >= 0 && mybin < (int32_t)GPUTPCClusterOccupancyMapBin::getNBins(Param())) ? Param().occupancy.map[mybin] : 0;
   }
 #endif
   return retVal;
@@ -406,7 +406,7 @@ void GPUTPCGMMerger::DebugStreamerUpdate(int32_t iTrk, int32_t ihit, float xx, f
   int32_t iRow = cluster.row;
   float unscaledMult = (time >= 0.f ? Param().GetUnscaledMult(time) / GPUTPCGeometry::Row2X(iRow) : 0.f);
   const float clAlpha = Param().Alpha(cluster.sector);
-  uint32_t occupancyTotal = Param().occupancyTotal;
+  uint32_t occupancyTotal = Param().occupancy.total;
   o2::utils::DebugStreamer::instance()->getStreamer("debug_update_track", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("tree_update_track").data()
                                                                                     << "iTrk=" << iTrk
                                                                                     << "ihit=" << ihit
