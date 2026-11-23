@@ -287,7 +287,6 @@ GPUdi() constexpr T GPUCommonMath::nextMultipleOf(T val)
   } else {
     return (val + I - 1) & ~(T)(I - 1);
   }
-  return 0; // BUG: Cuda complains about missing return value with constexpr if
 }
 
 GPUdi() constexpr float GPUCommonMath::Modf(float x, float y) { return GPUCA_CHOICE(fmodf(x, y), fmodf(x, y), fmod(x, y)); }
