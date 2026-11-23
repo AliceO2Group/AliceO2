@@ -35,6 +35,8 @@ struct MTWorkerHooks {
   std::function<fair::mq::Channel*()> dataChannel;
   /// Creates the external decayer of the calling thread (empty if there is none)
   std::function<TVirtualMCDecayer*()> makeDecayer;
+  /// Called once on a worker thread after its MC exists and before Geant4 builds the physics of this thread
+  std::function<void()> initOnWorker;
   /// Ends the event loop of the calling thread after the current event
   std::function<void()> stopWorker;
   /// Called on a worker thread at the start of each run, after its user actions exist

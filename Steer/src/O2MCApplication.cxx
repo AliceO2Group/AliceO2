@@ -1997,6 +1997,9 @@ void O2MCApplication::InitOnWorker()
   o2::base::setSimRandom(mWorkerRandom.get());
   // this thread's own external decayer; set here, before Geant4 builds the physics of this thread
   auto& hooks = o2::base::MTWorkerHooks::instance();
+  if (hooks.initOnWorker) {
+    hooks.initOnWorker();
+  }
   if (hooks.makeDecayer) {
     fMC->SetExternalDecayer(hooks.makeDecayer());
   }

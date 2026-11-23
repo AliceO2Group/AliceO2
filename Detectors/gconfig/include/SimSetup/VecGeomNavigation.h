@@ -27,6 +27,11 @@ bool isVecGeomNavigationAvailable();
 /// onto is built while TG4RunManager configures itself. Aborts if the backend is missing.
 void installVecGeomNavigator();
 
+/// Gives the calling Geant4 worker thread its own VecGeom navigator, on the geometry that
+/// installVecGeomNavigator built on the master. Call on the worker after g4root has set up the
+/// thread's navigation and before Geant4 builds the thread's physics, which keeps the navigator.
+void installVecGeomNavigatorOnWorker();
+
 } // namespace o2::simsetup
 
 #endif
