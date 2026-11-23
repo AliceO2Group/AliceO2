@@ -168,7 +168,7 @@ int32_t GPUChainTracking::ReadData(const char* filename)
   }
 
   char buf[DUMP_HEADER_SIZE + 1] = "";
-  size_t r = fread(buf, 1, DUMP_HEADER_SIZE, fp);
+  [[maybe_unused]] size_t r = fread(buf, 1, DUMP_HEADER_SIZE, fp);
   if (strncmp(DUMP_HEADER, buf, DUMP_HEADER_SIZE)) {
     GPUError("Invalid file header");
     fclose(fp);
@@ -265,7 +265,6 @@ int32_t GPUChainTracking::ReadData(const char* filename)
     GPUError("Error reading data file, reading incomplete");
     return 1;
   }
-  (void)r;
   for (uint32_t i = 0; i < NSECTORS; i++) {
     for (uint32_t j = 0; j < mIOPtrs.nClusterData[i]; j++) {
       ptrClusterData[i][j].id = nClustersTotal++;
