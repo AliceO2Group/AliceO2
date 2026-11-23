@@ -33,6 +33,10 @@
 #endif
 namespace std
 {
+template <class T>
+GPUCA_TT_PROGRAMSCOPE static constexpr bool is_standard_layout_v = __is_standard_layout(T);
+template <class T>
+GPUCA_TT_PROGRAMSCOPE static constexpr bool is_trivially_copyable_v = __is_trivially_copyable(T);
 template <bool B, class T, class F>
 struct conditional {
   typedef T type;
