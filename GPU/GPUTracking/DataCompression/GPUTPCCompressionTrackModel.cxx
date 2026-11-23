@@ -542,7 +542,7 @@ GPUd() int32_t GPUTPCCompressionTrackModel::rotateToAlpha(float newAlpha)
 GPUd() int32_t GPUTPCCompressionTrackModel::propagateToXBzLightNoUpdate(PhysicalTrackModel& t, float x, float Bz, float& dLp)
 {
   //
-  // transport the track to X=x in magnetic field B = ( 0, 0, Bz[kG*0.000299792458] )
+  // transport the track to X=x in magnetic field B = ( 0, 0, Bz[kG*kCLight] )
   // dLp is a return value == path length / track momentum [cm/(GeV/c)]
   // the method returns error code (0 == no error)
   //
