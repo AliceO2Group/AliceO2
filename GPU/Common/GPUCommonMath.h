@@ -429,7 +429,7 @@ GPUdi() constexpr uint32_t GPUCommonMath::Ctz(uint32_t x)
 
 GPUdi() constexpr uint32_t GPUCommonMath::Popcount(uint32_t x)
 {
-#if (defined(__GNUC__) || defined(__clang__) || defined(__CUDACC__) || defined(__HIPCC__)) && !defined(__OPENCL__) // TODO: remove OPENCL when reported SPIR-V bug is fixed
+#if (defined(__GNUC__) || defined(__clang__) || defined(__CUDACC__) || defined(__HIPCC__))
   // use builtin if available
   return GPUCA_CHOICE(__builtin_popcount(x), __popc(x), __builtin_popcount(x));
 #else
@@ -469,7 +469,7 @@ GPUdi() constexpr uint32_t GPUCommonMath::Ctz64(uint64_t x)
 
 GPUdi() constexpr uint32_t GPUCommonMath::Popcount64(uint64_t x)
 {
-#if (defined(__GNUC__) || defined(__clang__) || defined(__CUDACC__) || defined(__HIPCC__)) && !defined(__OPENCL__) // TODO: remove OPENCL when reported SPIR-V bug is fixed
+#if (defined(__GNUC__) || defined(__clang__) || defined(__CUDACC__) || defined(__HIPCC__))
   // use builtin if available
   return GPUCA_CHOICE(__builtin_popcountll(x), __popcll(x), __builtin_popcountll(x));
 #else
