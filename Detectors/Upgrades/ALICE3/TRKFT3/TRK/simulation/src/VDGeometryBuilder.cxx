@@ -46,7 +46,7 @@ static inline std::string makeSensorName(const std::string& layerName, int layer
   return Form("%s_%s%d", layerName.c_str(), o2::trk::GeometryTGeo::getTRKSensorPattern(), layerNumber);
 }
 
-// Placement of petal petalID in the mother volume (closed or open, see TRKBase.irisOpen).
+// Placement of petal petalID in the mother volume (closed or open, see TRKBase.irisOpenFraction).
 // A non-null name registers the matrix so it can be used in composite-shape formulas.
 static TGeoCombiTrans* makePetalPlacement(int nPetals, int petalID, const char* name = nullptr);
 
@@ -1068,7 +1068,7 @@ static TGeoCombiTrans* makePetalPlacement(int nPetals, int petalID, const char* 
   const auto& pars = TRKBaseParam::Instance();
   const double phiDeg = (360.0 / double(nPetals)) * (double(petalID) + 0.5);
   const double phi = phiDeg * TMath::DegToRad();
-  const double slide = pars.irisOpen ? irisOpening(nPetals).slide : 0.;
+  const double slide = pars.irisOpenFraction > 0.f ? irisOpening(nPetals).slide : 0.;
   auto* R = new TGeoRotation();
   R->RotateZ(phiDeg);
   auto* T = new TGeoCombiTrans(-slide * std::sin(phi), slide * std::cos(phi), 0., R);
@@ -1082,12 +1082,12 @@ static TGeoCombiTrans* makePetalPlacement(int nPetals, int petalID, const char* 
 static void logIrisState(int nPetals)
 {
   const auto& pars = TRKBaseParam::Instance();
-  if (!pars.irisOpen) {
+  if (pars.irisOpenFraction < 0.f || pars.irisOpenFraction > 1.f) {
+    LOGP(fatal, "IRIS: TRKBase.irisOpenFraction={} must be between 0 (closed) and 1 (fully open)", pars.irisOpenFraction);
+  }
+  if (pars.irisOpenFraction == 0.f) {
     LOGP(info, "IRIS closed: {} petals", nPetals);
     return;
-  }
-  if (pars.irisOpenFraction < 0.f || pars.irisOpenFraction > 1.f) {
-    LOGP(fatal, "IRIS open: TRKBase.irisOpenFraction={} must be between 0 and 1", pars.irisOpenFraction);
   }
   const auto o = irisOpening(nPetals);
   if (o.envelope > kBeamPipeRIn_cm - pars.irisOpenBeamPipeMargin) {

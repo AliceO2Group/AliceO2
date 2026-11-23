@@ -417,8 +417,8 @@ void Detector::createGeometry()
 
   o2::trk::clearVDSensorRegistry();
 
-  if (trkPars.irisOpen && (trkPars.layoutVD == kIRISFullCyl || trkPars.layoutVD == kIRISFullCyl3InclinedWalls)) {
-    LOG(fatal) << "TRKBase.irisOpen is only available for the petal layouts (kIRIS4, kIRIS5, kIRIS4a), not for layout " << static_cast<int>(trkPars.layoutVD);
+  if (trkPars.irisOpenFraction > 0.f && (trkPars.layoutVD == kIRISFullCyl || trkPars.layoutVD == kIRISFullCyl3InclinedWalls)) {
+    LOG(fatal) << "TRKBase.irisOpenFraction > 0 (open IRIS) is only available for the petal layouts (kIRIS4, kIRIS5, kIRIS4a), not for layout " << static_cast<int>(trkPars.layoutVD);
   }
 
   switch (trkPars.layoutVD) {

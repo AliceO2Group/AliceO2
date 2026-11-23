@@ -46,10 +46,9 @@ struct TRKBaseParam : public o2::conf::ConfigurableParamHelper<TRKBaseParam> {
   float otBarrelWallThickness = 0.2f;                                   // cm, carbon fibre separation walls of the OT quarter barrels, 0 disables them
   float otEosCardCuThickness = constants::OT::eosCard::copperThickness; // cm, copper per plane in the OT end-of-stave card; drives the card x/X0
   float mlEosCardCuThickness = constants::ML::eosCard::copperThickness; // cm, copper per plane in the ML end-of-stave card; drives the card x/X0
-  bool irisOpen = false;                                                // IRIS at injection: petals in the open position (petal layouts kIRIS4, kIRIS5, kIRIS4a only)
   float irisOpenAperture = 1.5f;                                        // cm, beam aperture the petals slide open to (stopped earlier by irisOpenBeamPipeMargin)
   float irisOpenBeamPipeMargin = 0.05f;                                 // cm, clearance kept between the open petals and the beam pipe
-  float irisOpenFraction = 1.f;                                         // fraction of the full opening slide (0..1), e.g. 0.25, 0.5, 0.75, 1 (fully open)
+  float irisOpenFraction = 0.f;                                         // IRIS opening, fraction of the full slide: 0 closed (default), 1 fully open (injection); petal layouts kIRIS4, kIRIS5, kIRIS4a only
   bool includeLowServices = false;
 
   // Options for forward disks (FT3)
