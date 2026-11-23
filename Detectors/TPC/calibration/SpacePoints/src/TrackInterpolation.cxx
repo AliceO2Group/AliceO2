@@ -554,7 +554,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
     mCacheDEDX[row].first = std::min<uint16_t>(clTPC.getQtot(), UINT16_MAX);
     mCacheDEDX[row].second = clTPC.getQmax();
     int imb = int(clTPC.getTime() * mNTPCOccBinLengthInv);
-    if (imb < mTPCParam->occupancyMapSize) {
+    if (imb < mTPCParam->occupancy.mapSize) {
       multBins[row] = 1 + std::max(0, imb);
     }
   }
@@ -799,7 +799,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
       if (--mltBinMin >= 0) { // we were offsetting bin IDs by 1!
         float avMlt = 0;
         for (int ib = mltBinMin; ib < mltBinMax; ib++) {
-          avMlt += mTPCParam->occupancyMap[ib];
+          avMlt += mTPCParam->occupancy.map[ib];
         }
         avMlt /= (mltBinMax - mltBinMin);
         trackData.setMultStack(avMlt, ist);
@@ -1087,7 +1087,7 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
       rowPrev = row;
     }
     int imb = int(cl.getTime() * mNTPCOccBinLengthInv);
-    if (imb < mTPCParam->occupancyMapSize) {
+    if (imb < mTPCParam->occupancy.mapSize) {
       multBins[row] = 1 + std::max(0, imb);
     }
     ++nMeasurements;
@@ -1182,7 +1182,7 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
       if (--mltBinMin >= 0) { // we were offsetting bin IDs by 1!
         float avMlt = 0;
         for (int ib = mltBinMin; ib < mltBinMax; ib++) {
-          avMlt += mTPCParam->occupancyMap[ib];
+          avMlt += mTPCParam->occupancy.map[ib];
         }
         avMlt /= (mltBinMax - mltBinMin);
         trackData.setMultStack(avMlt, ist);

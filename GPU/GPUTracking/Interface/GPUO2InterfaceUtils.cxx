@@ -130,10 +130,10 @@ void GPUO2InterfaceUtils::paramUseExternalOccupancyMap(GPUParam* param, uint32_t
     throw std::runtime_error("Occupancy map has invalid paramters occupancyMapTimeBins and occupancyMapTimeBinsAverage");
   }
   if (occupancymap) {
-    param->occupancyTotal = *occupancymap;
+    param->occupancy.total = *occupancymap;
     if (param->rec.tpc.occupancyMapTimeBins) {
-      param->occupancyMap = occupancymap + 2;
-      param->occupancyMapSize = GPUTPCClusterOccupancyMapBin::getNBins(*param);
+      param->occupancy.map = occupancymap + 2;
+      param->occupancy.mapSize = GPUTPCClusterOccupancyMapBin::getNBins(*param);
     }
   }
 }

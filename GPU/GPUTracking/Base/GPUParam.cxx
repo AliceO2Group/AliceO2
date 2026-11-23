@@ -34,9 +34,9 @@ void GPUParam::SetDefaults(float solenoidBz, bool assumeConstantBz)
 {
   memset((void*)this, 0, sizeof(*this));
   new (&rec) GPUSettingsRec;
-  occupancyMap = nullptr;
-  occupancyMapSize = 0;
-  occupancyTotal = 0;
+  occupancy.map = nullptr;
+  occupancy.mapSize = 0;
+  occupancy.total = 0;
 
 #ifndef GPUCA_RUN2
   const float kErrorsY[4] = {0.06, 0.24, 0.12, 0.1};

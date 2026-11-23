@@ -359,20 +359,12 @@ void GPUReconstructionCPU::UpdateParamOccupancyMap(const uint32_t* mapHost, cons
   if (mapHost && mapSize != GPUTPCClusterOccupancyMapBin::getNBins(param())) {
     throw std::runtime_error("Updating occupancy map with object of invalid size");
   }
-  param().occupancyMap = mapHost;
-  param().occupancyMapSize = mapSize;
-  param().occupancyTotal = occupancyTotal;
+  param().occupancy.map = mapHost;
+  param().occupancy.total = occupancyTotal;
+  param().occupancy.mapSize = mapSize;
   if (IsGPU()) {
-    if (!((size_t)&param().occupancyMapSize - (size_t)&param().occupancyMap == sizeof(param().occupancyMap) + sizeof(param().occupancyTotal) && sizeof(param().occupancyMap) == sizeof(void*) && sizeof(param().occupancyTotal) == sizeof(uint32_t))) { // TODO: Make static assert, and check alignment
-      throw std::runtime_error("occupancy data not consecutive in GPUParam");
-    }
-    struct tmpOccuapncyParam {
-      const void* ptr;
-      uint32_t total;
-      uint32_t size;
-    };
-    tmpOccuapncyParam tmp = {mapGPU, occupancyTotal, mapSize};
+    GPUParam::occupancyStruct tmp = {mapGPU, occupancyTotal, mapSize};
     const auto holdContext = GetThreadContext();
-    WriteToConstantMemory((char*)&processors()->param.occupancyMap - (char*)processors(), &tmp, sizeof(tmp), stream, ev);
+    WriteToConstantMemory((char*)&processors()->param.occupancy - (char*)processors(), &tmp, sizeof(tmp), stream, ev);
   }
 }

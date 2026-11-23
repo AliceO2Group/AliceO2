@@ -112,12 +112,12 @@ GPUdi() float GPUParam::GetSystematicClusterErrorIFC2(float x, float y, float z,
 GPUdi() float GPUParam::GetSystematicClusterErrorC122(float x, float y, uint8_t sector) const
 {
   const float dx = x - 83.f;
-  if (dx > occupancyTotal * rec.tpc.sysClusErrorC12Box) {
+  if (dx > occupancy.total * rec.tpc.sysClusErrorC12Box) {
     return 0.f;
   }
   constexpr float dEdgeInv = 18.f / CAMath::Pi();
   const float dy = (sector == (GPUTPCGeometry::NSECTORS / 2 + 1) ? 0.5f : -0.5f) * (y / x) * dEdgeInv + 0.5f;
-  const float errC12 = rec.tpc.sysClusErrorC12Norm * occupancyTotal * dy;
+  const float errC12 = rec.tpc.sysClusErrorC12Norm * occupancy.total * dy;
   return errC12 * errC12;
 }
 
@@ -210,11 +210,11 @@ GPUdi() void GPUParam::UpdateClusterError2ByState(int16_t clusterState, float& E
 
 GPUdi() float GPUParam::GetUnscaledMult(float time) const
 {
-  if (!occupancyMap) {
+  if (!occupancy.map) {
     return 0.f;
   }
-  const uint32_t bin = CAMath::Min<uint32_t>(occupancyMapSize - 1, CAMath::Max(0.f, time / rec.tpc.occupancyMapTimeBins));
-  return occupancyMap[bin];
+  const uint32_t bin = CAMath::Min<uint32_t>(occupancy.mapSize - 1, CAMath::Max(0.f, time / rec.tpc.occupancyMapTimeBins));
+  return occupancy.map[bin];
 }
 
 GPUdi() bool GPUParam::rejectEdgeClusterByY(float uncorrectedY, int32_t iRow, float trackSigmaY) const
