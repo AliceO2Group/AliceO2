@@ -28,6 +28,8 @@
 #include "fmt/core.h"
 #include "TFile.h"
 #include "TTree.h"
+#include "TSystem.h"
+#include "TString.h"
 #include "TStopwatch.h"
 #include "ROOT/RDataFrame.hxx"
 #include <numeric>
@@ -95,10 +97,21 @@ int DataContainer3D<DataT>::writeToFile(std::string_view file, std::string_view 
   ROOT::RDF::RSnapshotOptions opt;
   opt.fMode = option;
   opt.fOverwriteIfExists = true; // overwrite if already exists
+  // ZSTD: same file size as the default ZLIB (the data are not well compressible) but ~3 times faster reading
+  opt.fCompressionAlgorithm = ROOT::RCompressionSetting::EAlgorithm::kZSTD;
+  opt.fCompressionLevel = 1;
+  // the string_views are not necessarily null-terminated: copy them for the functions which expect a C string
+  const std::string fileName(file);
+  TString mode(option.data(), option.size());
+  mode.ToUpper();
+  if ((mode == "UPDATE") && gSystem->AccessPathName(fileName.c_str())) {
+    // a file opened in UPDATE mode keeps its compression setting: create a missing file with the same compression as for RECREATE
+    TFile fNew(fileName.c_str(), "RECREATE", "", ROOT::CompressionSettings(opt.fCompressionAlgorithm, opt.fCompressionLevel));
+  }
 
   TStopwatch timer;
   // note: first call has some overhead (~2s)
-  dfStore.Snapshot(name, file, {name.data(), "nz", "nr", "nphi"}, opt);
+  dfStore.Snapshot(name, fileName, {std::string(name), "nz", "nr", "nphi"}, opt);
   timer.Print("u");
   return 0;
 }
@@ -139,7 +152,7 @@ bool DataContainer3D<DataT>::initFromFile(std::string_view file, std::string_vie
 
   // fill data from RDataFrame
   TStopwatch timer;
-  dFrame.Foreach(readData, {name.data()});
+  dFrame.Foreach(readData, {std::string(name)});
   timer.Print("u");
   return true;
 }
@@ -213,7 +226,7 @@ void DataContainer3D<DataT>::dumpSlice(std::string_view treename, std::string_vi
     }
     return std::make_tuple(vals, iz, ir, iphi, z, r, phi, lPos, globalIdx);
   },
-                          {treename.data(), "nz", "nr", "nphi"});
+                          {std::string(treename), "nz", "nr", "nphi"});
 
   // define options of TFile
   ROOT::RDF::RSnapshotOptions opt;
@@ -305,7 +318,7 @@ void DataContainer3D<DataT>::dumpInterpolation(std::string_view treename, std::s
 
   TStopwatch timer;
   // note: first call has some overhead (~2s)
-  dfStore.Snapshot(treename, fileOut, {treename.data()}, opt);
+  dfStore.Snapshot(treename, fileOut, {std::string(treename)}, opt);
   timer.Print("u");
 }
 
@@ -690,7 +703,7 @@ template <typename DataT>
 void SpaceCharge<DataT>::setElectricFieldsFromFile(std::string_view file, const Side side)
 {
   const std::string sideName = getSideName(side);
-  std::string_view treeEr{fmt::format("fieldEr_side{}", sideName)};
+  const std::string treeEr = fmt::format("fieldEr_side{}", sideName);
   if (!checkGridFromFile(file, treeEr)) {
     return;
   }
@@ -722,7 +735,7 @@ template <typename DataT>
 void SpaceCharge<DataT>::setGlobalDistortionsFromFile(std::string_view file, const Side side)
 {
   const std::string sideName = getSideName(side);
-  std::string_view tree{fmt::format("distR_side{}", sideName)};
+  const std::string tree = fmt::format("distR_side{}", sideName);
   if (!checkGridFromFile(file, tree)) {
     return;
   }
@@ -754,7 +767,7 @@ template <typename DataT>
 void SpaceCharge<DataT>::setGlobalCorrectionsFromFile(std::string_view file, const Side side)
 {
   const std::string sideName = getSideName(side);
-  const std::string_view treename{fmt::format("corrR_side{}", getSideName(side))};
+  const std::string treename = fmt::format("corrR_side{}", getSideName(side));
   if (!checkGridFromFile(file, treename)) {
     return;
   }
@@ -787,7 +800,7 @@ template <typename DataT>
 void SpaceCharge<DataT>::setLocalCorrectionsFromFile(std::string_view file, const Side side)
 {
   const std::string sideName = getSideName(side);
-  const std::string_view treename{fmt::format("lcorrR_side{}", getSideName(side))};
+  const std::string treename = fmt::format("lcorrR_side{}", getSideName(side));
   if (!checkGridFromFile(file, treename)) {
     return;
   }
@@ -834,7 +847,7 @@ template <typename DataT>
 void SpaceCharge<DataT>::setLocalDistortionsFromFile(std::string_view file, const Side side)
 {
   const std::string sideName = getSideName(side);
-  const std::string_view treename{fmt::format("ldistR_side{}", getSideName(side))};
+  const std::string treename = fmt::format("ldistR_side{}", getSideName(side));
   if (!checkGridFromFile(file, treename)) {
     return;
   }
@@ -851,7 +864,7 @@ template <typename DataT>
 void SpaceCharge<DataT>::setLocalDistCorrVectorsFromFile(std::string_view file, const Side side)
 {
   const std::string sideName = getSideName(side);
-  const std::string_view treename{fmt::format("lvecdistR_side{}", getSideName(side))};
+  const std::string treename = fmt::format("lvecdistR_side{}", getSideName(side));
   if (!checkGridFromFile(file, treename)) {
     return;
   }
@@ -879,7 +892,7 @@ int SpaceCharge<DataT>::dumpPotential(std::string_view file, const Side side, st
 template <typename DataT>
 void SpaceCharge<DataT>::setPotentialFromFile(std::string_view file, const Side side)
 {
-  const std::string_view treename{fmt::format("potential_side{}", getSideName(side))};
+  const std::string treename = fmt::format("potential_side{}", getSideName(side));
   if (!checkGridFromFile(file, treename)) {
     return;
   }
@@ -903,7 +916,7 @@ int SpaceCharge<DataT>::dumpDensity(std::string_view file, const Side side, std:
 template <typename DataT>
 void SpaceCharge<DataT>::setDensityFromFile(std::string_view file, const Side side)
 {
-  const std::string_view treename{fmt::format("density_side{}", getSideName(side))};
+  const std::string treename = fmt::format("density_side{}", getSideName(side));
   if (!checkGridFromFile(file, treename)) {
     return;
   }
@@ -917,7 +930,7 @@ void SpaceCharge<DataT>::dumpToFile(std::string_view file, const Side side, std:
 {
   if (option == "RECREATE") {
     // delete the file
-    gSystem->Unlink(file.data());
+    gSystem->Unlink(std::string(file).c_str());
   }
   dumpElectricFields(file, side, "UPDATE");
   dumpPotential(file, side, "UPDATE");
@@ -939,7 +952,7 @@ void SpaceCharge<DataT>::dumpToFile(std::string_view file) const
 template <typename DataT>
 void SpaceCharge<DataT>::dumpMetaData(std::string_view file, std::string_view option, const bool overwriteExisting) const
 {
-  TFile f(file.data(), option.data());
+  TFile f(std::string(file).c_str(), std::string(option).c_str());
   if (!overwriteExisting && f.GetListOfKeys()->Contains("meta")) {
     return;
   }
@@ -973,7 +986,7 @@ void SpaceCharge<DataT>::readMetaData(std::string_view file)
   }
 
   // check if TTree exists
-  TFile f(file.data(), "READ");
+  TFile f(std::string(file).c_str(), "READ");
   if (!f.GetListOfKeys()->Contains("meta")) {
     return;
   }

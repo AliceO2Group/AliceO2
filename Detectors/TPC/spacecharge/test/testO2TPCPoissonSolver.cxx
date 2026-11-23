@@ -29,15 +29,11 @@ namespace tpc
 {
 
 using DataT = double;                       // using float actually takes alot longer than double (doesnt converge when using float)
-static constexpr DataT TOLERANCE = 3;       // relative tolerance for 3D (maximum large error is at phi=90 since there the potential is 0!)
-static constexpr DataT TOLERANCE2D = 8.5;   // relative tolerance for 2D TODO check why the difference between numerical and analyticial is larger than for 3D!
+static constexpr DataT TOLERANCE = 3;       // relative tolerance (maximum large error is at phi=90 since there the potential is 0!)
 static constexpr DataT ABSTOLERANCE = 0.01; // absolute tolerance is taken at small values near 0
 static constexpr unsigned short NR = 65;    // grid in r
 static constexpr unsigned short NZ = 65;    // grid in z
 static constexpr unsigned short NPHI = 180; // grid in phi
-static constexpr unsigned short NR2D = 129; // grid in r
-static constexpr unsigned short NZ2D = 129; // grid in z
-static constexpr unsigned short NPHI2D = 1; // grid in phi
 
 /// Get phi vertex position for index in phi direction
 /// \param indexPhi index in phi direction
@@ -154,22 +150,6 @@ void testAlmostEqualArray(o2::tpc::DataContainer3D<DataT>& analytical, o2::tpc::
 }
 
 template <typename DataT>
-void testAlmostEqualArray2D(o2::tpc::DataContainer3D<DataT>& analytical, o2::tpc::DataContainer3D<DataT>& numerical)
-{
-  for (size_t iPhi = 0; iPhi < numerical.getNPhi(); ++iPhi) {
-    for (size_t iR = 0; iR < numerical.getNR(); ++iR) {
-      for (size_t iZ = 0; iZ < numerical.getNZ(); ++iZ) {
-        if (std::fabs(analytical(iZ, iR, iPhi)) < ABSTOLERANCE) {
-          BOOST_CHECK_SMALL(numerical(iZ, iR, iPhi) - analytical(iZ, iR, iPhi), ABSTOLERANCE);
-        } else {
-          BOOST_CHECK_CLOSE(numerical(iZ, iR, iPhi), analytical(iZ, iR, iPhi), TOLERANCE2D);
-        }
-      }
-    }
-  }
-}
-
-template <typename DataT>
 void poissonSolver3D()
 {
   using GridProp = GridProperties<DataT>;
@@ -191,56 +171,92 @@ void poissonSolver3D()
 
   // calculate numerical potential
   PoissonSolver<DataT> poissonSolver(grid3D);
-  const int symmetry = 0;
-  poissonSolver.poissonSolver3D(potentialNumerical, charge, symmetry);
+  poissonSolver.poissonSolver3D(potentialNumerical, charge);
 
   // compare numerical with analytical solution of the potential
   testAlmostEqualArray<DataT>(potentialAnalytical, potentialNumerical);
 }
 
+/// solve the poisson equation in 3D for the analytical charge density and boundary potential
+/// \param nR number of vertices in r
+/// \param nZ number of vertices in z
+/// \param nPhi number of vertices in phi
+/// \param potentialNumerical numerical solution (output)
+/// \param potentialAnalytical analytical solution (output)
 template <typename DataT>
-void poissonSolver2D()
+void solvePoisson3D(const unsigned short nR, const unsigned short nZ, const unsigned short nPhi, o2::tpc::DataContainer3D<DataT>& potentialNumerical, o2::tpc::DataContainer3D<DataT>& potentialAnalytical)
 {
   using GridProp = GridProperties<DataT>;
-  const ParamSpaceCharge params{NR2D, NZ2D, NPHI2D};
-  const o2::tpc::RegularGrid3D<DataT> grid3D{GridProp::ZMIN, GridProp::RMIN, GridProp::PHIMIN, GridProp::getGridSpacingZ(NZ2D), GridProp::getGridSpacingR(NR2D), GridProp::getGridSpacingPhi(NPHI2D), params};
+  const ParamSpaceCharge params{nR, nZ, nPhi};
+  const o2::tpc::RegularGrid3D<DataT> grid3D{GridProp::ZMIN, GridProp::RMIN, GridProp::PHIMIN, GridProp::getGridSpacingZ(nZ), GridProp::getGridSpacingR(nR), GridProp::getGridSpacingPhi(nPhi), params};
+  potentialNumerical = o2::tpc::DataContainer3D<DataT>(nZ, nR, nPhi);
+  potentialAnalytical = o2::tpc::DataContainer3D<DataT>(nZ, nR, nPhi);
+  o2::tpc::DataContainer3D<DataT> charge(nZ, nR, nPhi);
 
-  using DataContainer = o2::tpc::DataContainer3D<DataT>;
-  DataContainer potentialNumerical(NZ2D, NR2D, NPHI2D);
-  DataContainer potentialAnalytical(NZ2D, NR2D, NPHI2D);
-  DataContainer charge(NZ2D, NR2D, NPHI2D);
-
-  // set the boudnary and charge for numerical poisson solver
   const o2::tpc::AnalyticalFields<DataT> analyticalFields;
   setChargeDensityFromFormula<DataT>(analyticalFields, grid3D, charge);
   setPotentialBoundaryFromFormula<DataT>(analyticalFields, grid3D, potentialNumerical);
-
-  // set analytical potential
   setPotentialFromFormula<DataT>(analyticalFields, grid3D, potentialAnalytical);
 
-  // calculate numerical potential
   PoissonSolver<DataT> poissonSolver(grid3D);
-  poissonSolver.poissonSolver2D(potentialNumerical, charge);
+  poissonSolver.poissonSolver3D(potentialNumerical, charge);
+}
 
-  // compare numerical with analytical solution of the potential
-  testAlmostEqualArray2D<DataT>(potentialAnalytical, potentialNumerical);
+/// \return returns the maximum absolute difference of the two containers
+template <typename DataT>
+DataT getMaxAbsDiff(const o2::tpc::DataContainer3D<DataT>& a, const o2::tpc::DataContainer3D<DataT>& b)
+{
+  DataT maxDiff = 0;
+  for (size_t i = 0; i < a.getNDataPoints(); ++i) {
+    maxDiff = std::max(maxDiff, static_cast<DataT>(std::abs(a[i] - b[i])));
+  }
+  return maxDiff;
 }
 
 BOOST_AUTO_TEST_CASE(PoissonSolver3D_test)
 {
-  o2::tpc::MGParameters::isFull3D = true; // 3D
   poissonSolver3D<DataT>();
 }
 
-BOOST_AUTO_TEST_CASE(PoissonSolver3D2D_test)
+BOOST_AUTO_TEST_CASE(PoissonSolver3D_phiCoarsening_test)
 {
-  o2::tpc::MGParameters::isFull3D = false; // 3D2D
-  poissonSolver3D<DataT>();
+  // for a coarse grid in phi the phi direction is weakly coupled and is not coarsened on the finest multi grid levels (see MGParameters::phiCoarseningThreshold).
+  // Check that the solution agrees with the one obtained when phi is always coarsened and with the analytical solution
+  const unsigned short nPhi = 90;
+  DataContainer3D<DataT> potentialAnalytical;
+  DataContainer3D<DataT> potentialDefault;
+  solvePoisson3D<DataT>(NR, NZ, nPhi, potentialDefault, potentialAnalytical);
+
+  const float thresholdDefault = o2::tpc::MGParameters::phiCoarseningThreshold;
+  o2::tpc::MGParameters::phiCoarseningThreshold = 0; // always coarsen phi
+  DataContainer3D<DataT> potentialAlwaysCoarsen;
+  solvePoisson3D<DataT>(NR, NZ, nPhi, potentialAlwaysCoarsen, potentialAnalytical);
+  o2::tpc::MGParameters::phiCoarseningThreshold = thresholdDefault;
+
+  const DataT maxPotential = getMaxAbsDiff<DataT>(potentialAnalytical, DataContainer3D<DataT>(NZ, NR, nPhi));
+  BOOST_CHECK_SMALL(getMaxAbsDiff<DataT>(potentialDefault, potentialAlwaysCoarsen) / maxPotential, DataT(1e-6));
+  BOOST_CHECK_SMALL(getMaxAbsDiff<DataT>(potentialDefault, potentialAnalytical) / maxPotential, DataT(5e-4));
+  BOOST_CHECK_SMALL(getMaxAbsDiff<DataT>(potentialAlwaysCoarsen, potentialAnalytical) / maxPotential, DataT(5e-4));
 }
 
-BOOST_AUTO_TEST_CASE(PoissonSolver2D_test)
+BOOST_AUTO_TEST_CASE(PoissonSolver3D_linePhi_test)
 {
-  poissonSolver2D<DataT>();
+  // for a fine grid in phi the phi direction is strongly coupled and line relaxation in phi is used on the finest multi grid levels (see MGParameters::phiLineRelaxThreshold).
+  // Check that the solution agrees with the one obtained with point relaxation only and with the analytical solution
+  const unsigned short nPhi = 720;
+  DataContainer3D<DataT> potentialAnalytical;
+  DataContainer3D<DataT> potentialLine;
+  solvePoisson3D<DataT>(NR, NZ, nPhi, potentialLine, potentialAnalytical);
+
+  const float thresholdDefault = o2::tpc::MGParameters::phiLineRelaxThreshold;
+  o2::tpc::MGParameters::phiLineRelaxThreshold = 0; // point relaxation only
+  DataContainer3D<DataT> potentialPoint;
+  solvePoisson3D<DataT>(NR, NZ, nPhi, potentialPoint, potentialAnalytical);
+  o2::tpc::MGParameters::phiLineRelaxThreshold = thresholdDefault;
+
+  const DataT maxPotential = getMaxAbsDiff<DataT>(potentialAnalytical, DataContainer3D<DataT>(NZ, NR, nPhi));
+  BOOST_CHECK_SMALL(getMaxAbsDiff<DataT>(potentialLine, potentialPoint) / maxPotential, DataT(1e-6));
+  BOOST_CHECK_SMALL(getMaxAbsDiff<DataT>(potentialLine, potentialAnalytical) / maxPotential, DataT(5e-4));
 }
 
 } // namespace tpc

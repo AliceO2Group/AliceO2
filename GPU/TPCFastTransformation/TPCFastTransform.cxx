@@ -28,10 +28,6 @@
 #include "GPUCommonLogger.h"
 #endif
 
-#if !defined(GPUCA_STANDALONE)
-#include "TPCSpaceCharge/SpaceCharge.h"
-#endif
-
 using namespace o2::gpu;
 
 TPCFastTransform::TPCFastTransform()
@@ -218,27 +214,6 @@ TPCFastTransform* TPCFastTransform::loadFromFile(std::string inpFName, std::stri
   return transform;
 }
 
-#endif
-
-#if !defined(GPUCA_STANDALONE)
-TPCSlowSpaceChargeCorrection::~TPCSlowSpaceChargeCorrection()
-{
-  delete mCorr;
-}
-
-void TPCSlowSpaceChargeCorrection::getCorrections(const float gx, const float gy, const float gz, const int32_t slice, float& gdxC, float& gdyC, float& gdzC) const
-{
-  const o2::tpc::Side side = (slice < o2::tpc::SECTORSPERSIDE) ? o2::tpc::Side::A : o2::tpc::Side::C;
-  mCorr->getCorrections(gx, gy, gz, side, gdxC, gdyC, gdzC);
-}
-
-void TPCFastTransform::setSlowTPCSCCorrection(TFile& inpf)
-{
-  mCorrectionSlow = new TPCSlowSpaceChargeCorrection;
-  mCorrectionSlow->mCorr = new o2::tpc::SpaceCharge<float>();
-  mCorrectionSlow->mCorr->setGlobalCorrectionsFromFile<float>(inpf, o2::tpc::Side::A);
-  mCorrectionSlow->mCorr->setGlobalCorrectionsFromFile<float>(inpf, o2::tpc::Side::C);
-}
 #endif
 
 float TPCFastTransform::getIDC() const

@@ -19,10 +19,6 @@
 
 #include "TPCSpaceCharge/RegularGrid3D.h"
 
-// forward declare VC Memory
-template <typename DataT, size_t, size_t, bool>
-class Memory;
-
 namespace o2
 {
 namespace tpc
@@ -32,19 +28,27 @@ template <typename DataT>
 class DataContainer3D;
 
 /// \class TriCubicInterpolator
-/// The TriCubic class represents tricubic interpolation on a regular 3-Dim grid.
-/// The algorithm which is used is based on the method developed by F. Lekien and J. Marsden and is described
-/// in 'Tricubic Interpolation in Three Dimensions (2005)'  http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.89.7835
-/// In this method in a first step 64 coefficients are computed by using a predefined 64*64 matrix.
-/// These coefficients have to be computed for each cell in the grid, but are only computed when querying a point in a given cell.
-/// The calculated coefficient is then stored for only the last cell and will be reused if the next query point lies in the same cell.
-///
-/// Additionally the classical one dimensional approach of interpolating values is implemented. This algorithm is faster when interpolating only a few values inside each cube.
-///
-/// periodic boundary conditions are used in phi direction.
+/// The TriCubic class represents tricubic interpolation on a regular 3-Dim grid (z, r, phi).
+/// The interpolation is separable: the 4 x 4 x 4 grid points around the query point are weighted with the 1D cubic (Catmull-Rom) weights in each dimension.
+/// Periodic boundary conditions are used in phi direction. Grid points outside of the grid in r and z are extrapolated (linear or parabolic) from the next
+/// three points towards the inside of the grid. Query points outside of the grid are extrapolated or, with setExtrapolateValues(false), restricted to the grid.
+/// Several data containers on the same grid can be interpolated at the same position with interpolate(), which calculates the position in the grid and
+/// the weights only once (e.g. for the three components of the electric field).
 
-template <typename DataT, size_t N>
-class Vector;
+/// cell of the grid which is used for the tricubic interpolation of a query point and the weights of the interpolation (independent of the interpolated data)
+template <typename DataT>
+struct TriCubicCell {
+  int indexZ{};          ///< index of the cell in z
+  int indexR{};          ///< index of the cell in r
+  int indexPhi{};        ///< index of the cell in phi
+  bool inGrid{};         ///< all 64 points used for the interpolation are on the grid (no extrapolation needed)
+  int dataIndex{};       ///< inGrid: index of the data at (iz - 1, ir - 1, iphi)
+  int sliceOffset[4]{};  ///< inGrid: offsets of the data for the 4 phi slices
+  int rowStride{};       ///< inGrid: offset of the data between the rows in r direction
+  DataT weightsZ[4]{};   ///< weights of the interpolation in z
+  DataT weightsR[4]{};   ///< weights of the interpolation in r
+  DataT weightsPhi[4]{}; ///< weights of the interpolation in phi
+};
 
 /// \tparam DataT the type of data which is used during the calculations
 template <typename DataT = double>
@@ -70,13 +74,25 @@ class TriCubicInterpolator
     Parabola = 1, ///< assume parabolic dependency at the boundaries of the grid
   };
 
-  // interpolate value at given coordinate
+  /// interpolate value at given coordinate
   /// \param z z coordinate
   /// \param r r coordinate
   /// \param phi phi coordinate
-  /// \param type interpolation algorithm
   /// \return returns the interpolated value at given coordinate
   DataT operator()(const DataT z, const DataT r, const DataT phi) const { return interpolateSparse(z, r, phi); }
+
+  /// interpolate the data of this and of two other interpolators at the same coordinate (e.g. the three components of a vector field).
+  /// The position in the grid and the weights of the interpolation are calculated only once, which is faster than three separate interpolations.
+  /// If the data layout, the grid or the extrapolation settings of the other interpolators are different, the three values are interpolated separately.
+  /// \param z z coordinate
+  /// \param r r coordinate
+  /// \param phi phi coordinate
+  /// \param other1 second interpolator
+  /// \param other2 third interpolator
+  /// \param val0 interpolated value of this interpolator (output)
+  /// \param val1 interpolated value of other1 (output)
+  /// \param val2 interpolated value of other2 (output)
+  void interpolate(const DataT z, const DataT r, const DataT phi, const TriCubicInterpolator<DataT>& other1, const TriCubicInterpolator<DataT>& other2, DataT& val0, DataT& val1, DataT& val2) const;
 
   /// set which type of extrapolation is used at the grid boundaries (linear or parabol can be used with periodic phi axis and non periodic z and r axis).
   /// \param extrapolationType sets type of extrapolation. See enum ExtrapolationType for different types
@@ -101,61 +117,21 @@ class TriCubicInterpolator
   ExtrapolationType mExtrapolationType = ExtrapolationType::Parabola; ///< sets which type of extrapolation for missing points at boundary is used
   bool mExtraPolateValues = true;                                     ///< extrapolating values outside of the grid or restricting query to inside of the grid
 
-  //                 DEFINITION OF enum GridPos
-  //========================================================
-  //              r
-  //              |             6------F---7
-  //              |           / |        / |
-  //              |         K   G YR   L   H
-  //              |       /     |    /     |
-  //              |      2---B------3      |
-  //              |      |      |   |      |
-  //              |      |      4---|---E--5
-  //              |      C XL  /    D XR  /
-  //              |      |   I  YL  |   J
-  //              |      | /        | /
-  //              |      0---A------1
-  //              |------------------------------- z
-  //            /
-  //          /
-  //        /
-  //      phi
-  //========================================================
+  /// \return returns whether the other interpolator (with a different grid object) has the same data layout and grid (number of vertices, minimum and spacing)
+  bool isSameGrid(const TriCubicInterpolator<DataT>& other) const;
 
-  enum class GridPos {
-    None = 27,
-    InnerVolume = 26,
-    Edge0 = 0,
-    Edge1 = 1,
-    Edge2 = 2,
-    Edge3 = 3,
-    Edge4 = 4,
-    Edge5 = 5,
-    Edge6 = 6,
-    Edge7 = 7,
-    LineA = 8,
-    LineB = 9,
-    LineC = 10,
-    LineD = 11,
-    LineE = 12,
-    LineF = 13,
-    LineG = 14,
-    LineH = 15,
-    LineI = 16,
-    LineJ = 17,
-    LineK = 18,
-    LineL = 19,
-    SideXRight = 20,
-    SideXLeft = 21,
-    SideYRight = 22,
-    SideYLeft = 23,
-    SideZRight = 24,
-    SideZLeft = 25
-  };
+  /// \return returns the cell and the weights of the interpolation for given coordinate
+  TriCubicCell<DataT> getCell(const DataT z, const DataT r, const DataT phi) const;
 
-  void setValues(const int iz, const int ir, const int iphi, std::array<Vector<DataT, 4>, 16>& cVals) const;
+  /// \return returns the interpolated value of the data for given cell (the data has to be defined on the grid of this interpolator)
+  DataT interpolateData(const DataContainer& data, const TriCubicCell<DataT>& cell) const;
 
-  // interpolate value at given coordinate - this method doesnt compute and stores the coefficients and is faster when quering only a few values per cube
+  /// set the 64 values (4 x 4 x 4) used for the interpolation in the cell with given indices. Values outside of the grid in r and z are extrapolated
+  /// \param data data which is interpolated
+  /// \param cVals values of the points: cVals[4 * iphi + ir][iz] with iphi, ir, iz the relative index (-1, 0, 1, 2) + 1 to the cell
+  void setValues(const DataContainer& data, const int iz, const int ir, const int iphi, DataT (&cVals)[16][4]) const;
+
+  /// interpolate value at given coordinate
   /// \param z z coordinate
   /// \param r r coordinate
   /// \param phi phi coordinate
@@ -173,20 +149,6 @@ class TriCubicInterpolator
   DataT linearExtrapolation(const DataT valk, const DataT valk1) const;
 
   DataT parabolExtrapolation(const DataT valk, const DataT valk1, const DataT valk2) const;
-
-  GridPos findPos(const int iz, const int ir, const int iphi) const;
-
-  bool isInInnerVolume(const int iz, const int ir, const int iphi, GridPos& posType) const;
-
-  bool findEdge(const int iz, const int ir, const int iphi, GridPos& posType) const;
-
-  bool findLine(const int iz, const int ir, const int iphi, GridPos& posType) const;
-
-  bool findSide(const int iz, const int ir, const int iphi, GridPos& posType) const;
-
-  bool isSideRight(const int ind, const int dim) const;
-
-  bool isSideLeft(const int ind) const;
 };
 
 } // namespace tpc

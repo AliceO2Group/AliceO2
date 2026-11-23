@@ -140,6 +140,13 @@ class Digitizer
   void setMeanLumiDistortions(float meanLumi);
   void setMeanLumiDistortionsDerivative(float meanLumi);
 
+  /// method of recalculateDistortions()
+  /// \param method 0: invert the average and the derivative distortions to corrections and invert the scaled corrections C_avg + s * C_der to distortions,
+  ///               1: invert only the derivative distortions and apply the scaled derivative corrections directly to the average distortions (SpaceCharge::scaleGlobalDistWithDerivativeCorr).
+  ///               Other values are a fatal error
+  void setRecalcDistortionsMethod(int method);
+  int getRecalcDistortionsMethod() const { return mRecalcDistortionsMethod; }
+
   /// in case of scaled distortions, the distortions can be recalculated to ensure consistent distortions and corrections
   void recalculateDistortions();
 
@@ -192,7 +199,8 @@ class Digitizer
   int mDistortionScaleType = 0;          ///< type=0: no scaling of distortions, type=1 distortions without any scaling, type=2 distortions scaling with lumi
   float mLumiScaleFactor = 0;            ///< value used to scale the derivative map
   bool mUseScaledDistortions = false;    ///< whether the distortions are already scaled
-  ClassDefNV(Digitizer, 4);
+  int mRecalcDistortionsMethod = 1;      ///< method of recalculateDistortions(): 0 = inversion of the scaled corrections, 1 = derivative corrections applied to the distortions
+  ClassDefNV(Digitizer, 5);
 };
 } // namespace tpc
 } // namespace o2
