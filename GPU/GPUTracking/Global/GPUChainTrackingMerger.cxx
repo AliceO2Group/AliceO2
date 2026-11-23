@@ -101,7 +101,7 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   if (GetProcessingSettings().debugLevel >= 2) {
     GPUInfo("Running TPC Merger");
   }
-  const auto& threadContext = GetThreadContext();
+  const auto& holdContext = GetThreadContext();
 
   SynchronizeGPU(); // Need to know the full number of sector tracks
   SetupGPUProcessor(&Merger, true);

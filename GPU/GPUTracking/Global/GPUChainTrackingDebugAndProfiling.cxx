@@ -195,7 +195,7 @@ void GPUChainTracking::PrintMemoryRelations()
 void GPUChainTracking::PrepareKernelDebugOutput()
 {
 #ifdef GPUCA_KERNEL_DEBUGGER_OUTPUT
-  const auto& threadContext = GetThreadContext();
+  const auto& holdContext = GetThreadContext();
   if (mRec->IsGPU()) {
     SetupGPUProcessor(&processors()->debugOutput, false);
     WriteToConstantMemory(RecoStep::NoRecoStep, (char*)&processors()->debugOutput - (char*)processors(), &processorsShadow()->debugOutput, sizeof(processors()->debugOutput), -1);
@@ -208,7 +208,7 @@ void GPUChainTracking::PrepareKernelDebugOutput()
 void GPUChainTracking::PrintKernelDebugOutput()
 {
 #ifdef GPUCA_KERNEL_DEBUGGER_OUTPUT
-  const auto& threadContext = GetThreadContext();
+  const auto& holdContext = GetThreadContext();
   TransferMemoryResourcesToHost(RecoStep::NoRecoStep, &processors()->debugOutput, -1);
   processors()->debugOutput.Print();
 #endif

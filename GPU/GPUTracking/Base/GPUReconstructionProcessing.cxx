@@ -140,8 +140,8 @@ std::unique_ptr<GPUReconstructionProcessing::threadContext> GPUReconstructionPro
   return std::make_unique<threadContext>();
 }
 
-gpu_reconstruction_kernels::threadContext::threadContext() = default;
-gpu_reconstruction_kernels::threadContext::~threadContext() = default;
+GPUReconstruction::threadContext::threadContext() = default;
+GPUReconstruction::threadContext::~threadContext() = default;
 
 const std::vector<std::string> GPUReconstructionProcessing::mKernelNames = {
 #define GPUCA_KRNL(x_class, ...) GPUCA_M_STR(GPUCA_M_KRNL_NAME(x_class)),

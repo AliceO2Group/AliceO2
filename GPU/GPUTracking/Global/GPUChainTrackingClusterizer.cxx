@@ -655,7 +655,7 @@ int32_t GPUChainTracking::RunTPCClusterizer_prepare(bool restorePointers, const 
     processorsShadow()->ioPtrs.clustersNative = mCFContext->ptrClusterNativeSave;
     return 0;
   }
-  const auto& threadContext = GetThreadContext();
+  const auto& holdContext = GetThreadContext();
   mRec->MemoryScalers()->nTPCdigits = 0;
   if (mCFContext == nullptr) {
     mCFContext.reset(new GPUTPCCFChainContext);
@@ -763,7 +763,7 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   int32_t tpcTimeBinCut = (mUpdateNewCalibObjects && mNewCalibValues->newTPCTimeBinCut) ? mNewCalibValues->tpcTimeBinCut : param().tpcCutTimeBin;
 
   mRec->PushNonPersistentMemory(qStr2Tag("TPCCLUST"));
-  const auto& threadContext = GetThreadContext();
+  const auto& holdContext = GetThreadContext();
   const bool doGPU = GetRecoStepsGPU() & RecoStep::TPCClusterFinding;
 
   GPUTPCExtraADC extraADCs;

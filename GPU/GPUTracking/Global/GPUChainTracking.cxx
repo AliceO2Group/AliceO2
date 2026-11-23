@@ -335,7 +335,7 @@ bool GPUChainTracking::ValidateSettings()
 
 int32_t GPUChainTracking::Init()
 {
-  const auto& threadContext = GetThreadContext();
+  const auto& holdContext = GetThreadContext();
   if (GetProcessingSettings().debugLevel >= 1) {
     printf("Enabled Reconstruction Steps: 0x%x (on GPU: 0x%x)", (int32_t)GetRecoSteps().get(), (int32_t)GetRecoStepsGPU().get());
     for (uint32_t i = 0; i < sizeof(gpudatatypes::RECO_STEP_NAMES) / sizeof(gpudatatypes::RECO_STEP_NAMES[0]); i++) {
@@ -687,7 +687,7 @@ int32_t GPUChainTracking::RunChain()
   if (GetProcessingSettings().autoAdjustHostThreads && !mRec->IsGPU()) {
     mRec->SetNActiveThreads(-1);
   }
-  const auto threadContext = GetThreadContext();
+  const auto holdContext = GetThreadContext();
   if (GetProcessingSettings().runCompressionStatistics && mCompressionStatistics == nullptr) {
     mCompressionStatistics.reset(new GPUTPCClusterStatistics);
   }
@@ -909,7 +909,7 @@ int32_t GPUChainTracking::CheckErrorCodes(bool cpuOnly, bool forceShowErrors, st
   bool hasDebugError = false;
   for (int32_t i = 0; i < 1 + (!cpuOnly && mRec->IsGPU()); i++) {
     if (i) {
-      const auto& threadContext = GetThreadContext();
+      const auto& holdContext = GetThreadContext();
       if (GetProcessingSettings().doublePipeline) {
         TransferMemoryResourceLinkToHost(RecoStep::NoRecoStep, mInputsHost->mResourceErrorCodes, 0);
         SynchronizeStream(0);
@@ -975,7 +975,7 @@ void GPUChainTracking::ClearErrorCodes(bool cpuOnly)
 {
   processors()->errorCodes.clear();
   if (mRec->IsGPU() && !cpuOnly) {
-    const auto& threadContext = GetThreadContext();
+    const auto& holdContext = GetThreadContext();
     WriteToConstantMemory(RecoStep::NoRecoStep, (char*)&processors()->errorCodes - (char*)processors(), &processorsShadow()->errorCodes, sizeof(processorsShadow()->errorCodes), 0);
     TransferMemoryResourceLinkToGPU(RecoStep::NoRecoStep, mInputsHost->mResourceErrorCodes, 0);
   }

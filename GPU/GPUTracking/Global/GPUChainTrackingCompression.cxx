@@ -41,7 +41,7 @@ int32_t GPUChainTracking::RunTPCCompression()
   int32_t gatherMode = mRec->GetProcessingSettings().tpcCompressionGatherMode == -1 ? mRec->getGPUParameters(doGPU).par_COMP_GATHER_MODE : mRec->GetProcessingSettings().tpcCompressionGatherMode;
   GPUTPCCompression& Compressor = processors()->tpcCompressor;
   GPUTPCCompression& CompressorShadow = doGPU ? processorsShadow()->tpcCompressor : Compressor;
-  const auto& threadContext = GetThreadContext();
+  const auto& holdContext = GetThreadContext();
   if (mPipelineFinalizationCtx && GetProcessingSettings().doublePipelineClusterizer) {
     RecordMarker(&mEvents->single, 0);
   }
@@ -239,7 +239,7 @@ int32_t GPUChainTracking::RunTPCDecompression()
   }
   if (GetProcessingSettings().tpcUseOldCPUDecoding) {
     const bool runFiltering = needFullFiltering || runTimeBinCutFiltering;
-    const auto& threadContext = GetThreadContext();
+    const auto& holdContext = GetThreadContext();
     TPCClusterDecompressor decomp;
     auto allocatorFinal = [this](size_t size) {
       this->mInputsHost->mNClusterNative = this->mInputsShadow->mNClusterNative = size;
@@ -279,7 +279,7 @@ int32_t GPUChainTracking::RunTPCDecompression()
     bool doGPU = GetRecoStepsGPU() & RecoStep::TPCDecompression;
     GPUTPCDecompression& Decompressor = processors()->tpcDecompressor;
     GPUTPCDecompression& DecompressorShadow = doGPU ? processorsShadow()->tpcDecompressor : Decompressor;
-    const auto& threadContext = GetThreadContext();
+    const auto& holdContext = GetThreadContext();
     CompressedClusters& inputGPU = Decompressor.mInputGPU;
     CompressedClusters& inputGPUShadow = DecompressorShadow.mInputGPU;
 

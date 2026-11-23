@@ -150,7 +150,7 @@ int32_t GPUChainTracking::DoTRDGPUTracking(T* externalInstance)
 
   int32_t useStream = 0;
 
-  const auto& threadContext = GetThreadContext();
+  const auto& holdContext = GetThreadContext();
   SetupGPUProcessor(Tracker, false);
   if (doGPU) {
     TrackerShadow->OverrideGPUGeometry(reinterpret_cast<GPUTRDGeometry*>(mFlatObjectsDevice.mCalibObjects.trdGeometry));
