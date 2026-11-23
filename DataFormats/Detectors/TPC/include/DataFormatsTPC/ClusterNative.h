@@ -53,7 +53,7 @@ namespace tpc
  * Not for permanent storage.
  */
 struct ClusterNative {
-  // NOTE: These states must match those from GPUTPCGMMergedTrackHit!
+  // NOTE: GPUTPCGMMergedTrackHit uses these states, we must not add a state beyond 0x8, since it uses 0x10 and above for its own flags
   enum clusterState { flagSplitPad = 0x1,  // Split in pad direction
                       flagSplitTime = 0x2, // Split in time direction
                       flagEdge = 0x4,      // At edge of TPC sector
