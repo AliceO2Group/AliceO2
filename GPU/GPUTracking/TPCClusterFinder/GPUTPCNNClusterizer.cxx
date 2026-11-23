@@ -70,8 +70,7 @@ void* GPUTPCNNClusterizer::setIOPointers(void* mem)
       auto fmt = [](size_t bytes) -> const char* {
         static char buf[64];
         double mb = (double)bytes / (1024.0 * 1024.0);
-        int n = snprintf(buf, sizeof(buf), "%zu bytes (%.3f MB)", bytes, mb);
-        (void)n;
+        [[maybe_unused]] int n = snprintf(buf, sizeof(buf), "%zu bytes (%.3f MB)", bytes, mb);
         return buf;
       };
 
@@ -136,10 +135,9 @@ void* GPUTPCNNClusterizer::setIOPointers(void* mem)
     double allocatedMB = static_cast<double>(allocatedBytes) / (1024.0 * 1024.0);
     {
       char allocMsg[256];
-      int nn = snprintf(allocMsg, sizeof(allocMsg),
-                        "(NNCLUS, GPUTPCNNClusterizer, this=%p) Total scratch allocation in setIOPointers: %zu bytes (%.3f MB)",
-                        (void*)this, (size_t)allocatedBytes, allocatedMB);
-      (void)nn;
+      [[maybe_unused]] int nn = snprintf(allocMsg, sizeof(allocMsg),
+                                         "(NNCLUS, GPUTPCNNClusterizer, this=%p) Total scratch allocation in setIOPointers: %zu bytes (%.3f MB)",
+                                         (void*)this, (size_t)allocatedBytes, allocatedMB);
       LOG(info) << allocMsg;
     }
   }

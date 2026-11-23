@@ -28,10 +28,8 @@ struct GPUTPCClusterRejection {
   }
 
   template <bool C, class T = void, class S = void>
-  GPUdi() static constexpr bool GetRejectionStatus(int32_t attach, bool& physics, T* counts = nullptr, S* mev200 = nullptr)
+  GPUdi() static constexpr bool GetRejectionStatus(int32_t attach, bool& physics, [[maybe_unused]] T* counts = nullptr, [[maybe_unused]] S* mev200 = nullptr)
   {
-    (void)counts; // FIXME: Avoid incorrect -Wunused-but-set-parameter warning
-    (void)mev200;
     bool retVal = false;
     if (attach == 0) {
       retVal = false;

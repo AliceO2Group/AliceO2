@@ -81,7 +81,8 @@ inline size_t GPUReconstruction::ReadData(FILE* fp, const T** entries, S* num, s
     return 0;
   }
   InOutPointerType inType;
-  size_t r, pos = ftell(fp);
+  [[maybe_unused]] size_t r;
+  size_t pos = ftell(fp);
   r = fread(&inType, sizeof(inType), 1, fp);
   if (r != 1 || inType != type) {
     fseek(fp, pos, SEEK_SET);
@@ -101,7 +102,6 @@ inline size_t GPUReconstruction::ReadData(FILE* fp, const T** entries, S* num, s
     }
     numTotal += num[i];
   }
-  (void)r;
   if (GetProcessingSettings().debugLevel >= 2) {
     GPUInfo("Read %zu %s", numTotal, IOTYPENAMES[type]);
   }

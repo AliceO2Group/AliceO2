@@ -1064,9 +1064,8 @@ inline uint32_t zsEncoderRun<T>::run(std::vector<zsPage>* buffer, std::vector<o2
 #endif
   bcShiftInFirstHBF = ir ? ir->bc : 0;
   int32_t orbitShift = ir ? ir->orbit : 0;
-  int32_t rawcru = 0;
-  int32_t rawendpoint = 0;
-  (void)(rawcru + rawendpoint); // avoid compiler warning
+  [[maybe_unused]] int32_t rawcru = 0;
+  [[maybe_unused]] int32_t rawendpoint = 0;
   encodeBitsFactor = (1 << (encodeBits - 10));
 
   std::sort(tmpBuffer.begin(), tmpBuffer.end(), [this](const o2::tpc::Digit a, const o2::tpc::Digit b) { return sort(a, b); });
