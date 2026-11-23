@@ -25,6 +25,9 @@ namespace
 // Big enough for the file header and for a TDirectory record (including its UUID).
 constexpr size_t kHeaderReadSize = 128;
 constexpr size_t kDirectoryReadSize = 64;
+// Read at open: the header, the top directory record and, as ROOT writes them
+// first, the key and directory record of the first DF, in one round trip.
+constexpr size_t kHeadReadSize = 4096;
 // Largest gap between the TTrees of a DF still read together with them.
 constexpr uint64_t kMetadataGap = 4 * 1024;
 // Smallest possible key header: 32-bit seeks and three empty strings.
@@ -49,8 +52,8 @@ RootFile::RootFile(std::shared_ptr<ByteSource> source)
   : mSource(std::move(source)),
     mUrl(mSource->url())
 {
-  auto buf = readRange(*mSource, 0, std::min<uint64_t>(kHeaderReadSize, mSource->size()));
-  Cursor c{buf, mUrl};
+  mHead = readRange(*mSource, 0, std::min<uint64_t>(kHeadReadSize, mSource->size()));
+  Cursor c{mHead, mUrl};
   auto magic = c.bytes(4);
   if (std::memcmp(magic.data(), "root", 4) != 0) {
     throw FormatError(mUrl + " is not a ROOT file");
@@ -100,7 +103,8 @@ DirectoryInfo RootFile::readDirectory(uint64_t offset)
   if (offset >= mSource->size()) {
     throw CorruptData(mUrl, offset, "directory record past the end of the file");
   }
-  auto buf = readRange(*mSource, offset, std::min<uint64_t>(kDirectoryReadSize, mSource->size() - offset));
+  auto len = std::min<uint64_t>(kDirectoryReadSize, mSource->size() - offset);
+  auto buf = offset + len <= mHead.size() ? std::vector<uint8_t>(mHead.begin() + offset, mHead.begin() + offset + len) : readRange(*mSource, offset, len);
   Cursor c{buf, mUrl, offset};
   DirectoryInfo d;
   d.version = c.i16();
