@@ -16,6 +16,7 @@
 #define GPUTPCGMMERGEDTRACKHIT_H
 
 #include "GPUCommonDef.h"
+#include "DataFormatsTPC/ClusterNative.h"
 
 namespace o2::gpu
 {
@@ -23,13 +24,11 @@ struct GPUTPCGMMergedTrackHit {
   uint32_t num;
   uint8_t sector, row, state;
 
-  // NOTE: the lower states must match those from ClusterNative!
-  // TODO: take them directly from clusterNative header.
-  enum hitState { flagSplitPad = 0x1,
-                  flagSplitTime = 0x2,
-                  flagSplit = 0x3,
-                  flagEdge = 0x4,
-                  flagSingle = 0x8,
+  enum hitState { flagSplitPad = o2::tpc::ClusterNative::clusterState::flagSplitPad,
+                  flagSplitTime = o2::tpc::ClusterNative::clusterState::flagSplitTime,
+                  flagEdge = o2::tpc::ClusterNative::clusterState::flagEdge,
+                  flagSingle = o2::tpc::ClusterNative::clusterState::flagSingle,
+                  flagSplit = flagSplitPad | flagSplitTime,
                   flagShared = 0x10,
                   clustererAndSharedFlags = 0x1F,
                   flagRejectDistance = 0x20,
