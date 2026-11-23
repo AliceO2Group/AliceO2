@@ -21,7 +21,6 @@ using namespace o2::gpu;
 //
 // Circle in XY:
 //
-// kCLight = 0.000299792458f;
 // Kappa = -Bz*kCLight*QPt;
 // R  = 1/CAMath::Abs(Kappa);
 // Xc = X - CAMath::Sin(Phi)/Kappa;
