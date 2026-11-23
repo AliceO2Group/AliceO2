@@ -38,7 +38,7 @@ bool GPUChainTracking::NeedTPCClustersOnGPU()
 int32_t GPUChainTracking::ConvertNativeToClusterData()
 {
   mRec->PushNonPersistentMemory(qStr2Tag("TPCTRANS"));
-  const auto& threadContext = GetThreadContext();
+  const auto& holdContext = GetThreadContext();
 
   bool transferClusters = false;
   if (mRec->IsGPU() && !(mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCClusterFinding) && NeedTPCClustersOnGPU()) {

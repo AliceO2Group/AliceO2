@@ -58,7 +58,7 @@ int32_t GPUChainTracking::RunTPCTrackingSectors()
     return (1);
   }
 
-  const auto& threadContext = GetThreadContext();
+  const auto& holdContext = GetThreadContext();
 
   int32_t retVal = RunTPCTrackingSectors_internal();
   if (retVal) {

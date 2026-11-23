@@ -62,12 +62,6 @@ struct GPUSettingsRec;
 struct GPUSettingsRecDynamic;
 struct GPUMemoryReuse;
 
-namespace gpu_reconstruction_kernels
-{
-struct deviceEvent;
-class threadContext;
-} // namespace gpu_reconstruction_kernels
-
 class GPUReconstruction
 {
  protected:
@@ -139,6 +133,9 @@ class GPUReconstruction
   enum class krnlDeviceType : int32_t { CPU = 0,
                                         Device = 1,
                                         Auto = -1 };
+
+  struct deviceEvent;
+  struct threadContext;
 
   // Global steering functions
   template <class T, typename... Args>
@@ -278,7 +275,7 @@ class GPUReconstruction
   int32_t InitPhaseAfterDevice();
   void WriteConstantParams(int32_t stream = -1);
   virtual int32_t ExitDevice() = 0;
-  virtual size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int32_t stream = -1, gpu_reconstruction_kernels::deviceEvent* ev = nullptr) = 0;
+  virtual size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int32_t stream = -1, deviceEvent* ev = nullptr) = 0;
   void UpdateMaxMemoryUsed();
   int32_t EnqueuePipeline(bool terminate = false);
   GPUChain* GetNextChainInQueue();
@@ -288,7 +285,7 @@ class GPUReconstruction
   virtual int32_t unregisterMemoryForGPU_internal(const void* ptr) = 0;
 
   // Management for GPU thread contexts
-  virtual std::unique_ptr<gpu_reconstruction_kernels::threadContext> GetThreadContext() = 0;
+  virtual std::unique_ptr<threadContext> GetThreadContext() = 0;
 
   // Private helpers for library loading
   static std::shared_ptr<LibraryLoader>* GetLibraryInstance(DeviceType type, bool verbose);
