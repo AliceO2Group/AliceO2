@@ -718,9 +718,13 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
   }
   /// Add strangeness tracks to the table
   auto sTracks = data.getStrangeTracks();
-  tracksCursor.reserve(mVertexStrLUT[collisionID + 1] + tracksCursor.lastIndex() + 1);
-  tracksCovCursor.reserve(mVertexStrLUT[collisionID + 1] + tracksCovCursor.lastIndex() + 1);
-  tracksExtraCursor.reserve(mVertexStrLUT[collisionID + 1] + tracksExtraCursor.lastIndex() + 1);
+  // All three families append aligned rows to the common track tables.
+  const int nStrangenessTracks = mVertexStrLUT[collisionID + 1] - mVertexStrLUT[collisionID] +
+                                 mVertexExtendedStrLUT[collisionID + 1] - mVertexExtendedStrLUT[collisionID] +
+                                 mVertexITSShortLUT[collisionID + 1] - mVertexITSShortLUT[collisionID];
+  tracksCursor.reserve(nStrangenessTracks + tracksCursor.lastIndex() + 1);
+  tracksCovCursor.reserve(nStrangenessTracks + tracksCovCursor.lastIndex() + 1);
+  tracksExtraCursor.reserve(nStrangenessTracks + tracksExtraCursor.lastIndex() + 1);
   for (int iS{mVertexStrLUT[collisionID]}; iS < mVertexStrLUT[collisionID + 1]; ++iS) {
     auto& collStrTrk = mCollisionStrTrk[iS];
     auto& sTrk = sTracks[collStrTrk.second];
@@ -731,6 +735,45 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
     addToTracksExtraTable(tracksExtraCursor, extraInfo);
     mStrTrkIndices[collStrTrk.second] = mTableTrID;
     mTableTrID++;
+  }
+  auto trackingPIDFlags = [](const auto& track) {
+    const auto pid = uint32_t(track.getPID().getID());
+    // Leave the PID field at its default when the hypothesis cannot fit in four bits.
+    return pid < 16u ? pid << 28 : 0u;
+  };
+  const auto extended = data.getExtendedStrangeTracks();
+  const auto extendedTimes = data.getExtendedStrangeTrackTimes();
+  for (int i = mVertexExtendedStrLUT[collisionID]; i < mVertexExtendedStrLUT[collisionID + 1]; ++i) {
+    const int ref = mCollisionExtendedStrTrk[i].second;
+    const auto& trk = extended[ref];
+    int nClusters = 0;
+    for (int layer = 0; layer < 7; ++layer) {
+      nClusters += trk.getClusterSize(layer) > 0;
+    }
+    TrackExtraInfo extraInfo;
+    extraInfo.itsClusterSizes = trk.getClusterSizes();
+    extraInfo.itsChi2NCl = nClusters ? trk.mTopoChi2 / nClusters : 0.f;
+    const auto& time = extendedTimes[ref];
+    extraInfo.trackTime = (time.getTimeStamp() - double(int64_t(collisionBC) - int64_t(mStartIR.toLong()))) * o2::constants::lhc::LHCBunchSpacingNS;
+    extraInfo.trackTimeRes = time.getTimeStampError() * o2::constants::lhc::LHCBunchSpacingNS;
+    extraInfo.flags = o2::aod::track::TrackTimeResIsRange | trackingPIDFlags(trk.mMother);
+    addToTracksTable(tracksCursor, tracksCovCursor, trk.mMother, mVtxToTableCollID.at(collisionID), aod::track::ExtendedStrangeTrack);
+    addToTracksExtraTable(tracksExtraCursor, extraInfo);
+    mExtendedStrTrkIndices[ref] = mTableTrID++;
+  }
+  const auto shortTracks = data.getITSShortTracks();
+  for (int i = mVertexITSShortLUT[collisionID]; i < mVertexITSShortLUT[collisionID + 1]; ++i) {
+    const auto& trk = shortTracks[mCollisionITSShortTrk[i].second];
+    TrackExtraInfo extraInfo;
+    extraInfo.itsClusterSizes = trk.getClusterSizes();
+    extraInfo.itsChi2NCl = trk.getChi2() / trk.getNClusters();
+    const auto& time = trk.getTimeStamp();
+    extraInfo.trackTime = (double(time.getTimeStamp()) - double(int64_t(collisionBC) - int64_t(mStartIR.toLong()))) * o2::constants::lhc::LHCBunchSpacingNS;
+    extraInfo.trackTimeRes = time.getTimeStampError() * o2::constants::lhc::LHCBunchSpacingNS;
+    extraInfo.flags = o2::aod::track::TrackTimeResIsRange | trackingPIDFlags(trk);
+    addToTracksTable(tracksCursor, tracksCovCursor, trk.getParamIn(), mVtxToTableCollID.at(collisionID), aod::track::TripletITS);
+    addToTracksExtraTable(tracksExtraCursor, extraInfo);
+    ++mTableTrID;
   }
 }
 
@@ -1174,6 +1217,14 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
       }
     }
   }
+  // New tracks need not have an existing reconstructed-track contributor.
+  for (auto labels : {data.getExtendedStrangeTracksMCLabels(), data.getITSShortTracksMCLabels()}) {
+    for (const auto& label : labels) {
+      if (label.isValid()) {
+        keepMCParticle(mToStore, label.getSourceID(), label.getEventID(), label.getTrackID(), 1, mUseSigFiltMC);
+      }
+    }
+  }
   // mark calorimeter signals as reconstructed particles
   if (mInputSources[GIndex::EMC]) {
     auto& mcCaloEMCCellLabels = data.getEMCALCellsMCLabels()->getTruthArray();
@@ -1333,6 +1384,34 @@ void AODProducerWorkflowDPL::fillMCTrackLabelsTable(MCTrackLabelCursorType& mcTr
       mcTrackLabelCursor(labelHolder.labelID, labelHolder.labelMask);
     }
   }
+  auto appendNewLabels = [&](const auto& lut, const auto& refs, const auto& labels, bool shortTracks) {
+    if (vertexId < 0 || vertexId + 1 >= lut.size()) {
+      return;
+    }
+    mcTrackLabelCursor.reserve(lut[vertexId + 1] - lut[vertexId] + mcTrackLabelCursor.lastIndex() + 1);
+    for (int i = lut[vertexId]; i < lut[vertexId + 1]; ++i) {
+      const int ref = refs[i].second;
+      const auto& label = labels[ref];
+      int labelID = -1;
+      if (label.isValid()) {
+        const auto& stored = mToStore.at(label.getSourceID()).at(label.getEventID());
+        auto found = stored.find(label.getTrackID());
+        if (found != stored.end()) {
+          labelID = found->second;
+        }
+      }
+      uint16_t mask = (label.isFake() << 15) | (label.isNoise() << 14);
+      if (shortTracks) {
+        const auto& track = data.getITSShortTracks()[ref];
+        for (int layer = 0; layer < 3; ++layer) {
+          mask |= uint16_t(track.isFakeOnLayer(layer)) << layer;
+        }
+      }
+      mcTrackLabelCursor(labelID, mask);
+    }
+  };
+  appendNewLabels(mVertexExtendedStrLUT, mCollisionExtendedStrTrk, data.getExtendedStrangeTracksMCLabels(), false);
+  appendNewLabels(mVertexITSShortLUT, mCollisionITSShortTrk, data.getITSShortTracksMCLabels(), true);
 }
 
 template <typename V0CursorType, typename CascadeCursorType, typename Decay3BodyCursorType>
@@ -1376,8 +1455,12 @@ void AODProducerWorkflowDPL::fillSecondaryVertices(const o2::globaltracking::Rec
   }
 
   // filling cascades table
+  mCascadeToTableID.clear();
+  mDecay3BodyToTableID.clear();
+  int sourceCascadeID = -1;
   cascadeCursor.reserve(cascades.size());
   for (auto& cascade : cascades) {
+    ++sourceCascadeID;
     auto itemV0 = mV0ToTableID.find(cascade.getV0ID());
     if (itemV0 == mV0ToTableID.end()) {
       continue;
@@ -1398,6 +1481,7 @@ void AODProducerWorkflowDPL::fillSecondaryVertices(const o2::globaltracking::Rec
       LOG(warn) << "Could not find cascade collisionID for the vertex ID " << cascade.getVertexID();
       continue;
     }
+    mCascadeToTableID[sourceCascadeID] = cascadeCursor.lastIndex() + 1;
     cascadeCursor(collID, v0tableID, bachTableIdx);
   }
 
@@ -1430,6 +1514,7 @@ void AODProducerWorkflowDPL::fillSecondaryVertices(const o2::globaltracking::Rec
     if (missing) {
       continue;
     }
+    mDecay3BodyToTableID[i3Body] = decay3BodyCursor.lastIndex() + 1;
     decay3BodyCursor(collID, tableIdx[0], tableIdx[1], tableIdx[2]);
   }
 }
@@ -1500,6 +1585,80 @@ void AODProducerWorkflowDPL::fillHMPID(const o2::globaltracking::RecoContainer& 
   }
 }
 
+void AODProducerWorkflowDPL::prepareStrangenessTrackingExtensions(const o2::globaltracking::RecoContainer& data)
+{
+  const auto tracks = data.getExtendedStrangeTracks();
+  const auto times = data.getExtendedStrangeTrackTimes();
+  if (times.size() != tracks.size() || (mUseMC && data.getExtendedStrangeTracksMCLabels().size() != tracks.size())) {
+    LOG(fatal) << "Extended strange-track/time/MC cardinality mismatch";
+  }
+  mCollisionExtendedStrTrk.clear();
+  mVertexExtendedStrLUT.assign(data.getPrimaryVertices().size() + 1, 0);
+  mExtendedStrTrkIndices.assign(tracks.size(), -1);
+  const auto v0s = data.getV0sIdx();
+  const auto cascades = data.getCascadesIdx();
+  const auto threeBody = data.getDecays3BodyIdx();
+  for (int i = 0; i < tracks.size(); ++i) {
+    const auto& track = tracks[i];
+    int pv = -1;
+    if (track.mPartType == dataformats::kStrkV0 && track.mDecayRef < v0s.size()) {
+      pv = v0s[track.mDecayRef].getVertexID();
+    } else if (track.mPartType == dataformats::kStrkCascade && track.mDecayRef < cascades.size()) {
+      pv = cascades[track.mDecayRef].getVertexID();
+    } else if (track.mPartType == dataformats::kStrkThreeBody && track.mDecayRef < threeBody.size()) {
+      pv = threeBody[track.mDecayRef].getVertexID();
+    }
+    if (pv < 0 || pv + 1 >= mVertexExtendedStrLUT.size() || track.mITSRef != static_cast<unsigned int>(-1)) {
+      LOG(fatal) << "Extended strange track " << i << " has an invalid source decay/PV or an unexpected original ITS reference";
+    }
+    if (times[i].getTimeStampError() < 0.f) {
+      LOG(fatal) << "Invalid time interval for extended strange track " << i;
+    }
+    mCollisionExtendedStrTrk.emplace_back(pv, i);
+    ++mVertexExtendedStrLUT[pv];
+  }
+  std::exclusive_scan(mVertexExtendedStrLUT.begin(), mVertexExtendedStrLUT.end(), mVertexExtendedStrLUT.begin(), 0);
+  std::stable_sort(mCollisionExtendedStrTrk.begin(), mCollisionExtendedStrTrk.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+}
+
+void AODProducerWorkflowDPL::prepareITSShortTracks(const o2::globaltracking::RecoContainer& data)
+{
+  const auto tracks = data.getITSShortTracks();
+  const auto pvs = data.getITSShortTrackPVRefs();
+  const auto clusters = data.getITSShortTrackClusterRefs();
+  if (pvs.size() != tracks.size() || clusters.size() != 3 * tracks.size() || (mUseMC && data.getITSShortTracksMCLabels().size() != tracks.size())) {
+    LOG(fatal) << "ITS short-track/PV/cluster/MC cardinality mismatch";
+  }
+  mCollisionITSShortTrk.clear();
+  mVertexITSShortLUT.assign(data.getPrimaryVertices().size() + 1, 0);
+  for (int i = 0; i < tracks.size(); ++i) {
+    const auto& track = tracks[i];
+    const int pv = pvs[i];
+    if (pv < 0 || pv + 1 >= mVertexITSShortLUT.size() || track.getNClusters() != 3 || track.getFirstClusterEntry() != 3 * i || (track.getPattern() & 0x7f) != 0x7) {
+      LOG(fatal) << "Invalid PV or three-hit cluster references for ITS short track " << i;
+    }
+    const auto& time = track.getTimeStamp();
+    if (time.getTimeStampError() < 0.f) {
+      LOG(fatal) << "Invalid time interval for ITS short track " << i;
+    }
+    mCollisionITSShortTrk.emplace_back(pv, i);
+    ++mVertexITSShortLUT[pv];
+  }
+  std::exclusive_scan(mVertexITSShortLUT.begin(), mVertexITSShortLUT.end(), mVertexITSShortLUT.begin(), 0);
+  std::stable_sort(mCollisionITSShortTrk.begin(), mCollisionITSShortTrk.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+}
+
+int AODProducerWorkflowDPL::getDecayTableID(int partType, int sourceRef) const
+{
+  if (partType == dataformats::kStrkV0) {
+    const auto found = mV0ToTableID.find(sourceRef);
+    return found != mV0ToTableID.end() ? found->second : -1;
+  }
+  const auto& map = partType == dataformats::kStrkCascade ? mCascadeToTableID : mDecay3BodyToTableID;
+  const auto found = map.find(sourceRef);
+  return found != map.end() ? found->second : -1;
+}
+
 void AODProducerWorkflowDPL::prepareStrangenessTracking(const o2::globaltracking::RecoContainer& recoData)
 {
   auto v0s = recoData.getV0sIdx();
@@ -1511,8 +1670,7 @@ void AODProducerWorkflowDPL::prepareStrangenessTracking(const o2::globaltracking
   mCollisionStrTrk.reserve(recoData.getStrangeTracks().size());
   mVertexStrLUT.clear();
   mVertexStrLUT.resize(recoData.getPrimaryVertices().size() + 1, 0);
-  for (auto& sTrk : recoData.getStrangeTracks()) {
-    auto ITSIndex = GIndex{sTrk.mITSRef, GIndex::ITS};
+  for (const auto& sTrk : recoData.getStrangeTracks()) {
     int vtxId{0};
     if (sTrk.mPartType == dataformats::kStrkV0) {
       vtxId = v0s[sTrk.mDecayRef].getVertexID();
@@ -1533,75 +1691,55 @@ void AODProducerWorkflowDPL::prepareStrangenessTracking(const o2::globaltracking
 }
 
 template <typename V0C, typename CC, typename D3BC>
-void AODProducerWorkflowDPL::fillStrangenessTrackingTables(const o2::globaltracking::RecoContainer& recoData, V0C& v0Curs, CC& cascCurs, D3BC& d3BodyCurs)
+void AODProducerWorkflowDPL::fillStrangenessTrackingTables(const o2::globaltracking::RecoContainer& data, V0C& v0Cursor, CC& cascadeCursor, D3BC& threeBodyCursor)
 {
-  int itsTableIdx = -1;
-  int nV0 = 0;
-  int nCasc = 0;
-  int nD3Body = 0;
-
-  for (const auto& sTrk : recoData.getStrangeTracks()) {
-    if (sTrk.mPartType == dataformats::kStrkV0) {
-      nV0++;
-    } else if (sTrk.mPartType == dataformats::kStrkCascade) {
-      nCasc++;
-    } else {
-      nD3Body++;
-    }
+  const auto extended = data.getExtendedStrangeTracks();
+  const auto matched = data.getStrangeTracks();
+  if (extended.empty()) {
+    const auto nV0 = std::ranges::count(matched, dataformats::kStrkV0, &dataformats::StrangeTrack::mPartType);
+    const auto nCascades = std::ranges::count(matched, dataformats::kStrkCascade, &dataformats::StrangeTrack::mPartType);
+    v0Cursor.reserve(nV0);
+    cascadeCursor.reserve(nCascades);
+    threeBodyCursor.reserve(matched.size() - nV0 - nCascades);
   }
 
-  v0Curs.reserve(nV0);
-  cascCurs.reserve(nCasc);
-  d3BodyCurs.reserve(nD3Body);
-
-  // Write the rows grouped by collision, the order analyses slice these tables in
-  auto sTracks = recoData.getStrangeTracks();
-  for (const auto& collStrTrk : mCollisionStrTrk) {
-    const auto& sTrk = sTracks[collStrTrk.second];
-    auto ITSIndex = GIndex{sTrk.mITSRef, GIndex::ITS};
-    auto item = mGIDToTableID.find(ITSIndex);
-    if (item != mGIDToTableID.end()) {
-      itsTableIdx = item->second;
-    } else {
-      LOG(warn) << "Could not find a ITS strange track index " << ITSIndex;
-      continue;
+  // Common tracks are written by collision, with legacy tracks before extensions.
+  auto legacy = mCollisionStrTrk.begin();
+  auto extension = mCollisionExtendedStrTrk.begin();
+  while (legacy != mCollisionStrTrk.end() || extension != mCollisionExtendedStrTrk.end()) {
+    const bool isExtension = extension != mCollisionExtendedStrTrk.end() &&
+                             (legacy == mCollisionStrTrk.end() || extension->first < legacy->first);
+    const int index = isExtension ? (extension++)->second : (legacy++)->second;
+    const auto& track = isExtension ? extended[index] : matched[index];
+    const int trackID = isExtension ? mExtendedStrTrkIndices[index] : mStrTrkIndices[index];
+    int itsTrackID = -1;
+    const int decayID = getDecayTableID(track.mPartType, track.mDecayRef);
+    if (!isExtension) {
+      const auto itsID = GIndex{track.mITSRef, GIndex::ITS};
+      const auto found = mGIDToTableID.find(itsID);
+      if (found == mGIDToTableID.end()) {
+        LOG(warn) << "Could not find a ITS strange track index " << itsID;
+        continue;
+      }
+      if (decayID < 0) {
+        LOG(warn) << "Could not find the stored decay row for strange track " << index;
+        continue;
+      }
+      itsTrackID = found->second;
     }
-    if (sTrk.mPartType == dataformats::kStrkV0) {
-      v0Curs(mStrTrkIndices[collStrTrk.second],
-             itsTableIdx,
-             sTrk.mDecayRef,
-             sTrk.mDecayVtx[0],
-             sTrk.mDecayVtx[1],
-             sTrk.mDecayVtx[2],
-             sTrk.mMasses[0],
-             sTrk.mMasses[1],
-             sTrk.mMatchChi2,
-             sTrk.mTopoChi2,
-             sTrk.getAverageClusterSize());
-    } else if (sTrk.mPartType == dataformats::kStrkCascade) {
-      cascCurs(mStrTrkIndices[collStrTrk.second],
-               itsTableIdx,
-               sTrk.mDecayRef,
-               sTrk.mDecayVtx[0],
-               sTrk.mDecayVtx[1],
-               sTrk.mDecayVtx[2],
-               sTrk.mMasses[0],
-               sTrk.mMasses[1],
-               sTrk.mMatchChi2,
-               sTrk.mTopoChi2,
-               sTrk.getAverageClusterSize());
+    if (isExtension && (trackID < 0 || decayID < 0)) {
+      LOG(fatal) << "Cannot export extended strange track " << index << ": common track or source decay row was not stored";
+    }
+    auto write = [&](auto& cursor) {
+      cursor(trackID, itsTrackID, decayID, track.mDecayVtx[0], track.mDecayVtx[1], track.mDecayVtx[2],
+             track.mMasses[0], track.mMasses[1], track.mMatchChi2, track.mTopoChi2, track.getAverageClusterSize());
+    };
+    if (track.mPartType == dataformats::kStrkV0) {
+      write(v0Cursor);
+    } else if (track.mPartType == dataformats::kStrkCascade) {
+      write(cascadeCursor);
     } else {
-      d3BodyCurs(mStrTrkIndices[collStrTrk.second],
-                 itsTableIdx,
-                 sTrk.mDecayRef,
-                 sTrk.mDecayVtx[0],
-                 sTrk.mDecayVtx[1],
-                 sTrk.mDecayVtx[2],
-                 sTrk.mMasses[0],
-                 sTrk.mMasses[1],
-                 sTrk.mMatchChi2,
-                 sTrk.mTopoChi2,
-                 sTrk.getAverageClusterSize());
+      write(threeBodyCursor);
     }
   }
 }
@@ -2457,6 +2595,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   /// Strangeness tracking requires its index LUTs to be filled before the tracks are filled
   prepareStrangenessTracking(recoData);
+  prepareStrangenessTrackingExtensions(recoData);
+  prepareITSShortTracks(recoData);
 
   mGIDToTableFwdID.clear(); // reset the tables to be used by 'fillTrackTablesPerCollision'
   mGIDToTableMFTID.clear();
@@ -3527,7 +3667,7 @@ void AODProducerWorkflowDPL::endOfStream(EndOfStreamContext& /*ec*/)
   mStreamer.reset();
 }
 
-DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, bool enableStrangenessTracking, bool useMC, bool CTPConfigPerRun, bool enableFITextra, bool enableTRDextra)
+DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, bool enableStrangenessTracking, bool useMC, bool CTPConfigPerRun, bool enableFITextra, bool enableTRDextra, bool enableExtensions, bool enableShortTracks)
 {
   auto dataRequest = std::make_shared<DataRequest>();
   dataRequest->inputs.emplace_back("ctpconfig", "CTP", "CTPCONFIG", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/Config", CTPConfigPerRun));
@@ -3539,6 +3679,15 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
   }
   if (enableSV) {
     dataRequest->requestSecondaryVertices(useMC);
+  }
+  if (enableExtensions) {
+    if (!enableSV) {
+      LOG(fatal) << "Extended strange-track AO2D export requires secondary vertices to preserve source-decay relations";
+    }
+    dataRequest->requestStrangenessTrackingExtensions(useMC);
+  }
+  if (enableShortTracks) {
+    dataRequest->requestITSShortTracks(useMC);
   }
   if (enableStrangenessTracking) {
     dataRequest->requestStrangeTracks(useMC);

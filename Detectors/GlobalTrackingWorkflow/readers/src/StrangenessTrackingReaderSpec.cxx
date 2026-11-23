@@ -21,7 +21,8 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Logger.h"
 #include "CommonUtils/NameConf.h"
-#include "CommonDataFormat/RangeReference.h"
+#include "DataFormatsITS/TrackITS.h"
+#include "ReconstructionDataFormats/StrangenessTrackingStats.h"
 #include "ReconstructionDataFormats/StrangeTrack.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "TFile.h"
@@ -36,11 +37,10 @@ namespace strangeness_tracking
 // read strangeness tracking candidates
 class StrangenessTrackingReader : public o2::framework::Task
 {
-  // using RRef = o2::dataformats::RangeReference<int, int>;
   using StrangeTrack = dataformats::StrangeTrack;
 
  public:
-  StrangenessTrackingReader(bool useMC) : mUseMC(useMC) {}
+  StrangenessTrackingReader(bool useMC, bool extensions, bool shortTracks) : mUseMC(useMC), mExtensions(extensions), mShortTracks(shortTracks) {}
   ~StrangenessTrackingReader() override = default;
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
@@ -49,20 +49,23 @@ class StrangenessTrackingReader : public o2::framework::Task
   void connectTree();
 
   bool mUseMC = false;
-  bool mVerbose = false;
+  bool mExtensions = false, mShortTracks = false;
 
   std::vector<StrangeTrack> mStrangeTrack, *mStrangeTrackPtr = &mStrangeTrack;
   std::vector<o2::MCCompLabel> mStrangeTrackMC, *mStrangeTrackMCPtr = &mStrangeTrackMC;
-  // std::vector<RRef> mPV2V0Ref, *mPV2V0RefPtr = &mPV2V0Ref;
+  std::vector<StrangeTrack> mExtended, *mExtendedPtr = &mExtended;
+  std::vector<o2::MCCompLabel> mExtendedLabels, *mExtendedLabelsPtr = &mExtendedLabels, mShortLabels, *mShortLabelsPtr = &mShortLabels;
+  std::vector<o2::its::TimeStamp> mTimes, *mTimesPtr = &mTimes;
+  std::vector<o2::its::TrackITS> mShort, *mShortPtr = &mShort;
+  std::vector<int> mShortPV, *mShortPVPtr = &mShortPV, mShortClus, *mShortClusPtr = &mShortClus;
+  o2::dataformats::StrangenessTrackingStats mStats, *mStatsPtr = &mStats;
 
   std::unique_ptr<TFile> mFile;
   std::unique_ptr<TTree> mTree;
   std::string mFileName = "";
-  std::string mFileNameMatches = "";
   std::string mSTrackingTreeName = "o2sim";
   std::string mStrackBranchName = "StrangeTracks";
   std::string mStrackMCBranchName = "StrangeTrackMCLab";
-  // std::string mPVertex2V0RefBranchName = "PV2V0Refs";
 };
 
 void StrangenessTrackingReader::init(InitContext& ic)
@@ -84,7 +87,23 @@ void StrangenessTrackingReader::run(ProcessingContext& pc)
   if (noEntry) {
     LOGP(warning, "No entry {} to read, tree contains {} entries, publishing empty output", ent, mTree->GetEntries());
   } else {
-    mTree->GetEntry(ent);
+    const auto bytes = mTree->GetEntry(ent);
+    if ((mExtensions || mShortTracks) && bytes <= 0) {
+      LOG(fatal) << "Cannot read strange-track entry " << ent << " in " << mFileName;
+    }
+  }
+  if (mExtensions && (mTimes.size() != mExtended.size() || (mUseMC && mExtendedLabels.size() != mExtended.size()))) {
+    LOG(fatal) << "Extended strange-track/time/MC cardinality mismatch at entry " << ent;
+  }
+  if (mShortTracks) {
+    if (mShortPV.size() != mShort.size() || mShortClus.size() != 3 * mShort.size() || (mUseMC && mShortLabels.size() != mShort.size())) {
+      LOG(fatal) << "ITS short-track/PV/cluster/MC cardinality mismatch at entry " << ent;
+    }
+    for (size_t i = 0; i < mShort.size(); ++i) {
+      if (mShort[i].getNClusters() != 3 || mShort[i].getFirstClusterEntry() != 3 * i) {
+        LOG(fatal) << "Invalid ITS short-track cluster reference range at entry " << ent;
+      }
+    }
   }
   LOG(info) << "Pushing " << mStrangeTrack.size() << " strange tracks at entry " << ent;
   pc.outputs().snapshot(Output{"GLO", "STRANGETRACKS", 0}, mStrangeTrack);
@@ -94,7 +113,24 @@ void StrangenessTrackingReader::run(ProcessingContext& pc)
     pc.outputs().snapshot(Output{"GLO", "STRANGETRACKS_MC", 0}, mStrangeTrackMC);
   }
 
-  // pc.outputs().snapshot(Output{"GLO", "PVTX_V0REFS", 0}, mPV2V0Ref);
+  if (mExtensions) {
+    pc.outputs().snapshot(Output{"GLO", "EXTSTRTRACKS", 0}, mExtended);
+    pc.outputs().snapshot(Output{"GLO", "EXTSTRTIMES", 0}, mTimes);
+    if (mUseMC) {
+      pc.outputs().snapshot(Output{"GLO", "EXTSTRTRACKS_MC", 0}, mExtendedLabels);
+    }
+  }
+  if (mShortTracks) {
+    pc.outputs().snapshot(Output{"GLO", "ITSSHORTTRACKS", 0}, mShort);
+    pc.outputs().snapshot(Output{"GLO", "ITSSHORTPV", 0}, mShortPV);
+    pc.outputs().snapshot(Output{"GLO", "ITSSHORTCLREF", 0}, mShortClus);
+    if (mUseMC) {
+      pc.outputs().snapshot(Output{"GLO", "ITSSHORTMC", 0}, mShortLabels);
+    }
+  }
+  if (mExtensions || mShortTracks) {
+    pc.outputs().snapshot(Output{"GLO", "STRTRACKSTATS", 0}, mStats);
+  }
 
   if (noEntry || mTree->GetReadEntry() + pc.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
@@ -106,21 +142,47 @@ void StrangenessTrackingReader::connectTree()
 {
   mTree.reset(nullptr); // in case it was already loaded
   mFile.reset(TFile::Open(mFileName.c_str()));
-  assert(mFile && !mFile->IsZombie());
+  if (!mFile || mFile->IsZombie()) {
+    LOG(fatal) << "Cannot open strange-track input " << mFileName;
+  }
   mTree.reset((TTree*)mFile->Get(mSTrackingTreeName.c_str()));
-  assert(mTree);
-  assert(mTree->GetBranch(mStrackBranchName.c_str()));
+  if (!mTree) {
+    LOG(fatal) << "Missing " << mSTrackingTreeName << " tree in " << mFileName;
+  }
 
   mTree->SetBranchAddress(mStrackBranchName.c_str(), &mStrangeTrackPtr);
   if (mUseMC) {
-    assert(mTree->GetBranch(mStrackMCBranchName.c_str()));
     mTree->SetBranchAddress(mStrackMCBranchName.c_str(), &mStrangeTrackMCPtr);
+  }
+
+  auto bind = [&](const char* name, auto address) {
+    if (!mTree->GetBranch(name) || mTree->SetBranchAddress(name, address) < 0) {
+      LOG(fatal) << "Missing or incompatible enabled strangeness-tracking branch " << name << " in " << mFileName;
+    }
+  };
+  if (mExtensions) {
+    bind("ExtendedStrangeTracks", &mExtendedPtr);
+    bind("ExtendedStrangeTrackTimes", &mTimesPtr);
+    if (mUseMC) {
+      bind("ExtendedStrangeTrackMCLab", &mExtendedLabelsPtr);
+    }
+  }
+  if (mShortTracks) {
+    bind("ITSShortTracks", &mShortPtr);
+    bind("ITSShortTrackPVRefs", &mShortPVPtr);
+    bind("ITSShortTrackClusRefs", &mShortClusPtr);
+    if (mUseMC) {
+      bind("ITSShortTrackMCLab", &mShortLabelsPtr);
+    }
+  }
+  if (mExtensions || mShortTracks) {
+    bind("StrangenessTrackingStats", &mStatsPtr);
   }
 
   LOG(info) << "Loaded " << mSTrackingTreeName << " tree from " << mFileName << " with " << mTree->GetEntries() << " entries";
 }
 
-DataProcessorSpec getStrangenessTrackingReaderSpec(bool useMC)
+DataProcessorSpec getStrangenessTrackingReaderSpec(bool useMC, bool enableExtensions, bool enableShortTracks)
 {
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("GLO", "STRANGETRACKS", 0, Lifetime::Timeframe); // found strange tracks
@@ -128,11 +190,29 @@ DataProcessorSpec getStrangenessTrackingReaderSpec(bool useMC)
     outputs.emplace_back("GLO", "STRANGETRACKS_MC", 0, Lifetime::Timeframe); // MC labels
   }
 
+  if (enableExtensions) {
+    outputs.emplace_back("GLO", "EXTSTRTRACKS", 0, Lifetime::Timeframe);
+    outputs.emplace_back("GLO", "EXTSTRTIMES", 0, Lifetime::Timeframe);
+    if (useMC) {
+      outputs.emplace_back("GLO", "EXTSTRTRACKS_MC", 0, Lifetime::Timeframe);
+    }
+  }
+  if (enableShortTracks) {
+    outputs.emplace_back("GLO", "ITSSHORTTRACKS", 0, Lifetime::Timeframe);
+    outputs.emplace_back("GLO", "ITSSHORTPV", 0, Lifetime::Timeframe);
+    outputs.emplace_back("GLO", "ITSSHORTCLREF", 0, Lifetime::Timeframe);
+    if (useMC) {
+      outputs.emplace_back("GLO", "ITSSHORTMC", 0, Lifetime::Timeframe);
+    }
+  }
+  if (enableExtensions || enableShortTracks) {
+    outputs.emplace_back("GLO", "STRTRACKSTATS", 0, Lifetime::Timeframe);
+  }
   return DataProcessorSpec{
     "strangeness-tracking-reader",
     Inputs{},
     outputs,
-    AlgorithmSpec{adaptFromTask<StrangenessTrackingReader>(useMC)},
+    AlgorithmSpec{adaptFromTask<StrangenessTrackingReader>(useMC, enableExtensions, enableShortTracks)},
     Options{
       {"strange-tracks-infile", VariantType::String, "o2_strange_tracks.root", {"Name of the input strange tracks file"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}}}};

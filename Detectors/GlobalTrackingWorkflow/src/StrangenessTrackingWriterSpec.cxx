@@ -9,50 +9,40 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   StrangenessWriterSpec.cxx
-/// \brief
-
 #include <vector>
 #include "GlobalTrackingWorkflow/StrangenessTrackingWriterSpec.h"
-
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "CommonDataFormat/TimeStamp.h"
-#include "CommonDataFormat/RangeReference.h"
 #include "ReconstructionDataFormats/StrangeTrack.h"
+#include "ReconstructionDataFormats/StrangenessTrackingStats.h"
+#include "DataFormatsITS/TrackITS.h"
 #include "StrangenessTracking/StrangenessTracker.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
 using namespace o2::framework;
-
-namespace o2
+namespace o2::strangeness_tracking
 {
-namespace strangeness_tracking
-{
-using StrangeTrack = dataformats::StrangeTrack;
-
 template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 using LabelsType = std::vector<o2::MCCompLabel>;
-using namespace o2::header;
+using TracksType = std::vector<o2::dataformats::StrangeTrack>;
+using TimesType = std::vector<o2::dataformats::TimeStampWithError<float, float>>;
 
-DataProcessorSpec getStrangenessTrackingWriterSpec(bool useMC)
+DataProcessorSpec getStrangenessTrackingWriterSpec(bool useMC, bool enableExtensions, bool enableShortTracks)
 {
-  auto loggerV = [](std::vector<StrangeTrack> const& v) {
-    LOG(info) << "StrangenessTracker writer pulled " << v.size() << " strange tracks";
-  };
-
-  auto inpStTrkID = InputSpec{"strangetracks", "GLO", "STRANGETRACKS", 0};
-  auto inpClusAtt = InputSpec{"clusupdates", "GLO", "CLUSUPDATES", 0};
-  auto inpMCLab = InputSpec{"stkmclabels", "GLO", "STRANGETRACKS_MC", 0};
-
-  return MakeRootTreeWriterSpec("strangenesstracking-writer",
-                                "o2_strange_tracks.root",
-                                MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree with Strange Tracks"},
-                                BranchDefinition<std::vector<StrangeTrack>>{inpStTrkID, "StrangeTracks", loggerV},
-                                BranchDefinition<std::vector<o2::strangeness_tracking::ClusAttachments>>{inpClusAtt, "ClusUpdates"},
-                                BranchDefinition<LabelsType>{inpMCLab, "StrangeTrackMCLab", (useMC ? 1 : 0), ""} // one branch if mc labels enabled
-                                )();
+  return MakeRootTreeWriterSpec(
+    "strangenesstracking-writer", "o2_strange_tracks.root",
+    MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree with Strange Tracks"},
+    BranchDefinition<TracksType>{InputSpec{"strangetracks", "GLO", "STRANGETRACKS", 0}, "StrangeTracks"},
+    BranchDefinition<std::vector<ClusAttachments>>{InputSpec{"clusupdates", "GLO", "CLUSUPDATES", 0}, "ClusUpdates"},
+    BranchDefinition<LabelsType>{InputSpec{"stkmclabels", "GLO", "STRANGETRACKS_MC", 0}, "StrangeTrackMCLab", useMC ? 1 : 0, ""},
+    BranchDefinition<TracksType>{InputSpec{"extendedstracks", "GLO", "EXTSTRTRACKS", 0}, "ExtendedStrangeTracks", enableExtensions ? 1 : 0, ""},
+    BranchDefinition<TimesType>{InputSpec{"extendedstracktimes", "GLO", "EXTSTRTIMES", 0}, "ExtendedStrangeTrackTimes", enableExtensions ? 1 : 0, ""},
+    BranchDefinition<LabelsType>{InputSpec{"extendedstrack_mc", "GLO", "EXTSTRTRACKS_MC", 0}, "ExtendedStrangeTrackMCLab", enableExtensions && useMC ? 1 : 0, ""},
+    BranchDefinition<std::vector<o2::its::TrackITS>>{InputSpec{"itsshorttracks", "GLO", "ITSSHORTTRACKS", 0}, "ITSShortTracks", enableShortTracks ? 1 : 0, ""},
+    BranchDefinition<std::vector<int>>{InputSpec{"itsshortpv", "GLO", "ITSSHORTPV", 0}, "ITSShortTrackPVRefs", enableShortTracks ? 1 : 0, ""},
+    BranchDefinition<std::vector<int>>{InputSpec{"itsshortclref", "GLO", "ITSSHORTCLREF", 0}, "ITSShortTrackClusRefs", enableShortTracks ? 1 : 0, ""},
+    BranchDefinition<LabelsType>{InputSpec{"itsshort_mc", "GLO", "ITSSHORTMC", 0}, "ITSShortTrackMCLab", enableShortTracks && useMC ? 1 : 0, ""},
+    BranchDefinition<o2::dataformats::StrangenessTrackingStats>{InputSpec{"strtrackingstats", "GLO", "STRTRACKSTATS", 0}, "StrangenessTrackingStats", enableExtensions || enableShortTracks ? 1 : 0, ""})();
 }
-
-} // namespace strangeness_tracking
-} // namespace o2
+} // namespace o2::strangeness_tracking

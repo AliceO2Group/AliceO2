@@ -257,6 +257,11 @@ DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCas
   }
   dataRequest->setITSPerLayer(itsStag);
   GTrackID::mask_t srcClus{};
+  const auto& conf = o2::strangeness_tracking::StrangenessTrackingParamConfig::Instance();
+  const bool enableNewTracks = enableStrangenesTracking && (conf.enableDecayFollowing || conf.enableShortIB);
+  if (enableNewTracks && !conf.itsOnly) {
+    dataRequest->requestITSABClusterUsage();
+  }
   if (enableStrangenesTracking) {
     src |= (srcClus = GTrackID::getSourceMask(GTrackID::ITS));
   }
@@ -311,6 +316,24 @@ DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCas
       outputs.emplace_back("GLO", "STRANGETRACKS_MC", 0, Lifetime::Timeframe);
       LOG(info) << "Strangeness tracker will use MC";
     }
+  }
+  if (enableStrangenesTracking && conf.enableDecayFollowing) {
+    outputs.emplace_back("GLO", "EXTSTRTRACKS", 0, Lifetime::Timeframe);
+    outputs.emplace_back("GLO", "EXTSTRTIMES", 0, Lifetime::Timeframe);
+    if (useMC) {
+      outputs.emplace_back("GLO", "EXTSTRTRACKS_MC", 0, Lifetime::Timeframe);
+    }
+  }
+  if (enableStrangenesTracking && conf.enableShortIB) {
+    outputs.emplace_back("GLO", "ITSSHORTTRACKS", 0, Lifetime::Timeframe);
+    outputs.emplace_back("GLO", "ITSSHORTPV", 0, Lifetime::Timeframe);
+    outputs.emplace_back("GLO", "ITSSHORTCLREF", 0, Lifetime::Timeframe);
+    if (useMC) {
+      outputs.emplace_back("GLO", "ITSSHORTMC", 0, Lifetime::Timeframe);
+    }
+  }
+  if (enableNewTracks) {
+    outputs.emplace_back("GLO", "STRTRACKSTATS", 0, Lifetime::Timeframe);
   }
   outputs.emplace_back("META", "SVERTEXER", 0, Lifetime::Sporadic);
 

@@ -24,7 +24,7 @@ namespace globaltracking
 {
 
 /// create a processor spec
-framework::DataProcessorSpec getTrackTPCITSReaderSpec(bool useMC);
+framework::DataProcessorSpec getTrackTPCITSReaderSpec(bool useMC, bool abOnly = false);
 
 } // namespace globaltracking
 } // namespace o2

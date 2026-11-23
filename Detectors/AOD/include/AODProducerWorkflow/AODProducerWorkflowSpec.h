@@ -321,6 +321,10 @@ class AODProducerWorkflowDPL : public Task
   // Strangeness tracking indices lookup tables
   std::vector<int> mVertexStrLUT;                    /// LUT for accessing strangeness tracks for each vertex
   std::vector<std::pair<int, int>> mCollisionStrTrk; /// collision index and original index of the strangeness track
+  std::vector<std::pair<int, int>> mCollisionExtendedStrTrk, mCollisionITSShortTrk;
+  std::vector<int> mVertexExtendedStrLUT, mVertexITSShortLUT;
+  std::vector<int> mExtendedStrTrkIndices;
+  std::unordered_map<int, int> mCascadeToTableID, mDecay3BodyToTableID;
   std::vector<int> mStrTrkIndices;                   /// indices of strangeness tracks in the track table
 
   //  std::unordered_map<int, int> mIndexTableFwd;
@@ -604,7 +608,11 @@ class AODProducerWorkflowDPL : public Task
   template <typename HMPCursorType>
   void fillHMPID(const o2::globaltracking::RecoContainer& recoData, HMPCursorType& hmpCursor);
 
+  void prepareStrangenessTrackingExtensions(const o2::globaltracking::RecoContainer& recoData);
+  void prepareITSShortTracks(const o2::globaltracking::RecoContainer& recoData);
   void prepareStrangenessTracking(const o2::globaltracking::RecoContainer& recoData);
+  // Stored AO2D decay row, or -1 if the source decay was filtered.
+  int getDecayTableID(int partType, int sourceRef) const;
   template <typename V0C, typename CC, typename D3BC>
   void fillStrangenessTrackingTables(const o2::globaltracking::RecoContainer& data, V0C& v0Cursor, CC& cascadeCursor, D3BC& decay3bodyCursor);
 
@@ -707,7 +715,7 @@ class AODProducerWorkflowDPL : public Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, bool enableST, bool useMC, bool CTPConfigPerRun, bool enableFITextra, bool enableTRDextra);
+framework::DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, bool enableST, bool useMC, bool CTPConfigPerRun, bool enableFITextra, bool enableTRDextra, bool enableExtensions = false, bool enableShortTracks = false);
 
 // helper interface for calo cells to "befriend" emcal and phos cells
 class CellHelper

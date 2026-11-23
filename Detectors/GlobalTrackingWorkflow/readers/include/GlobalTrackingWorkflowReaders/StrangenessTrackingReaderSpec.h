@@ -24,7 +24,7 @@ namespace strangeness_tracking
 
 /// create a processor spec
 /// read secondary vertex data from a root file
-o2::framework::DataProcessorSpec getStrangenessTrackingReaderSpec(bool useMC);
+o2::framework::DataProcessorSpec getStrangenessTrackingReaderSpec(bool useMC, bool enableExtensions = false, bool enableShortTracks = false);
 
 } // namespace strangeness_tracking
 } // namespace o2

@@ -38,6 +38,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation"}},
     {"disable-secondary-vertices", o2::framework::VariantType::Bool, false, {"disable filling secondary vertices"}},
     {"disable-strangeness-tracker", o2::framework::VariantType::Bool, false, {"disable filling strangeness tracking"}},
+    {"enable-extended-strange-tracks", o2::framework::VariantType::Bool, false, {"store charged decay mothers extended with ITS clusters"}},
+    {"enable-its-short-tracks", o2::framework::VariantType::Bool, false, {"store PV-selected ITS three-hit tracks"}},
     {"enable-FIT-extra", o2::framework::VariantType::Bool, false, {"enable FIT extra output"}},
     {"enable-TRD-extra", o2::framework::VariantType::Bool, false, {"enable TRD extra output"}},
     {"info-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use"}},
@@ -57,6 +59,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   bool enableSV = !configcontext.options().get<bool>("disable-secondary-vertices");
   bool enableST = !configcontext.options().get<bool>("disable-strangeness-tracker");
+  const bool enableExtensions = configcontext.options().get<bool>("enable-extended-strange-tracks");
+  const bool enableShortTracks = configcontext.options().get<bool>("enable-its-short-tracks");
   bool ctpcfgperrun = !configcontext.options().get<bool>("ctpconfig-run-independent");
   bool enableFITextra = configcontext.options().get<bool>("enable-FIT-extra");
   bool enableTRDextra = configcontext.options().get<bool>("enable-TRD-extra");
@@ -70,7 +74,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
 
   WorkflowSpec specs;
-  specs.emplace_back(o2::aodproducer::getAODProducerWorkflowSpec(src, enableSV, enableST, useMC, ctpcfgperrun, enableFITextra, enableTRDextra));
+  specs.emplace_back(o2::aodproducer::getAODProducerWorkflowSpec(src, enableSV, enableST, useMC, ctpcfgperrun, enableFITextra, enableTRDextra, enableExtensions, enableShortTracks));
 
   auto srcCls = src & ~(GID::getSourceMask(GID::MCH) | GID::getSourceMask(GID::MID)); // Don't read global MID and MCH clusters (those attached to tracks are always read)
   auto srcMtc = src;
@@ -81,8 +85,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (enableSV) {
     o2::globaltracking::InputHelper::addInputSpecsSVertex(configcontext, inputspecs);
   }
-  if (enableST) {
-    o2::globaltracking::InputHelper::addInputSpecsStrangeTrack(configcontext, inputspecs, useMC);
+  if (enableST || enableExtensions || enableShortTracks) {
+    o2::globaltracking::InputHelper::addInputSpecsStrangeTrack(configcontext, inputspecs, useMC, enableExtensions, enableShortTracks);
   }
   if (configcontext.options().get<bool>("combine-source-devices")) {
     std::vector<DataProcessorSpec> unmerged;

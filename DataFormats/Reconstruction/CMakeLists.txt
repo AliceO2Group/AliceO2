@@ -29,6 +29,7 @@ o2_add_library(ReconstructionDataFormats
                        src/Decay3Body.cxx
                        src/DecayNBodyIndex.cxx
                        src/StrangeTrack.cxx
+                       src/StrangenessTrackingStats.cxx
                        src/GlobalTrackID.cxx
                        src/VtxTrackIndex.cxx
                        src/VtxTrackRef.cxx
@@ -64,6 +65,7 @@ o2_target_root_dictionary(
           include/ReconstructionDataFormats/DecayNBodyIndex.h
           include/ReconstructionDataFormats/Decay3Body.h
           include/ReconstructionDataFormats/StrangeTrack.h
+          include/ReconstructionDataFormats/StrangenessTrackingStats.h
           include/ReconstructionDataFormats/GlobalTrackID.h
           include/ReconstructionDataFormats/VtxTrackIndex.h
           include/ReconstructionDataFormats/VtxTrackRef.h

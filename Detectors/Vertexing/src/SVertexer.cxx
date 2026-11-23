@@ -14,6 +14,7 @@
 /// \author ruben.shahoyan@cern.ch
 
 #include "DetectorsVertexing/SVertexer.h"
+#include "DetectorsVertexing/PVertexerParams.h"
 #include "DetectorsBase/Propagator.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
@@ -48,6 +49,7 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData, o2::f
   buildT2V(recoData); // build track->vertex refs from vertex->track (if other workflow will need this, consider producing a message in the VertexTrackMatcher)
   int ntrP = mTracksPool[POS].size(), ntrN = mTracksPool[NEG].size();
   if (mStrTracker) {
+    mStrTracker->setPVTimeMargin(o2::vertexing::PVertexerParams::Instance().timeMarginVertexTime);
     mStrTracker->loadData(recoData);
     mStrTracker->prepareITStracks();
   }
@@ -176,6 +178,41 @@ void SVertexer::produceOutput(o2::framework::ProcessingContext& pc)
     }
   }
   if (mStrTracker) {
+    if (mStrTracker->clusterTrackingEnabled()) {
+      const auto& params = o2::strangeness_tracking::StrangenessTrackingParamConfig::Instance();
+      if (params.enableDecayFollowing) {
+        for (int ith = 0; ith < mNThreads; ++ith) {
+          std::vector<int> v0map, cascmap, threemap;
+          for (const auto& idx : mV0sIdxTmp[ith]) {
+            v0map.push_back(idx.getVertexID());
+          }
+          for (const auto& idx : mCascadesIdxTmp[ith]) {
+            cascmap.push_back(idx.getVertexID());
+          }
+          for (const auto& idx : m3bodyIdxTmp[ith]) {
+            threemap.push_back(idx.getVertexID());
+          }
+          mStrTracker->remapExtensionSeeds(ith, v0map, cascmap, threemap);
+        }
+      }
+      mStrTracker->finishClusterTracking();
+      if (params.enableDecayFollowing) {
+        pc.outputs().snapshot(o2f::Output{"GLO", "EXTSTRTRACKS", 0}, mStrTracker->getExtendedStrangeTracks());
+        pc.outputs().snapshot(o2f::Output{"GLO", "EXTSTRTIMES", 0}, mStrTracker->getExtendedStrangeTrackTimes());
+        if (mStrTracker->getMCTruthOn()) {
+          pc.outputs().snapshot(o2f::Output{"GLO", "EXTSTRTRACKS_MC", 0}, mStrTracker->getExtendedStrangeTrackLabels());
+        }
+      }
+      if (params.enableShortIB) {
+        pc.outputs().snapshot(o2f::Output{"GLO", "ITSSHORTTRACKS", 0}, mStrTracker->getITSShortTracks());
+        pc.outputs().snapshot(o2f::Output{"GLO", "ITSSHORTPV", 0}, mStrTracker->getITSShortTrackPVRefs());
+        pc.outputs().snapshot(o2f::Output{"GLO", "ITSSHORTCLREF", 0}, mStrTracker->getITSShortTrackClusterRefs());
+        if (mStrTracker->getMCTruthOn()) {
+          pc.outputs().snapshot(o2f::Output{"GLO", "ITSSHORTMC", 0}, mStrTracker->getITSShortTrackLabels());
+        }
+      }
+      pc.outputs().snapshot(o2f::Output{"GLO", "STRTRACKSTATS", 0}, mStrTracker->getStrangenessTrackingStats());
+    }
     mNStrangeTracks = 0;
     for (int ith = 0; ith < mNThreads; ith++) {
       mNStrangeTracks += mStrTracker->getNTracks(ith);
@@ -854,7 +891,7 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
 
   if (mStrTracker) {
     for (int iv = nV0Ini; iv < (int)mV0sIdxTmp[ithread].size(); iv++) {
-      mStrTracker->processV0(iv, v0new, v0Idxnew, ithread);
+      mStrTracker->processV0(iv, v0new, v0Idxnew, ithread, mV0sIdxTmp[ithread][iv].getVertexID());
     }
   }
 
@@ -1023,7 +1060,7 @@ int SVertexer::checkCascades(const V0Index& v0Idx, const V0& v0, float rv0, std:
       mCascadesTmp[ithread].push_back(casc);
     }
     if (mStrTracker) {
-      mStrTracker->processCascade(mCascadesIdxTmp[ithread].size() - 1, casc, cascIdx, v0, ithread);
+      mStrTracker->processCascade(mCascadesIdxTmp[ithread].size() - 1, casc, cascIdx, v0, ithread, &v0Idx);
     }
   }
 

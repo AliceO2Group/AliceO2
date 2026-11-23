@@ -17,6 +17,7 @@
 #define ALICEO2_RECO_CONTAINER
 
 #include "CommonDataFormat/InteractionRecord.h"
+#include "CommonDataFormat/TimeStamp.h"
 #include "ReconstructionDataFormats/GlobalTrackAccessor.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "ReconstructionDataFormats/Decay3Body.h"
@@ -225,6 +226,7 @@ struct DataRequest {
   void requestMIDTracks(bool mc);
   void requestTPCTracks(bool mc);
   void requestITSTPCTracks(bool mc);
+  void requestITSABClusterUsage();
   void requestGlobalFwdTracks(bool mc);
   void requestMFTMCHMatches(bool mc);
   void requestMCHMIDMatches(bool mc);
@@ -261,6 +263,8 @@ struct DataRequest {
   void requestPrimaryVerticesTMP(bool mc);
   void requestSecondaryVertices(bool mc);
   void requestStrangeTracks(bool mc);
+  void requestStrangenessTrackingExtensions(bool mc);
+  void requestITSShortTracks(bool mc);
 
   void requestIRFramesITS();
 
@@ -321,6 +325,13 @@ struct RecoContainer {
   enum STRKSlots {
     STRACK,
     STRACK_MC,
+    EXTSTRACK,
+    EXTSTRACK_MC,
+    EXTSTRACK_TIME,
+    ITSSHORT,
+    ITSSHORT_MC,
+    ITSSHORT_PV,
+    ITSSHORT_CLREF,
     NSTRKSLOTS
   };
 
@@ -442,6 +453,9 @@ struct RecoContainer {
   void addSVertices(o2::framework::ProcessingContext& pc, bool);
 
   void addStrangeTracks(o2::framework::ProcessingContext& pc, bool mc);
+  void addStrangenessTrackingExtensions(o2::framework::ProcessingContext& pc, bool mc);
+  void addITSShortTracks(o2::framework::ProcessingContext& pc, bool mc);
+  void addITSABClusterUsage(o2::framework::ProcessingContext& pc);
 
   void addIRFramesITS(o2::framework::ProcessingContext& pc);
 
@@ -532,6 +546,7 @@ struct RecoContainer {
   auto getITSABRefs() const { return getSpan<o2::itsmft::TrkClusRef>(GTrackID::ITSAB, TRACKREFS); }
   const o2::itsmft::TrkClusRef& getITSABRef(GTrackID gid) const { return getObject<o2::itsmft::TrkClusRef>(gid, TRACKREFS); }
   auto getITSABClusterRefs() const { return getSpan<int>(GTrackID::ITSAB, INDICES); }
+  bool hasITSABClusterUsage() const { return commonPool[GTrackID::ITSAB].isLoaded(TRACKREFS) && commonPool[GTrackID::ITSAB].isLoaded(INDICES); }
   auto getITSABMCLabels() const { return getSpan<o2::MCCompLabel>(GTrackID::ITSAB, MCLABELS); }
 
   // ITS clusters (layer is ignored unless the data was provided per layer)
@@ -752,6 +767,13 @@ struct RecoContainer {
   auto getPV2Decays3BodyRefs() { return svtxPool.getSpan<o2::dataformats::RangeReference<int, int>>(PVTX_3BODYREFS); }
 
   // Strangeness track
+  auto getExtendedStrangeTracks() const { return strkPool.getSpan<o2::dataformats::StrangeTrack>(EXTSTRACK); }
+  auto getExtendedStrangeTracksMCLabels() const { return strkPool.getSpan<o2::MCCompLabel>(EXTSTRACK_MC); }
+  auto getExtendedStrangeTrackTimes() const { return strkPool.getSpan<o2::dataformats::TimeStampWithError<float, float>>(EXTSTRACK_TIME); }
+  auto getITSShortTracks() const { return strkPool.getSpan<o2::its::TrackITS>(ITSSHORT); }
+  auto getITSShortTracksMCLabels() const { return strkPool.getSpan<o2::MCCompLabel>(ITSSHORT_MC); }
+  auto getITSShortTrackPVRefs() const { return strkPool.getSpan<int>(ITSSHORT_PV); }
+  auto getITSShortTrackClusterRefs() const { return strkPool.getSpan<int>(ITSSHORT_CLREF); }
   auto getStrangeTracks() const { return strkPool.getSpan<o2::dataformats::StrangeTrack>(STRACK); }
   auto getStrangeTracksMCLabels() const { return strkPool.getSpan<o2::MCCompLabel>(STRACK_MC); }
   const o2::dataformats::StrangeTrack& getStrangeTrack(int i) const { return strkPool.get_as<o2::dataformats::StrangeTrack>(STRACK, i); }

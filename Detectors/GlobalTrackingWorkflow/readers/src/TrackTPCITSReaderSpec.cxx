@@ -38,7 +38,7 @@ namespace globaltracking
 class TrackTPCITSReader : public Task
 {
  public:
-  TrackTPCITSReader(bool useMC) : mUseMC(useMC) {}
+  TrackTPCITSReader(bool useMC, bool abOnly) : mUseMC(useMC && !abOnly), mABOnly(abOnly) {}
   ~TrackTPCITSReader() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -46,6 +46,7 @@ class TrackTPCITSReader : public Task
  private:
   void connectTree(const std::string& filename);
   bool mUseMC = true;
+  bool mABOnly = false;
   std::unique_ptr<TFile> mFile;
   std::unique_ptr<TTree> mTree;
   std::string mFileName = "";
@@ -79,7 +80,9 @@ void TrackTPCITSReader::run(ProcessingContext& pc)
   }
   LOG(info) << "Pushing " << mTracks.size() << " TPC-ITS matches at entry " << ent;
 
-  pc.outputs().snapshot(Output{"GLO", "TPCITS", 0}, mTracks);
+  if (!mABOnly) {
+    pc.outputs().snapshot(Output{"GLO", "TPCITS", 0}, mTracks);
+  }
   pc.outputs().snapshot(Output{"GLO", "TPCITSAB_REFS", 0}, mABTrkClusRefs);
   pc.outputs().snapshot(Output{"GLO", "TPCITSAB_CLID", 0}, mABTrkClIDs);
   if (mUseMC) {
@@ -97,10 +100,23 @@ void TrackTPCITSReader::connectTree(const std::string& filename)
 {
   mTree.reset(nullptr); // in case it was already loaded
   mFile.reset(TFile::Open(filename.c_str()));
-  assert(mFile && !mFile->IsZombie());
+  if (!mFile || mFile->IsZombie()) {
+    LOG(fatal) << "Cannot open ITS-TPC/afterburner input " << filename;
+  }
   mTree.reset((TTree*)mFile->Get("matchTPCITS"));
-  assert(mTree);
-  mTree->SetBranchAddress("TPCITS", &mTracksPtr);
+  if (!mTree) {
+    LOG(fatal) << "Missing matchTPCITS tree in " << filename;
+  }
+  if (mABOnly) {
+    mTree->SetBranchStatus("*", false);
+    mTree->SetBranchStatus("TPCITSABRefs*", true);
+    mTree->SetBranchStatus("TPCITSABCLID*", true);
+  } else {
+    mTree->SetBranchAddress("TPCITS", &mTracksPtr);
+  }
+  if (!mTree->GetBranch("TPCITSABRefs") || !mTree->GetBranch("TPCITSABCLID")) {
+    LOG(fatal) << "ITS afterburner cluster usage branches are missing from " << filename;
+  }
   mTree->SetBranchAddress("TPCITSABRefs", &mABTrkClusRefsPtr);
   mTree->SetBranchAddress("TPCITSABCLID", &mABTrkClIDsPtr);
   if (mUseMC) {
@@ -110,10 +126,13 @@ void TrackTPCITSReader::connectTree(const std::string& filename)
   LOG(info) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
-DataProcessorSpec getTrackTPCITSReaderSpec(bool useMC)
+DataProcessorSpec getTrackTPCITSReaderSpec(bool useMC, bool abOnly)
 {
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back("GLO", "TPCITS", 0, Lifetime::Timeframe);
+  useMC = useMC && !abOnly;
+  if (!abOnly) {
+    outputs.emplace_back("GLO", "TPCITS", 0, Lifetime::Timeframe);
+  }
   outputs.emplace_back("GLO", "TPCITSAB_REFS", 0, Lifetime::Timeframe); // AftetBurner ITS tracklet references (referred by GlobalTrackID::ITSAB) on cluster indices
   outputs.emplace_back("GLO", "TPCITSAB_CLID", 0, Lifetime::Timeframe); // cluster indices of ITS tracklets attached by the AfterBurner
   if (useMC) {
@@ -125,7 +144,7 @@ DataProcessorSpec getTrackTPCITSReaderSpec(bool useMC)
     "itstpc-track-reader",
     Inputs{},
     outputs,
-    AlgorithmSpec{adaptFromTask<TrackTPCITSReader>(useMC)},
+    AlgorithmSpec{adaptFromTask<TrackTPCITSReader>(useMC, abOnly)},
     Options{
       {"itstpc-track-infile", VariantType::String, "o2match_itstpc.root", {"Name of the input file"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}}}};

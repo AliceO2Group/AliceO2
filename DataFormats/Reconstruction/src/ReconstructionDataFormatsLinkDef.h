@@ -114,6 +114,8 @@
 #pragma link C++ class o2::dataformats::Decay3Body + ;
 #pragma link C++ class std::vector < o2::dataformats::Decay3Body> + ;
 
+#pragma link C++ class o2::dataformats::StrangenessTrackingStats + ;
+
 #pragma link C++ class o2::dataformats::StrangeTrack + ;
 #pragma link C++ class std::vector < o2::dataformats::StrangeTrack> + ;
 
