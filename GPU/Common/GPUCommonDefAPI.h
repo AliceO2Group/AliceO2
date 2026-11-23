@@ -189,15 +189,7 @@
   #define GPUhdni() __host__ __device__
   #define GPUg() __global__
   #define GPUshared() __shared__
-  #if defined(GPUCA_GPUCODE_DEVICE) && 0 // TODO: Fix for HIP
-    #define GPUCA_USE_TEMPLATE_ADDRESS_SPACES
-    #define GPUglobal() __attribute__((address_space(1)))
-    #define GPUglobalref() GPUglobal()
-    #define GPUconstantref() __attribute__((address_space(4)))
-    #define GPUsharedref() __attribute__((address_space(3)))
-  #else
-    #define GPUglobal()
-  #endif
+  #define GPUglobal()
   #define GPUconstant() __constant__
   #define GPUconstexpr() constexpr __constant__
   #define GPUprivate()
