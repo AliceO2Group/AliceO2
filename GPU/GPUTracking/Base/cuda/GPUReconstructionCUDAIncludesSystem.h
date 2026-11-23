@@ -22,14 +22,11 @@
 #include <cuda_runtime.h>
 #include <cuda.h>
 #include <cooperative_groups.h>
-#pragma GCC diagnostic push // FIXME: Is this still needed?
-#pragma GCC diagnostic ignored "-Wshadow"
 #include <cub/cub.cuh>
 #include <cub/block/block_scan.cuh>
 #include <thrust/sort.h>
 #include <thrust/execution_policy.h>
 #include <thrust/device_ptr.h>
-#pragma GCC diagnostic pop
 #include <sm_20_atomic_functions.h>
 #include <cuda_fp16.h>
 
