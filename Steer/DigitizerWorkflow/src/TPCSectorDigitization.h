@@ -65,6 +65,8 @@ class TPCDigitizerConditions
   static void addInputs(std::vector<framework::InputSpec>& inputs, int distortionType);
 
   void init(framework::InitContext& ic, int distortionType);
+  /// whether the digitizer applies the gain map for MC (TPC/Calib/PadGainFullMC) instead of TPC/Calib/PadGainFull
+  bool useGainMapMC() const { return mUseGainMapMC; }
   /// pass a CCDB object to the digitizer; true if it was a TPC condition
   bool finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj, Digitizer& digitizer);
   /// fetch the conditions of a timeframe and prepare the digitizer, which then holds the distortions
@@ -75,6 +77,7 @@ class TPCDigitizerConditions
   VDriftHelper mVDriftHelper{};
   int mDistortionType = 0;
   bool mUseCalibrationsFromCCDB = false;
+  bool mUseGainMapMC = false;
   bool mRecalcDistortions = false;
   float mMeanLumiDistortions = -1;
   float mMeanLumiDistortionsDerivative = -1;
