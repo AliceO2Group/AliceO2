@@ -81,6 +81,11 @@ class RootFile
   KeyInfo parseKey(std::span<const uint8_t> buf, uint64_t fileOffset);
   DirectoryInfo readDirectory(uint64_t offset);
   std::vector<KeyInfo> readKeyList(DirectoryInfo const&);
+  /// The bytes at @a offset: from the head, the metadata read ahead, or the source.
+  std::vector<uint8_t> readMetadata(uint64_t offset, size_t len);
+  /// Reads the directory records and key lists of DF @a df and of the next
+  /// ones not listed yet, in two vector reads, into mAhead.
+  void listAhead(std::string const& df);
   std::optional<KeyInfo> findTopKey(std::string const& name);
   std::vector<uint8_t> readStored(const KeyInfo&);
 
@@ -94,6 +99,9 @@ class RootFile
   // Stored bytes of the TTrees of the last DF listed, by key offset, until read.
   std::map<uint64_t, std::vector<uint8_t>> mPrefetched;
   std::map<std::string, std::vector<KeyInfo>> mKeysOf;
+  // Directory records and key lists of the next DFs, by offset (small and capped).
+  std::map<uint64_t, std::vector<uint8_t>> mAhead;
+  std::vector<std::string> mOrder; // dataFrames(), for the read-ahead
   std::vector<std::string> mTreesToPrefetch;
   std::map<std::string, std::map<std::string, std::string>> mStringMaps;
 };
