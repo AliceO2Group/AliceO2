@@ -199,7 +199,8 @@ void Config()
 
   if (mtMode) {
     if (g4Params.navmode == o2::conf::EG4Nav::kVecGeom) {
-      LOG(fatal) << "G4.navmode=kVecGeom is not yet supported in multithreaded mode (--isMT)";
+      // each worker thread steps with its own navigator on the VecGeom geometry built below
+      o2::base::MTWorkerHooks::instance().initOnWorker = &o2::simsetup::installVecGeomNavigatorOnWorker;
     }
     // each thread takes one sub-event at a time
     geant4->ProcessGeantCommand("/run/eventModulo 1");
