@@ -213,7 +213,7 @@ GPUdii() int32_t GPUTPCTrackingData::InitFromClusterData(int32_t nBlocks, int32_
       float x, y, z;
       GPUTPCConvertImpl::convert(*mem, iSector, rowIndex, mem->ioPtrs.clustersNative->clusters[iSector][rowIndex][i].getPad(), mem->ioPtrs.clustersNative->clusters[iSector][rowIndex][i].getTime(), x, y, z);
       UpdateMinMaxYZ(yMin, yMax, zMin, zMax, y, z);
-      YZData[RowOffset + i] = CAMath::MakeFloat2(y, z);
+      YZData[RowOffset + i] = float2{y, z};
     }
 
     if (iThread == 0) {
