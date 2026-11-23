@@ -11,6 +11,8 @@
 
 /// @file   TrackCosmicsExtendedReaderSpec.cxx
 
+#include "Framework/DeviceSpec.h"
+#include "Framework/TimingInfo.h"
 #include <vector>
 
 #include "Framework/ConfigParamRegistry.h"
@@ -35,11 +37,11 @@ void TrackCosmicsExtendedReader::init(InitContext& ic)
 
 void TrackCosmicsExtendedReader::run(ProcessingContext& pc)
 {
-  auto ent = mTree->GetReadEntry() + 1;
+  long ent = pc.services().get<o2::framework::TimingInfo>().timeslice;
   // Same as in TrackCosmicsReader: publish empty containers if the tree has no entry left
   const bool noEntry = ent >= mTree->GetEntries();
   if (noEntry) {
-    LOG(info) << "no entry to read, publishing empty output";
+    LOGP(warning, "No entry {} to read, tree contains {} entries, publishing empty output", ent, mTree->GetEntries());
     mCosmics.clear();
     mTFInfo = {};
   } else {
@@ -49,7 +51,7 @@ void TrackCosmicsExtendedReader::run(ProcessingContext& pc)
 
   pc.outputs().snapshot(Output{"GLO", "COSMFULL", 0}, mCosmics);
   pc.outputs().snapshot(Output{"GLO", "COSMFULLTF", 0}, mTFInfo);
-  if (noEntry || mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
+  if (noEntry || mTree->GetReadEntry() + pc.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }

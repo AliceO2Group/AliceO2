@@ -12,6 +12,8 @@
 /// \file ClusterReaderSpec.cxx
 /// \brief The TF3 cluster reader (ClusterReaderSpec.h).
 
+#include "Framework/DeviceSpec.h"
+#include "Framework/TimingInfo.h"
 #include "IOTOFWorkflow/ClusterReaderSpec.h"
 
 #include "Framework/ConfigParamRegistry.h"
@@ -34,12 +36,12 @@ void ClusterReader::init(InitContext& ic)
 
 void ClusterReader::run(ProcessingContext& pc)
 {
-  const auto entry = mTree->GetReadEntry() + 1;
+  long entry = pc.services().get<o2::framework::TimingInfo>().timeslice;
   // A timeframe without a collision has no entry: publish empty streams, so
   // that the consumers still see the timeframe (as TRK's reader does).
   const bool noEntry = entry >= mTree->GetEntries();
   if (noEntry) {
-    LOG(info) << "TF3ClusterReader: no entry to read, publishing empty output";
+    LOGP(warning, "TF3ClusterReader: no entry {} to read, tree contains {} entries, publishing empty output", entry, mTree->GetEntries());
   } else {
     mTree->GetEntry(entry);
   }
@@ -55,7 +57,7 @@ void ClusterReader::run(ProcessingContext& pc)
   if (mUseMC) {
     pc.outputs().snapshot(Output{o2::header::gDataOriginTF3, "CLUSTERSMCTR", 0}, noEntry ? noLabels : *mLabels);
   }
-  if (noEntry || mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
+  if (noEntry || mTree->GetReadEntry() + pc.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }

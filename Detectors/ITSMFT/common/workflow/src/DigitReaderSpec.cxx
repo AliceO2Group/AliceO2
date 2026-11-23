@@ -11,6 +11,8 @@
 
 /// @file   DigitReaderSpec.cxx
 
+#include "Framework/DeviceSpec.h"
+#include "Framework/TimingInfo.h"
 #include <string>
 #include <vector>
 #include <format>
@@ -101,13 +103,13 @@ void DigitReader<N>::run(ProcessingContext& pc)
 
   auto ent = mTree->GetReadEntry();
   if (!mUseIRFrames) {
-    ent++;
+    ent = pc.services().get<o2::framework::TimingInfo>().timeslice;
     if (ent >= mTree->GetEntries()) {
       // A timeframe holds no collision at all whenever the interaction rate is low enough, and the
       // digit tree then has no entry to read. Send empty output rather than dereferencing the
       // branch addresses, which GetEntry has not filled. (This used to be an assert, which is
       // compiled out of every production build since ENABLE_CASSERT defaults to OFF.)
-      LOG(info) << mDetName << "DigitReader has no entry to read, sending empty output";
+      LOGP(warning, "{}DigitReader: no entry {} to read, tree contains {} entries, sending empty output", mDetName, ent, mTree->GetEntries());
       for (uint32_t iLayer = 0; iLayer < mLayers; ++iLayer) {
         pc.outputs().snapshot(Output{Origin, "DIGITSROF", iLayer}, std::vector<o2::itsmft::ROFRecord>{});
         pc.outputs().snapshot(Output{Origin, "DIGITS", iLayer}, std::vector<o2::itsmft::Digit>{});
@@ -150,7 +152,7 @@ void DigitReader<N>::run(ProcessingContext& pc)
       std::vector<o2::itsmft::PhysTrigger> dummyTrig;
       pc.outputs().snapshot(Output{Origin, "PHYSTRIG", 0}, dummyTrig);
     }
-    if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
+    if (mTree->GetReadEntry() + pc.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices >= mTree->GetEntries()) {
       pc.services().get<ControlService>().endOfStream();
       pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     }

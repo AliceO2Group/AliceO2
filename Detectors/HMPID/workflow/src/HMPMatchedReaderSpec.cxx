@@ -11,6 +11,8 @@
 
 /// @file   HMPMatchedReaderSpec.cxx
 
+#include "Framework/DeviceSpec.h"
+#include "Framework/TimingInfo.h"
 #include <vector>
 
 #include "TTree.h"
@@ -57,8 +59,13 @@ void HMPMatchedReader::connectTree(const std::string& filename)
 
 void HMPMatchedReader::run(ProcessingContext& pc)
 {
-  auto currEntry = mTree->GetReadEntry() + 1;
-  assert(currEntry < mTree->GetEntries()); // this should not happen
+  long currEntry = pc.services().get<o2::framework::TimingInfo>().timeslice;
+  if (currEntry >= mTree->GetEntries()) {
+    LOG(warning) << "No entry " << currEntry << " to read in tree with " << mTree->GetEntries() << " entries";
+    pc.services().get<ControlService>().endOfStream();
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+    return;
+  }
   mTree->GetEntry(currEntry);
   LOG(debug) << "Pushing " << mMatches.size() << " HMP matchings at entry " << currEntry;
 
@@ -67,7 +74,7 @@ void HMPMatchedReader::run(ProcessingContext& pc)
     pc.outputs().snapshot(Output{o2::header::gDataOriginHMP, "MCLABELS", 0}, mLabelHMP);
   }
 
-  if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
+  if (mTree->GetReadEntry() + pc.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }

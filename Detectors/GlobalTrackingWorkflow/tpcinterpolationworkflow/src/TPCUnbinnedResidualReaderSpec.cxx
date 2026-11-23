@@ -11,6 +11,8 @@
 
 /// @file   TPCUnbinnedResidualReaderSpec.cxx
 
+#include "Framework/DeviceSpec.h"
+#include "Framework/TimingInfo.h"
 #include "TPCInterpolationWorkflow/TPCUnbinnedResidualReaderSpec.h"
 
 #include "Framework/ControlService.h"
@@ -63,8 +65,13 @@ void TPCUnbinnedResidualReader::connectTree()
 
 void TPCUnbinnedResidualReader::run(ProcessingContext& pc)
 {
-  auto currEntry = mTreeIn->GetReadEntry() + 1;
-  assert(currEntry < mTreeIn->GetEntries()); // this should not happen
+  long currEntry = pc.services().get<o2::framework::TimingInfo>().timeslice;
+  if (currEntry >= mTreeIn->GetEntries()) {
+    LOG(warning) << "No entry " << currEntry << " to read in tree with " << mTreeIn->GetEntries() << " entries";
+    pc.services().get<ControlService>().endOfStream();
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+    return;
+  }
   mTreeIn->GetEntry(currEntry);
   LOG(info) << "Pushing " << mUnbinnedResid.size() << " unbinned residuals at entry " << currEntry;
   pc.outputs().snapshot(Output{"GLO", "UNBINNEDRES", 0}, mUnbinnedResid);
@@ -78,7 +85,7 @@ void TPCUnbinnedResidualReader::run(ProcessingContext& pc)
     pc.outputs().snapshot(Output{"GLO", "TRKDATAMC", 0}, mTrackDataMC);
   }
 
-  if (mTreeIn->GetReadEntry() + 1 >= mTreeIn->GetEntries()) {
+  if (mTreeIn->GetReadEntry() + pc.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices >= mTreeIn->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }

@@ -11,6 +11,8 @@
 
 /// @file   TRDCalibReaderSpec.cxx
 
+#include "Framework/DeviceSpec.h"
+#include "Framework/TimingInfo.h"
 #include "TRDWorkflowIO/TRDCalibReaderSpec.h"
 
 #include "Framework/ControlService.h"
@@ -59,15 +61,20 @@ void TRDCalibReader::connectTree()
 
 void TRDCalibReader::run(ProcessingContext& pc)
 {
-  auto currEntry = mTree->GetReadEntry() + 1;
-  assert(currEntry < mTree->GetEntries()); // this should not happen
+  long currEntry = pc.services().get<o2::framework::TimingInfo>().timeslice;
+  if (currEntry >= mTree->GetEntries()) {
+    LOG(warning) << "No entry " << currEntry << " to read in tree with " << mTree->GetEntries() << " entries";
+    pc.services().get<ControlService>().endOfStream();
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+    return;
+  }
   mTree->GetEntry(currEntry);
   LOG(info) << "Pushing angular residual histograms filled with " << mAngResids.getNEntries() << " entries at tree entry " << currEntry;
   pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "ANGRESHISTS", 0}, mAngResids);
   pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "PULSEHEIGHT", 0}, mPHData);
   pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "GAINCALIBHISTS", 0}, mGainData);
 
-  if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
+  if (mTree->GetReadEntry() + pc.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }

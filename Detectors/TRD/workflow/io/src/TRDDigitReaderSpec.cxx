@@ -9,6 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "Framework/DeviceSpec.h"
+#include "Framework/TimingInfo.h"
 #include "TRDWorkflowIO/TRDDigitReaderSpec.h"
 
 
@@ -54,8 +56,13 @@ void TRDDigitReaderSpec::connectTree()
 
 void TRDDigitReaderSpec::run(ProcessingContext& pc)
 {
-  auto currEntry = mTreeDigits->GetReadEntry() + 1;
-  assert(currEntry < mTreeDigits->GetEntries()); // this should not happen
+  long currEntry = pc.services().get<o2::framework::TimingInfo>().timeslice;
+  if (currEntry >= mTreeDigits->GetEntries()) {
+    LOG(warning) << "No entry " << currEntry << " to read in tree with " << mTreeDigits->GetEntries() << " entries";
+    pc.services().get<ControlService>().endOfStream();
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+    return;
+  }
   mTreeDigits->GetEntry(currEntry);
   LOGP(info, "Pushing {} digits for tree entry {}", mDigits.size(), currEntry);
   pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "DIGITS", mSubSpec}, mDigits);
@@ -67,7 +74,7 @@ void TRDDigitReaderSpec::run(ProcessingContext& pc)
     auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{o2::header::gDataOriginTRD, "LABELS", 0});
     mLabels->copyandflatten(sharedlabels);
   }
-  if (mTreeDigits->GetReadEntry() + 1 >= mTreeDigits->GetEntries()) {
+  if (mTreeDigits->GetReadEntry() + pc.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices >= mTreeDigits->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }
