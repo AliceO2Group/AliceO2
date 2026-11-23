@@ -22,6 +22,7 @@
 #ifndef GPUCA_GPUCODE
 #include "MCLabelAccumulator.h"
 #include "utils/VcShim.h"
+#include <climits>
 #include <vector>
 #endif
 
@@ -747,6 +748,11 @@ GPUd() void GPUTPCCFHIPTailConnector::Thread<0>(int32_t nBlocks, int32_t nThread
   if (iBlock >= (int32_t)GPUTPCGeometry::NROWS) {
     return;
   }
+
+  if (clusterer.Param().rec.tpc.hipTailFwdAsCluster) {
+    return;
+  }
+
   const uint32_t row = iBlock;
 
   const uint32_t nTails = CAMath::Min(clusterer.mPnHIPTails[row], (uint32_t)MaxHIPTailsPerRow - 1);
@@ -836,6 +842,8 @@ GPUd() void GPUTPCCFHIPClusterizer::Thread<0>(int32_t nBlocks, int32_t nThreads,
 
     CPU_ONLY(auto labelAcc = MCLabelAccumulator{clusterer});
 
+    uint16_t padMin = 0xFFFF, padMax = 0;
+
     float qTot = 0;
     float qMax = 0;
     float padSum = 0;
@@ -848,17 +856,19 @@ GPUd() void GPUTPCCFHIPClusterizer::Thread<0>(int32_t nBlocks, int32_t nThreads,
     // Zero-th element is empty tail
     for (; tail != tails; tail = &tails[tail->iNext]) {
       const float tailWeight = tail->qTot;
-      const float tailPad = tail->pad;
       qMax = CAMath::Max(qMax, tail->qMax);
       qTot += tail->qTot;
-      padSum += tailWeight * tailPad;
-      padSqSum += tailWeight * tailPad * tailPad;
+      padSum += tailWeight * tail->pad;
+      padSqSum += tailWeight * tail->pad * tail->pad;
       if (tail->satStart >= 0 && tail->satEnd >= 0) {
         satTimeSum += 0.5f * (tail->satStart + tail->satEnd);
         nSatTails++;
       }
       tailStart = CAMath::Min<uint32_t>(tailStart, tail->tailStart);
       tailEnd = CAMath::Max<uint32_t>(tailEnd, tail->tailEnd);
+
+      padMin = CAMath::Min(padMin, tail->pad);
+      padMax = CAMath::Max(padMax, tail->pad);
 
       CPU_ONLY(labelAcc.collectTail(row, tail->pad, tail->tailStart, tail->tailEnd));
     }
@@ -867,12 +877,14 @@ GPUd() void GPUTPCCFHIPClusterizer::Thread<0>(int32_t nBlocks, int32_t nThreads,
     const float padMean = padSum / weightSum;
     const float padSigma = CAMath::Sqrt(CAMath::Max(0.f, padSqSum / weightSum - padMean * padMean));
 
+    const bool singlePad = padMin == padMax;
+
     tpc::ClusterNative cn;
     cn.qMax = qMax;
     cn.setSaturatedQtot(qTot);
     cn.setSaturatedTailLength(tailEnd - tailStart);
     cn.setPad(padMean);
-    cn.setSigmaPad(padSigma);
+    cn.setSigmaPad(singlePad ? 0.f : padSigma);
 
     if (cn.qMax >= 1023) {
 
@@ -881,7 +893,9 @@ GPUd() void GPUTPCCFHIPClusterizer::Thread<0>(int32_t nBlocks, int32_t nThreads,
       // but these never contain a saturated charge and are dropped by the qMax cut.
       const float clusterTime = frag.start + satTimeSum / nSatTails - clusterer.Param().rec.tpc.clustersShiftTimebinsClusterizer;
       assert(!CAMath::IsNaN(clusterTime));
-      cn.setTimeFlags(clusterTime, 0);
+
+      const uint8_t flags = singlePad ? tpc::ClusterNative::flagSingle : 0;
+      cn.setTimeFlags(clusterTime, flags);
 
       uint32_t index;
 

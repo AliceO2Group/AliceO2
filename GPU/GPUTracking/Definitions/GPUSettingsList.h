@@ -123,6 +123,7 @@ AddOptionRTC(hipTailFilter, uint8_t, 0, "", 0, "Enable Highly Ionising Particle 
 AddOptionRTC(hipTailFilterMinimum, uint16_t, 1023, "", 0, "Treat signal above this minimum as saturated")
 AddOptionRTC(hipTailFilterThreshold, uint16_t, 100, "", 0, "Threshold that must be exceeded for a timebin to be counted towards Highly Ionising Particle tail")
 AddOptionRTC(hipTailFilterAlpha, float, 0.5f, "", 0, "Smoothing factor for the exponential Highly Ionising Particle tail filter")
+AddOptionRTC(hipTailFwdAsCluster, uint8_t, 0, "", 0, "Forward Highly Ionising Particle tail as single pad clusters and don't attempt to merge neighboring tails")
 AddOptionRTC(occupancyMapTimeBins, uint16_t, 16, "", 0, "Number of timebins per histogram bin of occupancy map (0 = disable occupancy map)")
 AddOptionRTC(occupancyMapTimeBinsAverage, uint16_t, 0, "", 0, "Number of timebins +/- to use for the averaging")
 AddOptionRTC(trackFitCovLimit, uint16_t, 1000, "", 0, "Abort fit when y/z cov exceed the limit")
