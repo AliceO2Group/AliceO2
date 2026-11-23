@@ -87,6 +87,9 @@ class RootFile
   std::shared_ptr<ByteSource> mSource;
   std::string mUrl;
   FileHeader mHeader;
+  // The first bytes of the file, read with the header: they also hold the
+  // directory records of the file and, usually, of its first DF.
+  std::vector<uint8_t> mHead;
   std::optional<std::vector<KeyInfo>> mTopKeys;
   // Stored bytes of the TTrees of the last DF listed, by key offset, until read.
   std::map<uint64_t, std::vector<uint8_t>> mPrefetched;

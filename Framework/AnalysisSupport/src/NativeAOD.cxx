@@ -338,7 +338,6 @@ std::shared_ptr<NativeAODInputFile> NativeAODInputFile::open(std::unique_ptr<Byt
   result->mFilesystem = std::make_shared<NativeAODFileSystem>(result->mFile, options, factory);
   result->mFilesystem->setName(result->mName);
   result->mParentFiles = result->mFile->readStringMap("parentFiles");
-  result->mMetaData = result->mFile->readStringMap("metaData");
   // Parse the trees of the first DF now: a layout or version we do not support
   // is then found while the file can still be read with ROOT instead.
   auto dfs = result->mFile->dataFrames();

@@ -126,7 +126,7 @@ class NativeAODFileSystem : public VirtualRootFileSystemBase
 class NativeAODInputFile : public AODInputFile
 {
  public:
-  /// Opens @a url and parses its header, keys, maps and the trees of its first
+  /// Opens @a url and parses its header, keys, parent files and the trees of its first
   /// DF, so that layouts and versions we cannot read are found here, when the
   /// file can still go to ROOT. Throws o2::aod::native::FormatError.
   /// @a name is what the file is called (an LFN for a grid file); @a url by default.
@@ -144,7 +144,8 @@ class NativeAODInputFile : public AODInputFile
   std::vector<Key> topLevelKeys() override;
   std::vector<std::string> keysIn(std::string const& dir) override;
   std::map<std::string, std::string> parentFiles() override { return mParentFiles; }
-  std::map<std::string, std::string> metaData() override { return mMetaData; }
+  /// Read when asked for: the reader does not need it, and it costs a round trip at open.
+  std::map<std::string, std::string> metaData() override { return mFile->readStringMap("metaData"); }
   std::shared_ptr<VirtualRootFileSystemBase> filesystem() override { return mFilesystem; }
   void setReadOrder(std::vector<std::string> const& dfs) override { mFilesystem->setReadOrder(dfs); }
 
@@ -156,7 +157,6 @@ class NativeAODInputFile : public AODInputFile
   std::shared_ptr<o2::aod::native::RootFile> mFile;
   std::shared_ptr<NativeAODFileSystem> mFilesystem;
   std::map<std::string, std::string> mParentFiles;
-  std::map<std::string, std::string> mMetaData;
 };
 
 } // namespace o2::framework
