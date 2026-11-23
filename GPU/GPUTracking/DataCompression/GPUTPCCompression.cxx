@@ -17,7 +17,6 @@
 #include "GPUO2DataTypes.h"
 #include "GPUMemorySizeScalers.h"
 #include "GPUDefParametersRuntime.h"
-#include "GPUConstantMem.h"
 
 using namespace o2::gpu;
 
@@ -124,8 +123,8 @@ void GPUTPCCompression::SetMaxData(const GPUTrackingInOutPointers& io)
   mMaxClusters = io.clustersNative->nClustersTotal;
   mMaxClusterFactorBase1024 = mMaxClusters > 100000000 ? mRec->MemoryScalers()->NTPCUnattachedHitsBase1024(mRec->GetParam().rec.tpc.rejectionStrategy) : 1024;
   mMaxClustersInCache = mMaxClusters * mMaxClusterFactorBase1024 / 1024;
-  mMaxTrackClusters = mRec->GetConstantMem().tpcMerger.NMergedTrackClusters(); // TODO: Why is this not using ioPtrs? Could remove GPUConstantMem.h include
-  mMaxTracks = mRec->GetConstantMem().tpcMerger.NMergedTracks();
+  mMaxTrackClusters = io.nMergedTrackHits;
+  mMaxTracks = io.nMergedTracks;
   if (mMaxClusters % 16) {
     mMaxClusters += 16 - (mMaxClusters % 16);
   }
