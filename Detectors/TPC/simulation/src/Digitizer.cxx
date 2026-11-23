@@ -125,7 +125,7 @@ void Digitizer::init()
     mSAMPAProcessing->setRandomRingPositions(rng);
   }
   auto& gemAmplification = this->gemAmplification();
-  gemAmplification.updateParameters();
+  gemAmplification.updateParameters(mUseGainMapMC);
   auto& electronTransport = this->electronTransport();
   electronTransport.updateParameters(mVDrift);
   auto& sampaProcessing = this->sampaProcessing();

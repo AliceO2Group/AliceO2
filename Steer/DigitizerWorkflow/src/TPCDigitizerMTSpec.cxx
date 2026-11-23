@@ -115,6 +115,8 @@ class TPCDPLDigitizerMTTask : public o2::base::BaseDPLDigitizer
 
     mWithMCTruth = o2::conf::DigiParams::Instance().mctruth;
     const auto triggeredMode = ic.options().get<bool>("TPCtriggered");
+    const auto useGainMapMC = ic.options().get<bool>("TPCuseGainMapMC");
+    LOG(info) << "TPC: gain map for MC (TPC/Calib/PadGainFullMC) applied: " << useGainMapMC;
     mConditions.init(ic, mDistortionType);
 
     // the workers share no random numbers: each digitizer seeds every sector from DigiParams.seed
@@ -130,6 +132,7 @@ class TPCDPLDigitizerMTTask : public o2::base::BaseDPLDigitizer
       worker->id = i;
       worker->digitizer.setContinuousReadout(!triggeredMode);
       worker->digitizer.setDistortionScaleType(mDistortionType);
+      worker->digitizer.setUseGainMapMC(useGainMapMC);
       worker->digitizer.setUseSectorSeeding(sectorSeed);
       // the main thread flushes the process-wide debug streamer after the workers
       worker->digitizer.setFlushDebugStreamer(false);

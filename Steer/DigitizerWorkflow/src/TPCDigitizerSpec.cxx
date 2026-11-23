@@ -108,10 +108,13 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
 
     mWithMCTruth = o2::conf::DigiParams::Instance().mctruth;
     auto triggeredMode = ic.options().get<bool>("TPCtriggered");
+    const auto useGainMapMC = ic.options().get<bool>("TPCuseGainMapMC");
+    LOG(info) << "TPC: gain map for MC (TPC/Calib/PadGainFullMC) applied: " << useGainMapMC;
     mConditions.init(ic, mDistortionType);
 
     mDigitizer.setContinuousReadout(!triggeredMode);
     mDigitizer.setDistortionScaleType(mDistortionType);
+    mDigitizer.setUseGainMapMC(useGainMapMC);
 
     if (ic.options().get<bool>("tpc-sector-seeding")) {
       const auto seed = o2::conf::DigiParams::Instance().seed;

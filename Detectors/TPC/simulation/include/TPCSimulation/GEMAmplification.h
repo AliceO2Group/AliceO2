@@ -54,7 +54,8 @@ class GEMAmplification
   void setRandomRingPositions(TRandom& rng);
 
   /// Update the OCDB parameters cached in the class. To be called once per event
-  void updateParameters();
+  /// \param useGainMapMC apply the gain map for MC (TPC/Calib/PadGainFullMC) instead of the one of the reconstruction (TPC/Calib/PadGainFull)
+  void updateParameters(bool useGainMapMC = false);
 
   /// Compute the number of electrons after amplification in a full stack of four GEM foils
   /// \param nElectrons Number of electrons arriving at the first amplification stage (GEM1)

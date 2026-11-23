@@ -161,6 +161,9 @@ class Digitizer
   /// Whether flush() also flushes the process-wide debug streamer
   void setFlushDebugStreamer(bool flush) { mFlushDebugStreamer = flush; }
 
+  /// Apply the gain map for MC (TPC/Calib/PadGainFullMC) instead of the one of the reconstruction (TPC/Calib/PadGainFull)
+  void setUseGainMapMC(bool use) { mUseGainMapMC = use; }
+
  private:
   /// Fill the random rings of the sector seeding, if not done yet
   void initSectorSeeding();
@@ -176,6 +179,7 @@ class Digitizer
   ULong64_t mSeedingTimeframe = 0;                       //!< Timeframe identifier for sector seeding
   bool mUseSectorSeeding = false;                        //!< Whether sector seeding is used
   bool mFlushDebugStreamer = true;                       //!< Whether flush() flushes the debug streamer
+  bool mUseGainMapMC = false;                            //!< Whether the gain map for MC is applied instead of the one of the reconstruction
 
   DigitContainer mDigitContainer;        ///< Container for the Digits
   std::vector<float> mSignalArray;       //!< Workspace for the shaped signal of one electron
