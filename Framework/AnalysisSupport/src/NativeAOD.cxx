@@ -98,9 +98,6 @@ std::shared_ptr<ReadPlan> NativeAODFileSystem::planFor(std::string const& path)
     if (std::ranges::find(trees, treeName) == trees.end()) {
       trees.push_back(treeName);
     }
-    if (!previous.empty()) {
-      mFile->setTreesToPrefetch(trees);
-    }
     for (auto& name : previous) {
       addToPlan(name);
     }
@@ -256,6 +253,8 @@ void NativeAODFileSystem::addToPlan(std::string const& treeName)
     mPlanBytes += bytes;
     mPlanOf[treeName] = mPlan;
     mPlanTrees.push_back(treeName);
+    // The next DF's keys can be listed before its plan is made (by getTreeHandle).
+    mFile->setTreesToPrefetch(mPlanTrees);
   }
 }
 
