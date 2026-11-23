@@ -117,12 +117,12 @@ void GEMAmplification::setRandomRingPositions(TRandom& rng)
   mGainFullStack.setRandomPosition(rng);
 }
 
-void GEMAmplification::updateParameters()
+void GEMAmplification::updateParameters(bool useGainMapMC)
 {
   auto& cdb = CDBInterface::instance();
   mGEMParam = &(ParameterGEM::Instance());
   mGasParam = &(ParameterGas::Instance());
-  mGainMap = &(cdb.getGainMapMC());
+  mGainMap = useGainMapMC ? &(cdb.getGainMapMC()) : &(cdb.getGainMap());
 }
 
 int GEMAmplification::getStackAmplification(int nElectrons)

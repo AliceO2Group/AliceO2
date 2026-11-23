@@ -134,6 +134,7 @@ std::vector<framework::ConfigParamSpec> TPCDigitizerConditions::options()
   return {
     {"TPCtriggered", VariantType::Bool, false, {"Impose triggered RO mode (default: continuous)"}},
     {"TPCuseCCDB", VariantType::Bool, false, {"true: load calibrations from CCDB; false: use random calibratoins"}},
+    {"TPCuseGainMapMC", VariantType::Bool, false, {"true: apply the gain map for MC (TPC/Calib/PadGainFullMC); false: apply the gain map of the reconstruction (TPC/Calib/PadGainFull)"}},
     {"meanLumiDistortions", VariantType::Float, -1.f, {"override lumi of distortion object if >=0"}},
     {"meanLumiDistortionsDerivative", VariantType::Float, -1.f, {"override lumi of derivative distortion object if >=0"}},
     {"do-not-recalculate-distortions", VariantType::Bool, false, {"Do not recalculate the distortions"}},
