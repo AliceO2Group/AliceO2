@@ -72,7 +72,7 @@ class GPUReconstructionCPUDevice : public GPUReconstructionProcessing::KernelInt
   std::vector<std::vector<GPUReconstructionCPUDeviceEvent>> mEventStorage; // Backs the deviceEvents in mEvents, inner vectors are never resized
 
   int32_t genRTC(std::string& filename, uint32_t& nCompile);
-  void getRTCKernelCalls(std::vector<std::string>& kernels);
+  void getGPURTCBackendCode(std::vector<std::string>& kernels, std::vector<std::string>& macroDefinitions); // Kernel calls and device macros for the RTC code, stringified with the backend's device macros
   void genAndLoadRTC();
 };
 

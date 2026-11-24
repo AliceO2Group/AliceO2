@@ -445,8 +445,9 @@ template void GPUReconstructionProcessing::KernelInterface<GPUReconstructionCPUD
     }                                                                                                                                                                                                                                                 \
   }
 
-void GPUReconstructionCPUDevice::getRTCKernelCalls(std::vector<std::string>& kernels)
+void GPUReconstructionCPUDevice::getGPURTCBackendCode(std::vector<std::string>& kernels, std::vector<std::string>& macroDefinitions)
 {
+  internal::rtchelpers::getRTCMacroDefinitions(macroDefinitions);
 #define GPUCA_KRNL(...) kernels.emplace_back(GPUCA_M_STR(GPUCA_CPUDEVICE_KRNL_RTC(__VA_ARGS__)));
 #include "GPUReconstructionKernelList.h"
 #undef GPUCA_KRNL

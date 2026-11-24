@@ -23,8 +23,9 @@
 
 using namespace o2::gpu;
 
-void GPUReconstructionCUDA::getRTCKernelCalls(std::vector<std::string>& kernels)
+void GPUReconstructionCUDA::getGPURTCBackendCode(std::vector<std::string>& kernels, std::vector<std::string>& macroDefinitions)
 {
+  internal::rtchelpers::getRTCMacroDefinitions(macroDefinitions);
 #undef GPUCA_KRNL
 #define GPUCA_KRNL(...) kernels.emplace_back(GPUCA_M_STR(GPUCA_KRNLGPU(__VA_ARGS__)));
 #undef __launch_bounds__

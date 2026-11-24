@@ -36,15 +36,19 @@
 #include <unistd.h>
 #include <oneapi/tbb.h>
 
-namespace o2::gpu::internal::rtc
+namespace o2::gpu::internal::rtchelpers
 {
 
-static std::string paramCode(const GPUSettingsProcessing& proc, const GPUParam& param) // RTC defines and parameters, common to all compilations
+static std::string paramCode(const GPUSettingsProcessing& proc, const GPUParam& param, const std::vector<std::string>& macroDefinitions, bool gpuConstexprArrayInConstantMem) // RTC defines and parameters, common to all compilations; macroDefinitions: device macros used by the generated code (the embedded source is already preprocessed), stringified by the backend
 {
-  return std::string("#define GPUCA_RTC_CODE\n") +
+  std::string defines;
+  for (const auto& def : macroDefinitions) {
+    defines += "#define " + def + "\n";
+  }
+  return defines + "#define GPUCA_RTC_CODE\n" +
          (proc.rtc.optSpecialCode ? "#define GPUCA_RTC_SPECIAL_CODE(...) __VA_ARGS__\n" : "#define GPUCA_RTC_SPECIAL_CODE(...)\n") +
          (proc.rtc.optConstexpr ? "#define GPUCA_RTC_CONSTEXPR constexpr\n" : "#define GPUCA_RTC_CONSTEXPR\n") +
-         GPUParamRTC::generateRTCCode(param, proc.rtc.optConstexpr);
+         GPUParamRTC::generateRTCCode(param, proc.rtc.optConstexpr, gpuConstexprArrayInConstantMem);
 }
 
 static void tmpFilename(std::string& filename, const char* defaultPrefix)
@@ -357,4 +361,4 @@ class Cache // RTC cache file <cacheFolder>/rtc.<backend>.cache.<id> (no id with
   int32_t mFd = -1;
 };
 
-} // namespace o2::gpu::internal::rtc
+} // namespace o2::gpu::internal::rtchelpers

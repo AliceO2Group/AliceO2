@@ -22,7 +22,7 @@
 
 namespace o2::gpu
 {
-namespace gpu_rtc
+namespace internal::rtc
 {
 #define QCONFIG_GENRTC
 #define BeginNamespace(...)
@@ -31,11 +31,11 @@ namespace gpu_rtc
 #undef QCONFIG_GENRTC
 #undef BeginNamespace
 #undef EndNamespace
-} // namespace gpu_rtc
+} // namespace internal::rtc
 
-struct GPUParamRTC : public internal::GPUParam_t<gpu_rtc::GPUSettingsRec, gpu_rtc::GPUSettingsParam> {
+struct GPUParamRTC : public internal::GPUParam_t<internal::rtc::GPUSettingsRec, internal::rtc::GPUSettingsParam> {
   void setFrom(const GPUParam& param);
-  static std::string generateRTCCode(const GPUParam& param, bool useConstexpr);
+  static std::string generateRTCCode(const GPUParam& param, bool useConstexpr, bool gpuConstexprArrayInConstantMem);
 };
 
 } // namespace o2::gpu

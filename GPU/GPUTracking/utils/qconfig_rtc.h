@@ -19,10 +19,15 @@
 #include "qconfig_helpers.h"
 
 template <class T>
-static std::string qConfigPrintRtc(const T& tSrc, bool useConstexpr)
+static std::string qConfigPrintRtc(const T& tSrc, bool useConstexpr, bool gpuConstexprArrayInConstantMem) // gpuConstexprArrayInConstantMem: put the values of constexpr arrays in GPUconstexpr() arrays at namespace scope (needed for CUDA / HIP), instead of static constexpr members
 {
   std::stringstream out;
   out << std::hexfloat;
+  if (useConstexpr && gpuConstexprArrayInConstantMem) {
+#define QCONFIG_PRINT_RTC_ARRAYS
+#include "qconfig_internal.h"
+#undef QCONFIG_PRINT_RTC_ARRAYS
+  }
 #define QCONFIG_PRINT_RTC
 #include "qconfig_internal.h"
 #undef QCONFIG_PRINT_RTC

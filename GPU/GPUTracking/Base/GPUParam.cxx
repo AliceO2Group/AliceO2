@@ -159,14 +159,14 @@ void GPUParamRTC::setFrom(const GPUParam& param)
   memcpy((void*)this, (void*)&param, sizeof(param));
 }
 
-std::string GPUParamRTC::generateRTCCode(const GPUParam& param, bool useConstexpr)
+std::string GPUParamRTC::generateRTCCode(const GPUParam& param, bool useConstexpr, bool gpuConstexprArrayInConstantMem)
 {
   return "#include <string>\n"
          "#include <vector>\n"
          "#include <cstdint>\n"
          "#include <cstddef>\n"
          "namespace o2::gpu { class GPUDisplayFrontendInterface; }\n" +
-         qConfigPrintRtc(std::make_tuple(&param.rec.tpc, &param.rec.trd, &param.rec, &param.par), useConstexpr);
+         qConfigPrintRtc(std::make_tuple(&param.rec.tpc, &param.rec.trd, &param.rec, &param.par), useConstexpr, gpuConstexprArrayInConstantMem);
 }
 
 static_assert(sizeof(o2::gpu::GPUParam) == sizeof(o2::gpu::GPUParamRTC), "RTC param size mismatch");

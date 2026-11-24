@@ -88,7 +88,7 @@ class GPUReconstructionCUDA : public GPUReconstructionProcessing::KernelInterfac
 
  private:
   int32_t genRTC(std::string& filename, uint32_t& nCompile);
-  void getRTCKernelCalls(std::vector<std::string>& kernels);
+  void getGPURTCBackendCode(std::vector<std::string>& kernels, std::vector<std::string>& macroDefinitions); // Kernel calls and device macros for the RTC code, stringified with the backend's device macros
   void genAndLoadRTC();
   void loadKernelModules(bool perKernel);
   const char *mRtcSrcExtension = ".src", *mRtcBinExtension = ".o";
