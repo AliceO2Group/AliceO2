@@ -28,10 +28,11 @@ class GPUTPCGlobalDebugSortKernels : public GPUKernelTemplate
  public:
   enum K { defaultKernel = 0,
            clearIds = 0,
-           sectorTracks = 1,
-           mergedTracks1 = 2,
-           mergedTracks2 = 3,
-           borderTracks = 4 };
+           sectorTracks1 = 1,
+           sectorTracks2 = 2,
+           mergedTracks1 = 3,
+           mergedTracks2 = 4,
+           borderTracks = 5 };
   GPUhdi() constexpr static gpudatatypes::RecoStep GetRecoStep() { return gpudatatypes::RecoStep::TPCMerging; }
   typedef GPUTPCGMMerger processorType;
   GPUhdi() static processorType* Processor(GPUConstantMem& processors) { return &processors.tpcMerger; }

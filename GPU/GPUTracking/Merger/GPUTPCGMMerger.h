@@ -71,6 +71,7 @@ class GPUTPCGMMerger : public GPUProcessor
     GPUAtomic(uint32_t) nRetryRefit;
     GPUAtomic(uint32_t) nLoopData;
     GPUAtomic(uint32_t) nUnpackedTracks;
+    GPUAtomic(uint32_t) nUnpackedTracksGlobal;
     GPUAtomic(uint32_t) nMergedTracks;
     GPUAtomic(uint32_t) nMergedTrackClusters;
     GPUAtomic(uint32_t) nRebuildTrackRow;
@@ -199,7 +200,6 @@ class GPUTPCGMMerger : public GPUProcessor
   int32_t CheckSectors();
   GPUd() void RefitSectorTracks(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iSector);
   GPUd() void UnpackSectorGlobal(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iSector);
-  GPUd() void UnpackSaveNumber(int32_t id);
   GPUd() void UnpackResetIds(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iSector);
   GPUd() void MergeCE(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread);
   GPUd() void ClearTrackLinks(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, bool output);
@@ -267,13 +267,6 @@ class GPUTPCGMMerger : public GPUProcessor
   void DebugStreamerUpdate(int32_t iTrk, int32_t ihit, float xx, float yy, float zz, const GPUTPCGMMergedTrackHit& cluster, const o2::tpc::ClusterNative& clusterNative, const GPUTPCGMTrackParam& track, const GPUTPCGMPropagator& prop, const gputpcgmmergertypes::InterpolationErrorHit& interpolation, int8_t rejectChi2, bool refit, int32_t retVal, float avgInvCharge, float posY, float posZ, int16_t clusterState, int32_t retValReject, float err2Y, float err2Z) const;
 #endif
 
-  GPUdi() int32_t SectorTrackInfoFirst(int32_t iSector) const { return mSectorTrackInfoIndex[iSector]; }
-  GPUdi() int32_t SectorTrackInfoLast(int32_t iSector) const { return mSectorTrackInfoIndex[iSector + 1]; }
-  GPUdi() int32_t SectorTrackInfoGlobalFirst(int32_t iSector) const { return mSectorTrackInfoIndex[NSECTORS + iSector]; }
-  GPUdi() int32_t SectorTrackInfoGlobalLast(int32_t iSector) const { return mSectorTrackInfoIndex[NSECTORS + iSector + 1]; }
-  GPUdi() int32_t SectorTrackInfoLocalTotal() const { return mSectorTrackInfoIndex[NSECTORS]; }
-  GPUdi() int32_t SectorTrackInfoTotal() const { return mSectorTrackInfoIndex[2 * NSECTORS]; }
-
   void CheckMergeGraph();
   void CheckCollectedTracks();
 
@@ -331,7 +324,6 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUdEdxInfo* mMergedTracksdEdx = nullptr;         //* dEdx information
   GPUdEdxInfo* mMergedTracksdEdxAlt = nullptr;      //* dEdx alternative information
   GPUTPCGMSectorTrack* mSectorTrackInfos = nullptr; //* additional information for sector tracks
-  int32_t* mSectorTrackInfoIndex = nullptr;
   GPUTPCGMMergedTrackHit* mClusters = nullptr;
   GPUAtomic(uint32_t) * mClusterAttachment = nullptr;
   o2::tpc::TrackTPC* mOutputTracksTPCO2 = nullptr;

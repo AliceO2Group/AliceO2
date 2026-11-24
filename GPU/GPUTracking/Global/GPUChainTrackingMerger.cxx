@@ -121,27 +121,47 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   if (GetProcessingSettings().deterministicGPUReconstruction) {
     runKernel<GPUTPCGlobalDebugSortKernels, GPUTPCGlobalDebugSortKernels::clearIds>(GetGridAuto(0, deviceType), 1);
   }
+  const uint32_t nStreams = doGPU ? std::min<uint32_t>(mRec->NStreams(), NSECTORS) : 1;
+  auto recordStreamMarkers = [&]() {
+    for (uint32_t i = 0; i < nStreams; i++) {
+      RecordMarker(&mEvents->stream[i], i);
+    }
+  };
+  auto releaseStreamMarkers = [&]() {
+    for (uint32_t i = 0; i < nStreams; i++) {
+      ReleaseEvent(mEvents->stream[i]);
+    }
+  };
+  RecordMarker(&mEvents->single, 0);
   for (uint32_t i = 0; i < NSECTORS; i++) {
-    runKernel<GPUTPCGMMergerUnpackSaveNumber>({{1, -WarpSize(), 0, deviceType}}, i);
-    runKernel<GPUTPCGMMergerUnpackResetIds>(GetGridAuto(0, deviceType), i);
-    runKernel<GPUTPCGMMergerSectorRefit>(GetGridAuto(0, deviceType), i); // TODO: Why all in stream 0?
+    const int32_t stream = i % nStreams;
+    runKernel<GPUTPCGMMergerUnpackResetIds>({GetGridAuto(stream, deviceType), krnlRunRangeNone, {nullptr, i < nStreams ? &mEvents->single : nullptr}}, i);
+    runKernel<GPUTPCGMMergerSectorRefit>(GetGridAuto(stream, deviceType), i);
   }
+  ReleaseEvent(mEvents->single);
+  recordStreamMarkers();
   if (GetProcessingSettings().deterministicGPUReconstruction) {
-    runKernel<GPUTPCGMMergerUnpackSaveNumber>({{1, -WarpSize(), 0, deviceType}}, NSECTORS);
-    runKernel<GPUTPCGlobalDebugSortKernels, GPUTPCGlobalDebugSortKernels::sectorTracks>({{GPUTPCGeometry::NSECTORS, -WarpSize(), 0, deviceType}}, 0);
+    SynchronizeGPU();
+    runKernel<GPUTPCGlobalDebugSortKernels, GPUTPCGlobalDebugSortKernels::sectorTracks1>({{GPUTPCGeometry::NSECTORS, -WarpSize(), 0, deviceType}}, 0);
+    runKernel<GPUTPCGlobalDebugSortKernels, GPUTPCGlobalDebugSortKernels::sectorTracks2>({{1, -WarpSize(), 0, deviceType}}, 0);
+    SynchronizeGPU();
   }
   for (uint32_t i = 0; i < NSECTORS; i++) {
-    runKernel<GPUTPCGMMergerUnpackSaveNumber>({{1, -WarpSize(), 0, deviceType}}, NSECTORS + i);
-    runKernel<GPUTPCGMMergerUnpackGlobal>(GetGridAuto(0, deviceType), i);
+    const int32_t stream = i % nStreams;
+    runKernel<GPUTPCGMMergerUnpackGlobal>({GetGridAuto(stream, deviceType), krnlRunRangeNone, {nullptr, i < nStreams ? mEvents->stream : nullptr, (int32_t)nStreams}}, i);
   }
-  runKernel<GPUTPCGMMergerUnpackSaveNumber>({{1, -WarpSize(), 0, deviceType}}, 2 * NSECTORS);
+  releaseStreamMarkers();
+  recordStreamMarkers();
   if (GetProcessingSettings().deterministicGPUReconstruction) {
-    runKernel<GPUTPCGlobalDebugSortKernels, GPUTPCGlobalDebugSortKernels::sectorTracks>({{GPUTPCGeometry::NSECTORS, -WarpSize(), 0, deviceType}}, 1);
+    SynchronizeGPU();
+    runKernel<GPUTPCGlobalDebugSortKernels, GPUTPCGlobalDebugSortKernels::sectorTracks1>({{GPUTPCGeometry::NSECTORS, -WarpSize(), 0, deviceType}}, 1);
+    runKernel<GPUTPCGlobalDebugSortKernels, GPUTPCGlobalDebugSortKernels::sectorTracks2>({{1, -WarpSize(), 0, deviceType}}, 1);
   }
   DoDebugAndDump(RecoStep::TPCMerging, GPUChainTrackingDebugFlags::TPCMergingSectorTracks, doGPU, Merger, &GPUTPCGMMerger::DumpSectorTracks, *mDebugFile);
 
   // Merge within Sectors
-  runKernel<GPUTPCGMMergerClearLinks>(GetGridAuto(0, deviceType), false);
+  runKernel<GPUTPCGMMergerClearLinks>({GetGridAuto(0, deviceType), krnlRunRangeNone, {nullptr, mEvents->stream, (int32_t)nStreams}}, false);
+  releaseStreamMarkers();
   runKernel<GPUMemClean16>({{1, -WarpSize(), 0, deviceType, RecoStep::TPCMerging}}, MergerShadow.TmpCounter(), NSECTORS * sizeof(*MergerShadow.TmpCounter()));
   runKernel<GPUTPCGMMergerMergeWithinPrepare>(GetGridAuto(0, deviceType));
   RunTPCTrackingMerger_MergeBorderTracks(GPUTPCGMMerger::mergeModes::mergeWithinSector, deviceType);

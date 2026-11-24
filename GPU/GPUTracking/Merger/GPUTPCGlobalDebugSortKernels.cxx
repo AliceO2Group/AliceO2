@@ -17,9 +17,6 @@
 #include "GPUCommonMath.h"
 #include "GPUCommonAlgorithm.h"
 #include "GPUTPCGlobalDebugSortKernels.h"
-#ifndef GPUCA_GPUCODE_DEVICE
-#include <stdexcept>
-#endif
 
 using namespace o2::gpu;
 
@@ -32,65 +29,71 @@ GPUdii() void GPUTPCGlobalDebugSortKernels::Thread<GPUTPCGlobalDebugSortKernels:
 }
 
 template <>
-GPUdii() void GPUTPCGlobalDebugSortKernels::Thread<GPUTPCGlobalDebugSortKernels::sectorTracks>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger, int8_t parameter)
+GPUdii() void GPUTPCGlobalDebugSortKernels::Thread<GPUTPCGlobalDebugSortKernels::sectorTracks1>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger, int8_t parameter)
 {
   if (iThread) {
     return;
   }
-  int32_t iStart = parameter ? GPUTPCGeometry::NSECTORS : 0;
-  int32_t iEnd = iStart + GPUTPCGeometry::NSECTORS;
-  for (int32_t i = iStart + iBlock; i < iEnd; i += nBlocks) {
-    const int32_t offset = merger.SectorTrackInfoFirst(i);
-    int32_t* GPUrestrict() tmp = merger.TmpSortMemory() + offset;
-    const int32_t n = merger.SectorTrackInfoLast(i) - merger.SectorTrackInfoFirst(i);
-    if (n < 2) {
-      continue;
+  const uint32_t offset = parameter ? merger.Memory()->nUnpackedTracks : 0;
+  const uint32_t n = parameter ? merger.Memory()->nUnpackedTracksGlobal : merger.Memory()->nUnpackedTracks;
+  const GPUTPCGMSectorTrack* GPUrestrict() tracks = merger.SectorTrackInfos() + offset;
+  for (uint32_t iSector = iBlock; iSector < GPUTPCGeometry::NSECTORS; iSector += nBlocks) {
+    uint32_t sectorOffset = 0;
+    for (uint32_t j = 0; j < n; j++) {
+      sectorOffset += tracks[j].Sector() < iSector;
     }
-    for (int32_t j = 0; j < n; j++) {
-      tmp[j] = j;
+    int32_t* GPUrestrict() tmp = merger.TmpSortMemory() + sectorOffset; // Slice of this sector, so that tmp is sorted by sector over the full range
+    uint32_t nSector = 0;
+    for (uint32_t j = 0; j < n; j++) {
+      if (tracks[j].Sector() == iSector) {
+        tmp[nSector++] = j;
+      }
     }
-    GPUCommonAlgorithm::sort(tmp, tmp + n, [&merger, offset](const int32_t& aa, const int32_t& bb) {
-      const auto& a = merger.SectorTrackInfos()[offset + aa];
-      const auto& b = merger.SectorTrackInfos()[offset + bb];
-      return (a.X() != b.X())   ? (a.X() < b.X())
+    GPUCommonAlgorithm::sort(tmp, tmp + nSector, [tracks, parameter](const int32_t& aa, const int32_t& bb) {
+      const auto& a = tracks[aa];
+      const auto& b = tracks[bb];
+      return !parameter         ? (a.OrigTrack() < b.OrigTrack()) // Local tracks: order of the sector tracker, which is sorted in deterministic mode
+             : (a.X() != b.X()) ? (a.X() < b.X())
              : (a.Y() != b.Y()) ? (a.Y() < b.Y())
                                 : (a.Z() < b.Z());
     });
-    for (int32_t j = 0; j < n; j++) {
-      if (tmp[j] >= 0 && tmp[j] != j) {
-        auto getTrackIDIndex = [&merger](const int32_t iSector, const int32_t iTrack) {
-          const int32_t kEnd = merger.NMaxSingleSectorTracks();
-          for (int32_t k = 0; k < kEnd; k++) {
-            if (merger.TrackIDs()[iSector * merger.NMaxSingleSectorTracks() + k] == iTrack) {
-              return k;
-            }
-          }
-#ifndef GPUCA_GPUCODE_DEVICE
-          throw std::runtime_error("Internal error, track id missing");
-#endif
-          return -1;
-        };
+  }
+}
+
+template <>
+GPUdii() void GPUTPCGlobalDebugSortKernels::Thread<GPUTPCGlobalDebugSortKernels::sectorTracks2>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger, int8_t parameter)
+{
+  if (iBlock) {
+    return;
+  }
+  const uint32_t offset = parameter ? merger.Memory()->nUnpackedTracks : 0;
+  const uint32_t n = parameter ? merger.Memory()->nUnpackedTracksGlobal : merger.Memory()->nUnpackedTracks;
+  int32_t* GPUrestrict() tmp = merger.TmpSortMemory();
+  GPUTPCGMSectorTrack* GPUrestrict() tracks = merger.SectorTrackInfos() + offset;
+  if (iThread == 0) {
+    for (uint32_t j = 0; j < n; j++) {
+      if (tmp[j] >= 0 && tmp[j] != (int32_t)j) {
         int32_t firstIdx = j;
-        auto firstItem = merger.SectorTrackInfos()[offset + firstIdx];
-        int32_t firstTrackIDIndex = parameter ? 0 : getTrackIDIndex(i, offset + firstIdx);
+        auto firstItem = tracks[firstIdx];
         int32_t currIdx = firstIdx;
         int32_t sourceIdx = tmp[currIdx];
         do {
           tmp[currIdx] = -1;
-          merger.SectorTrackInfos()[offset + currIdx] = merger.SectorTrackInfos()[offset + sourceIdx];
-          if (!parameter) {
-            merger.TrackIDs()[i * merger.NMaxSingleSectorTracks() + getTrackIDIndex(i, offset + sourceIdx)] = offset + currIdx;
-          }
+          tracks[currIdx] = tracks[sourceIdx];
           currIdx = sourceIdx;
           sourceIdx = tmp[currIdx];
         } while (sourceIdx != firstIdx);
         tmp[currIdx] = -1;
-        merger.SectorTrackInfos()[offset + currIdx] = firstItem;
-        if (!parameter) {
-          merger.TrackIDs()[i * merger.NMaxSingleSectorTracks() + firstTrackIDIndex] = offset + currIdx;
-        }
+        tracks[currIdx] = firstItem;
       }
     }
+  }
+  if (parameter) {
+    return;
+  }
+  GPUbarrier();
+  for (uint32_t j = iThread; j < n; j += nThreads) {
+    merger.TrackIDs()[tracks[j].Sector() * merger.NMaxSingleSectorTracks() + tracks[j].OrigTrack()->LocalTrackId()] = j;
   }
 }
 
