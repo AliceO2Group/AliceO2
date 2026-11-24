@@ -984,10 +984,8 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   auto notifyForeignChainFinished = [this]() {
     if (mPipelineNotifyCtx) {
       SynchronizeStream(OutputStream()); // Must finish before updating ioPtrs in (global) constant memory
-      {
-        std::lock_guard<std::mutex> lock(mPipelineNotifyCtx->mutex);
-        mPipelineNotifyCtx->ready = true;
-      }
+      std::lock_guard<std::mutex> lock(mPipelineNotifyCtx->mutex);
+      mPipelineNotifyCtx->ready = true;
       mPipelineNotifyCtx->cond.notify_one();
     }
   };
