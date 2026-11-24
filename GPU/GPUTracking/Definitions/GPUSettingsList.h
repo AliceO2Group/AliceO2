@@ -158,7 +158,7 @@ AddOptionRTC(mergerNonInterpolateRejectMinNDF, uint8_t, 5, "", 0, "Minimum NDF o
 AddOptionRTC(rebuildTrackInFit, uint8_t, 1, "", 0, "Rebuild track completely during fit based on clusters closed to interpolated track positions, adds 2 fit iterations")
 AddOptionRTC(rebuildTrackInFitClusterCandidates, uint8_t, 3, "", 0, "Number of cluster candidates per row for rebuilt track")
 AddOptionRTC(disableRebuildAttachment, uint8_t, 0, "", 0, "Bitmask to disable certain attachment steps during track rebuid (1: current row, 2: interpolate missing row, 4: one sided interpolation, 8: original hit, 16: extrapolation)")
-AddOptionRTC(disableMarkAdjacent, uint8_t, 0, "", 0, "Bitmask to disable certain steps during refit to mark adjacenrt clusters (1: current row, 2: interpolate missing rows, 4: extrapolate inwards / outwards, 8: loop following)") // TODO: Add history
+AddOptionRTC(disableMarkAdjacent, uint8_t, 0, "", 0, "Bitmask to disable certain steps during refit to mark adjacenrt clusters (1: current row, 2: interpolate missing rows, 4: extrapolate inwards / outwards, 8: loop following, 16 track history)")
 AddOptionRTC(dEdxTruncLow, uint8_t, 2, "", 0, "Low truncation threshold, fraction of 128")
 AddOptionRTC(dEdxTruncHigh, uint8_t, 77, "", 0, "High truncation threshold, fraction of 128")
 AddOptionRTC(extrapolationTracking, int8_t, 1, "", 0, "Enable Extrapolation Tracking (prolong tracks to adjacent sectors to find short segments)")

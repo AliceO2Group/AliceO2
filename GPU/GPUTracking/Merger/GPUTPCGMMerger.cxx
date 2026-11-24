@@ -1908,7 +1908,7 @@ GPUd() void GPUTPCGMMerger::PrepareForFit1(int32_t nBlocks, int32_t nThreads, in
     mTrackOrderAttach[mTrackSort[i]] = i;
     GPUTPCGMMergedTrack& trk = mMergedTracks[i];
     if (trk.OK()) {
-      const bool protect = CAMath::Abs(trk.GetParam().GetQPt() * Param().qptB5Scaler) <= Param().rec.tpc.rejectQPtB5 && !trk.MergedLooper() && trk.Leg() == 0;
+      const bool protect = CAMath::Abs(trk.GetParam().GetQPt() * Param().qptB5Scaler) <= Param().rec.tpc.rejectQPtB5 && !trk.MergedLooper() && trk.Leg() == 0 && !(Param().rec.tpc.disableMarkAdjacent & 16);
       [[maybe_unused]] uint8_t rowMin = 255, rowMax = 0;
       for (uint32_t j = 0; j < trk.NClusters(); j++) {
         rowMin = CAMath::Min(rowMin, mClusters[trk.FirstClusterRef() + j].row);
