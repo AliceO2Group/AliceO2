@@ -107,7 +107,7 @@ void GPUParam::UpdateSettings(const GPUSettingsGRP* g, const GPUSettingsProcessi
   if (w) {
     par.dodEdx = dodEdxEnabled = w->steps.isSet(gpudatatypes::RecoStep::TPCdEdx);
     if (dodEdxEnabled && p && p->tpcDownscaledEdx != 0) {
-      dodEdxEnabled = (rand() % 100) < p->tpcDownscaledEdx;
+      dodEdxEnabled = p->tpcDownscaledEdx <= 100 && (rand() % 100) < p->tpcDownscaledEdx;
     }
   }
   if (d) {

@@ -1016,16 +1016,26 @@ void GPUChainTracking::SetO2Propagator(const o2::base::Propagator* prop)
   }
 }
 
-void GPUChainTracking::ApplySyncSettings(GPUSettingsProcessing& proc, GPUSettingsRec& rec, gpudatatypes::RecoStepField& steps, bool syncMode, int32_t dEdxMode)
+void GPUChainTracking::ApplySyncSettings(GPUSettingsProcessing& proc, GPUSettingsRec& rec, gpudatatypes::RecoStepField& steps, bool syncMode, bool asyncMode, int32_t dEdxMode)
 {
+  if (syncMode && asyncMode) {
+    throw std::runtime_error("Cannot apply sync and async settings at the same time");
+  }
   if (syncMode) {
     rec.useMatLUT = false;
     rec.tpc.rebuildTrackMaxNonIntCov = 0.f; // TODO: Check if this yields a performance benefit
+  } else if (asyncMode) {
+    rec.useMatLUT = true;
   }
   if (proc.rtc.optSpecialCode == -1) {
     proc.rtc.optSpecialCode = syncMode;
   }
   if (dEdxMode != -2) {
-    steps.setBits(gpudatatypes::RecoStep::TPCdEdx, dEdxMode == -1 ? !syncMode : (dEdxMode > 0));
+    steps.setBits(gpudatatypes::RecoStep::TPCdEdx, dEdxMode == -1 ? 1 : (dEdxMode > 0));
+  }
+  if (syncMode) {
+    proc.tpcDownscaledEdx = 127;
+  } else if (asyncMode) {
+    proc.tpcDownscaledEdx = 0;
   }
 }
