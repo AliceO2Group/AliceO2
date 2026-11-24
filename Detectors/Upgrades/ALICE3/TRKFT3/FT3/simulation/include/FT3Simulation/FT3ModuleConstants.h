@@ -51,7 +51,7 @@ const double single_sensor_width = 2.5;
 const double single_sensor_height = 2.9;
 const double inactive_width = 0.15;
 const double sensor1x2_gap = 0.020; // gap between L&R sensors in 1x2, and between sensors in a stack
-const double moduleGap = 0.020;      // gap between 2xN module stacks
+const double moduleGap = 0.020;     // gap between 2xN module stacks
 
 const double active_width = single_sensor_width - inactive_width;
 const double active_height = single_sensor_height;
@@ -121,7 +121,7 @@ const double epoxyThickness = 0.0012;
 const double staveMaterialBudget =
   (84. + 19. + 2 * 65. + 19.) * 1e-4 / 42.7 // graphite + carbon fibre
   + 42. * 1e-4 / 41.;                       // PEI foam
-//for the eff. thickness, we use the CarbonFiber X0 = 27 cm from FT3Materials.h
+// for the eff. thickness, we use the CarbonFiber X0 = 27 cm from FT3Materials.h
 const double effectiveCarbonThickness_Stave = staveMaterialBudget * 27.0; // ~187 um
 
 const double staveOpeningAngle = 60 * TMath::DegToRad();
