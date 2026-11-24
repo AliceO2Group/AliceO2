@@ -16,7 +16,7 @@
 #ifndef TRACKINGITSU_INCLUDE_INDEXTABLEUTILS_H_
 #define TRACKINGITSU_INCLUDE_INDEXTABLEUTILS_H_
 
-#include <array>
+#include "GPUCommonArray.h"
 
 #include "ITStracking/Cluster.h"
 #include "ITSMFTTracking/MathUtils.h"

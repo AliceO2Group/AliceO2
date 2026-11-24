@@ -12,10 +12,12 @@
 #ifndef ALICEO2_ITSMFT_TRACKING_ROFVIEWS_H_
 #define ALICEO2_ITSMFT_TRACKING_ROFVIEWS_H_
 
+#ifndef __METAL__
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#endif
 
 #ifndef GPUCA_GPUCODE
 #include <format>
@@ -288,14 +290,14 @@ struct ROFVertexLookupView {
     return maxCount;
   }
 
-  GPUhdi() bool isVertexCompatible(int32_t layer, size_t rofIdx, const o2::its::Vertex& vertex) const noexcept
+  GPUhdi() bool isVertexCompatible(int32_t layer, size_t rofIdx, const o2::its::Vertex& vtx) const noexcept
   {
     assert(layer >= 0 && layer < mLayerCount);
     const auto& layerDef = mLayers[layer];
     int64_t rofLower = o2::gpu::CAMath::Max(static_cast<int64_t>(layerDef.getROFStartInBC(rofIdx)) - static_cast<int64_t>(layerDef.mROFAddTimeErr), int64_t(0));
     int64_t rofUpper = static_cast<int64_t>(layerDef.getROFEndInBC(rofIdx)) + layerDef.mROFAddTimeErr;
-    auto vLower = static_cast<int64_t>(vertex.getTimeStamp().lower());
-    auto vUpper = static_cast<int64_t>(vertex.getTimeStamp().upper());
+    auto vLower = static_cast<int64_t>(vtx.getTimeStamp().lower());
+    auto vUpper = static_cast<int64_t>(vtx.getTimeStamp().upper());
     return vUpper >= rofLower && vLower < rofUpper;
   }
 
