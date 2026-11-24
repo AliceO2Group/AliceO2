@@ -47,30 +47,6 @@ void InteractionSampler::init()
     }
   }
 
-  auto mu = mMuBC;
-  // prob. of not having interaction in N consecutive BCs is P(N) = mu*exp(-(N-1)*mu), hence its cumulative distribution
-  // is T(N) = integral_1^N {P(N)} = 1. - exp(-(N-1)*mu)
-  // We generate random N using its inverse, N = 1 - log(1 - Rndm)/mu
-  mBCJumpGenerator.initialize([mu]() { return (1. - std::log(1. - gRandom->Rndm()) / mu); });
-
-  // Poisson distribution of number of collisions in the bunch excluding 0
-  mNCollBCGenerator.initialize([mu]() {
-    int n = 0;
-    while ((n = gRandom->Poisson(mu)) == 0) {
-      ;
-    }
-    return n;
-  });
-
-  auto trms = mBCTimeRMS;
-  mCollTimeGenerator.initialize([trms]() {
-    float t; // make sure it does not go outside half bunch
-    while (std::abs(t = gRandom->Gaus(0, trms)) > o2::constants::lhc::LHCBunchSpacingNS / 2.1) {
-      ;
-    }
-    return t;
-  });
-
   mIntBCCache = 0;
   mCurrBCIdx = 0;
   mIR = mFirstIR;
@@ -79,6 +55,36 @@ void InteractionSampler::init()
   }
   // set the "current BC" right in front of the 1st BC to generate. There will be a jump by at least 1 during generation
   mCurrBCIdx--;
+}
+
+//_________________________________________________
+int InteractionSampler::drawBCJump() const
+{
+  // prob. of not having interaction in N consecutive BCs is P(N) = mu*exp(-(N-1)*mu), hence its cumulative distribution
+  // is T(N) = integral_1^N {P(N)} = 1. - exp(-(N-1)*mu)
+  // We generate random N using its inverse, N = 1 - log(1 - Rndm)/mu
+  return int(1. - std::log(1. - gRandom->Rndm()) / mMuBC);
+}
+
+//_________________________________________________
+int InteractionSampler::drawNCollInBC() const
+{
+  // Poisson distribution of number of collisions in the bunch excluding 0
+  int n = 0;
+  while ((n = gRandom->Poisson(mMuBC)) == 0) {
+    ;
+  }
+  return n;
+}
+
+//_________________________________________________
+float InteractionSampler::drawCollTimeInBC() const
+{
+  float t; // make sure it does not go outside half bunch
+  while (std::abs(t = gRandom->Gaus(0, mBCTimeRMS)) > o2::constants::lhc::LHCBunchSpacingNS / 2.1) {
+    ;
+  }
+  return t;
 }
 
 //_________________________________________________
@@ -115,14 +121,14 @@ const o2::InteractionTimeRecord& InteractionSampler::generateCollisionTime()
 int InteractionSampler::simulateInteractingBC()
 {
   // Returns number of collisions assigned to selected BC
-  nextCollidingBC(mBCJumpGenerator.getNextValue());
+  nextCollidingBC(drawBCJump());
 
   // once BC is decided, enforce at least one interaction
-  int ncoll = mNCollBCGenerator.getNextValue();
+  int ncoll = drawNCollInBC();
 
   // assign random time withing a bunch
   for (int i = ncoll; i--;) {
-    mTimeInBC.push_back(mCollTimeGenerator.getNextValue());
+    mTimeInBC.push_back(drawCollTimeInBC());
   }
   if (ncoll > 1) { // sort in DECREASING time order (we are reading vector from the end)
     std::sort(mTimeInBC.begin(), mTimeInBC.end(), [](const float a, const float b) { return a > b; });
@@ -140,7 +146,7 @@ int FixedSkipBC_InteractionSampler::simulateInteractingBC()
 
   // assign random time withing a bunch
   for (int i = ncoll; i--;) {
-    mTimeInBC.push_back(mCollTimeGenerator.getNextValue());
+    mTimeInBC.push_back(drawCollTimeInBC());
   }
   if (ncoll > 1) { // sort in DECREASING time order (we are reading vector from the end)
     std::sort(mTimeInBC.begin(), mTimeInBC.end(), [](const float a, const float b) { return a > b; });
@@ -252,7 +258,7 @@ int NonUniformMuInteractionSampler::simulateInteractingBC()
 
   // assign random time withing a bunch
   for (int i = ncoll; i--;) {
-    mTimeInBC.push_back(mCollTimeGenerator.getNextValue());
+    mTimeInBC.push_back(drawCollTimeInBC());
   }
   if (ncoll > 1) { // sort in DECREASING time order (we are reading vector from the end)
     std::sort(mTimeInBC.begin(), mTimeInBC.end(), [](const float a, const float b) { return a > b; });

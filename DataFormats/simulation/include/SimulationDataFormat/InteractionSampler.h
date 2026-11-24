@@ -21,7 +21,6 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonDataFormat/BunchFilling.h"
 #include "CommonConstants/LHCConstants.h"
-#include "MathUtils/RandomRing.h"
 #include <TH1F.h>
 
 namespace o2
@@ -70,10 +69,9 @@ class InteractionSampler
  protected:
   virtual int simulateInteractingBC();
   void nextCollidingBC(int n);
-
-  o2::math_utils::RandomRing<10000> mBCJumpGenerator;  // generator of random jumps in BC
-  o2::math_utils::RandomRing<1000> mNCollBCGenerator;  // generator of number of interactions in BC
-  o2::math_utils::RandomRing<1000> mCollTimeGenerator; // generator of number of interactions in BC
+  int drawBCJump() const;         ///< random jump in colliding BCs to the next interacting one
+  int drawNCollInBC() const;      ///< random number of collisions in an interacting BC (>= 1)
+  float drawCollTimeInBC() const; ///< random collision time within a BC
 
   o2::InteractionTimeRecord mIR{{0, 0}, 0.};
   o2::InteractionTimeRecord mFirstIR{{4, 0}, 0.};
@@ -90,7 +88,7 @@ class InteractionSampler
 
   static constexpr float DefIntRate = 50e3; ///< default interaction rate
 
-  ClassDef(InteractionSampler, 1);
+  ClassDef(InteractionSampler, 2);
 };
 
 //_________________________________________________
