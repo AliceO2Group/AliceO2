@@ -25,9 +25,50 @@
 #include <TGrid.h>
 #include <TMap.h>
 #include <TLeaf.h>
+#include <TError.h>
 
 #include "aodMerger.h"
 #include <cinttypes>
+
+namespace
+{
+// ROOT errors (e.g. an expired XRootD read) seen while copying a tree. A fast
+// copy does not fail on them: TTree::CopyEntries runs TTreeCloner with
+// kNoWarnings, and a basket which could not be read is written with 0 bytes.
+int rootErrors = 0;
+ErrorHandlerFunc_t previousErrorHandler = nullptr;
+
+void countingErrorHandler(int level, Bool_t abort, const char* location, const char* msg)
+{
+  if (level >= kError) {
+    ++rootErrors;
+  }
+  previousErrorHandler(level, abort, location, msg);
+}
+
+// True if every branch of the copied tree has all its entries and every
+// written basket a location. A basket lost in a fast copy shows up here.
+bool isCopyComplete(TTree* tree)
+{
+  bool complete = true;
+  TObjArray* branches = tree->GetListOfBranches();
+  for (int i = 0; i < branches->GetEntriesFast(); ++i) {
+    auto* br = (TBranch*)branches->UncheckedAt(i);
+    if (br->GetEntries() != tree->GetEntries()) {
+      printf("    *** FATAL ***: Branch %s of tree %s has %lld entries, the tree %lld\n", br->GetName(), tree->GetName(), br->GetEntries(), tree->GetEntries());
+      complete = false;
+    }
+    for (int b = 0; b < br->GetWriteBasket(); ++b) {
+      if (br->GetBasketBytes()[b] <= 0 || br->GetBasketSeek(b) <= 0) {
+        printf("    *** FATAL ***: Basket %d of branch %s of tree %s has %d bytes at %lld\n", b, br->GetName(), tree->GetName(), br->GetBasketBytes()[b], br->GetBasketSeek(b));
+        complete = false;
+        break;
+      }
+    }
+  }
+  return complete;
+}
+} // namespace
 
 // AOD merger with correct index rewriting
 // No need to know the datamodel because the branch names follow a canonical standard (identified by fIndex)
@@ -103,6 +144,8 @@ int main(int argc, char* argv[])
     printf("  Merging only folders with the same name.\n");
   }
 
+  previousErrorHandler = SetErrorHandler(countingErrorHandler);
+
   std::map<std::string, TTree*> trees;
   std::map<std::string, uint64_t> sizeCompressed;
   std::map<std::string, uint64_t> sizeUncompressed;
@@ -167,6 +210,12 @@ int main(int argc, char* argv[])
         break;
       }
     }
+    if (inputFile->TestBit(TFile::kRecovered)) {
+      // Written by a job which stopped before closing it: its DF folders come back without trees.
+      printf("*** FATAL ***: Input file %s was not closed, ROOT had to recover its keys. Aborting merge!\n", line.Data());
+      exitCode = 6;
+      break;
+    }
 
     TList* keyList = inputFile->GetListOfKeys();
     keyList->Sort();
@@ -227,6 +276,11 @@ int main(int argc, char* argv[])
       ++totalMergedDFs;
       auto folder = (TDirectoryFile*)inputFile->Get(dfName);
       auto treeList = folder->GetListOfKeys();
+      if (treeList->GetEntries() == 0) {
+        printf("    *** FATAL ***: Folder %s of %s has no tree\n", dfName, line.Data());
+        exitCode = 6;
+        break;
+      }
 
       treeList->Sort();
 
@@ -268,6 +322,7 @@ int main(int argc, char* argv[])
           printf("    Processing tree %s with %lld entries with total size %lld (fast copy: %d)\n", treeName, inputTree->GetEntries(), inputTree->GetTotBytes(), fastCopy);
         }
 
+        int errorsBefore = rootErrors;
         bool alreadyCopied = false;
         if (trees.count(treeName) == 0) {
           if (mergedDFs > 1) {
@@ -359,7 +414,11 @@ int main(int argc, char* argv[])
             for (auto& index : indexList) {
               *(index.first) = 0; // Any positive number will do, in any case it will not be filled in the output. Otherwise the previous entry is used and manipulated in the following.
             }
-            inputTree->GetEntry(i);
+            if (inputTree->GetEntry(i) < 0) {
+              printf("    *** FATAL ***: Could not read entry %d of tree %s\n", i, treeName);
+              exitCode = 6;
+              break;
+            }
             // shift index columns by offset
             for (const auto& idx : indexList) {
               // if negative, the index is unassigned. In this case, the different unassigned blocks have to get unique negative IDs
@@ -383,6 +442,14 @@ int main(int argc, char* argv[])
           if (nbytes > 0) {
             currentDirSize += nbytes;
           }
+        }
+
+        if (rootErrors > errorsBefore) {
+          printf("    *** FATAL ***: %d ROOT error(s) while copying tree %s\n", rootErrors - errorsBefore, treeName);
+          exitCode = 6;
+        }
+        if (!isCopyComplete(outputTree)) {
+          exitCode = 6;
         }
 
         delete inputTree;
@@ -450,7 +517,7 @@ int main(int argc, char* argv[])
   outputFile->Write();
   outputFile->Close();
 
-  if (totalMergedDFs == 0) {
+  if (totalMergedDFs == 0 && exitCode == 0) {
     printf("ERROR: Did not merge a single DF. This does not seem right.\n");
     exitCode = 2;
   }
