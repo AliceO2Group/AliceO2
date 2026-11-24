@@ -17,41 +17,17 @@
 
 #include "GPUTRDTrack.h"
 
-template <typename T>
-GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t()
-{
-  // default constructor
-  initialize();
-}
-
-template <typename T>
-GPUd() void GPUTRDTrack_t<T>::initialize()
-{
-  // TODO: Use in-class initialization instead of setting all members to their default values
-  mChi2 = 0.f;
-  mSignal = -1.f;
-  mRefGlobalTrackId = 0;
-  mCollisionId = -1;
-  mFlags = 0;
-  mIsCrossingNeighbor = 0;
-  for (int32_t i = 0; i < kNLayers; ++i) {
-    mAttachedTracklets[i] = -1;
-  }
-}
-
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "DataFormatsTPC/TrackTPC.h"
 
 template <typename T>
 GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const o2::dataformats::TrackTPCITS& t) : T(static_cast<const T&>(t))
 {
-  initialize();
 }
 
 template <typename T>
 GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const o2::tpc::TrackTPC& t) : T(static_cast<const T&>(t))
 {
-  initialize();
 }
 
 template <typename T>
@@ -68,7 +44,6 @@ template <typename T>
 GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const T& t) : T(t)
 {
   // copy constructor from anything
-  initialize();
 }
 
 template <typename T>
