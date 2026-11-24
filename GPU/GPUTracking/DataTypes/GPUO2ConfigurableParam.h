@@ -17,7 +17,7 @@
 // --configKeyValues "GPU_global.[x]=[y]" : for global GPU run configurations, like solenoidBz, gpuType, configuration object files.
 // --configKeyValues "GPU_rec.[x]=[y]" : for GPU reconstruction related settings used on the GPU, like pt threshold for track rejection.
 // --configKeyValues "GPU_proc.[x]=[y]" : for processing options steering GPU reconstruction like GPU device ID, debug output level, number of CPU threads.
-// Check GPUSettingsList.h for all options
+// Check GPUSettingsList.template for all options
 
 #ifndef GPUO2CONFIGURABLEPARAM_H
 #define GPUO2CONFIGURABLEPARAM_H

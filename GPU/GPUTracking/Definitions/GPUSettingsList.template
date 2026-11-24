@@ -32,7 +32,7 @@ BeginNamespace(o2::gpu)
 
 // Reconstruction parameters for TPC, no bool in here !!!
 BeginSubConfig(GPUSettingsRecTPC, tpc, configStandalone.rec, "RECTPC", 0, "Reconstruction settings", rec_tpc)
-AddOptionRTC(rejectQPtB5, float, 1.f / 0.050f, "", 0, "QPt threshold to reject clusters of TPC tracks (Inverse Pt, scaled to B=0.5T!!!)") // TODO: Sort these options automatically for parameter size
+AddOptionRTC(rejectQPtB5, float, 1.f / 0.050f, "", 0, "QPt threshold to reject clusters of TPC tracks (Inverse Pt, scaled to B=0.5T!!!)")
 AddOptionRTC(hitPickUpFactor, float, 1.f, "", 0, "multiplier for the combined cluster+track error during track following")
 AddOptionRTC(hitSearchArea2, float, 2.f, "", 0, "square of maximum search road of hits during seeding")
 AddOptionRTC(neighboursSearchArea, float, 3.f, "", 0, "area in cm for the search of neighbours, for z only used if searchWindowDZDR = 0")

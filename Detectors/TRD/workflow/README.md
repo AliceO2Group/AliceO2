@@ -19,7 +19,7 @@ We have the following binaries which can be used to assemble a global workflow:
 
 Run any of the workflows with `--help` or `--help full` to see the available options and their explanations.
 
-The available `--configKeyValues` for the global tracking workflow are mostly listed in [GPUSettingsList.h](../../../../dev/GPU/GPUTracking/Definitions/GPUSettingsList.h). Search for GPUSettingsRecTRD to find options as for example the minimum number of TRD tracklets required for a TRD track to not be discarded.
+The available `--configKeyValues` for the global tracking workflow are mostly listed in [GPUSettingsList.template](../../../../dev/GPU/GPUTracking/Definitions/GPUSettingsList.template). Search for GPUSettingsRecTRD to find options as for example the minimum number of TRD tracklets required for a TRD track to not be discarded.
 
 
 
