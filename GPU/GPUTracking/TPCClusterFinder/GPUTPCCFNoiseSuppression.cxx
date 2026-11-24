@@ -21,6 +21,8 @@
 using namespace o2::gpu;
 using namespace o2::gpu::tpccf;
 
+static_assert(GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFNoiseSuppression_noiseSuppression) == GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFNoiseSuppression_updatePeaks));
+
 template <>
 GPUdii() void GPUTPCCFNoiseSuppression::Thread<GPUTPCCFNoiseSuppression::noiseSuppression>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer)
 {

@@ -72,10 +72,6 @@ class GPUTPCCompressionGatherKernels : public GPUKernelTemplate
   using Vec64 = uint64_t;
   using Vec128 = uint4;
 
-  static_assert(GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCompressionGatherKernels_unbuffered) == GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCompressionGatherKernels_buffered32));
-  static_assert(GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCompressionGatherKernels_unbuffered) == GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCompressionGatherKernels_buffered64));
-  static_assert(GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCompressionGatherKernels_unbuffered) == GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCompressionGatherKernels_buffered128));
-  static_assert(GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCompressionGatherKernels_unbuffered) == GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCompressionGatherKernels_multiBlock));
   struct GPUSharedMemory : public GPUKernelTemplate::GPUSharedMemoryScan64<uint32_t, GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCompressionGatherKernels_unbuffered)> {
     union {
       uint32_t warpOffset[GPUCA_GET_WARP_COUNT(GPUCA_LB_GPUTPCCompressionGatherKernels_unbuffered)];

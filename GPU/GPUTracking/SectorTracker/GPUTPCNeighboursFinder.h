@@ -40,7 +40,6 @@ class GPUTPCNeighboursFinder : public GPUKernelTemplate
     uint32_t mIRow;   // row number
     uint32_t mIRowUp; // next row number
     uint32_t mIRowDn; // previous row number
-    static_assert(constants::NEIGHBOURS_MAX_N >= GPUCA_PAR_NEIGHBOURS_FINDER_MAX_NNEIGHUP);
     float mA1[GPUCA_PAR_NEIGHBOURS_FINDER_MAX_NNEIGHUP][GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCNeighboursFinder)];
     float mA2[GPUCA_PAR_NEIGHBOURS_FINDER_MAX_NNEIGHUP][GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCNeighboursFinder)];
     calink mB[GPUCA_PAR_NEIGHBOURS_FINDER_MAX_NNEIGHUP][GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCNeighboursFinder)];

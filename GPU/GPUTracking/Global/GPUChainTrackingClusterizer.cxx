@@ -69,6 +69,8 @@ using namespace o2::tpc;
 using namespace o2::tpc::constants;
 using namespace o2::dataformats;
 
+static_assert(sizeof(o2::tpc::TriggerInfoDLBZS) % sizeof(uint32_t) == 0); // GPUTriggerOutputs::hasher hashes it as uint32_t words
+
 #ifndef GPUCA_RUN2
 std::pair<uint32_t, uint32_t> GPUChainTracking::TPCClusterizerDecodeZSCountUpdate(uint32_t iSector, const CfFragment& frag)
 {

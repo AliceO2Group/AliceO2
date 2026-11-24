@@ -38,11 +38,6 @@ class GPUTPCCFStreamCompaction : public GPUKernelTemplate
 #if defined(GPUCA_GPUCODE) && !defined(GPUCA_GPUCODE_NO_LAUNCH_BOUNDS)
   struct GPUSharedMemory : public GPUKernelTemplate::GPUSharedMemoryScan64<int32_t, GPUCA_PAR_CF_SCAN_WORKGROUP_SIZE> {
   };
-  static_assert(GPUCA_PAR_CF_SCAN_WORKGROUP_SIZE == GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFStreamCompaction_scanStart));
-  static_assert(GPUCA_PAR_CF_SCAN_WORKGROUP_SIZE == GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFStreamCompaction_scanUp));
-  static_assert(GPUCA_PAR_CF_SCAN_WORKGROUP_SIZE == GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFStreamCompaction_scanTop));
-  static_assert(GPUCA_PAR_CF_SCAN_WORKGROUP_SIZE == GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFStreamCompaction_scanDown));
-  static_assert(GPUCA_PAR_CF_SCAN_WORKGROUP_SIZE == GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFStreamCompaction_compactDigits));
 #endif
 
   typedef GPUTPCClusterFinder processorType;

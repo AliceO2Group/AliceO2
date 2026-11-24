@@ -21,6 +21,14 @@
 using namespace o2::gpu;
 using namespace o2::gpu::tpccf;
 
+#if defined(GPUCA_GPUCODE) && !defined(GPUCA_GPUCODE_NO_LAUNCH_BOUNDS)
+static_assert(GPUCA_PAR_CF_SCAN_WORKGROUP_SIZE == GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFStreamCompaction_scanStart));
+static_assert(GPUCA_PAR_CF_SCAN_WORKGROUP_SIZE == GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFStreamCompaction_scanUp));
+static_assert(GPUCA_PAR_CF_SCAN_WORKGROUP_SIZE == GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFStreamCompaction_scanTop));
+static_assert(GPUCA_PAR_CF_SCAN_WORKGROUP_SIZE == GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFStreamCompaction_scanDown));
+static_assert(GPUCA_PAR_CF_SCAN_WORKGROUP_SIZE == GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFStreamCompaction_compactDigits));
+#endif
+
 template <>
 GPUdii() void GPUTPCCFStreamCompaction::Thread<GPUTPCCFStreamCompaction::scanStart>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer, int32_t iBuf, int32_t stage)
 {

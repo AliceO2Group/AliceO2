@@ -79,8 +79,6 @@ class GPUDebugTiming
   bool mDo;
 };
 
-static_assert(std::is_convertible_v<cudaEvent_t, void*>, "CUDA event type incompatible to deviceEvent");
-
 } // namespace o2::gpu
 
 #endif

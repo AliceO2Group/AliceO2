@@ -24,6 +24,11 @@
 using namespace o2::gpu;
 using namespace o2::tpc;
 
+static_assert(GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCompressionGatherKernels_unbuffered) == GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCompressionGatherKernels_buffered32));
+static_assert(GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCompressionGatherKernels_unbuffered) == GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCompressionGatherKernels_buffered64));
+static_assert(GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCompressionGatherKernels_unbuffered) == GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCompressionGatherKernels_buffered128));
+static_assert(GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCompressionGatherKernels_unbuffered) == GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCompressionGatherKernels_multiBlock));
+
 template <>
 GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0attached>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors)
 {
