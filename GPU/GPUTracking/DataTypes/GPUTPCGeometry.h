@@ -137,6 +137,26 @@ class GPUTPCGeometry
 #endif
 
   GPUd() static constexpr float Row2X(uint32_t row) { return (gputpcgeometry_internal::mX[row]); }
+  GPUd() static constexpr float X2Row(float x) // Approximate inverse of Row2X, linear within the sections of equal pad height (switching in the middle of the gap between them), exact at the rows, clamped to [0, NROWS - 1]
+  {
+    if (x <= Row2X(0)) {
+      return 0.f;
+    }
+    if (x >= Row2X(NROWS - 1)) {
+      return NROWS - 1.f;
+    }
+    uint32_t row = 0;
+    if (x < 0.5f * (Row2X(EndOROC1() - 1) + Row2X(EndOROC1()))) {
+      row = x < 0.5f * (Row2X(EndIROC() - 1) + Row2X(EndIROC())) ? 0 : EndIROC();
+    } else {
+#ifndef GPUCA_RUN2
+      row = x < 0.5f * (Row2X(EndOROC2() - 1) + Row2X(EndOROC2())) ? EndOROC1() : EndOROC2();
+#else
+      row = EndOROC1();
+#endif
+    }
+    return row + (x - Row2X(row)) / PadHeight(row);
+  }
   GPUd() static constexpr float NRegions() { return gputpcgeometry_internal::NREGIONS; }
   GPUd() static constexpr float TPCLength() { return gputpcgeometry_internal::TPC_LENGTH; }
   GPUd() static constexpr float PadHeight(uint32_t row) { return (gputpcgeometry_internal::mPadHeight[GetRegion(row)]); }

@@ -1294,16 +1294,17 @@ GPUdi() void GPUTPCGMTrackParam::FindAdjacentClustersLooperFollow(const GPUTPCGM
   uint32_t maxTries = 100;
   while (true) {
     while (CAMath::Abs(mX) <= CAMath::Abs(mP[0]) * CAMath::Tan(GPUTPCGeometry::kSectAngle() / 2.f) + 0.1f) {
+      float localX = -mP[0] * lrFactor;
       if (maxTries-- == 0) {
         return;
       }
       if (CAMath::Abs(mP[2]) > 0.7f) {
         return;
       }
-      if (up ? (-mP[0] * lrFactor > GPUTPCGeometry::Row2X(GPUTPCGeometry::NROWS - 1)) : (-mP[0] * lrFactor < GPUTPCGeometry::Row2X(0))) {
+      if (up ? (localX > GPUTPCGeometry::Row2X(GPUTPCGeometry::NROWS - 1)) : (localX < GPUTPCGeometry::Row2X(0))) {
         return;
       }
-      if (!((up ? (-mP[0] * lrFactor >= toX) : (-mP[0] * lrFactor <= toX)) || (right ^ (mP[2] > 0)))) {
+      if (!((up ? (localX >= toX) : (localX <= toX)) || (right ^ (mP[2] > 0)))) {
         return;
       }
       int32_t err = prop.PropagateToXAlpha(mX + (up ? 1.f : -1.f), prop.GetAlpha(), inFlyDirection);
@@ -1312,15 +1313,14 @@ GPUdi() void GPUTPCGMTrackParam::FindAdjacentClustersLooperFollow(const GPUTPCGM
         return;
       }
       CADEBUG(printf("\tPropagated to y = %f: X %f Z %f SinPhi %f\n", mX, mP[0], mP[1], mP[2]));
-      for (uint32_t j = 0; j < GPUTPCGeometry::NROWS; j++) { // TODO: Avoid iterating over all rows
-        while (j < GPUTPCGeometry::NROWS - 1 && !(CAMath::Abs(GPUTPCGeometry::Row2X(j) - (-mP[0] * lrFactor)) < 1.5f)) {
-          j++; // Skip the rows out of reach in a loop of its own, so that the threads of a GPU warp reach the attachment together
-        }
-        float rowX = GPUTPCGeometry::Row2X(j);
-        if (CAMath::Abs(rowX - (-mP[0] * lrFactor)) < 1.5f) {
-          CADEBUG(printf("\t\tAttempt row %d (X %f Y %f Z %f)\n", j, rowX, mX * lrFactor, mP[1]));
-          FindAdjacentClusters(merger, sector, j, iTrack, false, mX * lrFactor, mP[1]);
-        }
+      localX = -mP[0] * lrFactor;
+      uint32_t j = CAMath::Max(0.f, GPUTPCGeometry::X2Row(localX) - 2.5f);
+      while (j < GPUTPCGeometry::NROWS && !(GPUTPCGeometry::Row2X(j) - localX > -1.5f)) {
+        j++;
+      }
+      for (float rowX; j < GPUTPCGeometry::NROWS && (rowX = GPUTPCGeometry::Row2X(j), rowX - localX < 1.5f); j++) {
+        CADEBUG(printf("\t\tAttempt row %d (X %f Y %f Z %f)\n", j, rowX, mX * lrFactor, mP[1]));
+        FindAdjacentClusters(merger, sector, j, iTrack, false, mX * lrFactor, mP[1]);
       }
     }
     if (maxTries-- == 0) {
