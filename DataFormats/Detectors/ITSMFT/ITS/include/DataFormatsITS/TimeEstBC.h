@@ -12,9 +12,12 @@
 #ifndef O2_TRACKINGITS_TIMEESTBC_H_
 #define O2_TRACKINGITS_TIMEESTBC_H_
 
+#ifndef __METAL__
 #include <limits>
 #include <cstdint>
+#endif
 #include "CommonDataFormat/TimeStamp.h"
+#include "GPUCommonNumericLimits.h"
 #include "GPUCommonRtypes.h"
 #include "GPUCommonDef.h"
 #include "GPUCommonMath.h"
@@ -40,8 +43,8 @@ class TimeEstBC : public o2::dataformats::TimeStampWithError<TimeStampType, Time
   GPUhdi() its::TimeStamp makeSymmetrical() const noexcept
   {
     const auto start = static_cast<float>(this->getTimeStamp());
-    const float half = (float)this->getTimeStampError() / 2.f;
-    return {start + half, half};
+    const float halfError = (float)this->getTimeStampError() / 2.f;
+    return {start + halfError, halfError};
   }
 
   // check if timestamps overlap within their interval

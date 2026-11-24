@@ -17,14 +17,18 @@
 #include <type_traits>
 #endif
 #include "ReconstructionDataFormats/Vertex.h"
+#ifndef __METAL__
 #include "SimulationDataFormat/MCCompLabel.h"
+#endif
 #include "DataFormatsITS/TimeEstBC.h"
 
 namespace o2::its
 {
 // NOTE: this uses the internal asymmetrical time reprenstation!
 using Vertex = o2::dataformats::Vertex<o2::its::TimeEstBC>;
+#ifndef __METAL__
 using VertexLabel = std::pair<o2::MCCompLabel, float>;
+#endif
 } // namespace o2::its
 
 #ifndef GPUCA_GPUCODE_DEVICE

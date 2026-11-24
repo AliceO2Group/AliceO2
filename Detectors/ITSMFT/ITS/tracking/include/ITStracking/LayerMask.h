@@ -12,8 +12,10 @@
 #ifndef TRACKINGITSU_INCLUDE_LAYERMASK_H_
 #define TRACKINGITSU_INCLUDE_LAYERMASK_H_
 
+#ifndef __METAL__
 #include <cstdint>
-#include <type_traits>
+#endif
+#include "GPUCommonTypeTraits.h"
 
 #ifndef GPUCA_GPUCODE
 #include <fmt/format.h>

@@ -12,6 +12,7 @@
 #ifndef TRACKINGITSU_INCLUDE_ROFOVERLAPTABLE_H_
 #define TRACKINGITSU_INCLUDE_ROFOVERLAPTABLE_H_
 
+#ifndef __METAL__
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -21,6 +22,7 @@
 #include <cassert>
 #include <utility>
 #include <vector>
+#endif
 
 #ifndef GPUCA_GPUCODE
 #include <format>
@@ -39,6 +41,28 @@ namespace o2::itsmft::tracking
 {
 
 using LayerTiming = ROFTimingLayer;
+
+#ifdef __METAL__
+// Device code only needs the views of the tables, which are built on the host
+using ROFTableRange = dataformats::RangeReference<LayerTiming::BCType, LayerTiming::BCType>;
+} // namespace o2::itsmft::tracking
+
+namespace o2::its
+{
+template <int32_t NLayers>
+struct ROFOverlapTable {
+  using View = o2::itsmft::tracking::ROFOverlapView<o2::itsmft::tracking::ROFTableRange, o2::itsmft::tracking::ROFTableRange>;
+};
+template <int32_t NLayers>
+struct ROFVertexLookupTable {
+  using View = o2::itsmft::tracking::ROFVertexLookupView<o2::itsmft::tracking::ROFTableRange, o2::itsmft::tracking::ROFTableRange>;
+};
+template <int32_t NLayers>
+struct ROFMaskTable {
+  using View = o2::itsmft::tracking::ROFMaskView<uint8_t, uint32_t>;
+};
+} // namespace o2::its
+#else
 
 // Base class for lookup to define layers
 class LayerTimingBase
@@ -541,5 +565,7 @@ class ROFMaskTable : public o2::itsmft::tracking::ROFMaskTable
   GPUhdi() constexpr int32_t getEntries() const noexcept { return NLayers; }
 };
 } // namespace o2::its
+
+#endif // __METAL__
 
 #endif

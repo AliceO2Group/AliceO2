@@ -12,10 +12,14 @@
 #ifndef TRACKINGITSU_INCLUDE_TRACKINGTOPOLOGY_H_
 #define TRACKINGITSU_INCLUDE_TRACKINGTOPOLOGY_H_
 
-#include <array>
+#ifndef __METAL__
 #include <cstdint>
 #include <limits>
 #include <type_traits>
+#endif
+#include "GPUCommonArray.h"
+#include "GPUCommonNumericLimits.h"
+#include "GPUCommonTypeTraits.h"
 
 #ifndef GPUCA_GPUCODE
 #include <fmt/format.h>
@@ -35,8 +39,8 @@ template <int NLayers>
 class TrackingTopology
 {
  public:
-  static constexpr int MaxLinks = (NLayers * (NLayers - 1)) / 2;
-  static constexpr int MaxCells = (NLayers * (NLayers - 1) * (NLayers - 2)) / 6;
+  static GPUglobalconstexpr() int MaxLinks = (NLayers * (NLayers - 1)) / 2;
+  static GPUglobalconstexpr() int MaxCells = (NLayers * (NLayers - 1) * (NLayers - 2)) / 6;
   using Id = std::conditional_t<MaxCells <= std::numeric_limits<uint8_t>::max(), uint8_t, uint16_t>;
   using Mask = LayerMask;
   using Range = o2::dataformats::RangeReference<Id, Id>;

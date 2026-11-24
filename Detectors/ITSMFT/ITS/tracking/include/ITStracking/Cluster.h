@@ -16,7 +16,7 @@
 #ifndef TRACKINGITSU_INCLUDE_CACLUSTER_H_
 #define TRACKINGITSU_INCLUDE_CACLUSTER_H_
 
-#include <array>
+#include "GPUCommonArray.h"
 #include "ITSMFTTracking/Constants.h"
 #include "ITSMFTTracking/MathUtils.h"
 #include "GPUCommonRtypes.h"
