@@ -242,6 +242,7 @@ class Detector : public o2::base::DetImpl<Detector>
   std::vector<int> mFastSimIndices;  //! indices of the primaries given to the model
   std::vector<float> mFastSimInput;  //! flat input of the model
   std::vector<float> mFastSimOutput; //! flat output of the model
+  size_t mFastSimNInvalid = 0;       //! number of primaries with an invalid model output
 
   template <typename Det>
   friend class o2::base::DetImpl;

@@ -15,6 +15,7 @@
 #include "FairVolume.h"      // for FairVolume
 #include "DetectorsBase/MaterialManager.h"
 #include "DetectorsBase/Stack.h"
+#include "SimulationDataFormat/ParticleStatus.h"
 #include "ZDCSimulation/Detector.h"
 #include "DetectorsBase/SimRandom.h"
 #include "DataFormatsZDC/Hit.h"
@@ -88,6 +89,12 @@ Detector::Detector(const Detector& rhs)
   mTotLightPMC = 0;
   mTotLightPMQ = 0;
   resetHitIndices();
+  // the clones used by the worker threads of multithreaded Geant4 are not initialized
+  // (InitializeO2Detector runs on the master only): each clone needs its own inference session
+  if (rhs.mFastSim && rhs.mFastSim->isInitialized()) {
+    mFastSim = std::make_unique<FastSim>();
+    mFastSim->init(rhs.mFastSim->getModel());
+  }
 }
 
 //_____________________________________________________________________________
@@ -2590,7 +2597,9 @@ void Detector::processFastSim(const std::vector<TParticle>& primaries)
   mFastSimInput.clear();
   for (int ip = 0; ip < (int)primaries.size(); ip++) {
     const auto& p = primaries[ip];
-    if (!model.accepts(p)) {
+    // particles not transported in the full simulation (beam particles, intermediate states of the
+    // generator, primaries inhibited by the stack) do not reach the ZDC and give no signal
+    if (!p.TestBit(ParticleStatus::kToBeDone) || !model.accepts(p)) {
       continue;
     }
     // the model is trained for particles going to positive z: mirror in z those going to the C side
@@ -2607,9 +2616,20 @@ void Detector::processFastSim(const std::vector<TParticle>& primaries)
 
   const math_utils::Vector3D<float> xImp(0., 0., 0.); // not provided by the model
   auto stack = static_cast<o2::data::Stack*>(fMC->GetStack());
+  constexpr float MaxPhotons = 1.e6f; // larger values are discarded as anomalous by the digitizer
+  constexpr size_t MaxInvalidMessages = 10;
   for (int i = 0; i < nPart; i++) {
     const int trackID = mFastSimIndices[i];
     const auto& p = primaries[trackID];
+    const float* out = &mFastSimOutput[size_t(i) * FastSimModel::NOutputs];
+    // a non finite or huge value means that the inference failed for this primary: drop all its channels
+    if (!std::all_of(out, out + FastSimModel::NOutputs, [](float v) { return std::isfinite(v) && v < MaxPhotons; })) {
+      if (++mFastSimNInvalid <= MaxInvalidMessages) {
+        LOG(error) << "ZDC fast simulation: invalid model output for primary " << trackID << ", no signal produced"
+                   << (mFastSimNInvalid == MaxInvalidMessages ? " (further messages suppressed)" : "");
+      }
+      continue;
+    }
     const bool sideA = p.Pz() > 0.;
     resetHitIndices();                        // separate hits for every primary
     for (int icalo = 0; icalo < 2; icalo++) { // model output: ZN channels followed by ZP ones
@@ -2617,16 +2637,17 @@ void Detector::processFastSim(const std::vector<TParticle>& primaries)
       const double zDet = icalo == 0 ? (sideA ? Geometry::ZNAPOSITION[2] : Geometry::ZNCPOSITION[2]) : (sideA ? Geometry::ZPAPOSITION[2] : Geometry::ZPCPOSITION[2]);
       // time of arrival (ns) along z, accounting for the production vertex
       const float tof = p.T() * 1.e09 + 1.e09 * estimateTimeOfFlight(p, std::abs(zDet - p.Vz()) * 1.e-2);
-      for (int sector = 0; sector < FastSimModel::NChannelsPerCalo; sector++) { // Common, Ch1, Ch2, Ch3, Ch4
-        const float out = mFastSimOutput[i * FastSimModel::NOutputs + icalo * FastSimModel::NChannelsPerCalo + sector];
-        if (!std::isfinite(out)) {
-          LOG(error) << "ZDC fast simulation: non finite output for primary " << trackID << ", ignored";
-          continue;
-        }
-        const int nphe = std::lround(out); // the model already provides integer valued, non negative numbers
+      for (int ch = 0; ch < FastSimModel::NChannelsPerCalo; ch++) { // model channels, A side numbering: Common, Ch1, Ch2, Ch3, Ch4
+        // the model already provides integer valued, non negative numbers; out < MaxPhotons makes the conversion safe
+        const int nphe = static_cast<int>(std::lround(out[icalo * FastSimModel::NChannelsPerCalo + ch]));
         if (nphe <= 0) {
           continue;
         }
+        // The beam line is symmetric under z -> -z (ZPA and ZPC both at x > 0, mirrored dipoles and quadrupoles),
+        // hence the z-mirrored input, but the towers are numbered in the frame -(x - pos) on side A and
+        // (x - pos) on side C (see getDetIDandSecID): at the same transverse position, tower k of side A
+        // is tower 5 - k of side C, for both ZN (quadrants) and ZP (x slices)
+        const int sector = (sideA || ch == Common) ? ch : Ch1 + Ch4 - ch;
         // the digitizer reads the PMC light for the common channel and the PMQ one for the towers
         createOrAddHit(detector, sector, sector == Common ? mMediumPMCid : mMediumPMQid, false, nphe, trackID, trackID,
                        tof, p.Energy(), xImp, 0. /* eDep */, p.Vx(), p.Vy(), zDet, p.Px(), p.Py(), p.Pz());

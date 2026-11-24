@@ -27,11 +27,15 @@ With the fast simulation enabled, the ZDC geometry is not built and the cave is 
 
 At the end of each (sub-)event, `Detector::finishEventHook()` receives the primaries and:
 
-1. keeps the primaries inside the model validity domain (`FastSimModel::accepts()`: PDG, energy, |η|, vertex);
+1. keeps the primaries to be transported (`kToBeDone`) inside the model validity domain (`FastSimModel::accepts()`: PDG, energy, |η|, vertex);
 2. mirrors in z the particles with `pz < 0` (the model is trained on the A side only);
 3. runs the model on all of them in one batch, with the noise drawn from `o2::base::simRandom()` (reproducible with the seed);
 4. creates one hit per primary and channel on the A or C side.
    The common channel is stored as PMC light, the towers as PMQ light.
+   On the C side the towers are renumbered (Ch1↔Ch4, Ch2↔Ch3, for both ZN and ZP): the towers are defined in the
+   frame `-(x - pos)` on side A and `(x - pos)` on side C (`Detector::getDetIDandSecID`), so that, at the same
+   transverse position, tower k of side A is tower 5-k of side C.
+   Primaries with a non finite (or > 10^6) output give no signal.
 
 ## Create the model object
 
@@ -60,3 +64,7 @@ Preprocessing and the full sampling procedure must be inside the graph.
 - Only primaries accepted by the model give a signal (no fragments, no secondaries).
 - No ZEM signal.
 - No spatial information (`recordSpatialResponse` has no effect).
+- Known limitation: the z mirroring is exact for the dipoles and the quadrupoles of the beam line, but not for the
+  compensators of the muon dipole (and the muon dipole itself), for the apertures of D1/D2 and for the collimators,
+  so the transport along the C side beam line (relevant in particular for ZP) is only approximated.
+  This will be addressed by a future update of the model with a more accurate treatment of the transport.

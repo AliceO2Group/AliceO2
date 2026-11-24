@@ -36,7 +36,8 @@ namespace zdc
 ///                                          rounding of the output (optional: only if inputNameUniform is not empty)
 ///  - output              [N, NOutputs]    : photons in ZN (common, 1, 2, 3, 4) followed by ZP (common, 1, 2, 3, 4)
 /// The model is side agnostic and trained for particles going towards positive z:
-/// particles with pz < 0 are mirrored in z before the inference and the result is assigned to the C side.
+/// particles with pz < 0 are mirrored in z before the inference and the result is assigned to the C side,
+/// with the towers renumbered (Ch1<->Ch4, Ch2<->Ch3) to the C side convention (see Detector::processFastSim).
 struct FastSimModel {
   static constexpr int NConditions = 8;                 ///< PDG, E, vx, vy, vz, px, py, pz
   static constexpr int NChannelsPerCalo = 5;            ///< common + 4 towers
