@@ -32,6 +32,9 @@ struct DataProcessorInfo {
   std::vector<ConfigParamSpec> workflowOptions = {};
   /// The channels for a given dataprocessor
   std::vector<std::string> channels = {};
+  /// The workflow plugin which defines the DataProcessorSpec, as <library>:<plugin>.
+  /// Empty when it is the one embedded in the executable.
+  std::string plugin = "";
 };
 
 } // namespace o2

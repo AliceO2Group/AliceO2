@@ -31,7 +31,8 @@ o2_add_dpl_workflow(o2rootmessage-workflow
 
 o2_add_dpl_workflow(diamond-workflow
                   SOURCES src/o2DiamondWorkflow.cxx
-                  COMPONENT_NAME TestWorkflows)
+                  COMPONENT_NAME TestWorkflows
+                  WORKFLOW_PLUGIN)
 
 o2_add_dpl_workflow(dummy-populator-workflow
                   SOURCES src/o2DummyPopulatorWorkflow.cxx
@@ -114,7 +115,8 @@ o2_add_dpl_workflow(ccdb-fetch-to-timeframe
 
 o2_add_dpl_workflow(simple-source
                   SOURCES src/o2SimpleSource.cxx
-                  COMPONENT_NAME TestWorkflows)
+                  COMPONENT_NAME TestWorkflows
+                  WORKFLOW_PLUGIN)
 
 o2_add_dpl_workflow(simple-fairmq-source
                   SOURCES src/o2SimpleFairMQSource.cxx
@@ -126,11 +128,13 @@ o2_add_dpl_workflow(simple-fairmq-sink
 
 o2_add_dpl_workflow(simple-sink
                   SOURCES src/o2SimpleSink.cxx
-                  COMPONENT_NAME TestWorkflows)
+                  COMPONENT_NAME TestWorkflows
+                  WORKFLOW_PLUGIN)
 
 o2_add_dpl_workflow(simple-processor
                   SOURCES src/o2SimpleProcessor.cxx
-                  COMPONENT_NAME TestWorkflows)
+                  COMPONENT_NAME TestWorkflows
+                  WORKFLOW_PLUGIN)
 
 o2_add_dpl_workflow(analysis-workflow
                   SOURCES src/o2AnalysisWorkflow.cxx
@@ -156,3 +160,13 @@ o2_add_executable(fairmq-header-size-test
 add_executable(o2-test-deadlock src/o2DeadlockReproducer.cxx)
 target_link_libraries(o2-test-deadlock PUBLIC FairMQ::FairMQ)
 add_test(NAME o2-test-deadlock COMMAND o2-test-deadlock --channel-config "name=data,type=sub,method=bind,address=ipc://127.0.0.1,rateLogging=0" --id foo --transport zeromq --control static)
+
+if(BUILD_TESTING)
+  add_test(NAME test_Framework_test_WorkflowPluginDump
+           COMMAND ${CMAKE_CURRENT_LIST_DIR}/test/test_WorkflowPluginDump.sh
+                   $<TARGET_FILE:O2exe-testworkflows-diamond-workflow> $<TARGET_FILE:O2exe-dpl-run>
+                   O2TestworkflowsDiamondWorkflowPlugin:TestworkflowsDiamondWorkflow)
+  set_property(TEST test_Framework_test_WorkflowPluginDump PROPERTY LABELS framework)
+  set_property(TEST test_Framework_test_WorkflowPluginDump PROPERTY ENVIRONMENT
+               "LD_LIBRARY_PATH=${CMAKE_LIBRARY_OUTPUT_DIRECTORY}:$ENV{LD_LIBRARY_PATH}")
+endif()

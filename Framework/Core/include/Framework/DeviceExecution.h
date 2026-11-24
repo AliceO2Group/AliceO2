@@ -11,6 +11,7 @@
 #ifndef FRAMEWORK_DEVICEEXECUTION_H
 #define FRAMEWORK_DEVICEEXECUTION_H
 
+#include <string>
 #include <vector>
 
 namespace o2
@@ -26,6 +27,8 @@ struct DeviceExecution {
   std::vector<char*> args;
   /// The environment to be passed to a given device
   std::vector<char*> environ;
+  /// The workflow plugin which defines the device, see DataProcessorInfo::plugin
+  std::string plugin;
 };
 
 } // namespace framework

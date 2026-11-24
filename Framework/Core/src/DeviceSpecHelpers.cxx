@@ -1490,6 +1490,8 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
     auto forwardedOptions = getForwardedDeviceOptions();
     /// Add to foDesc the options which are not already there
     foDesc.add(forwardedOptions);
+    // Children need the same workflow plugins to define the same workflow.
+    foDesc.add_options()("workflow-plugin", bpo::value<std::string>());
 
     // has option --session been specified on the command line?
     bool haveSessionArg = false;
@@ -1747,6 +1749,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
     }
     O2_SIGNPOST_END(device_spec_helpers, poid, "prepareArguments", "The following options are being forwarded to %{public}s: %{public}s",
                     spec.id.c_str(), str.str().c_str());
+    execution.plugin = pi->plugin;
   }
 }
 
