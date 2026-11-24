@@ -23,3 +23,8 @@ o2_add_executable(strainer
                   COMPONENT_NAME aod
                   SOURCES src/aodStrainer.cxx
                   PUBLIC_LINK_LIBRARIES  ROOT::Core ROOT::Net)
+
+o2_add_executable(validator
+                  COMPONENT_NAME aod
+                  SOURCES src/aodValidator.cxx
+                  PUBLIC_LINK_LIBRARIES  ROOT::Core ROOT::Net ROOT::Tree)
