@@ -67,6 +67,7 @@ class O2MCApplicationBase : public FairMCApplication
   void InitGeometry() override;
   bool MisalignGeometry() override;
   void AddParticles() override;
+  void AddIons() override;
 
   // specific implementation of our hard geometry limits
   double TrackingRmax() const override { return mCutParams.maxRTracking; }
