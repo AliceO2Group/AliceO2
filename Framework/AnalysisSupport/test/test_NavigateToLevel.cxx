@@ -18,6 +18,8 @@
 #include <TMemFile.h>
 #include <TObjString.h>
 
+#include <cstdio>
+
 using namespace o2::framework;
 
 // Tests for DataInputDirectorContext::levelForOrigin
@@ -132,4 +134,42 @@ TEST_CASE("navigateToLevel returns -1 for missing DF in parent")
   // Parent has DF_1 but child references DF_2 — not found in parent
   REQUIRE(parentDesc != nullptr);
   CHECK(parentNumTF == -1);
+}
+
+// An AO2D without any DF folder, as merging an AO2D which was not closed
+// produces, is reported as a file which cannot be opened, every time it is
+// asked for, instead of indexing its empty list of timeframes.
+TEST_CASE("An AO2D without DFs is a file which cannot be opened")
+{
+  auto* emptyMF = new TMemFile("empty.root", "RECREATE");
+  emptyMF->Write();
+
+  DataInputDirectorContext ctx;
+  ctx.openFiles = {{"empty.root", emptyMF}};
+
+  DataInputDescriptor desc(false, 0, ctx);
+  desc.addFileNameHolder(makeFileNameHolder("empty.root"));
+
+  auto isFileOpen = [](AODReadError const& e) { return e.getKind() == AODReadError::Kind::FileOpen; };
+  for (int attempt = 0; attempt < 2; ++attempt) {
+    CHECK_THROWS_MATCHES(desc.getFileFolder(0, 0, -1, "AOD"), AODReadError, Catch::Matchers::Predicate<AODReadError>(isFileOpen));
+    CHECK_THROWS_MATCHES(desc.getTimeFrameNumber(0, 0, -1, "AOD"), AODReadError, Catch::Matchers::Predicate<AODReadError>(isFileOpen));
+  }
+  CHECK(desc.getTimeFramesInFile(0) == 0);
+}
+
+TEST_CASE("An AO2D without DFs is a file which cannot be opened, native reader")
+{
+  const char* name = "test_NavigateToLevel_empty_native.root";
+  delete TFile::Open(name, "RECREATE");
+
+  DataInputDirectorContext ctx;
+  ctx.readerBackend = "native";
+
+  DataInputDescriptor desc(false, 0, ctx);
+  desc.addFileNameHolder(makeFileNameHolder(name));
+
+  auto isFileOpen = [](AODReadError const& e) { return e.getKind() == AODReadError::Kind::FileOpen; };
+  CHECK_THROWS_MATCHES(desc.getFileFolder(0, 0, -1, "AOD"), AODReadError, Catch::Matchers::Predicate<AODReadError>(isFileOpen));
+  std::remove(name);
 }
