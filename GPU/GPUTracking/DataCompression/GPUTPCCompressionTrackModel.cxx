@@ -890,7 +890,7 @@ GPUd() void GPUTPCCompressionTrackModel::getClusterErrors2(int32_t iRow, float z
 {
   int32_t rowType = iRow < 97 ? (iRow < 63 ? 0 : 1) : (iRow < 127 ? 2 : 3);
   if (rowType > 2) {
-    rowType = 2; // TODO: Add type 3
+    rowType = 2;
   }
   constexpr float tpcLength = 250.f - 0.275f;
   z = CAMath::Abs(tpcLength - CAMath::Abs(z));

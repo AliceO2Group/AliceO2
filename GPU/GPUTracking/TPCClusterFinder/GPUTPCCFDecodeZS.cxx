@@ -105,7 +105,7 @@ GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUshared
       const int32_t rowOffset = s.regionStartRow + ((endpoint & 1) ? (s.nRowsRegion / 2) : 0);
       const int32_t nRows = (endpoint & 1) ? (s.nRowsRegion - s.nRowsRegion / 2) : (s.nRowsRegion / 2);
 
-      for (int32_t l = 0; l < hdr->nTimeBinSpan; l++) { // TODO: Parallelize over time bins
+      for (int32_t l = 0; l < hdr->nTimeBinSpan; l++) {
         pagePtr += (pagePtr - page) & 1;                // Ensure 16 bit alignment
         const TPCZSTBHDR* tbHdr = reinterpret_cast<const TPCZSTBHDR*>(pagePtr);
         if ((tbHdr->rowMask & 0x7FFF) == 0) {
@@ -120,22 +120,6 @@ GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUshared
           const uint8_t* rowData = n == 0 ? pagePtr : (page + tbHdr->rowAddr1()[n - 1]);
           s.RowClusterOffset[n] = CAMath::AtomicAddShared<uint32_t>(&s.rowOffsetCounter, rowData[2 * *rowData]);
         }
-        /*if (iThread < GPUCA_WARP_SIZE) { // TODO: Seems to miscompile with HIP, CUDA performance doesn't really change, for now sticking to the AtomicAdd
-          GPUSharedMemory& smem = s;
-          int32_t o;
-          if (iThread < nRowsUsed) {
-            const uint8_t* rowData = iThread == 0 ? pagePtr : (page + tbHdr->rowAddr1()[iThread - 1]);
-            o = rowData[2 * *rowData];
-          } else {
-            o = 0;
-          }
-          int32_t x = warp_scan_inclusive_add(o);
-          if (iThread < nRowsUsed) {
-            s.RowClusterOffset[iThread] = s.rowOffsetCounter + x - o;
-          } else if (iThread == GPUCA_WARP_SIZE - 1) {
-            s.rowOffsetCounter += x;
-          }
-        }*/
         GPUbarrier();
 
         if (myRow < s.rowStride) {

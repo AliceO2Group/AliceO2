@@ -25,7 +25,7 @@ using namespace o2::gpu;
 TPCZSLinkMapping::TPCZSLinkMapping(o2::tpc::Mapper& mapper)
 {
 #ifndef GPUCA_STANDALONE
-  const auto& fecToGlobalPad = mapper.getMapFECIDGlobalPad(); // TODO: Can we get this from TPUTPCGeometry?
+  const auto& fecToGlobalPad = mapper.getMapFECIDGlobalPad();
   assert(fecToGlobalPad.size() == TPC_FEC_IDS_IN_SECTOR);
 
   const auto& globalPadToPadPos = mapper.getMapGlobalPadToPadPos();
