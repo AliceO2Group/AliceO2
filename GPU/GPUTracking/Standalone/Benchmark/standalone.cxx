@@ -498,7 +498,7 @@ int32_t SetupReconstruction()
   GPURecoStepConfiguration stepsAsync = steps;
 
   // Set settings for synchronous
-  GPUChainTracking::ApplySyncSettings(procSet, recSet, steps.steps, (configStandalone.testSyncAsync || configStandalone.testSync) && !configStandalone.testSyncAsyncNoSyncSettings, configStandalone.rundEdx);
+  GPUChainTracking::ApplySyncSettings(procSet, recSet, steps.steps, (configStandalone.testSyncAsync && !configStandalone.testSyncAsyncNoSyncSettings) || configStandalone.testSync, configStandalone.testAsync && !configStandalone.testSyncAsync, configStandalone.rundEdx);
   int32_t runAsyncQA = procSet.runQA && !configStandalone.testSyncAsyncQcInSync ? procSet.runQA : 0;
   if (configStandalone.testSyncAsync) {
     procSet.eventDisplay = nullptr;
@@ -532,7 +532,7 @@ int32_t SetupReconstruction()
   if (configStandalone.proc.doublePipeline) {
     recPipeline->SetSettings(&grp, &recSet, &procSet, &steps);
   }
-  if (configStandalone.testSyncAsync) { // TODO: Add --async mode / flag
+  if (configStandalone.testSyncAsync) {
     // Set settings for asynchronous
     stepsAsync.steps.setBits(gpudatatypes::RecoStep::TPCDecompression, true);
     stepsAsync.steps.setBits(gpudatatypes::RecoStep::TPCdEdx, true);
@@ -550,7 +550,7 @@ int32_t SetupReconstruction()
     }
     recSetAsync.tpc.disableMarkAdjacent = 0xFF;
     recSetAsync.maxTrackQPtB5 = CAMath::Min(recSetAsync.maxTrackQPtB5, recSetAsync.tpc.rejectQPtB5);
-    GPUChainTracking::ApplySyncSettings(procSetAsync, recSetAsync, stepsAsync.steps, false, configStandalone.rundEdx);
+    GPUChainTracking::ApplySyncSettings(procSetAsync, recSetAsync, stepsAsync.steps, false, true, configStandalone.rundEdx);
     finalizeSteps(stepsAsync, procSetAsync);
     recAsync->SetSettings(&grp, &recSetAsync, &procSetAsync, &stepsAsync);
   }

@@ -280,5 +280,5 @@ void GPUO2Interface::UseGPUPolynomialFieldInPropagator(o2::base::Propagator* pro
 
 void GPUO2Interface::ApplySyncSettings(GPUSettingsProcessing& proc, GPUSettingsRec& rec, gpudatatypes::RecoStepField& steps, bool syncMode, int32_t dEdxMode)
 {
-  GPUChainTracking::ApplySyncSettings(proc, rec, steps, syncMode, dEdxMode);
+  GPUChainTracking::ApplySyncSettings(proc, rec, steps, syncMode, false, dEdxMode);
 }
