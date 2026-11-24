@@ -48,7 +48,7 @@ class GPUTRDTrack_t : public T
     kStopFlag = 7
   };
 
-  GPUd() GPUTRDTrack_t();
+  GPUdDefault() GPUTRDTrack_t() = default;
   GPUTRDTrack_t(const typename T::baseClass& t) = delete;
   GPUd() GPUTRDTrack_t(const GPUTRDTrack_t& t);
   GPUd() GPUTRDTrack_t(const AliHLTExternalTrackParam& t);
@@ -107,16 +107,15 @@ class GPUTRDTrack_t : public T
   GPUd() void setHasPadrowCrossing() { mIsCrossingNeighbor |= (1U << 7); }
 
  protected:
-  float mChi2;                          // total chi2.
-  float mSignal{-1.f};                  // electron Likelihood for track
-  uint32_t mRefGlobalTrackId;           // raw GlobalTrackID of the seeding track (either ITS-TPC or TPC)
-  int32_t mAttachedTracklets[kNLayers]; // indices of the tracklets attached to this track; -1 means no tracklet in that layer
-  int16_t mCollisionId;                 // the collision ID of the tracklets attached to this track; is used to retrieve the BC information for this track after the tracking is done
-  uint8_t mFlags;                       // bits 0 to 5 indicate whether track is findable in layer 0 to 5, bit 6 indicates an ambiguous track and bit 7 flags if the track is stopped in the TRD
-  uint8_t mIsCrossingNeighbor;          // bits 0 to 5 indicate if a tracklet was either a neighboring tracklet (e.g. a potential split tracklet) or crossed a padrow, bit 6 indicates that a neighbor in any layer has been found and bit 7 if a padrow was crossed
+  float mChi2{0.f};                                             // total chi2.
+  float mSignal{-1.f};                                          // electron Likelihood for track
+  uint32_t mRefGlobalTrackId{0};                                // raw GlobalTrackID of the seeding track (either ITS-TPC or TPC)
+  int32_t mAttachedTracklets[kNLayers]{-1, -1, -1, -1, -1, -1}; // indices of the tracklets attached to this track; -1 means no tracklet in that layer
+  int16_t mCollisionId{-1};                                     // the collision ID of the tracklets attached to this track; is used to retrieve the BC information for this track after the tracking is done
+  uint8_t mFlags{0};                                            // bits 0 to 5 indicate whether track is findable in layer 0 to 5, bit 6 indicates an ambiguous track and bit 7 flags if the track is stopped in the TRD
+  uint8_t mIsCrossingNeighbor{0};                               // bits 0 to 5 indicate if a tracklet was either a neighboring tracklet (e.g. a potential split tracklet) or crossed a padrow, bit 6 indicates that a neighbor in any layer has been found and bit 7 if a padrow was crossed
 
  private:
-  GPUd() void initialize();
 #if !defined(GPUCA_STANDALONE)
   ClassDefNV(GPUTRDTrack_t, 4);
 #endif
