@@ -204,6 +204,10 @@ int32_t ReadConfiguration(int argc, char** argv)
     return 1;
   }
 #endif
+  if (configStandalone.setO2Settings && configStandalone.runGPU && !(configStandalone.testAsync || configStandalone.testSyncAsync)) {
+    configStandalone.proc.rtc.enable = 1;
+    configStandalone.proc.doublePipeline = 1;
+  }
   if (configStandalone.proc.doublePipeline && configStandalone.testSyncAsync) {
     printf("Cannot run asynchronous processing with double pipeline\n");
     return 1;
@@ -274,10 +278,10 @@ int32_t ReadConfiguration(int argc, char** argv)
     configStandalone.QA.clusterRejectionHistograms = 1;
     configStandalone.proc.tpcIncreasedMinClustersPerRow = 500000;
     configStandalone.proc.ignoreNonFatalGPUErrors = 1;
-    // TODO: rundEdx=1
-    // GPU_proc.qcRunFraction=$TPC_TRACKING_QC_RUN_FRACTION;"
-    // [[ $CTFINPUT == 1 ]] && GPU_CONFIG_KEY+="GPU_proc.tpcInputWithClusterRejection=1;"
-    // double pipeline / rtc
+    if (configStandalone.testSync && configStandalone.rundEdx == -1) {
+      configStandalone.rundEdx = 1;
+      configStandalone.proc.qcRunFraction = 0.f;
+    }
   }
 
   if (configStandalone.outputcontrolmem) {
@@ -400,6 +404,10 @@ int32_t SetupReconstruction()
   recSet = configStandalone.rec;
   procSet = configStandalone.proc;
   GPURecoStepConfiguration steps;
+
+  if (configStandalone.setO2Settings && grp.doCompClusterDecode) {
+    procSet.tpcInputWithClusterRejection = 1;
+  }
 
   if (configStandalone.solenoidBzNominalGPU != -1e6f) {
     grp.solenoidBzNominalGPU = configStandalone.solenoidBzNominalGPU;
