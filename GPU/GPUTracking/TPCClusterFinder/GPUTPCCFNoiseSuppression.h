@@ -35,7 +35,6 @@ class GPUTPCCFNoiseSuppression : public GPUKernelTemplate
     updatePeaks = 1,
   };
   static GPUglobalconstexpr() size_t SCRATCH_PAD_WORK_GROUP_SIZE = GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFNoiseSuppression_noiseSuppression);
-  static_assert(GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFNoiseSuppression_noiseSuppression) == GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFNoiseSuppression_updatePeaks));
 
   struct GPUSharedMemory {
     CfChargePos posBcast[SCRATCH_PAD_WORK_GROUP_SIZE];

@@ -63,6 +63,8 @@
 
 using namespace o2::gpu;
 using namespace o2::tpc;
+
+static_assert(sizeof(GPUTPCGMMerger::trackRebuildHelperCandidate) == 6);
 using namespace gputpcgmmergertypes;
 
 namespace o2::gpu::internal

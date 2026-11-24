@@ -47,7 +47,6 @@ struct GPUTriggerOutputs {
   };
 
   std::unordered_set<o2::tpc::TriggerInfoDLBZS, hasher, equal> triggers;
-  static_assert(sizeof(o2::tpc::TriggerInfoDLBZS) % sizeof(uint32_t) == 0);
 };
 
 } // namespace o2::gpu

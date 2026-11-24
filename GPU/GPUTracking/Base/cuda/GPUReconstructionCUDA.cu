@@ -84,6 +84,7 @@ GPUReconstructionCUDA::~GPUReconstructionCUDA()
 }
 
 static_assert(sizeof(cudaError_t) <= sizeof(int64_t) && cudaSuccess == 0);
+static_assert(std::is_convertible_v<cudaEvent_t, void*>, "CUDA event type incompatible to deviceEvent");
 int32_t GPUReconstructionCUDA::GPUChkErrInternal(const int64_t retval, const char* file, int32_t line) const
 {
   return internal::GPUReconstructionCUDAChkErr(retval, file, line);

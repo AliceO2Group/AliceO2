@@ -42,7 +42,6 @@ struct GPUTPCGMMerger::trackRebuildHelperCandidate { // Per track, row and candi
     error = e;
   }
 };
-static_assert(sizeof(GPUTPCGMMerger::trackRebuildHelperCandidate) == 6);
 
 struct __attribute__((packed)) GPUTPCGMMerger::trackRebuildHelperRowInfo { // Per track, only with GPUCA_PAR_TPC_MERGER_REBUILD_CONSTRAINED_ROW_MEMORY >= 1
   uint32_t firstRowIndex;                                                  // Index of firstRow of the track in mTrackRebuildHelperRow and (times the number of candidates) in mClusterCandidates
