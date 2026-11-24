@@ -69,14 +69,6 @@ GPUdii() void GPUTPCGMMergerUnpackGlobal::Thread<0>(int32_t nBlocks, int32_t nTh
 }
 
 template <>
-GPUdii() void GPUTPCGMMergerUnpackSaveNumber::Thread<0>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger, int32_t id)
-{
-  if (iThread == 0 && iBlock == 0) {
-    merger.UnpackSaveNumber(id);
-  }
-}
-
-template <>
 GPUdii() void GPUTPCGMMergerResolve::Thread<0>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger)
 {
   merger.ResolveFindConnectedComponentsSetup(nBlocks, nThreads, iBlock, iThread);
