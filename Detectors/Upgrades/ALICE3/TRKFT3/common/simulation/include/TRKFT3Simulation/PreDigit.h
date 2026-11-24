@@ -19,32 +19,32 @@
 namespace o2::trkft3
 {
 
-// PreDigit is a contribution to the digit from a single hit which happen
-// to be registered 1st in given chip row/column/roframe
-// Eventual extra contributions will be registered as PreDigitExtra, pointed by
-// the "next" index
+// PreDigit: pixel row/column/roframe with at least one contribution (hit) in that ROF.
+// Each contribution (label, arrival time, charge) is a PreDigitContribution; the first one
+// is stored in the PreDigit, the others in a chain pointed by the "next" index.
+// Contributions are kept separately (not summed) because, with edge detection, the digit is
+// built at the flush by processing them in time order together with the pixel state.
 
-// PreDigitExtra registers additional contributions to the same row/column/roframe
-struct PreDigitLabelRef {
+struct PreDigitContribution {
   o2::MCCompLabel label; ///< hit label
+  float toa = 0.f;       ///< arrival time w.r.t. ROF start (ns)
+  int charge = 0;        ///< N electrons of this contribution
   int next = -1;         ///< eventual next contribution to the same pixel
-  PreDigitLabelRef(o2::MCCompLabel lbl = 0, int nxt = -1) : label(lbl), next(nxt) {}
+  PreDigitContribution(o2::MCCompLabel lbl = 0, float t = 0.f, int q = 0, int nxt = -1) : label(lbl), toa(t), charge(q), next(nxt) {}
 
-  ClassDefNV(PreDigitLabelRef, 1);
+  ClassDefNV(PreDigitContribution, 1);
 };
 
 struct PreDigit {
-  UShort_t row = 0;          ///< Pixel index in X
-  UShort_t col = 0;          ///< Pixel index in Z
-  UInt_t roFrame = 0;        ///< Readout frame
-  int charge = 0;            ///< N electrons
-  float toa = 0.f;           ///< Time of arrival in ns (earliest contribution)
-  PreDigitLabelRef labelRef; ///< label and reference to the next one
+  UShort_t row = 0;             ///< Pixel index in X
+  UShort_t col = 0;             ///< Pixel index in Z
+  UInt_t roFrame = 0;           ///< Readout frame
+  PreDigitContribution contrib; ///< first contribution and reference to the next one
 
   PreDigit(UInt_t rf = 0, UShort_t rw = 0, UShort_t cl = 0, int nele = 0, o2::MCCompLabel lbl = 0, float t = 0.f)
-    : row(rw), col(cl), roFrame(rf), charge(nele), toa(t), labelRef(lbl) {}
+    : row(rw), col(cl), roFrame(rf), contrib(lbl, t, nele) {}
 
-  ClassDefNV(PreDigit, 1);
+  ClassDefNV(PreDigit, 2);
 };
 
 } // namespace o2::trkft3

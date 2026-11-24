@@ -32,13 +32,9 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
 
   bool continuous = true;                   ///< flag for continuous simulation
   float noisePerPixel = DEFNoisePerPixel(); ///< ALMIRA chips noise rate in hits/pixel/s
-  float strobeFlatTop = 20.;                ///< strobe shape flat top
-  float strobeMaxRiseTime = 0.;             ///< strobe max rise time
-  float strobeQRiseTime0 = 0.;              ///< q @ which strobe rise time is 0
 
   double timeOffset = 0.;                 ///< time offset (in seconds!) to calculate ROFrame from hit time
   int chargeThreshold = 75;               ///< charge threshold in Nelectrons
-  int minChargeToAccount = 7;             ///< minimum charge contribution to account
   int nSimSteps = 475;                    ///< number of steps in response simulation
   float energyToNElectrons = 1. / 3.6e-9; // conversion of eloss to Nelectrons
 

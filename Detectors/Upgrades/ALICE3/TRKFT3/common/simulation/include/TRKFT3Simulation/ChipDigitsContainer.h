@@ -20,9 +20,24 @@
 #include "TRKFT3Simulation/DigiParams.h"
 #include <fairlogger/Logger.h>
 #include <TRandom.h>
+#include <unordered_map>
+#include <vector>
 
 namespace o2::trkft3
 {
+
+/// State of the analog signal of a pixel, surviving the flush of the ROFs (edge detection)
+struct PixelState {
+  double tStart = 0.;                  ///< signal start (first contribution), absolute time in ns
+  double tEnd = 0.;                    ///< tStart + ToT(charge), absolute time in ns
+  int charge = 0;                      ///< total charge of the signal (N electrons)
+  std::vector<o2::MCCompLabel> labels; ///< labels of the contributions up to the threshold crossing
+  uint32_t lastDigitROF = ~0u;         ///< ROF of the last digit written (one digit per pixel per ROF)
+  bool pending = false;                ///< a digit is waiting to be written in a later ROF
+  uint32_t pendingROF = 0;             ///< ROF of the pending digit (ROF of its leading edge)
+  float pendingToA = 0.f;              ///< leading edge of the pending digit w.r.t. pendingROF start (ns)
+  int pendingCharge = 0;               ///< charge of the pending digit
+};
 
 /// @class ChipDigitsContainer
 /// @brief Container for simulated points connected to a given chip
@@ -57,12 +72,17 @@ class ChipDigitsContainer
   bool isDisabled() const { return mDisabled; }
   void disable(bool v) { mDisabled = v; }
 
+  std::unordered_map<uint32_t, PixelState>& getPixelStates() { return mPixelStates; }
+  /// Key of the pixel in the pixel state map
+  static uint32_t getPixelKey(UShort_t row, UShort_t col) { return (static_cast<uint32_t>(col) << 16) | row; }
+
  protected:
   UShort_t mChipIndex = 0; ///< chip index
   bool mDisabled = false;
   const o2::itsmft::NoiseMap* mNoiseMap = nullptr;
   const o2::itsmft::NoiseMap* mDeadChanMap = nullptr;
-  std::map<ULong64_t, o2::trkft3::PreDigit> mDigits; ///< Map of fired pixels, possibly in multiple frames
+  std::map<ULong64_t, o2::trkft3::PreDigit> mDigits;     ///< Map of fired pixels, possibly in multiple frames
+  std::unordered_map<uint32_t, PixelState> mPixelStates; //! pixel signal states, surviving the flush
 
   ClassDefNV(ChipDigitsContainer, 2);
 };

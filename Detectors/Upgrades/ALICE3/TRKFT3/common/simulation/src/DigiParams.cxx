@@ -46,15 +46,15 @@ void DigiParams<DetIDV>::setNSimSteps(int v)
 template <int DetIDV>
 void DigiParams<DetIDV>::setChargeThreshold(int v, float frac2Account)
 {
-  // set charge threshold for digits creation and its fraction to account
-  // contribution from single hit
+  // set charge threshold for digits creation and the minimum charge of a single
+  // contribution to be accounted (smaller ones are neglected even when summed)
   mChargeThreshold = v;
   mMinChargeToAccount = v * frac2Account;
   if (mMinChargeToAccount < 0 || mMinChargeToAccount > mChargeThreshold) {
     mMinChargeToAccount = mChargeThreshold;
   }
   LOG(info) << "Set charge threshold to " << mChargeThreshold
-            << ", single hit will be accounted from " << mMinChargeToAccount
+            << ", single contribution will be accounted from " << mMinChargeToAccount
             << " electrons";
 }
 
@@ -76,9 +76,6 @@ void DigiParams<DetIDV>::print() const
              i, mROFrameLayerLengthInBC[i], mClockPeriod[i], mNClockCyclesPerROF[i]);
     }
   }
-
-  printf("Charge time-response:\n");
-  mSignalShape.print();
 
   printf("ALMIRA front-end signal:\n");
   mAlmiraSignal.print();

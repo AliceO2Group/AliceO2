@@ -34,8 +34,6 @@ struct AlmiraParam : public o2::conf::ConfigurableParamHelper<AlmiraParam> {
   static constexpr int kDefROFLengthInBC = 16; ///< default ROF length in BC (16 clock cycles of 1 BC for VD)
 
   int roFrameLengthInBCPerLayer[kNLayers] = {0};  ///< ROF length in BC per layer
-  float strobeDelayPerLayer[kNLayers] = {0};      ///< strobe delay in ns per layer
-  float strobeLengthContPerLayer[kNLayers] = {0}; ///< strobe length in ns per layer
   int roFrameBiasInBCPerLayer[kNLayers] = {0};    ///< ROF start bias in BC per layer
   int roFrameDelayInBCPerLayer[kNLayers] = {0};   ///< extra ROF delay in BC per layer
   float clockPeriodPerLayer[kNLayers] = {0};      ///< ALMIRA clock period in ns per layer (timestamp fine granularity), 0 = default (1 BC VD, 4 BC ML/OT/disks)
@@ -84,8 +82,6 @@ struct AlmiraParam : public o2::conf::ConfigurableParamHelper<AlmiraParam> {
       return kDefROFLengthInBC;
     }
   }
-  float getStrobeDelay(int layer) const { return strobeDelayPerLayer[layer]; }
-  float getStrobeLengthCont(int layer) const { return strobeLengthContPerLayer[layer]; }
   int getROFBiasInBC(int layer) const { return roFrameBiasInBCPerLayer[layer]; }
   int getROFDelayInBC(int layer) const { return roFrameDelayInBCPerLayer[layer]; }
 
