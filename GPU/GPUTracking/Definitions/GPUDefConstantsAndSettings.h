@@ -46,7 +46,7 @@ static GPUglobalconstexpr() uint32_t TPC_MAX_TIME_BIN_TRIGGERED = 600;
 #endif
 } // namespace o2::gpu::constants
 
-//#define GPUCA_MERGER_BY_MC_LABEL                    // Use MC labels for TPC track merging - for performance studies // TODO: Cleanup unneeded options
+//#define GPUCA_MERGER_BY_MC_LABEL                    // Use MC labels for TPC track merging - for performance studies
 
 // clang-format on
 

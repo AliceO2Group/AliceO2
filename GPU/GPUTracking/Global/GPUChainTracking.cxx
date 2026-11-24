@@ -409,7 +409,6 @@ int32_t GPUChainTracking::Init()
 
 void GPUChainTracking::UpdateGPUCalibObjects(int32_t stream, const GPUCalibObjectsConst* ptrMask)
 {
-  // TODO: Is this correct?
   if (processors()->calibObjects.fastTransform && (ptrMask == nullptr || ptrMask->fastTransform)) {
     memcpy((void*)mFlatObjectsShadow.mCalibObjects.fastTransform, (const void*)processors()->calibObjects.fastTransform, processors()->calibObjects.fastTransform->size());
   }
@@ -504,7 +503,6 @@ void* GPUChainTracking::GPUTrackingFlatObjects::SetPointersFlatObjects(void* mem
 {
   char* fastTransformBase = (char*)mem;
   if (mChainTracking->processors()->calibObjects.fastTransform) {
-    // TODO: Is this correct?!
     char* podBuf = nullptr;
     computePointerWithAlignment(mem, podBuf, mChainTracking->processors()->calibObjects.fastTransform->size()); // raw bytes
     mCalibObjects.fastTransform = reinterpret_cast<TPCFastTransformPOD*>(podBuf);
