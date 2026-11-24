@@ -20,7 +20,6 @@
 #include "GPUCommonRtypes.h"
 
 struct GPUTRDTrackDataRecord;
-class AliHLTExternalTrackParam;
 
 namespace o2::tpc
 {
@@ -51,7 +50,6 @@ class GPUTRDTrack_t : public T
   GPUdDefault() GPUTRDTrack_t() = default;
   GPUTRDTrack_t(const typename T::baseClass& t) = delete;
   GPUd() GPUTRDTrack_t(const GPUTRDTrack_t& t);
-  GPUd() GPUTRDTrack_t(const AliHLTExternalTrackParam& t);
   GPUd() GPUTRDTrack_t(const o2::dataformats::TrackTPCITS& t);
   GPUd() GPUTRDTrack_t(const o2::tpc::TrackTPC& t);
   GPUd() GPUTRDTrack_t(const T& t);
