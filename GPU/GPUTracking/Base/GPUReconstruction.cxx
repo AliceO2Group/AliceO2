@@ -1141,10 +1141,13 @@ void GPUReconstruction::RunPipelineWorker()
     {
       std::lock_guard<std::mutex> lk(q->m);
       q->done = true;
+      q->c.notify_one();
     }
-    q->c.notify_one();
-    mPipelineContext->workerRunning = false;
-    mPipelineContext->cond.notify_one();
+    {
+      std::lock_guard<std::mutex> lk(mPipelineContext->mutex);
+      mPipelineContext->workerRunning = false;
+      mPipelineContext->cond.notify_one();
+    }
   }
   if (GetProcessingSettings().debugLevel >= 3) {
     GPUInfo("Pipeline worker ended");
