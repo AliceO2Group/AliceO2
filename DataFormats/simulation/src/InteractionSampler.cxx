@@ -11,6 +11,8 @@
 
 #include "SimulationDataFormat/InteractionSampler.h"
 #include <fairlogger/Logger.h>
+#include <algorithm>
+#include <cmath>
 
 using namespace o2::steer;
 
@@ -37,6 +39,9 @@ void InteractionSampler::init()
   } else {
     mMuBC = mIntRate / (nBCSet * o2::constants::lhc::LHCRevFreq);
     LOG(info) << "Deducing mu=" << mMuBC << " per BC from IR=" << mIntRate << " with " << nBCSet << " BCs";
+  }
+  if (!(mMuBC > 0.)) {
+    LOG(fatal) << "Interaction rate must be positive, got mu=" << mMuBC << " per BC";
   }
 
   mInteractingBCs.clear();
@@ -70,11 +75,31 @@ int InteractionSampler::drawBCJump() const
 int InteractionSampler::drawNCollInBC() const
 {
   // Poisson distribution of number of collisions in the bunch excluding 0
-  int n = 0;
-  while ((n = gRandom->Poisson(mMuBC)) == 0) {
-    ;
+  return drawZeroTruncatedPoisson(mMuBC);
+}
+
+//_________________________________________________
+int InteractionSampler::drawZeroTruncatedPoisson(double mu)
+{
+  // inverse of the cumulative distribution of P(k) = mu^k exp(-mu) / k! / (1 - exp(-mu)), k >= 1;
+  // one uniform number per call; above mu = 30, P(0) < 1e-13 and the plain Poisson draw is used
+  if (mu > 30.) {
+    int n = 0;
+    while ((n = gRandom->Poisson(mu)) == 0) {
+      ;
+    }
+    return n;
   }
-  return n;
+  const double u = gRandom->Rndm() * -std::expm1(-mu);
+  double p = mu * std::exp(-mu);
+  double cumulative = p;
+  int k = 1;
+  while (u > cumulative && p > 1e-16 * cumulative) { // second condition stops on rounding at the tail
+    ++k;
+    p *= mu / k;
+    cumulative += p;
+  }
+  return k;
 }
 
 //_________________________________________________
@@ -103,7 +128,7 @@ void InteractionSampler::print() const
 const o2::InteractionTimeRecord& InteractionSampler::generateCollisionTime()
 {
   // generate single interaction record
-  if (mIntRate < 0) {
+  if (mIntRate < 0 || mMuBC < 0) {
     init();
   }
 
@@ -251,10 +276,7 @@ int NonUniformMuInteractionSampler::simulateInteractingBC()
 
   // now sample number of collisions in chosenBC, conditioned >=1:
   double mu_chosen = muFunc(mCurrBCIdx); // or does it need to be mCurrBCIdx
-  int ncoll = 0;
-  do {
-    ncoll = gRandom->Poisson(mu_chosen);
-  } while (ncoll == 0);
+  int ncoll = drawZeroTruncatedPoisson(mu_chosen);
 
   // assign random time withing a bunch
   for (int i = ncoll; i--;) {

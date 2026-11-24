@@ -66,6 +66,9 @@ class InteractionSampler
 
   void print() const;
 
+  /// Poisson number >= 1 for mean mu, drawn by inverting its cumulative distribution
+  static int drawZeroTruncatedPoisson(double mu);
+
  protected:
   virtual int simulateInteractingBC();
   void nextCollidingBC(int n);

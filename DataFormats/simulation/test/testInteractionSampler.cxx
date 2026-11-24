@@ -187,6 +187,43 @@ BOOST_AUTO_TEST_CASE(UniformSamplerIsPoissonLargeMu)
   checkUniformSamplerIsPoisson(0.3, 24680, {0.5, 3., 7.});
 }
 
+// Zero-truncated Poisson draw must reproduce its distribution, mean and variance from very small to large mu
+BOOST_AUTO_TEST_CASE(ZeroTruncatedPoissonDraw)
+{
+  gRandom->SetSeed(4321);
+  const int n = 1000000;
+  for (double mu : {2e-4, 2e-3, 0.1, 2., 6.5, 20., 29.9, 30.1, 100.}) {
+    std::map<int, int> counts;
+    double sum = 0., sum2 = 0.;
+    for (int i = 0; i < n; ++i) {
+      const int k = o2::steer::InteractionSampler::drawZeroTruncatedPoisson(mu);
+      BOOST_REQUIRE(k >= 1);
+      counts[k]++;
+      sum += k;
+      sum2 += double(k) * k;
+    }
+    const double expMean = mu / -std::expm1(-mu);
+    const double expVar = expMean * (1. + mu - expMean);
+    const double mean = sum / n;
+    const double var = sum2 / n - mean * mean;
+    BOOST_TEST_MESSAGE("mu " << mu << " mean " << mean << " expected " << expMean << " variance " << var << " expected " << expVar);
+    BOOST_CHECK(std::abs(mean - expMean) < 5. * std::sqrt(expVar / n) + 1e-12);
+    double m4 = 0.; // fourth central moment, for the standard error of the variance
+    for (const auto& [k, c] : counts) {
+      m4 += c * std::pow(k - mean, 4) / n;
+    }
+    BOOST_CHECK(std::abs(var - expVar) < 5. * std::sqrt(std::max(m4 - var * var, 0.) / n) + 1e-9);
+    double p = mu * std::exp(-mu) / -std::expm1(-mu);
+    for (int k = 1; k <= 4; ++k) {
+      const double expected = n * p;
+      const double tolerance = 5. * std::sqrt(expected) + 1.;
+      BOOST_TEST_MESSAGE("mu " << mu << " k=" << k << " observed " << counts[k] << " expected " << expected);
+      BOOST_CHECK(std::abs(counts[k] - expected) < tolerance);
+      p *= mu / (k + 1);
+    }
+  }
+}
+
 // Non-uniform sampler with uniform scales must reproduce Poisson statistics
 BOOST_AUTO_TEST_CASE(NonUniformSamplerUniformScalesIsPoisson)
 {
