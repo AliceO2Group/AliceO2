@@ -518,10 +518,7 @@ int32_t GPURecoWorkflowSpec::runMain(o2::framework::ProcessingContext* pc, GPUTr
       retVal = runITSTracking(*pc);
     }
   }
-
-  if (!mSpecConfig.enableDoublePipeline) { // TODO: Why is this needed for double-pipeline?
-    mGPUReco->Clear(false, threadIndex);   // clean non-output memory used by GPU Reconstruction
-  }
+  mGPUReco->Clear(false, threadIndex); // clean non-output memory used by GPU Reconstruction
   return retVal;
 }
 

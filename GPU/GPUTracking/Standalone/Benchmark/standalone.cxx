@@ -785,9 +785,7 @@ int32_t RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingU
       }
       recAsync->ClearAllocatedMemory();
     }
-    if (!configStandalone.proc.doublePipeline) {
-      recUse->ClearAllocatedMemory();
-    }
+    recUse->ClearAllocatedMemory();
 
     if (tmpRetVal == GPUReconstruction::retValValue::retDoExit) {
       configStandalone.continueOnError = 0; // Forced exit from event display loop
