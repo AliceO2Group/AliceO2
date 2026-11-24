@@ -80,6 +80,16 @@ inline size_t GPUReconstructionDeviceBase::GPUMemCpyAlways(bool onGpu, void* dst
     return GPUReconstructionCPU::GPUMemCpyAlways(false, dst, src, size, stream, toGPU, ev, evList, nEvents);
   }
 }
+
+namespace internal::rtchelpers
+{
+static inline void getRTCMacroDefinitions(std::vector<std::string>& definitions) // Device macros used by the RTC code of qConfigPrintRtc, as "name expansion"; static, so each translation unit gets its own expansion: call only in backend sources compiled with the device macros
+{
+#define GPUCA_RTC_M_STR_DEFINITION(a) #a " " GPUCA_M_STR(a)
+  definitions = {GPUCA_RTC_M_STR_DEFINITION(GPUdi()), GPUCA_RTC_M_STR_DEFINITION(GPUconstexpr())};
+#undef GPUCA_RTC_M_STR_DEFINITION
+}
+} // namespace internal::rtchelpers
 } // namespace o2::gpu
 
 #endif

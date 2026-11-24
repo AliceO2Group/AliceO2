@@ -33,7 +33,7 @@ QGET_LD_BINARY_SYMBOLS(GPUReconstructionCPUDevicertc_command);
 QGET_LD_BINARY_SYMBOLS(GPUReconstructionCPUDevicertc_command_no_fast_math);
 
 using namespace o2::gpu;
-namespace rtc = o2::gpu::internal::rtc;
+namespace rtchelpers = o2::gpu::internal::rtchelpers;
 
 static constexpr const char* RTC_SRC_EXTENSION = ".cxx";
 static constexpr const char* RTC_BIN_EXTENSION = ".so";
@@ -45,39 +45,39 @@ int32_t GPUReconstructionCPUDevice::genRTC(std::string& filename, uint32_t& nCom
 {
   const auto& proc = GetProcessingSettings();
   const std::string_view rtcSource(_binary_GPUReconstructionCPUDevicertc_src_start, _binary_GPUReconstructionCPUDevicertc_src_len);
-  const std::string rtcparam = rtc::paramCode(proc, param());
-  rtc::tmpFilename(filename, "/tmp/o2cagpu_rtc_cpudevice_");
+  std::vector<std::string> kernels, macroDefinitions;
+  getGPURTCBackendCode(kernels, macroDefinitions);
+  const std::string rtcparam = rtchelpers::paramCode(proc, param(), macroDefinitions, false);
+  rtchelpers::tmpFilename(filename, "/tmp/o2cagpu_rtc_cpudevice_");
 
-  std::vector<std::string> kernels;
-  getRTCKernelCalls(kernels);
   for (uint32_t i = 0; i < kernels.size(); i++) {
     if (kernelWithoutRTC(GetKernelName(i))) {
       kernels[i].clear();
     }
   }
-  const std::string kernelsall = rtc::joinKernels(kernels);
+  const std::string kernelsall = rtchelpers::joinKernels(kernels);
 
-  const std::string baseCommand = rtc::baseCommand(proc, std::string_view(_binary_GPUReconstructionCPUDevicertc_command_start, _binary_GPUReconstructionCPUDevicertc_command_len)) + " " + proc.rtctech.overrideArchitecture;
+  const std::string baseCommand = rtchelpers::baseCommand(proc, std::string_view(_binary_GPUReconstructionCPUDevicertc_command_start, _binary_GPUReconstructionCPUDevicertc_command_len)) + " " + proc.rtctech.overrideArchitecture;
   const std::string noFastMath(_binary_GPUReconstructionCPUDevicertc_command_no_fast_math_start, _binary_GPUReconstructionCPUDevicertc_command_no_fast_math_len);
 
   mParDevice->par_CF_SCAN_WORKGROUP_SIZE = 1; // Must match the 1 thread per block for the scan kernels to compile, the clusterizer uses the CPU stream compaction
-  rtc::loadLaunchBounds(proc, *mParDevice);
-  const std::string launchBounds = rtc::launchBoundsCode(proc, *mParDevice, 0, mWarpSize);
+  rtchelpers::loadLaunchBounds(proc, *mParDevice);
+  const std::string launchBounds = rtchelpers::launchBoundsCode(proc, *mParDevice, 0, mWarpSize);
   if (proc.rtctech.printLaunchBounds >= 2) {
     return 1;
   }
 
   nCompile = proc.rtc.compilePerKernel ? kernels.size() : 1;
   const std::string compilerVersions = getBackendVersions();
-  rtc::Cache cache(proc, "cpudevice", {rtcSource, rtcparam, baseCommand, kernelsall, launchBounds, compilerVersions});
+  rtchelpers::Cache cache(proc, "cpudevice", {rtcSource, rtcparam, baseCommand, kernelsall, launchBounds, compilerVersions});
   if (!cache.load(filename, RTC_BIN_EXTENSION, nCompile)) {
-    rtc::compile(proc, nCompile, "CPUDevice", [&](uint32_t i) {
+    rtchelpers::compile(proc, nCompile, "CPUDevice", [&](uint32_t i) {
       const std::string fileBase = filename + "_" + std::to_string(i);
       if (proc.debugLevel >= 3) {
         printf("Compiling %s\n", (fileBase + RTC_SRC_EXTENSION).c_str());
       }
-      const bool deterministic = rtc::deterministic(proc, GetKernelName(i));
-      rtc::writeSource(fileBase + RTC_SRC_EXTENSION, deterministic, rtcparam, launchBounds, rtcSource, proc.rtc.compilePerKernel ? kernels[i] : kernelsall);
+      const bool deterministic = rtchelpers::deterministic(proc, GetKernelName(i));
+      rtchelpers::writeSource(fileBase + RTC_SRC_EXTENSION, deterministic, rtcparam, launchBounds, rtcSource, proc.rtc.compilePerKernel ? kernels[i] : kernelsall);
 
       // Export only the kernel entry points, everything else stays local to the RTC library to avoid symbol collisions
       FILE* fp = fopen((fileBase + RTC_MAP_EXTENSION).c_str(), "w+b");
@@ -87,7 +87,7 @@ int32_t GPUReconstructionCPUDevice::genRTC(std::string& filename, uint32_t& nCom
       fclose(fp);
 
       const std::string command = baseCommand + (deterministic ? " " + noFastMath : "") + " -Wl,--version-script=" + fileBase + RTC_MAP_EXTENSION + " -x c++ " + fileBase + RTC_SRC_EXTENSION + " -o " + fileBase + RTC_BIN_EXTENSION;
-      rtc::runCommand(proc, command, fileBase + RTC_SRC_EXTENSION, "Error during CPUDevice RTC compilation");
+      rtchelpers::runCommand(proc, command, fileBase + RTC_SRC_EXTENSION, "Error during CPUDevice RTC compilation");
     });
     cache.store(filename, RTC_BIN_EXTENSION, nCompile);
   }

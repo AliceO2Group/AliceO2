@@ -90,7 +90,7 @@ AddOptionRTC(extraClusterErrorSplitPadSharedSingleY2, float, 0.03f, "", 0, "Addi
 AddOptionRTC(extraClusterErrorFactorSplitPadSharedSingleY2, float, 3.0f, "", 0, "Multiplicative extra cluster error for Y2 if splitpad, shared, or single set")
 AddOptionRTC(extraClusterErrorSplitTimeSharedSingleZ2, float, 0.03f, "", 0, "Additive extra cluster error for Z2 if splittime, shared, or single set")
 AddOptionRTC(extraClusterErrorFactorSplitTimeSharedSingleZ2, float, 3.0f, "", 0, "Multiplicative extra cluster error for Z2 if splittime, shared, or single set")
-AddOptionArray(errorsCECrossing, float, 5, (0.f, 0.f, 0.f, 0.f, 0.f), "", 0, "Extra errors to add to track when crossing CE, depending on addErrorsCECrossing") // BUG: CUDA cannot yet handle AddOptionArrayRTC
+AddOptionArrayRTC(errorsCECrossing, float, 5, (0.f, 0.f, 0.f, 0.f, 0.f), "", 0, "Extra errors to add to track when crossing CE, depending on addErrorsCECrossing")
 AddOptionRTC(extrapolationTrackingYRangeUpper, float, 0.85f, "", 0, "Inner portion of y-range in sector that is not used in searching for extrapolated track candidates")
 AddOptionRTC(extrapolationTrackingYRangeLower, float, 0.85f, "", 0, "Inner portion of y-range in sector that is not used in searching for extrapolated track candidates")
 AddOptionRTC(trackFollowingYFactor, float, 4.f, "", 0, "Weight of y residual vs z residual in tracklet constructor")
@@ -190,7 +190,7 @@ AddOptionRTC(rebuildTrackCandidateErrChi2, uint8_t, 0, "", 0, "Rank cluster cand
 AddOptionRTC(rebuildTrackMaxRowsFromEnd, uint8_t, 10, "", 0, "If the last fitted hit of the outward way of the rebuild is more than this number of rows away from the end of the track, the final fit starts from the original track parameters")
 AddOptionRTC(rebuildTrackFallbackMaxNCl, uint8_t, 20, "", 0, "For tracks with at most this number of clusters, keep the original cluster of a row as candidate during rebuild if no candidate was found but it passes the interpolated chi2 cut (0 = disabled)")
 AddOptionRTC(rebuildTrackNonIntMinNDF, uint8_t, 10, "", 0, "NDF the track must exceed for non-interpolated cluster attachment (one-sided search and extrapolation) during rebuild")
-AddOptionArray(PID_remap, int8_t, 9, (0, 1, 2, 3, 4, 5, 6, 7, 8), "", 0, "Remap Ipid to PID_reamp[Ipid] (no remap if<0)") // BUG: CUDA cannot yet handle AddOptionArrayRTC
+AddOptionArrayRTC(PID_remap, int8_t, 9, (0, 1, 2, 3, 4, 5, 6, 7, 8), "", 0, "Remap Ipid to PID_reamp[Ipid] (no remap if<0)")
 AddVariableRTC(nWays, uint8_t, 0)
 AddHelp("help", 0)
 EndConfig()

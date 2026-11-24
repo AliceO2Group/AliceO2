@@ -168,6 +168,31 @@ void qConfigPrint(const T& qconfig_tmp_object, const std::string& blockName); //
 #define EndConfig()
 
 // End QCONFIG_INSTANCE
+#elif defined(QCONFIG_PRINT_RTC_ARRAYS) // GPUconstexpr() arrays at namespace scope for the AddOptionArrayRTC entries, printed before the structs by qConfigPrintRtc if gpuConstexprArrayInConstantMem is set
+#define AddOption(name, type, default, optname, optnameshort, help, ...)
+#define AddVariable(name, type, default)
+#define AddOptionArray(name, type, count, default, optname, optnameshort, help, ...)
+#define AddOptionVec(name, type, optname, optnameshort, help, ...)
+#define AddOptionSet(...)
+#define AddSubConfig(name, instance)
+#define AddVariableRTC(name, type, default)
+#define AddOptionRTC(name, type, default, optname, optnameshort, help, ...)
+#define AddOptionArrayRTC(name, type, count, default, optname, optnameshort, help, ...)                                                     \
+  out << "GPUconstexpr() " << qon_mxstr(type) << " qConfigRTC_" << qConfigCurrentName << "_" << qon_mxstr(name) << "[" << count << "] = {"; \
+  for (int32_t i = 0; i < count; i++) {                                                                                                     \
+    out << (i ? ", " : "") << ::qConfig::print_type(std::get<const qConfigCurrentType*>(tSrc)->name[i], true);                              \
+  }                                                                                                                                         \
+  out << "};\n";
+#define BeginConfig(name, instance)  \
+  {                                  \
+    using qConfigCurrentType = name; \
+    [[maybe_unused]] constexpr const char* qConfigCurrentName = qon_mxstr(name);
+#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr, ...) BeginConfig(name, instance)
+#define EndConfig() }
+#define BeginNamespace(name) out << "namespace " << qon_mxstr(name) << " {\n";
+#define EndNamespace() out << "}\n";
+
+// End QCONFIG_PRINT_RTC_ARRAYS
 #elif defined(QCONFIG_PRINT_RTC)
 #define AddOption(name, type, default, optname, optnameshort, help, ...) out << qon_mxstr(type) << " " << qon_mxstr(name) << ";\n";
 #define AddVariable(name, type, default) out << qon_mxstr(type) << " " << qon_mxstr(name) << ";\n";
@@ -181,20 +206,27 @@ void qConfigPrint(const T& qconfig_tmp_object, const std::string& blockName); //
     AddOption(name, type, default, optname, optnameshort, help);                                                                                                               \
   }
 #define AddOptionRTC(name, type, default, optname, optnameshort, help, ...) AddVariableRTC(name, type, default)
-#define AddOptionArrayRTC(name, type, count, default, optname, optnameshort, help, ...)                                                                                              \
-  if (useConstexpr) {                                                                                                                                                                \
-    out << "static constexpr " << qon_mxstr(type) << " " << qon_mxstr(name) << "[" << count << "] = {" << ::qConfig::print_type(std::get<const qConfigCurrentType*>(tSrc)->name[0]); \
-    for (int32_t i = 1; i < count; i++) {                                                                                                                                            \
-      out << ", " << qConfig::print_type(std::get<const qConfigCurrentType*>(tSrc)->name[i]);                                                                                        \
-    }                                                                                                                                                                                \
-    out << "};\n";                                                                                                                                                                   \
-    out << qon_mxstr(type) << " " << qon_mxstr(qon_mxcat(_dummy_, name)) << ";\n";                                                                                                   \
-  } else {                                                                                                                                                                           \
-    AddOptionArray(name, type, count, default, optname, optnameshort, help);                                                                                                         \
+#define AddOptionArrayRTC(name, type, count, default, optname, optnameshort, help, ...)                                                                                                                                              \
+  if (useConstexpr && gpuConstexprArrayInConstantMem) { /* CUDA cannot access static constexpr member arrays in device code, so the values are in a GPUconstexpr() array (QCONFIG_PRINT_RTC_ARRAYS), the storage keeps the layout */ \
+    const std::string arrayName = std::string("qConfigRTC_") + qConfigCurrentName + "_" + qon_mxstr(name);                                                                                                                           \
+    out << "struct " << qon_mxstr(qon_mxcat(qConfigArrayRTC_, name)) << " {\n"                                                                                                                                                       \
+        << qon_mxstr(type) << " values[" << count << "];\n";                                                                                                                                                                         \
+    out << "template <class I> GPUdi() constexpr " << qon_mxstr(type) << " operator[](I i) const { return " << arrayName << "[i]; }\n";                                                                                              \
+    out << "GPUdi() constexpr operator const " << qon_mxstr(type) << "*() const { return " << arrayName << "; }\n} " << qon_mxstr(name) << ";\n";                                                                                    \
+  } else if (useConstexpr) {                                                                                                                                                                                                         \
+    out << "static constexpr " << qon_mxstr(type) << " " << qon_mxstr(name) << "[" << count << "] = {";                                                                                                                              \
+    for (int32_t i = 0; i < count; i++) {                                                                                                                                                                                            \
+      out << (i ? ", " : "") << ::qConfig::print_type(std::get<const qConfigCurrentType*>(tSrc)->name[i], true);                                                                                                                     \
+    }                                                                                                                                                                                                                                \
+    out << "};\n"                                                                                                                                                                                                                    \
+        << qon_mxstr(type) << " " << qon_mxstr(qon_mxcat(_dummy_, name)) << "[" << count << "];\n";                                                                                                                                  \
+  } else {                                                                                                                                                                                                                           \
+    AddOptionArray(name, type, count, default, optname, optnameshort, help);                                                                                                                                                         \
   }
-#define BeginConfig(name, instance)  \
-  {                                  \
-    using qConfigCurrentType = name; \
+#define BeginConfig(name, instance)                                              \
+  {                                                                              \
+    using qConfigCurrentType = name;                                             \
+    [[maybe_unused]] constexpr const char* qConfigCurrentName = qon_mxstr(name); \
     out << "struct " << qon_mxstr(name) << " {\n";
 #define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr, ...) BeginConfig(name, instance)
 #define EndConfig() \
