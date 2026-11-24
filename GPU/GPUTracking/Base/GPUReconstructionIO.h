@@ -17,12 +17,13 @@
 
 #include "GPUReconstruction.h"
 #include "GPUSettings.h"
+#include <type_traits>
 
 namespace o2::gpu
 {
 
-template <class T>
-inline T* GPUReconstruction::AllocateIOMemoryHelper(size_t n, const T*& ptr, std::unique_ptr<T[]>& u)
+template <class T, class D>
+inline T* GPUReconstruction::AllocateIOMemoryHelper(size_t n, const T*& ptr, std::unique_ptr<T[], D>& u)
 {
   if (n == 0) {
     u.reset(nullptr);
@@ -37,7 +38,11 @@ inline T* GPUReconstruction::AllocateIOMemoryHelper(size_t n, const T*& ptr, std
       throw std::bad_alloc();
     }
   } else {
-    u.reset(new T[n]);
+    if constexpr (std::is_same_v<D, std::default_delete<T[]>>) {
+      u.reset(new T[n]);
+    } else {
+      u.reset(alignedAllocator<T, D::alignment>::allocate(n * sizeof(T)));
+    }
     retVal = u.get();
     if (GetProcessingSettings().registerStandaloneInputMemory) {
       if (registerMemoryForGPU(u.get(), n * sizeof(T))) {
@@ -74,8 +79,8 @@ inline uint32_t GPUReconstruction::DumpData(FILE* fp, const T* const* entries, c
   return numTotal;
 }
 
-template <class T, class S>
-inline size_t GPUReconstruction::ReadData(FILE* fp, const T** entries, S* num, std::unique_ptr<T[]>* mem, InOutPointerType type, T** nonConstPtrs)
+template <class T, class S, class D>
+inline size_t GPUReconstruction::ReadData(FILE* fp, const T** entries, S* num, std::unique_ptr<T[], D>* mem, InOutPointerType type, T** nonConstPtrs)
 {
   if (feof(fp)) {
     return 0;
