@@ -382,16 +382,14 @@ void FT3Module::addNx2GlueVolume(
   unsigned volume_count, double x_mid, double y_mid, double z_mid, double moduleHeight,
   std::string element_glued_to)
 {
-  std::string glue_name = "FT3glue_" + element_glued_to + "_" + std::to_string(direction) + "_"
-                        + std::to_string(layerNumber) + "_" + std::to_string(stave_idx) + "_"
-                        + std::to_string(volume_count);
+  std::string glue_name = "FT3glue_" + element_glued_to + "_" + std::to_string(direction) + "_" + std::to_string(layerNumber) + "_" + std::to_string(stave_idx) + "_" + std::to_string(volume_count);
   // Note that the FPC has to extend into the gap between two modules,
   // hence we add moduleGap to the height
   addDetectorVolume(
     motherVolume, glue_name, Materials::materials.at(Materials::MaterialID::Epoxy).colour,
     getMedium(Materials::MaterialID::Epoxy), volume_count,
     x_mid, y_mid, z_mid, Constants::staveWidth / 2,
-    ( moduleHeight + Constants::moduleGap ) / 2, Constants::epoxyThickness / 2);
+    (moduleHeight + Constants::moduleGap) / 2, Constants::epoxyThickness / 2);
 }
 
 /*
@@ -402,16 +400,14 @@ void FT3Module::addNx2CopperVolume(
   TGeoVolume* motherVolume, int layerNumber, int direction, unsigned stave_idx,
   unsigned volume_count, double x_mid, double y_mid, double z_mid, double moduleHeight)
 {
-  std::string copper_name = "FT3Copper_" + std::to_string(direction) + "_"
-                          + std::to_string(layerNumber) + "_"
-                          + std::to_string(stave_idx) + "_" + std::to_string(volume_count);
+  std::string copper_name = "FT3Copper_" + std::to_string(direction) + "_" + std::to_string(layerNumber) + "_" + std::to_string(stave_idx) + "_" + std::to_string(volume_count);
   // Note that the FPC has to extend into the gap between two modules,
   // hence we add moduleGap to the height
   addDetectorVolume(
     motherVolume, copper_name, Materials::materials.at(Materials::MaterialID::Copper).colour,
     getMedium(Materials::MaterialID::Copper), volume_count,
     x_mid, y_mid, z_mid, Constants::staveWidth / 2,
-    ( moduleHeight + Constants::moduleGap ) / 2, Constants::copperThickness / 2);
+    (moduleHeight + Constants::moduleGap) / 2, Constants::copperThickness / 2);
 }
 
 /*
@@ -422,16 +418,14 @@ void FT3Module::addNx2KaptonVolume(
   TGeoVolume* motherVolume, int layerNumber, int direction, unsigned stave_idx,
   unsigned volume_count, double x_mid, double y_mid, double z_mid, double moduleHeight)
 {
-  std::string kapton_name = "FT3Kapton_" + std::to_string(direction) + "_"
-                          + std::to_string(layerNumber) + "_"
-                          + std::to_string(stave_idx) + "_" + std::to_string(volume_count);
+  std::string kapton_name = "FT3Kapton_" + std::to_string(direction) + "_" + std::to_string(layerNumber) + "_" + std::to_string(stave_idx) + "_" + std::to_string(volume_count);
   // Note that the FPC has to extend into the gap between two modules,
   // hence we add moduleGap to the height
   addDetectorVolume(
     motherVolume, kapton_name, Materials::materials.at(Materials::MaterialID::Kapton).colour,
     getMedium(Materials::MaterialID::Kapton), volume_count,
     x_mid, y_mid, z_mid, Constants::staveWidth / 2,
-    ( moduleHeight + Constants::moduleGap ) / 2, Constants::kaptonThickness / 2);
+    (moduleHeight + Constants::moduleGap) / 2, Constants::kaptonThickness / 2);
 }
 
 /*
