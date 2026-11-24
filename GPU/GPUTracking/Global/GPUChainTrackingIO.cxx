@@ -54,6 +54,8 @@ using namespace o2::tpc;
 using namespace o2::trd;
 using namespace o2::dataformats;
 
+static_assert(decltype(GPUChainTracking::InOutMemory::tpcCompressedClusters)::deleter_type::alignment >= alignof(o2::tpc::CompressedClustersFlat));
+
 static constexpr uint32_t DUMP_HEADER_SIZE = 4;
 static constexpr char DUMP_HEADER[DUMP_HEADER_SIZE + 1] = "CAv1";
 

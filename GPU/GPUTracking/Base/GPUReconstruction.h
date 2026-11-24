@@ -298,10 +298,10 @@ class GPUReconstruction
   // Private helper functions for reading / writing / allocating IO buffer from/to file
   template <class T, class S>
   uint32_t DumpData(FILE* fp, const T* const* entries, const S* num, InOutPointerType type);
-  template <class T, class S>
-  size_t ReadData(FILE* fp, const T** entries, S* num, std::unique_ptr<T[]>* mem, InOutPointerType type, T** nonConstPtrs = nullptr);
-  template <class T>
-  T* AllocateIOMemoryHelper(size_t n, const T*& ptr, std::unique_ptr<T[]>& u);
+  template <class T, class S, class D>
+  size_t ReadData(FILE* fp, const T** entries, S* num, std::unique_ptr<T[], D>* mem, InOutPointerType type, T** nonConstPtrs = nullptr);
+  template <class T, class D>
+  T* AllocateIOMemoryHelper(size_t n, const T*& ptr, std::unique_ptr<T[], D>& u);
   int16_t RegisterMemoryAllocationHelper(GPUProcessor* proc, void* (GPUProcessor::*setPtr)(void*), int32_t type, const char* name, const GPUMemoryReuse& re);
 
   // Private helper functions to dump / load flat objects

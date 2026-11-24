@@ -106,8 +106,8 @@ class GPUChainTracking : public GPUChain
     InOutMemory& operator=(InOutMemory&&);
 
     std::unique_ptr<uint64_t[]> tpcZSpages;
-    std::unique_ptr<char[]> tpcZSpagesChar;        // Same as above, but as char (needed for reading dumps, but deprecated, since alignment can be wrong) // TODO: Fix alignment
-    std::unique_ptr<char[]> tpcCompressedClusters; // TODO: Fix alignment
+    std::unique_ptr<char[], alignedDeleter<char, alignof(uint64_t)>> tpcZSpagesChar; // Same as above, but as char (needed for reading dumps)
+    std::unique_ptr<char[], alignedDeleter<char, alignof(size_t)>> tpcCompressedClusters;
     std::unique_ptr<GPUTrackingInOutZS> tpcZSmeta;
     std::unique_ptr<GPUTrackingInOutZS::GPUTrackingInOutZSMeta> tpcZSmeta2;
     std::unique_ptr<o2::tpc::Digit[]> tpcDigits[NSECTORS];

@@ -22,7 +22,8 @@ namespace o2::gpu
 
 template <typename T, std::size_t MIN_ALIGN = 0>
 struct alignedDeleter {
-  void operator()(void* ptr) { ::operator delete(ptr, std::align_val_t(std::max(MIN_ALIGN, alignof(T)))); }; // TODO: Make this static once we go to C++ 23
+  static constexpr std::size_t alignment = std::max(MIN_ALIGN, alignof(T));
+  void operator()(void* ptr) { ::operator delete(ptr, std::align_val_t(alignment)); }; // TODO: Make this static once we go to C++ 23
 };
 
 template <typename T, std::size_t MIN_ALIGN = 0>
