@@ -108,8 +108,22 @@ const double siliconThickness = 0.01;
 const double copperThickness = 0.006;
 const double kaptonThickness = 0.03;
 const double epoxyThickness = 0.0012;
+// To get the effective carbon thickness we add the areal densities of
+// (1) 40um Graphite (84g/m^2)
+// (2) 30um Carbon Fibre UMS40 weave (19g/m^2)
+// (3) 2x100um Carbon Fibre HS40 (2x65g/m^2)
+// (4) 200um PEI Foam (42g/m^2)
+// (5) 2x100um Carbon Fibre HS40 (2x65g/m^2)
+//     Does not cover the whole stave, so (3) and (5) are combined as just one layer
+// (6) 30um Carbon Fibre UMS40 Weave (19g/m^2)
+// Material budget x/X0 = sum(sigma_i / X0_i), with sigma_i the areal densities
+// above (1 g/m^2 = 1e-4 g/cm^2) and X0_i in g/cm^2 (PDG: carbon 42.7, PEI ~41).
+const double staveMaterialBudget =
+  (84. + 19. + 2 * 65. + 19.) * 1e-4 / 42.7 // graphite + carbon fibre
+  + 42. * 1e-4 / 41.;                       // PEI foam
+//for the eff. thickness, we use the CarbonFiber X0 = 27 cm from FT3Materials.h
+const double effectiveCarbonThickness_Stave = staveMaterialBudget * 27.0; // ~187 um
 
-const double effectiveCarbonThickness_Stave = 0.02; // foam + shell
 const double staveOpeningAngle = 60 * TMath::DegToRad();
 const double sinTheta = TMath::Sin(staveOpeningAngle / 2);
 const double cosTheta = TMath::Cos(staveOpeningAngle / 2);
