@@ -24,7 +24,7 @@
 #ifdef GPUCA_GPUCODE_DEVICE
 #define QCONFIG_GPU
 #endif
-// See GPUSettingsList.h for a list of all available settings of GPU Reconstruction
+// See GPUSettingsList.template for a list of all available settings of GPU Reconstruction
 #ifndef GPUCA_GPUCODE_GENRTC
 #include "utils/qconfig.h"
 #endif

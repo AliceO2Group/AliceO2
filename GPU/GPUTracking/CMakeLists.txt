@@ -67,9 +67,17 @@ set(SRCS
 
 set(SRCS_DATATYPES DataTypes/GPUDataTypesConfig.cxx DataTypes/GPUConfigDump.cxx DataTypes/GPUTPCGMPolynomialField.cxx)
 
+set(ON_THE_FLY_DIR ${CMAKE_CURRENT_BINARY_DIR}/include_gpu_onthefly)
+file(MAKE_DIRECTORY ${ON_THE_FLY_DIR})
+include(cmake/gpu_settings_list_generator.cmake)
+foreach(GPU_SETTINGS_LIST GPUSettingsList GPUSettingsListDisplay GPUSettingsListStandalone)
+  generate_gpu_settings_list(${CMAKE_CURRENT_SOURCE_DIR}/Definitions/${GPU_SETTINGS_LIST}.template ${ON_THE_FLY_DIR}/${GPU_SETTINGS_LIST}.h)
+  list(APPEND GPU_SETTINGS_LIST_HEADERS ${ON_THE_FLY_DIR}/${GPU_SETTINGS_LIST}.h)
+endforeach()
+
 set(HDRS_CINT_O2 Merger/GPUTPCGMTrackParam.h Merger/GPUTPCGMMergedTrack.h Merger/GPUTPCGMSectorTrack.h Merger/GPUTPCGMBorderTrack.h TRDTracking/GPUTRDInterfaces.h)
 set(HDRS_CINT_DATATYPES DataTypes/GPUTPCGMMergedTrackHit.h)
-set(HDRS_CINT_O2_ADDITIONAL DataTypes/GPUSettings.h DataTypes/GPUSettingsTypes.h Definitions/GPUSettingsListDisplay.h Definitions/GPUSettingsList.h DataTypes/GPUDataTypesIO.h DataTypes/GPUDataTypesConfig.h DataTypes/GPUDataTypesQA.h DataTypes/GPUTRDTrack.h DataTypes/GPUTRDRecoParam.h DataTypes/CalibdEdxTrackTopologyPol.h DataTypes/CalibdEdxTrackTopologySpline.h) # Manual dependencies for ROOT dictionary generation
+set(HDRS_CINT_O2_ADDITIONAL DataTypes/GPUSettings.h DataTypes/GPUSettingsTypes.h DataTypes/GPUDataTypesIO.h DataTypes/GPUDataTypesConfig.h DataTypes/GPUDataTypesQA.h DataTypes/GPUTRDTrack.h DataTypes/GPUTRDRecoParam.h DataTypes/CalibdEdxTrackTopologyPol.h DataTypes/CalibdEdxTrackTopologySpline.h) # Manual dependencies for ROOT dictionary generation
 
 set(SRCS_NO_CINT
     DataTypes/GPUMemorySizeScalers.cxx
@@ -108,6 +116,7 @@ set(SRCS_NO_H SectorTracker/GPUTPCTrackerDump.cxx
               Global/GPUChainTrackingIO.cxx)
 
 set(HDRS_INSTALL
+    ${GPU_SETTINGS_LIST_HEADERS}
     ${HDRS_CINT_O2}
     ${HDRS_CINT_DATATYPES}
     ${HDRS_CINT_O2_ADDITIONAL}
@@ -168,7 +177,6 @@ set(HDRS_INSTALL
     TRDTracking/GPUTRDTrackPoint.h
     DataTypes/GPUTPCGMPolynomialField.h
     DataTypes/GPUSettingsParam.h
-    Definitions/GPUSettingsListStandalone.h
 )
 
 set(SRCS_NO_CINT ${SRCS_NO_CINT} display/GPUDisplayInterface.cxx)
@@ -234,8 +242,6 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
       DataTypes/GPUO2ConfigurableParam.cxx)
 endif()
 
-set(ON_THE_FLY_DIR ${CMAKE_CURRENT_BINARY_DIR}/include_gpu_onthefly)
-file(MAKE_DIRECTORY ${ON_THE_FLY_DIR})
 set(TEMPLATE_HEADER_LIST Base/GPUReconstructionKernelList.template.h
                          Base/GPUReconstructionKernelIncludes.template.h
                          Base/GPUReconstructionIncludesDeviceAll.template.h
@@ -370,6 +376,8 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   o2_target_root_dictionary(GPUDataTypes
                             HEADERS ${HDRS_CINT_DATATYPES} ${HDRS_CINT_O2_ADDITIONAL}
                             LINKDEF GPUTrackingLinkDef_O2_DataTypes.h)
+  get_target_property(GPU_DICT_NAME ${targetName} OUTPUT_NAME)
+  add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/G__${GPU_DICT_NAME}.cxx APPEND DEPENDS ${GPU_SETTINGS_LIST_HEADERS}) # Generated headers cannot be in HEADERS, which must be relative to the source dir
 
   o2_add_library(${MODULE}
                  TARGETVARNAME targetName
@@ -399,6 +407,8 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   o2_target_root_dictionary(${MODULE}
                             HEADERS ${HDRS_CINT_O2} ${HDRS_CINT_O2_ADDITIONAL}
                             LINKDEF GPUTrackingLinkDef_O2.h)
+  get_target_property(GPU_DICT_NAME ${targetName} OUTPUT_NAME)
+  add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/G__${GPU_DICT_NAME}.cxx APPEND DEPENDS ${GPU_SETTINGS_LIST_HEADERS}) # Generated headers cannot be in HEADERS, which must be relative to the source dir
 
   o2_add_test_root_macro(Standalone/tools/createGeo.C
                          PUBLIC_LINK_LIBRARIES O2::GPUTracking
@@ -421,6 +431,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
 
   if(GPUCA_CONFIG_ROOT)
     ROOT_GENERATE_DICTIONARY(G__${targetName} ${HDRS_CINT_O2} ${HDRS_CINT_DATATYPES} ${HDRS_CINT_O2_ADDITIONAL} GPUTrackingLinkDef_Standalone.h MODULE ${targetName})
+    add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/G__${targetName}.cxx APPEND DEPENDS ${GPU_SETTINGS_LIST_HEADERS})
     install(FILES
       ${CMAKE_CURRENT_BINARY_DIR}/lib${targetName}_rdict.pcm
       ${CMAKE_CURRENT_BINARY_DIR}/lib${targetName}.rootmap

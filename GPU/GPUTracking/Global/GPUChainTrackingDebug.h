@@ -21,7 +21,7 @@
 
 namespace o2::gpu
 {
-// NOTE: Values below 262144 are activated by default with --debug 6 in GPUSettingsList.h::debugMask
+// NOTE: Values below 262144 are activated by default with --debug 6 in GPUSettingsList.template::debugMask
 enum GPUChainTrackingDebugFlags : uint32_t {
   TPCSectorTrackingData = 1 << 0,
   TPCPreLinks = 1 << 1,

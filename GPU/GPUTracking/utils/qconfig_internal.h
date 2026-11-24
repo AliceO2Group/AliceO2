@@ -77,20 +77,23 @@
 
 // End QCONFIG_PARSE
 #elif defined(QCONFIG_HELP)
-#define AddOption(name, type, default, optname, optnameshort, ...) qConfigType<type>::qConfigHelpOption(qon_mxstr(name), qon_mxstr(type), qon_mxstr(default), optname, optnameshort, preopt, preoptshort, 0, __VA_ARGS__);
-#define AddOptionSet(name, type, value, optname, optnameshort, ...) qConfigType<type>::qConfigHelpOption(qon_mxstr(name), qon_mxstr(type), qon_mxstr(value), optname, optnameshort, preopt, preoptshort, 1, __VA_ARGS__);
-#define AddOptionVec(name, type, optname, optnameshort, ...) qConfigType<type>::qConfigHelpOption(qon_mxstr(name), qon_mxstr(type), nullptr, optname, optnameshort, preopt, preoptshort, 2, __VA_ARGS__);
-#define AddOptionArray(name, type, count, default, optname, optnameshort, ...) qConfigType<type>::qConfigHelpOption(qon_mxstr(name), qon_mxstr(type) "[" qon_mxstr(count) "]", nullptr, optname, optnameshort, preopt, preoptshort, 2, __VA_ARGS__);
-#define AddSubConfig(name, instance)                       \
-  printf("\t%s\n\n", qon_mxcat(qConfig_subconfig_, name)); \
-  if (followSub) {                                         \
-    qConfigHelp(qon_mxstr(name), 2);                       \
-  }
+#define AddOption(name, type, default, optname, optnameshort, ...) qconfig_help_options.emplace_back(qon_mxstr(name), [=]() { qConfigType<type>::qConfigHelpOption(qon_mxstr(name), qon_mxstr(type), qon_mxstr(default), optname, optnameshort, preopt, preoptshort, 0, __VA_ARGS__); });
+#define AddOptionSet(name, type, value, optname, optnameshort, ...) qconfig_help_options.emplace_back(qon_mxstr(name), [=]() { qConfigType<type>::qConfigHelpOption(qon_mxstr(name), qon_mxstr(type), qon_mxstr(value), optname, optnameshort, preopt, preoptshort, 1, __VA_ARGS__); });
+#define AddOptionVec(name, type, optname, optnameshort, ...) qconfig_help_options.emplace_back(qon_mxstr(name), [=]() { qConfigType<type>::qConfigHelpOption(qon_mxstr(name), qon_mxstr(type), nullptr, optname, optnameshort, preopt, preoptshort, 2, __VA_ARGS__); });
+#define AddOptionArray(name, type, count, default, optname, optnameshort, ...) qconfig_help_options.emplace_back(qon_mxstr(name), [=]() { qConfigType<type>::qConfigHelpOption(qon_mxstr(name), qon_mxstr(type) "[" qon_mxstr(count) "]", nullptr, optname, optnameshort, preopt, preoptshort, 2, __VA_ARGS__); });
+#define AddSubConfig(name, instance)                         \
+  qconfig_help_other.emplace_back(nullptr, [=]() {           \
+    printf("\t%s\n\n", qon_mxcat(qConfig_subconfig_, name)); \
+    if (followSub) {                                         \
+      qConfigHelp(qon_mxstr(name), 2);                       \
+    }                                                        \
+  });
 #define BeginConfig(name, instance)              \
   if (subConfig == nullptr || *subConfig == 0) { \
     constexpr const char* preopt = "";           \
     constexpr const char preoptshort = 0;        \
-    printf("\n");
+    printf("\n");                                \
+    qConfigHelpEntries qconfig_help_options, qconfig_help_other;
 #define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr, ...)                                                                                                                   \
   const char* qon_mxcat(qConfig_subconfig_, name) = preoptnameshort == 0 ? (qon_mxstr(name) ": --" preoptname "\n\t\t" descr) : (qon_mxstr(name) ": -" qon_mxstr('a') " (--" preoptname ")\n\t\t" descr); \
   (void)qon_mxcat(qConfig_subconfig_, name);                                                                                                                                                              \
@@ -98,14 +101,19 @@
     [[maybe_unused]] constexpr const char* preopt = preoptname;                                                                                                                                           \
     [[maybe_unused]] constexpr const char preoptshort = preoptnameshort;                                                                                                                                  \
     char argBuffer[2] = {preoptnameshort, 0};                                                                                                                                                             \
-    printf("\n  %s: (--%s%s%s)\n", descr, preoptname, preoptnameshort == 0 ? "" : " or -", argBuffer);
-#define BeginHiddenConfig(name, instance) {
-#define EndConfig() }
-#define AddHelp(cmd, cmdshort) qConfigType<void*>::qConfigHelpOption("help", "help", nullptr, cmd, cmdshort, preopt, preoptshort, 3, "Show usage information");
-#define AddHelpAll(cmd, cmdshort) qConfigType<void*>::qConfigHelpOption("help all", "help all", nullptr, cmd, cmdshort, preopt, preoptshort, 3, "Show usage info including all subparameters");
-#define AddCommand(cmd, cmdshort, command, help) qConfigType<void*>::qConfigHelpOption("command", "command", nullptr, cmd, cmdshort, preopt, preoptshort, 4, help);
-#define AddShortcut(cmd, cmdshort, forward, help, ...) qConfigType<void*>::qConfigHelpOption("shortcut", "shortcut", nullptr, cmd, cmdshort, preopt, preoptshort, 4, help);
-#define AddHelpText(text) printf("\n    " text ":\n");
+    printf("\n  %s: (--%s%s%s)\n", descr, preoptname, preoptnameshort == 0 ? "" : " or -", argBuffer);                                                                                                    \
+    qConfigHelpEntries qconfig_help_options, qconfig_help_other;
+#define BeginHiddenConfig(name, instance) \
+  {                                       \
+    qConfigHelpEntries qconfig_help_options, qconfig_help_other;
+#define EndConfig()                                                 \
+  qConfigHelpPrintSorted(qconfig_help_options, qconfig_help_other); \
+  }
+#define AddHelp(cmd, cmdshort) qconfig_help_other.emplace_back(nullptr, [=]() { qConfigType<void*>::qConfigHelpOption("help", "help", nullptr, cmd, cmdshort, preopt, preoptshort, 3, "Show usage information"); });
+#define AddHelpAll(cmd, cmdshort) qconfig_help_other.emplace_back(nullptr, [=]() { qConfigType<void*>::qConfigHelpOption("help all", "help all", nullptr, cmd, cmdshort, preopt, preoptshort, 3, "Show usage info including all subparameters"); });
+#define AddCommand(cmd, cmdshort, command, help) qconfig_help_other.emplace_back(nullptr, [=]() { qConfigType<void*>::qConfigHelpOption("command", "command", nullptr, cmd, cmdshort, preopt, preoptshort, 4, help); });
+#define AddShortcut(cmd, cmdshort, forward, help, ...) qconfig_help_other.emplace_back(nullptr, [=]() { qConfigType<void*>::qConfigHelpOption("shortcut", "shortcut", nullptr, cmd, cmdshort, preopt, preoptshort, 4, help); });
+#define AddHelpText(text) qconfig_help_other.emplace_back(nullptr, []() { printf("\n    " text ":\n"); });
 
 // End QCONFIG_HELP
 #elif defined(QCONFIG_PRINT)

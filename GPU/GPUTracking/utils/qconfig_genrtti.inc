@@ -75,7 +75,7 @@ static inline void qConfigRTTIEntry(std::vector<R>& retVal, R entry, size_t arra
 template <qConfigRTTIentryType T = ::qConfig::qConfigRTTIentry, typename... Structs>
 static inline std::tuple<std::vector<T>, std::vector<std::string>> qConfigGenRTTI(const std::vector<std::string>* configStructs = nullptr) // Entries (of type T, derived from qConfigRTTIentry) and list of config structs. Filter: struct types Structs at compile time (code only generated for those), else the names in configStructs at runtime (all if nullptr)
 {
-  using namespace ::qConfig; // For the settings helpers (min, max, ...) and print_type used in GPUSettingsList.h / qconfig_internal.h
+  using namespace ::qConfig; // For the settings helpers (min, max, ...) and print_type used in GPUSettingsList.template / qconfig_internal.h
   std::vector<T> retVal;
   std::vector<std::string> retStructs;
   if constexpr (sizeof...(Structs) > 0) {

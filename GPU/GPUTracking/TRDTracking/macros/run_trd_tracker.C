@@ -61,7 +61,7 @@ void run_trd_tracker(std::string path = "./",
   const o2::trd::GeometryFlat geoFlat(*geo);
   o2::gpu::GPUTRDRecoParam trdRecoParam;
   //-------- init GPU reconstruction --------//
-  // different settings are defined in GPUSettingsList.h
+  // different settings are defined in GPUSettingsList.template
   GPUSettingsGRP cfgGRP;                     // defaults should be ok
   GPUSettingsRec cfgRec;                     // settings concerning reconstruction
   cfgRec.trd.minTrackPt = .5f;

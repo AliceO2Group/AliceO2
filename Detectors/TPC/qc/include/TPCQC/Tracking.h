@@ -44,7 +44,7 @@ struct ClusterNativeAccess;
 namespace qc
 {
 // Class for tracking QA (efficiency / resolution)
-// Some settings can be steered via --configKeyValues: (See GPUSettingsList.h for actual definitions). Relevant QA parameters are:
+// Some settings can be steered via --configKeyValues: (See GPUSettingsList.template for actual definitions). Relevant QA parameters are:
 // "GPU_QA.strict=[bool]"               Strict QA mode: Only consider resolution of tracks where the fit ended within 5 cm of the reference, and remove outliers. (Default: true)
 // "GPU_QA.qpt=[float]"                 Set cut for Q/Pt. (Default: 10.0)
 // "GPU_QA.recThreshold=[float]"        Compute the efficiency including impure tracks with fake contamination. (Default 0.9)

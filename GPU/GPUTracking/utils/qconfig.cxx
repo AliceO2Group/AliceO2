@@ -411,6 +411,19 @@ inline void qAddOptionMessage(qConfigSettings<T>& settings, T& ref)
   }
 }
 
+using qConfigHelpEntries = std::vector<std::pair<const char*, std::function<void()>>>; // Name (nullptr for non-options) and print function of help entries
+
+static void qConfigHelpPrintSorted(qConfigHelpEntries& options, const qConfigHelpEntries& other) // Prints the options sorted by name, then the other entries in the listed order
+{
+  std::stable_sort(options.begin(), options.end(), [](const auto& a, const auto& b) { return std::lexicographical_compare(a.first, a.first + strlen(a.first), b.first, b.first + strlen(b.first), [](char x, char y) { return tolower(x) < tolower(y); }); });
+  for (const auto& entry : options) {
+    entry.second();
+  }
+  for (const auto& entry : other) {
+    entry.second();
+  }
+}
+
 static inline void qConfigHelp(const char* subConfig = nullptr, int32_t followSub = 0)
 {
   if (followSub < 2) {
