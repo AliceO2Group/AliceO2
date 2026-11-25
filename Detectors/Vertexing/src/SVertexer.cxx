@@ -455,6 +455,7 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
   bool isTPCloaded = recoData.isTrackSourceLoaded(GIndex::TPC);
   bool isITSloaded = recoData.isTrackSourceLoaded(GIndex::ITS);
   bool isITSTPCloaded = recoData.isTrackSourceLoaded(GIndex::ITSTPC);
+  mTPCClusterIdxStruct = nullptr;
   if (isTPCloaded && !mSVParams->mExcludeTPCtracks) {
     mTPCTracksArray = recoData.getTPCTracks();
     mTPCTrackClusIdx = recoData.getTPCTracksClusterRefs();
@@ -462,6 +463,9 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
     mTPCRefitterShMap = recoData.clusterShMapTPC;
     mTPCRefitterOccMap = mRecoCont->occupancyMapTPC;
     mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCCorrMaps, o2::base::Propagator::Instance()->getNominalBz(), mTPCTrackClusIdx.data(), 0, mTPCRefitterShMap.data(), mTPCRefitterOccMap.data(), mTPCRefitterOccMap.size(), nullptr, o2::base::Propagator::Instance());
+  } else if (isTPCloaded && recoData.inputsTPCclusters) { // TPC-only tracks excluded: clusters still needed for the innermost radius of global tracks
+    mTPCTrackClusIdx = recoData.getTPCTracksClusterRefs();
+    mTPCClusterIdxStruct = &recoData.inputsTPCclusters->clusterIndex;
   }
 
   std::unordered_map<GIndex, std::pair<int, int>> tmap;
@@ -557,6 +561,13 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
       int posneg = trc.getSign() < 0 ? 1 : 0;
       float r = std::sqrt(trc.getX() * trc.getX() + trc.getY() * trc.getY());
       mTracksPool[posneg].emplace_back(TrackCand{trc, tvid, {iv, iv}, r, hasTPC, nITSclu, compatibleWithProton});
+      if (hasTPC && !itsGID.isIndexSet() && tvid.getSource() != GIndex::TPC && mTPCClusterIdxStruct && mTPCCorrMaps) {
+        // track with TPC but without ITS (e.g. TPC-TOF, TPC-TRD): its parameters are at the TPC inner reference; the V0 must not lie
+        // beyond its innermost measured point, the innermost TPC cluster (transformed with the TPC track's time, the radius barely
+        // depends on it). Needs the TPC clusters, i.e. TPC among the vertexing sources.
+        const auto& tpcTrack = recoData.getTPCTrack(tpcGID);
+        mTracksPool[posneg].back().innermostR = getTPCInnermostR(tpcTrack, tpcTrack.getTime0());
+      }
       if (tvid.getSource() == GIndex::TPC) { // constrained TPC track?
         correctTPCTrack(mTracksPool[posneg].back(), mTPCTracksArray[tvid], -1, -1);
       }
@@ -648,9 +659,14 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
     return false;
   }
   float rv0 = std::sqrt(r2v0), drv0P = rv0 - seedP.minR, drv0N = rv0 - seedN.minR;
-  if (drv0P > mSVParams->causalityRTolerance || drv0P < -mSVParams->maxV0ToProngsRDiff ||
-      drv0N > mSVParams->causalityRTolerance || drv0N < -mSVParams->maxV0ToProngsRDiff) {
-    LOG(debug) << "RejCausality " << drv0P << " " << drv0N;
+  // upper side of the causality check: the V0 must not lie beyond the innermost measured point of a prong. The lower side
+  // (maxV0ToProngsRDiff) stays with minR, the TPC inner reference for tracks with TPC but without ITS: with the innermost cluster
+  // it would reject V0s whose TPC track misses its inner part.
+  const float drv0PUp = seedP.innermostR > 0.f ? rv0 - seedP.innermostR : drv0P;
+  const float drv0NUp = seedN.innermostR > 0.f ? rv0 - seedN.innermostR : drv0N;
+  if (drv0PUp > mSVParams->causalityRTolerance || drv0P < -mSVParams->maxV0ToProngsRDiff ||
+      drv0NUp > mSVParams->causalityRTolerance || drv0N < -mSVParams->maxV0ToProngsRDiff) {
+    LOG(debug) << "RejCausality " << drv0PUp << " " << drv0P << " " << drv0NUp << " " << drv0N;
     return false;
   }
   const int cand = 0;
@@ -1362,16 +1378,28 @@ float SVertexer::correctTPCTrack(SVertexer::TrackCand& trc, const o2::tpc::Track
   // eventually should be refitted, at the moment we simply shift...
   trc.setZ(tTPC.getZ() + (tTPC.hasASideClustersOnly() ? dDrift : -dDrift));
   trc.setCov(trc.getSigmaZ2() + driftErr * driftErr, o2::track::kSigZ2);
-  uint8_t sector, row;
+  trc.minR = getTPCInnermostR(tTPC, tTB);
+  return driftErr;
+}
+
+//______________________________________________
+float SVertexer::getTPCInnermostR(const o2::tpc::TrackTPC& tTPC, float tTB) const
+{
+  // radius of the innermost TPC cluster of the track, transformed with the time tTB [TPC time bins], at least the TPC inner
+  // reference radius
+  uint8_t sector;
+  uint8_t row;
   auto cl = &tTPC.getCluster(mTPCTrackClusIdx, tTPC.getNClusters() - 1, *mTPCClusterIdxStruct, sector, row);
-  float x = 0, y = 0, z = 0;
+  float x = 0;
+  float y = 0;
+  float z = 0;
   mTPCCorrMaps->Transform(sector, row, cl->getPad(), cl->getTime(), x, y, z, tTB);
   if (x < o2::constants::geom::XTPCInnerRef) {
     x = o2::constants::geom::XTPCInnerRef;
   }
-  trc.minR = std::sqrt(x * x + y * y);
-  LOGP(debug, "set MinR = {} for row {}, x:{}, y:{}, z:{}", trc.minR, row, x, y, z);
-  return driftErr;
+  const float r = std::sqrt(x * x + y * y);
+  LOGP(debug, "innermost TPC cluster R = {} for row {}, x:{}, y:{}, z:{}", r, row, x, y, z);
+  return r;
 }
 
 //______________________________________________

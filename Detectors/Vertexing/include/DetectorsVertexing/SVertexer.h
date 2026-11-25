@@ -103,6 +103,7 @@ class SVertexer
     bool hasTPC = false;
     int8_t nITSclu = -1;
     bool compatibleProton = false; // dE/dx compatibility with proton hypothesis (FIXME: use better, uint8_t compat mask?)
+    float innermostR = -1.f;       // radius of the innermost measured point if it differs from minR (tracks with TPC but without ITS), < 0: minR
     bool hasITS() const
     {
       return nITSclu > 0;
@@ -161,6 +162,7 @@ class SVertexer
   bool acceptTrack(const GIndex gid, const o2::track::TrackParCov& trc) const;
   bool processTPCTrack(const o2::tpc::TrackTPC& trTPC, GIndex gid, int vtxid);
   float correctTPCTrack(TrackCand& trc, const o2::tpc::TrackTPC& tTPC, float tmus, float tmusErr) const;
+  float getTPCInnermostR(const o2::tpc::TrackTPC& tTPC, float tTB) const;
 
   uint64_t getPairIdx(GIndex id1, GIndex id2) const
   {
