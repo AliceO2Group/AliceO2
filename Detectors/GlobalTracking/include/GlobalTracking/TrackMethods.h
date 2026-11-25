@@ -20,6 +20,7 @@
 #include "GPUTPCGMMergedTrackHit.h"
 #include "DataFormatsITS/TrackITS.h"
 #include <set>
+#include <gsl/span>
 #include <vector>
 
 namespace o2

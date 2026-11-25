@@ -189,7 +189,7 @@ bool RawWriter::processOrbit(const gsl::span<o2::cpv::Digit> digitsbranch, const
           }
         }
         mRawWriter->addData(links[iLink].feeId, links[iLink].cruId, links[iLink].linkId, links[iLink].endPointId, currentIR,
-                            gsl::span<char>(mPayload[iLink].data(), mPayload[iLink].size()), preformatted);
+                            std::span<char>(mPayload[iLink].data(), mPayload[iLink].size()), preformatted);
         mPayload[iLink].clear();
         cpvWordCounter[iLink] = 0;
         cpvWordCounterBeforeCPVTrailer[iLink] = 0;
@@ -262,7 +262,7 @@ bool RawWriter::processOrbit(const gsl::span<o2::cpv::Digit> digitsbranch, const
                     }
                   }
                   mRawWriter->addData(links[iLink].feeId, links[iLink].cruId, links[iLink].linkId, links[iLink].endPointId, currentIR,
-                                      gsl::span<char>(mPayload[iLink].data(), mPayload[iLink].size()), preformatted);
+                                      std::span<char>(mPayload[iLink].data(), mPayload[iLink].size()), preformatted);
 
                   mPayload[iLink].clear();
                   cpvWordCounter[iLink] = 0;
@@ -322,7 +322,7 @@ bool RawWriter::processOrbit(const gsl::span<o2::cpv::Digit> digitsbranch, const
               }
             }
             mRawWriter->addData(links[iLink].feeId, links[iLink].cruId, links[iLink].linkId, links[iLink].endPointId, currentIR,
-                                gsl::span<char>(mPayload[iLink].data(), mPayload[iLink].size()), preformatted);
+                                std::span<char>(mPayload[iLink].data(), mPayload[iLink].size()), preformatted);
 
             mPayload[iLink].clear();
             cpvWordCounter[iLink] = 0;
@@ -373,7 +373,7 @@ bool RawWriter::processOrbit(const gsl::span<o2::cpv::Digit> digitsbranch, const
         }
       }
       mRawWriter->addData(links[iLink].feeId, links[iLink].cruId, links[iLink].linkId, links[iLink].endPointId,
-                          trgs.back().getBCData(), gsl::span<char>(mPayload[iLink].data(), mPayload[iLink].size()), preformatted);
+                          trgs.back().getBCData(), std::span<char>(mPayload[iLink].data(), mPayload[iLink].size()), preformatted);
       mPayload[iLink].clear();
     }
   }

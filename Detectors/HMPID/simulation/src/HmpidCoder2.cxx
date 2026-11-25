@@ -186,7 +186,7 @@ void HmpidCoder2::writePaginatedEvent(uint32_t orbit, uint16_t bc)
                       ReadOut::LnkId(eq),
                       0,
                       {bc, orbit},
-                      gsl::span<char>(reinterpret_cast<char*>(ptrStartEquipment),
+                      std::span<char>(reinterpret_cast<char*>(ptrStartEquipment),
                                       EventSize * sizeof(uint32_t)),
                       false,
                       0,

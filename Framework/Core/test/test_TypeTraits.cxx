@@ -135,9 +135,12 @@ TEST_CASE("TestIsSpan")
   gsl::span<int> a;
   int b;
   std::vector<char> c;
+  std::span<int> d;
   REQUIRE(is_span<decltype(a)>::value == true);
   REQUIRE(is_span<decltype(b)>::value == false);
   REQUIRE(is_span<decltype(c)>::value == false);
+  REQUIRE(is_span<decltype(d)>::value == true);
+  REQUIRE(is_messageable<decltype(d)>::value == false);
 }
 
 template <typename A>

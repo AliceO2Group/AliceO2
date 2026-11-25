@@ -303,7 +303,6 @@ class InputRecord
       // implementation (f)
     } else if constexpr (is_span<T>::value) {
       // substitution for span of messageable objects
-      // FIXME: there will be std::span in C++20
       static_assert(is_messageable<typename T::value_type>::value, "span can only be created for messageable types");
       auto header = DataRefUtils::getHeader<header::DataHeader*>(ref);
       assert(header);
@@ -318,7 +317,8 @@ class InputRecord
                              "  payload size " + std::to_string(payloadSize))
                               .c_str());
       }
-      return gsl::span<ValueT const>(reinterpret_cast<ValueT const*>(ref.payload), payloadSize / sizeof(ValueT));
+      using SpanT = std::conditional_t<std::is_same_v<T, std::span<ValueT>>, std::span<ValueT const>, gsl::span<ValueT const>>;
+      return SpanT(reinterpret_cast<ValueT const*>(ref.payload), payloadSize / sizeof(ValueT));
 
       // implementation (g)
     } else if constexpr (is_container<T>::value) {

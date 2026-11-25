@@ -222,7 +222,7 @@ void MC2RawEncoder<Mapping>::fillGBTLinks(RUDecodeData& ru)
     LOGF(debug, "Filled %s with %d GBT words", link->describe(), nPayLoadWordsNeeded + 3);
 
     // flush to writer
-    mWriter.addData(link->feeID, link->cruID, link->idInCRU, link->endPointID, mCurrIR, gsl::span((char*)link->data.data(), link->data.getSize()));
+    mWriter.addData(link->feeID, link->cruID, link->idInCRU, link->endPointID, mCurrIR, std::span((char*)link->data.data(), link->data.getSize()));
     link->data.clear();
     //
   } // loop over links of RU

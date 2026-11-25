@@ -32,6 +32,7 @@
 #include <iomanip>
 #include <stdexcept>
 #include <array>
+#include <span>
 #include <unistd.h>
 #include <atomic>
 #include "GPUO2InterfaceUtils.h"
