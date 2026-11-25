@@ -102,10 +102,13 @@ int32_t GPUReconstructionMetal::AddKernel()
   const uint32_t tunedThreads = this->template getKernelProperties<T, I>().nThreads;
 
   // Like __launch_bounds__: without it the register allocation may leave room
-  // for fewer threads than the kernel is tuned for.
+  // for fewer threads than the kernel is tuned for. The tracklet constructor
+  // runs in groups of 128 threads but gets the registers of a group of 640, as
+  // the minimum blocks of __launch_bounds__ would do, so that more groups fit
+  // on a core to hide the latency of its row-by-row reads.
   MTLComputePipelineDescriptor* desc = [MTLComputePipelineDescriptor new];
   desc.computeFunction = krnl;
-  desc.maxTotalThreadsPerThreadgroup = tunedThreads;
+  desc.maxTotalThreadsPerThreadgroup = std::is_same_v<T, GPUTPCTrackletConstructor> ? 640 : tunedThreads;
   NSError* error = nil;
   id<MTLComputePipelineState> pso = [mInternals->device newComputePipelineStateWithDescriptor:desc options:MTLPipelineOptionNone reflection:nil error:&error];
   [desc release];

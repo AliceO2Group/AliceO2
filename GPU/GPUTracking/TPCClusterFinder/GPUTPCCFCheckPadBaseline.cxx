@@ -239,6 +239,12 @@ GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineGPU(int32_t nBlocks, int32_t 
 
   const CfFragment& frag = clusterer.mPmemory->frag;
   const bool hipFilterOn = clusterer.Param().rec.tpc.hipTailFilter;
+#if GPUCA_PAR_CF_CHECK_PAD_BASELINE_SEGMENTED
+  if (!hipFilterOn) {
+    CheckBaselineGPUSegmented(iBlock, iThread, smem, clusterer);
+    return;
+  }
+#endif
   const Charge hipTailThreshold = clusterer.Param().rec.tpc.hipTailFilterThreshold;
   const Charge hipTailFilterAlpha = clusterer.Param().rec.tpc.hipTailFilterAlpha;
   CfArray2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
@@ -404,6 +410,65 @@ GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineGPU(int32_t nBlocks, int32_t 
     DPRINTB_IF(nClosedTails > 0, "%d: Close remaining tails (%d)\n", iBlock, nClosedTails);
   }
 
+#endif
+}
+
+// Without the HIP tail filter, a pad only needs the number of time bins with charge, the longest run of
+// them and the largest charge. These combine over consecutive time segments, so the NThreads / MaxNPadsPerRow
+// threads of a pad each scan one segment straight from the charge map, instead of one thread scanning all time
+// bins of the pad, and the segments are joined at the end. The result is the same as that of the scan in time order.
+GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineGPUSegmented(int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer)
+{
+#if defined(GPUCA_GPUCODE) && !defined(GPUCA_DEVICE_SINGLE_THREAD)
+  constexpr int32_t NSegments = NThreads / MaxNPadsPerRow;
+  constexpr GPUTPCGeometry geo;
+  const CfFragment& frag = clusterer.mPmemory->frag;
+  CfArray2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
+  const auto iRow = iBlock;
+  const int16_t nPads = geo.NPads(iRow);
+  const CfChargePos basePos{(Row)iRow, 0, 0};
+  const int16_t pad = iThread % MaxNPadsPerRow;
+  const int32_t segment = iThread / MaxNPadsPerRow;
+  const int32_t segmentLength = (frag.length + NSegments - 1) / NSegments;
+  const int32_t tStart = CAMath::Min<int32_t>(segment * segmentLength, frag.length);
+  const int32_t tEnd = CAMath::Min<int32_t>(tStart + segmentLength, frag.length);
+
+  if (segment < NSegments) {
+    int32_t totalCharges = 0, consecCharges = 0, maxConsecCharges = 0, firstConsecCharges = 0;
+    bool leading = true;
+    Charge maxCharge = 0;
+    if (pad < nPads) {
+      for (int32_t t = tStart; t < tEnd; t++) {
+        const Charge q = chargeMap[basePos.delta({pad, (TPCFragmentTime)t})].unpack();
+        totalCharges += q > 0;
+        consecCharges = q > 0 ? consecCharges + 1 : 0;
+        maxConsecCharges = CAMath::Max(consecCharges, maxConsecCharges);
+        maxCharge = CAMath::Max<Charge>(q, maxCharge);
+        leading &= q > 0;
+        firstConsecCharges += leading;
+      }
+    }
+    smem.segments.totalCharges[iThread] = totalCharges;
+    smem.segments.maxConsecCharges[iThread] = maxConsecCharges;
+    smem.segments.firstConsecCharges[iThread] = firstConsecCharges;
+    smem.segments.lastConsecCharges[iThread] = consecCharges;
+    smem.segments.maxCharge[iThread] = maxCharge;
+  }
+  GPUbarrier();
+
+  if (segment == 0 && pad < nPads) {
+    int32_t totalCharges = 0, maxConsecCharges = 0, consecCharges = 0;
+    Charge maxCharge = 0;
+    for (int32_t i = 0; i < NSegments; i++) {
+      const int32_t j = i * MaxNPadsPerRow + pad;
+      const int32_t length = CAMath::Min<int32_t>(CAMath::Min<int32_t>(i * segmentLength, frag.length) + segmentLength, frag.length) - CAMath::Min<int32_t>(i * segmentLength, frag.length);
+      totalCharges += smem.segments.totalCharges[j];
+      maxConsecCharges = CAMath::Max(maxConsecCharges, CAMath::Max(smem.segments.maxConsecCharges[j], consecCharges + smem.segments.firstConsecCharges[j]));
+      consecCharges = smem.segments.firstConsecCharges[j] == length ? consecCharges + length : smem.segments.lastConsecCharges[j];
+      maxCharge = CAMath::Max<Charge>(smem.segments.maxCharge[j], maxCharge);
+    }
+    updatePadBaseline(basePos.gpad + pad, clusterer, totalCharges, maxConsecCharges, maxCharge);
+  }
 #endif
 }
 

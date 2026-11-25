@@ -121,10 +121,23 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   if (GetProcessingSettings().deterministicGPUReconstruction) {
     runKernel<GPUTPCGlobalDebugSortKernels, GPUTPCGlobalDebugSortKernels::clearIds>(GetGridAuto(0, deviceType), 1);
   }
+  // Sectors only share the atomic track counter, so they can be refit concurrently, but then the sector track infos are not ordered by sector.
+  // Only the deterministic sort and the debug dumps need that order (SectorTrackInfoFirst / Last), so keep the serial order for them.
+  const uint32_t nRefitStreams = doGPU && !GetProcessingSettings().deterministicGPUReconstruction ? mRec->NStreams() : 1;
+  RecordMarker(&mEvents->single, 0);
   for (uint32_t i = 0; i < NSECTORS; i++) {
-    runKernel<GPUTPCGMMergerUnpackSaveNumber>({{1, -WarpSize(), 0, deviceType}}, i);
-    runKernel<GPUTPCGMMergerUnpackResetIds>(GetGridAuto(0, deviceType), i);
-    runKernel<GPUTPCGMMergerSectorRefit>(GetGridAuto(0, deviceType), i); // TODO: Why all in stream 0?
+    const int32_t stream = i % nRefitStreams;
+    runKernel<GPUTPCGMMergerUnpackSaveNumber>({{1, -WarpSize(), stream, deviceType}, krnlRunRangeNone, {nullptr, stream && i < nRefitStreams ? &mEvents->single : nullptr}}, i);
+    runKernel<GPUTPCGMMergerUnpackResetIds>(GetGridAuto(stream, deviceType), i);
+    runKernel<GPUTPCGMMergerSectorRefit>(GetGridAuto(stream, deviceType), i);
+  }
+  ReleaseEvent(mEvents->single);
+  if (nRefitStreams > 1) { // Stream 0 must wait for all streams before unpacking the extrapolated tracks
+    const int32_t ne = std::min<int32_t>(NSECTORS, nRefitStreams) - 1;
+    for (int32_t j = 0; j < ne; j++) {
+      RecordMarker(&mEvents->sector[j], j + 1);
+    }
+    StreamWaitForEvents(0, &mEvents->sector[0], ne);
   }
   if (GetProcessingSettings().deterministicGPUReconstruction) {
     runKernel<GPUTPCGMMergerUnpackSaveNumber>({{1, -WarpSize(), 0, deviceType}}, NSECTORS);
