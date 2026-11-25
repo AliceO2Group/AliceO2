@@ -59,6 +59,7 @@
 #include <future>
 #include <atomic>
 #include <vector>
+#include <map>
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -563,6 +564,27 @@ int32_t SetupReconstruction()
     GPUChainTracking::ApplySyncSettings(procSetAsync, recSetAsync, stepsAsync.steps, false, true, configStandalone.rundEdx);
     finalizeSteps(stepsAsync, procSetAsync);
     recAsync->SetSettings(&grp, &recSetAsync, &procSetAsync, &stepsAsync);
+  }
+
+  const auto setupTriggerOutput = [](GPUChainTracking* chain) {
+    struct TriggerOutput {
+      GPUOutputControl control;
+      std::vector<char> buffer;
+    };
+    static std::map<GPUChainTracking*, std::unique_ptr<TriggerOutput>> outputs;
+    if (chain && chain->GetRecoSteps().isSet(gpudatatypes::RecoStep::TPCTriggerHandling)) {
+      auto& out = *(outputs[chain] = std::make_unique<TriggerOutput>());
+      out.control.set([&out](size_t size) -> void* {
+        if (out.buffer.size() < size) {
+          out.buffer.resize(size);
+        }
+        return out.buffer.data();
+      });
+      chain->SetSubOutputControl(GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::tpcTriggerWords), &out.control);
+    }
+  };
+  for (GPUChainTracking* chain : {chainTracking, chainTrackingAsync, chainTrackingPipeline}) {
+    setupTriggerOutput(chain);
   }
 
   if (configStandalone.outputcontrolmem) {
