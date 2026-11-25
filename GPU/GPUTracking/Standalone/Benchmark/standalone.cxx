@@ -518,6 +518,8 @@ int32_t SetupReconstruction()
   const auto finalizeSteps = [](GPURecoStepConfiguration& stepsCfg, GPUSettingsProcessing& procCfg) {
     if (configStandalone.recoSteps >= 0) {
       stepsCfg.steps &= configStandalone.recoSteps;
+    } else {
+      stepsCfg.steps.setBits(gpudatatypes::RecoStep::TPCTriggerHandling, stepsCfg.steps.isSet(gpudatatypes::RecoStep::TPCClusterFinding));
     }
     if (configStandalone.recoStepsGPU >= 0) {
       stepsCfg.stepsGPUMask &= configStandalone.recoStepsGPU;

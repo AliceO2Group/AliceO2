@@ -233,7 +233,7 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
   if (!mSpecConfig.outputTracks) {
     mConfig->configProcessing.createO2Output = 0; // Disable O2 TPC track format output if no track output requested
   }
-  mConfig->configProcessing.param.tpcTriggerHandling = mSpecConfig.tpcTriggerHandling;
+  mConfig->configWorkflow.steps.setBits(gpudatatypes::RecoStep::TPCTriggerHandling, mSpecConfig.tpcTriggerHandling);
 
   if (mConfParam->transformationFile.size() || mConfParam->transformationSCFile.size()) {
     LOG(fatal) << "Deprecated configurable param options GPU_global.transformationFile or transformationSCFile used\n"
@@ -764,7 +764,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   setOutputAllocator("TRACKS", mSpecConfig.outputTracks, outputRegions.tpcTracksO2, std::make_tuple(gDataOriginTPC, mSpecConfig.useFilteredOutputSpecs ? (DataDescription) "TRACKSF" : (DataDescription) "TRACKS", 0));
   setOutputAllocator("CLUSREFS", mSpecConfig.outputTracks, outputRegions.tpcTracksO2ClusRefs, std::make_tuple(gDataOriginTPC, mSpecConfig.useFilteredOutputSpecs ? (DataDescription) "CLUSREFSF" : (DataDescription) "CLUSREFS", 0));
   setOutputAllocator("TRACKSMCLBL", mSpecConfig.outputTracks && mSpecConfig.processMC, outputRegions.tpcTracksO2Labels, std::make_tuple(gDataOriginTPC, mSpecConfig.useFilteredOutputSpecs ? (DataDescription) "TRACKSMCLBLF" : (DataDescription) "TRACKSMCLBL", 0));
-  setOutputAllocator("TRIGGERWORDS", mSpecConfig.caClusterer && mConfig->configProcessing.param.tpcTriggerHandling, outputRegions.tpcTriggerWords, std::make_tuple(gDataOriginTPC, (DataDescription) "TRIGGERWORDS", 0));
+  setOutputAllocator("TRIGGERWORDS", mSpecConfig.caClusterer && mConfig->configWorkflow.steps.isSet(gpudatatypes::RecoStep::TPCTriggerHandling), outputRegions.tpcTriggerWords, std::make_tuple(gDataOriginTPC, (DataDescription) "TRIGGERWORDS", 0));
   o2::tpc::ClusterNativeHelper::ConstMCLabelContainerViewWithBuffer clustersMCBuffer;
   if (mSpecConfig.processMC && (mSpecConfig.caClusterer || mSpecConfig.useFilteredOutputSpecs)) {
     outputRegions.clusterLabels.allocator = [&clustersMCBuffer](size_t size) -> void* { return &clustersMCBuffer; };
