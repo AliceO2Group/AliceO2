@@ -17,6 +17,7 @@
 #include "Framework/Traits.h"
 
 #include <gsl/gsl>
+#include <span>
 
 namespace o2::framework
 {
@@ -59,6 +60,9 @@ struct is_messageable : std::conditional<(std::is_trivially_copyable<T>::value |
 // needs investigation
 template <typename T>
 struct is_messageable<gsl::span<T>> : std::false_type {
+};
+template <typename T>
+struct is_messageable<std::span<T>> : std::false_type {
 };
 
 // Detect a container by checking on the container properties
@@ -107,7 +111,7 @@ template <typename T, typename _ = void>
 struct is_span : std::false_type {
 };
 template <typename T>
-struct is_span<T, std::conditional_t<false, typename T::value_type, void>> : std::is_same<gsl::span<typename T::value_type>, T> {
+struct is_span<T, std::conditional_t<false, typename T::value_type, void>> : std::bool_constant<std::is_same_v<gsl::span<typename T::value_type>, T> || std::is_same_v<std::span<typename T::value_type>, T>> {
 };
 
 // Detect whether a class has a ROOT dictionary

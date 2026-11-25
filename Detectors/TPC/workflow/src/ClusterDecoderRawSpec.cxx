@@ -111,7 +111,7 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
       std::vector<ConstMCLabelContainerView> mcinCopiesFlatView;
       ConstMCLabelContainerView mcin;
       if (DataRefUtils::isValid(mclabelref)) {
-        mcin = pc.inputs().get<gsl::span<char>>(mclabelref);
+        mcin = pc.inputs().get<std::span<char>>(mclabelref);
         mcinCopiesFlat.resize(nPages);
         mcinCopiesFlatView.reserve(nPages);
         if (verbosity > 0) {

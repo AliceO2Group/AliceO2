@@ -136,7 +136,7 @@ void paginate(o2::raw::RawFileWriter& rawFileWriter,
     filled[o2::InteractionRecord{h.bc, h.orbit}].insert(li.value());
     rawFileWriter.addData(rdhFromLinkInfo(li.value()),
                           {h.bc, h.orbit},
-                          gsl::span<char>(const_cast<char*>(reinterpret_cast<const char*>(&b.payload[0])),
+                          std::span<char>(const_cast<char*>(reinterpret_cast<const char*>(&b.payload[0])),
                                           b.payload.size()));
   }
 

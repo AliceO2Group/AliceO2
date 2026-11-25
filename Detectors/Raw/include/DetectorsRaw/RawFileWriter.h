@@ -17,6 +17,7 @@
 /// @brief  Utility class to write detectors data to (multiple) raw data file(s) respecting CRU format
 
 #include <gsl/span>
+#include <span>
 #include <unordered_map>
 #include <vector>
 #include <map>
@@ -205,10 +206,10 @@ class RawFileWriter
   }
 
   void addData(uint16_t feeid, uint16_t cru, uint8_t lnk, uint8_t endpoint, const IR& ir,
-               const gsl::span<char> data, bool preformatted = false, uint32_t trigger = 0, uint32_t detField = 0);
+               const std::span<char> data, bool preformatted = false, uint32_t trigger = 0, uint32_t detField = 0);
 
   template <typename H>
-  void addData(const H& rdh, const IR& ir, const gsl::span<char> data, bool preformatted = false, uint32_t trigger = 0)
+  void addData(const H& rdh, const IR& ir, const std::span<char> data, bool preformatted = false, uint32_t trigger = 0)
   {
     RDHAny::sanityCheckLoose<H>();
     addData(RDHUtils::getFEEID(rdh), RDHUtils::getCRUID(rdh), RDHUtils::getLinkID(rdh), RDHUtils::getEndPointID(rdh), ir, data, trigger);

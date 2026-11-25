@@ -89,7 +89,7 @@ DataProcessorSpec getClustererSpec(bool sendMC)
       }
       ConstMCLabelContainerView inMCLabels;
       if (DataRefUtils::isValid(mclabelref)) {
-        inMCLabels = pc.inputs().get<gsl::span<char>>(mclabelref);
+        inMCLabels = pc.inputs().get<std::span<char>>(mclabelref);
       }
       auto inDigits = pc.inputs().get<gsl::span<o2::tpc::Digit>>(dataref);
       if (verbosity > 0 && inMCLabels.getBuffer().size()) {

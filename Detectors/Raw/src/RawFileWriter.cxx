@@ -177,7 +177,7 @@ RawFileWriter::LinkData& RawFileWriter::registerLink(uint16_t fee, uint16_t cru,
 }
 
 //_____________________________________________________________________
-void RawFileWriter::addData(uint16_t feeid, uint16_t cru, uint8_t lnk, uint8_t endpoint, const IR& ir, const gsl::span<char> data, bool preformatted, uint32_t trigger, uint32_t detField)
+void RawFileWriter::addData(uint16_t feeid, uint16_t cru, uint8_t lnk, uint8_t endpoint, const IR& ir, const std::span<char> data, bool preformatted, uint32_t trigger, uint32_t detField)
 {
   // add payload to relevant links
   auto sspec = RDHUtils::getSubSpec(cru, lnk, endpoint, feeid);

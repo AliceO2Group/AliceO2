@@ -114,7 +114,7 @@ bool Encoder::flush(int icrate)
   if (nbyte) {
     if (mCrateOn[icrate]) {
       //printf("flush crate %d -- byte = %d -- orbit = %d, bc = %d\n",icrate, nbyte, mIR.orbit, mIR.bc);
-      mFileWriter.addData(Geo::getFEEid(icrate), Geo::getCRUid(icrate), Geo::getCRUlink(icrate), Geo::getCRUendpoint(icrate), mIR, gsl::span(mBuffer[icrate], nbyte));
+      mFileWriter.addData(Geo::getFEEid(icrate), Geo::getCRUid(icrate), Geo::getCRUlink(icrate), Geo::getCRUendpoint(icrate), mIR, std::span(mBuffer[icrate], nbyte));
     }
     mIntegratedAllBytes += nbyte;
   }
