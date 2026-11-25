@@ -21,9 +21,11 @@
 #include "TGeoManager.h"
 #include "Framework/Logger.h"
 #include "TRKBase/GeometryTGeo.h"
+#include "TRKBase/TRKBaseParam.h"
 #include "TRKSimulation/VDLayer.h"
 #include "TRKSimulation/VDSensorRegistry.h"
 #include <algorithm>
+#include <array>
 #include <cmath>
 
 namespace o2::trk
@@ -43,6 +45,10 @@ static inline std::string makeSensorName(const std::string& layerName, int layer
 {
   return Form("%s_%s%d", layerName.c_str(), o2::trk::GeometryTGeo::getTRKSensorPattern(), layerNumber);
 }
+
+// Placement of petal petalID in the mother volume (closed or open, see TRKBase.irisOpenFraction).
+// A non-null name registers the matrix so it can be used in composite-shape formulas.
+static TGeoCombiTrans* makePetalPlacement(int nPetals, int petalID, const char* name = nullptr);
 
 namespace
 {
@@ -204,15 +210,10 @@ inline void buildIrisCutoutFromPetalSolid(int nPetals)
     return;
   }
 
-  // nPetals > 1: build union of rotated copies
+  // nPetals > 1: build union of the petal copies, placed exactly like the petal volumes
   TString cutFormula;
   for (int p = 0; p < nPetals; ++p) {
-    const double phi = (360.0 / nPetals) * (p + 0.5);
-    auto* R = new TGeoRotation();
-    R->RotateZ(phi);
-    auto* RT = new TGeoCombiTrans(0, 0, 0, R);
-    RT->SetName(Form("IRIS_PETAL_ROT_%d", p));
-    RT->RegisterYourself();
+    auto* RT = makePetalPlacement(nPetals, p, Form("IRIS_PETAL_ROT_%d", p));
 
     if (p) {
       cutFormula += "+";
@@ -257,9 +258,17 @@ static const double diskZ_cm[6] = {-34.0f, -30.0f, -26.0f, 26.0f, 30.0f, 34.0f};
 static constexpr double kPetalZ_cm = 70.0f;          // full wall height
 static constexpr double kWallThick_cm = 0.02f;       // 0.2 mm
 static constexpr double kInnerWallRadius_cm = 0.48f; // 4.8 mm (ALWAYS cylindrical)
-static constexpr double kOuterWallRadius_cm = 4.8f;  // 48 mm (can be changed)
+static constexpr double kOuterWallRadius_cm = 4.8f;  // 48 mm (can be changed), full-cylinder layouts
+// Petal layouts: outer wall small enough that the petals can slide open to a 15 mm beam aperture inside the beam pipe.
+// 3 petals have to slide further than 4 (the open hole is a triangle, not a square), so their outer wall is smaller.
+static constexpr double kPetalOuterWallRadius_cm = 3.81;  // 38.1 mm, IRIS4, IRIS5 (4 petals)
+static constexpr double kPetal3OuterWallRadius_cm = 2.70; // 27.0 mm, IRIS4a (3 petals)
+static constexpr double petalOuterWallRadius(int nPetals) { return nPetals == 3 ? kPetal3OuterWallRadius_cm : kPetalOuterWallRadius_cm; }
 static constexpr double kEps_cm = 2.5e-4f;
 static constexpr double kEps_100um = 0.01f; // 100 microns in cm
+
+// Open IRIS (injection) specs (cm)
+static constexpr double kBeamPipeRIn_cm = 5.6; // keep in sync with TRKServices::createVacuumCompositeShape()
 
 // 3 inclined walls ("walls") specs for the full-cylinder option
 // Thickness in-plane (cm). This is the short half-dimension of the TGeoBBox in XY.
@@ -590,7 +599,8 @@ static void addIRISServiceModules(TGeoVolume* petalAsm, int nPetals)
 }
 
 //     Only the A-side "inside vacuum" piece participates in the cutout.
-static void addIRISServiceModulesSegmented(TGeoVolume* petalAsm, int nPetals)
+// rOutMax: the service sectors are moved inwards if needed so that they do not reach beyond the petal outer wall
+[[maybe_unused]] static void addIRISServiceModulesSegmented(TGeoVolume* petalAsm, int nPetals, double rOutMax = 1e9)
 {
   if (!petalAsm) {
     LOGP(error, "addIRISServiceModulesSegmented: petalAsm is null");
@@ -598,9 +608,9 @@ static void addIRISServiceModulesSegmented(TGeoVolume* petalAsm, int nPetals)
   }
 
   // --- Service geometry (same as your previous values)
-  constexpr double rIn = 3.2;         // cm
-  constexpr double thickness = 0.133; // cm
-  constexpr double rOut = rIn + thickness;
+  constexpr double thickness = 0.133;                     // cm
+  const double rOut = std::min(3.2 + thickness, rOutMax); // cm, 3.333 unless limited by the petal
+  const double rIn = rOut - thickness;
   constexpr double halfLen = 19.5;      // cm
   constexpr double z0 = 36.0 + halfLen; // 55.5 cm center of +Z service
   const double zMinA = z0 - halfLen;    // 36.0 cm
@@ -760,7 +770,7 @@ static TGeoVolume* buildPetalAssembly(int nPetals,
   auto* petalAsm = new TGeoVolumeAssembly(Form("PETAL_%d", petalID));
 
   // In the special mode: no side walls, but keep radial walls as FULL cylinders.
-  addPetalWalls(petalAsm, nPetals, kOuterWallRadius_cm,
+  addPetalWalls(petalAsm, nPetals, petalOuterWallRadius(nPetals),
                 /*withSideWalls=*/withSideWalls,
                 /*fullCylindricalRadialWalls=*/fullCylinders);
 
@@ -768,7 +778,8 @@ static TGeoVolume* buildPetalAssembly(int nPetals,
   // addDisks(petalAsm, nPetals, petalID, fullCylinders); // disks removed according to the v3b layout
 
   addColdPlate(petalAsm, nPetals, petalID, /*fullCylinders=*/false);
-  addIRISServiceModulesSegmented(petalAsm, nPetals);
+  // IRIS services are not built for now (the A-side piece outside the vacuum would reach into the A-side beam pipe when the IRIS4a petals open)
+  // addIRISServiceModulesSegmented(petalAsm, nPetals, petalOuterWallRadius(nPetals) + kWallThick_cm);
 
   return petalAsm;
 }
@@ -809,7 +820,7 @@ static TGeoVolume* buildFullCylAssembly(int petalID, bool withDisks)
                   /*fullCylinders=*/true);
 
   addColdPlate(petalAsm, 1, petalID, /*fullCylinders=*/true);
-  addIRISServiceModulesSegmented(petalAsm, /*nPetals=*/1);
+  // addIRISServiceModulesSegmented(petalAsm, /*nPetals=*/1); // IRIS services are not built for now
 
   // Optionally add full 360° disks
   if (withDisks) {
@@ -974,6 +985,127 @@ static void addInclinedWalls3FullCyl(TGeoVolume* petalAsm, double phi0_deg = kIn
   }
 }
 
+// =================== Open IRIS (injection) ===================
+
+// The petals open like the real IRIS: each petal slides, without rotating, perpendicular to its bisector
+// (counter-clockwise seen from +z). Neighbouring petals slide along their shared edge, so the gap between
+// them never changes, and the petal edges form a regular n-gon around the beam.
+
+// Outline of one petal case in its local frame (bisector along +x): inner and outer wall arcs, and the
+// faces of the two side walls, which straddle the petal edges at +-180/n deg
+static std::vector<std::array<double, 2>> petalOutline(int nPetals)
+{
+  constexpr int nPts = 400;
+  const double hp = TMath::Pi() / nPetals, h = 0.5 * kWallThick_cm;
+  const double rWall = petalOuterWallRadius(nPetals);
+  const double rOut = rWall + kWallThick_cm;
+  std::vector<std::array<double, 2>> pts;
+  for (int i = 0; i <= nPts; ++i) {
+    const double phi = -hp + 2. * hp * i / nPts;
+    pts.push_back({kInnerWallRadius_cm * std::cos(phi), kInnerWallRadius_cm * std::sin(phi)});
+    pts.push_back({rOut * std::cos(phi), rOut * std::sin(phi)});
+  }
+  for (int sgn : {-1, +1}) {
+    const double ux = std::cos(sgn * hp), uy = std::sin(sgn * hp);
+    for (int i = 0; i <= nPts; ++i) {
+      const double r = kInnerWallRadius_cm + kWallThick_cm + (rWall - kInnerWallRadius_cm - kWallThick_cm) * i / nPts;
+      for (double off : {-h, h}) {
+        pts.push_back({r * ux - off * uy, r * uy + off * ux});
+      }
+    }
+  }
+  return pts;
+}
+
+struct IrisOpening {
+  double fullSlide; // cm, slide of each petal perpendicular to its bisector when fully open
+  double slide;     // cm, slide applied: irisOpenFraction * fullSlide
+  double aperture;  // cm, smallest distance from the beam axis to the petals
+  double envelope;  // cm, largest distance from the beam axis to the petals
+};
+
+static IrisOpening irisOpening(int nPetals)
+{
+  const auto& pars = TRKBaseParam::Instance();
+  const auto outline = petalOutline(nPetals);
+  auto extent = [&](double slide) {
+    IrisOpening o{slide, slide, 1e9, 0.};
+    for (const auto& p : outline) {
+      const double r = std::hypot(p[0], p[1] + slide);
+      o.aperture = std::min(o.aperture, r);
+      o.envelope = std::max(o.envelope, r);
+    }
+    return o;
+  };
+  // largest slide for which belowLimit(slide) holds (it holds from 0 up to a threshold)
+  auto solve = [](auto belowLimit) {
+    double lo = 0., hi = kBeamPipeRIn_cm;
+    for (int i = 0; i < 50; ++i) {
+      const double m = 0.5 * (lo + hi);
+      if (belowLimit(m)) {
+        lo = m;
+      } else {
+        hi = m;
+      }
+    }
+    return lo;
+  };
+  // slide until the required aperture is reached, but stop before the petals come closer than the margin to the beam pipe
+  const double rLimit = kBeamPipeRIn_cm - pars.irisOpenBeamPipeMargin;
+  const double toAperture = solve([&](double s) { return extent(s).aperture < pars.irisOpenAperture; });
+  const double toBeamPipe = solve([&](double s) { return extent(s).envelope <= rLimit; });
+  // partial opening: the same slide direction, scaled down (the envelope never exceeds the fully open one)
+  const double fullSlide = std::min(toAperture, toBeamPipe);
+  auto o = extent(std::clamp(double(pars.irisOpenFraction), 0., 1.) * fullSlide);
+  o.fullSlide = fullSlide;
+  return o;
+}
+
+// Closed: petal p is rotated by (p+0.5)*360/n about the beam axis.
+// Open: the same rotation, plus the slide perpendicular to the petal bisector.
+static TGeoCombiTrans* makePetalPlacement(int nPetals, int petalID, const char* name)
+{
+  const auto& pars = TRKBaseParam::Instance();
+  const double phiDeg = (360.0 / double(nPetals)) * (double(petalID) + 0.5);
+  const double phi = phiDeg * TMath::DegToRad();
+  const double slide = pars.irisOpenFraction > 0.f ? irisOpening(nPetals).slide : 0.;
+  auto* R = new TGeoRotation();
+  R->RotateZ(phiDeg);
+  auto* T = new TGeoCombiTrans(-slide * std::sin(phi), slide * std::cos(phi), 0., R);
+  if (name) {
+    T->SetName(name);
+    T->RegisterYourself();
+  }
+  return T;
+}
+
+static void logIrisState(int nPetals)
+{
+  const auto& pars = TRKBaseParam::Instance();
+  if (pars.irisOpenFraction < 0.f || pars.irisOpenFraction > 1.f) {
+    LOGP(fatal, "IRIS: TRKBase.irisOpenFraction={} must be between 0 (closed) and 1 (fully open)", pars.irisOpenFraction);
+  }
+  if (pars.irisOpenFraction == 0.f) {
+    LOGP(info, "IRIS closed: {} petals", nPetals);
+    return;
+  }
+  const auto o = irisOpening(nPetals);
+  if (o.envelope > kBeamPipeRIn_cm - pars.irisOpenBeamPipeMargin) {
+    LOGP(fatal, "IRIS open: petals (outer wall r={:.3f} cm) do not fit in the beam pipe (r={:.3f} cm) with margin {:.3f} cm",
+         petalOuterWallRadius(nPetals) + kWallThick_cm, kBeamPipeRIn_cm, pars.irisOpenBeamPipeMargin);
+  }
+  LOGP(info, "IRIS open at {:.0f}%: {} petals slid by {:.3f} cm (fully open {:.3f} cm), beam aperture r={:.3f} cm, petal envelope r={:.3f} cm, clearance to beam pipe {:.3f} cm",
+       100. * pars.irisOpenFraction, nPetals, o.slide, o.fullSlide, o.aperture, o.envelope, kBeamPipeRIn_cm - o.envelope);
+  if (pars.irisOpenFraction < 1.f && o.aperture < kInnerWallRadius_cm) {
+    LOGP(warning, "IRIS open at {:.0f}%: beam aperture r={:.3f} cm is smaller than with the IRIS closed ({:.3f} cm), the petal corners pass close to the beam axis while sliding",
+         100. * pars.irisOpenFraction, o.aperture, kInnerWallRadius_cm);
+  }
+  if (pars.irisOpenFraction >= 1.f && o.aperture < pars.irisOpenAperture - 1e-4) {
+    LOGP(warning, "IRIS open: beam aperture r={:.3f} cm is below the requested {:.3f} cm; the petals reach the beam pipe margin first (petal outer wall r={:.3f} cm, beam pipe r={:.3f} cm)",
+         o.aperture, pars.irisOpenAperture, petalOuterWallRadius(nPetals) + kWallThick_cm, kBeamPipeRIn_cm);
+  }
+}
+
 // =================== Public entry points ===================
 
 void createIRIS4Geometry(TGeoVolume* motherVolume)
@@ -986,6 +1118,7 @@ void createIRIS4Geometry(TGeoVolume* motherVolume)
   clearVDSensorRegistry();
 
   constexpr int nPetals = 4;
+  logIrisState(nPetals);
   for (int p = 0; p < nPetals; ++p) {
     auto* petal = buildPetalAssembly(nPetals, p, /*rectangularL0*/ false,
                                      /*fullCylinders=*/false,
@@ -994,11 +1127,7 @@ void createIRIS4Geometry(TGeoVolume* motherVolume)
     if (p == 0) {
       buildPetalSolidsComposite(petal); // <-- captures only SOLIDS in local coords
     }
-    const double phiDeg = (360.0 / double(nPetals)) * (double(p) + 0.5);
-    auto* R = new TGeoRotation();
-    R->RotateZ(phiDeg);
-    auto* T = new TGeoCombiTrans(0, 0, 0, R);
-    motherVolume->AddNode(petal, p + 1, T);
+    motherVolume->AddNode(petal, p + 1, makePetalPlacement(nPetals, p));
   }
   buildIrisCutoutFromPetalSolid(nPetals);
 }
@@ -1013,6 +1142,7 @@ void createIRIS5Geometry(TGeoVolume* motherVolume)
   clearVDSensorRegistry();
 
   constexpr int nPetals = 4;
+  logIrisState(nPetals);
   for (int p = 0; p < nPetals; ++p) {
     auto* petal = buildPetalAssembly(nPetals, p, /*rectangularL0*/ true,
                                      /*fullCylinders=*/false,
@@ -1021,11 +1151,7 @@ void createIRIS5Geometry(TGeoVolume* motherVolume)
     if (p == 0) {
       buildPetalSolidsComposite(petal); // <-- captures only SOLIDS in local coords
     }
-    const double phiDeg = (360.0 / double(nPetals)) * (double(p) + 0.5);
-    auto* R = new TGeoRotation();
-    R->RotateZ(phiDeg);
-    auto* T = new TGeoCombiTrans(0, 0, 0, R);
-    motherVolume->AddNode(petal, p + 1, T);
+    motherVolume->AddNode(petal, p + 1, makePetalPlacement(nPetals, p));
   }
   buildIrisCutoutFromPetalSolid(nPetals);
 }
@@ -1040,6 +1166,7 @@ void createIRIS4aGeometry(TGeoVolume* motherVolume)
   clearVDSensorRegistry();
 
   constexpr int nPetals = 3;
+  logIrisState(nPetals);
   for (int p = 0; p < nPetals; ++p) {
     auto* petal = buildPetalAssembly(nPetals, p, /*rectangularL0*/ false,
                                      /*fullCylinders=*/false,
@@ -1048,11 +1175,7 @@ void createIRIS4aGeometry(TGeoVolume* motherVolume)
     if (p == 0) {
       buildPetalSolidsComposite(petal); // <-- captures only SOLIDS in local coords
     }
-    const double phiDeg = (360.0 / double(nPetals)) * (double(p) + 0.5);
-    auto* R = new TGeoRotation();
-    R->RotateZ(phiDeg);
-    auto* T = new TGeoCombiTrans(0, 0, 0, R);
-    motherVolume->AddNode(petal, p + 1, T);
+    motherVolume->AddNode(petal, p + 1, makePetalPlacement(nPetals, p));
   }
   buildIrisCutoutFromPetalSolid(nPetals);
 }

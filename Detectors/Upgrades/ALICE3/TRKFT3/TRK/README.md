@@ -15,6 +15,9 @@ Configurables for various sub-detectors are presented in the following Table:
 | Subsystem          | Available options                                       | Comments                                                         |
 | ------------------ | ------------------------------------------------------- | ---------------------------------------------------------------- |
 | `TRKBase.layoutVD` | `kIRIS4` (default), `kIRISFullCyl`, `kIRIS5`, `kIRIS4a` | [link to definitions](./base/include/TRKBase/TRKBaseParam.h) |
+| `TRKBase.irisOpenFraction` | `0` (default, closed) to `1` (fully open) | IRIS opening (injection position), petal layouts `kIRIS4`, `kIRIS5`, `kIRIS4a` only. As in the real IRIS, each petal slides without rotating, perpendicular to its bisector (counter-clockwise seen from +z), along the edge it shares with its neighbour. The full slide is the one that opens the beam aperture to `irisOpenAperture`, stopped earlier if the petals come within `irisOpenBeamPipeMargin` of the beam pipe (r = 5.6 cm); the petals slide this fraction of it, e.g. `0.25`, `0.5`, `0.75`, `1`. The slide and the resulting aperture are printed in the log |
+| `TRKBase.irisOpenAperture` | radius in cm (default `1.5`) | beam aperture the petals slide open to when fully open |
+| `TRKBase.irisOpenBeamPipeMargin` | clearance in cm (default `0.05`) | gap kept between the open petals and the beam pipe |
 | `TRKBase.layoutMLOT` | `kCylindrical`, `kSegmented` (default), `kSimplifiedRealistic` | `kCylindrical`: simple silicon tubes. `kSegmented`: Turbo ML + solid-module OT. `kSimplifiedRealistic`: same ML as `kSegmented`, but a detailed OT barrel (see below) |
 | `TRKBase.layoutSRV` | `kPeacockv1` (default), `kLOISymm` | `kLOISymm` produces radially symmetric service volumes, as used in the LoI |
 | `TRKBase.otBarrelWallThickness` | thickness in cm (default `0.2`) | Carbon fibre separation walls of the OT quarter barrels — side panels and mid-rapidity disks (`kPeacockv1` + `kSimplifiedRealistic`); `0` disables them. Does not cover the load-bearing outer shell (4 mm) |
@@ -28,6 +31,13 @@ For example, a geometry with fully cylindrical tracker barrel (for all layers in
 o2-sim-serial-run5 -n 1 -g pythia8hi -m A3IP TRK TF3 \
   --configKeyValues "TRKBase.layoutVD=kIRISFullCyl;TRKBase.layoutMLOT=kCylindrical"
 ```
+
+and the IRIS4 vertex detector in the open position (injection) with
+```bash
+o2-sim-serial-run5 -n 1 -g pythia8hi -m A3IP TRK TF3 \
+  --configKeyValues "TRKBase.layoutVD=kIRIS4;TRKBase.irisOpenFraction=1"
+```
+and half open with `"TRKBase.layoutVD=kIRIS4;TRKBase.irisOpenFraction=0.5"`.
 
 ## Custom Geometry Configuration
 

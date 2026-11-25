@@ -417,6 +417,10 @@ void Detector::createGeometry()
 
   o2::trk::clearVDSensorRegistry();
 
+  if (trkPars.irisOpenFraction > 0.f && (trkPars.layoutVD == kIRISFullCyl || trkPars.layoutVD == kIRISFullCyl3InclinedWalls)) {
+    LOG(fatal) << "TRKBase.irisOpenFraction > 0 (open IRIS) is only available for the petal layouts (kIRIS4, kIRIS5, kIRIS4a), not for layout " << static_cast<int>(trkPars.layoutVD);
+  }
+
   switch (trkPars.layoutVD) {
     case kIRIS4:
       LOG(info) << "Building VD with IRIS4 layout";
