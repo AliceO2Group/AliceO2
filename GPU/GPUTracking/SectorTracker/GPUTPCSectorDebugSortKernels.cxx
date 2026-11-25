@@ -107,4 +107,14 @@ GPUdii() void GPUTPCSectorDebugSortKernels::Thread<GPUTPCSectorDebugSortKernels:
   };
   GPUCommonAlgorithm::sortDeviceDynamic(tracker.Tracks(), tracker.Tracks() + tracker.CommonMemory()->nLocalTracks, sorter);
   GPUCommonAlgorithm::sortDeviceDynamic(tracker.Tracks() + tracker.CommonMemory()->nLocalTracks, tracker.Tracks() + *tracker.NTracks(), sorter);
+
+  for (int32_t r = 0; r < tracker.CommonMemory()->nLocalTracks; r++) {
+    tracker.DebugSortedIndex()[tracker.Tracks()[r].LocalTrackId()] = r;
+  }
+  for (uint32_t localTrackId = 0; localTrackId < *tracker.NExtrapolationCandidatesRight(); ++localTrackId) {
+    tracker.ExtrapolationCandidatesRight()[localTrackId] = tracker.DebugSortedIndex()[tracker.ExtrapolationCandidatesRight()[localTrackId]];
+  }
+  for (uint32_t localTrackId = 0; localTrackId < *tracker.NExtrapolationCandidatesLeft(); ++localTrackId) {
+    tracker.ExtrapolationCandidatesLeft()[localTrackId] = tracker.DebugSortedIndex()[tracker.ExtrapolationCandidatesLeft()[localTrackId]];
+  }
 }

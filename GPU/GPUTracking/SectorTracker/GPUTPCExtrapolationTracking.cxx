@@ -120,40 +120,25 @@ GPUd() int32_t GPUTPCExtrapolationTracking::PerformExtrapolationTrackingRun(GPUT
 
 GPUd() void GPUTPCExtrapolationTracking::PerformExtrapolationTracking(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, const GPUTPCTracker& tracker, GPUsharedref() GPUSharedMemory& smem, GPUTPCTracker& GPUrestrict() sectorTarget, bool right)
 {
-  for (int32_t i = iBlock * nThreads + iThread; i < tracker.CommonMemory()->nLocalTracks; i += nThreads * nBlocks) {
-    {
-      const int32_t tmpHit = tracker.Tracks()[i].FirstHitID();
-      if (tracker.TrackHits()[tmpHit].RowIndex() >= tracker.Param().rec.tpc.extrapolationTrackingMinRows && tracker.TrackHits()[tmpHit].RowIndex() < tracker.Param().rec.tpc.extrapolationTrackingRowRange) {
-        int32_t rowIndex = tracker.TrackHits()[tmpHit].RowIndex();
-        const GPUTPCRow& GPUrestrict() row = tracker.Row(rowIndex);
-        float Y = (float)tracker.Data().HitDataY(row, tracker.TrackHits()[tmpHit].HitIndex()) * row.HstepY() + row.Grid().YMin();
-        if (!right && Y < -row.MaxY() * tracker.Param().rec.tpc.extrapolationTrackingYRangeLower) {
-          // GPUInfo("Track %d, lower row %d, left border (%f of %f)", i, mTrackHits[tmpHit].RowIndex(), Y, -row.MaxY());
-          PerformExtrapolationTrackingRun(sectorTarget, smem, tracker, i, rowIndex, -tracker.Param().dAlpha, -1);
-        }
-        if (right && Y > row.MaxY() * tracker.Param().rec.tpc.extrapolationTrackingYRangeLower) {
-          // GPUInfo("Track %d, lower row %d, right border (%f of %f)", i, mTrackHits[tmpHit].RowIndex(), Y, row.MaxY());
-          PerformExtrapolationTrackingRun(sectorTarget, smem, tracker, i, rowIndex, tracker.Param().dAlpha, -1);
-        }
-      }
-    }
+  uint32_t nExtrapolationCandidates;
+  int32_t* extrapolationCandidates;
+  int32_t* direction;
 
-    {
-      const int32_t tmpHit = tracker.Tracks()[i].FirstHitID() + tracker.Tracks()[i].NHits() - 1;
-      if (tracker.TrackHits()[tmpHit].RowIndex() < GPUTPCGeometry::NROWS - tracker.Param().rec.tpc.extrapolationTrackingMinRows && tracker.TrackHits()[tmpHit].RowIndex() >= GPUTPCGeometry::NROWS - tracker.Param().rec.tpc.extrapolationTrackingRowRange) {
-        int32_t rowIndex = tracker.TrackHits()[tmpHit].RowIndex();
-        const GPUTPCRow& GPUrestrict() row = tracker.Row(rowIndex);
-        float Y = (float)tracker.Data().HitDataY(row, tracker.TrackHits()[tmpHit].HitIndex()) * row.HstepY() + row.Grid().YMin();
-        if (!right && Y < -row.MaxY() * tracker.Param().rec.tpc.extrapolationTrackingYRangeUpper) {
-          // GPUInfo("Track %d, upper row %d, left border (%f of %f)", i, mTrackHits[tmpHit].RowIndex(), Y, -row.MaxY());
-          PerformExtrapolationTrackingRun(sectorTarget, smem, tracker, i, rowIndex, -tracker.Param().dAlpha, 1);
-        }
-        if (right && Y > row.MaxY() * tracker.Param().rec.tpc.extrapolationTrackingYRangeUpper) {
-          // GPUInfo("Track %d, upper row %d, right border (%f of %f)", i, mTrackHits[tmpHit].RowIndex(), Y, row.MaxY());
-          PerformExtrapolationTrackingRun(sectorTarget, smem, tracker, i, rowIndex, tracker.Param().dAlpha, 1);
-        }
-      }
-    }
+  if (right) {
+    nExtrapolationCandidates = *tracker.NExtrapolationCandidatesRight();
+    extrapolationCandidates = tracker.ExtrapolationCandidatesRight();
+    direction = tracker.ExtrapolationCandidatesRightDirection();
+  } else {
+    nExtrapolationCandidates = *tracker.NExtrapolationCandidatesLeft();
+    extrapolationCandidates = tracker.ExtrapolationCandidatesLeft();
+    direction = tracker.ExtrapolationCandidatesLeftDirection();
+  }
+
+  for (uint32_t i = iBlock * nThreads + iThread; i < nExtrapolationCandidates; i += nThreads * nBlocks) {
+    const int32_t localTrackId = extrapolationCandidates[i];
+    int32_t rowIndex = tracker.TrackHits()[tracker.Tracks()[localTrackId].FirstHitID() + (direction[i] == 1 ? tracker.Tracks()[localTrackId].NHits() - 1 : 0)].RowIndex();
+    float dAlpha = (right ? 1.0f : -1.0f) * tracker.Param().dAlpha;
+    PerformExtrapolationTrackingRun(sectorTarget, smem, tracker, localTrackId, rowIndex, dAlpha, direction[i]);
   }
 }
 

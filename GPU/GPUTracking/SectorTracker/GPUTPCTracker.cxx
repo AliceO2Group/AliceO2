@@ -120,6 +120,13 @@ GPUhd() void* GPUTPCTracker::SetPointersOutput(void* mem)
 {
   computePointerWithAlignment(mem, mTracks, mNMaxTracks);
   computePointerWithAlignment(mem, mTrackHits, mNMaxTrackHits);
+  if (mRec->GetProcessingSettings().deterministicGPUReconstruction) {
+    computePointerWithAlignment(mem, mDebugSortedIndex, mNMaxTracks);
+  }
+  computePointerWithAlignment(mem, mExtrapolationCandidatesLeft, 2 * mNMaxTracks);
+  computePointerWithAlignment(mem, mExtrapolationCandidatesRight, 2 * mNMaxTracks);
+  computePointerWithAlignment(mem, mExtrapolationCandidatesLeftDirection, 2 * mNMaxTracks);
+  computePointerWithAlignment(mem, mExtrapolationCandidatesRightDirection, 2 * mNMaxTracks);
   return mem;
 }
 
