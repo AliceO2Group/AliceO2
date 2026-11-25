@@ -411,9 +411,9 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, GPUTPC
             revert = true;
             break;
           }
-          const float time = merger.GetConstantMem()->ioPtrs.clustersNative ? cl.getTime() : -1.f; // TODO: When is it possible that we do not have clusterNative?
-          const float invSqrtCharge = merger.GetConstantMem()->ioPtrs.clustersNative ? CAMath::InvSqrt(cl.qMax) : 0.f;
-          const float invCharge = merger.GetConstantMem()->ioPtrs.clustersNative ? (1.f / cl.qMax) : 0.f;
+          const float time = cl.getTime();
+          const float invSqrtCharge = CAMath::InvSqrt(cl.qMax);
+          const float invCharge = 1.f / cl.qMax;
           float invAvgCharge = (sumInvSqrtCharge += invSqrtCharge) / ++nAvgCharge;
           invAvgCharge *= invAvgCharge;
           const uint8_t clusterState = cl.getFlags();
@@ -607,9 +607,10 @@ GPUdii() int32_t GPUTPCGMTrackParam::FitHit(GPUTPCGMMerger& GPUrestrict() merger
     }
   } else {
     float err2Y, err2Z;
-    const float time = merger.GetConstantMem()->ioPtrs.clustersNative ? merger.GetConstantMem()->ioPtrs.clustersNative->clustersLinear[cluster.num].getTime() : -1.f;
-    const float invSqrtCharge = merger.GetConstantMem()->ioPtrs.clustersNative ? CAMath::InvSqrt(merger.GetConstantMem()->ioPtrs.clustersNative->clustersLinear[cluster.num].qMax) : 0.f;
-    const float invCharge = merger.GetConstantMem()->ioPtrs.clustersNative ? (1.f / merger.GetConstantMem()->ioPtrs.clustersNative->clustersLinear[cluster.num].qMax) : 0.f;
+    const ClusterNative& GPUrestrict() cl = merger.GetConstantMem()->ioPtrs.clustersNative->clustersLinear[cluster.num];
+    const float time = cl.getTime();
+    const float invSqrtCharge = CAMath::InvSqrt(cl.qMax);
+    const float invCharge = 1.f / cl.qMax;
     float invAvgCharge = (sumInvSqrtCharge += invSqrtCharge) / ++nAvgCharge;
     invAvgCharge *= invAvgCharge;
 
