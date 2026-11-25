@@ -130,11 +130,11 @@ class GPUTPCGMSectorTrack
   float mTOffset;                   // Z offset with early transform, T offset otherwise
   float mAlpha;                     // alpha angle
   float mClusterT[2];               // Minimum maximum cluster T
-  int32_t mNClusters;               // N clusters
   int32_t mNeighbour[2];            //
   int32_t mSegmentNeighbour[2];     //
   int32_t mLocalTrackId;            // Corrected local track id in terms of GMSectorTracks array for extrapolated tracks, UNDEFINED for local tracks!
   int32_t mExtrapolatedTrackIds[2]; // IDs of associated extrapolated tracks
+  int16_t mNClusters;               // N clusters
   uint8_t mSector;                  // sector of this track segment
 
   ClassDefNV(GPUTPCGMSectorTrack, 1);

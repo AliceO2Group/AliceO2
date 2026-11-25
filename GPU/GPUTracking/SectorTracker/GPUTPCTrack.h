@@ -50,7 +50,7 @@ class GPUTPCTrack
 
  private:
   int32_t mFirstHitID;         // index of the first track cell in the track->cell pointer array
-  int32_t mNHits;              // number of track cells
+  int16_t mNHits;              // number of track cells
   int32_t mLocalTrackId;       // Id of local track this extrapolated track belongs to, index of this track itself if it is a local track
   GPUTPCBaseTrackParam mParam; // track parameters
 

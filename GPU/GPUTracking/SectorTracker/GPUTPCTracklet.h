@@ -46,8 +46,8 @@ class GPUTPCTracklet
   GPUhd() void SetHitWeight(const int32_t w) { mHitWeight = w; }
 
  private:
-  uint32_t mFirstRow;          // first TPC row // TODO: We can use smaller data format here!
-  uint32_t mLastRow;           // last TPC row
+  uint8_t mFirstRow;           // first TPC row
+  uint8_t mLastRow;            // last TPC row
   GPUTPCBaseTrackParam mParam; // tracklet parameters
   int32_t mHitWeight;          // Hit Weight of Tracklet
   uint32_t mFirstHit;          // first hit in row hit array
