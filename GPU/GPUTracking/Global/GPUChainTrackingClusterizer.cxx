@@ -1506,8 +1506,23 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
 
   if (GetRecoSteps() & RecoStep::TPCTriggerHandling) {
     GPUOutputControl* triggerOutput = mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::tpcTriggerWords)];
-    if (triggerOutput && triggerOutput->allocator) {
-      // GPUInfo("Storing %lu trigger words", mTriggerBuffer->triggers.size());
+    const bool storeTriggers = triggerOutput && triggerOutput->allocator;
+    if (GetProcessingSettings().debugLevel >= 3) {
+      GPUInfo("%zu trigger words found%s", mTriggerBuffer->triggers.size(), storeTriggers ? ", storing" : "");
+    }
+    if (GetProcessingSettings().debugLevel >= 6) {
+      std::vector<o2::tpc::TriggerInfoDLBZS> sorted(mTriggerBuffer->triggers.begin(), mTriggerBuffer->triggers.end());
+      std::sort(sorted.begin(), sorted.end(), [](const auto& a, const auto& b) { return a.orbit != b.orbit ? a.orbit < b.orbit : memcmp(&a.triggerWord, &b.triggerWord, sizeof(a.triggerWord)) < 0; });
+      *mDebugFile << "\n\nTPC Trigger Words: " << sorted.size() << "\n";
+      for (const auto& t : sorted) {
+        *mDebugFile << "Orbit " << t.orbit << ":";
+        for (uint32_t j = 0; j < o2::tpc::TriggerWordDLBZS::MaxTriggerEntries; j++) {
+          *mDebugFile << " " << t.triggerWord.triggerEntries[j];
+        }
+        *mDebugFile << "\n";
+      }
+    }
+    if (storeTriggers) {
       auto* outputBuffer = (decltype(mTriggerBuffer->triggers)::value_type*)triggerOutput->allocator(mTriggerBuffer->triggers.size() * sizeof(decltype(mTriggerBuffer->triggers)::value_type));
       std::copy(mTriggerBuffer->triggers.begin(), mTriggerBuffer->triggers.end(), outputBuffer);
     }
