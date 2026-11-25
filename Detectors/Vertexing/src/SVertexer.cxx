@@ -562,9 +562,9 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
       float r = std::sqrt(trc.getX() * trc.getX() + trc.getY() * trc.getY());
       mTracksPool[posneg].emplace_back(TrackCand{trc, tvid, {iv, iv}, r, -1.f, hasTPC, nITSclu, compatibleWithProton});
       if (hasTPC && !itsGID.isIndexSet() && tvid.getSource() != GIndex::TPC && mTPCClusterIdxStruct && mTPCCorrMaps) {
-        // track with TPC but without ITS (e.g. TPC-TOF, TPC-TRD): its parameters are at the TPC inner reference; the V0 must not lie
-        // beyond its innermost measured point, the innermost TPC cluster (transformed with the TPC track's time, the radius barely
-        // depends on it). Needs the TPC clusters, i.e. TPC among the vertexing sources.
+        // track with TPC but without ITS (e.g. TPC-TOF, TPC-TRD): its parameters are at the TPC inner reference (minR); the V0 must
+        // not lie beyond its innermost measured point, the innermost TPC cluster (transformed with the TPC track's time, the radius
+        // barely depends on it). Needs the TPC clusters, i.e. TPC among the vertexing sources. TPC-only tracks: in correctTPCTrack.
         const auto& tpcTrack = recoData.getTPCTrack(tpcGID);
         mTracksPool[posneg].back().rInnerUpdate = getTPCInnermostR(tpcTrack, tpcTrack.getTime0());
       }
@@ -660,8 +660,8 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   }
   float rv0 = std::sqrt(r2v0), drv0P = rv0 - seedP.minR, drv0N = rv0 - seedN.minR;
   // upper side of the causality check: the V0 must not lie beyond the innermost measured point of a prong. The lower side
-  // (maxV0ToProngsRDiff) stays with minR, the TPC inner reference for tracks with TPC but without ITS: with the innermost cluster
-  // it would reject V0s whose TPC track misses its inner part.
+  // (maxV0ToProngsRDiff) uses minR, for all tracks with TPC but without ITS the TPC inner reference: with the innermost cluster it
+  // would reject V0s whose TPC track misses its inner part.
   const float drv0PUp = seedP.rInnerUpdate > 0.f ? rv0 - seedP.rInnerUpdate : drv0P;
   const float drv0NUp = seedN.rInnerUpdate > 0.f ? rv0 - seedN.rInnerUpdate : drv0N;
   if (drv0PUp > mSVParams->causalityRTolerance || drv0P < -mSVParams->maxV0ToProngsRDiff ||
@@ -1378,7 +1378,10 @@ float SVertexer::correctTPCTrack(SVertexer::TrackCand& trc, const o2::tpc::Track
   // eventually should be refitted, at the moment we simply shift...
   trc.setZ(tTPC.getZ() + (tTPC.hasASideClustersOnly() ? dDrift : -dDrift));
   trc.setCov(trc.getSigmaZ2() + driftErr * driftErr, o2::track::kSigZ2);
-  trc.minR = getTPCInnermostR(tTPC, tTB);
+  // as for the other tracks with TPC but without ITS: upper side of the V0 causality check at the innermost cluster, lower side at
+  // the TPC inner reference
+  trc.rInnerUpdate = getTPCInnermostR(tTPC, tTB);
+  trc.minR = o2::constants::geom::XTPCInnerRef;
   return driftErr;
 }
 

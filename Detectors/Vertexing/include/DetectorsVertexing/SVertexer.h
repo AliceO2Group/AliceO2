@@ -99,7 +99,7 @@ class SVertexer
   struct TrackCand : o2::track::TrackParCov {
     GIndex gid{};
     VBracket vBracket{};
-    float minR = 0;            // track lowest point r
+    float minR = 0;            // track lowest point r (tracks with TPC but without ITS: the TPC inner reference)
     float rInnerUpdate = -1.f; // radius of the innermost measured point if it differs from minR (tracks with TPC but without ITS), < 0: minR
     bool hasTPC = false;
     int8_t nITSclu = -1;
