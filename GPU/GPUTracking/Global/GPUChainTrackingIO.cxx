@@ -45,11 +45,11 @@
 #include "CalibdEdxContainer.h"
 
 #include "TPCFastTransformPOD.h"
-
-using namespace o2::gpu;
-
 #include "GPUO2DataTypes.h"
 
+#include <span>
+
+using namespace o2::gpu;
 using namespace o2::tpc;
 using namespace o2::trd;
 using namespace o2::dataformats;
@@ -195,7 +195,7 @@ int32_t GPUChainTracking::ReadData(const char* filename)
     mIOPtrs.clustersNative = mIOMem.clusterNativeAccess.get();
     std::pair<const char*, size_t> tmp = {nullptr, 0};
     if (ReadData(fp, &tmp.first, &tmp.second, &mIOMem.clusterNativeMC, InOutPointerType::CLUSTER_NATIVE_MC)) {
-      mIOMem.clusterNativeMCView = std::make_unique<ConstMCLabelContainerView>(gsl::span<const char>(tmp.first, tmp.first + tmp.second));
+      mIOMem.clusterNativeMCView = std::make_unique<ConstMCLabelContainerView>(std::span<const char>(tmp.first, tmp.first + tmp.second));
       mIOMem.clusterNativeAccess->clustersMCTruth = mIOMem.clusterNativeMCView.get();
     }
   }
@@ -209,7 +209,7 @@ int32_t GPUChainTracking::ReadData(const char* filename)
       mIOMem.tpcDigitMCView.reset(new ConstMCLabelContainerView[NSECTORS]);
       for (uint32_t i = 0; i < NSECTORS; i++) {
         if (sizes[i]) {
-          mIOMem.tpcDigitMCView.get()[i] = gsl::span<const char>(ptrs[i], ptrs[i] + sizes[i]);
+          mIOMem.tpcDigitMCView.get()[i] = std::span<const char>(ptrs[i], ptrs[i] + sizes[i]);
           mIOMem.tpcDigitMCMap->v[i] = mIOMem.tpcDigitMCView.get() + i;
         } else {
           mIOMem.tpcDigitMCMap->v[i] = nullptr;

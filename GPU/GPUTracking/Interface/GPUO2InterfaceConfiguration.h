@@ -26,7 +26,6 @@
 #include <array>
 #include <vector>
 #include <functional>
-#include <gsl/gsl> // TODO: Get rid of gsl
 
 class TH1F;
 class TH1D;

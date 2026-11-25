@@ -25,7 +25,7 @@
 using namespace o2::gpu;
 using namespace o2::tpc;
 
-void GPUO2InterfaceRefit::fillSharedClustersAndOccupancyMap(const ClusterNativeAccess* cl, const gsl::span<const TrackTPC> trks, const TPCClRefElem* trackRef, uint8_t* shmap, uint32_t* ocmap, uint32_t nHbfPerTf, const GPUParam* param)
+void GPUO2InterfaceRefit::fillSharedClustersAndOccupancyMap(const ClusterNativeAccess* cl, const std::span<const TrackTPC> trks, const TPCClRefElem* trackRef, uint8_t* shmap, uint32_t* ocmap, uint32_t nHbfPerTf, const GPUParam* param)
 {
   if (!cl || (!shmap && cl->nClustersTotal > 0)) {
     throw std::runtime_error("Must provide clusters access and preallocated buffer for shared map");

@@ -101,6 +101,7 @@
 #include <fcntl.h>
 #include <chrono>
 #include <unordered_set>
+#include <span>
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -426,7 +427,7 @@ void GPURecoWorkflowSpec::processInputs(ProcessingContext& pc, D& tpcZSmeta, E& 
       if (recv) {
         throw std::runtime_error("Received multiple TPCZS data");
       }
-      inputZS = pc.inputs().get<gsl::span<o2::tpc::ZeroSuppressedContainer8kb>>(ref);
+      inputZS = pc.inputs().get<std::span<o2::tpc::ZeroSuppressedContainer8kb>>(ref);
       recv = true;
     }
     if (!recv || !recvsizes) {
@@ -540,7 +541,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   mTimer->Start(false);
   mNTFs++;
 
-  std::vector<gsl::span<const char>> inputs;
+  std::vector<std::span<const char>> inputs;
 
   const o2::tpc::CompressedClustersFlat* pCompClustersFlat = nullptr;
   size_t compClustersFlatDummyMemory[(sizeof(o2::tpc::CompressedClustersFlat) + sizeof(size_t) - 1) / sizeof(size_t)];
@@ -549,7 +550,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   o2::gpu::GPUTrackingInOutZS tpcZS;
   GPURecoWorkflowSpec_TPCZSBuffers tpcZSmeta;
   std::array<uint32_t, NEndpoints * NSectors> tpcZSonTheFlySizes;
-  gsl::span<const o2::tpc::ZeroSuppressedContainer8kb> inputZS;
+  std::span<const o2::tpc::ZeroSuppressedContainer8kb> inputZS;
   std::unique_ptr<char[]> tmpEmptyCompClusters;
 
   bool getWorkflowTPCInput_clusters = false, getWorkflowTPCInput_mc = false, getWorkflowTPCInput_digits = false;
@@ -853,7 +854,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
       FILE* fp = fopen(filename.c_str(), "w+b");
       std::vector<InputSpec> filter = {{"check", ConcreteDataTypeMatcher{gDataOriginTPC, "RAWDATA"}, Lifetime::Timeframe}};
       for (auto const& ref : InputRecordWalker(pc.inputs(), filter)) {
-        auto data = pc.inputs().get<gsl::span<char>>(ref);
+        auto data = pc.inputs().get<std::span<char>>(ref);
         if (mConfParam->dumpBadTFMode == 1) {
           uint64_t size = data.size();
           fwrite(&size, 1, sizeof(size), fp);
@@ -917,9 +918,9 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
       tmpEmptyClNative->clustersMCTruth = &clustersMCBuffer.second;
     }
   } else {
-    gsl::span<const o2::tpc::TrackTPC> spanOutputTracks = {ptrs.outputTracksTPCO2, ptrs.nOutputTracksTPCO2};
-    gsl::span<const uint32_t> spanOutputClusRefs = {ptrs.outputClusRefsTPCO2, ptrs.nOutputClusRefsTPCO2};
-    gsl::span<const o2::MCCompLabel> spanOutputTracksMCTruth = {ptrs.outputTracksTPCO2MC, ptrs.outputTracksTPCO2MC ? ptrs.nOutputTracksTPCO2 : 0};
+    std::span<const o2::tpc::TrackTPC> spanOutputTracks = {ptrs.outputTracksTPCO2, ptrs.nOutputTracksTPCO2};
+    std::span<const uint32_t> spanOutputClusRefs = {ptrs.outputClusRefsTPCO2, ptrs.nOutputClusRefsTPCO2};
+    std::span<const o2::MCCompLabel> spanOutputTracksMCTruth = {ptrs.outputTracksTPCO2MC, ptrs.outputTracksTPCO2MC ? ptrs.nOutputTracksTPCO2 : 0};
     if (!mConfParam->allocateOutputOnTheFly) {
       for (uint32_t i = 0; i < outputRegions.count(); i++) {
         if (outputRegions.asArray()[i].ptrBase) {

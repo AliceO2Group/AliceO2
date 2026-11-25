@@ -27,11 +27,11 @@
 #include "TPCBase/RDHUtils.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "GPUTPCClusterOccupancyMap.h"
-#include <gsl/span>
+#include <span>
 
 using namespace o2::gpu;
 
-using DigitArray = std::array<gsl::span<const o2::tpc::Digit>, o2::tpc::Sector::MAXSECTOR>;
+using DigitArray = std::array<std::span<const o2::tpc::Digit>, o2::tpc::Sector::MAXSECTOR>;
 
 std::unique_ptr<TPCPadGainCalib> GPUO2InterfaceUtils::getPadGainCalibDefault()
 {

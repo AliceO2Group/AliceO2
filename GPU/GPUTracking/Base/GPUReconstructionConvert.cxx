@@ -30,6 +30,7 @@
 #include "GPULogging.h"
 #include <algorithm>
 #include <vector>
+#include <span>
 
 #include "clusterFinderDefs.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
@@ -208,7 +209,7 @@ inline void zsEncoder::ZSstreamOut(uint16_t* bufIn, uint32_t& lenIn, uint8_t* bu
 static inline auto ZSEncoderGetDigits(const GPUTrackingInOutDigits& in, int32_t i) { return in.tpcDigits[i]; }
 static inline auto ZSEncoderGetNDigits(const GPUTrackingInOutDigits& in, int32_t i) { return in.nTPCDigits[i]; }
 #ifndef GPUCA_STANDALONE
-using DigitArray = std::array<gsl::span<const o2::tpc::Digit>, o2::tpc::Sector::MAXSECTOR>;
+using DigitArray = std::array<std::span<const o2::tpc::Digit>, o2::tpc::Sector::MAXSECTOR>;
 static inline auto ZSEncoderGetDigits(const DigitArray& in, int32_t i) { return in[i].data(); }
 static inline auto ZSEncoderGetNDigits(const DigitArray& in, int32_t i) { return in[i].size(); }
 #endif
@@ -1142,7 +1143,7 @@ inline uint32_t zsEncoderRun<T>::run(std::vector<zsPage>* buffer, std::vector<o2
         size = CAMath::nextMultipleOf<o2::raw::RDHUtils::GBTWord128>(size);
 #ifndef GPUCA_STANDALONE
         if (raw) {
-          raw->addData(rawfeeid, rawcru, 0, rawendpoint, *ir + hbf * o2::constants::lhc::LHCMaxBunches, gsl::span<char>((char*)page + sizeof(o2::header::RAWDataHeader), (char*)page + size), true, 0, 2);
+          raw->addData(rawfeeid, rawcru, 0, rawendpoint, *ir + hbf * o2::constants::lhc::LHCMaxBunches, std::span<char>((char*)page + sizeof(o2::header::RAWDataHeader), (char*)page + size), true, 0, 2);
           maxhbf = std::max<int32_t>(maxhbf, hbf);
           minhbf = std::min<int32_t>(minhbf, hbf);
         } else
@@ -1222,7 +1223,7 @@ inline uint32_t zsEncoderRun<T>::run(std::vector<zsPage>* buffer, std::vector<o2
 #ifndef GPUCA_STANDALONE
     if (iSector == 0) {
       for (int32_t i = minhbf; i <= maxhbf; i++) {
-        raw->addData(46208, 360, rdh_utils::SACLinkID, 0, *ir + i * o2::constants::lhc::LHCMaxBunches, gsl::span<char>((char*)&singleBuffer, (char*)&singleBuffer), true, 0, 4);
+        raw->addData(46208, 360, rdh_utils::SACLinkID, 0, *ir + i * o2::constants::lhc::LHCMaxBunches, std::span<char>((char*)&singleBuffer, (char*)&singleBuffer), true, 0, 4);
       }
     }
 #endif
