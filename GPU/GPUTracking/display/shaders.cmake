@@ -64,5 +64,6 @@ function(write_glslc_shader_header TARGET HEADER)
   endif()
   string(APPEND content "#else\n#error GPUCA_DISPLAY_SHADER_TYPE_[VULKAN|OPENGL] undefined, or shaders not compiled for this type\n#endif\n")
   file(CONFIGURE OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${HEADER} CONTENT "${content}" @ONLY) # Only rewritten if changed
+  set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_CLEAN_FILES ${CMAKE_CURRENT_BINARY_DIR}/${HEADER})
   target_include_directories(${TARGET} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 endfunction(write_glslc_shader_header)
