@@ -21,6 +21,7 @@
 #include "Framework/Configurable.h"
 
 #include "Framework/StepTHn.h"
+#include "Framework/CompactTHnSparse.h"
 #include <TH1.h>
 #include <TH2.h>
 #include <TH3.h>
@@ -69,11 +70,14 @@ enum HistType : unsigned int {
   kTProfile2D,
   kTProfile3D,
   kStepTHnF,
-  kStepTHnD
+  kStepTHnD,
+  kCompactTHnSparseF, // THnSparse with ~8x less memory per filled bin, written out as THnSparseF; for filling only:
+                      // bin numbers differ from THnSparse's, see CompactTHnSparse.h
+  kCompactTHnSparseD  // same, written out as THnSparseD
 };
 
 // variant of all possible root pointers; here we use only the interface types since the underlying data representation (int,float,double,long,char) is irrelevant
-using HistPtr = std::variant<std::shared_ptr<THn>, std::shared_ptr<THnSparse>, std::shared_ptr<TH3>, std::shared_ptr<TH2>, std::shared_ptr<TH1>, std::shared_ptr<TProfile3D>, std::shared_ptr<TProfile2D>, std::shared_ptr<TProfile>, std::shared_ptr<StepTHn>>;
+using HistPtr = std::variant<std::shared_ptr<THn>, std::shared_ptr<THnSparse>, std::shared_ptr<TH3>, std::shared_ptr<TH2>, std::shared_ptr<TH1>, std::shared_ptr<TProfile3D>, std::shared_ptr<TProfile2D>, std::shared_ptr<TProfile>, std::shared_ptr<StepTHn>, std::shared_ptr<CompactTHnSparse>>;
 
 //**************************************************************************************************
 /**
@@ -257,7 +261,9 @@ DECLAREEXT(TProfile);
 DECLAREEXT(TProfile2D);
 DECLAREEXT(TProfile3D);
 DECLAREEXT(StepTHnF);
-DECLAREEXT(StepTHnD)
+DECLAREEXT(StepTHnD);
+DECLAREEXT(CompactTHnSparseF);
+DECLAREEXT(CompactTHnSparseD)
 #undef DECLAREEXT
 
 } // namespace o2::framework

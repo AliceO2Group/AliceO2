@@ -189,6 +189,7 @@ target_include_directories(${targetName} PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE
 
 o2_target_root_dictionary(Framework
                           HEADERS include/Framework/StepTHn.h
+                                  include/Framework/CompactTHnSparse.h
                           LINKDEF src/StepTHnLinkDef.h)
 
 # o2::test::* support classes for unit tests, kept out of production libO2Framework.
@@ -210,6 +211,7 @@ add_executable(o2-test-framework-core
               test/test_ConfigurationOptionsRetriever.cxx
               test/test_ChannelSpecHelpers.cxx
               test/test_CheckTypes.cxx
+              test/test_CompactTHnSparse.cxx
               test/test_CompletionPolicy.cxx
               test/test_ComputingResourceHelpers.cxx
               test/test_ComputingQuotaEvaluator.cxx

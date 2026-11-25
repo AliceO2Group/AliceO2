@@ -211,7 +211,7 @@ void HistogramRegistry::print(bool showAxisDetails)
     if (hist) {
       using T = std::decay_t<decltype(*hist)>;
       bool isSparse{};
-      if (hist->InheritsFrom(THnSparse::Class())) {
+      if (hist->InheritsFrom(THnSparse::Class()) || hist->InheritsFrom(CompactTHnSparse::Class())) {
         isSparse = true;
         containsSparseHist = true;
       }
@@ -386,6 +386,7 @@ template HistPtr HistogramRegistry::insertClone(const HistName&, const std::shar
 template HistPtr HistogramRegistry::insertClone(const HistName&, const std::shared_ptr<THnSparse>);
 template HistPtr HistogramRegistry::insertClone(const HistName&, const std::shared_ptr<THn>);
 template HistPtr HistogramRegistry::insertClone(const HistName&, const std::shared_ptr<StepTHn>);
+template HistPtr HistogramRegistry::insertClone(const HistName&, const std::shared_ptr<CompactTHnSparse>);
 
 template <typename T>
 std::shared_ptr<T> HistogramRegistry::add(char const* const name, char const* const title, const HistogramConfigSpec& histConfigSpec, bool callSumw2)
@@ -427,5 +428,7 @@ template std::shared_ptr<THnSparse> HistogramRegistry::add<THnSparse>(char const
 template std::shared_ptr<THnSparse> HistogramRegistry::add<THnSparse>(char const* const name, char const* const title, HistType histType, const std::vector<AxisSpec>& axes, bool callSumw2);
 template std::shared_ptr<StepTHn> HistogramRegistry::add<StepTHn>(char const* const name, char const* const title, const HistogramConfigSpec& histConfigSpec, bool callSumw2);
 template std::shared_ptr<StepTHn> HistogramRegistry::add<StepTHn>(char const* const name, char const* const title, HistType histType, const std::vector<AxisSpec>& axes, bool callSumw2);
+template std::shared_ptr<CompactTHnSparse> HistogramRegistry::add<CompactTHnSparse>(char const* const name, char const* const title, const HistogramConfigSpec& histConfigSpec, bool callSumw2);
+template std::shared_ptr<CompactTHnSparse> HistogramRegistry::add<CompactTHnSparse>(char const* const name, char const* const title, HistType histType, const std::vector<AxisSpec>& axes, bool callSumw2);
 
 } // namespace o2::framework

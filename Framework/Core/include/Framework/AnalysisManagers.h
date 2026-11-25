@@ -273,6 +273,16 @@ bool postRunOutput(EndOfStreamContext& context, T& hr)
 {
   auto& deviceSpec = context.services().get<o2::framework::DeviceSpec const>();
   auto sendHistos = [deviceSpec, &context](HistogramRegistry const& self, TNamed* obj) mutable {
+    // Compact sparse histograms are sent as the equivalent THnSparse, so the output files and
+    // whatever reads or merges them are unchanged. One at a time, each compact histogram
+    // freed before its THnSparse is serialised, to keep the memory peak low.
+    if (auto* compact = dynamic_cast<CompactTHnSparse*>(obj)) {
+      std::unique_ptr<THnSparse> sparse{compact->toTHnSparse()};
+      compact->Reset();
+      TNamed* named = sparse.get();
+      context.outputs().snapshot(self.ref(deviceSpec.inputTimesliceId, deviceSpec.maxInputTimeslices), *named);
+      return;
+    }
     context.outputs().snapshot(self.ref(deviceSpec.inputTimesliceId, deviceSpec.maxInputTimeslices), *obj);
   };
   hr.apply(sendHistos);
