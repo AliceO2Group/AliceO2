@@ -276,7 +276,6 @@ EndConfig()
 BeginSubConfig(GPUSettingsProcessingParam, param, configStandalone.proc, "PARAM", 0, "Processing settings", proc_param)
 AddOptionArray(tpcErrorParamY, float, 4, (0.06f, 0.24f, 0.12f, 0.1f), "", 0, "TPC Cluster Y Error Parameterization")
 AddOptionArray(tpcErrorParamZ, float, 4, (0.06f, 0.24f, 0.15f, 0.1f), "", 0, "TPC Cluster Z Error Parameterization")
-AddOption(tpcTriggerHandling, bool, true, "", 0, "Enable TPC trigger handling")
 AddHelp("help", 0)
 EndConfig()
 

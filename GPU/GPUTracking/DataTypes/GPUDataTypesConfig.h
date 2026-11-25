@@ -46,6 +46,7 @@ enum class RecoStep : uint32_t { TPCConversion = 1,
                                  TPCClusterFinding = 128,
                                  TPCDecompression = 256,
                                  Refit = 512,
+                                 TPCTriggerHandling = 1024,
                                  AllRecoSteps = 0x7FFFFFFF,
                                  NoRecoStep = 0 };
 enum class InOutType : uint32_t { TPCClusters = 1,
@@ -59,7 +60,7 @@ enum class InOutType : uint32_t { TPCClusters = 1,
                                   ITSTracks = 256 };
 #if !defined(__OPENCL__) && !defined(__METAL__)
 static constexpr const char* const DEVICE_TYPE_NAMES[] = {"INVALID", "CPU", "CUDA", "HIP", "OCL", "METAL", "CPUDEVICE"};
-static constexpr const char* const RECO_STEP_NAMES[] = {"TPC Transformation", "TPC Sector Tracking", "TPC Track Merging and Fit", "TPC Compression", "TRD Tracking", "ITS Tracking", "TPC dEdx Computation", "TPC Cluster Finding", "TPC Decompression", "Global Refit"};
+static constexpr const char* const RECO_STEP_NAMES[] = {"TPC Transformation", "TPC Sector Tracking", "TPC Track Merging and Fit", "TPC Compression", "TRD Tracking", "ITS Tracking", "TPC dEdx Computation", "TPC Cluster Finding", "TPC Decompression", "Global Refit", "TPC Trigger Handling"};
 static constexpr const char* const GENERAL_STEP_NAMES[] = {"Prepare", "QA"};
 constexpr static int32_t N_RECO_STEPS = sizeof(gpudatatypes::RECO_STEP_NAMES) / sizeof(gpudatatypes::RECO_STEP_NAMES[0]);
 constexpr static int32_t N_GENERAL_STEPS = sizeof(gpudatatypes::GENERAL_STEP_NAMES) / sizeof(gpudatatypes::GENERAL_STEP_NAMES[0]);
