@@ -75,9 +75,6 @@ int32_t GPUChainTracking::RunTPCTrackingSectors_internal()
   bool doGPU = GetRecoStepsGPU() & RecoStep::TPCSectorTracking;
   for (uint32_t i = 0; i < NSECTORS; i++) {
     processors()->tpcTrackers[i].Data().SetClusterData(mIOPtrs.clustersNative->nClustersSector[i], mIOPtrs.clustersNative->clusterOffset[i][0]);
-    if (doGPU) {
-      processorsShadow()->tpcTrackers[i].Data().SetClusterData(mIOPtrs.clustersNative->nClustersSector[i], mIOPtrs.clustersNative->clusterOffset[i][0]); // TODO: not needed I think, anyway copied in SetupGPUProcessor
-    }
   }
   mRec->MemoryScalers()->nTPCHits = mIOPtrs.clustersNative->nClustersTotal;
   GPUInfo("Event has %u TPC Clusters, %d TRD Tracklets", (uint32_t)mRec->MemoryScalers()->nTPCHits, mIOPtrs.nTRDTracklets);
