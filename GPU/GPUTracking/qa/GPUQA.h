@@ -69,7 +69,7 @@ class GPUQA
 #include <vector>
 #include <memory>
 #ifndef GPUCA_RUN2
-#include <gsl/span>
+#include <span>
 #endif
 
 namespace o2
@@ -103,7 +103,7 @@ class GPUQA
   ~GPUQA();
 
 #ifndef GPUCA_RUN2
-  using mcLabels_t = gsl::span<const o2::MCCompLabel>;
+  using mcLabels_t = std::span<const o2::MCCompLabel>;
   using mcLabel_t = o2::MCCompLabel;
   using mcLabelI_t = mcLabel_t;
 #else

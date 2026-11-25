@@ -63,7 +63,7 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& tpcSectors, bool outR
   std::string processorName = "tpc-zsEncoder";
   constexpr static size_t NSectors = o2::tpc::Sector::MAXSECTOR;
   constexpr static size_t NEndpoints = o2::gpu::GPUTrackingInOutZS::NENDPOINTS;
-  using DigitArray = std::array<gsl::span<const o2::tpc::Digit>, NSectors>;
+  using DigitArray = std::array<std::span<const o2::tpc::Digit>, NSectors>;
 
   struct ProcessAttributes {
     std::unique_ptr<uint64_t[]> zsoutput;
@@ -113,9 +113,13 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& tpcSectors, bool outR
       }
 
       const auto& inputs = getWorkflowTPCInput(pc, 0, false, false, tpcSectorMask, true);
+      DigitArray inputDigits;
+      for (size_t i = 0; i < NSectors; i++) {
+        inputDigits[i] = {inputs->inputDigits[i].data(), inputs->inputDigits[i].size()};
+      }
       sizes.resize(NSectors * NEndpoints);
       o2::InteractionRecord ir{0, pc.services().get<o2::framework::TimingInfo>().firstTForbit};
-      o2::gpu::GPUO2InterfaceUtils::RunZSEncoder<DigitArray>(inputs->inputDigits, &zsoutput, sizes.data(), nullptr, &ir, processAttributes->config, 4, verify, false, digitsFilter);
+      o2::gpu::GPUO2InterfaceUtils::RunZSEncoder<DigitArray>(inputDigits, &zsoutput, sizes.data(), nullptr, &ir, processAttributes->config, 4, verify, false, digitsFilter);
       ZeroSuppressedContainer8kb* page = reinterpret_cast<ZeroSuppressedContainer8kb*>(zsoutput.get());
       unsigned int offset = 0;
       for (unsigned int i = 0; i < NSectors; i++) {
@@ -168,7 +172,7 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& tpcSectors, bool outR
           writer.useCaching();
         }
         ir = o2::raw::HBFUtils::Instance().getFirstSampledTFIR();
-        o2::gpu::GPUO2InterfaceUtils::RunZSEncoder(inputs->inputDigits, nullptr, nullptr, &writer, &ir, processAttributes->config, 4, false, false, digitsFilter);
+        o2::gpu::GPUO2InterfaceUtils::RunZSEncoder(inputDigits, nullptr, nullptr, &writer, &ir, processAttributes->config, 4, false, false, digitsFilter);
         writer.writeConfFile("TPC", "RAWDATA", fmt::format("{}tpcraw.cfg", outDir));
       }
       zsoutput.reset(nullptr);

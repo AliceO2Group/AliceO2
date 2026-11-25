@@ -17,6 +17,7 @@
 #include <string_view>
 #include <memory>
 #include <vector>
+#include <span>
 #include <fmt/format.h>
 #include <filesystem>
 #include "TFile.h"
@@ -53,7 +54,7 @@ using o2::MCCompLabel;
 
 constexpr static size_t NSectors = o2::tpc::Sector::MAXSECTOR;
 constexpr static size_t NEndpoints = o2::gpu::GPUTrackingInOutZS::NENDPOINTS;
-using DigitArray = std::array<gsl::span<const o2::tpc::Digit>, Sector::MAXSECTOR>;
+using DigitArray = std::array<std::span<const o2::tpc::Digit>, Sector::MAXSECTOR>;
 
 static constexpr const char* CRU_FLPS[361] = {
   "alio2-cr1-flp070", "alio2-cr1-flp069", "alio2-cr1-flp070", "alio2-cr1-flp069", "alio2-cr1-flp072", "alio2-cr1-flp071", "alio2-cr1-flp072", "alio2-cr1-flp071", "alio2-cr1-flp072", "alio2-cr1-flp071", "alio2-cr1-flp002", "alio2-cr1-flp001", "alio2-cr1-flp002", "alio2-cr1-flp001", "alio2-cr1-flp004", "alio2-cr1-flp003", "alio2-cr1-flp004", "alio2-cr1-flp003",

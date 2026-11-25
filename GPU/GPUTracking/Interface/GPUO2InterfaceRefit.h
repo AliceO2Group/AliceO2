@@ -19,7 +19,7 @@
 #include <cstdint>
 #include <memory>
 #include <vector>
-#include <gsl/span>
+#include <span>
 
 namespace o2::base
 {
@@ -79,7 +79,7 @@ class GPUO2InterfaceRefit
   // If the param object / default object requires an occupancy map, an occupancy map ptr and nHbfPerTf value must be provided.
   // You can use the function fillOccupancyMapGetSize(...) to get the required size of the occupancy map. If 0 is returned, no map is required.
   // Providing only the shmap ptr but no ocmap ptr will create only the shared map, but no occupancy map.
-  static void fillSharedClustersAndOccupancyMap(const o2::tpc::ClusterNativeAccess* cl, const gsl::span<const o2::tpc::TrackTPC> trks, const o2::tpc::TPCClRefElem* trackRef, uint8_t* shmap, uint32_t* ocmap = nullptr, uint32_t nHbfPerTf = 0, const GPUParam* param = nullptr);
+  static void fillSharedClustersAndOccupancyMap(const o2::tpc::ClusterNativeAccess* cl, const std::span<const o2::tpc::TrackTPC> trks, const o2::tpc::TPCClRefElem* trackRef, uint8_t* shmap, uint32_t* ocmap = nullptr, uint32_t nHbfPerTf = 0, const GPUParam* param = nullptr);
   static size_t fillOccupancyMapGetSize(uint32_t nHbfPerTf, const GPUParam* param = nullptr);
 
  private:
