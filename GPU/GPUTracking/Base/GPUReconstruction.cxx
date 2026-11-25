@@ -226,6 +226,10 @@ int32_t GPUReconstruction::InitPhaseBeforeDevice()
     }
     GPUConfigDump::dumpConfig(&param().rec, mProcessingSettings.get(), chTrk ? chTrk->GetQAConfig() : nullptr, chTrk ? chTrk->GetEventDisplayConfig() : nullptr, mDeviceBackendSettings.get(), &mRecoSteps);
   }
+  if (GPUConfigDump::checkConfig(GetProcessingSettings(), *mDeviceBackendSettings)) {
+    GPUError("Invalid settings");
+    return 1;
+  }
   mRecoSteps.stepsGPUMask &= mRecoSteps.steps;
   mRecoSteps.stepsGPUMask &= AvailableGPURecoSteps();
   if (!IsGPU()) {

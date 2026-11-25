@@ -17,11 +17,17 @@
 #define GPUSETTINGS_ALL
 #include "GPUSettings.h"
 
+#include <algorithm>
 #include <functional>
+#include <iterator>
 #include <iostream>
 #include <cstdio>
+#include <string>
+#include <tuple>
+#include <type_traits>
 
 #include "utils/qconfig_helpers.h"
+#include "utils/qconfig_internal_helpers.h"
 
 using namespace o2::gpu;
 
@@ -29,6 +35,7 @@ namespace
 {
 GPUSettingsStandalone configStandalone;
 #include "utils/qconfig_print.inc"
+#include "utils/qconfig_check.inc"
 } // namespace
 
 void GPUConfigDump::dumpConfig(const GPUSettingsRec* rec, const GPUSettingsProcessing* proc, const GPUSettingsQA* qa, const GPUSettingsDisplay* display, const GPUSettingsDeviceBackend* device, const GPURecoStepConfiguration* workflow)
@@ -54,4 +61,9 @@ void GPUConfigDump::dumpConfig(const GPUSettingsRec* rec, const GPUSettingsProce
   if (workflow) {
     printf("\n\tReconstruction steps / inputs / outputs:\n\tReco Steps = 0x%08x\n\tReco Steps GPU = 0x%08x\n\tInputs = 0x%08x\n\tOutputs = 0x%08x\n", (uint32_t)workflow->steps, (uint32_t)workflow->stepsGPUMask, (uint32_t)workflow->inputs, (uint32_t)workflow->outputs);
   }
+}
+
+int32_t GPUConfigDump::checkConfig(const GPUSettingsProcessing& proc, const GPUSettingsDeviceBackend& device)
+{
+  return qConfigCheck(device, proc, proc.rtc, proc.rtctech, proc.param, proc.nn, proc.scaling, proc.debug, proc.backend);
 }

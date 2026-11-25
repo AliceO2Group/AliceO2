@@ -359,10 +359,10 @@ EndConfig()
 
 // Backend Settings
 BeginSubConfig(GPUSettingsProcessingBackend, backend, configStandalone.proc, "BACKEND", 0, "Backend Settings", proc_backend)
-AddOption(platformNum, int32_t, -1, "", 0, "Platform to use, in case the backend provides multiple platforms (OpenCL only, -1 = auto-select, -2 query all platforms (also incompatible))")
-AddOption(compileFromSources, bool, false, "", 0, "Compile OpenCL binary from included source code instead of using included spirv code (OpenCL only)")
-AddOption(overrideSourceBuildFlags, std::string, "", "", 0, "Override Backend build flags for compilation from source, put a space for empty options (OpenCL and Metal only)")
-AddOption(overrideEUSperCU, int32_t, -1, "", 0, "Override AMD_EUS_PER_CU setting (HIP only)")
+AddOption(platformNum, int32_t, -1, "", 0, "Platform to use, in case the backend provides multiple platforms (OpenCL only, -1 = auto-select, -2 query all platforms (also incompatible))", qcheck(get<GPUSettingsDeviceBackend>().deviceType == gpudatatypes::DeviceType::OCL))
+AddOption(compileFromSources, bool, false, "", 0, "Compile OpenCL binary from included source code instead of using included spirv code (OpenCL only)", qcheck(get<GPUSettingsDeviceBackend>().deviceType == gpudatatypes::DeviceType::OCL))
+AddOption(overrideSourceBuildFlags, std::string, "", "", 0, "Override Backend build flags for compilation from source, put a space for empty options (OpenCL and Metal only)", qcheck(get<GPUSettingsDeviceBackend>().deviceType == gpudatatypes::DeviceType::OCL || get<GPUSettingsDeviceBackend>().deviceType == gpudatatypes::DeviceType::METAL))
+AddOption(overrideEUSperCU, int32_t, -1, "", 0, "Override AMD_EUS_PER_CU setting (HIP only)", qcheck(get<GPUSettingsDeviceBackend>().deviceType == gpudatatypes::DeviceType::HIP))
 AddHelp("help", 0)
 EndConfig()
 
