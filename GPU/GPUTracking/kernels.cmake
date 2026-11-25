@@ -156,6 +156,7 @@ o2_gpu_kernel_add_parameter(NEIGHBOURS_FINDER_MAX_NNEIGHUP            # Number o
                             SORT_STARTHITS                            # Sort start hits to improve cache locality during tracklet construction [0/1]
                             TPC_MERGER_REBUILD_CONSTRAINED_ROW_MEMORY # Allocate the track rebuild memory only for the row range a track can reach [0/1]
                             CF_SCAN_WORKGROUP_SIZE                    # Work group size to use in clusterizer scan operation
+                            CF_CHECK_PAD_BASELINE_SEGMENTED           # Scan the pad baseline in time segments split between the threads of a pad [0/1]
                             AMD_EUS_PER_CU)	                          # Number of SIMD units per Compute Unit (only for AMD GPUs)
 
 o2_gpu_kernel_add_string_parameter(DEDX_STORAGE_TYPE                # Data type to use for intermediate storage of dEdx truncated mean inputs
