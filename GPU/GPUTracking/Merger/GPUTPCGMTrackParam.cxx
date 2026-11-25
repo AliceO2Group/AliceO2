@@ -878,7 +878,7 @@ GPUdii() float GPUTPCGMTrackParam::FindBestInterpolatedHit(GPUTPCGMMerger& GPUre
               if (insert < param.rec.tpc.rebuildTrackInFitClusterCandidates) {
                 for (int32_t c = CAMath::Min(nCandidates, param.rec.tpc.rebuildTrackInFitClusterCandidates - 1); c > insert; c--) {
                   merger.ClusterCandidates(iTrk, row, tmpRows)[c] = merger.ClusterCandidates(iTrk, row, tmpRows)[c - 1];
-                } // TODO: Downweight non-interpolated candidates
+                }
                 merger.ClusterCandidates(iTrk, row, tmpRows)[insert].set(merger.CandidateId(idOffset + ids[ih], sector, row), sector, (CAMath::half_t)err);
                 nCandidates += (nCandidates < param.rec.tpc.rebuildTrackInFitClusterCandidates);
               }
@@ -888,7 +888,7 @@ GPUdii() float GPUTPCGMTrackParam::FindBestInterpolatedHit(GPUTPCGMMerger& GPUre
       }
       CADEBUG(const auto* dbgCand = merger.ClusterCandidates(iTrk, row, tmpRows); for (int dbgi = 0; dbgi < nCandidates; dbgi++) { if (dbgCand[dbgi].hasCluster()) printf("\t\t\tiTrk %d Row %d Candidate %d hit %d err %f\n", iTrk, (int)row, dbgi, merger.CandidateClusterId(dbgCand[dbgi], row), dbgCand[dbgi].error); else break; });
     }
-    if (nCandidates == 0 && !interOnly) { // TODO: remove the interOnly here when rebuilding is fully working
+    if (nCandidates == 0 && !interOnly) {
       merger.ClusterCandidates(iTrk, row, tmpRows)[0].setNoCandidate();
     }
   } else if (doAttach && (!interOnly || inter.isValid())) {
