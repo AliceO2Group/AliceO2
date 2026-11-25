@@ -311,7 +311,7 @@ inline void GPUTPCGMMerger::MergedTrackStreamerInternal(const GPUTPCGMBorderTrac
   }
   const GPUTPCTracker& tracker1 = GetConstantMem()->tpcTrackers[sector1];
   const GPUTPCGMSectorTrack& sectorTrack1 = mSectorTrackInfos[b1.TrackID()];
-  const GPUTPCTrack& inTrack1 = *sectorTrack1.OrigTrack();
+  const GPUTPCTrack& inTrack1 = *sectorTrack1.OrigTrack(this);
   for (int32_t i = 0; i < inTrack1.NHits(); i++) {
     const GPUTPCHitId& ic1 = tracker1.TrackHits()[inTrack1.FirstHitID() + i];
     int32_t clusterIndex = tracker1.Data().ClusterDataIndex(tracker1.Data().Row(ic1.RowIndex()), ic1.HitIndex());
@@ -319,7 +319,7 @@ inline void GPUTPCGMMerger::MergedTrackStreamerInternal(const GPUTPCGMBorderTrac
   }
   const GPUTPCTracker& tracker2 = GetConstantMem()->tpcTrackers[sector2];
   const GPUTPCGMSectorTrack& sectorTrack2 = mSectorTrackInfos[b2.TrackID()];
-  const GPUTPCTrack& inTrack2 = *sectorTrack2.OrigTrack();
+  const GPUTPCTrack& inTrack2 = *sectorTrack2.OrigTrack(this);
   for (int32_t i = 0; i < inTrack2.NHits(); i++) {
     const GPUTPCHitId& ic2 = tracker2.TrackHits()[inTrack2.FirstHitID() + i];
     int32_t clusterIndex = tracker2.Data().ClusterDataIndex(tracker2.Data().Row(ic2.RowIndex()), ic2.HitIndex());

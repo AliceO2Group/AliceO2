@@ -52,7 +52,7 @@ GPUdii() void GPUTPCGlobalDebugSortKernels::Thread<GPUTPCGlobalDebugSortKernels:
     GPUCommonAlgorithm::sort(tmp, tmp + nSector, [tracks, parameter](const int32_t& aa, const int32_t& bb) {
       const auto& a = tracks[aa];
       const auto& b = tracks[bb];
-      return !parameter         ? (a.OrigTrack() < b.OrigTrack()) // Local tracks: order of the sector tracker, which is sorted in deterministic mode
+      return !parameter         ? (a.OrigTrackId() < b.OrigTrackId()) // Local tracks: order of the sector tracker, which is sorted in deterministic mode
              : (a.X() != b.X()) ? (a.X() < b.X())
              : (a.Y() != b.Y()) ? (a.Y() < b.Y())
                                 : (a.Z() < b.Z());
@@ -93,7 +93,7 @@ GPUdii() void GPUTPCGlobalDebugSortKernels::Thread<GPUTPCGlobalDebugSortKernels:
   }
   GPUbarrier();
   for (uint32_t j = iThread; j < n; j += nThreads) {
-    merger.TrackIDs()[tracks[j].Sector() * merger.NMaxSingleSectorTracks() + tracks[j].OrigTrack()->LocalTrackId()] = j;
+    merger.TrackIDs()[tracks[j].Sector() * merger.NMaxSingleSectorTracks() + tracks[j].OrigTrack(&merger)->LocalTrackId()] = j;
   }
 }
 
