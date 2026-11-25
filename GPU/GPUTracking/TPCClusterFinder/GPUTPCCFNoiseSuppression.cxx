@@ -107,7 +107,7 @@ GPUdi() void GPUTPCCFNoiseSuppression::checkForMinima(
 {
   float r = other.unpack();
 
-  uint64_t isMinima = (q - r > epsilon) && (float)CAMath::Abs(q - r) / (float)CAMath::Max(q, r) > epsilonRelative; // TODO: Can we assume q > r and get rid of Max/Abs?
+  uint64_t isMinima = (q - r > epsilon) && (q - r) / q > epsilonRelative;
   *minimas |= (isMinima << pos);
 
   uint64_t lq = (r > q);
