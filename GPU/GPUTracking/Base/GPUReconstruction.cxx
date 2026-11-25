@@ -478,6 +478,16 @@ int32_t GPUReconstruction::Exit()
 void GPUReconstruction::RegisterGPUDeviceProcessor(GPUProcessor* proc, GPUProcessor* slaveProcessor) { proc->InitGPUProcessor(this, GPUProcessor::PROCESSOR_TYPE_DEVICE, slaveProcessor); }
 void GPUReconstruction::ConstructGPUProcessor(GPUProcessor* proc) { proc->mConstantMem = proc->mGPUProcessorType == GPUProcessor::PROCESSOR_TYPE_DEVICE ? mDeviceConstantMem : mHostConstantMem.get(); }
 
+uint32_t GPUReconstruction::StreamForSector(uint32_t sector) const
+{
+  if (mNStreams % 2 == 0 && mNStreams > 1) {
+    uint32_t nStreamsHalf = mNStreams / 2;
+    return sector % nStreamsHalf + (2 * sector < NSECTORS ? 0 : nStreamsHalf);
+  } else {
+    return sector % mNStreams;
+  }
+}
+
 void GPUReconstruction::ComputeReuseMax(GPUProcessor* proc)
 {
   for (auto it = mMemoryReuse1to1.begin(); it != mMemoryReuse1to1.end(); it++) {
