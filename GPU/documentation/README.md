@@ -14,3 +14,6 @@
 
 [tpc-tracking-qa.md](https://github.com/AliceO2Group/AliceO2/blob/dev/GPU/documentation/tpc-tracking-qa.md) :
 - Instructions how to run the QA for TPC tracking (efficiency, resolution, etc.).
+
+[GPUSettings.md](https://github.com/AliceO2Group/AliceO2/blob/dev/GPU/documentation/GPUSettings.md) :
+- Description of the GPU reconstruction settings, how they are defined, and how to set them in the standalone benchmark and in O2.

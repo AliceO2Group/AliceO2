@@ -3,7 +3,9 @@ This ticket will serve as documentation how to enable which GPU features and col
 So far, the following features exist:
  * GPU Tracking with CUDA
  * GPU Tracking with HIP
- * GPU Tracking with OpenCL (>= 2.1)
+ * GPU Tracking with OpenCL (>= 2.2)
+ * GPU Tracking with Metal (macOS)
+ * CPUDevice debug backend: runs the CPU kernels on the host, but behaves like a GPU device (standalone benchmark only, `ENABLE_CPUDEVICE` in `config.cmake`, `--gpuType CPUDEVICE`)
  * OpenGL visualization of the tracking
  * ITS GPU tracking
 
@@ -56,7 +58,7 @@ Disadvantages:
  * It may be that some patches must be applied to ROCm after the installation. You find the details in the provisioning script of the GPU CI container below.
 
 *GPU Tracking with OpenCL (Needs Clang >= 18 for compilation)*
- * Needs OpenCL library with version >= 2.1, detectable via CMake find_package(OpenCL).
+ * Needs OpenCL library with version >= 2.2, detectable via CMake find_package(OpenCL).
  * Needs the SPIR-V LLVM translator together with LLVM to create the SPIR-V binaries, also detectable via CMake.
 
 *OpenGL visualization of TPC tracking*
@@ -66,7 +68,10 @@ Disadvantages:
  * CMake will report "Building GPU Event Display" when enabled.
 
 *Vulkan visualization*
- * similar to OpenCL visualization, but with Vulkan.
+ * similar to OpenGL visualization, but with Vulkan.
+
+*GPU Tracking with Metal*
+ * The CMake option `-DENABLE_METAL=ON/OFF/AUTO`, needs a Metal toolchain with MSL 4.1 (macOS 27), which CMake checks by compiling a probe kernel.
 
 *ITS GPU Tracking*
  * So far supports only CUDA and HIP, support for OpenCL might come.
