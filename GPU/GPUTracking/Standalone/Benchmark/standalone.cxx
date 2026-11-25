@@ -312,8 +312,8 @@ int32_t ReadConfiguration(int argc, char** argv)
       configStandalone.gpuType = "HIP";
     } else if (GPUReconstruction::CheckInstanceAvailable(GPUReconstruction::DeviceType::OCL, configStandalone.proc.debugLevel >= 2)) {
       configStandalone.gpuType = "OCL";
-    } else if (GPUReconstruction::CheckInstanceAvailable(GPUReconstruction::DeviceType::OCL, configStandalone.proc.debugLevel >= 2)) {
-      configStandalone.gpuType = "OCL";
+    } else if (GPUReconstruction::CheckInstanceAvailable(GPUReconstruction::DeviceType::METAL, configStandalone.proc.debugLevel >= 2)) {
+      configStandalone.gpuType = "METAL";
     } else {
       if (configStandalone.runGPU > 1 && configStandalone.runGPUforce) {
         printf("No GPU backend / device found, running on CPU is disabled due to runGPUforce\n");
