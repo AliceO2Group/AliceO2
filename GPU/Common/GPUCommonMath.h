@@ -130,7 +130,7 @@ class GPUCommonMath
   GPUhdi() static float Remainderf(float x, float y);
   GPUd() constexpr static bool Finite(float x);
   GPUd() constexpr static bool IsNaN(float x);
-#ifndef __FAST_MATH__
+#if !defined(__FAST_MATH__) && !defined(GPUCA_GPUCODE_GENRTC)
   GPUd() constexpr static float QuietNaN() { return GPUCA_CHOICE(std::numeric_limits<float>::quiet_NaN(), __builtin_nanf(""), NAN); }
 #endif
   GPUd() constexpr static uint32_t Clz(uint32_t val);
