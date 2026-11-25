@@ -23,6 +23,9 @@ define_property(TARGET PROPERTY O2_GPU_KERNEL_STRING_PARAMS)
 define_property(TARGET PROPERTY O2_GPU_KERNELS_FORCE_1_WARP)
 set(O2_GPU_KERNEL_WRAPPER_FOLDER "${CMAKE_CURRENT_BINARY_DIR}/GPU/include_gpu_onthefly")
 file(MAKE_DIRECTORY ${O2_GPU_KERNEL_WRAPPER_FOLDER})
+file(TOUCH ${O2_GPU_KERNEL_WRAPPER_FOLDER}/.cmake_stamp)
+set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_CLEAN_FILES ${O2_GPU_KERNEL_WRAPPER_FOLDER})               # Kernel wrappers are generated at configure time, remove them with "make / ninja clean"
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${O2_GPU_KERNEL_WRAPPER_FOLDER}/.cmake_stamp) # and rerun CMake afterwards to regenerate them, since the stamp is gone
 set(O2_GPU_BASE_DIR "${CMAKE_CURRENT_LIST_DIR}/../")
 function(o2_gpu_add_kernel kernel_name kernel_files)
   list(LENGTH ARGV n)
