@@ -99,11 +99,11 @@ class SVertexer
   struct TrackCand : o2::track::TrackParCov {
     GIndex gid{};
     VBracket vBracket{};
-    float minR = 0; // track lowest point r
+    float minR = 0;            // track lowest point r
+    float rInnerUpdate = -1.f; // radius of the innermost measured point if it differs from minR (tracks with TPC but without ITS), < 0: minR
     bool hasTPC = false;
     int8_t nITSclu = -1;
     bool compatibleProton = false; // dE/dx compatibility with proton hypothesis (FIXME: use better, uint8_t compat mask?)
-    float innermostR = -1.f;       // radius of the innermost measured point if it differs from minR (tracks with TPC but without ITS), < 0: minR
     bool hasITS() const
     {
       return nITSclu > 0;

@@ -560,13 +560,13 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
 
       int posneg = trc.getSign() < 0 ? 1 : 0;
       float r = std::sqrt(trc.getX() * trc.getX() + trc.getY() * trc.getY());
-      mTracksPool[posneg].emplace_back(TrackCand{trc, tvid, {iv, iv}, r, hasTPC, nITSclu, compatibleWithProton});
+      mTracksPool[posneg].emplace_back(TrackCand{trc, tvid, {iv, iv}, r, -1.f, hasTPC, nITSclu, compatibleWithProton});
       if (hasTPC && !itsGID.isIndexSet() && tvid.getSource() != GIndex::TPC && mTPCClusterIdxStruct && mTPCCorrMaps) {
         // track with TPC but without ITS (e.g. TPC-TOF, TPC-TRD): its parameters are at the TPC inner reference; the V0 must not lie
         // beyond its innermost measured point, the innermost TPC cluster (transformed with the TPC track's time, the radius barely
         // depends on it). Needs the TPC clusters, i.e. TPC among the vertexing sources.
         const auto& tpcTrack = recoData.getTPCTrack(tpcGID);
-        mTracksPool[posneg].back().innermostR = getTPCInnermostR(tpcTrack, tpcTrack.getTime0());
+        mTracksPool[posneg].back().rInnerUpdate = getTPCInnermostR(tpcTrack, tpcTrack.getTime0());
       }
       if (tvid.getSource() == GIndex::TPC) { // constrained TPC track?
         correctTPCTrack(mTracksPool[posneg].back(), mTPCTracksArray[tvid], -1, -1);
@@ -662,8 +662,8 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   // upper side of the causality check: the V0 must not lie beyond the innermost measured point of a prong. The lower side
   // (maxV0ToProngsRDiff) stays with minR, the TPC inner reference for tracks with TPC but without ITS: with the innermost cluster
   // it would reject V0s whose TPC track misses its inner part.
-  const float drv0PUp = seedP.innermostR > 0.f ? rv0 - seedP.innermostR : drv0P;
-  const float drv0NUp = seedN.innermostR > 0.f ? rv0 - seedN.innermostR : drv0N;
+  const float drv0PUp = seedP.rInnerUpdate > 0.f ? rv0 - seedP.rInnerUpdate : drv0P;
+  const float drv0NUp = seedN.rInnerUpdate > 0.f ? rv0 - seedN.rInnerUpdate : drv0N;
   if (drv0PUp > mSVParams->causalityRTolerance || drv0P < -mSVParams->maxV0ToProngsRDiff ||
       drv0NUp > mSVParams->causalityRTolerance || drv0N < -mSVParams->maxV0ToProngsRDiff) {
     LOG(debug) << "RejCausality " << drv0PUp << " " << drv0P << " " << drv0NUp << " " << drv0N;
@@ -1324,7 +1324,7 @@ bool SVertexer::processTPCTrack(const o2::tpc::TrackTPC& trTPC, GIndex gid, int 
     }
   }
 
-  auto& trLoc = mTracksPool[posneg].emplace_back(TrackCand{trTPC, gid, {vtxid, vtxid}, 0., true, -1, compatibleWithProton});
+  auto& trLoc = mTracksPool[posneg].emplace_back(TrackCand{trTPC, gid, {vtxid, vtxid}, 0., -1.f, true, -1, compatibleWithProton});
   auto err = correctTPCTrack(trLoc, trTPC, twe.getTimeStamp(), twe.getTimeStampError());
   if (err < 0) {
     mTracksPool[posneg].pop_back(); // discard
