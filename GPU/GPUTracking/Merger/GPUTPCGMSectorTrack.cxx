@@ -26,7 +26,7 @@ using namespace o2::tpc;
 GPUd() void GPUTPCGMSectorTrack::Set(const GPUTPCGMMerger* merger, const GPUTPCTrack* sectorTr, float alpha, int32_t sector)
 {
   const GPUTPCBaseTrackParam& t = sectorTr->Param();
-  mOrigTrack = sectorTr;
+  mOrigTrackId = sectorTr - merger->GetConstantMem()->tpcTrackers[sector].Tracks();
   mParam.mX = t.GetX();
   mParam.mY = t.GetY();
   mParam.mZ = t.GetZ();
@@ -41,9 +41,9 @@ GPUd() void GPUTPCGMSectorTrack::Set(const GPUTPCGMMerger* merger, const GPUTPCT
   mNClusters = sectorTr->NHits();
 }
 
-GPUd() void GPUTPCGMSectorTrack::Set(const GPUTPCGMTrackParam& trk, const GPUTPCTrack* sectorTr, float alpha, int32_t sector)
+GPUd() void GPUTPCGMSectorTrack::Set(const GPUTPCGMMerger* merger, const GPUTPCGMTrackParam& trk, const GPUTPCTrack* sectorTr, float alpha, int32_t sector)
 {
-  mOrigTrack = sectorTr;
+  mOrigTrackId = sectorTr - merger->GetConstantMem()->tpcTrackers[sector].Tracks();
   mParam.mX = trk.GetX();
   mParam.mY = trk.GetY();
   mParam.mZ = trk.GetZ();
@@ -91,11 +91,11 @@ GPUd() void GPUTPCGMSectorTrack::SetParam2(const GPUTPCGMTrackParam& trk)
 GPUd() bool GPUTPCGMSectorTrack::FilterErrors(const GPUTPCGMMerger* merger, int32_t iSector, float maxSinPhi, float sinPhiMargin)
 {
   float lastX;
-  // float lastX = GPUTPCGeometry::Row2X(mOrigTrack->Cluster(mOrigTrack->NClusters() - 1).GetRow()); // TODO: Why is this needed to be set below, Row2X should work, but looses some tracks
+  // float lastX = GPUTPCGeometry::Row2X(OrigTrack(merger)->Cluster(OrigTrack(merger)->NClusters() - 1).GetRow()); // TODO: Why is this needed to be set below, Row2X should work, but looses some tracks
   float y, z;
   int32_t row, index;
   const GPUTPCTracker& trk = merger->GetConstantMem()->tpcTrackers[iSector];
-  const GPUTPCHitId& ic = trk.TrackHits()[mOrigTrack->FirstHitID() + mOrigTrack->NHits() - 1];
+  const GPUTPCHitId& ic = trk.TrackHits()[OrigTrack(merger)->FirstHitID() + OrigTrack(merger)->NHits() - 1];
   index = trk.Data().ClusterDataIndex(trk.Data().Row(ic.RowIndex()), ic.HitIndex()) + merger->GetConstantMem()->ioPtrs.clustersNative->clusterOffset[iSector][0];
   row = ic.RowIndex();
   const ClusterNative& cl = merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[index];
@@ -493,9 +493,9 @@ GPUd() bool GPUTPCGMSectorTrack::TransportToXAlpha(GPUTPCGMMerger* merger, float
   return 1;
 }
 
-GPUd() void GPUTPCGMSectorTrack::CopyBaseTrackCov()
+GPUd() void GPUTPCGMSectorTrack::CopyBaseTrackCov(const GPUTPCGMMerger* merger)
 {
-  const float* GPUrestrict() cov = mOrigTrack->Param().mC;
+  const float* GPUrestrict() cov = OrigTrack(merger)->Param().mC;
   mParam.mC0 = cov[0];
   mParam.mC2 = cov[2];
   mParam.mC3 = cov[3];

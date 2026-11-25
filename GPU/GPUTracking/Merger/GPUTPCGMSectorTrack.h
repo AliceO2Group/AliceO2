@@ -45,7 +45,12 @@ class GPUTPCGMSectorTrack
   {
     return (i < 2) ? mSegmentNeighbour[i] : mNeighbour[i - 2];
   }
-  GPUd() const GPUTPCTrack* OrigTrack() const { return mOrigTrack; }
+  GPUd() int32_t OrigTrackId() const { return mOrigTrackId; }
+  template <class T>
+  GPUdi() const GPUTPCTrack* OrigTrack(const T* merger) const // T = GPUTPCGMMerger, template since it is incomplete here
+  {
+    return &merger->GetConstantMem()->tpcTrackers[mSector].Tracks()[mOrigTrackId];
+  }
   GPUd() float X() const { return mParam.mX; }
   GPUd() float Y() const { return mParam.mY; }
   GPUd() float Z() const { return mParam.mZ; }
@@ -73,7 +78,7 @@ class GPUTPCGMSectorTrack
     mClusterT[1] = v2;
   }
 
-  GPUd() void Set(const GPUTPCGMTrackParam& trk, const GPUTPCTrack* sectorTr, float alpha, int32_t sector);
+  GPUd() void Set(const GPUTPCGMMerger* merger, const GPUTPCGMTrackParam& trk, const GPUTPCTrack* sectorTr, float alpha, int32_t sector);
   GPUd() void SetParam2(const GPUTPCGMTrackParam& trk);
   GPUd() void Set(const GPUTPCGMMerger* merger, const GPUTPCTrack* sectorTr, float alpha, int32_t sector);
   GPUd() void UseParam2() { mParam = mParam2; } // TODO: Clean this up!
@@ -117,14 +122,14 @@ class GPUTPCGMSectorTrack
   template <int I = 0>
   GPUd() bool TransportToX(GPUTPCGMMerger* merger, float x, float Bz, GPUTPCGMBorderTrack& b, float maxSinPhi, bool doCov = true) const;
   GPUd() bool TransportToXAlpha(GPUTPCGMMerger* merger, float x, float sinAlpha, float cosAlpha, float Bz, GPUTPCGMBorderTrack& b, float maxSinPhi) const;
-  GPUd() void CopyBaseTrackCov();
+  GPUd() void CopyBaseTrackCov(const GPUTPCGMMerger* merger);
   struct sectorTrackParam {
     float mX, mY, mZ, mSinPhi, mDzDs, mQPt, mCosPhi, mSecPhi; // parameters
     float mC0, mC2, mC3, mC5, mC7, mC9, mC10, mC12, mC14;     // covariances
   };
 
  private:
-  const GPUTPCTrack* mOrigTrack;    // pointer to original sector track
+  int32_t mOrigTrackId;             // index of the original sector track in the tracker of mSector
   sectorTrackParam mParam;          // Track parameters
   sectorTrackParam mParam2;         // Parameters at other side
   float mTOffset;                   // Z offset with early transform, T offset otherwise
