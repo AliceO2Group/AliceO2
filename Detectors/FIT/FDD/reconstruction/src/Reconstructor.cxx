@@ -49,6 +49,10 @@ void Reconstructor::process(o2::fdd::Digit const& digitBC, gsl::span<const o2::f
   int64_t coincidencePairsTime[Nchannels] = {0};
 
   for (const auto& channelData : inChData) {
+    const auto& chNum = channelData.mPMNumber;
+    if (chNum >= Nchannels) {
+      continue;
+    }
     if (mDeadChannelMap && !mDeadChannelMap->isChannelAlive(channelData.mPMNumber)) {
       LOG(debug) << "Channel " << channelData.mPMNumber << " is dead - discarding data";
       continue;
@@ -57,7 +61,6 @@ void Reconstructor::process(o2::fdd::Digit const& digitBC, gsl::span<const o2::f
     if (!isInAmplitudeWindow(channelData.mChargeADC, side) || !isInTimeWindow(channelData.mTime) || !isChannelDataGood(channelData.mFEEBits)) {
       continue;
     }
-    const auto& chNum = channelData.mPMNumber;
 
     outChData.emplace_back((int)chNum, (channelData.mTime) * timePerTDC,
                            (double)channelData.mChargeADC, channelData.mFEEBits);
