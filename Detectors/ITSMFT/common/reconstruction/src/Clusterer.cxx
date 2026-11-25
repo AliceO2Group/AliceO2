@@ -176,7 +176,8 @@ void Clusterer::ClustererThread::process(uint16_t chip, uint16_t nChips, CompClu
     auto chipID = curChipData->getChipID();
     if (parent->mMaxBCSeparationToMask > 0) { // mask pixels fired from the previous ROF
       const auto& chipInPrevROF = parent->mChipsOld[chipID];
-      if (std::abs(rofPtr.getBCData().differenceInBC(chipInPrevROF.getInteractionRecord())) < parent->mMaxBCSeparationToMask) {
+      auto bcDiff = rofPtr.getBCData().differenceInBC(chipInPrevROF.getInteractionRecord()); // the sample must precede, it may come from an unrelated earlier TF
+      if (bcDiff > 0 && bcDiff < parent->mMaxBCSeparationToMask) {
         parent->mMaxRowColDiffToMask ? curChipData->maskFiredInSample(parent->mChipsOld[chipID], parent->mMaxRowColDiffToMask) : curChipData->maskFiredInSample(parent->mChipsOld[chipID]);
       }
     }
