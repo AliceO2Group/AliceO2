@@ -49,6 +49,7 @@ class GPUProcessor
 #endif
 
   GPUd() GPUconstantref() const GPUConstantMem* GetConstantMem() const; // Body in GPUConstantMem.h to avoid circular headers
+  GPUd() GPUconstantref() GPUConstantMem* GetConstantMem();             // ...
   GPUd() GPUconstantref() const GPUParam& Param() const;                // ...
   GPUd() void raiseError(uint32_t code, uint32_t param1 = 0, uint32_t param2 = 0, uint32_t param3 = 0) const;
   GPUd() bool IsDeviceProcessor() const { return mGPUProcessorType == PROCESSOR_TYPE_DEVICE; }
@@ -161,7 +162,7 @@ class GPUProcessor
   GPUReconstruction* mRec;
   ProcessorType mGPUProcessorType;
   GPUProcessor* mLinkedProcessor;
-  GPUconstantref() const GPUConstantMem* mConstantMem;
+  GPUconstantref() GPUConstantMem* mConstantMem;
 
  private:
   bool mAllocateAndInitializeLate;

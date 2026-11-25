@@ -39,7 +39,7 @@ o2_gpu_add_kernel("GPUTPCTrackletSelector"                                "= TPC
 o2_gpu_add_kernel("GPUMemClean16"                                         "GPUGeneralKernels"                                     NO void* ptr uint64_t size)
 o2_gpu_add_kernel("GPUitoa"                                               "GPUGeneralKernels"                                     NO int32_t* ptr uint64_t size)
 o2_gpu_add_kernel("GPUTPCExtrapolationTrackingCopyNumbers"                "GPUTPCExtrapolationTracking TPCTRACKER"                NO int32_t n)
-o2_gpu_add_kernel("GPUTPCExtrapolationTracking"                           "= TPCTRACKER TPCTRACKLETCONS"                          LB)
+o2_gpu_add_kernel("GPUTPCExtrapolationTracking"                           "= TPCTRACKER TPCTRACKLETCONS"                          LB int32_t iSectorSource)
 o2_gpu_add_kernel("GPUTPCCreateTrackingData"                              "= TPCTRACKER TPCSECTORDATA"                            LB)
 o2_gpu_add_kernel("GPUTPCSectorDebugSortKernels, hitData"                 "= TPCTRACKER")
 o2_gpu_add_kernel("GPUTPCSectorDebugSortKernels, startHits"               "= TPCTRACKER")

@@ -36,14 +36,10 @@ class GPUTPCExtrapolationTracking : public GPUKernelTemplate
     return processors.tpcTrackers;
   }
   template <int32_t iKernel = GPUKernelTemplate::defaultKernel>
-  GPUd() static void Thread(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& tracker);
-
-  GPUd() static int32_t ExtrapolationTrackingSectorOrder(int32_t iSector);
-  GPUd() static void ExtrapolationTrackingSectorLeftRight(uint32_t iSector, uint32_t& left, uint32_t& right);
+  GPUd() static void Thread(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& leftSector, int32_t iRightSector);
 
  private:
   GPUd() static int32_t PerformExtrapolationTrackingRun(GPUTPCTracker& tracker, GPUsharedref() GPUSharedMemory& smem, const GPUTPCTracker& sectorSource, int32_t iTrack, int32_t rowIndex, float angle, int32_t direction);
-  GPUd() static void PerformExtrapolationTracking(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, const GPUTPCTracker& tracker, GPUsharedref() GPUSharedMemory& smem, GPUTPCTracker& sectorTarget, bool right);
 };
 
 class GPUTPCExtrapolationTrackingCopyNumbers : public GPUKernelTemplate

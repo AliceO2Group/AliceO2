@@ -234,7 +234,7 @@ class GPUChainTracking : public GPUChain
 
   GPUChainTracking(GPUReconstruction* rec, uint32_t maxTPCHits = constants::GPU_MEM_MAX_TPC_CLUSTERS, uint32_t maxTRDTracklets = constants::GPU_MEM_MAX_TRD_TRACKLETS);
 
-  int32_t ExtrapolationTracking(uint32_t iSector, bool blocking);
+  int32_t ExtrapolationTracking(uint32_t sectorLeft, uint32_t sectorRight, uint32_t stream);
 
   int32_t PrepareProfile();
   int32_t DoProfile();
@@ -295,8 +295,6 @@ class GPUChainTracking : public GPUChain
 
   // Synchronization and Locks
   eventStruct* mEvents = nullptr;
-  std::array<int8_t, NSECTORS> mExtrapolationTrackingDone;
-
   std::vector<outputQueueEntry> mOutputQueue;
 
  private:

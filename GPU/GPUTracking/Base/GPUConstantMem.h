@@ -108,6 +108,15 @@ GPUdi() GPUconstantref() const GPUConstantMem* GPUProcessor::GetConstantMem() co
 #endif
 }
 
+GPUdi() GPUconstantref() GPUConstantMem* GPUProcessor::GetConstantMem()
+{
+#if defined(GPUCA_GPUCODE_DEVICE) && defined(GPUCA_HAS_GLOBAL_SYMBOL_CONSTANT_MEM)
+  return &GPUCA_CONSMEM;
+#else
+  return mConstantMem;
+#endif
+}
+
 GPUdi() GPUconstantref() const GPUParam& GPUProcessor::Param() const
 {
   return GetConstantMem()->param;
