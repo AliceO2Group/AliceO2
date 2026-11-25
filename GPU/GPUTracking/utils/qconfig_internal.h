@@ -18,6 +18,14 @@
 #include "qconfig_general.h"
 #include "qconfig_helpers.h"
 
+#ifdef QCONFIG_CHECK // qcheck(expression) as additional setting of an option: expression is evaluated by qConfigCheck if the option has not the default value (qconfig_check.inc), can use val (value of the option) and get<T>() (object of type T passed to qConfigCheck)
+#define qcheck(...) \
+  ::qConfig::qcheck_result { static_cast<bool>(__VA_ARGS__), #__VA_ARGS__ }
+#else
+#define qcheck(...) \
+  ::qConfig::qcheck_ignore {}
+#endif
+
 #ifdef QCONFIG_PARSE // Included in the constructor of qConfigOptionRegistry: registers the names and the handler of each option
 
 #define AddOption(name, type, default, optname, optnameshort, ...) \
@@ -271,6 +279,25 @@ void qConfigPrint(const T& qconfig_tmp_object, const std::string& blockName); //
   }
 
 // End QCONFIG_GEN_RTTI
+#elif defined(QCONFIG_CHECK) // Included in qConfigChecker::check(), blocks of config structs not passed to qConfigCheck are discarded
+#define AddOption(name, type, default, optname, optnameshort, ...)                                       \
+  {                                                                                                      \
+    [[maybe_unused]] const auto& val = qConfigObj.name;                                                  \
+    retVal += qConfigCheckOption(qConfigStruct, qon_mxstr(name), val, qConfigDefault.name, __VA_ARGS__); \
+  }
+#define AddOptionVec(name, type, optname, optnameshort, ...) AddOption(name, type, , optname, optnameshort, __VA_ARGS__)
+#define AddOptionArray(name, type, count, default, optname, optnameshort, ...) AddOption(name, type, , optname, optnameshort, __VA_ARGS__)
+#define AddOptionSet(...)
+#define AddSubConfig(name, instance)
+#define BeginConfig(name, instance)                        \
+  if constexpr ((std::is_same_v<name, Args> || ...)) {     \
+    [[maybe_unused]] const name& qConfigObj = get<name>(); \
+    [[maybe_unused]] const name qConfigDefault{};          \
+    [[maybe_unused]] constexpr const char* qConfigStruct = qon_mxstr(name);
+#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr, ...) BeginConfig(name, instance)
+#define EndConfig() }
+
+// End QCONFIG_CHECK
 #else // Define structures
 
 #error Internal error, qconfig_internal called with action type
@@ -280,3 +307,4 @@ void qConfigPrint(const T& qconfig_tmp_object, const std::string& blockName); //
 #define QCONFIG_INTERNAL
 #include "qconfig_wrapinclude.h"
 #undef QCONFIG_INTERNAL
+#undef qcheck

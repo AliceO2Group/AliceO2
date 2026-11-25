@@ -30,6 +30,7 @@ class GPUConfigDump
 {
  public:
   static void dumpConfig(const GPUSettingsRec* rec, const GPUSettingsProcessing* proc, const GPUSettingsQA* qa, const GPUSettingsDisplay* display, const GPUSettingsDeviceBackend* device, const GPURecoStepConfiguration* workflow);
+  static int32_t checkConfig(const GPUSettingsProcessing& proc, const GPUSettingsDeviceBackend& device); // Evaluate the qcheck settings, returns the number of failed checks
 };
 
 } // namespace o2::gpu

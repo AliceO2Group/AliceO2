@@ -46,6 +46,13 @@ QCONFIG_SETTING_TEMPLATE(max)
 QCONFIG_SETTING_TEMPLATE(set)
 QCONFIG_SETTING_TEMPLATE(def)
 
+struct qcheck_ignore {
+};
+struct qcheck_result {
+  bool ok;
+  const char* expression;
+};
+
 template <typename T>
 struct qConfigSettings {
   qConfigSettings() : checkMin(false), checkMax(false), doSet(false), doDefault(false), min(), max(), set(), message(nullptr), allowEmpty(false) {};
@@ -84,6 +91,7 @@ struct qConfigSettingsParser { // Parse the additional settings (min, max, set, 
     settings.max = maxval.v;
   }
   static inline void qProcessSetting(qConfigSettings<T>& settings, qmessage_t msg) { settings.message = msg.v; }
+  static inline void qProcessSetting(qConfigSettings<T>& /*settings*/, qcheck_ignore) {}
   template <typename S>
   static inline void qProcessSetting(qConfigSettings<T>& settings, qset_t<S> set)
   {
