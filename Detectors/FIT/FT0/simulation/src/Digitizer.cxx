@@ -18,7 +18,9 @@
 
 #include "DataFormatsFT0/PMLookupTable.h"
 #include "FT0Base/Constants.h"
+#include <array>
 #include <map>
+#include <unordered_map>
 
 #include "TMath.h"
 #include "TRandom.h"
@@ -328,18 +330,48 @@ void Digitizer::storeBC(BCCache& bc,
 
   int vertex_time;
   const auto& params = FT0DigParam::Instance();
+
+  static const auto pmtChannelGroups = [] {
+    const auto& lookup = PMLookupTable::Instance();
+    std::vector<std::array<int, 4>> groups;
+    std::unordered_map<uint8_t, std::vector<int>> tmpGroups;
+    // Group only simulated sensor channels. The PM address space includes unused slots.
+    for (int ch = 0; ch < Geometry::Nchannels; ++ch) {
+      tmpGroups[lookup.getPMHash(static_cast<PMLookupTable::ChannelID>(ch))].push_back(ch);
+    }
+
+    for (const auto& [pmHash, chVec] : tmpGroups) {
+      if (chVec.size() % 4 != 0) {
+        LOG(fatal) << "PM hash " << int(pmHash) << " has " << chVec.size()
+                   << " channels in LUT, expected multiplicity of 4";
+      }
+      for (size_t i = 0; i < chVec.size(); i += 4) {
+        groups.push_back({chVec[i], chVec[i + 1], chVec[i + 2], chVec[i + 3]});
+      }
+    }
+    return groups;
+  }();
+
   int first = digitsCh.size(), nStored = 0;
   auto& particles = bc.hits;
   std::sort(std::begin(particles), std::end(particles));
   auto channel_end = particles.begin();
   std::vector<float> channel_times;
-  //  std::set<int> disabledChannels = {40, 41, 42, 43, 88, 89, 90, 91, 56, 57, 58, 59, 60, 61, 62, 63, 72, 73, 74, 75, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 164, 165, 166, 167, 184, 185, 186, 187, 160, 161, 162, 163, 188, 189, 190, 191, 156, 157, 158, 159, 192, 193, 194, 195, 152, 153, 154, 155, 196, 197, 198, 199, 148, 149, 150, 151, 144, 145, 146, 147, 204, 205, 206, 207, 200, 201, 202, 203};  // przykładowe kanały
+  std::vector<float> baseAmp(params.mMCPs, 0.f);
+  std::vector<float> finalAmp(params.mMCPs, 0.f);
+  std::vector<int> chTime(params.mMCPs, -5000);
+  std::vector<int> chChain(params.mMCPs, 0);
+  std::vector<bool> chValid(params.mMCPs, false);
+
+  static const std::array<std::array<int, 3>, 4> localNeighbours = {{{{1, 2, 3}},
+                                                                     {{0, 3, 2}},
+                                                                     {{0, 3, 1}},
+                                                                     {{1, 2, 0}}}};
+
   for (Int_t ipmt = 0; ipmt < params.mMCPs; ++ipmt) {
     auto channel_begin = channel_end;
     channel_end = std::find_if(channel_begin, particles.end(),
                                [ipmt](BCCache::particle const& p) { return p.hit_ch != ipmt; });
-
-    // The hits between 'channel_begin' and 'channel_end' now contains all hits for channel 'ipmt'
 
     if (channel_end - channel_begin < params.mAmp_trsh) {
       continue;
@@ -361,30 +393,97 @@ void Digitizer::storeBC(BCCache& bc,
     if (mCalibOffset) {
       miscalib = mCalibOffset->mTimeOffsets[ipmt];
     }
-    int smeared_time = 1000. * (*cfd.particle - params.mCfdShift) * params.mChannelWidthInverse + miscalib; // + int(1000. * mIntRecord.getTimeOffsetWrtBC() * params.mChannelWidthInverse);
+    int smeared_time = 1000. * (*cfd.particle - params.mCfdShift) * params.mChannelWidthInverse + miscalib;
     bool is_time_in_signal_gate = (smeared_time > -params.mTime_trg_gate && smeared_time < params.mTime_trg_gate);
     float charge = measure_amplitude(channel_times) * params.mCharge2amp;
-    float amp = is_time_in_signal_gate ? params.mMV_2_Nchannels * charge : 0;
-    if (amp > 4095) {
-      amp = 4095;
+    float amp = is_time_in_signal_gate ? params.mMV_2_Nchannels * charge : 0.f;
+    if (amp > 4095.f) {
+      amp = 4095.f;
     }
-    //    if (!disabledChannels.count(ipmt)) {
-    //      continue;
-    //    }
 
-    LOG(debug) << mEventID << " bc " << firstBCinDeque.bc << " orbit " << firstBCinDeque.orbit << ", ipmt " << ipmt << ", smeared_time " << smeared_time << " nStored " << nStored << " offset " << miscalib;
+    LOG(debug) << mEventID << " bc " << firstBCinDeque.bc << " orbit " << firstBCinDeque.orbit
+               << ", ipmt " << ipmt << ", smeared_time " << smeared_time
+               << " nStored " << nStored << " offset " << miscalib
+               << " base amp " << amp;
     if (is_time_in_signal_gate) {
       chain |= (1 << o2::ft0::ChannelData::EEventDataBit::kIsCFDinADCgate);
       chain |= (1 << o2::ft0::ChannelData::EEventDataBit::kIsEventInTVDC);
-      // Sum channel charge per PM (similar logic as in digits2trgFT0)
-      if (ipmt < o2::ft0::Constants::sNCHANNELS_PM) {
-        mapPMhash2sumAmpl[pmLookupTable.getPMHash(static_cast<PMLookupTable::ChannelID>(ipmt))] += static_cast<int>(amp);
+    }
+
+    baseAmp[ipmt] = amp;
+    finalAmp[ipmt] = amp;
+    chTime[ipmt] = smeared_time;
+    chChain[ipmt] = chain;
+    chValid[ipmt] = true;
+  }
+
+  for (const auto& channels : pmtChannelGroups) {
+    if (channels.back() >= baseAmp.size()) {
+      continue;
+    }
+    for (int localIdx = 0; localIdx < 4; ++localIdx) {
+      const int src = channels[localIdx];
+      if (!chValid[src] || baseAmp[src] <= 0.f) {
+        continue;
+      }
+
+      const int nb1 = channels[localNeighbours[localIdx][0]];
+      const int nb2 = channels[localNeighbours[localIdx][1]];
+      const int diag = channels[localNeighbours[localIdx][2]];
+
+      const float directXtalk = baseAmp[src] * params.Cross_Talk_Frac;
+      const float diagXtalk = baseAmp[src] * (params.Cross_Talk_Frac / 3.f);
+
+      finalAmp[nb1] += directXtalk;
+      finalAmp[nb2] += directXtalk;
+      finalAmp[diag] += diagXtalk;
+
+      if (!chValid[nb1] && directXtalk >= params.mAmpThresholdForCrossTalkDigit) {
+        chValid[nb1] = true;
+        chTime[nb1] = chTime[src];
+        chChain[nb1] = chChain[src];
+      }
+
+      if (!chValid[nb2] && directXtalk >= params.mAmpThresholdForCrossTalkDigit) {
+        chValid[nb2] = true;
+        chTime[nb2] = chTime[src];
+        chChain[nb2] = chChain[src];
+      }
+
+      if (!chValid[diag] && diagXtalk >= params.mAmpThresholdForCrossTalkDigit) {
+        chValid[diag] = true;
+        chTime[diag] = chTime[src];
+        chChain[diag] = chChain[src];
       }
     }
+  }
+
+  for (Int_t ipmt = 0; ipmt < params.mMCPs; ++ipmt) {
+    if (!chValid[ipmt]) {
+      continue;
+    }
+
+    float amp = finalAmp[ipmt];
+    if (amp > 4095.f) {
+      amp = 4095.f;
+    }
+    const bool hasPrimarySignal = (baseAmp[ipmt] > 0.f);
+    const bool isCrossTalkOnly = (!hasPrimarySignal && amp > 0.f);
+
+    if (isCrossTalkOnly && amp < params.mAmpThresholdForCrossTalkDigit) {
+      continue;
+    }
+
+    const int smeared_time = chTime[ipmt];
+    const int chain = chChain[ipmt];
+    const bool is_time_in_signal_gate = (smeared_time > -params.mTime_trg_gate && smeared_time < params.mTime_trg_gate);
+
+    if (is_time_in_signal_gate && ipmt < o2::ft0::Constants::sNCHANNELS_PM) {
+      mapPMhash2sumAmpl[pmLookupTable.getPMHash(static_cast<PMLookupTable::ChannelID>(ipmt))] += static_cast<int>(amp);
+    }
+
     digitsCh.emplace_back(ipmt, smeared_time, int(amp), chain);
     nStored++;
-
-    // fill triggers
 
     Bool_t is_A_side = (ipmt < 4 * mGeometry.NCellsA);
     if (!is_time_in_signal_gate) {
