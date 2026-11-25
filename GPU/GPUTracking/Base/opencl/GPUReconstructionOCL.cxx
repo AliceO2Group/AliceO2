@@ -126,17 +126,17 @@ int32_t GPUReconstructionOCL::InitDevice_Runtime()
 
     cl_uint deviceCount, bestDevice = (cl_uint)-1, bestPlatform = (cl_uint)-1;
     for (uint32_t iPlatform = 0; iPlatform < num_platforms; iPlatform++) {
-      if (GetProcessingSettings().oclPlatformNum >= 0) {
-        if (GetProcessingSettings().oclPlatformNum >= (int32_t)num_platforms) {
+      if (GetProcessingSettings().backend.platformNum >= 0) {
+        if (GetProcessingSettings().backend.platformNum >= (int32_t)num_platforms) {
           GPUErrorReturn("Invalid platform specified");
         }
-        iPlatform = GetProcessingSettings().oclPlatformNum;
+        iPlatform = GetProcessingSettings().backend.platformNum;
       }
       std::string platformUsageInfo;
       bool platformCompatible = false;
       queryPlatform(platforms[iPlatform]);
       if (clGetDeviceIDs(platforms[iPlatform], CL_DEVICE_TYPE_ALL, 0, nullptr, &deviceCount) != CL_SUCCESS) {
-        if (GetProcessingSettings().oclPlatformNum >= 0) {
+        if (GetProcessingSettings().backend.platformNum >= 0) {
           GPUErrorReturn("No device in requested platform or error obtaining device count");
         }
         platformUsageInfo += " - no devices";
@@ -147,16 +147,16 @@ int32_t GPUReconstructionOCL::InitDevice_Runtime()
         }
       }
 
-      if (GetProcessingSettings().oclPlatformNum >= 0 || GetProcessingSettings().debugLevel >= 2) {
-        GPUInfo("%s Platform %d: (%s %s) %s %s (Compatible: %s)%s", GetProcessingSettings().oclPlatformNum >= 0 ? "Enforced" : "Available", iPlatform, platform_profile.c_str(), platform_version.c_str(), platform_vendor.c_str(), platform_name.c_str(), platformCompatible ? "yes" : "no", GetProcessingSettings().debugLevel >= 2 ? platformUsageInfo.c_str() : "");
+      if (GetProcessingSettings().backend.platformNum >= 0 || GetProcessingSettings().debugLevel >= 2) {
+        GPUInfo("%s Platform %d: (%s %s) %s %s (Compatible: %s)%s", GetProcessingSettings().backend.platformNum >= 0 ? "Enforced" : "Available", iPlatform, platform_profile.c_str(), platform_version.c_str(), platform_vendor.c_str(), platform_name.c_str(), platformCompatible ? "yes" : "no", GetProcessingSettings().debugLevel >= 2 ? platformUsageInfo.c_str() : "");
       }
 
-      if (platformCompatible || GetProcessingSettings().oclPlatformNum >= 0 || (GetProcessingSettings().oclPlatformNum == -2 && deviceCount)) {
+      if (platformCompatible || GetProcessingSettings().backend.platformNum >= 0 || (GetProcessingSettings().backend.platformNum == -2 && deviceCount)) {
         if (deviceCount > devices.size()) {
           devices.resize(deviceCount);
         }
         if (clGetDeviceIDs(platforms[iPlatform], CL_DEVICE_TYPE_ALL, deviceCount, devices.data(), nullptr) != CL_SUCCESS) {
-          if (GetProcessingSettings().oclPlatformNum >= 0) {
+          if (GetProcessingSettings().backend.platformNum >= 0) {
             GPUErrorReturn("Error getting OpenCL devices");
           }
           continue;
@@ -184,7 +184,7 @@ int32_t GPUReconstructionOCL::InitDevice_Runtime()
             deviceOK = false;
             deviceFailure += " - No Little Endian Mode";
           }
-          if (!GetProcessingSettings().oclCompileFromSources) {
+          if (!GetProcessingSettings().backend.compileFromSources) {
             size_t pos = 0;
             while ((pos = device_il_version.find("SPIR-V", pos)) != std::string::npos) {
               float spirvVersion;
@@ -222,7 +222,7 @@ int32_t GPUReconstructionOCL::InitDevice_Runtime()
           }
         }
       }
-      if (GetProcessingSettings().oclPlatformNum >= 0) {
+      if (GetProcessingSettings().backend.platformNum >= 0) {
         break;
       }
     }
@@ -521,10 +521,10 @@ int32_t GPUReconstructionOCL::GetOCLPrograms()
 {
   cl_int ocl_error;
 
-  const char* oclBuildFlags = GetProcessingSettings().oclOverrideSourceBuildFlags != "" ? GetProcessingSettings().oclOverrideSourceBuildFlags.c_str() : GPUCA_M_STR(GPUCA_OCL_BUILD_FLAGS);
+  const char* oclBuildFlags = GetProcessingSettings().backend.overrideSourceBuildFlags != "" ? GetProcessingSettings().backend.overrideSourceBuildFlags.c_str() : GPUCA_M_STR(GPUCA_OCL_BUILD_FLAGS);
 
 #ifdef OPENCL_ENABLED_SPIRV // clang-format off
-  if (mOclVersion >= 2.1f && !GetProcessingSettings().oclCompileFromSources) {
+  if (mOclVersion >= 2.1f && !GetProcessingSettings().backend.compileFromSources) {
     GPUInfo("Reading OpenCL program from SPIR-V IL (Platform version %4.2f)", mOclVersion);
     mInternals->program = clCreateProgramWithIL(mInternals->context, _binary_GPUReconstructionOCLCode_spirv_start, _binary_GPUReconstructionOCLCode_spirv_len, &ocl_error);
     oclBuildFlags = "";

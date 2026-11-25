@@ -357,6 +357,15 @@ AddOption(mergerDumpTrackNCl, bool, false, "", 0, "Dump file with nCl per merged
 AddHelp("help", 0)
 EndConfig()
 
+// Backend Settings
+BeginSubConfig(GPUSettingsProcessingBackend, backend, configStandalone.proc, "BACKEND", 0, "Backend Settings", proc_backend)
+AddOption(platformNum, int32_t, -1, "", 0, "Platform to use, in case the backend provides multiple platforms (OpenCL only, -1 = auto-select, -2 query all platforms (also incompatible))")
+AddOption(compileFromSources, bool, false, "", 0, "Compile OpenCL binary from included source code instead of using included spirv code (OpenCL only)")
+AddOption(overrideSourceBuildFlags, std::string, "", "", 0, "Override Backend build flags for compilation from source, put a space for empty options (OpenCL and Metal only)")
+AddOption(overrideEUSperCU, int32_t, -1, "", 0, "Override AMD_EUS_PER_CU setting (HIP only)")
+AddHelp("help", 0)
+EndConfig()
+
 // Settings steering the processing once the device was selected, only available on the host
 BeginSubConfig(GPUSettingsProcessing, proc, configStandalone, "PROC", 0, "Processing settings", proc)
 AddOption(deviceNum, int32_t, -1, "gpuDevice", 0, "Set GPU device to use (-1: automatic, -2: for round-robin usage in timeslice-pipeline)")
@@ -432,11 +441,6 @@ AddOption(tpcApplyCFCutsAtDecoding, bool, false, "", 0, "Apply cluster cuts from
 AddOption(tpcApplyClusterFilterOnCPU, uint8_t, 0, "", 0, "Apply custom cluster filter of GPUTPCClusterFilter class, 0: off, 1: debug, 2: PbPb23")
 AddOption(tpcWriteClustersAfterRejection, bool, false, "", 0, "Apply TPC rejection strategy before writing clusters")
 AddOption(tpcSortClusters, bool, false, "", 0, "Enforce sorting TPC clusters")
-AddOption(oclPlatformNum, int32_t, -1, "", 0, "Platform to use, in case the backend provides multiple platforms (OpenCL only, -1 = auto-select, -2 query all platforms (also incompatible))") // TODO: Create some backend-specific options
-AddOption(oclCompileFromSources, bool, false, "", 0, "Compile OpenCL binary from included source code instead of using included spirv code")
-AddOption(oclOverrideSourceBuildFlags, std::string, "", "", 0, "Override OCL build flags for compilation from source, put a space for empty options")
-AddOption(metalOverrideSourceBuildFlags, std::string, "", "", 0, "Override Metal build flags for compilation from source, put a space for empty options")
-AddOption(hipOverrideAMDEUSperCU, int32_t, -1, "", 0, "Override AMD_EUS_PER_CU setting")
 AddOption(printSettings, bool, false, "", 0, "Print all settings when initializing")
 AddOption(tpcFreeAllocatedMemoryAfterProcessing, bool, false, "", 0, "Clean all memory allocated by TPC when TPC processing done, only data written to external output resources will remain")
 AddOption(debugOnFailure, int32_t, 0, "", 0, "Dump raw data in case an error occured, bit 1 enables all dumps, otherwise bitmask for: 2 = signal, 3 = GPUErrorCode", def(1))
@@ -458,6 +462,7 @@ AddSubConfig(GPUSettingsProcessingParam, param)
 AddSubConfig(GPUSettingsProcessingNNclusterizer, nn)
 AddSubConfig(GPUSettingsProcessingScaling, scaling)
 AddSubConfig(GPUSettingsProcessingDebug, debug)
+AddSubConfig(GPUSettingsProcessingBackend, backend)
 AddHelp("help", 0)
 EndConfig()
 #endif // !__OPENCL__ && !__METAL__

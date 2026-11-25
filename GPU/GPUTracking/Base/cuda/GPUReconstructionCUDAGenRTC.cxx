@@ -45,10 +45,10 @@ int32_t GPUReconstructionCUDA::genRTC(std::string& filename, uint32_t& nCompile)
 
   rtchelpers::loadLaunchBounds(proc, *mParDevice);
   if constexpr (std::string_view("CUDA") == "HIP") { // Check if we are RTC-compiling for HIP
-    if (proc.hipOverrideAMDEUSperCU > 0) {
-      mParDevice->par_AMD_EUS_PER_CU = proc.hipOverrideAMDEUSperCU;
+    if (proc.backend.overrideEUSperCU > 0) {
+      mParDevice->par_AMD_EUS_PER_CU = proc.backend.overrideEUSperCU;
     } else if (mParDevice->par_AMD_EUS_PER_CU <= 0) {
-      GPUFatal("AMD_EUS_PER_CU not set in the parameters provided for the AMD GPU, you can override this via --PROChipOverrideAMDEUSperCU [n]");
+      GPUFatal("AMD_EUS_PER_CU not set in the parameters provided for the AMD GPU, you can override this via --BACKENDbackendOverrideEUSperCU [n]");
     }
   }
   for (uint32_t i = 0; i < GetNKernels(); i++) {
