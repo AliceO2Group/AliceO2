@@ -27,22 +27,27 @@ Remark on the *Cluster Rejection count histograms* for the *online QC*:
 Running the TPC QA standalone:
 * It must be enabled via the configKeyValue GPU_proc.runQA in the o2-tpc-reco-workflow. The QA will run as part of the normal TPC tracking and will have access to all data structures of the tracking. Otherwise, the normal settings for the o2-tpc-reco-workflow apply.
 * Example to run on digits:
-{code}o2-tpc-reco-workflow -b --infile tpcdigits.root --configKeyValues "GPU_proc.runQA=1;" --output-type clusters,tracks{code}
+```o2-tpc-reco-workflow -b --infile tpcdigits.root --configKeyValues "GPU_proc.runQA=1;" --output-type clusters,tracks```
 * Example to run on clusters:
-{code}o2-tpc-reco-workflow --input-type clusters --infile tpc-native-clusters.root --output-type tracks --configKeyValues "GPU_proc.runQA=1"{code}
+```o2-tpc-reco-workflow --input-type clusters --infile tpc-native-clusters.root --output-type tracks --configKeyValues "GPU_proc.runQA=1"```
+
+Running the TPC QA in the standalone benchmark:
+* `./ca -e [dataset] --qa` runs the QA on a dataset with MC labels, prints the efficiency / clone / fake rates (`QA Stats` lines) and the cluster attachment statistics, and writes the plots to the `plots` folder. Use a build without `GPUCA_BUILD_DEBUG`, the QA is slow.
+* `--QAoutput file.root` stores the histograms, `--QAinput file.root` overlays them in the plots of a new run.
+* QA options are set with `--QA[option]` (`GPU_QA.[option]` in O2), see [GPUSettings.md](https://github.com/AliceO2Group/AliceO2/blob/dev/GPU/documentation/GPUSettings.md).
 
 Running the TPC QA inside the o2-tpc-reco-workflow as external source for qc:
 * As in the standalone mode, the TPC Tracking QA will run as part of the o2-tpc-reco-workflow with full access to the tracking data structures.
 * The output is shipped to QC as external qc-input in the form of ROOT histograms, which disables some subtasks that do not produce ROOT histograms (such as the cluster counts (32)).
 * A merged workflow of the o2-tpc-reco-workflow and qc must be configures, such as:
-{code}o2-tpc-reco-workflow --input-type clusters --infile tpc-native-clusters.root --output-type tracks,qa | o2-qc --config json:/${QUALITYCONTROL_ROOT}/etc/tpcQCTrackingFromExternal_direct.json{code}
+```o2-tpc-reco-workflow --input-type clusters --infile tpc-native-clusters.root --output-type tracks,qa | o2-qc --config json:/${QUALITYCONTROL_ROOT}/etc/tpcQCTrackingFromExternal_direct.json```
 (Note that by default, the output will be uploaded and visible at https://qcg-test.cern.ch/)
 * By default, this will create postprocessed histograms, and it can be switched via configKeyValues to layouts output via:
-{code}o2-tpc-reco-workflow --input-type clusters --infile tpc-native-clusters.root --output-type tracks,qa --configKeyValues "GPU_QA.shipToQCAsCanvas=true" | o2-qc --config json:/${QUALITYCONTROL_ROOT}/etc/tpcQCTrackingFromExternal_direct.json{code}
+```o2-tpc-reco-workflow --input-type clusters --infile tpc-native-clusters.root --output-type tracks,qa --configKeyValues "GPU_QA.shipToQCAsCanvas=true" | o2-qc --config json:/${QUALITYCONTROL_ROOT}/etc/tpcQCTrackingFromExternal_direct.json```
 * This mode can be combined with the standalone QA mode.
 * Running the *online cluster rejection histogram QA*:
 ** This mode works also without MC information, it must be enabled explicitly. Irrespective of the output mode, it will always furnish the same mergeable histograms, since there is no postprocessing. An example to run them on ROOT files:
-{code}o2-tpc-reco-workflow --input-type clusters --infile tpc-native-clusters.root --output-type tracks,qa --disable-mc --configKeyValues "GPU_QA.clusterRejectionHistograms=1" | o2-qc --config json:/${QUALITYCONTROL_ROOT}/etc/tpcQCTrackingFromExternal_direct.json{code}
+```o2-tpc-reco-workflow --input-type clusters --infile tpc-native-clusters.root --output-type tracks,qa --disable-mc --configKeyValues "GPU_QA.clusterRejectionHistograms=1" | o2-qc --config json:/${QUALITYCONTROL_ROOT}/etc/tpcQCTrackingFromExternal_direct.json```
 ** In order to set the x-axis scale (number of clusters), use the configKeyValue GPU_QA.histMaxNClusters.
 
 Running the QA as independent QC task:
@@ -51,7 +56,7 @@ Running the QA as independent QC task:
 * This mode is mostly foreseen for the mergeble output. In this way, many instance can run in parallel and the output can be merged before being postprocessed.
 * Currently, the mergeble output is hardcoded, but the task could easily be extended for other outputs (see below).
 * To run the tasks on ROOT file input, you can use the following example:
-{code}o2-tpc-track-reader | o2-tpc-reco-workflow --input-type clusters --infile tpc-native-clusters.root --output-type disable-writer | o2-qc --config json:/${QUALITYCONTROL_ROOT}/etc/tpcQCTracking_direct.json{code}
+```o2-tpc-track-reader | o2-tpc-reco-workflow --input-type clusters --infile tpc-native-clusters.root --output-type disable-writer | o2-qc --config json:/${QUALITYCONTROL_ROOT}/etc/tpcQCTracking_direct.json```
 
 Postprocessing the mergeble output:
 * The o2::tpc::qc::Tracking class can be used for the postprocessing in a standalone way.
@@ -60,7 +65,7 @@ Postprocessing the mergeble output:
 * Depending on the outputMode setting, the class will fill the out object witl either the postprocessed histograms or the canvas layouts.
 
 The following classes in O2 / QC belong to the TPC tracking QA:
-* o2::gpu::GPUQA (O2/GPU/GPUTracking/Standalone/qa/GPUQA.cxx): The main QA class, which can produce the standalone output, or can run with external input driven from the o2::gpu::GPUO2InterfaceQA.
+* o2::gpu::GPUQA (O2/GPU/GPUTracking/qa/GPUQA.cxx): The main QA class, which can produce the standalone output, or can run with external input driven from the o2::gpu::GPUO2InterfaceQA.
 * o2::gpu::GPUO2InterfaceQA (O2/GPU/GPUTracking/Interface/GPUO2InterfaceQA.cxx): Internal interface class, uses o2::gpu::GPUQA.
 * o2::tpc::qc::Tracking (O2/Detectors/TPC/qc/src/Tracking.cxx): The main QC class for running the TPC QA independent from the o2-tpc-reco-workflow, uses o2::gpu::GPUO2InterfaceQA.
 ** Can produce all output types from tracks / clusters as input.

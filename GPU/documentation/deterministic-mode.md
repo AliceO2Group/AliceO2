@@ -9,13 +9,13 @@ It uses a combination of
 
 This is steered by 3 options:
 - The `-DGPUCA_DETERMINISTIC_MODE` Cmake setting : Compile-time setting.
-- The `--PROCdeterministicGPUReconstruction` command line option / `GPU_proc.deterministicGPUReconstruction` `--configKeyValue` setting : Run time setting.
+- The `--PROCdeterministicGPUReconstruction` command line option / `GPU_proc.deterministicGPUReconstruction` `--configKeyValue` setting : Run time setting. (Default -1: enabled automatically if the deterministic compile-time setting is active or with `--debug 6`.)
 - The `--RTCdeterministic` command line option / `GPU_proc_rtc.deterministic` `--configKeyValue` setting. (Auto-enabled by the `deterministicGPUReconstruction` setting.) : Compile-time setting for RTC code.
 
 Note that enabling a single setting will not result in fully deterministic behavior! Each setting enables different deterministic aspects!
 In order to be fully deterministic, all settings must be enabled, where the RTC setting is automatically enabled if not explicitly disabled.
 
-`GPUCA_DETERMINISTIC_MODE` has multiple levels, which are described here: [FindO2GPU.cmake](https://github.com/AliceO2Group/AliceO2/blob/80a80a17f5a1d9cb77743e2a39b15b653fe1a4f9/dependencies/FindO2GPU.cmake#L72).
+`GPUCA_DETERMINISTIC_MODE` has multiple levels, which are described here: [FindO2GPU.cmake](https://github.com/AliceO2Group/AliceO2/blob/dev/dependencies/FindO2GPU.cmake): `OFF`, `NO_FAST_MATH`, `OPTO2`, `GPU` (synonym `ON`), `WHOLEO2`. The value `1` is invalid on purpose, use the names.
 - In order to have fully deterministic GPUReconstruction (i.e. all algorithms that come with the GPUTracking library, like TPC tracking), the level `GPUCA_DETERMINISTIC_MODE=GPU` is needed.
 - In order to apply it to all of O2, e.g. for ITS tracking, please use `GPUCA_DETERMINISTIC_MODE=WHOLEO2`
 
@@ -30,9 +30,13 @@ Beyond comparing only the number of clusters and number of tracks, it is also po
 It will create a dump container all (most) intermediate results in text form, which can be compared. The output files is called `CPU.out` if using the CPU backend, and `GPU.out` for the GPU backend.
 Note that the dump files will be huge and the processing will be slow and consume much more memory than normal with `--debug 6 . It has been tested with datasets containing up to 50 Pb-Pb collisions, and might fail for larger data.
 The dump files (if the deterministic mode is used with both compile- and runtime-activation), the files should be 100% identical and can just be compared with `diff`.
+- `--PROCdebugDumpChecksum 1` writes no file, but prints a hash of the dump (`Debug hash: ...`), which is much faster for a first comparison.
+- `--PROCdebugMask` selects the dumped sections, `--PROCdebugLogSuffix` adds a suffix to the file name.
+- `--debug >= 4` also sets `--PROCkeepAllMemory` (no memory reuse), so bugs from reused, uninitialized memory may disappear in the dump.
+- The `CPUDEVICE` backend (`--gpuType CPUDEVICE`, standalone build with `ENABLE_CPUDEVICE`) runs the GPU code path on the CPU, and its results can be compared with the CPU backend without a GPU.
 
 By default, the deterministic mode will apply flush-to-zero and denormals-are-zero to denormal floats.
-This can be disabled bia `-DDGPUCA_DETERMINISTIC_MODE`.
+This can be disabled via `-DGPUCA_DETERMINISTIC_NO_FTZ=1` (`GPUCA_DETERMINISTIC_NO_FTZ` in `config.cmake` for the standalone benchmark).
 Note that some GPUs cannot do precise float computation with denormals flushed to zero, while other GPUs do not support denormals at all.
 Thus, comparison between CPU and GPU deterministic results might require that this setting is either set or not set.
 CPU results for the 2 cases will always differ, since the floating point math will be slightly different.

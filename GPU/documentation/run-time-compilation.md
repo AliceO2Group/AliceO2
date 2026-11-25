@@ -1,4 +1,4 @@
-Run time compilation is a feature of the GPUReconstruction library, which can recompile the GPU code for HIP and for CUDA at runtime, and apply some optimizations and changes. It is planned to add support for CPU code and OpenCL code in the future.
+Run time compilation is a feature of the GPUReconstruction library, which can recompile the GPU code for HIP and for CUDA at runtime, and apply some optimizations and changes. The CPUDevice debug backend (`--gpuType CPUDEVICE`) supports RTC as well, compiling the device code with the host compiler. It is planned to add support for OpenCL code in the future.
 
 The changes that can be applied are:
 - `constexpr` optimization: configuration values that are constant during the processing are replaced by `constexpr` expressions, which allows the compiler to optimize the code better. Benchmarks in 2024 habe shown 5% performance improvement with CUDA and 2% improvement with HIP.
@@ -17,5 +17,7 @@ For chaning the launch bounds and other parameters, please consider `--RTCTECHlo
 It is possible to select a different target architecture for the compilation via `--RTCTECHoverrideArchitecture`, and the compilation can be prepended by a command with `--RTCTECHprependCommand`, e.g. for CPU pinning. See for example [dpl-workflow.sh](https://github.com/AliceO2Group/AliceO2/blob/80a80a17f5a1d9cb77743e2a39b15b653fe1a4f9/prodtests/full-system-test/dpl-workflow.sh#L335).
 
 `--RTCdeterministic` enables the [Deterministic Mode](https://github.com/AliceO2Group/AliceO2/blob/dev/GPU/documentation/deterministic-mode.md) (compile-time setting) for RTC. Usually you don't need to bother, as for the deterministic mode it is autoenabled from `--PROCdeterministicGPUReconstruction`, but the explicit `--RTCdeterministic` is available for tests.
+
+For testing and debugging: `--RTCTECHrunTest 1` / `2` runs the compilation as test (2: exit afterwards), `--RTCTECHkeepTempFiles 1` keeps the generated source and binary files (e.g. for gdb), and the environment variable `O2_GPU_RTC_OVERRIDE_CMD` replaces the compiler command.
 
 Finally, `--RTCoptConstexpr` and `--RTCoptSpecialCode` enable the constexpr and code removal optimizations. For an example how the TPC V/M shape corrections are removed, see [TPCFastTransform.h](https://github.com/AliceO2Group/AliceO2/blob/fc3ace17eca580c338751163ef4528e3ec47f9d6/GPU/TPCFastTransformation/TPCFastTransform.h#L445).
