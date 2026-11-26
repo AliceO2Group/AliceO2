@@ -9,8 +9,9 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-# Runs rootcling, optionally appends PATCH to the generated dictionary, and
-# turns the "Unused class rule" warning into an error.
+# Runs rootcling, optionally appends PATCH to the generated dictionary, turns
+# the "Unused class rule" warning into an error, and completes the rootmap with
+# a "header" entry for each of ROOTMAP_HEADERS (see AddRootDictionary.cmake).
 #
 # rootcling only offers -failOnWarnings, which is all or nothing, so the
 # output still has to be inspected to single out that one warning.
@@ -54,4 +55,20 @@ endif()
 if(PATCH)
   file(READ ${PATCH} patchContent)
   file(APPEND ${DICTIONARY} "${patchContent}")
+endif()
+
+if(ROOTMAP AND ROOTMAP_HEADERS AND EXISTS ${ROOTMAP})
+  cmake_policy(SET CMP0007 NEW) # keep empty rootmap lines as list elements
+  file(STRINGS ${ROOTMAP} rootmapLines)
+  string(REPLACE "|" ";" rootmapHeaders "${ROOTMAP_HEADERS}")
+  set(missing "")
+  foreach(h IN LISTS rootmapHeaders)
+    list(FIND rootmapLines "header ${h}" index)
+    if(index EQUAL -1)
+      string(APPEND missing "header ${h}\n")
+    endif()
+  endforeach()
+  if(missing)
+    file(APPEND ${ROOTMAP} "# Public headers of this dictionary not listed by rootcling\n${missing}")
+  endif()
 endif()

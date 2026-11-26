@@ -140,6 +140,19 @@ function(add_root_dictionary target)
     set(pcmDeps)
   endif()
 
+  # Public headers of this dictionary. rootcling writes rootmap entries only for a few of them 
+  # so RunRootcling.cmake adds the missing ones. Without this
+  # a ROOT macro including the header makes cling parse automatically the
+  # whole dictionary payload from inside the half-parsed header, failing with
+  # "unknown type name" / "incomplete type" errors and this can cause the interpreter to crash
+  set(rootmapHeaders)
+  foreach(h IN LISTS A_HEADERS)
+    if(h MATCHES "(^|/)include/(.+)$")
+      list(APPEND rootmapHeaders ${CMAKE_MATCH_2})
+    endif()
+  endforeach()
+  string(REPLACE ";" "|" rootmapHeaders "${rootmapHeaders}")
+
   if(A_EXTRA_PATCH)
     set(extraPatch -DPATCH=${CMAKE_CURRENT_LIST_DIR}/${A_EXTRA_PATCH})
   else()
@@ -163,6 +176,8 @@ function(add_root_dictionary target)
       "-DLD_LIBRARY_PATH=${LD_LIBRARY_PATH}"
       ${extraPatch}
       "-DARGS=${rootclingArgs}"
+      "-DROOTMAP=${rootmapFile}"
+      "-DROOTMAP_HEADERS=${rootmapHeaders}"
       -P ${O2_RUN_ROOTCLING_SCRIPT}
     COMMAND
     ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/${pcmBase} ${pcmFile}
