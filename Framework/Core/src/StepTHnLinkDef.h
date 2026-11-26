@@ -18,3 +18,9 @@
 #pragma link C++ class StepTHnT < TArrayD> + ;
 #pragma link C++ typedef StepTHnF;
 #pragma link C++ typedef StepTHnD;
+
+#pragma link C++ class CompactTHnSparse + ;
+#pragma link C++ class CompactTHnSparseT < Float_t> - ;
+#pragma link C++ class CompactTHnSparseT < Double_t> - ;
+#pragma link C++ typedef CompactTHnSparseF;
+#pragma link C++ typedef CompactTHnSparseD;

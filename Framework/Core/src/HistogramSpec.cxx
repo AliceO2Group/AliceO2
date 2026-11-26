@@ -240,6 +240,8 @@ HistPtr HistFactory::createHistVariant(const HistogramSpec& histSpec)
 
     CREATE_HIST_CASE(StepTHnF, StepTHn)
     CREATE_HIST_CASE(StepTHnD, StepTHn)
+    CREATE_HIST_CASE(CompactTHnSparseF, CompactTHnSparse)
+    CREATE_HIST_CASE(CompactTHnSparseD, CompactTHnSparse)
     default:
       throw runtime_error("Histogram type was not specified.");
   }
@@ -301,7 +303,9 @@ EXPIMPL(TProfile);
 EXPIMPL(TProfile2D);
 EXPIMPL(TProfile3D);
 EXPIMPL(StepTHnF);
-EXPIMPL(StepTHnD)
+EXPIMPL(StepTHnD);
+EXPIMPL(CompactTHnSparseF);
+EXPIMPL(CompactTHnSparseD)
 #undef EXPIMPL
 
 } // namespace o2::framework

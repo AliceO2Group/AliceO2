@@ -337,6 +337,13 @@ double HistFiller::getSize(std::shared_ptr<T> hist, double fillFraction)
     // relates the compact bin coordinates (or a hash thereof) to a linear index
     // this index determines in which chunk and therein at which position to find / store bin coordinate and content
     size += nBinsFilled * 3 * sizeof(Long64_t); // hash, key, value; not sure why 3 are needed here...
+  } else if constexpr (std::is_base_of_v<CompactTHnSparse, T>) {
+    // filled bins in sparse blocks cost the content + a 16-bit offset (+ sumw2); dense blocks are never larger than 4x that
+    double nBinsTotal = 1.;
+    for (int d = 0; d < hist->GetNdimensions(); ++d) {
+      nBinsTotal *= hist->GetAxis(d)->GetNbins() + 2;
+    }
+    size = fillFraction * nBinsTotal * (hist->contentSize() + sizeof(uint16_t) + ((hist->GetSumw2() != -1.) ? sizeof(double) : 0.));
   }
   return size / 1048576.;
 }
@@ -450,6 +457,7 @@ extern template HistPtr HistogramRegistry::insertClone(const HistName&, const st
 extern template HistPtr HistogramRegistry::insertClone(const HistName&, const std::shared_ptr<THnSparse>);
 extern template HistPtr HistogramRegistry::insertClone(const HistName&, const std::shared_ptr<THn>);
 extern template HistPtr HistogramRegistry::insertClone(const HistName&, const std::shared_ptr<StepTHn>);
+extern template HistPtr HistogramRegistry::insertClone(const HistName&, const std::shared_ptr<CompactTHnSparse>);
 
 extern template std::shared_ptr<TH1> HistogramRegistry::add<TH1>(char const* const name, char const* const title, const HistogramConfigSpec& histConfigSpec, bool callSumw2);
 extern template std::shared_ptr<TH1> HistogramRegistry::add<TH1>(char const* const name, char const* const title, HistType histType, const std::vector<AxisSpec>& axes, bool callSumw2);
@@ -469,6 +477,8 @@ extern template std::shared_ptr<THnSparse> HistogramRegistry::add<THnSparse>(cha
 extern template std::shared_ptr<THnSparse> HistogramRegistry::add<THnSparse>(char const* const name, char const* const title, HistType histType, const std::vector<AxisSpec>& axes, bool callSumw2);
 extern template std::shared_ptr<StepTHn> HistogramRegistry::add<StepTHn>(char const* const name, char const* const title, const HistogramConfigSpec& histConfigSpec, bool callSumw2);
 extern template std::shared_ptr<StepTHn> HistogramRegistry::add<StepTHn>(char const* const name, char const* const title, HistType histType, const std::vector<AxisSpec>& axes, bool callSumw2);
+extern template std::shared_ptr<CompactTHnSparse> HistogramRegistry::add<CompactTHnSparse>(char const* const name, char const* const title, const HistogramConfigSpec& histConfigSpec, bool callSumw2);
+extern template std::shared_ptr<CompactTHnSparse> HistogramRegistry::add<CompactTHnSparse>(char const* const name, char const* const title, HistType histType, const std::vector<AxisSpec>& axes, bool callSumw2);
 
 template <typename... Cs, typename T>
 void HistogramRegistry::fill(const HistName& histName, const T& table, const o2::framework::expressions::Filter& filter)
