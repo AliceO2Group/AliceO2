@@ -14,10 +14,16 @@
 #include "DetectorsBase/Stack.h"
 #include "Stepper.h"
 #include "TGeoManager.h"
+#include "TGeoMatrix.h"
+#include "TGeoParallelWorld.h"
+#include "TGeoPhysicalNode.h"
+#include <fairlogger/Logger.h>
 #include <sstream>
 #include <iostream>
 #include <array>
-#include "TGeoManager.h"
+#include <set>
+#include <string>
+#include <string_view>
 
 ClassImp(o2::mch::Detector);
 
@@ -68,6 +74,82 @@ void Detector::addAlignableVolumes() const
     throw std::runtime_error("Cannot add alignable volumes without TGeoManager");
   }
   geo::addAlignableVolumes(*gGeoManager);
+}
+
+namespace
+{
+/// Whether a matrix mirrors space
+bool isReflection(TGeoMatrix const& matrix)
+{
+  const double* r = matrix.GetRotationMatrix();
+  return r[0] * (r[4] * r[8] - r[5] * r[7]) - r[1] * (r[3] * r[8] - r[5] * r[6]) + r[2] * (r[3] * r[7] - r[4] * r[6]) < 0;
+}
+
+/// Registers the gas volumes of the MCH detection elements in the parallel world
+struct GasRegistrar {
+  TGeoParallelWorld& pw;
+  std::set<TGeoVolume const*> gas;
+  std::set<TGeoVolume const*> registered;
+  std::set<std::string> mirroredDEs;
+  int nAdded = 0;
+
+  /// Walks the assemblies below path (a detection element is one) and adds the gas volumes in them
+  void add(TGeoVolume const& volume, std::string const& path, bool reflected, std::string_view de)
+  {
+    for (int i = 0; i < volume.GetNdaughters(); ++i) {
+      auto node = volume.GetNode(i);
+      auto daughter = node->GetVolume();
+      auto daughterPath = path + "/" + node->GetName();
+      bool daughterReflected = reflected != isReflection(*node->GetMatrix());
+      if (daughter->IsAssembly()) {
+        add(*daughter, daughterPath, daughterReflected, de);
+      } else if (gas.contains(daughter)) {
+        // a mirrored node in the parallel world stops tracks at its boundary with TGeo in Geant4,
+        // and VecGeomParallelWorld finds no VecGeom path for it (fatal)
+        if (daughterReflected) {
+          mirroredDEs.emplace(de);
+          continue;
+        }
+        pw.AddNode(daughterPath.c_str());
+        registered.insert(daughter);
+        ++nAdded;
+      }
+    }
+  }
+};
+} // namespace
+
+void Detector::fillParallelWorld() const
+{
+  TGeoParallelWorld* pw = gGeoManager->GetParallelWorld();
+  if (pw == nullptr) {
+    LOG(error) << "Parallel world was not created";
+    return;
+  }
+  auto sensitive = geo::getSensitiveVolumes();
+  GasRegistrar registrar{*pw, std::set<TGeoVolume const*>(sensitive.begin(), sensitive.end())};
+  for (int i = 0; i < gGeoManager->GetNAlignable(); ++i) {
+    auto pne = gGeoManager->GetAlignableEntry(i);
+    std::string_view sname = pne->GetName();
+    if (!sname.starts_with("MCH/HC") || sname.find("/DE") == std::string_view::npos) {
+      continue;
+    }
+    if (!gGeoManager->cd(pne->GetTitle())) {
+      LOG(fatal) << "Cannot reach " << sname << " at " << pne->GetTitle();
+    }
+    registrar.add(*gGeoManager->GetCurrentVolume(), pne->GetTitle(), isReflection(*gGeoManager->GetCurrentMatrix()),
+                  sname.substr(sname.rfind('/') + 1));
+  }
+  gGeoManager->CdTop();
+  LOG(info) << "MCH added " << registrar.nAdded << " gas volumes to the parallel world";
+  for (auto const& de : registrar.mirroredDEs) {
+    LOG(warning) << "MCH left the gas of the mirrored placement " << de << " out of the parallel world";
+  }
+  for (auto* vol : sensitive) {
+    if (!registrar.registered.contains(vol)) {
+      LOG(error) << "MCH sensitive volume " << vol->GetName() << " was not added to the parallel world";
+    }
+  }
 }
 
 Bool_t Detector::ProcessHits(FairVolume* v)
