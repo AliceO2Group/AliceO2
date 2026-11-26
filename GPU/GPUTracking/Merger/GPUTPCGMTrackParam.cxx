@@ -47,6 +47,9 @@ static thread_local bool CADEBUG_CONDITION = true;
 #ifndef GPUCA_GPUCODE
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
+#ifdef DEBUG_REBUILD_MC
+#include "GPUQAHelper.h"
+#endif
 #endif
 
 #ifndef GPUCA_GPUCODE_DEVICE
@@ -170,7 +173,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, GPUTPC
       // TODO: Check about tracks who have clusters in the same row multiple times in different sectors
 
       const auto& cluster = clusters[ihit];
-      CADEBUG(printf("\tSector %2d %11sTrack   Alpha %8.3f %s, X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f) %28s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f\n", (int32_t)cluster.sector, "", prop.GetAlpha(), (CAMath::Abs(prop.GetAlpha() - clAlpha) < 0.01 ? "   " : " R!"), mX, mP[0], mP[1], mP[4], prop.GetQPt0(), mP[2], prop.GetSinPhi0(), "", sqrtf(mC[0]), sqrtf(mC[2]), sqrtf(mC[5]), sqrtf(mC[14]), mC[10]));
+      CADEBUG(printf("\tSector %2d %11sTrack   Alpha %8.3f %s, X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f) %28s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f\n", (int32_t)cluster.sector, "", prop.GetAlpha(), (CAMath::Abs(prop.GetAlpha() - clAlpha) < 0.01 ? "   " : " R!"), mX, mP[0], mP[1], mP[4], prop.GetQPt0(), mP[2], prop.GetSinPhi0(), "", sqrtf(CAMath::Max(0.f, mC[0])), sqrtf(CAMath::Max(0.f, mC[2])), sqrtf(CAMath::Max(0.f, mC[5])), sqrtf(CAMath::Max(0.f, mC[14])), mC[10]));
       CADEBUG(printf("\tHit %3d/%3d Row %3d: Cluster Alpha %8.3f %3d, X %8.3f - Y %8.3f, Z %8.3f (Missed %d, %d)\n", ihit, maxN, (int32_t)clusters[ihit].row, clAlpha, (int32_t)clusters[ihit].sector, xx, yy, zz, nMissed, nMissedHard));
 
       const int32_t rowGap = lastPropagateRow == 255 ? 0 : CAMath::Max(0, CAMath::Abs(cluster.row - lastPropagateRow) - 1);
@@ -229,7 +232,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, GPUTPC
       }
       // clang-format off
       CADEBUG(if (!CheckCov()){printf("INVALID COV AFTER PROPAGATE!!!\n");});
-      CADEBUG(printf("\t%21sPropaga Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f)   ---   Res %8.3f %8.3f   ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f   -   PErr %d\n", "", prop.GetAlpha(), mX, mP[0], mP[1], mP[4], prop.GetQPt0(), mP[2], prop.GetSinPhi0(), mP[0] - yy, mP[1] - zz, sqrtf(mC[0]), sqrtf(mC[2]), sqrtf(mC[5]), sqrtf(mC[14]), mC[10], retValProp));
+      CADEBUG(printf("\t%21sPropaga Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f)   ---   Res %8.3f %8.3f   ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f   -   PErr %d\n", "", prop.GetAlpha(), mX, mP[0], mP[1], mP[4], prop.GetQPt0(), mP[2], prop.GetSinPhi0(), mP[0] - yy, mP[1] - zz, sqrtf(CAMath::Max(0.f, mC[0])), sqrtf(CAMath::Max(0.f, mC[2])), sqrtf(CAMath::Max(0.f, mC[5])), sqrtf(CAMath::Max(0.f, mC[14])), mC[10], retValProp));
       // clang-format on
       if (mNDF >= 0 && (mC[0] > param.rec.tpc.trackFitCovLimit || mC[2] > param.rec.tpc.trackFitCovLimit)) {
         if (param.rec.tpc.rebuildTrackInFit && iWay == wayRebuildStart + 1 && (param.rec.tpc.rebuildTrackMaxNonIntCov > 0 ? !(param.rec.tpc.disableRebuildAttachment & 4) : adjacentInRebuild)) { // With maxNonIntCov 0 no one-sided candidates, only the adjacent search at the interpolated position
@@ -538,7 +541,7 @@ GPUdii() int32_t GPUTPCGMTrackParam::FitHit(GPUTPCGMMerger& GPUrestrict() merger
   }
   // clang-format off
   CADEBUG(if (!CheckCov()) GPUError("INVALID COV AFTER UPDATE!!!"));
-  CADEBUG(printf("\t%21sFit     Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f), DzDs %5.2f %16s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f   -   FErr %d %d\n", "", prop.GetAlpha(), mX, mP[0], mP[1], mP[4], prop.GetQPt0(), mP[2], prop.GetSinPhi0(), mP[3], "", sqrtf(mC[0]), sqrtf(mC[2]), sqrtf(mC[5]), sqrtf(mC[14]), mC[10], retValUpd, retValInt));
+  CADEBUG(printf("\t%21sFit     Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f), DzDs %5.2f %16s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f   -   FErr %d %d\n", "", prop.GetAlpha(), mX, mP[0], mP[1], mP[4], prop.GetQPt0(), mP[2], prop.GetSinPhi0(), mP[3], "", sqrtf(CAMath::Max(0.f, mC[0])), sqrtf(CAMath::Max(0.f, mC[2])), sqrtf(CAMath::Max(0.f, mC[5])), sqrtf(CAMath::Max(0.f, mC[14])), mC[10], retValUpd, retValInt));
   // clang-format on
 
   ConstrainSinPhi();            // TODO: Limit using ConstrainSinPhi everywhere!
@@ -688,7 +691,7 @@ GPUdi() uint32_t GPUTPCGMTrackParam::ExtrapolateRows(GPUTPCGMMerger& GPUrestrict
     if (fail) {
       break;
     }
-    CADEBUG(printf("\tExtrapol. Sec %2d Row %3d Propaga Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f)   ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f\n", sector, iExtrapolatedRow, prop.GetAlpha(), mX, mP[0], mP[1], mP[4], prop.GetQPt0(), mP[2], prop.GetSinPhi0(), sqrtf(mC[0]), sqrtf(mC[2]), sqrtf(mC[5]), sqrtf(mC[14]), mC[10]));
+    CADEBUG(printf("\tExtrapol. Sec %2d Row %3d Propaga Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f)   ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f\n", sector, iExtrapolatedRow, prop.GetAlpha(), mX, mP[0], mP[1], mP[4], prop.GetQPt0(), mP[2], prop.GetSinPhi0(), sqrtf(CAMath::Max(0.f, mC[0])), sqrtf(CAMath::Max(0.f, mC[2])), sqrtf(CAMath::Max(0.f, mC[5])), sqrtf(CAMath::Max(0.f, mC[14])), mC[10]));
     gputpcgmmergertypes::InterpolationErrorHit inter;
     inter.markInvalid();
     float uncorrectedY;
@@ -737,7 +740,7 @@ GPUdi() uint32_t GPUTPCGMTrackParam::ExtrapolateRows(GPUTPCGMMerger& GPUrestrict
         segmentRows = 0;
       }
       int32_t retValUpd = prop.Update(yy, zz, iExtrapolatedRow, param, clusterState, true, refit, err2Y, err2Z);
-      CADEBUG(printf("\tExtrapol. Sec %2d Row %3d Fit     Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f), DzDs %5.2f %16s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f   -   FErr %d\n", sector, iExtrapolatedRow, prop.GetAlpha(), mX, mP[0], mP[1], mP[4], prop.GetQPt0(), mP[2], prop.GetSinPhi0(), mP[3], "", sqrtf(mC[0]), sqrtf(mC[2]), sqrtf(mC[5]), sqrtf(mC[14]), mC[10], retValUpd));
+      CADEBUG(printf("\tExtrapol. Sec %2d Row %3d Fit     Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f), DzDs %5.2f %16s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f   -   FErr %d\n", sector, iExtrapolatedRow, prop.GetAlpha(), mX, mP[0], mP[1], mP[4], prop.GetQPt0(), mP[2], prop.GetSinPhi0(), mP[3], "", sqrtf(CAMath::Max(0.f, mC[0])), sqrtf(CAMath::Max(0.f, mC[2])), sqrtf(CAMath::Max(0.f, mC[5])), sqrtf(CAMath::Max(0.f, mC[14])), mC[10], retValUpd));
       if (retValUpd == 0 && param.rec.tpc.rebuildTrackMaxQPtDrift > 0 && CAMath::Abs(mP[4] - qPtStart) > param.rec.tpc.rebuildTrackMaxQPtDrift * CAMath::Max(1.f, CAMath::Abs(qPtStart))) { // Track changed too much, probably following something else
         if constexpr (!followOnly) {
           merger.TrackRebuildHelperRow(iTrk, iExtrapolatedRow, tmpRows).setBest(GPUTPCGMMerger::trackRebuildHelperRow::bestRowRemoved);
@@ -949,7 +952,7 @@ GPUdii() float GPUTPCGMTrackParam::FindBestInterpolatedHit(GPUTPCGMMerger& GPUre
           }
         }
       }
-      CADEBUG(const auto* dbgCand = candidates; for (int dbgi = 0; dbgi < nCandidates; dbgi++) { if (dbgCand[dbgi].hasCluster()) printf("\t\t\tiTrk %d Row %d Candidate %d hit %d err %f\n", iTrk, (int)row, dbgi, merger.CandidateClusterId(dbgCand[dbgi], row), dbgCand[dbgi].error); else break; });
+      CADEBUG(const auto* dbgCand = candidates; for (int dbgi = 0; dbgi < nCandidates; dbgi++) { if (dbgCand[dbgi].hasCluster()) printf("\t\t\tiTrk %d Row %d Candidate %d hit %d err %f\n", iTrk, (int)row, dbgi, merger.CandidateClusterId(dbgCand[dbgi], row), (float)dbgCand[dbgi].error); else break; });
     }
     if (nCandidates == 0 && !interOnly) {
       candidates[0].setNoCandidate();
@@ -1273,7 +1276,7 @@ GPUd() void GPUTPCGMTrackParam::FindAdjacentClustersUncorrectedPos(const GPUTPCG
 
 GPUdii() void GPUTPCGMTrackParam::StoreOuter(gputpcgmmergertypes::GPUTPCOuterParam* outerParam, float alpha)
 {
-  CADEBUG(printf("\t%21sStorO   Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f, SP %5.2f   ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f\n", "", alpha, mX, mP[0], mP[1], mP[4], mP[2], sqrtf(mC[0]), sqrtf(mC[2]), sqrtf(mC[5]), sqrtf(mC[14])));
+  CADEBUG(printf("\t%21sStorO   Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f, SP %5.2f   ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f\n", "", alpha, mX, mP[0], mP[1], mP[4], mP[2], sqrtf(CAMath::Max(0.f, mC[0])), sqrtf(CAMath::Max(0.f, mC[2])), sqrtf(CAMath::Max(0.f, mC[5])), sqrtf(CAMath::Max(0.f, mC[14]))));
   for (int32_t i = 0; i < 5; i++) {
     outerParam->P[i] = mP[i];
   }

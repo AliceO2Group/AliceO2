@@ -278,7 +278,9 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
       runKernel<GPUMemClean16>({{numBlocks, -ThreadCount(), 0, deviceType, RecoStep::TPCMerging}}, MergerShadow.TrackRebuildHelperRow(), nRebuildRows * sizeof(*MergerShadow.TrackRebuildHelperRow()));
     }
   }
-  // mRec->SetNActiveThreads(1); // For GPUTPCGMTrackParam:: GPUCA_CADEBUG: run the host kernels from here on with 1 thread, reset below
+  if (GetProcessingSettings().debug.tpcMergerFitOnCPUSingleThread) {
+    mRec->SetNActiveThreads(1); // For GPUTPCGMTrackParam:: GPUCA_CADEBUG: run the host kernels from here on with 1 thread, reset below
+  }
   runKernel<GPUTPCGMMergerTrackFit, GPUTPCGMMergerTrackFit::def>(doGPU ? GetGrid(Merger.NMergedTracks(), 0) : GetGridAuto(0));
   if (param().rec.tpc.rebuildTrackInFit) {
     runKernel<GPUMemClean16>({{numBlocks, -ThreadCount(), 0, deviceType, RecoStep::TPCMerging}}, MergerShadow.HitWeights(), Merger.NClusters() * sizeof(*MergerShadow.HitWeights()));
@@ -366,7 +368,9 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
     TransferMemoryResourcesToHost(RecoStep::TPCMerging, &Merger, -1, true);
   }
   DoDebugMergerNClDump(Merger);
-  // mRec->SetNActiveThreads(-1);
+  if (GetProcessingSettings().debug.tpcMergerFitOnCPUSingleThread) {
+    mRec->SetNActiveThreads(-1);
+  }
 
   mRec->ReturnVolatileDeviceMemory();
   mRec->PopNonPersistentMemory(RecoStep::TPCMerging, qStr2Tag("TPCMERGE"));
