@@ -54,6 +54,15 @@ int validate(const char* url, bool deep, int maxReports)
       printf("BAD %s/%s: %s\n", df, tree, what.c_str());
     }
   };
+  // A read which failed because the connection to the storage was lost leaves
+  // the file closed: the rest of the file cannot be checked, which is not damage.
+  auto lost = [&]() {
+    if (file->IsOpen()) {
+      return false;
+    }
+    printf("ERROR: lost the connection to %s after %d DFs\n", url, dfs);
+    return true;
+  };
   if (file->TestBit(TFile::kRecovered)) {
     report("", "", "the file was not closed: ROOT recovered its keys, the DF folders may be empty");
   }
@@ -65,6 +74,9 @@ int validate(const char* url, bool deep, int maxReports)
     ++dfs;
     std::unique_ptr<TDirectory> dir((TDirectory*)key->ReadObj());
     if (!dir) {
+      if (lost()) {
+        return -1;
+      }
       report(key->GetName(), "", "cannot read the folder");
       continue;
     }
@@ -75,6 +87,9 @@ int validate(const char* url, bool deep, int maxReports)
       }
       std::unique_ptr<TTree> tree((TTree*)treeKey->ReadObj());
       if (!tree) {
+        if (lost()) {
+          return -1;
+        }
         report(key->GetName(), treeKey->GetName(), "cannot read the tree");
         continue;
       }
@@ -97,6 +112,9 @@ int validate(const char* url, bool deep, int maxReports)
           if (deep) {
             char buffer[256];
             if (file->ReadBuffer(buffer, seek, std::min<Long64_t>(sizeof(buffer), size - seek))) {
+              if (lost()) {
+                return -1;
+              }
               report(key->GetName(), tree->GetName(), Form("branch %s basket %d: cannot read its key at %lld", br->GetName(), b, seek));
               continue;
             }
