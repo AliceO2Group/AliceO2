@@ -290,7 +290,7 @@ bool Detector::ProcessHits(FairVolume* v)
     const int trackID = stack->GetCurrentTrackNumber();
     double pos[3] = {xp, yp, zp};
     double loc[3] = {-99, -99, -99};
-    gGeoManager->MasterToLocal(pos, loc); // Go to the local coordinate system (locR, locC, locT)
+    fMC->Gmtod(pos, loc, 1); // Go to the local coordinate system (locR, locC, locT) of the current volume
     float locC = loc[0], locR = loc[1], locT = loc[2];
     if (drRegion) {
       locT = locT - 0.5 * (Geometry::drThick() + Geometry::amThick()); // Relative to middle of amplification region
@@ -381,7 +381,7 @@ void Detector::createTRhit(int det)
     // prepare local coordinates
     double pos[3] = {x, y, z};
     double loc[3] = {-99, -99, -99};
-    gGeoManager->MasterToLocal(pos, loc); // Go to the local coordinate system (locR, locC, locT)
+    fMC->Gmtod(pos, loc, 1); // Go to the local coordinate system (locR, locC, locT) of the current volume
     float locC = loc[0], locR = loc[1], locT = loc[2];
     locT = locT - 0.5 * (Geometry::drThick() + Geometry::amThick());            // Relative to middle of amplification region
     addHit(x, y, z, locC, locR, locT, tof, totalChargeDep, trackID, det, true); // All TR hits are in drift region
