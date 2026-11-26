@@ -299,10 +299,22 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
     mRec->PopNonPersistentMemory(RecoStep::TPCMerging, qStr2Tag("TPCREBLD"));
   }
 
+  const bool followExtrapolation = !param().rec.tpc.rebuildTrackInFit || param().rec.tpc.rebuildTrackMaxNonIntCov <= 0;
+  const bool followExtrapolationStream = followExtrapolation && doGPU && mRec->NStreams() >= 2;
+  if (followExtrapolationStream) {
+    RecordMarker(&mEvents->single, 0);
+  }
   runKernel<GPUTPCGMMergerFollowLoopers>(GetGridAuto(0));
+  if (followExtrapolation) {
+    runKernel<GPUTPCGMMergerFollowExtrapolation>({GetGridAuto(followExtrapolationStream ? 1 : 0), krnlRunRangeNone, {followExtrapolationStream ? &mEvents->init : nullptr, followExtrapolationStream ? &mEvents->single : nullptr}});
+  }
 
   DoDebugAndDump(RecoStep::TPCMerging, GPUChainTrackingDebugFlags::TPCMergingRefit, Merger, &GPUTPCGMMerger::DumpRefit, *mDebugFile);
-  runKernel<GPUTPCGMMergerFinalize, 0>(GetGridAuto(0, deviceType));
+  runKernel<GPUTPCGMMergerFinalize, 0>({GetGridAuto(0, deviceType), krnlRunRangeNone, {nullptr, followExtrapolationStream ? &mEvents->init : nullptr}});
+  if (followExtrapolationStream) {
+    ReleaseEvent(mEvents->single);
+    ReleaseEvent(mEvents->init);
+  }
   runKernel<GPUTPCGMMergerFinalize, 1>(GetGridAuto(0, deviceType));
   runKernel<GPUTPCGMMergerFinalize, 2>(GetGridAuto(0, deviceType));
   if (param().rec.tpc.mergeLoopersAfterburner) {

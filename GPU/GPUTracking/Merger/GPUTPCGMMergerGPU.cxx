@@ -42,11 +42,34 @@ template void GPUTPCGMMergerTrackFit::Thread<GPUTPCGMMergerTrackFit::rebuild>(in
 template void GPUTPCGMMergerTrackFit::Thread<GPUTPCGMMergerTrackFit::retry>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& merger);
 #endif
 
+GPUdi() static bool CheckLoopAndExtDataOverflow(const GPUTPCGMMerger& GPUrestrict() merger, int32_t iBlock, int32_t iThread)
+{
+  const uint32_t n = merger.Memory()->nLoopData + merger.Memory()->nFollowExtrapolationData;
+  if (n > merger.NMaxLoopExtrData() && iBlock == 0 && iThread == 0) {
+    merger.raiseError(GPUErrors::ERROR_MERGER_LOOPER_OVERFLOW, n, merger.NMaxLoopExtrData(), 3);
+  }
+  return n > merger.NMaxLoopExtrData();
+}
+
 template <>
 GPUdii() void GPUTPCGMMergerFollowLoopers::Thread<0>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger)
 {
+  if (CheckLoopAndExtDataOverflow(merger, iBlock, iThread)) {
+    return;
+  }
   GPUCA_TBB_KERNEL_LOOP(merger.GetRec(), uint32_t, i, merger.Memory()->nLoopData, {
     GPUTPCGMTrackParam::PropagateLooper(merger, i);
+  });
+}
+
+template <>
+GPUdii() void GPUTPCGMMergerFollowExtrapolation::Thread<0>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger)
+{
+  if (CheckLoopAndExtDataOverflow(merger, iBlock, iThread)) {
+    return;
+  }
+  GPUCA_TBB_KERNEL_LOOP(merger.GetRec(), uint32_t, i, merger.Memory()->nFollowExtrapolationData, {
+    GPUTPCGMTrackParam::FollowExtrapolation(merger, i);
   });
 }
 
