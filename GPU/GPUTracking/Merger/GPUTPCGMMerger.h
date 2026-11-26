@@ -135,6 +135,8 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUhdi() uint32_t NClusters() const { return mNClusters; }
   GPUhdi() uint32_t NMaxTracks() const { return mNMaxTracks; }
   GPUhdi() uint32_t NMaxLoopExtrData() const { return mNMaxLoopExtrData; }
+  GPUd() static bool FollowExtrapolationEnabled(const GPUParam& param);
+  GPUd() static bool FollowExtrapolationAfterRebuild(const GPUParam& param);
   GPUhdi() uint32_t NMaxMergedTrackClusters() const { return mNMaxMergedTrackClusters; }
   GPUhdi() uint32_t NMergedTrackClusters() const { return mMemory->nMergedTrackClusters; }
   GPUhdi() const GPUTPCGMMergedTrackHit* Clusters() const { return mClusters; }

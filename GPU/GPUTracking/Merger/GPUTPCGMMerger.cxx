@@ -553,7 +553,7 @@ void GPUTPCGMMerger::SetMaxData(const GPUTrackingInOutPointers& io)
     mNMaxTracks = mRec->MemoryScalers()->NTPCMergedTracks(mNTotalSectorTracks);
   }
   mNMaxLoopExtrData = !(Param().rec.tpc.disableMarkAdjacent & 4) && !(Param().rec.tpc.disableMarkAdjacent & 8)
-                        ? mRec->MemoryScalers()->NTPCLoopExtrData(mNMaxTracks, (!Param().rec.tpc.rebuildTrackInFit || Param().rec.tpc.rebuildTrackMaxNonIntCov <= 0) && !(Param().rec.tpc.disableMarkAdjacent & 4))
+                        ? mRec->MemoryScalers()->NTPCLoopExtrData(mNMaxTracks, FollowExtrapolationEnabled(Param()))
                         : 0;
   if (io.clustersNative) {
     mNClusters = io.clustersNative->nClustersTotal;
@@ -610,6 +610,16 @@ void GPUTPCGMMerger::CreateMCLabels(int32_t nBlocks, int32_t nThreads, int32_t i
 }
 
 #endif // GPUCA_GPUCODE
+
+GPUd() bool GPUTPCGMMerger::FollowExtrapolationEnabled(const GPUParam& param)
+{
+  return (!FollowExtrapolationAfterRebuild(param) || (param.rec.tpc.mergerInterpolateErrors && param.rec.tpc.followExtrapolationChi2Factor > 0 && !(param.rec.tpc.disableMarkAdjacent & 32))) && !(param.rec.tpc.disableMarkAdjacent & 4); // Without the extrapolation of the rebuild, or in the 5-way fit where it marks no adjacent clusters
+}
+
+GPUd() bool GPUTPCGMMerger::FollowExtrapolationAfterRebuild(const GPUParam& param)
+{
+  return param.rec.tpc.rebuildTrackInFit && param.rec.tpc.rebuildTrackMaxNonIntCov > 0;
+}
 
 GPUd() void GPUTPCGMMerger::ClearTrackLinks(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, bool output)
 {
