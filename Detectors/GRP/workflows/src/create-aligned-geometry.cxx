@@ -12,6 +12,7 @@
 #include <ctime>
 #include <chrono>
 #include "DetectorsBase/GeometryManager.h"
+#include "DetectorsBase/Aligner.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "CommonUtils/NameConf.h"
@@ -42,6 +43,11 @@ using namespace o2::framework;
   To create the geometry using specific timestamp and ITS alignment from the test CCDB server and MFT alignment
   from the local snapshot file in  the locCCDB directory
   o2-create-aligned-geometry-workflow --condition-remap http://ccdb-test.cern.ch:8080=ITS/Calib/Align;file://locCCDB=MFT/Calib/Align --configKeyValues "HBFUtils.startTime=1546300800000"
+
+  The alignment is applied only to the detectors also selected by align-geom.mDetectors, as in o2-sim. The others keep
+  the ideal geometry, but their GeometryTGeo files are still written. E.g. to create the ideal geometry for an MC
+  transported with align-geom.mDetectors=none:
+  o2-create-aligned-geometry-workflow --configKeyValues "HBFUtils.startTime=1546300800000;align-geom.mDetectors=none"
  */
 
 namespace o2::base
@@ -73,7 +79,7 @@ class SeederTask : public Task
 class AlignerTask : public Task
 {
  public:
-  AlignerTask(DetID::mask_t dets, std::shared_ptr<o2::base::GRPGeomRequest> gr) : mDetsMask(dets), mGGCCDBRequest(gr) {}
+  AlignerTask(DetID::mask_t dets, DetID::mask_t algDets, std::shared_ptr<o2::base::GRPGeomRequest> gr) : mDetsMask(dets), mAlgDetsMask(algDets), mGGCCDBRequest(gr) {}
   ~AlignerTask() override = default;
 
   void init(InitContext& ic) final
@@ -85,7 +91,7 @@ class AlignerTask : public Task
   {
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
     for (auto id = DetID::First; id <= DetID::Last; id++) {
-      if (mDetsMask[id]) {
+      if (mAlgDetsMask[id]) {
         auto alg = o2::base::GRPGeomHelper::instance().getAlignment(id);
         if (!alg->empty()) {
           LOGP(info, "Applying alignment for detector {}", DetID::getName(id));
@@ -93,6 +99,8 @@ class AlignerTask : public Task
         } else {
           LOGP(info, "Alignment for detector {} is empty", DetID::getName(id));
         }
+      } else if (mDetsMask[id]) {
+        LOGP(info, "Detector {} is kept ideal (not in align-geom.mDetectors)", DetID::getName(id));
       }
     }
     gGeoManager->SetName(std::string(o2::base::NameConf::CCDBOBJECT).c_str());
@@ -135,13 +143,14 @@ class AlignerTask : public Task
   }
 
  private:
-  DetID::mask_t mDetsMask{};
+  DetID::mask_t mDetsMask{};    // detectors to account, including their GeometryTGeo
+  DetID::mask_t mAlgDetsMask{}; // detectors to align
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
 };
 
 } // namespace o2::base
 
-DataProcessorSpec getAlignerSpec(DetID::mask_t dets)
+DataProcessorSpec getAlignerSpec(DetID::mask_t dets, DetID::mask_t algDets)
 {
   std::vector<InputSpec> inputs{{"STFDist", "FLP", "DISTSUBTIMEFRAME", 0}};                         // just to have some input
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                                // orbitResetTime
@@ -153,13 +162,13 @@ DataProcessorSpec getAlignerSpec(DetID::mask_t dets)
                                                               inputs,                               // inputs
                                                               false,                                // ask-once
                                                               false,                                // dprop
-                                                              DetID::getNames(dets));               // only selected detectors
+                                                              DetID::getNames(algDets));            // only detectors to align
 
   return DataProcessorSpec{
     "geometry-aligned-producer",
     inputs,
     {},
-    AlgorithmSpec{adaptFromTask<o2::base::AlignerTask>(dets, ggRequest)},
+    AlgorithmSpec{adaptFromTask<o2::base::AlignerTask>(dets, algDets, ggRequest)},
     Options{}};
 }
 
@@ -191,7 +200,9 @@ WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const& configcont
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   DetID::mask_t dets = DetID::FullMask & DetID::getMask(configcontext.options().get<std::string>("onlyDet"));
-  o2::framework::WorkflowSpec specs{getAlignerSpec(dets), getSeederSpec()};
+  // align only what o2-sim would align with the same align-geom.mDetectors
+  DetID::mask_t algDets = dets & DetID::getMask(o2::base::Aligner::Instance().getDetectors());
+  o2::framework::WorkflowSpec specs{getAlignerSpec(dets, algDets), getSeederSpec()};
 
   return std::move(specs);
 }
