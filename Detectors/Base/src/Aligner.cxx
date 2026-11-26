@@ -14,6 +14,7 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsCommonDataFormats/AlignParam.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
+#include "CommonUtils/StringUtils.h"
 #include <chrono>
 
 O2ParamImpl(o2::base::Aligner);
@@ -53,7 +54,24 @@ void Aligner::applyAlignment(long timestamp, DetID::mask_t addMask, bool keepPhy
       continue;
     }
     std::string path = o2::base::DetectorNameConf::getAlignmentPath({id});
-    auto algV = ccdbmgr.get<std::vector<o2::detectors::AlignParam>>(path);
+    std::vector<o2::detectors::AlignParam>* algV = nullptr;
+    auto altPath = getAlignmentPath({id});
+    if (altPath != path) {
+      // an alternative object may not exist for every timestamp: fall back to the standard one
+      bool fatalWhenNull = ccdbmgr.getFatalWhenNull();
+      ccdbmgr.setFatalWhenNull(false);
+      algV = ccdbmgr.get<std::vector<o2::detectors::AlignParam>>(altPath);
+      ccdbmgr.setFatalWhenNull(fatalWhenNull);
+      if (algV) {
+        LOGP(info, "Using alignment {} for {}", altPath, DetID::getName(id));
+        path = altPath;
+      } else {
+        LOGP(warning, "Alignment {} could not be fetched for timestamp {}, using {} for {}", altPath, timestamp, path, DetID::getName(id));
+      }
+    }
+    if (!algV) {
+      algV = ccdbmgr.get<std::vector<o2::detectors::AlignParam>>(path);
+    }
     if (!algV) {
       throw std::runtime_error(fmt::format("Failed to fetch alignment from {}:{}", o2::base::NameConf::getCCDBServer(), path));
     }
@@ -73,6 +91,39 @@ void Aligner::applyAlignment(long timestamp, DetID::mask_t addMask, bool keepPhy
   }
   LOG(info) << log;
   gGeoManager->RefreshPhysicalNodes(false);
+}
+
+std::string Aligner::getAlignmentPath(DetID id) const
+{
+  return getAlignmentPath(mAlignPaths, id);
+}
+
+std::string Aligner::getAlignmentPath(const std::string& alignPaths, DetID id)
+{
+  std::string path = o2::base::DetectorNameConf::getAlignmentPath(id);
+  DetID::mask_t seen;
+  for (const auto& entry : o2::utils::Str::tokenize(alignPaths, ',')) {
+    auto sep = entry.find(':');
+    auto det = entry.substr(0, sep);
+    auto altPath = sep == std::string::npos ? std::string{} : entry.substr(sep + 1);
+    o2::utils::Str::trim(det);
+    o2::utils::Str::trim(altPath);
+    if (det.empty() || altPath.empty()) {
+      throw std::runtime_error(fmt::format("Malformed align-geom.mAlignPaths entry \"{}\", expected DET:path", entry));
+    }
+    int detID = DetID::nameToID(det.c_str());
+    if (detID < DetID::First) {
+      throw std::runtime_error(fmt::format("Unknown detector {} in align-geom.mAlignPaths", det));
+    }
+    if (seen[detID]) {
+      throw std::runtime_error(fmt::format("Detector {} given more than once in align-geom.mAlignPaths", det));
+    }
+    seen.set(detID);
+    if (detID == id) {
+      path = altPath;
+    }
+  }
+  return path;
 }
 
 long Aligner::getTimeStamp() const

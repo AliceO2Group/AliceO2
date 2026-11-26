@@ -99,6 +99,13 @@ o2_add_test(
   LABELS detectorsbase)
 
 o2_add_test(
+  Aligner
+  SOURCES test/testAligner.cxx
+  COMPONENT_NAME DetectorsBase
+  PUBLIC_LINK_LIBRARIES O2::DetectorsBase
+  LABELS detectorsbase)
+
+o2_add_test(
   DetImplClone
   SOURCES test/testDetImplClone.cxx
   COMPONENT_NAME DetectorsBase
