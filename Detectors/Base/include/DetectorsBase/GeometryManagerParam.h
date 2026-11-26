@@ -20,8 +20,8 @@ namespace o2
 
 struct GeometryManagerParam : public o2::conf::ConfigurableParamHelper<GeometryManagerParam> {
   bool useParallelWorld = false;
-  bool usePwGeoBVH = false;
-  bool usePwCaching = false;
+  bool usePwGeoBVH = true;
+  bool usePwCaching = true;
 
   int printLevel = -1; // geometry level to print out (determined by the volume path)
 
