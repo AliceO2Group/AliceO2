@@ -140,7 +140,7 @@ function(add_root_dictionary target)
     set(pcmDeps)
   endif()
 
-  # Public headers of this dictionary. rootcling writes rootmap entries only for a few of them 
+  # Public headers of this dictionary. rootcling writes rootmap entries only for a few of them
   # so RunRootcling.cmake adds the missing ones. Without this
   # a ROOT macro including the header makes cling parse automatically the
   # whole dictionary payload from inside the half-parsed header, failing with
