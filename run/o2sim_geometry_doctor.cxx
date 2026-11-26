@@ -26,7 +26,10 @@
 /// part without a field under --reachability-only: does every placement actually
 /// occupy the space it was built in? A daughter outside its mother, or one shadowed
 /// by an overlapping sibling, is never reached by the navigator, carries no material
-/// and produces no hits, and nothing in the construction code says so.
+/// and produces no hits, and nothing in the construction code says so. This audit
+/// samples every node object and, more coarsely, every physical placement, and with
+/// --reachability-baseline reports only what is new with respect to another geometry,
+/// e.g. the ideal one under a new alignment.
 ///
 /// It detects and proposes. It never modifies a geometry.
 ///
@@ -68,6 +71,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cmath>
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <ctime>
@@ -76,8 +80,10 @@
 #include <map>
 #include <mutex>
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <thread>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -720,10 +726,14 @@ bool supportFromJson(const json& in, Support& support)
 /// Only the navigator can settle it, so ask it: draw points inside a placement's
 /// own shape and check that FindNode() comes back through that placement.
 ///
-/// One representative path per node object, which is the granularity at which the
-/// common defect lives -- a daughter outside its mother is a property of the node,
-/// not of the path that reaches it. A node whose mother is itself placed many
-/// times is therefore sampled once, in the first of those placements.
+/// The audit has two passes, run in one thread pool. The first samples one
+/// representative path per node object at full precision, which is the
+/// granularity at which the common defect lives -- a daughter outside its mother
+/// is a property of the node, not of the path that reaches it. The second draws a
+/// few points in every physical placement, because a node object below a mother
+/// that alignment moved into a neighbour is healthy in its first instance and dead
+/// in another. A placement that loses a point there is re-sampled at once with the
+/// full count, so the reported fractions have the same precision in both passes.
 ///
 /// Two questions are asked of every point, and they are not the same question.
 /// *Reachability* asks whether the navigator's path passes through this placement
@@ -760,6 +770,22 @@ enum class Navigator { TGeo,
 /// tool cannot disagree about what a volume's own material is.
 bool insideAnyDaughter(TGeoVolume* volume, const double* local);
 
+/// Identifies a physical placement by the daughter indices along its path, so the
+/// identity, and the seed derived from it, depend neither on threads nor on the
+/// order in which work is handed out.
+constexpr uint64_t kTopPathHash = 0x243F6A8885A308D3ull;
+
+uint64_t pathHash(uint64_t parent, int daughter)
+{
+  uint64_t x = parent + 0x9E3779B97F4A7C15ull * (uint64_t(daughter) + 1);
+  x ^= x >> 30;
+  x *= 0xBF58476D1CE4E5B9ull;
+  x ^= x >> 27;
+  x *= 0x94D049BB133111EBull;
+  x ^= x >> 31;
+  return x;
+}
+
 /// One placement to sample: the node, where it sits, and the chain of nodes that
 /// reaches it. The chain is what the navigator's answer is compared against --
 /// node identity rather than a path string, so no formatting or copy-number
@@ -770,6 +796,7 @@ struct ReachTask {
   std::string path;
   std::vector<TGeoNode*> chain;     ///< top node first, this node last
   std::vector<TGeoNode*> flatChain; ///< the same, with the assembly levels removed
+  uint64_t hash = kTopPathHash;
 };
 
 struct ReachResult {
@@ -784,22 +811,24 @@ struct ReachResult {
 class ReachCollector
 {
  public:
-  void walk(TGeoNode* node) { walk(node, TGeoHMatrix(), "", {}, {}); }
+  void walk(TGeoNode* node) { walk(node, TGeoHMatrix(), "", {}, {}, kTopPathHash); }
   std::vector<ReachTask>& tasks() { return mTasks; }
   long nodesVisited() const { return mVisited; }
+  /// node object -> path hash of its representative placement
+  const std::unordered_map<TGeoNode*, uint64_t>& representative() const { return mRepresentative; }
 
  private:
   void walk(TGeoNode* node, const TGeoHMatrix& parent, const std::string& path, std::vector<TGeoNode*> chain,
-            std::vector<TGeoNode*> flatChain);
-  std::set<TGeoNode*> mSeen;
+            std::vector<TGeoNode*> flatChain, uint64_t hash);
+  std::unordered_map<TGeoNode*, uint64_t> mRepresentative;
   std::vector<ReachTask> mTasks;
   long mVisited = 0;
 };
 
 void ReachCollector::walk(TGeoNode* node, const TGeoHMatrix& parent, const std::string& path,
-                          std::vector<TGeoNode*> chain, std::vector<TGeoNode*> flatChain)
+                          std::vector<TGeoNode*> chain, std::vector<TGeoNode*> flatChain, uint64_t hash)
 {
-  if (!mSeen.insert(node).second) {
+  if (!mRepresentative.emplace(node, hash).second) {
     return; // this node object, and therefore its whole subtree, is already covered
   }
   TGeoHMatrix here = parent;
@@ -817,11 +846,153 @@ void ReachCollector::walk(TGeoNode* node, const TGeoHMatrix& parent, const std::
     task.path = myPath;
     task.chain = chain;
     task.flatChain = flatChain;
+    task.hash = hash;
     mTasks.push_back(std::move(task));
   }
   for (int i = 0; i < node->GetNdaughters(); ++i) {
-    walk(node->GetDaughter(i), here, myPath, chain, flatChain);
+    walk(node->GetDaughter(i), here, myPath, chain, flatChain, pathHash(hash, i));
   }
+}
+
+/// Counts of the expanded tree, derived per volume and node object rather than per
+/// path: how many physical placements a node object has, and how many nodes the
+/// tree below a volume expands to.
+class PlacementTree
+{
+ public:
+  explicit PlacementTree(TGeoNode* top);
+  long instances(TGeoNode* node) const
+  {
+    auto found = mInstances.find(node);
+    return found != mInstances.end() ? found->second : 0;
+  }
+  long pathsBelow(TGeoVolume* volume);
+  long placements() const { return mPlacements; } ///< non-assembly paths
+
+ private:
+  void order(TGeoVolume* volume, std::set<TGeoVolume*>& done, std::vector<TGeoVolume*>& postOrder);
+  std::unordered_map<TGeoNode*, long> mInstances;
+  std::unordered_map<TGeoVolume*, long> mBelow;
+  long mPlacements = 0;
+};
+
+void PlacementTree::order(TGeoVolume* volume, std::set<TGeoVolume*>& done, std::vector<TGeoVolume*>& postOrder)
+{
+  if (!done.insert(volume).second) {
+    return;
+  }
+  for (int i = 0; i < volume->GetNdaughters(); ++i) {
+    order(volume->GetNode(i)->GetVolume(), done, postOrder);
+  }
+  postOrder.push_back(volume);
+}
+
+PlacementTree::PlacementTree(TGeoNode* top)
+{
+  // the volume graph is a DAG; in reverse post-order every mother comes before its
+  // daughters, so the number of paths reaching a volume is complete when it is used
+  std::set<TGeoVolume*> done;
+  std::vector<TGeoVolume*> postOrder;
+  order(top->GetVolume(), done, postOrder);
+  std::unordered_map<TGeoVolume*, long> paths;
+  paths[top->GetVolume()] = 1;
+  mInstances[top] = 1;
+  mPlacements = top->GetVolume()->IsAssembly() ? 0 : 1;
+  for (auto volume = postOrder.rbegin(); volume != postOrder.rend(); ++volume) {
+    const long here = paths[*volume];
+    for (int i = 0; i < (*volume)->GetNdaughters(); ++i) {
+      TGeoNode* daughter = (*volume)->GetNode(i);
+      mInstances[daughter] += here;
+      paths[daughter->GetVolume()] += here;
+      if (!daughter->GetVolume()->IsAssembly()) {
+        mPlacements += here;
+      }
+    }
+  }
+}
+
+long PlacementTree::pathsBelow(TGeoVolume* volume)
+{
+  auto found = mBelow.find(volume);
+  if (found != mBelow.end()) {
+    return found->second;
+  }
+  long below = 0;
+  for (int i = 0; i < volume->GetNdaughters(); ++i) {
+    below += 1 + pathsBelow(volume->GetNode(i)->GetVolume());
+  }
+  mBelow[volume] = below;
+  return below;
+}
+
+/// TGeo finishes two things lazily, on the first query that needs them: the
+/// bounding box of an assembly and the voxels of a volume whose daughters moved
+/// (alignment marks them for a rebuild). Neither is thread safe, and in an aligned
+/// geometry read from file both are pending, so two workers rebuilding the same
+/// voxels corrupt them. Done here, once, before any sampling.
+void finishLazyGeometry()
+{
+  TIter next(gGeoManager->GetListOfVolumes());
+  std::vector<TGeoVolume*> volumes;
+  while (auto* volume = static_cast<TGeoVolume*>(next())) {
+    volumes.push_back(volume);
+  }
+  for (auto* volume : volumes) {
+    if (volume->IsAssembly()) {
+      volume->GetShape()->ComputeBBox(); // recurses into daughter assemblies first
+    }
+  }
+  for (auto* volume : volumes) {
+    auto* voxels = volume->GetVoxels();
+    if (voxels != nullptr && voxels->NeedRebuild()) {
+      voxels->Voxelize();
+      volume->FindOverlaps();
+    }
+  }
+}
+
+/// A piece of the per-placement pass: one node and, unless selfOnly, the whole
+/// subtree below it. The tree is cut where a subtree expands to few enough paths,
+/// so the workers walk the expanded tree themselves and nothing per path is stored.
+struct PlacementUnit {
+  TGeoNode* node = nullptr;
+  uint64_t hash = kTopPathHash;
+  TGeoHMatrix parentMatrix;
+  std::vector<TGeoNode*> chain, flatChain; ///< the ancestors, top node first
+  bool selfOnly = false;
+};
+
+constexpr long kUnitPaths = 4096;
+
+void buildUnits(TGeoNode* node, uint64_t hash, const TGeoHMatrix& parent, std::vector<TGeoNode*>& chain,
+                std::vector<TGeoNode*>& flatChain, PlacementTree& tree, std::vector<PlacementUnit>& units)
+{
+  PlacementUnit unit;
+  unit.node = node;
+  unit.hash = hash;
+  unit.parentMatrix = parent;
+  unit.chain = chain;
+  unit.flatChain = flatChain;
+  if (tree.pathsBelow(node->GetVolume()) <= kUnitPaths) {
+    units.push_back(std::move(unit));
+    return;
+  }
+  unit.selfOnly = true;
+  units.push_back(std::move(unit));
+  TGeoHMatrix here = parent;
+  here.Multiply(node->GetMatrix());
+  const bool solid = !node->GetVolume()->IsAssembly();
+  chain.push_back(node);
+  if (solid) {
+    flatChain.push_back(node);
+  }
+  for (int i = 0; i < node->GetNdaughters(); ++i) {
+    buildUnits(node->GetDaughter(i), pathHash(hash, i), here, chain, flatChain, tree, units);
+  }
+  if (solid) {
+    flatChain.pop_back();
+  }
+  chain.pop_back();
 }
 
 /// Rejection sampling against the shape itself. A TGeoCompositeShape inherits
@@ -846,11 +1017,11 @@ bool samplePoint(TGeoShape* shape, TRandom3& random, double* local)
   return false;
 }
 
-/// One generator per placement, seeded from its index. A single shared generator
-/// would make every placement's numbers depend on the order the others were
-/// sampled in -- which is the walk order in a serial run and nothing at all in a
-/// parallel one. Seeding per placement makes the audit reproducible and identical
-/// whatever --jobs is set to.
+/// One generator per placement, seeded from its index or its path hash. A single
+/// shared generator would make every placement's numbers depend on the order the
+/// others were sampled in -- which is the walk order in a serial run and nothing at
+/// all in a parallel one. Seeding per placement makes the audit reproducible and
+/// identical whatever --jobs is set to.
 unsigned int seedFor(size_t index)
 {
   unsigned long long x = 20260901ull + 0x9E3779B97F4A7C15ull * (index + 1);
@@ -919,14 +1090,15 @@ bool vecGeomPassesThrough(const std::vector<TGeoNode*>& located, const std::vect
   return true;
 }
 
-void sampleTask(const ReachTask& task, size_t index, int samples, Navigator backend, TGeoNavigator* nav,
-                std::vector<TGeoNode*>& located, ReachResult& out)
+void sampleNode(TGeoNode* node, const TGeoHMatrix& matrix, const std::vector<TGeoNode*>& chain,
+                const std::vector<TGeoNode*>& flatChain, unsigned int seed, int samples, Navigator backend,
+                TGeoNavigator* nav, std::vector<TGeoNode*>& located, ReachResult& out)
 {
-  TGeoVolume* volume = task.node->GetVolume();
+  TGeoVolume* volume = node->GetVolume();
   const bool hasDaughters = volume->GetNdaughters() > 0;
   const bool wantTGeo = backend != Navigator::VecGeom;
   const bool wantVecGeom = backend != Navigator::TGeo;
-  TRandom3 random(seedFor(index));
+  TRandom3 random(seed);
   for (int i = 0; i < samples; ++i) {
     double local[3], global[3];
     if (!samplePoint(volume->GetShape(), random, local)) {
@@ -939,7 +1111,7 @@ void sampleTask(const ReachTask& task, size_t index, int samples, Navigator back
     if (own) {
       ++out.ownDrawn;
     }
-    task.matrix.LocalToMaster(local, global);
+    matrix.LocalToMaster(local, global);
 
     bool tgeoThrough = false, tgeoExact = false;
     if (wantTGeo) {
@@ -951,7 +1123,7 @@ void sampleTask(const ReachTask& task, size_t index, int samples, Navigator back
       // one a track crossing the region would get.
       nav->CdTop();
       if (nav->FindNode(global[0], global[1], global[2]) != nullptr) {
-        tgeoThrough = tgeoPassesThrough(nav, task.chain, tgeoExact);
+        tgeoThrough = tgeoPassesThrough(nav, chain, tgeoExact);
       }
       if (tgeoThrough) {
         ++out.reached;
@@ -963,7 +1135,7 @@ void sampleTask(const ReachTask& task, size_t index, int samples, Navigator back
     if (wantVecGeom) {
       bool vgThrough = false, vgExact = false;
       if (o2::base::GeometryManager::vecGeomLocate(global[0], global[1], global[2], located)) {
-        vgThrough = vecGeomPassesThrough(located, task.flatChain, vgExact);
+        vgThrough = vecGeomPassesThrough(located, flatChain, vgExact);
       }
       if (vgThrough) {
         ++out.vgReached;
@@ -979,38 +1151,350 @@ void sampleTask(const ReachTask& task, size_t index, int samples, Navigator back
   out.sampled = out.drawn > 0;
 }
 
-/// TGeo finishes two things lazily, on the first query that needs them: the
-/// bounding box of an assembly and the voxels of a volume whose daughters moved
-/// (alignment marks them for a rebuild). Neither is thread safe, and in an aligned
-/// geometry read from file both are pending, so two workers rebuilding the same
-/// voxels corrupt them. Done here, once, before any sampling.
-void finishLazyGeometry()
+/// The numbers a placement is classified on, from the navigator the audit trusts.
+Reach toReach(TGeoNode* node, const std::string& path, const ReachResult& result, Navigator backend)
 {
-  TIter next(gGeoManager->GetListOfVolumes());
-  std::vector<TGeoVolume*> volumes;
-  while (auto* volume = static_cast<TGeoVolume*>(next())) {
-    volumes.push_back(volume);
+  auto* medium = node->GetVolume()->GetMedium();
+  Reach entry;
+  entry.medium = medium != nullptr ? medium->GetName() : "(none)";
+  entry.mother = node->GetMotherVolume() != nullptr ? node->GetMotherVolume()->GetName() : "-";
+  entry.worstPath = path;
+  entry.sampled = result.drawn;
+  entry.ownSampled = result.ownDrawn;
+  entry.disagreed = result.disagreed;
+  const bool primaryIsVecGeom = backend == Navigator::VecGeom;
+  entry.fraction = double(primaryIsVecGeom ? result.vgReached : result.reached) / result.drawn;
+  entry.ownFraction = result.ownDrawn > 0
+                        ? double(primaryIsVecGeom ? result.vgOwnReached : result.ownReached) / result.ownDrawn
+                        : 1.;
+  entry.vgFraction = double(result.vgReached) / result.drawn;
+  entry.vgOwnFraction = result.ownDrawn > 0 ? double(result.vgOwnReached) / result.ownDrawn : 1.;
+  return entry;
+}
+
+enum class ReachKind { Fine,
+                       Dead,
+                       Partial,
+                       Disagree };
+
+/// Either number can fail on its own. A mother almost entirely filled by its
+/// daughters keeps a high reached fraction while the sliver of its own medium is
+/// taken by a foreign volume, and that sliver is the material that disappears --
+/// so classify on whichever of the two is worse.
+ReachKind classifyReach(const Reach& entry)
+{
+  if (entry.fraction == 0.) {
+    return ReachKind::Dead;
   }
-  for (auto* volume : volumes) {
-    if (volume->IsAssembly()) {
-      volume->GetShape()->ComputeBBox(); // recurses into daughter assemblies first
+  if (entry.fraction < 0.999 || entry.ownFraction < 0.999) {
+    return ReachKind::Partial;
+  }
+  return ReachKind::Fine;
+}
+
+/// Did the cheap sample of a placement lose any point it should have kept?
+bool lostAPoint(const ReachResult& result, Navigator backend)
+{
+  if (backend == Navigator::VecGeom) {
+    return result.vgReached < result.drawn || result.vgOwnReached < result.ownDrawn;
+  }
+  return result.reached < result.drawn || result.ownReached < result.ownDrawn || result.disagreed > 0;
+}
+
+/// What a finding is: dead or partial on the navigator the audit trusts, or, with
+/// both navigators, a placement they disagree about although the first is content.
+/// The per-object pass lists the last kind separately, under "disagree".
+ReachKind findingKind(const Reach& entry, Navigator backend)
+{
+  const ReachKind kind = classifyReach(entry);
+  if (kind == ReachKind::Fine && backend == Navigator::Both && entry.disagreed > 0) {
+    return ReachKind::Disagree;
+  }
+  return kind;
+}
+
+const char* kindName(ReachKind kind)
+{
+  return kind == ReachKind::Dead ? "dead" : (kind == ReachKind::Partial ? "partial" : "disagree");
+}
+
+constexpr uint64_t kResampleSalt = 0x5851F42D4C957F2Dull;
+constexpr long kMaxPlacementFindings = 200000;
+
+std::string chainPath(const std::vector<TGeoNode*>& chain, size_t length)
+{
+  std::string path;
+  for (size_t i = 0; i < length && i < chain.size(); ++i) {
+    path += "/";
+    path += chain[i]->GetName();
+  }
+  return path;
+}
+
+/// A placement the navigator does not fully give its own space, from either pass,
+/// with what the report and the JSON need to say about it.
+struct ReachFinding {
+  std::string path, group, symbolic;
+  TGeoNode* node = nullptr;
+  uint64_t hash = 0;
+  std::vector<TGeoNode*> chain;
+  bool objectScope = false; ///< found by the per-node-object pass
+  ReachKind kind = ReachKind::Fine;
+  bool sensitive = false, isNew = false;
+  long instances = 0;
+  Reach reach;
+};
+
+/// What one worker found in the per-placement pass.
+struct PlacementTally {
+  long sampled = 0, unsampleable = 0, resampled = 0, dropped = 0;
+  std::vector<ReachFinding> findings;
+};
+
+/// The per-placement pass: walks the expanded tree below a unit and samples every
+/// non-assembly placement that is not already the representative of its node object.
+class PlacementSampler
+{
+ public:
+  PlacementSampler(int coarse, int samples, Navigator backend,
+                   const std::unordered_map<TGeoNode*, uint64_t>& representative, std::atomic<long>& stored)
+    : mCoarse(coarse), mSamples(samples), mBackend(backend), mRepresentative(representative), mStored(stored)
+  {
+  }
+
+  void run(const PlacementUnit& unit, TGeoNavigator* nav, std::vector<TGeoNode*>& located,
+           PlacementTally& tally) const
+  {
+    std::vector<TGeoNode*> chain = unit.chain, flatChain = unit.flatChain;
+    visit(unit.node, unit.hash, unit.parentMatrix, chain, flatChain, !unit.selfOnly, nav, located, tally);
+  }
+
+ private:
+  void visit(TGeoNode* node, uint64_t hash, const TGeoHMatrix& parent, std::vector<TGeoNode*>& chain,
+             std::vector<TGeoNode*>& flatChain, bool recurse, TGeoNavigator* nav, std::vector<TGeoNode*>& located,
+             PlacementTally& tally) const
+  {
+    TGeoHMatrix here = parent;
+    here.Multiply(node->GetMatrix());
+    const bool solid = !node->GetVolume()->IsAssembly();
+    chain.push_back(node);
+    if (solid) {
+      flatChain.push_back(node);
+      auto representative = mRepresentative.find(node);
+      if (representative == mRepresentative.end() || representative->second != hash) {
+        sample(node, hash, here, chain, flatChain, nav, located, tally);
+      }
+    }
+    if (recurse) {
+      for (int i = 0; i < node->GetNdaughters(); ++i) {
+        visit(node->GetDaughter(i), pathHash(hash, i), here, chain, flatChain, true, nav, located, tally);
+      }
+    }
+    if (solid) {
+      flatChain.pop_back();
+    }
+    chain.pop_back();
+  }
+
+  void sample(TGeoNode* node, uint64_t hash, const TGeoHMatrix& matrix, const std::vector<TGeoNode*>& chain,
+              const std::vector<TGeoNode*>& flatChain, TGeoNavigator* nav, std::vector<TGeoNode*>& located,
+              PlacementTally& tally) const
+  {
+    ReachResult coarse;
+    sampleNode(node, matrix, chain, flatChain, seedFor(hash), mCoarse, mBackend, nav, located, coarse);
+    if (!coarse.sampled) {
+      ++tally.unsampleable;
+      return;
+    }
+    ++tally.sampled;
+    if (!lostAPoint(coarse, mBackend)) {
+      return;
+    }
+    ++tally.resampled;
+    ReachResult fine;
+    sampleNode(node, matrix, chain, flatChain, seedFor(hash ^ kResampleSalt), mSamples, mBackend, nav, located, fine);
+    if (!fine.sampled) {
+      return;
+    }
+    ReachFinding finding;
+    finding.path = chainPath(chain, chain.size());
+    finding.reach = toReach(node, finding.path, fine, mBackend);
+    finding.kind = findingKind(finding.reach, mBackend);
+    if (finding.kind == ReachKind::Fine) {
+      return;
+    }
+    if (mStored++ >= kMaxPlacementFindings) {
+      ++tally.dropped;
+      return;
+    }
+    finding.node = node;
+    finding.hash = hash;
+    finding.chain = chain;
+    tally.findings.push_back(std::move(finding));
+  }
+
+  int mCoarse, mSamples;
+  Navigator mBackend;
+  const std::unordered_map<TGeoNode*, uint64_t>& mRepresentative;
+  std::atomic<long>& mStored;
+};
+
+bool isSensitive(TGeoNode* node)
+{
+  auto* medium = node->GetVolume()->GetMedium();
+  return medium != nullptr && medium->GetParam(0) != 0.;
+}
+
+/// Groups findings by the deepest ancestor (or the node itself) whose node object is
+/// placed exactly once -- for an aligned detector that is the alignable element,
+/// e.g. the MCH slat -- and prints the worst groups first.
+void reportGroups(const std::vector<const ReachFinding*>& findings, Navigator backend,
+                  const std::unordered_map<TGeoNode*, long>& affected, Report& report)
+{
+  struct Group {
+    std::string path, symbolic;
+    long dead = 0, deadSensitive = 0, partial = 0, disagree = 0;
+    std::vector<const ReachFinding*> members;
+  };
+  std::map<std::string, Group> byPath;
+  for (const auto* finding : findings) {
+    auto& group = byPath[finding->group];
+    group.path = finding->group;
+    group.symbolic = finding->symbolic;
+    group.members.push_back(finding);
+    if (finding->kind == ReachKind::Dead) {
+      ++group.dead;
+      group.deadSensitive += finding->sensitive ? 1 : 0;
+    } else if (finding->kind == ReachKind::Partial) {
+      ++group.partial;
+    } else {
+      ++group.disagree;
     }
   }
-  for (auto* volume : volumes) {
-    auto* voxels = volume->GetVoxels();
-    if (voxels != nullptr && voxels->NeedRebuild()) {
-      voxels->Voxelize();
-      volume->FindOverlaps();
+  std::vector<Group> groups;
+  for (auto& entry : byPath) {
+    groups.push_back(std::move(entry.second));
+  }
+  std::stable_sort(groups.begin(), groups.end(), [](const Group& a, const Group& b) {
+    if (a.deadSensitive != b.deadSensitive) {
+      return a.deadSensitive > b.deadSensitive;
     }
+    if (a.dead != b.dead) {
+      return a.dead > b.dead;
+    }
+    if (a.partial != b.partial) {
+      return a.partial > b.partial;
+    }
+    return a.disagree > b.disagree;
+  });
+  constexpr size_t kMaxGroups = 30, kMaxMembers = 5;
+  for (size_t g = 0; g < groups.size() && g < kMaxGroups; ++g) {
+    auto& group = groups[g];
+    report(form("    %s%s%s: %ld dead (%ld sensitive), %ld partial%s", group.path.c_str(),
+                group.symbolic.empty() ? "" : "  ", group.symbolic.c_str(), group.dead, group.deadSensitive,
+                group.partial, backend == Navigator::Both ? form(", %ld disagree", group.disagree).c_str() : ""));
+    std::stable_sort(group.members.begin(), group.members.end(), [](const ReachFinding* a, const ReachFinding* b) {
+      if (a->sensitive != b->sensitive) {
+        return a->sensitive;
+      }
+      const double worstA = std::min(a->reach.fraction, a->reach.ownFraction);
+      const double worstB = std::min(b->reach.fraction, b->reach.ownFraction);
+      if (worstA != worstB) {
+        return worstA < worstB;
+      }
+      return a->path < b->path;
+    });
+    for (size_t m = 0; m < group.members.size() && m < kMaxMembers; ++m) {
+      const auto* member = group.members[m];
+      const std::string relative =
+        member->path.size() > group.path.size() ? member->path.substr(group.path.size() + 1) : ".";
+      const auto found = affected.find(member->node);
+      const long hit = found != affected.end() ? found->second : 1;
+      std::string disagree;
+      if (backend == Navigator::Both) {
+        disagree = form("  disagree %.1f%%, VecGeom %.1f%%", 100. * member->reach.disagreed / member->reach.sampled,
+                        100. * member->reach.vgFraction);
+      }
+      report(form("      %-36s %-18s %7.1f%% %8.1f%%  %ld of %ld instances of this node object affected%s%s",
+                  relative.c_str(), member->reach.medium.c_str(), 100. * member->reach.fraction,
+                  100. * member->reach.ownFraction, hit, member->instances, member->sensitive ? "  [sensitive]" : "",
+                  disagree.c_str()));
+    }
+    if (group.members.size() > kMaxMembers) {
+      report(form("      ... and %zu more", group.members.size() - kMaxMembers));
+    }
+  }
+  if (groups.size() > kMaxGroups) {
+    report(form("    ... and %zu more groups, all of them in the JSON file", groups.size() - kMaxGroups));
   }
 }
 
-/// Prints the audit and returns how many placements the navigator cannot reach at all.
-long reportReachability(int samples, int jobs, Navigator backend, Report& report)
+struct ReachOptions {
+  int samples = 1000;
+  int placementSamples = 16;
+  int jobs = 0;
+  Navigator backend = Navigator::TGeo;
+  std::string geometryFile, outputPrefix, baselineFile;
+};
+
+struct ReachSummary {
+  long dead = 0;             ///< dead placements, both passes
+  long newDeadSensitive = 0; ///< dead sensitive placements absent from the baseline
+  bool haveBaseline = false;
+  bool failed = false;
+  std::string jsonPath;
+};
+
+const char* navigatorName(Navigator backend)
 {
+  return backend == Navigator::TGeo ? "tgeo" : (backend == Navigator::VecGeom ? "vecgeom" : "both");
+}
+
+std::string hashString(uint64_t hash) { return form("%016llx", (unsigned long long)hash); }
+
+/// A finding is identified by its path and its path hash: TGeo paths repeat where
+/// siblings share a name and a copy number, the daughter indices do not, and
+/// alignment keeps both because a realigned node keeps its index in its mother.
+std::string findingKey(const std::string& path, const std::string& hash) { return path + "#" + hash; }
+
+/// Prints the audit, writes <prefix>-reachability.json, and returns what decides the exit code.
+ReachSummary reportReachability(const ReachOptions& options, Report& report)
+{
+  ReachSummary summary;
+  const int samples = options.samples;
+  Navigator backend = options.backend;
   if (samples <= 0) {
-    return 0;
+    return summary;
   }
+
+  // read the baseline first, so that a bad file costs nothing
+  std::map<std::string, json> baseline;
+  json baseSettings;
+  if (!options.baselineFile.empty()) {
+    try {
+      std::ifstream in(options.baselineFile);
+      json base;
+      in >> base;
+      if (base.value("schema", "") != "o2-sim-geometry-doctor/reachability/1") {
+        throw std::runtime_error("not a reachability file of this tool");
+      }
+      for (const auto& finding : base.at("findings")) {
+        baseline[findingKey(finding.at("path").get<std::string>(), finding.at("hash").get<std::string>())] = finding;
+        (void)finding.at("kind").get<std::string>();
+        (void)finding.at("reached").get<double>();
+        (void)finding.at("ownKept").get<double>();
+      }
+      baseSettings = {{"navigator", base.at("navigator")},
+                      {"samples", base.at("samples")},
+                      {"placementSamples", base.at("placementSamples")}};
+    } catch (const std::exception& e) {
+      progress("error: cannot use the reachability baseline " + options.baselineFile + ": " + e.what());
+      summary.failed = true;
+      return summary;
+    }
+    summary.haveBaseline = true;
+  }
+
   progress("reachability: asking the navigator to find every placement from inside its own shape");
   ReachCollector collector;
   collector.walk(gGeoManager->GetTopNode());
@@ -1021,23 +1505,40 @@ long reportReachability(int samples, int jobs, Navigator backend, Report& report
     backend = Navigator::TGeo;
   }
 
-  int threads = jobs > 0 ? jobs : (int)std::thread::hardware_concurrency();
-  threads = std::max(1, std::min<int>(threads, (int)tasks.size()));
+  PlacementTree tree(gGeoManager->GetTopNode());
+  std::vector<PlacementUnit> units;
+  if (options.placementSamples > 0) {
+    std::vector<TGeoNode*> chain, flatChain;
+    buildUnits(gGeoManager->GetTopNode(), kTopPathHash, TGeoHMatrix(), chain, flatChain, tree, units);
+  }
+  const size_t nJobs = tasks.size() + units.size();
+
+  int threads = options.jobs > 0 ? options.jobs : (int)std::thread::hardware_concurrency();
+  threads = std::max(1, std::min<int>(threads, (int)nJobs));
   // Every placement is sampled independently, so the only shared state is the
   // geometry itself. ROOT serves that per thread: SetMaxThreads allocates the
   // per-thread shape data (composite shapes and voxel finders cache into it) and
   // each worker claims its own navigator, without which they would all drive one.
+  // Both passes share this one pool: ROOT never hands a thread id back, so the
+  // threads of a second pool would index the per-thread data out of range.
   finishLazyGeometry();
   if (threads > 1) {
     gGeoManager->SetMaxThreads(threads);
   }
   progress(form("reachability: %zu placements, %d point%s each, %d thread%s", tasks.size(), samples,
                 samples == 1 ? "" : "s", threads, threads == 1 ? "" : "s"));
+  if (!units.empty()) {
+    progress(form("reachability: and %ld physical placements in %zu units, %d points each", tree.placements(),
+                  units.size(), options.placementSamples));
+  }
 
   std::vector<ReachResult> results(tasks.size());
+  std::vector<PlacementTally> tallies(threads);
+  std::atomic<long> stored{0};
+  PlacementSampler sampler(options.placementSamples, samples, backend, collector.representative(), stored);
   std::atomic<size_t> next{0};
   std::mutex claim;
-  auto worker = [&]() {
+  auto worker = [&](int id) {
     TGeoNavigator* nav = nullptr;
     {
       // TGeoManager::ThreadId() reads its thread map outside its own lock
@@ -1047,25 +1548,32 @@ long reportReachability(int samples, int jobs, Navigator backend, Report& report
     std::vector<TGeoNode*> located;
     // handed out one at a time: a placement's cost spans orders of magnitude, so a
     // static split would leave most threads waiting on the few expensive ones
-    for (size_t i = next++; i < tasks.size(); i = next++) {
-      sampleTask(tasks[i], i, samples, backend, nav, located, results[i]);
+    for (size_t i = next++; i < nJobs; i = next++) {
+      if (i < tasks.size()) {
+        const auto& task = tasks[i];
+        sampleNode(task.node, task.matrix, task.chain, task.flatChain, seedFor(i), samples, backend, nav, located,
+                   results[i]);
+      } else {
+        sampler.run(units[i - tasks.size()], nav, located, tallies[id]);
+      }
     }
   };
   if (threads > 1) {
     std::vector<std::thread> pool;
     pool.reserve(threads);
     for (int i = 0; i < threads; ++i) {
-      pool.emplace_back(worker);
+      pool.emplace_back(worker, i);
     }
     for (auto& thread : pool) {
       thread.join();
     }
   } else {
-    worker();
+    worker(0);
   }
 
   long sampled = 0, unsampleable = 0, disagreeing = 0;
   std::vector<Reach> dead, partial;
+  std::vector<ReachFinding> findings;
   for (size_t i = 0; i < tasks.size(); ++i) {
     const auto& result = results[i];
     if (!result.sampled) {
@@ -1073,33 +1581,27 @@ long reportReachability(int samples, int jobs, Navigator backend, Report& report
       continue;
     }
     ++sampled;
-    TGeoNode* node = tasks[i].node;
-    auto* medium = node->GetVolume()->GetMedium();
-    Reach entry;
-    entry.medium = medium != nullptr ? medium->GetName() : "(none)";
-    entry.mother = node->GetMotherVolume() != nullptr ? node->GetMotherVolume()->GetName() : "-";
-    entry.worstPath = tasks[i].path;
-    entry.sampled = result.drawn;
-    entry.ownSampled = result.ownDrawn;
-    entry.disagreed = result.disagreed;
-    const bool primaryIsVecGeom = backend == Navigator::VecGeom;
-    entry.fraction = double(primaryIsVecGeom ? result.vgReached : result.reached) / result.drawn;
-    entry.ownFraction = result.ownDrawn > 0
-                          ? double(primaryIsVecGeom ? result.vgOwnReached : result.ownReached) / result.ownDrawn
-                          : 1.;
-    entry.vgFraction = double(result.vgReached) / result.drawn;
-    entry.vgOwnFraction = result.ownDrawn > 0 ? double(result.vgOwnReached) / result.ownDrawn : 1.;
+    const Reach entry = toReach(tasks[i].node, tasks[i].path, result, backend);
     if (result.disagreed > 0) {
       ++disagreeing;
     }
-    // Either number can fail on its own. A mother almost entirely filled by its
-    // daughters keeps a high reached fraction while the sliver of its own medium
-    // is taken by a foreign volume, and that sliver is the material that
-    // disappears -- so classify on whichever of the two is worse.
-    if (entry.fraction == 0.) {
+    const ReachKind kind = classifyReach(entry);
+    if (kind == ReachKind::Dead) {
       dead.push_back(entry);
-    } else if (entry.fraction < 0.999 || entry.ownFraction < 0.999) {
+    } else if (kind == ReachKind::Partial) {
       partial.push_back(entry);
+    }
+    const ReachKind found = findingKind(entry, backend);
+    if (found != ReachKind::Fine) {
+      ReachFinding finding;
+      finding.path = tasks[i].path;
+      finding.node = tasks[i].node;
+      finding.hash = tasks[i].hash;
+      finding.chain = tasks[i].chain;
+      finding.objectScope = true;
+      finding.kind = found;
+      finding.reach = entry;
+      findings.push_back(std::move(finding));
     }
   }
 
@@ -1150,17 +1652,7 @@ long reportReachability(int samples, int jobs, Navigator backend, Report& report
         if (results[i].disagreed == 0 || !results[i].sampled) {
           continue;
         }
-        Reach entry;
-        TGeoNode* node = tasks[i].node;
-        auto* medium = node->GetVolume()->GetMedium();
-        entry.medium = medium != nullptr ? medium->GetName() : "(none)";
-        entry.mother = node->GetMotherVolume() != nullptr ? node->GetMotherVolume()->GetName() : "-";
-        entry.worstPath = tasks[i].path;
-        entry.sampled = results[i].drawn;
-        entry.disagreed = results[i].disagreed;
-        entry.fraction = double(results[i].reached) / results[i].drawn;
-        entry.vgFraction = double(results[i].vgReached) / results[i].drawn;
-        conflicts.push_back(entry);
+        conflicts.push_back(toReach(tasks[i].node, tasks[i].path, results[i], Navigator::TGeo));
       }
       std::sort(conflicts.begin(), conflicts.end(), [](const Reach& a, const Reach& b) {
         return double(a.disagreed) / a.sampled > double(b.disagreed) / b.sampled;
@@ -1177,7 +1669,188 @@ long reportReachability(int samples, int jobs, Navigator backend, Report& report
     }
   }
   report("");
-  return (long)dead.size();
+  summary.dead = (long)dead.size();
+
+  // --- the per-placement pass ---------------------------------------------------
+  long placementSampled = 0, placementUnsampleable = 0, resampled = 0, dropped = 0;
+  std::vector<ReachFinding> placementFindings;
+  for (auto& tally : tallies) {
+    placementSampled += tally.sampled;
+    placementUnsampleable += tally.unsampleable;
+    resampled += tally.resampled;
+    dropped += tally.dropped;
+    for (auto& finding : tally.findings) {
+      placementFindings.push_back(std::move(finding));
+    }
+  }
+  // the merge order depends on the threads, the path and its hash do not
+  std::sort(placementFindings.begin(), placementFindings.end(), [](const ReachFinding& a, const ReachFinding& b) {
+    return a.path != b.path ? a.path < b.path : a.hash < b.hash;
+  });
+  for (auto& finding : placementFindings) {
+    findings.push_back(std::move(finding));
+  }
+
+  // labels: the group, its alignable symbolic name, sensitivity, instance counts;
+  // an entry's path may name the top level by its volume ("cave/...") rather than its node
+  std::unordered_map<std::string, std::string> symbolic;
+  const std::string topNode = gGeoManager->GetTopNode()->GetName();
+  const std::string topVolume = gGeoManager->GetTopVolume()->GetName();
+  for (int i = 0; i < gGeoManager->GetNAlignable(); ++i) {
+    auto* entry = gGeoManager->GetAlignableEntry(i);
+    std::string title = entry->GetTitle();
+    if (!title.empty() && title[0] == '/') {
+      title.erase(0, 1);
+    }
+    const auto slash = title.find('/');
+    const std::string first = title.substr(0, slash);
+    if (first == topVolume) {
+      title = topNode + (slash == std::string::npos ? "" : title.substr(slash));
+    }
+    symbolic.emplace("/" + title, entry->GetName());
+  }
+  std::unordered_map<TGeoNode*, long> affected;
+  long deadAll = 0, deadSensitiveAll = 0, partialAll = 0, disagreeAll = 0, hidden = 0;
+  for (auto& finding : findings) {
+    const auto& chain = finding.chain;
+    size_t groupLength = chain.size();
+    while (groupLength > 1 && tree.instances(chain[groupLength - 1]) != 1) {
+      --groupLength;
+    }
+    finding.group = chainPath(chain, groupLength);
+    auto label = symbolic.find(finding.group);
+    if (label != symbolic.end()) {
+      finding.symbolic = label->second;
+    }
+    finding.sensitive = isSensitive(finding.node);
+    finding.instances = tree.instances(finding.node);
+    ++affected[finding.node];
+    if (finding.kind == ReachKind::Dead) {
+      ++deadAll;
+      deadSensitiveAll += finding.sensitive ? 1 : 0;
+      summary.dead += finding.objectScope ? 0 : 1;
+    } else if (finding.kind == ReachKind::Partial) {
+      ++partialAll;
+    } else {
+      ++disagreeAll;
+    }
+    hidden += finding.objectScope ? 0 : 1;
+  }
+
+  if (options.placementSamples > 0) {
+    report(form(
+      "per-placement: %ld placements, %d points each, %ld re-sampled with %d; %ld dead (%ld sensitive), "
+      "%ld partial%s; %ld of them hidden from the per-object audit",
+      tree.placements(), options.placementSamples, resampled, samples, deadAll, deadSensitiveAll, partialAll,
+      backend == Navigator::Both ? form(", %ld only disagree", disagreeAll).c_str() : "", hidden));
+    report(form("  %ld placements sampled here, %ld too thin to sample; the representatives above are not repeated.",
+                placementSampled, placementUnsampleable));
+    report(form("  With %d points a placement that loses 10%% of its volume is caught with probability %.2f, one",
+                options.placementSamples, 1. - std::pow(0.9, options.placementSamples)));
+    report("  that loses less can be missed; --placement-samples raises it.");
+    if (dropped > 0) {
+      report(form("  more than %ld placements flagged: %ld further findings were counted but not kept, and which",
+                  kMaxPlacementFindings, dropped));
+      report("  ones were kept depends on the order the threads finished in.");
+    }
+    std::vector<const ReachFinding*> listed;
+    for (const auto& finding : findings) {
+      if (!finding.objectScope) {
+        listed.push_back(&finding);
+      }
+    }
+    if (!listed.empty()) {
+      report("  placements the per-object audit does not see, by the deepest ancestor placed once;");
+      report("  columns: path below it, medium, reached, own kept:");
+      reportGroups(listed, backend, affected, report);
+    }
+    report("");
+  }
+
+  if (summary.haveBaseline) {
+    std::vector<const ReachFinding*> fresh;
+    long newDead = 0, newPartial = 0;
+    for (auto& finding : findings) {
+      auto before = baseline.find(findingKey(finding.path, hashString(finding.hash)));
+      if (before == baseline.end()) {
+        finding.isNew = true;
+      } else {
+        const auto& old = before->second;
+        finding.isNew = (finding.kind == ReachKind::Dead && old["kind"] != "dead") ||
+                        finding.reach.fraction < old["reached"].get<double>() - 0.05 ||
+                        finding.reach.ownFraction < old["ownKept"].get<double>() - 0.05;
+      }
+      if (finding.isNew) {
+        fresh.push_back(&finding);
+        if (finding.kind == ReachKind::Dead) {
+          ++newDead;
+          summary.newDeadSensitive += finding.sensitive ? 1 : 0;
+        } else {
+          ++newPartial;
+        }
+      }
+    }
+    report(form("new with respect to the baseline %s: %ld dead (%ld sensitive), %ld partial or disagreeing",
+                options.baselineFile.c_str(), newDead, summary.newDeadSensitive, newPartial));
+    const json settings = {{"navigator", navigatorName(backend)},
+                           {"samples", samples},
+                           {"placementSamples", options.placementSamples}};
+    if (settings != baseSettings) {
+      report("  warning: the baseline was made with other settings (" + baseSettings.dump() + " against " +
+             settings.dump() + "), so findings can be new only because of that");
+    }
+    if (!fresh.empty()) {
+      reportGroups(fresh, backend, affected, report);
+    }
+    report("");
+  }
+
+  // --- the machine-readable result ------------------------------------------------
+  json out;
+  out["schema"] = "o2-sim-geometry-doctor/reachability/1";
+  out["geometry"] = options.geometryFile;
+  out["navigator"] = navigatorName(backend);
+  out["samples"] = samples;
+  out["placementSamples"] = options.placementSamples;
+  out["nodeObjects"] = collector.nodesVisited();
+  out["placements"] = tree.placements();
+  out["unsampleable"] = unsampleable + placementUnsampleable;
+  if (summary.haveBaseline) {
+    out["baseline"] = options.baselineFile;
+  }
+  json list = json::array();
+  for (const auto& finding : findings) {
+    json item;
+    item["path"] = finding.path;
+    item["hash"] = hashString(finding.hash);
+    item["scope"] = finding.objectScope ? "object" : "placement";
+    item["kind"] = kindName(finding.kind);
+    item["volume"] = finding.node->GetVolume()->GetName();
+    item["medium"] = finding.reach.medium;
+    item["sensitive"] = finding.sensitive;
+    item["mother"] = finding.reach.mother;
+    item["group"] = finding.group;
+    if (!finding.symbolic.empty()) {
+      item["symbolic"] = finding.symbolic;
+    }
+    item["instances"] = finding.instances;
+    item["sampled"] = finding.reach.sampled;
+    item["reached"] = finding.reach.fraction;
+    item["ownKept"] = finding.reach.ownFraction;
+    if (backend == Navigator::Both) {
+      item["vgReached"] = finding.reach.vgFraction;
+      item["disagreed"] = double(finding.reach.disagreed) / finding.reach.sampled;
+    }
+    if (summary.haveBaseline) {
+      item["new"] = finding.isNew;
+    }
+    list.push_back(item);
+  }
+  out["findings"] = list;
+  summary.jsonPath = options.outputPrefix + "-reachability.json";
+  std::ofstream file(summary.jsonPath);
+  file << out.dump(1, '\t') << '\n';
+  return summary;
 }
 
 // ---------------------------------------------------------------------------
@@ -1998,6 +2671,8 @@ struct Options {
   double margin = 5.0;
   int reachSamples = 32;
   int reachJobs = 0;
+  int placementSamples = 16;
+  std::string reachBaseline;
   std::string navigator = "tgeo";
   bool reachabilityOnly = false;
   std::string outputPrefix = "geometry-doctor";
@@ -2034,6 +2709,12 @@ int main(int argc, char** argv)
      "hundred the audit reports genuine placements as partially shadowed")                              //
     ("reachability-jobs", bpo::value<int>(&options.reachJobs)->default_value(0),                        //
      "threads for the reachability audit; 0 uses every core. The answer does not depend on it")         //
+    ("placement-samples", bpo::value<int>(&options.placementSamples)->default_value(16),                //
+     "points drawn in every physical placement (path), in addition to the per-node-object audit; a "    //
+     "placement that loses a point is re-sampled with --reachability-samples; 0 disables the pass")     //
+    ("reachability-baseline", bpo::value<std::string>(&options.reachBaseline),                          //
+     "a <prefix>-reachability.json of a reference geometry; report only findings new with respect to "  //
+     "it. Under --reachability-only the exit code is then 3 only for a new dead sensitive placement")   //
     ("navigator", bpo::value<std::string>(&options.navigator)->default_value("tgeo"),                   //
      "which navigator answers 'what is at this point': tgeo, vecgeom, or both. 'both' reports where "   //
      "they disagree, which is where a real overlap is resolved differently by the two engines")         //
@@ -2064,6 +2745,15 @@ int main(int argc, char** argv)
     return 1;
   }
 
+  ReachOptions reachOptions;
+  reachOptions.samples = options.reachSamples;
+  reachOptions.placementSamples = options.placementSamples;
+  reachOptions.jobs = options.reachJobs;
+  reachOptions.backend = navigator;
+  reachOptions.geometryFile = options.geometryFile;
+  reachOptions.outputPrefix = options.outputPrefix;
+  reachOptions.baselineFile = options.reachBaseline;
+
   const bool haveFieldFile = arguments.count("field-file") != 0u;
   const bool haveFieldCurrent = arguments.count("field-current") != 0u;
 
@@ -2082,11 +2772,17 @@ int main(int argc, char** argv)
     report(form("  volumes       : %d, media %d", gGeoManager->GetListOfVolumes()->GetEntries(),
                 gGeoManager->GetListOfMedia()->GetEntries()));
     report("");
-    const long dead = reportReachability(options.reachSamples, options.reachJobs, navigator, report);
+    const auto reach = reportReachability(reachOptions, report);
+    if (reach.failed) {
+      return 1;
+    }
     const std::string reportPath = options.outputPrefix + "-report.txt";
-    report("wrote " + reportPath);
+    report("wrote " + (reach.jsonPath.empty() ? "" : reach.jsonPath + " and ") + reportPath);
     report.write(reportPath);
-    return dead == 0 ? 0 : 3;
+    if (reach.haveBaseline) {
+      return reach.newDeadSensitive == 0 ? 0 : 3;
+    }
+    return reach.dead == 0 ? 0 : 3;
   }
 
   if (haveFieldFile == haveFieldCurrent) {
@@ -2199,7 +2895,10 @@ int main(int argc, char** argv)
   report(form("  volumes       : %d, media %d", gGeoManager->GetListOfVolumes()->GetEntries(),
               gGeoManager->GetListOfMedia()->GetEntries()));
   report("");
-  reportReachability(options.reachSamples, options.reachJobs, navigator, report);
+  const auto reach = reportReachability(reachOptions, report);
+  if (reach.failed) {
+    return 1;
+  }
 
   Doctor doctor(field, support);
   doctor.walk(gGeoManager->GetTopNode());
@@ -2300,7 +2999,8 @@ int main(int argc, char** argv)
   std::ofstream proposals(proposalsPath);
   proposals << proposalsToJson(doctor, support, options.geometryFile, fieldSource).dump(1, '\t') << '\n';
   writePlacementCsv(doctor.rows(), tablePath);
-  report("wrote " + proposalsPath + ", " + tablePath + " and " + reportPath);
+  report("wrote " + proposalsPath + ", " + tablePath + (reach.jsonPath.empty() ? "" : ", " + reach.jsonPath) +
+         " and " + reportPath);
   report.write(reportPath);
 
   return anchorsPassed ? 0 : 2;
