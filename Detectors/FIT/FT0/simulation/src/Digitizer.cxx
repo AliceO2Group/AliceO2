@@ -41,84 +41,24 @@ namespace o2::ft0
 template <typename Float>
 Float signalForm_i(Float x)
 {
-  float p0, p1, p2, p3, p4, p5, p6, p7;
-  p0 = 1.30853;
-  p1 = 0.516807;
-  p2 = 3.36714;
-  p3 = -1.01206;
-  p4 = 1.42832;
-  p5 = 1.1589;
-  p6 = 1.22019;
-  p7 = 0.426818;
-
-  Double_t val = 0;
-
-  if (x > p3) {
-    Double_t x1 = x - p3;
-    Double_t arg1 = (log(x1) - p0) / p1;
-    val += p2 * (1.0 / (x1 * p1 * sqrt(2 * TMath::Pi()))) * exp(-0.5 * arg1 * arg1);
-  }
-
-  if (x > p7) {
-    Double_t x2 = x - p7;
-    Double_t arg2 = (log(x2) - p4) / p5;
-    val += p6 * (1.0 / (x2 * p5 * sqrt(2 * TMath::Pi()))) * exp(-0.5 * arg2 * arg2);
-  }
-
-  return val;
+  using namespace std;
+  Float const a = -0.45458;
+  Float const b = -0.83344945;
+  return x > Float(0) ? -(exp(b * x) - exp(a * x)) / Float(7.8446501) : Float(0);
 };
 
 // integrated signal shape function
 inline float signalForm_integral(float x)
 {
-  float p0, p1, p2, p3, p4, p5, p6, p7;
-  p0 = 1.30853;
-  p1 = 0.516807;
-  p2 = 3.36714;
-  p3 = -1.01206;
-  p4 = 1.42832;
-  p5 = 1.1589;
-  p6 = 1.22019;
-  p7 = 0.426818;
-  Double_t val = 0;
-
-  if (x > p3) {
-    Double_t x1 = x - p3;
-    Double_t z1 = (log(x1) - p0) / (sqrt(2) * p1);
-    val += p2 * 0.5 * (1 + TMath::Erf(z1)); // norm1 * CDF1
+  using namespace std;
+  double const a = -0.45458;
+  double const b = -0.83344945;
+  if (x < 0) {
+    x = 0;
   }
-
-  if (x > p7) {
-    Double_t x2 = x - p7;
-    Double_t z2 = (log(x2) - p4) / (sqrt(2) * p5);
-    val += p6 * 0.5 * (1 + TMath::Erf(z2)); // norm2 * CDF2
-  }
-
-  return val;
-};
-/*
-// signal shape function
-template <typename Float>
-Float signalForm_i(Float x)
-{
-using namespace std;
-Float const a = -0.45458;
-Float const b = -0.83344945;
-return x > Float(0) ? -(exp(b * x) - exp(a * x)) / Float(7.8446501) : Float(0);
+  return -(exp(b * x) / b - exp(a * x) / a) / 7.8446501;
 };
 
-// integrated signal shape function
-inline float signalForm_integral(float x)
-{
-using namespace std;
-double const a = -0.45458;
-double const b = -0.83344945;
-if (x < 0) {
-  x = 0;
-}
-return -(exp(b * x) / b - exp(a * x) / a) / 7.8446501;
-};
-*/
 // SIMD version of the integrated signal shape function
 inline Vc::float_v signalForm_integralVc(Vc::float_v x)
 {
