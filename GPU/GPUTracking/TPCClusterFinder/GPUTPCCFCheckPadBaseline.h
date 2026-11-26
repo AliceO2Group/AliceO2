@@ -95,7 +95,16 @@ class GPUTPCCFCheckPadBaseline : public GPUKernelTemplate
   };
 
   struct GPUSharedMemory : public GPUKernelTemplate::GPUSharedMemoryScan64<int16_t, NThreads> {
-    tpccf::Charge charges[NumOfCachedTBs][MaxNPadsPerRow];
+    union {
+      tpccf::Charge charges[NumOfCachedTBs][MaxNPadsPerRow];
+      struct { // Per-thread results of the segmented scan, see CheckBaselineGPUSegmented
+        int32_t totalCharges[NThreads];
+        int32_t maxConsecCharges[NThreads];
+        int32_t firstConsecCharges[NThreads];
+        int32_t lastConsecCharges[NThreads];
+        tpccf::Charge maxCharge[NThreads];
+      } segments;
+    };
     HipTailRange tails[MaxNPadsPerRow];
     uint8_t tailsClosedPad[MaxNPadsPerRow];
     HipTailRange tailsClosed[MaxNPadsPerRow];
@@ -139,6 +148,7 @@ class GPUTPCCFCheckPadBaseline : public GPUKernelTemplate
 
  private:
   GPUd() static void CheckBaselineGPU(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer);
+  GPUd() static void CheckBaselineGPUSegmented(int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer);
   GPUd() static void CheckBaselineCPU(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer);
 
   GPUd() static void updatePadBaseline(int32_t pad, const GPUTPCClusterFinder&, int32_t totalCharges, int32_t consecCharges, tpccf::Charge maxCharge);
