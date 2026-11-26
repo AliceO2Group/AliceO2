@@ -243,6 +243,7 @@ class GPUChainTracking : public GPUChain
   void PrepareKernelDebugOutput();
   void PrintKernelDebugOutput();
   void PrintOutputStat();
+  void DumpFinalOutput();
   static void DumpClusters(std::ostream& out, const o2::tpc::ClusterNativeAccess* clusters);
   static void DebugSortCompressedClusters(o2::tpc::CompressedClustersFlat* cls);
   void DoDebugRawDump();

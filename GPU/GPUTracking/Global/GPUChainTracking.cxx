@@ -390,7 +390,7 @@ int32_t GPUChainTracking::Init()
     TransferMemoryResourceLinkToGPU(RecoStep::NoRecoStep, mInputsHost->mResourceErrorCodes);
   }
 
-  if (GetProcessingSettings().debugLevel >= 6) {
+  if (GetProcessingSettings().debugLevel >= 6 || GetProcessingSettings().debugDumpFinal) {
     std::string filename = std::string(mRec->IsGPU() ? "GPU" : "CPU") + (mRec->slaveId() != -1 ? (std::string("_slave") + std::to_string(mRec->slaveId())) : std::string(mRec->slavesExist() ? "_master" : "")) + GetProcessingSettings().debugLogSuffix + ".out";
 
     bool hashOnly = GetProcessingSettings().debugDumpChecksum;
@@ -489,7 +489,7 @@ int32_t GPUChainTracking::Finalize()
     GetQA()->UpdateChain(this);
     GetQA()->DrawQAHistograms();
   }
-  if (GetProcessingSettings().debugLevel >= 6) {
+  if (GetProcessingSettings().debugLevel >= 6 || GetProcessingSettings().debugDumpFinal) {
     mDebugFile->flush();
     mDebugFileBuffer.close();
 
@@ -702,7 +702,7 @@ int32_t GPUChainTracking::RunChain()
   if (needQA) {
     mFractionalQAEnabled = GetProcessingSettings().qcRunFraction == 100.f || (uint32_t)(rand() % 10000) < (uint32_t)(GetProcessingSettings().qcRunFraction * 100);
   }
-  if (GetProcessingSettings().debugLevel >= 6) {
+  if (GetProcessingSettings().debugLevel >= 6 || GetProcessingSettings().debugDumpFinal) {
     *mDebugFile << "\n\nProcessing event " << mRec->getNEventsProcessed() << std::endl;
   }
   DoQueuedUpdates(0);
@@ -809,6 +809,10 @@ int32_t GPUChainTracking::RunChainFinalize()
   if (mIOPtrs.clustersNative && (GetRecoSteps() & RecoStep::TPCCompression) && GetProcessingSettings().runCompressionStatistics) {
     CompressedClusters c = *mIOPtrs.tpcCompressedClusters;
     mCompressionStatistics->RunStatistics(mIOPtrs.clustersNative, &c, param(), GetProcessingSettings().runCompressionStatistics >= 2);
+  }
+
+  if (GetProcessingSettings().debugDumpFinal && GetProcessingSettings().debugLevel < 6) { // With debugLevel >= 6, the full dump contains the outputs already
+    DumpFinalOutput();
   }
 
   if (GetProcessingSettings().outputSanityCheck) {

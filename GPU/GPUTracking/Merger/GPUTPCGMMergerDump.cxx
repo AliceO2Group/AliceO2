@@ -273,6 +273,35 @@ void GPUTPCGMMerger::DumpFinal(std::ostream& out) const
   out << "\n";
 }
 
+void GPUTPCGMMerger::DumpFinalO2(std::ostream& out) const
+{
+  out << "\nTPC O2 Tracks: " << mMemory->nO2Tracks << "\n";
+  for (uint32_t i = 0; i < mMemory->nO2Tracks; i++) {
+    const auto& trk = mOutputTracksTPCO2[i];
+    out << "Track " << i << ": X " << trk.getX() << " Alpha " << trk.getAlpha() << " Par";
+    for (int32_t j = 0; j < 5; j++) {
+      out << " " << trk.getParam(j);
+    }
+    out << " Cov";
+    for (int32_t j = 0; j < 15; j++) {
+      out << " " << trk.getCov()[j];
+    }
+    const auto& outer = trk.getOuterParam();
+    out << " - Outer X " << outer.getX() << " Alpha " << outer.getAlpha() << " Par";
+    for (int32_t j = 0; j < 5; j++) {
+      out << " " << outer.getParam(j);
+    }
+    out << " - Time0 " << trk.getTime0() << " DeltaTBwd " << trk.getDeltaTBwd() << " DeltaTFwd " << trk.getDeltaTFwd() << " Chi2 " << trk.getChi2() << " Flags " << trk.getFlags() << " dEdx " << trk.getdEdx().dEdxTotTPC << " " << trk.getdEdx().dEdxMaxTPC << " - " << trk.getNClusters() << " Clusters:";
+    for (int32_t j = 0; j < trk.getNClusters(); j++) {
+      uint8_t sector, row;
+      uint32_t cl;
+      trk.getClusterReference(mOutputClusRefsTPCO2, j, sector, row, cl);
+      out << " " << (int32_t)sector << "/" << (int32_t)row << "/" << cl;
+    }
+    out << "\n";
+  }
+}
+
 void GPUTPCGMMerger::DumpInterpolatedHits(std::ostream& out) const
 {
   out << "\nTPC Merger Interpolated Hits\n";

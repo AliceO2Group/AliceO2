@@ -266,6 +266,31 @@ void GPUChainTracking::PrintOutputStat()
   GPUInfo("Output Tracks (%s): %d - Clusters: %d / %d / %d / %d / %d (attached / total / compressed / fitted / adjacent)%s", outputType, nTracks, nAttachedClusters, nCls, nCompressedClusters, nAttachedClustersFitted, nAdjacentClusters, trdText);
 }
 
+void GPUChainTracking::DumpFinalOutput()
+{
+  std::ostream& out = *mDebugFile;
+  out << "\n\nFinal Output\n";
+  if (mIOPtrs.clustersNative) {
+    DumpClusters(out, mIOPtrs.clustersNative);
+  }
+  if (mIOPtrs.mergedTracks && GetProcessingSettings().createO2Output <= 1) {
+    processors()->tpcMerger.DumpFinal(out);
+  }
+  if (mIOPtrs.outputTracksTPCO2 && GetProcessingSettings().createO2Output) {
+    processors()->tpcMerger.DumpFinalO2(out);
+  }
+  if (mIOPtrs.mergedTrackHitStates && GetProcessingSettings().outputSharedClusterMap && mIOPtrs.clustersNative) {
+    out << "\nTPC Shared Cluster Map\n";
+    for (uint32_t i = 0; i < mIOPtrs.clustersNative->nClustersTotal; i++) {
+      out << (int32_t)mIOPtrs.mergedTrackHitStates[i] << (i % 100 == 99 ? "\n" : " ");
+    }
+    out << "\n";
+  }
+  if ((GetRecoSteps() & RecoStep::TPCCompression) && mIOPtrs.tpcCompressedClusters) {
+    processors()->tpcCompressor.DumpCompressedClusters(out);
+  }
+}
+
 void GPUChainTracking::OutputSanityCheck()
 {
   size_t nErrors = 0;
