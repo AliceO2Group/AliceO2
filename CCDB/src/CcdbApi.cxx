@@ -1243,7 +1243,7 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
       snapshoting = true;
       out << "CCDB-access[" << getpid() << "] ... " << mUniqueAgentID << " downloading to snapshot " << snapshotfile << "\n";
       // if file not already here and valid --> snapshot it
-      if (!retrieveBlob(path, mSnapshotCachePath, metadata, timestamp)) {
+      if (!retrieveBlob(path, mSnapshotCachePath, metadata, timestamp, true, "snapshot.root", createdNotAfter, createdNotBefore)) {
         out << "CCDB-access[" << getpid() << "] ... " << mUniqueAgentID << " failed to create directory for " << snapshotfile << "\n";
       }
     } else {
