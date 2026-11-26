@@ -65,6 +65,7 @@ struct GPUMemorySizeScalers : public GPUSettingsProcessingScaling {
   size_t NTPCSectorTrackHits(size_t tpcHits, uint8_t withRejection = 0);
   size_t NTPCMergedTracks(size_t tpcSectorTracks);
   size_t NTPCMergedTrackHits(size_t tpcSectorTrackHitss);
+  size_t NTPCLoopExtrData(size_t tpcMergedTracks, bool followExtrapolation); // tpcMergedTracks: already scaled value from NTPCMergedTracks
   size_t NTPCUnattachedHitsBase1024(int32_t type);
   size_t NTPCRebuildRows();
 };

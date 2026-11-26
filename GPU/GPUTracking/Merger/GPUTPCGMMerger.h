@@ -48,7 +48,7 @@ class GPUTPCGMTrackParam;
 class GPUTPCTracker;
 class GPUChainTracking;
 class GPUTPCGMPolynomialField;
-struct GPUTPCGMLoopData;
+struct GPUTPCGMLoopAndExtData;
 namespace internal
 {
 struct MergeLooperParam;
@@ -70,6 +70,7 @@ class GPUTPCGMMerger : public GPUProcessor
   struct memory {
     GPUAtomic(uint32_t) nRetryRefit;
     GPUAtomic(uint32_t) nLoopData;
+    GPUAtomic(uint32_t) nFollowExtrapolationData;
     GPUAtomic(uint32_t) nUnpackedTracks;
     GPUAtomic(uint32_t) nUnpackedTracksGlobal;
     GPUAtomic(uint32_t) nMergedTracks;
@@ -133,6 +134,7 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUhdi() uint32_t NSectorHits() const { return mNSectorHits; }
   GPUhdi() uint32_t NClusters() const { return mNClusters; }
   GPUhdi() uint32_t NMaxTracks() const { return mNMaxTracks; }
+  GPUhdi() uint32_t NMaxLoopExtrData() const { return mNMaxLoopExtrData; }
   GPUhdi() uint32_t NMaxMergedTrackClusters() const { return mNMaxMergedTrackClusters; }
   GPUhdi() uint32_t NMergedTrackClusters() const { return mMemory->nMergedTrackClusters; }
   GPUhdi() const GPUTPCGMMergedTrackHit* Clusters() const { return mClusters; }
@@ -162,7 +164,7 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUhdi() uint32_t* TrackOrderProcess() const { return mTrackOrderProcess; }
   GPUhdi() uint32_t* RetryRefitIds() const { return mRetryRefitIds; }
   GPUhdi() uint8_t* ClusterStateExt() const { return mClusterStateExt; }
-  GPUhdi() GPUTPCGMLoopData* LoopData() const { return mLoopData; }
+  GPUhdi() GPUTPCGMLoopAndExtData* LoopAndExtData() const { return mLoopAndExtData; }
   GPUhdi() memory* Memory() const { return mMemory; }
   GPUhdi() GPUAtomic(uint32_t) * TmpCounter() { return mMemory->tmpCounter; }
   GPUhdi() uint2* ClusRefTmp() { return mClusRefTmp; }
@@ -296,6 +298,7 @@ class GPUTPCGMMerger : public GPUProcessor
 
   uint32_t mNTotalSectorTracks = 0;      // maximum number of incoming sector tracks
   uint32_t mNMaxTracks = 0;              // maximum number of output tracks
+  uint32_t mNMaxLoopExtrData = 0;        // maximum number of LoopAndExtData entries
   uint32_t mNRebuildTrackRow = 0;        // number of rows allocated for the rebuild
   uint32_t mNMaxSingleSectorTracks = 0;  // max N tracks in one sector
   uint32_t mNMaxMergedTrackClusters = 0; // max number of clusters in output tracks (double-counting shared clusters)
@@ -347,7 +350,7 @@ class GPUTPCGMMerger : public GPUProcessor
   gputpcgmmergertypes::GPUTPCGMBorderRange* mBorderRange[NSECTORS];       // memory for border tracks
   memory* mMemory = nullptr;
   uint32_t* mRetryRefitIds = nullptr;
-  GPUTPCGMLoopData* mLoopData = nullptr;
+  GPUTPCGMLoopAndExtData* mLoopAndExtData = nullptr;
 };
 } // namespace o2::gpu
 

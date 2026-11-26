@@ -406,7 +406,7 @@ void* GPUTPCGMMerger::SetPointersMerger(void* mem)
   computePointerWithAlignment(mem, mTrackSort, mNMaxTracks);
   memMax = (void*)std::max((size_t)mem, (size_t)memMax);
   mem = memBase;
-  computePointerWithAlignment(mem, mLoopData, mNMaxTracks); // GPUTPCGMMergerTrackFit - GPUTPCGMMergerFollowLoopers, Reducing mNMaxTracks does not save memory, other parts are larger anyway
+  computePointerWithAlignment(mem, mLoopAndExtData, mNMaxLoopExtrData); // GPUTPCGMMergerTrackFit - GPUTPCGMMergerFollowLoopers / GPUTPCGMMergerFollowExtrapolation, Reducing mNMaxLoopExtrData does not save memory, other parts are larger anyway
   if (mRec->GetParam().rec.tpc.rebuildTrackInFit) {
     computePointerWithAlignment(mem, mSharedCount2, mNClusters);
     computePointerWithAlignment(mem, mHitWeights, mNClusters);
@@ -552,6 +552,7 @@ void GPUTPCGMMerger::SetMaxData(const GPUTrackingInOutPointers& io)
   } else {
     mNMaxTracks = mRec->MemoryScalers()->NTPCMergedTracks(mNTotalSectorTracks);
   }
+  mNMaxLoopExtrData = mRec->MemoryScalers()->NTPCLoopExtrData(mNMaxTracks, (!Param().rec.tpc.rebuildTrackInFit || Param().rec.tpc.rebuildTrackMaxNonIntCov <= 0) && !(Param().rec.tpc.disableMarkAdjacent & 4));
   if (io.clustersNative) {
     mNClusters = io.clustersNative->nClustersTotal;
   } else if (mRec->GetRecoSteps() & gpudatatypes::RecoStep::TPCSectorTracking) {

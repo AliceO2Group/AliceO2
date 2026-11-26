@@ -56,6 +56,7 @@ o2_gpu_add_kernel("GPUTPCGMMergerTrackFit, def"                           "GPUTP
 o2_gpu_add_kernel("GPUTPCGMMergerTrackFit, rebuild"                       "GPUTPCGMMergerGPU TPCMERGER TPCTRACKER MATLUT TPCDEDX" LB)
 o2_gpu_add_kernel("GPUTPCGMMergerTrackFit, retry"                         "GPUTPCGMMergerGPU TPCMERGER TPCTRACKER MATLUT TPCDEDX" LB)
 o2_gpu_add_kernel("GPUTPCGMMergerFollowLoopers"                           "GPUTPCGMMergerGPU TPCMERGER TPCTRACKER MATLUT"         LB)
+o2_gpu_add_kernel("GPUTPCGMMergerFollowExtrapolation"                     "GPUTPCGMMergerGPU TPCMERGER TPCTRACKER MATLUT TPCDEDX" LB)
 o2_gpu_add_kernel("GPUTPCGMMergerUnpackResetIds"                          "GPUTPCGMMergerGPU TPCMERGER"                           LB int32_t iSector)
 o2_gpu_add_kernel("GPUTPCGMMergerSectorRefit"                             "GPUTPCGMMergerGPU TPCMERGER MATLUT"                    LB int32_t iSector)
 o2_gpu_add_kernel("GPUTPCGMMergerUnpackGlobal"                            "GPUTPCGMMergerGPU TPCMERGER"                           LB int32_t iSector)
