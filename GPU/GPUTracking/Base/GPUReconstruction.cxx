@@ -1247,12 +1247,12 @@ int32_t GPUReconstruction::GPUChkErrA(const int64_t retval, const char* file, in
   return 1;
 }
 
-void GPUReconstruction::DumpSettings(const char* dir)
+void GPUReconstruction::DumpSettings(const char* dir, const GPUSettingsGRP* grp)
 {
   std::string f;
   f = dir;
   f += "settings.dump";
-  DumpStructToFile(mGRPSettings.get(), f.c_str());
+  DumpStructToFile(grp ? grp : mGRPSettings.get(), f.c_str());
   for (uint32_t i = 0; i < mChains.size(); i++) {
     mChains[i]->DumpSettings(dir);
   }

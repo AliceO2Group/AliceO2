@@ -213,6 +213,10 @@ int32_t ReadConfiguration(int argc, char** argv)
     printf("Cannot run asynchronous processing with double pipeline\n");
     return 1;
   }
+  if (configStandalone.dumpEvents == 2 && !configStandalone.testSyncAsync) {
+    printf("dumpEvents 2 requires syncAsync\n");
+    return 1;
+  }
   if (configStandalone.testSyncAsyncMC) {
     if (!configStandalone.testSyncAsync || configStandalone.QA.noMC) {
       printf("testSyncAsyncMC requires syncAsync and cannot be used with QA.noMC\n");
@@ -798,6 +802,17 @@ int32_t RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingU
       if (configStandalone.testSyncAsyncMC) {
         chainTrackingAsync->GenerateCompressionMCLabels(*chainTracking);
       }
+      if (configStandalone.dumpEvents == 2 && iRun == 0) {
+        char fname[1024];
+        snprintf(fname, 1024, "event.%d.dump", iEvent - configStandalone.StartEvent);
+        chainTrackingAsync->DumpData(fname);
+        if (iEvent == configStandalone.StartEvent) {
+          GPUSettingsGRP grpAsync = recAsync->GetGRPSettings(); // Input are the compressed clusters
+          grpAsync.needsClusterer = 0;
+          grpAsync.doCompClusterDecode = 1;
+          recAsync->DumpSettings("", &grpAsync);
+        }
+      }
       if (configStandalone.runsInit > 0 && configStandalone.proc.debugCSV.empty()) {
         recAsync->SetResetTimers(iRun < configStandalone.runsInit);
       }
@@ -984,7 +999,7 @@ int32_t main(int argc, char** argv)
         if (LoadEvent(iEvent, 0)) {
           goto breakrun;
         }
-        if (configStandalone.dumpEvents) {
+        if (configStandalone.dumpEvents == 1) {
           char fname[1024];
           snprintf(fname, 1024, "event.%d.dump", nEventsProcessed);
           chainTracking->DumpData(fname);
