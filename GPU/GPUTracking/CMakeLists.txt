@@ -326,6 +326,7 @@ if(GPU_STALE_GENERATED_HEADERS)
   file(REMOVE ${GPU_STALE_GENERATED_HEADERS})
 endif()
 include(kernels.cmake)
+check_gpu_param_json("${GPU_PARAM_JSON_FILES}") # Needs the kernel and parameter lists from kernels.cmake
 
 # Optional sources depending on optional dependencies
 if(GPUCA_EVENT_DISPLAY)
