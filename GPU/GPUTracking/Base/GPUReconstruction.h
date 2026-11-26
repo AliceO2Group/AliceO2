@@ -146,7 +146,7 @@ class GPUReconstruction
   int32_t Finalize();
   int32_t Exit();
 
-  void DumpSettings(const char* dir = "");
+  void DumpSettings(const char* dir = "", const GPUSettingsGRP* grp = nullptr); // grp: write these GRP settings instead of the current ones
   int32_t ReadSettings(const char* dir = "");
 
   void PrepareEvent();
