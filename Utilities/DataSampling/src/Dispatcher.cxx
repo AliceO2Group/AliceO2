@@ -19,14 +19,13 @@
 #include "DataSampling/DataSamplingHeader.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/DataSpecUtils.h"
-#include "Framework/Logger.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Monitoring.h"
 #include "Framework/DataRefUtils.h"
-#include "Framework/FairMQDeviceProxy.h"
 #include "Framework/DataProcessingHelpers.h"
 #include "Framework/DataRelayer.h"
 
+#include <fairmq/Message.h>
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
 #include <stdexcept>
@@ -137,7 +136,9 @@ void Dispatcher::run(ProcessingContext& ctx)
       if (auto route = policy->match(inputMatcher); route != nullptr && policy->decide(firstPart)) {
         auto routeAsConcreteDataType = DataSpecUtils::asConcreteDataTypeMatcher(*route);
         auto dsheader = prepareDataSamplingHeader(*policy, *firstInputHeader);
-        for (const auto& part : inputIt.parts()) {
+        auto parts = inputIt.parts();
+        for (auto partIt = parts.begin(); partIt != parts.end(); ++partIt) {
+          const DataRef& part = *partIt;
           if (part.header != nullptr) {
             // We copy every header which is not DataHeader or DataProcessingHeader,
             // so that custom data-dependent headers are passed forward,
@@ -152,7 +153,7 @@ void Dispatcher::run(ProcessingContext& ctx)
               routeAsConcreteDataType.description,
               partInputHeader->subSpecification,
               std::move(headerStack)};
-            send(ctx.outputs(), part, output);
+            send(ctx.outputs(), part, parts.getPayloadAtIndices(partIt.indices()), output);
           }
         }
       }
@@ -193,10 +194,16 @@ DataSamplingHeader Dispatcher::prepareDataSamplingHeader(const DataSamplingPolic
     original};
 }
 
-void Dispatcher::send(DataAllocator& dataAllocator, const DataRef& inputData, const Output& output) const
+void Dispatcher::send(DataAllocator& dataAllocator, const DataRef& inputData, fair::mq::Message* inputPayload, const Output& output) const
 {
   const auto* inputHeader = DataRefUtils::getHeader<header::DataHeader*>(inputData);
-  dataAllocator.snapshot(output, inputData.payload, DataRefUtils::getPayloadSize(inputData), inputHeader->payloadSerializationMethod);
+  const auto payloadSize = DataRefUtils::getPayloadSize(inputData);
+  // Shallow copy when we have the original message and it is exactly the payload described by the header.
+  if (inputPayload != nullptr && inputPayload->GetData() == inputData.payload && inputPayload->GetSize() == payloadSize) {
+    dataAllocator.forwardPayload(output, *inputPayload, inputHeader->payloadSerializationMethod);
+  } else {
+    dataAllocator.snapshot(output, inputData.payload, payloadSize, inputHeader->payloadSerializationMethod);
+  }
 }
 
 void Dispatcher::registerPolicy(std::unique_ptr<DataSamplingPolicy>&& policy)

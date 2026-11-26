@@ -86,3 +86,8 @@ o2_add_executable(datasampling-benchmark
   SOURCES test/dataSamplingBenchmark.cxx
   COMPONENT_NAME DataSampling
   PUBLIC_LINK_LIBRARIES O2::Framework O2::DataSampling)
+
+o2_add_executable(datasampling-shared-payload
+  SOURCES test/dataSamplingSharedPayload.cxx
+  COMPONENT_NAME DataSampling
+  PUBLIC_LINK_LIBRARIES O2::Framework O2::DataSampling)
