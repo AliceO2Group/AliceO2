@@ -28,6 +28,7 @@
 #include <iostream>
 #include <TH1F.h>
 #include <chrono>
+#include <thread>
 #include <cstdlib>
 #include <CommonUtils/StringUtils.h>
 #include <TStreamerInfo.h>
@@ -459,6 +460,48 @@ BOOST_AUTO_TEST_CASE(TestFetchingHeaders, *utf::precondition(if_reachable()))
   BOOST_REQUIRE(pfns.size());
   updated = CcdbApi::getCCDBEntryHeaders(ccdbUrl + "/" + path, etag, headers);
   BOOST_CHECK_EQUAL(updated, false);
+}
+
+// The created-not-after limit must also apply when the object is fetched into the local snapshot cache
+BOOST_AUTO_TEST_CASE(snapshot_cache_respects_created_not_after, *utf::precondition(if_reachable()))
+{
+  test_fixture f;
+  const std::string path = basePath + "CreatedNotAfter";
+  const long timestamp = 1000;
+  const long endvalidity = 2000;
+
+  o2::ccdb::IdPath v1;
+  v1.setPath("Test/Version/one");
+  f.api.storeAsTFileAny(&v1, path, f.metadata, timestamp, endvalidity);
+  auto headers = f.api.retrieveHeaders(path, f.metadata, timestamp);
+  BOOST_REQUIRE(headers.count("Created") == 1);
+  const std::string notAfter = std::to_string(std::stol(headers["Created"]) + 1);
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  o2::ccdb::IdPath v2;
+  v2.setPath("Test/Version/two");
+  f.api.storeAsTFileAny(&v2, path, f.metadata, timestamp, endvalidity);
+
+  // without a local cache
+  auto direct = f.api.retrieveFromTFileAny<o2::ccdb::IdPath>(path, f.metadata, timestamp, nullptr, "", notAfter);
+  BOOST_REQUIRE(direct != nullptr);
+  BOOST_CHECK_EQUAL(std::string(direct->getPathString().Data()), "Test/Version/one");
+
+  // with a local cache
+  auto cachedir = o2::utils::Str::create_unique_path(std::filesystem::temp_directory_path().native());
+  std::filesystem::create_directories(cachedir);
+  setenv("ALICEO2_CCDB_LOCALCACHE", cachedir.c_str(), 1);
+  CcdbApi cachedApi;
+  cachedApi.init(ccdbUrl);
+  unsetenv("ALICEO2_CCDB_LOCALCACHE");
+  auto cached = cachedApi.retrieveFromTFileAny<o2::ccdb::IdPath>(path, f.metadata, timestamp, nullptr, "", notAfter);
+  BOOST_REQUIRE(cached != nullptr);
+  BOOST_CHECK_EQUAL(std::string(cached->getPathString().Data()), "Test/Version/one");
+  // the snapshot itself holds the version that was created before the limit
+  auto fromSnapshot = cachedApi.retrieveFromTFileAny<o2::ccdb::IdPath>(path, f.metadata, timestamp);
+  BOOST_REQUIRE(fromSnapshot != nullptr);
+  BOOST_CHECK_EQUAL(std::string(fromSnapshot->getPathString().Data()), "Test/Version/one");
+  std::filesystem::remove_all(cachedir);
 }
 
 BOOST_AUTO_TEST_CASE(TestRetrieveHeaders, *utf::precondition(if_reachable()))
