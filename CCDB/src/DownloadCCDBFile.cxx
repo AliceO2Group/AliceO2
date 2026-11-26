@@ -86,7 +86,7 @@ int main(int argc, char* argv[])
   bool success = true;
   for (auto& p : paths) {
     // could even multi-thread this
-    success |= api.retrieveBlob(p, dest, filter, timestamp, no_preserve_path, filename, std::to_string(notAfter), std::to_string(notBefore));
+    success &= api.retrieveBlob(p, dest, filter, timestamp, no_preserve_path, filename, std::to_string(notAfter), std::to_string(notBefore));
   }
   return success ? 0 : 1;
 }
