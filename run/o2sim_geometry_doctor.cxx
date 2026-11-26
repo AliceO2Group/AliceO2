@@ -58,6 +58,7 @@
 #include <TGeoShape.h>
 #include <TGeoTube.h>
 #include <TGeoVolume.h>
+#include <TGeoVoxelFinder.h>
 #include <TRandom3.h>
 #include <TVectorD.h>
 
@@ -73,6 +74,7 @@
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <mutex>
 #include <set>
 #include <string>
 #include <thread>
@@ -977,6 +979,32 @@ void sampleTask(const ReachTask& task, size_t index, int samples, Navigator back
   out.sampled = out.drawn > 0;
 }
 
+/// TGeo finishes two things lazily, on the first query that needs them: the
+/// bounding box of an assembly and the voxels of a volume whose daughters moved
+/// (alignment marks them for a rebuild). Neither is thread safe, and in an aligned
+/// geometry read from file both are pending, so two workers rebuilding the same
+/// voxels corrupt them. Done here, once, before any sampling.
+void finishLazyGeometry()
+{
+  TIter next(gGeoManager->GetListOfVolumes());
+  std::vector<TGeoVolume*> volumes;
+  while (auto* volume = static_cast<TGeoVolume*>(next())) {
+    volumes.push_back(volume);
+  }
+  for (auto* volume : volumes) {
+    if (volume->IsAssembly()) {
+      volume->GetShape()->ComputeBBox(); // recurses into daughter assemblies first
+    }
+  }
+  for (auto* volume : volumes) {
+    auto* voxels = volume->GetVoxels();
+    if (voxels != nullptr && voxels->NeedRebuild()) {
+      voxels->Voxelize();
+      volume->FindOverlaps();
+    }
+  }
+}
+
 /// Prints the audit and returns how many placements the navigator cannot reach at all.
 long reportReachability(int samples, int jobs, Navigator backend, Report& report)
 {
@@ -999,6 +1027,7 @@ long reportReachability(int samples, int jobs, Navigator backend, Report& report
   // geometry itself. ROOT serves that per thread: SetMaxThreads allocates the
   // per-thread shape data (composite shapes and voxel finders cache into it) and
   // each worker claims its own navigator, without which they would all drive one.
+  finishLazyGeometry();
   if (threads > 1) {
     gGeoManager->SetMaxThreads(threads);
   }
@@ -1007,8 +1036,14 @@ long reportReachability(int samples, int jobs, Navigator backend, Report& report
 
   std::vector<ReachResult> results(tasks.size());
   std::atomic<size_t> next{0};
+  std::mutex claim;
   auto worker = [&]() {
-    TGeoNavigator* nav = threads > 1 ? gGeoManager->AddNavigator() : gGeoManager->GetCurrentNavigator();
+    TGeoNavigator* nav = nullptr;
+    {
+      // TGeoManager::ThreadId() reads its thread map outside its own lock
+      std::lock_guard<std::mutex> lock(claim);
+      nav = threads > 1 ? gGeoManager->AddNavigator() : gGeoManager->GetCurrentNavigator();
+    }
     std::vector<TGeoNode*> located;
     // handed out one at a time: a placement's cost spans orders of magnitude, so a
     // static split would leave most threads waiting on the few expensive ones
