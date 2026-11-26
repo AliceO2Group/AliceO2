@@ -254,6 +254,7 @@ class GPUTPCGMMerger : public GPUProcessor
   void DumpFitPrepare(std::ostream& out) const;
   void DumpRefit(std::ostream& out) const;
   void DumpFinal(std::ostream& out) const;
+  void DumpFinalO2(std::ostream& out) const;
   void DumpLoopers(std::ostream& out) const;
   void DumpInterpolatedHits(std::ostream& out) const;
   void DumpRebuiltTracks(std::ostream& out) const;

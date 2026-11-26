@@ -1510,7 +1510,7 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
     if (GetProcessingSettings().debugLevel >= 3) {
       GPUInfo("%zu trigger words found%s", mTriggerBuffer->triggers.size(), storeTriggers ? ", storing" : "");
     }
-    if (GetProcessingSettings().debugLevel >= 6) {
+    if (GetProcessingSettings().debugLevel >= 6 || (GetProcessingSettings().debugDumpFinal && storeTriggers)) {
       std::vector<o2::tpc::TriggerInfoDLBZS> sorted(mTriggerBuffer->triggers.begin(), mTriggerBuffer->triggers.end());
       std::sort(sorted.begin(), sorted.end(), [](const auto& a, const auto& b) { return a.orbit != b.orbit ? a.orbit < b.orbit : memcmp(&a.triggerWord, &b.triggerWord, sizeof(a.triggerWord)) < 0; });
       *mDebugFile << "\n\nTPC Trigger Words: " << sorted.size() << "\n";
