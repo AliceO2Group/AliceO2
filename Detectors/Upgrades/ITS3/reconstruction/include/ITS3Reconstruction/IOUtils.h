@@ -8,6 +8,9 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#ifndef ALICEO2_ITS3RECONSTRUCTION_IOUTILS_H
+#define ALICEO2_ITS3RECONSTRUCTION_IOUTILS_H
+
 #include <gsl/gsl>
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "ReconstructionDataFormats/BaseCluster.h"
@@ -87,3 +90,5 @@ int loadROFrameDataITS3(its::TimeFrame<7>* tf,
                         const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
 } // namespace its3::ioutils
 } // namespace o2
+
+#endif // ALICEO2_ITS3RECONSTRUCTION_IOUTILS_H

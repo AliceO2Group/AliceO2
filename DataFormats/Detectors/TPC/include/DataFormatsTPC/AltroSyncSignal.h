@@ -12,6 +12,9 @@
 /// \file AltroSyncSignal.h
 /// \brief Definition of the timebin from which syncronization starts
 
+#ifndef ALICEO2_DATAFORMATSTPC_ALTROSYNCSIGNAL_H
+#define ALICEO2_DATAFORMATSTPC_ALTROSYNCSIGNAL_H
+
 #include "GPUCommonRtypes.h"
 
 namespace o2::tpc
@@ -28,3 +31,5 @@ struct AltroSyncSignal {
   ClassDefNV(AltroSyncSignal, 1);
 };
 } // namespace o2::tpc
+
+#endif // ALICEO2_DATAFORMATSTPC_ALTROSYNCSIGNAL_H

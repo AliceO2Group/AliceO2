@@ -27,6 +27,7 @@
 #include "TH1.h"
 #include "TH1F.h"
 #include "TH2F.h"
+#include "MathUtils/Cartesian.h"
 
 namespace o2
 {
