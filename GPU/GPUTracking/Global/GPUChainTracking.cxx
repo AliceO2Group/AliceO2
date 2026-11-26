@@ -279,6 +279,10 @@ bool GPUChainTracking::ValidateSettings()
     GPUError("Clusterizer and merger Sanity checks only supported when not running on GPU");
     return false;
   }
+  if (mRec->IsGPU() && GetProcessingSettings().debug.tpcMergerFitOnCPUSingleThread) {
+    GPUError("tpcMergerFitOnCPUSingleThread only supported when not running on GPU");
+    return false;
+  }
   if (GetProcessingSettings().tpcWriteClustersAfterRejection && (mRec->IsGPU() || param().rec.tpc.compressionTypeMask || !(GetRecoSteps() & gpudatatypes::RecoStep::TPCCompression))) {
     GPUError("tpcWriteClustersAfterRejection requires compressionTypeMask = 0, no GPU usage, and compression enabled");
     return false;
