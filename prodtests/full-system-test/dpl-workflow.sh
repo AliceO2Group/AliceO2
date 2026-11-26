@@ -215,6 +215,7 @@ if [[ $SYNCMODE == 1 ]]; then
   has_processing_step TPC_DEDX && GPU_CONFIG_KEY+="GPU_global.rundEdx=1;"
   has_detector ITS && TRD_FILTER_CONFIG+=" --filter-trigrec"
 else
+  GPU_CONFIG_KEY+="GPU_global.synchronousProcessing=-1;"
   has_detectors_gpu TPC ITS && ITS_CONFIG_KEY+="ITSCATrackerParam.trackingMode=1;" # sets ITS gpu reco to async
 
   if [[ $IS_SIMULATED_DATA == 0 && $CTFINPUT == 1 ]]; then # Enable fixes to the MCH readout mapping for async processing of real data
