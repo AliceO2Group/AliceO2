@@ -1364,7 +1364,7 @@ GPUdii() void GPUTPCGMTrackParam::FollowExtrapolation(GPUTPCGMMerger& GPUrestric
 
 GPUdii() void GPUTPCGMTrackParam::PropagateLooper(const GPUTPCGMMerger& GPUrestrict() merger, int32_t loopIdx)
 {
-  GPUTPCGMLoopAndExtData& data = merger.LoopAndExtData()[loopIdx];
+  const GPUTPCGMLoopAndExtData& GPUrestrict() data = merger.LoopAndExtData()[loopIdx];
   if (!merger.MergedTracks()[data.track].OK()) {
     return;
   }
@@ -1377,11 +1377,12 @@ GPUdii() void GPUTPCGMTrackParam::PropagateLooper(const GPUTPCGMMerger& GPUrestr
   prop.SetFitInProjections(true);
   prop.SetPropagateBzOnly(false);
 
-  prop.SetTrack(&data.param, data.alpha);
+  GPUTPCGMTrackParam t = data.param; // Work on a local copy, not in global memory
+  prop.SetTrack(&t, data.alpha);
   if (merger.Param().rec.tpc.looperFollowMode == 1) {
-    data.param.FindAdjacentClustersLooperFollow(merger, prop, data.sector, data.track, data.outwards);
+    t.FindAdjacentClustersLooperFollow(merger, prop, data.sector, data.track, data.outwards);
   } else {
-    data.param.FindAdjacentClustersLooperMirror(merger, data.sector, data.row, data.track, data.outwards, prop);
+    t.FindAdjacentClustersLooperMirror(merger, data.sector, data.row, data.track, data.outwards, prop);
   }
 }
 
