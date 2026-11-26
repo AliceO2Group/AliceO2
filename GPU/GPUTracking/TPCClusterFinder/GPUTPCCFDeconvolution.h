@@ -33,7 +33,7 @@ class GPUTPCCFDeconvolution : public GPUKernelTemplate
   struct GPUSharedMemory : public GPUKernelTemplate::GPUSharedMemoryScan64<int16_t, SCRATCH_PAD_WORK_GROUP_SIZE> {
     CfChargePos posBcast1[SCRATCH_PAD_WORK_GROUP_SIZE];
     uint8_t aboveThresholdBcast[SCRATCH_PAD_WORK_GROUP_SIZE];
-    uint8_t buf[SCRATCH_PAD_WORK_GROUP_SIZE * SCRATCH_PAD_COUNT_N];
+    uint8_t buf[SCRATCH_PAD_WORK_GROUP_SIZE * tpccf::SCRATCH_PAD_COUNT_N];
   };
 
   typedef GPUTPCClusterFinder processorType;

@@ -22,7 +22,7 @@
 namespace o2::gpu
 {
 
-#define INVALID_TIME_BIN (-GPUCF_PADDING_TIME - 1)
+#define INVALID_TIME_BIN (-o2::gpu::tpccf::GPUCF_PADDING_TIME - 1)
 
 struct CfChargePos {
   tpccf::GlobalPad gpad;
@@ -31,11 +31,11 @@ struct CfChargePos {
   GPUdDefault() CfChargePos() = default;
 
   constexpr GPUhdi() CfChargePos(tpccf::Row row, tpccf::Pad pad, tpccf::TPCFragmentTime t)
-    : gpad(tpcGlobalPadIdx(row, pad)), timePadded(t + GPUCF_PADDING_TIME)
+    : gpad(tpcGlobalPadIdx(row, pad)), timePadded(t + tpccf::GPUCF_PADDING_TIME)
   {
   }
 #ifdef __METAL__
-  constexpr GPUhdi() CfChargePos(tpccf::Row row, tpccf::Pad pad, tpccf::TPCFragmentTime t) constant : gpad(tpcGlobalPadIdx(row, pad)), timePadded(t + GPUCF_PADDING_TIME) {}
+  constexpr GPUhdi() CfChargePos(tpccf::Row row, tpccf::Pad pad, tpccf::TPCFragmentTime t) constant : gpad(tpcGlobalPadIdx(row, pad)), timePadded(t + tpccf::GPUCF_PADDING_TIME) {}
 #endif
 
   GPUdi() CfChargePos(const tpccf::GlobalPad& p, const tpccf::TPCFragmentTime& t) : gpad(p), timePadded(t) {}
@@ -47,9 +47,9 @@ struct CfChargePos {
 
   GPUdi() bool valid() const { return timePadded >= 0; }
 
-  GPUdi() tpccf::Row row() const { return gpad / TPC_CLUSTERER_ROW_STRIDE; }
-  GPUdi() tpccf::Pad pad() const { return gpad % TPC_CLUSTERER_ROW_STRIDE - GPUCF_PADDING_PAD; }
-  GPUdi() tpccf::TPCFragmentTime time() const { return timePadded - GPUCF_PADDING_TIME; }
+  GPUdi() tpccf::Row row() const { return gpad / tpccf::TPC_CLUSTERER_ROW_STRIDE; }
+  GPUdi() tpccf::Pad pad() const { return gpad % tpccf::TPC_CLUSTERER_ROW_STRIDE - tpccf::GPUCF_PADDING_PAD; }
+  GPUdi() tpccf::TPCFragmentTime time() const { return timePadded - tpccf::GPUCF_PADDING_TIME; }
   GPUdi() tpccf::TPCFragmentTime globalTime() const { return timePadded; }
 
  private:
@@ -57,7 +57,7 @@ struct CfChargePos {
   // index between 0 and TPC_NUM_OF_PADS.
   static constexpr GPUdi() tpccf::GlobalPad tpcGlobalPadIdx(tpccf::Row row, tpccf::Pad pad)
   {
-    return TPC_CLUSTERER_ROW_STRIDE * row + pad + GPUCF_PADDING_PAD;
+    return tpccf::TPC_CLUSTERER_ROW_STRIDE * row + pad + tpccf::GPUCF_PADDING_PAD;
   }
 };
 

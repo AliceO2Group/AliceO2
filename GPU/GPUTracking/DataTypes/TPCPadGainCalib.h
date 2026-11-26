@@ -123,13 +123,13 @@ struct TPCPadGainCalib {
 
     GPUd() void reset()
     {
-      for (uint16_t p = 0; p < TPC_REAL_PADS_IN_SECTOR; p++) {
+      for (uint16_t p = 0; p < tpccf::TPC_REAL_PADS_IN_SECTOR; p++) {
         set(p, 1.0f);
       }
     }
 
    private:
-    T mGainCorrection[TPC_REAL_PADS_IN_SECTOR];
+    T mGainCorrection[tpccf::TPC_REAL_PADS_IN_SECTOR];
 
     GPUd() T pack(float f) const
     {

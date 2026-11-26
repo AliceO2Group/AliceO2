@@ -39,7 +39,7 @@ class GPUTPCCFClusterizer : public GPUKernelTemplate
   static GPUglobalconstexpr() size_t SCRATCH_PAD_WORK_GROUP_SIZE = GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFClusterizer);
   struct GPUSharedMemory {
     CfChargePos posBcast[SCRATCH_PAD_WORK_GROUP_SIZE];
-    PackedCharge buf[SCRATCH_PAD_WORK_GROUP_SIZE * SCRATCH_PAD_BUILD_N];
+    PackedCharge buf[SCRATCH_PAD_WORK_GROUP_SIZE * tpccf::SCRATCH_PAD_BUILD_N];
     uint8_t innerAboveThreshold[SCRATCH_PAD_WORK_GROUP_SIZE];
   };
 

@@ -279,7 +279,7 @@ int32_t GPUReconstruction::InitPhaseBeforeDevice()
     if (mProcessingSettings->debugLevel >= 6 && ((mProcessingSettings->debugMask + 1) & mProcessingSettings->debugMask)) {
       GPUError("WARNING: debugMask %d - debug output might not be deterministic with intermediate steps missing", mProcessingSettings->debugMask);
     }
-    mProcessingSettings->overrideClusterizerFragmentLen = TPC_MAX_FRAGMENT_LEN_GPU;
+    mProcessingSettings->overrideClusterizerFragmentLen = tpccf::TPC_MAX_FRAGMENT_LEN_GPU;
     if (GetProcessingSettings().createO2Output > 1) {
       mProcessingSettings->createO2Output = 1;
     }
@@ -345,7 +345,7 @@ int32_t GPUReconstruction::InitPhaseBeforeDevice()
     mProcessingSettings->nTPCClustererLanes = (GetRecoStepsGPU() & RecoStep::TPCClusterFinding) ? 3 : std::max<int32_t>(1, std::min<int32_t>(GPUTPCGeometry::NSECTORS, GetProcessingSettings().inKernelParallel ? (mMaxHostThreads >= 4 ? std::min<int32_t>(mMaxHostThreads / 2, mMaxHostThreads >= 32 ? GPUTPCGeometry::NSECTORS : 4) : 1) : mMaxHostThreads));
   }
   if (GetProcessingSettings().overrideClusterizerFragmentLen == -1) {
-    mProcessingSettings->overrideClusterizerFragmentLen = ((GetRecoStepsGPU() & RecoStep::TPCClusterFinding) || (mMaxHostThreads / GetProcessingSettings().nTPCClustererLanes >= 3)) ? TPC_MAX_FRAGMENT_LEN_GPU : TPC_MAX_FRAGMENT_LEN_HOST;
+    mProcessingSettings->overrideClusterizerFragmentLen = ((GetRecoStepsGPU() & RecoStep::TPCClusterFinding) || (mMaxHostThreads / GetProcessingSettings().nTPCClustererLanes >= 3)) ? tpccf::TPC_MAX_FRAGMENT_LEN_GPU : tpccf::TPC_MAX_FRAGMENT_LEN_HOST;
   }
   if ((uint32_t)GetProcessingSettings().nTPCClustererLanes > GPUTPCGeometry::NSECTORS) {
     GPUError("Invalid value for nTPCClustererLanes: %d", GetProcessingSettings().nTPCClustererLanes);

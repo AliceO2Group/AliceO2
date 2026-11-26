@@ -840,7 +840,7 @@ GPUd() void GPUTPCCFHIPClusterizer::Thread<0>(int32_t nBlocks, int32_t nThreads,
       continue;
     }
 
-    CPU_ONLY(auto labelAcc = MCLabelAccumulator{clusterer});
+    GPUCA_IGNORE_ON_GPU(auto labelAcc = MCLabelAccumulator{clusterer});
 
     uint16_t padMin = 0xFFFF, padMax = 0;
 
@@ -870,7 +870,7 @@ GPUd() void GPUTPCCFHIPClusterizer::Thread<0>(int32_t nBlocks, int32_t nThreads,
       padMin = CAMath::Min(padMin, tail->pad);
       padMax = CAMath::Max(padMax, tail->pad);
 
-      CPU_ONLY(labelAcc.collectTail(row, tail->pad, tail->tailStart, tail->tailEnd));
+      GPUCA_IGNORE_ON_GPU(labelAcc.collectTail(row, tail->pad, tail->tailStart, tail->tailEnd));
     }
 
     const float weightSum = CAMath::Max(qTot, 1.f);
@@ -914,7 +914,7 @@ GPUd() void GPUTPCCFHIPClusterizer::Thread<0>(int32_t nBlocks, int32_t nThreads,
         index = clusterPosInRow[iTail];
       }
 
-      CPU_ONLY(labelAcc.commit(row, index, clusterer.mNMaxClusterPerRow));
+      GPUCA_IGNORE_ON_GPU(labelAcc.commit(row, index, clusterer.mNMaxClusterPerRow));
     }
 
   } // for (uint32_t iTail = iThread + 1; iTail <= nTails; iTail += nThreads)

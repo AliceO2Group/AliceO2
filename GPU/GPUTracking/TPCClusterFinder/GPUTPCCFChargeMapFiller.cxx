@@ -37,10 +37,10 @@ GPUd() void GPUTPCCFChargeMapFiller::fillIndexMapImpl(int32_t nBlocks, int32_t n
   if (idx >= maxDigit) {
     return;
   }
-  CPU_ONLY(idx += frag.digitsStart);
-  CPU_ONLY(tpc::Digit digit = digits[idx]);
-  CPU_ONLY(CfChargePos pos(digit.getRow(), digit.getPad(), frag.toLocal(digit.getTimeStamp())));
-  CPU_ONLY(indexMap.safeWrite(pos, idx));
+  GPUCA_IGNORE_ON_GPU(idx += frag.digitsStart);
+  GPUCA_IGNORE_ON_GPU(tpc::Digit digit = digits[idx]);
+  GPUCA_IGNORE_ON_GPU(CfChargePos pos(digit.getRow(), digit.getPad(), frag.toLocal(digit.getTimeStamp())));
+  GPUCA_IGNORE_ON_GPU(indexMap.safeWrite(pos, idx));
 }
 
 template <>

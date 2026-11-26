@@ -82,7 +82,7 @@ void* GPUTPCClusterFinder::SetPointersOutput(void* mem)
 
 void* GPUTPCClusterFinder::SetPointersScratch(void* mem)
 {
-  computePointerWithAlignment(mem, mPpadIsNoisy, TPC_CLUSTERER_STRIDED_PAD_COUNT);
+  computePointerWithAlignment(mem, mPpadIsNoisy, tpccf::TPC_CLUSTERER_STRIDED_PAD_COUNT);
   computePointerWithAlignment(mem, mPpositions, mNMaxDigitsFragment);
   computePointerWithAlignment(mem, mPpeakPositions, mNMaxPeaks);
   computePointerWithAlignment(mem, mPfilteredPeakPositions, mNMaxClusters);

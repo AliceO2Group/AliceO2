@@ -26,12 +26,12 @@ TPCZSLinkMapping::TPCZSLinkMapping(o2::tpc::Mapper& mapper)
 {
 #ifndef GPUCA_STANDALONE
   const auto& fecToGlobalPad = mapper.getMapFECIDGlobalPad();
-  assert(fecToGlobalPad.size() == TPC_FEC_IDS_IN_SECTOR);
+  assert(fecToGlobalPad.size() == tpccf::TPC_FEC_IDS_IN_SECTOR);
 
   const auto& globalPadToPadPos = mapper.getMapGlobalPadToPadPos();
-  assert(globalPadToPadPos.size() == TPC_REAL_PADS_IN_SECTOR);
+  assert(globalPadToPadPos.size() == tpccf::TPC_REAL_PADS_IN_SECTOR);
 
-  for (size_t i = 0; i < TPC_FEC_IDS_IN_SECTOR; i++) {
+  for (size_t i = 0; i < tpccf::TPC_FEC_IDS_IN_SECTOR; i++) {
     FECIDToPadPos[i] = globalPadToPadPos[fecToGlobalPad[i]];
   }
 #endif
