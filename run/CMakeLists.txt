@@ -129,6 +129,23 @@ o2_add_executable(geometry-doctor
                   PUBLIC_LINK_LIBRARIES O2::Field O2::DetectorsBase ROOT::Geom
                                         Boost::program_options
                                         nlohmann_json::nlohmann_json)
+o2_name_target(geometry-doctor COMPONENT_NAME sim NAME doctorExe IS_EXE)
+
+# Runs the doctor on small geometries with a shared assembly placed twice.
+set(DOCTORTESTDIR ${CMAKE_BINARY_DIR}/geometry_doctor_tests)
+file(MAKE_DIRECTORY ${DOCTORTESTDIR})
+o2_add_test(GeometryDoctorPlacements
+            COMPONENT_NAME sim
+            SOURCES testGeometryDoctorPlacements.cxx
+            PUBLIC_LINK_LIBRARIES ROOT::Geom nlohmann_json::nlohmann_json
+            WORKING_DIRECTORY ${DOCTORTESTDIR}
+            COMMAND_LINE_ARGS $<TARGET_FILE:${doctorExe}>
+            NO_BOOST_TEST
+            TARGETVARNAME doctorTest
+            LABELS sim)
+if(doctorTest)
+  add_dependencies(${doctorTest} ${doctorExe})
+endif()
 
 o2_add_executable(mctracks-proxy
                   COMPONENT_NAME sim
