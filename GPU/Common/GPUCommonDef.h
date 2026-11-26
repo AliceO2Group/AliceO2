@@ -99,6 +99,12 @@
   #endif
 #endif
 
+#ifdef GPUCA_GPUCODE // Macros, not functions: the arguments contain code that exists only on the CPU
+#define GPUCA_IGNORE_ON_GPU(...)
+#else
+#define GPUCA_IGNORE_ON_GPU(...) __VA_ARGS__
+#endif
+
 // API Definitions for GPU Compilation
 #include "GPUCommonDefAPI.h"
 

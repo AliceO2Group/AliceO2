@@ -45,10 +45,12 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::run
   auto& clusterer = processors.tpcClusterer[sector];
   auto& clustererNN = processors.tpcNNClusterer[sector];
   CfArray2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
-  CPU_ONLY(MCLabelAccumulator labelAcc(clusterer));
+  MCLabelAccumulator* labelPtr = nullptr;
+  GPUCA_IGNORE_ON_GPU(MCLabelAccumulator labelAcc(clusterer));
+  GPUCA_IGNORE_ON_GPU(labelPtr = &labelAcc);
   tpc::ClusterNative* clusterOut = clusterer.mPclusterByRow;
   int8_t isAccepted = (clustererNN.mNnClusterizerUseClassification ? (clustererNN.mOutputDataClass[CAMath::Min(glo_idx, (uint32_t)clusterer.mPmemory->counters.nClusters - 1)] > 0) : 1);
-  GPUTPCCFClusterizer::computeClustersImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), clusterer, clusterer.mPmemory->frag, smem, chargeMap, clusterer.mPfilteredPeakPositions, clusterer.Param().rec, CPU_PTR(&labelAcc), clusterer.mPmemory->counters.nClusters, clusterer.mNMaxClusterPerRow, clusterer.mPclusterInRow, clusterOut, clusterer.mPclusterPosInRow, isAccepted);
+  GPUTPCCFClusterizer::computeClustersImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), clusterer, clusterer.mPmemory->frag, smem, chargeMap, clusterer.mPfilteredPeakPositions, clusterer.Param().rec, labelPtr, clusterer.mPmemory->counters.nClusters, clusterer.mNMaxClusterPerRow, clusterer.mPclusterInRow, clusterOut, clusterer.mPclusterPosInRow, isAccepted);
 }
 
 template <>
@@ -317,13 +319,14 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::pub
   CfChargePos peak = clusterer.mPfilteredPeakPositions[peakIndex];
   float central_charge = static_cast<float>(chargeMap[peak].unpack());
 
-  CPU_ONLY(MCLabelAccumulator labelAccElem(clusterer));
-  MCLabelAccumulator* labelAcc = CPU_PTR(&labelAccElem);
+  MCLabelAccumulator* labelAcc = nullptr;
+  GPUCA_IGNORE_ON_GPU(MCLabelAccumulator labelAccElem(clusterer));
+  GPUCA_IGNORE_ON_GPU(labelAcc = &labelAccElem);
 
   if (full_glo_idx >= maxClusterNum) {
     if (withMC) {
       ClusterAccumulator dummy_pc;
-      CPU_ONLY(labelAcc->collect(peak, central_charge));
+      GPUCA_IGNORE_ON_GPU(labelAcc->collect(peak, central_charge));
       GPUTPCCFClusterizer::buildCluster(
         clusterer.Param().rec,
         chargeMap,
@@ -343,7 +346,7 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::pub
 
   if (withMC) {
     ClusterAccumulator dummy_pc;
-    CPU_ONLY(labelAcc->collect(peak, central_charge));
+    GPUCA_IGNORE_ON_GPU(labelAcc->collect(peak, central_charge));
     GPUTPCCFClusterizer::buildCluster(
       clusterer.Param().rec,
       chargeMap,
@@ -491,7 +494,7 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::pub
   } else if (clusterer.mPclusterPosInRow) {
     rowIndex = clusterer.mPclusterPosInRow[full_glo_idx];
   }
-  CPU_ONLY(labelAcc->commit(peak.row(), rowIndex, clusterer.mNMaxClusterPerRow));
+  GPUCA_IGNORE_ON_GPU(labelAcc->commit(peak.row(), rowIndex, clusterer.mNMaxClusterPerRow));
 }
 
 template <>
@@ -509,15 +512,16 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::pub
   CfChargePos peak = clusterer.mPfilteredPeakPositions[CAMath::Min(glo_idx + batchStart, (uint32_t)(clusterer.mPmemory->counters.nClusters - 1))];
   float central_charge = static_cast<float>(chargeMap[peak].unpack());
 
-  CPU_ONLY(MCLabelAccumulator labelAccElem(clusterer));
-  MCLabelAccumulator* labelAcc = CPU_PTR(&labelAccElem);
+  MCLabelAccumulator* labelAcc = nullptr;
+  GPUCA_IGNORE_ON_GPU(MCLabelAccumulator labelAccElem(clusterer));
+  GPUCA_IGNORE_ON_GPU(labelAcc = &labelAccElem);
   tpc::ClusterNative* clusterOut = clusterer.mPclusterByRow;
   uint32_t full_glo_idx = glo_idx + batchStart;
 
   if (full_glo_idx >= maxClusterNum) {
     if (withMC) {
       ClusterAccumulator dummy_pc;
-      CPU_ONLY(labelAcc->collect(peak, central_charge));
+      GPUCA_IGNORE_ON_GPU(labelAcc->collect(peak, central_charge));
       GPUTPCCFClusterizer::buildCluster(
         clusterer.Param().rec,
         chargeMap,
@@ -537,7 +541,7 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::pub
 
   if (withMC) {
     ClusterAccumulator dummy_pc;
-    CPU_ONLY(labelAcc->collect(peak, central_charge));
+    GPUCA_IGNORE_ON_GPU(labelAcc->collect(peak, central_charge));
     GPUTPCCFClusterizer::buildCluster(
       clusterer.Param().rec,
       chargeMap,
@@ -608,7 +612,7 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::pub
   } else if (clusterer.mPclusterPosInRow) {
     rowIndex = clusterer.mPclusterPosInRow[full_glo_idx];
   }
-  CPU_ONLY(labelAcc->commit(peak.row(), rowIndex, clusterer.mNMaxClusterPerRow));
+  GPUCA_IGNORE_ON_GPU(labelAcc->commit(peak.row(), rowIndex, clusterer.mNMaxClusterPerRow));
 
   // Cluster 2
   if (dtype == 0) {
@@ -660,7 +664,7 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::pub
   } else if (clusterer.mPclusterPosInRow) {
     rowIndex = clusterer.mPclusterPosInRow[full_glo_idx];
   }
-  // CPU_ONLY(labelAcc->commit(peak.row(), rowIndex, clusterer.mNMaxClusterPerRow)); // -> Is this needed? How to handle MC labels for split clusters?
+  // GPUCA_IGNORE_ON_GPU(labelAcc->commit(peak.row(), rowIndex, clusterer.mNMaxClusterPerRow)); // -> Is this needed? How to handle MC labels for split clusters?
 }
 
 // ---------------------------------

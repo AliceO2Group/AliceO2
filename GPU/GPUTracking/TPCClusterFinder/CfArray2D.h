@@ -49,7 +49,7 @@ class TilingLayout
   enum {
     Height = Grid::Height,
     Width = Grid::Width,
-    WidthInTiles = (TPC_CLUSTERER_STRIDED_PAD_COUNT + Width - 1) / Width,
+    WidthInTiles = (tpccf::TPC_CLUSTERER_STRIDED_PAD_COUNT + Width - 1) / Width,
   };
 
   GPUdi() static tpccf::SizeT idx(const CfChargePos& p)
@@ -65,7 +65,7 @@ class TilingLayout
 
   GPUd() static size_t items(size_t fragmentLen)
   {
-    return (TPC_CLUSTERER_STRIDED_PAD_COUNT + Width - 1) / Width * Width * (TPC_MAX_FRAGMENT_LEN_PADDED(fragmentLen) + Height - 1) / Height * Height;
+    return (tpccf::TPC_CLUSTERER_STRIDED_PAD_COUNT + Width - 1) / Width * Width * (tpccf::TPC_MAX_FRAGMENT_LEN_PADDED(fragmentLen) + Height - 1) / Height * Height;
   }
 };
 
@@ -74,12 +74,12 @@ class LinearLayout
  public:
   GPUdi() static tpccf::SizeT idx(const CfChargePos& p)
   {
-    return TPC_CLUSTERER_STRIDED_PAD_COUNT * p.timePadded + p.gpad;
+    return tpccf::TPC_CLUSTERER_STRIDED_PAD_COUNT * p.timePadded + p.gpad;
   }
 
   GPUd() static size_t items(size_t fragmentLen)
   {
-    return TPC_CLUSTERER_STRIDED_PAD_COUNT * TPC_MAX_FRAGMENT_LEN_PADDED(fragmentLen);
+    return tpccf::TPC_CLUSTERER_STRIDED_PAD_COUNT * tpccf::TPC_MAX_FRAGMENT_LEN_PADDED(fragmentLen);
   }
 };
 
@@ -110,13 +110,19 @@ struct GridSize<4> {
   };
 };
 
-#if defined(CHARGEMAP_TILING_LAYOUT)
+template <int32_t Tiling, typename T>
+struct TPCMapMemoryLayoutSelector;
 template <typename T>
-using TPCMapMemoryLayout = TilingLayout<GridSize<sizeof(T)>>;
-#else
+struct TPCMapMemoryLayoutSelector<0, T> {
+  using type = LinearLayout;
+};
 template <typename T>
-using TPCMapMemoryLayout = LinearLayout;
-#endif
+struct TPCMapMemoryLayoutSelector<1, T> {
+  using type = TilingLayout<GridSize<sizeof(T)>>;
+};
+
+template <typename T>
+using TPCMapMemoryLayout = typename TPCMapMemoryLayoutSelector<tpccf::CHARGEMAP_TILING_LAYOUT, T>::type;
 
 template <typename T>
 using CfArray2D = AbstractCfArray2D<T, TPCMapMemoryLayout<T>>;

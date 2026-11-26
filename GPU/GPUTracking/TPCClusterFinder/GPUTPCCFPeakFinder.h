@@ -33,7 +33,7 @@ class GPUTPCCFPeakFinder : public GPUKernelTemplate
   static GPUglobalconstexpr() size_t SCRATCH_PAD_WORK_GROUP_SIZE = GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFPeakFinder);
   struct GPUSharedMemory : public GPUKernelTemplate::GPUSharedMemoryScan64<int16_t, SCRATCH_PAD_WORK_GROUP_SIZE> {
     CfChargePos posBcast[SCRATCH_PAD_WORK_GROUP_SIZE];
-    PackedCharge buf[SCRATCH_PAD_WORK_GROUP_SIZE * SCRATCH_PAD_SEARCH_N];
+    PackedCharge buf[SCRATCH_PAD_WORK_GROUP_SIZE * tpccf::SCRATCH_PAD_SEARCH_N];
   };
 
   typedef GPUTPCClusterFinder processorType;

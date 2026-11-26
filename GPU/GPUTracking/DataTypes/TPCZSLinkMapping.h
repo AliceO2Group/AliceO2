@@ -34,7 +34,7 @@ struct TPCZSLinkMapping {
   TPCZSLinkMapping(o2::tpc::Mapper& mapper);
 #endif
 #ifndef GPUCA_RUN2
-  o2::tpc::PadPos FECIDToPadPos[TPC_FEC_IDS_IN_SECTOR];
+  o2::tpc::PadPos FECIDToPadPos[tpccf::TPC_FEC_IDS_IN_SECTOR];
 #endif
 };
 

@@ -38,7 +38,7 @@ class GPUTPCCFNoiseSuppression : public GPUKernelTemplate
 
   struct GPUSharedMemory {
     CfChargePos posBcast[SCRATCH_PAD_WORK_GROUP_SIZE];
-    PackedCharge buf[SCRATCH_PAD_WORK_GROUP_SIZE * SCRATCH_PAD_NOISE_N];
+    PackedCharge buf[SCRATCH_PAD_WORK_GROUP_SIZE * tpccf::SCRATCH_PAD_NOISE_N];
   };
 
   typedef GPUTPCClusterFinder processorType;

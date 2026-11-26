@@ -39,7 +39,7 @@ GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int32_t nBlocks, int32_t 
   Charge charge = chargeMap[pos].unpack();
 
   ClusterAccumulator pc;
-  CPU_ONLY(labelAcc->collect(pos, charge));
+  GPUCA_IGNORE_ON_GPU(labelAcc->collect(pos, charge));
 
   buildCluster(
     calib,
@@ -90,7 +90,7 @@ GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int32_t nBlocks, int32_t 
     rowIndex = clusterPosInRow[idx];
   }
 
-  CPU_ONLY(labelAcc->commit(pos.row(), rowIndex, maxClusterPerRow));
+  GPUCA_IGNORE_ON_GPU(labelAcc->commit(pos.row(), rowIndex, maxClusterPerRow));
 }
 
 GPUdii() void GPUTPCCFClusterizer::updateClusterInner(
@@ -112,7 +112,7 @@ GPUdii() void GPUTPCCFClusterizer::updateClusterInner(
     PackedCharge p = buf[N * lid + i];
 
     Charge q = cluster->updateInner(p, d);
-    CPU_ONLY(labelAcc->collect(pos.delta(d), q));
+    GPUCA_IGNORE_ON_GPU(labelAcc->collect(pos.delta(d), q));
 
     aboveThreshold |= (uint8_t(q > calib.tpc.cfInnerThreshold) << i);
   }
@@ -139,7 +139,7 @@ GPUdii() void GPUTPCCFClusterizer::updateClusterOuter(
     Delta2 d = cfconsts::OuterNeighbors[i];
 
     [[maybe_unused]] Charge q = cluster->updateOuter(p, d);
-    CPU_ONLY(labelAcc->collect(pos.delta(d), q));
+    GPUCA_IGNORE_ON_GPU(labelAcc->collect(pos.delta(d), q));
   }
 }
 
