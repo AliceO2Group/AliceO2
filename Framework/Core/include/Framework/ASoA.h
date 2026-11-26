@@ -609,13 +609,13 @@ class ColumnIterator : ChunkingPolicy
     return *this;
   }
 
-  mutable unwrap_t<T> const* mCurrent;
-  int64_t const* mCurrentPos;
-  uint64_t const* mGlobalOffset;
-  mutable unwrap_t<T> const* mLast;
-  arrow::ChunkedArray const* mColumn;
-  mutable int mFirstIndex;
-  mutable int mCurrentChunk;
+  mutable unwrap_t<T> const* mCurrent = nullptr;
+  int64_t const* mCurrentPos = nullptr;
+  uint64_t const* mGlobalOffset = nullptr;
+  mutable unwrap_t<T> const* mLast = nullptr;
+  arrow::ChunkedArray const* mColumn = nullptr;
+  mutable int mFirstIndex = 0;
+  mutable int mCurrentChunk = 0;
 
  private:
   void checkSkipChunk() const
