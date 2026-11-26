@@ -96,5 +96,7 @@ It allows to set the following parameters:
 
 *   `align-geom.mTimeStamp  : the time-stamp for CCDB query. If it is 0 (default) then the time-stamp = `now()` in milliseconds will be used.
 
+*   `align-geom.mAlignPaths : Comma separated DET:path list of alternative alignment objects, e.g. "MCH:MCH/MisCalib/Align". A detector not listed uses <DET>/Calib/Align, as does a listed one whose alternative object cannot be fetched.`
+
 `TODO`: once the framework will provide CCDB service, the helper will be adapted to retrieve the alignment objects via query to DPL.
 

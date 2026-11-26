@@ -29,6 +29,9 @@ class Aligner : public o2::conf::ConfigurableParamHelper<Aligner>
 {
  public:
   const std::string& getDetectors() const { return mDetectors; }
+  const std::string& getAlignPaths() const { return mAlignPaths; }
+  std::string getAlignmentPath(o2::detectors::DetID id) const;
+  static std::string getAlignmentPath(const std::string& alignPaths, o2::detectors::DetID id);
   long getTimeStamp() const;
   o2::detectors::DetID::mask_t getDetectorsMask() const;
 
@@ -38,6 +41,7 @@ class Aligner : public o2::conf::ConfigurableParamHelper<Aligner>
  private:
   std::string mDetectors = "all";                      // comma-separated list of modules to align, "all" or "none"
   long mTimeStamp = 0;                                 // assigned TimeStamp or now() if 0
+  std::string mAlignPaths = "";                        // comma-separated DET:path alternative alignment objects, e.g. "MCH:MCH/MisCalib/Align"
 
   O2ParamDef(Aligner, "align-geom");
 };
