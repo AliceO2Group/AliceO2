@@ -552,7 +552,9 @@ void GPUTPCGMMerger::SetMaxData(const GPUTrackingInOutPointers& io)
   } else {
     mNMaxTracks = mRec->MemoryScalers()->NTPCMergedTracks(mNTotalSectorTracks);
   }
-  mNMaxLoopExtrData = mRec->MemoryScalers()->NTPCLoopExtrData(mNMaxTracks, (!Param().rec.tpc.rebuildTrackInFit || Param().rec.tpc.rebuildTrackMaxNonIntCov <= 0) && !(Param().rec.tpc.disableMarkAdjacent & 4));
+  mNMaxLoopExtrData = !(Param().rec.tpc.disableMarkAdjacent & 4) && !(Param().rec.tpc.disableMarkAdjacent & 8)
+                        ? mRec->MemoryScalers()->NTPCLoopExtrData(mNMaxTracks, (!Param().rec.tpc.rebuildTrackInFit || Param().rec.tpc.rebuildTrackMaxNonIntCov <= 0) && !(Param().rec.tpc.disableMarkAdjacent & 4))
+                        : 0;
   if (io.clustersNative) {
     mNClusters = io.clustersNative->nClustersTotal;
   } else if (mRec->GetRecoSteps() & gpudatatypes::RecoStep::TPCSectorTracking) {
