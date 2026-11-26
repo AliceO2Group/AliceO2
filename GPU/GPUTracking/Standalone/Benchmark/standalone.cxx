@@ -559,8 +559,6 @@ int32_t SetupReconstruction()
     if (recSetAsync.tpc.rejectionStrategy >= GPUSettings::RejectionStrategyB) {
       procSetAsync.tpcInputWithClusterRejection = 1;
     }
-    recSetAsync.tpc.disableMarkAdjacent = 0xFF;
-    recSetAsync.maxTrackQPtB5 = CAMath::Min(recSetAsync.maxTrackQPtB5, recSetAsync.tpc.rejectQPtB5);
     GPUChainTracking::ApplySyncSettings(procSetAsync, recSetAsync, stepsAsync.steps, false, true, configStandalone.rundEdx);
     finalizeSteps(stepsAsync, procSetAsync);
     recAsync->SetSettings(&grp, &recSetAsync, &procSetAsync, &stepsAsync);

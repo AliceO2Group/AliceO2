@@ -84,7 +84,7 @@ class GPUO2Interface
 
   // Updates all calibration objects that are != nullptr in newCalib
   int32_t UpdateCalibration(const GPUCalibObjectsConst& newCalib, const GPUNewCalibValues& newVals, uint32_t iThread = 0);
-  static void ApplySyncSettings(GPUSettingsProcessing& proc, GPUSettingsRec& rec, gpudatatypes::RecoStepField& steps, bool syncMode, int32_t dEdxMode = -2);
+  static void ApplySyncSettings(GPUSettingsProcessing& proc, GPUSettingsRec& rec, gpudatatypes::RecoStepField& steps, bool syncMode, bool asyncMode, int32_t dEdxMode = -2);
 
   int32_t registerMemoryForGPU(const void* ptr, size_t size);
   int32_t unregisterMemoryForGPU(const void* ptr);

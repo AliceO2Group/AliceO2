@@ -1036,4 +1036,8 @@ void GPUChainTracking::ApplySyncSettings(GPUSettingsProcessing& proc, GPUSetting
   } else if (asyncMode) {
     proc.tpcDownscaledEdx = 0;
   }
+  if (asyncMode) {
+    rec.tpc.disableMarkAdjacent = 0xFF;
+    rec.maxTrackQPtB5 = CAMath::Min(rec.maxTrackQPtB5, rec.tpc.rejectQPtB5 * 2.f); // Factor 2 since seeds Pt can be wrong
+  }
 }

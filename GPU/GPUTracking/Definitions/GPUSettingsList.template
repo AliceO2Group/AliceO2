@@ -517,7 +517,7 @@ AddOption(overrideNHbfPerTF, int32_t, 0, "", 0, "Overrides the number of HBF per
 AddOption(overrideTPCTimeBinCur, int32_t, 0, "", 0, "Overrides TPC time bin cut if > 0")
 AddOption(deviceType, std::string, "CPU", "", 0, "Device type, CPU | CUDA | HIP | OCL | METAL | CPUDEVICE")
 AddOption(forceDeviceType, bool, true, "", 0, "force device type, otherwise allows fall-back to CPU")
-AddOption(synchronousProcessing, bool, false, "", 0, "Apply performance shortcuts for synchronous processing, disable unneeded steps")
+AddOption(synchronousProcessing, int32_t, 0, "", 0, "0: No special settings, 1: synchronous: Apply performance shortcuts for synchronous processing, disable unneeded steps, -1: asynchronous: ignore low-pt, disable adjacent cluster search")
 AddOption(dump, int32_t, 0, "", 0, "Dump events for standalone benchmark: 1 = dump events, 2 = dump events and skip processing in workflow")
 AddOption(dumpFirst, int32_t, 0, "", 0, "First event to dump (referring to tfCounter)")
 AddOption(dumpLast, int32_t, -1, "", 0, "Last event to dump (-1 = all)")

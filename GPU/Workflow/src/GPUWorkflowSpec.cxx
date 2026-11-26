@@ -197,7 +197,7 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
                                       gpudatatypes::RecoStep::TPCMerging);
     mConfig->configWorkflow.outputs.set(gpudatatypes::InOutType::TPCMergedTracks);
   }
-  GPUO2Interface::ApplySyncSettings(mConfig->configProcessing, mConfig->configReconstruction, mConfig->configWorkflow.steps, mConfParam->synchronousProcessing, runTracking ? mConfParam->rundEdx : -2);
+  GPUO2Interface::ApplySyncSettings(mConfig->configProcessing, mConfig->configReconstruction, mConfig->configWorkflow.steps, mConfParam->synchronousProcessing > 0, mConfParam->synchronousProcessing < 0, runTracking ? mConfParam->rundEdx : -2);
 
   if (mSpecConfig.outputCompClustersRoot || mSpecConfig.outputCompClustersFlat) {
     mConfig->configWorkflow.steps.setBits(gpudatatypes::RecoStep::TPCCompression, true);
