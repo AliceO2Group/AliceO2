@@ -15,6 +15,8 @@
 #define ALICEO2_EVENTGEN_GENERATOR_H_
 
 #include "FairGenerator.h"
+// Needed inclusion for the many external generators using LOG after FairRoot was included in O2 (07/2026)
+#include <fairlogger/Logger.h>
 #include "TParticle.h"
 #include "Generators/Trigger.h"
 #include <functional>
