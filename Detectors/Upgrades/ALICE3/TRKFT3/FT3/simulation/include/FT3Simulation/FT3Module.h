@@ -64,24 +64,24 @@ class FT3Module
   void build_staves_exact(
     TGeoVolume* motherVolume, int layerNumber, int direction,
     const Constants::StaveConfig& staveConfig,
-    const std::array<std::array<double, 3>, 4>& staveTriangles,
-    double z_offset_to_carbon_face,
+    const std::array<std::array<double, 10>, 2>& staveLegs,
+    double z_offset_to_stave_face,
     std::vector<PosNegPositionTypes>& y_positionsPosNeg,
     unsigned& staveVolumeCount);
 
   void build_staves_greedy(
     TGeoVolume* motherVolume, int layerNumber, int direction, double Rin, double Rout,
     const Constants::StaveConfig& staveConfig,
-    const std::array<std::array<double, 3>, 4>& staveTriangles,
-    double z_offset_to_carbon_face,
+    const std::array<std::array<double, 10>, 2>& staveLegs,
+    double z_offset_to_stave_face,
     std::vector<PosNegPositionTypes>& y_positionsPosNeg, unsigned& staveVolumeCount);
 
   // Shared by both: one stave's carbon shell, plus its mirror where needed
   void add_stave_volumes(
     TGeoVolume* motherVolume, int layerNumber, int direction,
     const Constants::StaveConfig& staveConfig, unsigned i_stave,
-    const std::array<std::array<double, 3>, 4>& staveTriangles,
-    double z_offset_to_carbon_face, std::pair<double, double>& absAllowedYRange,
+    const std::array<std::array<double, 10>, 2>& staveLegs,
+    double z_offset_to_stave_face, std::pair<double, double>& absAllowedYRange,
     double y_midpoint, bool mirrorStaveAroundX, unsigned* staveVolumeCount);
 
   // FR4 + Cu end-of-stave card at the outer-radius tip of a disk stave. One card
@@ -103,7 +103,7 @@ class FT3Module
   void addStaveVolume(
     TGeoVolume* motherVolume, std::string volumeName, int direction,
     unsigned* volume_count, double staveLength,
-    std::array<std::array<double, 3>, 4> staveTriangles,
+    std::array<std::array<double, 10>, 2> staveLegs,
     std::pair<double, double>& absAllowedYRange,
     double x_mid, double y_mid, double z_stave_shift_forward);
   void addDetectorVolume(
@@ -111,18 +111,18 @@ class FT3Module
     unsigned volume_count, double x_mid, double y_mid, double z_mid,
     double x_half_length, double y_half_length, double z_half_length, double rotX = 0);
 
-  void add2x1GlueVolume(
+  void addNx2GlueVolume(
     TGeoVolume* motherVolume, int layerNumber, int direction, unsigned stave_idx,
-    unsigned volume_count, double x_mid, double y_mid, double z_mid,
+    unsigned volume_count, double x_mid, double y_mid, double z_mid, double moduleHeight,
     std::string element_glued_to);
 
-  void add2x1CopperVolume(
+  void addNx2CopperVolume(
     TGeoVolume* motherVolume, int layerNumber, int direction, unsigned stave_idx,
-    unsigned volume_count, double x_mid, double y_mid, double z_mid);
+    unsigned volume_count, double x_mid, double y_mid, double z_mid, double moduleHeight);
 
-  void add2x1KaptonVolume(
+  void addNx2KaptonVolume(
     TGeoVolume* motherVolume, int layerNumber, int direction, unsigned stave_idx,
-    unsigned volume_count, double x_mid, double y_mid, double z_mid);
+    unsigned volume_count, double x_mid, double y_mid, double z_mid, double moduleHeight);
 
   void addSingleSensorVolume(
     TGeoVolume* motherVolume, int layerNumber, int direction, unsigned stave_idx,

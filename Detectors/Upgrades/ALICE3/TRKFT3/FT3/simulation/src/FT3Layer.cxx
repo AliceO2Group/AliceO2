@@ -411,7 +411,7 @@ void FT3Layer::createLayer(TGeoVolume* motherVolume)
     // stave face is at z=0 (or +-z_offset_stave), meaning that volumes are at
     // ~-+1cm < z < ~+-6cm, the +- referring forward/backward discs
     double z_layer_thickness = // need to shift internally with this
-      o2::ft3::ModuleConstants::staveTriangleHeight +
+      o2::ft3::ModuleConstants::staveHeight +
       o2::ft3::ModuleConstants::z_offsetStave(staveConfig.x_midpoint_spacing) +
       o2::ft3::ModuleConstants::siliconThickness +
       o2::ft3::ModuleConstants::copperThickness +
