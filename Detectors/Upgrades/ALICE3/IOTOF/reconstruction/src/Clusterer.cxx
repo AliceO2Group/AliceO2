@@ -22,6 +22,16 @@
 namespace o2::iotof
 {
 
+namespace
+{
+// Centre of a digit's TDC bin, in ns after its BC; the last bin of a BC ends with the BC.
+double tdcBinCentre(int tdc, double tdcBin)
+{
+  const double binStart = tdc * tdcBin;
+  return 0.5 * (binStart + std::min(binStart + tdcBin, o2::constants::lhc::LHCBunchSpacingNS));
+}
+} // namespace
+
 //__________________________________________________
 void Clusterer::process(gsl::span<const Digit> digits,
                         gsl::span<const DigROFRecord> digitROFs,
@@ -177,7 +187,7 @@ void Clusterer::ClustererThread::findClustersSingleHit(gsl::span<const Digit> di
   const uint16_t col = digit.getColumn();
   // const time_t time = digit.getTime();
   const uint64_t nbc = digit.getBc();
-  const float timeWrtBc = digit.getTdc() * digitizerParams.tdcBin;
+  const float timeWrtBc = tdcBinCentre(digit.getTdc(), digitizerParams.tdcBin);
   const time_t time = timeWrtBc + nbc * o2::constants::lhc::LHCBunchSpacingNS;
 
   if (labelsClusPtr) {
@@ -276,7 +286,7 @@ void Clusterer::ClustererThread::findClustersMultipleHits(gsl::span<const Digit>
       const uint16_t col = digit.getColumn();
       // const time_t time = digit.getTime();
       const uint64_t nbc = digit.getBc();
-      const float timeWrtBc = digit.getTdc() * digitizerParams.tdcBin;
+      const float timeWrtBc = tdcBinCentre(digit.getTdc(), digitizerParams.tdcBin);
       const time_t time = timeWrtBc + nbc * o2::constants::lhc::LHCBunchSpacingNS;
 
       if (labelsClusPtr) {
@@ -313,24 +323,32 @@ void Clusterer::ClustererThread::findClustersMultipleHits(gsl::span<const Digit>
 
       int nMcLabels = 0;
 
-      // Compute average time for digits in the precluster
-      time_t clsTime = 0.0;
+      // Average time of the digits in the precluster: the BCs after the earliest digit's BC, an
+      // integer, and the TDC bin centres are summed separately, so that the sums stay small.
+      auto firstBc = digits[precluster[0]].getBc();
+      for (const auto& idx : precluster) {
+        firstBc = std::min(firstBc, digits[idx].getBc());
+      }
+      uint64_t bcSum = 0;
+      double binCentreSum = 0.;
       for (const auto& idx : precluster) {
         const auto& digit = digits[idx];
         minRow = std::min(minRow, digit.getRow());
         minCol = std::min(minCol, digit.getColumn());
         maxRow = std::max(maxRow, digit.getRow());
         maxCol = std::max(maxCol, digit.getColumn());
-        const time_t time = digit.getTdc() * digitizerParams.tdcBin + digit.getBc() * o2::constants::lhc::LHCBunchSpacingNS;
-        clsTime += time;
+        bcSum += digit.getBc() - firstBc;
+        binCentreSum += tdcBinCentre(digit.getTdc(), digitizerParams.tdcBin);
         fetchMCLabels(idx, labelsDigPtr, nMcLabels);
       }
-      clsTime /= precluster.size();
       const uint8_t rowSpan = maxRow - minRow + 1;
       const uint8_t colSpan = maxCol - minCol + 1;
 
-      const uint64_t nbc = static_cast<uint64_t>(clsTime / o2::constants::lhc::LHCBunchSpacingNS);
-      const float timeWrtBc = clsTime - nbc * o2::constants::lhc::LHCBunchSpacingNS;
+      const double timeAfterFirstBc = (bcSum * o2::constants::lhc::LHCBunchSpacingNS + binCentreSum) / precluster.size();
+      const auto bcShift = static_cast<uint64_t>(timeAfterFirstBc / o2::constants::lhc::LHCBunchSpacingNS);
+      const uint64_t nbc = firstBc + bcShift;
+      const float timeWrtBc = timeAfterFirstBc - bcShift * o2::constants::lhc::LHCBunchSpacingNS;
+      const time_t clsTime = nbc * o2::constants::lhc::LHCBunchSpacingNS + timeWrtBc;
 
       // Fired digits bitmask packed into a single 16-bit pattern variable
       uint16_t firedDigitsMask = 0;
