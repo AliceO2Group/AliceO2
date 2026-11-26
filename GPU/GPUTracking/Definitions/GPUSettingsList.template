@@ -104,6 +104,7 @@ AddOptionRTC(trackFitMinHitsMaxQPtIncrease, float, 0.2f, "", 0, "For the QPt-dep
 AddOptionRTC(rebuildTrackMaxSharedFraction, float, 0.1f, "", 0, "Max fraction of shared clusters for rebuilt tracks")
 AddOptionRTC(rebuildTrackMaxNonIntCov, float, 4.f, "", 0, "Max Err2 allowed for non-interpolated cluster attachment during rebuild")
 AddOptionRTC(followExtrapolationMaxCov, float, 4.f, "", 0, "Max Err2 for following (not during rebuild) the track beyond its ends for adjacent clusters")
+AddOptionRTC(followExtrapolationChi2Factor, float, 0.f, "", 0, "> 1: follow track once more after rebuild, sets factor by which chi2 window is reduced for marking adjcacent clusters")
 AddOptionRTC(rebuildErrorWeightFactor, float, 5.f, "", 0, "Factor for the error (distance^2) of a cluster candidate in its hit weight 1 / (1 + factor * error) during rebuild")
 AddOptionRTC(maxSinPhiForFitUpdate, float, 0.9396926f, "", 0, "Max abs(sinPhi) of the track to update it with a cluster in the track fit)") // default sin(70 deg = 0.9396926
 AddOptionRTC(rebuildTrackMaxQPtDrift, float, 0.5f, "", 0, "Stop the track extrapolation during rebuild when QPt changed by more than this fraction of max(1, abs(QPt)) compared to before the extrapolation (0 = disabled)")
@@ -157,7 +158,7 @@ AddOptionRTC(mergerNonInterpolateRejectMinNDF, uint8_t, 5, "", 0, "Minimum NDF o
 AddOptionRTC(rebuildTrackInFit, uint8_t, 1, "", 0, "Rebuild track completely during fit based on clusters closed to interpolated track positions, adds 2 fit iterations")
 AddOptionRTC(rebuildTrackInFitClusterCandidates, uint8_t, 3, "", 0, "Number of cluster candidates per row for rebuilt track")
 AddOptionRTC(disableRebuildAttachment, uint8_t, 0, "", 0, "Bitmask to disable certain attachment steps during track rebuid (1: current row, 2: interpolate missing row, 4: one sided interpolation, 8: original hit, 16: extrapolation)")
-AddOptionRTC(disableMarkAdjacent, uint8_t, 0, "", 0, "Bitmask to disable certain steps during refit to mark adjacenrt clusters (1: current row, 2: interpolate missing rows, 4: extrapolate inwards / outwards, 8: loop following, 16 track history)")
+AddOptionRTC(disableMarkAdjacent, uint8_t, 0, "", 0, "Bitmask to disable certain steps during refit to mark adjacenrt clusters (1: current row, 2: interpolate missing rows, 4: extrapolate inwards / outwards, 8: loop following, 16: track history, 32: track-following after extrapolated rebuild)")
 AddOptionRTC(dEdxTruncLow, uint8_t, 2, "", 0, "Low truncation threshold, fraction of 128")
 AddOptionRTC(dEdxTruncHigh, uint8_t, 77, "", 0, "High truncation threshold, fraction of 128")
 AddOptionRTC(extrapolationTracking, int8_t, 1, "", 0, "Enable Extrapolation Tracking (prolong tracks to adjacent sectors to find short segments)")

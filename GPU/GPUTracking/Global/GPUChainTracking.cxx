@@ -1021,6 +1021,7 @@ void GPUChainTracking::ApplySyncSettings(GPUSettingsProcessing& proc, GPUSetting
   }
   if (syncMode) {
     rec.useMatLUT = false;
+    // rec.tpc.followExtrapolationChi2Factor = 2; // TODO: might want to retest with future tracking versions
     rec.tpc.rebuildTrackMaxNonIntCov = 0.f; // TODO: Need to check before data taking the performacne with and without (extrapolation tracking v.s. only track following and attaching adjacent)
   } else if (asyncMode) {
     rec.useMatLUT = true;

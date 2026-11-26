@@ -363,8 +363,8 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, GPUTPC
         CADEBUG(printf("\t\tSTORING %d extrapolated row %d sector %d out %d\n", iTrk, (int)iExtrapolatedRow, sector, up == 1));
       }
       const int32_t rowsMoved = CAMath::Abs((int32_t)(iExtrapolatedRow < GPUTPCGeometry::NROWS ? iExtrapolatedRow : iExtrapolatedRow - up) - (int32_t)lastGoodRow);
-      if (revert || lastGoodRow == lastPropagateRow || lastFoundRow != lastGoodRow || (iWay == wayRebuildStart && sector != lastSector) || rowsMoved > param.rec.tpc.rebuildTrackExtrMaxRowsBack || (rowsMoved && prop.PropagateToXAlpha(lastFoundX, lastFoundAlpha, !inFlyDirection))) { // Failure, nothing accepted, rejected clusters in the fit, sector changed before the next way goes back, or too far from the last accepted cluster to go back to it
-        *this = paramStart;
+      if (revert || lastGoodRow == lastPropagateRow || lastFoundRow != lastGoodRow || (iWay == wayRebuildStart && sector != lastSector) || rowsMoved > param.rec.tpc.rebuildTrackExtrMaxRowsBack || (rowsMoved && prop.PropagateToXAlpha(lastFoundX, lastFoundAlpha, !inFlyDirection))) {
+        *this = paramStart; // Failure, nothing accepted, rejected clusters in the fit, sector changed before the next way goes back, or too far from the last accepted cluster to go back to it
         prop.SetTrack(this, alphaStart);
       }
     } else if (finalOutInFit && lastUpdateRow != 255 && !retryAttempt) {
@@ -373,8 +373,8 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, GPUTPC
         loopStored = StoreLoopPropagation(merger, lastSector, lastUpdateRow, iTrk, lastUpdateRow > clusters[(iWay & 1) ? (maxN - 1) : 0].row, prop.GetAlpha());
         CADEBUG(printf("\t\tSTORING %d lastUpdateRow %d row %d out %d\n", iTrk, (int)lastUpdateRow, (int)clusters[(iWay & 1) ? (maxN - 1) : 0].row, lastUpdateRow > clusters[(iWay & 1) ? (maxN - 1) : 0].row));
       }
-      if (loopStored == -1 && (!param.rec.tpc.rebuildTrackInFit || param.rec.tpc.rebuildTrackMaxNonIntCov <= 0) && !(param.rec.tpc.disableMarkAdjacent & 4) && !fitBroken && CAMath::Abs(mP[2]) < maxSinForUpdate && mNDF > (int32_t)param.rec.tpc.rebuildTrackNonIntMinNDF) { // Without the extrapolation of the rebuild, follow the track beyond its end for adjacent clusters (same conditions as for the extrapolation)
-        StoreFollowExtrapolation(merger, lastSector, lastPropagateRow, iTrk, (clusters[0].row < clusters[maxN - 1].row) ^ (iWay & 1), prop.GetAlpha());
+      if (loopStored == -1 && GPUTPCGMMerger::FollowExtrapolationEnabled(param) && !fitBroken && CAMath::Abs(mP[2]) < maxSinForUpdate && mNDF > (int32_t)param.rec.tpc.rebuildTrackNonIntMinNDF && (!GPUTPCGMMerger::FollowExtrapolationAfterRebuild(param) || (track.Leg() == 0 && CAMath::Abs(GetQPt() * param.qptB5Scaler) <= param.rec.tpc.rejectQPtB5))) {
+        StoreFollowExtrapolation(merger, lastSector, lastPropagateRow, iTrk, (clusters[0].row < clusters[maxN - 1].row) ^ (iWay & 1), prop.GetAlpha()); // Follow the track beyond its end for adjacent clusters (same conditions as for the extrapolation), in the 5-way fit only to protect clusters, i.e. for good legs of tracks not rejected by rejectQPtB5
       }
     }
 
@@ -925,7 +925,8 @@ GPUdii() float GPUTPCGMTrackParam::FindBestInterpolatedHit(GPUTPCGMMerger& GPUre
             const float Jw2 = 1.f / (ImC2 + err2ZA);
             const float chi2Y = Jw0 * dy * dy;
             const float chi2Z = Jw2 * dz * dz;
-            bool ok = !prop.RejectCluster(chi2Y * param.rec.tpc.clusterRejectChi2TolleranceY, chi2Z * param.rec.tpc.clusterRejectChi2TolleranceZ, clflags);
+            const float chi2Factor = follow && GPUTPCGMMerger::FollowExtrapolationAfterRebuild(param) ? param.rec.tpc.followExtrapolationChi2Factor : 1.f;
+            bool ok = !prop.RejectCluster(chi2Y * param.rec.tpc.clusterRejectChi2TolleranceY * chi2Factor, chi2Z * param.rec.tpc.clusterRejectChi2TolleranceZ * chi2Factor, clflags);
             const float err = (param.rec.tpc.rebuildTrackCandidateErrChi2 ? (chi2Y + chi2Z) : (dy * dy + dz * dz)) * errFactor;
             if (ok) {
               int32_t insert = nCandidates;

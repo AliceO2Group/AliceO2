@@ -299,7 +299,7 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
     mRec->PopNonPersistentMemory(RecoStep::TPCMerging, qStr2Tag("TPCREBLD"));
   }
 
-  const bool followExtrapolation = !param().rec.tpc.rebuildTrackInFit || param().rec.tpc.rebuildTrackMaxNonIntCov <= 0;
+  const bool followExtrapolation = GPUTPCGMMerger::FollowExtrapolationEnabled(param());
   const bool followExtrapolationStream = followExtrapolation && doGPU && mRec->NStreams() >= 2;
   if (followExtrapolationStream) {
     RecordMarker(&mEvents->single, 0);
