@@ -594,7 +594,9 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
     for (int itrk = 0; itrk < static_cast<int>(mITSTPCTracks.size()); ++itrk) {
       auto const& trk = mITSTPCTracks[itrk];
       auto idxTrkTpc = trk.getRefTPC().getIndex();
-      if (trk.getRefITS().getSource() != GID::ITS) {
+      // afterburner matches count for the TPC type only, as in the data branch
+      const bool isAB = trk.getRefITS().getSource() == GID::ITSAB;
+      if (trk.getRefITS().getSource() != GID::ITS && !isAB) {
         continue;
       }
       if (isTPCTrackSelectedEntry[idxTrkTpc]) {
@@ -614,6 +616,9 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
             mMapLabels[matchType::TPC].at(lbl).mIdx = itrk;
           }
         }
+      }
+      if (isAB) {
+        continue;
       }
       auto idxTrkIts = trk.getRefITS().getIndex();
       if (isITSTrackSelectedEntry[idxTrkIts]) {
