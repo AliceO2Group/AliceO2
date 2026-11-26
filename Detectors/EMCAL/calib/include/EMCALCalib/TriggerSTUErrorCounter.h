@@ -8,6 +8,9 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#ifndef ALICEO2_EMCAL_TRIGGERSTUERRORCOUNTER_H
+#define ALICEO2_EMCAL_TRIGGERSTUERRORCOUNTER_H
+
 #include <iosfwd>
 #include <array>
 #include <Rtypes.h>
@@ -80,3 +83,5 @@ class TriggerSTUErrorCounter
 } // namespace emcal
 
 } // namespace o2
+
+#endif // ALICEO2_EMCAL_TRIGGERSTUERRORCOUNTER_H

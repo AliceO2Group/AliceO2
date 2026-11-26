@@ -13,6 +13,9 @@
 /// \brief  Infrastructure to simulate ALPIDE chip data.
 /// \author knaumov@cern.ch
 
+#ifndef ALICEO2_ITSSIMULATION_ITSDATASIMULATOR_H
+#define ALICEO2_ITSSIMULATION_ITSDATASIMULATOR_H
+
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITSMFTReconstruction/PixelData.h"
 
@@ -52,3 +55,5 @@ class ITSDataSimulator
 
 } // namespace itsmft
 } // namespace o2
+
+#endif // ALICEO2_ITSSIMULATION_ITSDATASIMULATOR_H
