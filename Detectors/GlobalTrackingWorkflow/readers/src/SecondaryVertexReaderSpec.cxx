@@ -43,6 +43,7 @@ class SecondaryVertexReader : public o2::framework::Task
   using Cascade = o2::dataformats::Cascade;
   using Decay3BodyIndex = o2::dataformats::Decay3BodyIndex;
   using Decay3Body = o2::dataformats::Decay3Body;
+  using PoolRejRecord = o2::dataformats::PoolRejRecord;
 
  public:
   SecondaryVertexReader() = default;
@@ -64,6 +65,8 @@ class SecondaryVertexReader : public o2::framework::Task
   std::vector<Decay3BodyIndex> m3BodysIdx, *m3BodysIdxPtr = &m3BodysIdx;
   std::vector<Decay3Body> m3Bodys, *m3BodysPtr = &m3Bodys;
   std::vector<RRef> mPV23BodyRef, *mPV23BodyRefPtr = &mPV23BodyRef;
+  std::vector<PoolRejRecord> mPoolRej, *mPoolRejPtr = &mPoolRej; // optional, stays empty if the branch is absent
+  bool mHasPoolRej = false;
 
   std::unique_ptr<TFile> mFile;
   std::unique_ptr<TTree> mTree;
@@ -79,6 +82,7 @@ class SecondaryVertexReader : public o2::framework::Task
   std::string m3BodyIdxBranchName = "Decays3BodyID";
   std::string m3BodyBranchName = "Decays3Body";
   std::string mPVertex23BodyRefBranchName = "PV23BodyRefs";
+  std::string mPoolRejBranchName = "PoolRejections";
 };
 
 void SecondaryVertexReader::init(InitContext& ic)
@@ -114,6 +118,7 @@ void SecondaryVertexReader::run(ProcessingContext& pc)
   pc.outputs().snapshot(Output{"GLO", "DECAYS3BODY_IDX", 0}, m3BodysIdx);
   pc.outputs().snapshot(Output{"GLO", "DECAYS3BODY", 0}, m3Bodys);
   pc.outputs().snapshot(Output{"GLO", "PVTX_3BODYREFS", 0}, mPV23BodyRef);
+  pc.outputs().snapshot(Output{"GLO", "SVREJPOOL", 0}, mPoolRej); // empty if the branch is absent
 
   if (noEntry || mTree->GetReadEntry() + pc.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
@@ -147,6 +152,12 @@ void SecondaryVertexReader::connectTree()
   mTree->SetBranchAddress(m3BodyIdxBranchName.c_str(), &m3BodysIdxPtr);
   mTree->SetBranchAddress(m3BodyBranchName.c_str(), &m3BodysPtr);
   mTree->SetBranchAddress(mPVertex23BodyRefBranchName.c_str(), &mPV23BodyRefPtr);
+  mHasPoolRej = mTree->GetBranch(mPoolRejBranchName.c_str()) != nullptr;
+  if (mHasPoolRej) {
+    mTree->SetBranchAddress(mPoolRejBranchName.c_str(), &mPoolRejPtr);
+  } else {
+    LOG(debug) << "Branch " << mPoolRejBranchName << " not found, will publish empty pool rejection records";
+  }
 
   LOG(info) << "Loaded " << mSVertexTreeName << " tree from " << mFileName << " with " << mTree->GetEntries() << " entries";
 }
@@ -163,6 +174,7 @@ DataProcessorSpec getSecondaryVertexReaderSpec()
   outputs.emplace_back("GLO", "DECAYS3BODY_IDX", 0, Lifetime::Timeframe); // found 3 body vertices indices
   outputs.emplace_back("GLO", "DECAYS3BODY", 0, Lifetime::Timeframe);   // found 3 body Decays
   outputs.emplace_back("GLO", "PVTX_3BODYREFS", 0, Lifetime::Timeframe); // prim.vertex -> 3 body Decays refs
+  outputs.emplace_back("GLO", "SVREJPOOL", 0, Lifetime::Timeframe);      // track pool rejection records
 
   return DataProcessorSpec{
     "secondary-vertex-reader",

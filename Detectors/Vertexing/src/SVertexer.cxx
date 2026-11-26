@@ -416,9 +416,10 @@ void SVertexer::setupThreads()
 }
 
 //__________________________________________________________________
-bool SVertexer::acceptTrack(const GIndex gid, const o2::track::TrackParCov& trc) const
+bool SVertexer::acceptTrack(const GIndex gid, const o2::track::TrackParCov& trc, PoolRejection& reason) const
 {
   if (gid.isPVContributor() && mSVParams->maxPVContributors < 1) {
+    reason = RejPVContributor;
     return false;
   }
 
@@ -440,6 +441,7 @@ bool SVertexer::acceptTrack(const GIndex gid, const o2::track::TrackParCov& trc)
       }
     }
     if (std::abs(dca[0]) < mSVParams->minDCAToPV) {
+      reason = RejMinDCAToPV;
       return false;
     }
   }
@@ -466,6 +468,7 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
 
   std::unordered_map<GIndex, std::pair<int, int>> tmap;
   std::unordered_map<GIndex, bool> rejmap;
+  mPoolRejections.clear();
   // The last entry is for unassigned tracks, ignore them. A timeframe holding no collision at
   // all has no entry, and the subtraction would then wrap around.
   int nv = vtxRefs.size() > 0 ? vtxRefs.size() - 1 : 0;
@@ -484,6 +487,7 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
       }
       if (tvid.getSource() == GIndex::TPC) {
         if (mSVParams->mExcludeTPCtracks) {
+          flagPoolRejection(tvid, iv, RejTPCExcluded);
           continue;
         }
         // unconstrained TPC tracks require special treatment: there is no point in checking DCA to mean vertex since it is not precise,
@@ -544,13 +548,16 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
           nITSclu = itsABTracklet.getNClusters();
         }
       }
-      if (!acceptTrack(tvid, trc) && !heavyIonisingParticle) {
+      PoolRejection accReason{};
+      if (!acceptTrack(tvid, trc, accReason) && !heavyIonisingParticle) {
+        flagPoolRejection(tvid, iv, accReason);
         if (tvid.isAmbiguous()) {
           rejmap[tvid] = true;
         }
         continue;
       }
       if ((isTPCloaded && !hasTPC) && (isITSloaded && (nITSclu < mSVParams->mITSSAminNclu && (!shortOBITSOnlyTrack || mSVParams->mRejectITSonlyOBtrack)))) {
+        flagPoolRejection(tvid, iv, RejShortITSOnly);
         continue; // reject short ITS-only
       }
 
@@ -1286,6 +1293,7 @@ void SVertexer::setNThreads(int n)
 bool SVertexer::processTPCTrack(const o2::tpc::TrackTPC& trTPC, GIndex gid, int vtxid)
 {
   if (mSVParams->mTPCTrackMaxX > 0. && trTPC.getX() > mSVParams->mTPCTrackMaxX) {
+    flagPoolRejection(gid, vtxid, RejTPCMaxX);
     return true;
   }
   // if TPC trackis unconstrained, try to create in the tracks pool a clone constrained to vtxid vertex time.
@@ -1312,6 +1320,7 @@ bool SVertexer::processTPCTrack(const o2::tpc::TrackTPC& trTPC, GIndex gid, int 
   auto err = correctTPCTrack(trLoc, trTPC, twe.getTimeStamp(), twe.getTimeStampError());
   if (err < 0) {
     mTracksPool[posneg].pop_back(); // discard
+    flagPoolRejection(gid, vtxid, RejTPCTimeCorr);
     return true;
   }
 
@@ -1329,6 +1338,7 @@ bool SVertexer::processTPCTrack(const o2::tpc::TrackTPC& trTPC, GIndex gid, int 
     bool dRD2 = drd2 > mSVParams->mTPCTrackXY2Radius;
 
     if (dCls || dDPV || dRD2) {
+      flagPoolRejection(gid, vtxid, dCls ? RejTPCPhotonNCls : (dDPV ? RejTPCPhotonDPV : RejTPCPhotonRD2));
       mTracksPool[posneg].pop_back();
       return true;
     }

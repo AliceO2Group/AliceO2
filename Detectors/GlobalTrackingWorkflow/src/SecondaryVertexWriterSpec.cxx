@@ -34,6 +34,7 @@ using Cascade = o2::dataformats::Cascade;
 using CascadeIndex = o2::dataformats::CascadeIndex;
 using Decay3Body = o2::dataformats::Decay3Body;
 using Decay3BodyIndex = o2::dataformats::Decay3BodyIndex;
+using PoolRejRecord = o2::dataformats::PoolRejRecord;
 
 template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
@@ -63,6 +64,7 @@ DataProcessorSpec getSecondaryVertexWriterSpec()
   auto inp3Body = InputSpec{"decays3body", "GLO", "DECAYS3BODY", 0};
   auto inp3BodyID = InputSpec{"decays3bodyIdx", "GLO", "DECAYS3BODY_IDX", 0};
   auto inp3BodyRef = InputSpec{"pv23bodyref", "GLO", "PVTX_3BODYREFS", 0};
+  auto inpPoolRej = InputSpec{"poolrej", "GLO", "SVREJPOOL", 0};
 
   return MakeRootTreeWriterSpec("secondary-vertex-writer",
                                 "o2_secondary_vertex.root",
@@ -77,7 +79,9 @@ DataProcessorSpec getSecondaryVertexWriterSpec()
 
                                 BranchDefinition<std::vector<Decay3BodyIndex>>{inp3BodyID, "Decays3BodyID", loggerD},
                                 BranchDefinition<std::vector<Decay3Body>>{inp3Body, "Decays3Body"},
-                                BranchDefinition<std::vector<RRef>>{inp3BodyRef, "PV23BodyRefs"})();
+                                BranchDefinition<std::vector<RRef>>{inp3BodyRef, "PV23BodyRefs"},
+
+                                BranchDefinition<std::vector<PoolRejRecord>>{inpPoolRej, "PoolRejections"})();
 }
 
 } // namespace vertexing
