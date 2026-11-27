@@ -185,6 +185,7 @@ int32_t GPUReconstructionMetal::InitDevice_Runtime()
     // The kernels reconstruct device pointers from these bases, so they must be
     // the addresses the GPU sees, not the CPU-visible ones of a shared buffer.
     mDeviceMemoryBase = (void*)(uintptr_t)mInternals->mem_gpu.gpuAddress;
+    mDeviceMemoryHostView = mInternals->mem_gpu.contents;
     mDeviceMemorySize = mInternals->mem_gpu.allocatedSize - sizeof(uint32_t);
     *(uint32_t*)((char*)mInternals->mem_gpu.contents + mDeviceMemorySize) = mInternals->canaryMagic;
     if (getenv("GPUCA_METAL_CANARY")) {

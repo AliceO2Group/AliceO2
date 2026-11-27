@@ -116,7 +116,7 @@ NEIGHBOURS_FINDER_UNROLL_SHARED,1,0,0,0,,,,,,1,,1,0,,1,,1,1,
 TRACKLET_SELECTOR_HITS_REG_SIZE,12,0,9,27,,,,,,20,20,20,20,,20,,2,20,
 ALTERNATE_BORDER_SORT,1,0,1,1,,,,,,1,1,1,1,,1,,1,1,
 SORT_BEFORE_FIT,1,0,1,1,,,,,,1,1,1,1,,1,,1,1,
-UNIFIED_MEM_SORT_ON_HOST,0,0,,,,,,,,,,,,,,,,,
+UNIFIED_MEM_SORT_ON_HOST,0,0,,,,,,,,,,,,,,,,,1
 NO_ATOMIC_PRECHECK,0,0,1,1,,,,,,1,1,1,1,,1,,1,1,
 DEDX_STORAGE_TYPE,"""CAMath::half_t""","""float""",,,,,,,,,,,,,,,,,
 MERGER_INTERPOLATION_ERROR_TYPE,"""CAMath::half_t""","""float""",,,,,,,,,,,,,,,,,
