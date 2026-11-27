@@ -1306,16 +1306,13 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
       stats->updateStats({(short)ProcessingStatsId::PERFORMED_COMPUTATIONS, DataProcessingStats::Op::Add, 1}); },
     .preDangling = [](DanglingContext& context, void* service) {
        auto* stats = (DataProcessingStats*)service;
-       sendRelayerMetrics(context.services(), *stats);
-       flushMetrics(context.services(), *stats); },
+       sendRelayerMetrics(context.services(), *stats); },
     .postDangling = [](DanglingContext& context, void* service) {
        auto* stats = (DataProcessingStats*)service;
-       sendRelayerMetrics(context.services(), *stats);
-       flushMetrics(context.services(), *stats); },
+       sendRelayerMetrics(context.services(), *stats); },
     .preEOS = [](EndOfStreamContext& context, void* service) {
       auto* stats = (DataProcessingStats*)service;
-      sendRelayerMetrics(context.services(), *stats);
-      flushMetrics(context.services(), *stats); },
+      sendRelayerMetrics(context.services(), *stats); },
     .preLoop = [](ServiceRegistryRef ref, void* service) {
       auto* stats = (DataProcessingStats*)service;
       flushMetrics(ref, *stats); },
