@@ -241,6 +241,13 @@ class LabeledArray : public LabelMap
     return values[y];
   }
 
+  // nullptr if there is no row with this label
+  T* getRow(const char* y) const
+  {
+    auto it = rowmap.find(y);
+    return it == rowmap.end() ? nullptr : values[it->second];
+  }
+
   T* operator[](uint32_t y) const
   {
     return values[y];
