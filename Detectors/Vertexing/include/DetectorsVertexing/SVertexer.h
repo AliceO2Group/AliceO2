@@ -33,9 +33,13 @@
 #include "StrangenessTracking/StrangenessTracker.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include <numeric>
+#include <unordered_map>
 #include <algorithm>
 #include "GPUO2InterfaceRefit.h"
 #include "DataFormatsTPC/PIDResponse.h"
+
+// uncomment this to enable filling rejection records
+// #define _FILL_SV_POOL_REJECTIONS_
 
 namespace o2
 {
@@ -76,6 +80,34 @@ class SVertexer
                Hyperhydrog4,
                AntiHyperhydrog4,
                NHypV0 };
+
+  // reasons for a track considered in buildT2V not to enter the POS/NEG pools (bit = 0x1 << reason)
+  enum PoolRejection : int {
+    RejTPCExcluded,   // TPC-only tracks excluded by mExcludeTPCtracks
+    RejTPCMaxX,       // TPC track X > mTPCTrackMaxX
+    RejTPCTimeCorr,   // correctTPCTrack failed for the unconstrained TPC track clone
+    RejTPCPhotonNCls, // photon tune: too few TPC clusters
+    RejTPCPhotonDPV,  // photon tune: Z too far from the vertex
+    RejTPCPhotonRD2,  // photon tune: circle too far from the beam line
+    RejPVContributor, // PV contributor while maxPVContributors < 1
+    RejMinDCAToPV,    // |DCA| to mean vertex < minDCAToPV (and not a heavy ionizing particle)
+    RejShortITSOnly,  // short ITS-only track (see mITSSAminNclu, mRejectITSonlyOBtrack)
+    NPoolRejections
+  };
+
+  // key of the mPoolRejections map: (vertexID << 32) | GIndex.getRaw()
+  static uint64_t getPoolRejectionKey(GIndex gid, int iv)
+  {
+    return (uint64_t(iv) << 32) | uint64_t(gid.getRaw());
+  }
+
+  // inverse of getPoolRejectionKey: returns the track GIndex and the vertex ID
+  static std::pair<GIndex, int> rejectionKey2GidIv(uint64_t k)
+  {
+    GIndex gid;
+    gid.setRaw(static_cast<GIndex::Base_t>(k & 0xffffffff));
+    return {gid, int(k >> 32)};
+  }
 
   enum HypCascade {
     XiMinus,
@@ -123,6 +155,7 @@ class SVertexer
   int getN3Bodies() const { return mN3Bodies; }
   int getNStrangeTracks() const { return mNStrangeTracks; }
   auto& getMeanVertex() const { return mMeanVertex; }
+  const auto& getPoolRejections() const { return mPoolRejections; } // empty unless compiled with _FILL_SV_POOL_REJECTIONS_
   void setMeanVertex(const o2::dataformats::MeanVertexObject* v)
   {
     if (v == nullptr) {
@@ -158,7 +191,13 @@ class SVertexer
   void setupThreads();
   void buildT2V(const o2::globaltracking::RecoContainer& recoTracks);
   void updateTimeDependentParams();
-  bool acceptTrack(const GIndex gid, const o2::track::TrackParCov& trc) const;
+  bool acceptTrack(const GIndex gid, const o2::track::TrackParCov& trc, PoolRejection& reason) const;
+  void flagPoolRejection(GIndex gid, int iv, PoolRejection reason)
+  {
+#ifdef _FILL_SV_POOL_REJECTIONS_
+    mPoolRejections[getPoolRejectionKey(gid, iv)] |= uint16_t(0x1 << reason);
+#endif
+  }
   bool processTPCTrack(const o2::tpc::TrackTPC& trTPC, GIndex gid, int vtxid);
   float correctTPCTrack(TrackCand& trc, const o2::tpc::TrackTPC& tTPC, float tmus, float tmusErr) const;
 
@@ -186,6 +225,7 @@ class SVertexer
   std::vector<std::vector<Decay3BodyIndex>> m3bodyIdxTmp;
   std::array<std::vector<TrackCand>, 2> mTracksPool{}; // pools of positive and negative seeds sorted in min VtxID
   std::array<std::vector<int>, 2> mVtxFirstTrack{};    // 1st pos. and neg. track of the pools for each vertex
+  std::unordered_map<uint64_t, uint16_t> mPoolRejections{}; // key: (vertexID << 32) | GIndex.getRaw(); value: bit pattern (0x1<<PoolRejection) of reasons for not entering the pools (filled only if _FILL_SV_POOL_REJECTIONS_ is defined)
 
   o2::dataformats::VertexBase mMeanVertex{{0., 0., 0.}, {0.1 * 0.1, 0., 0.1 * 0.1, 0., 0., 6. * 6.}};
   const SVertexerParams* mSVParams = nullptr;

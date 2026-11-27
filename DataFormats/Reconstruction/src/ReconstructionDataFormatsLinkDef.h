@@ -98,6 +98,8 @@
 #pragma link C++ class o2::dataformats::Decay3BodyIndex + ;
 #pragma link C++ class o2::dataformats::V0Index + ;
 #pragma link C++ class o2::dataformats::CascadeIndex + ;
+#pragma link C++ class o2::dataformats::PoolRejRecord + ;
+#pragma link C++ class std::vector < o2::dataformats::PoolRejRecord> + ;
 
 #pragma link C++ class std::vector < o2::dataformats::DecayNBodyIndex < 2>> + ;
 #pragma link C++ class std::vector < o2::dataformats::DecayNBodyIndex < 3>> + ;

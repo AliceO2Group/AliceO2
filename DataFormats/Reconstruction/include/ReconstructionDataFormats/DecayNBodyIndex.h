@@ -103,6 +103,15 @@ class CascadeIndex
   ClassDefNV(CascadeIndex, 1);
 };
 
+// record of the reasons (bit pattern, see SVertexer::PoolRejection) for a track not entering the SVertexer V0 pools for the given vertex
+struct PoolRejRecord {
+  o2::dataformats::GlobalTrackID gid{}; // track GID (raw, with flags)
+  int vtID = 0;                         // primary vertex ID for which the track was considered
+  uint16_t rej = 0;                     // rejection bits
+
+  ClassDefNV(PoolRejRecord, 1);
+};
+
 } // namespace o2::dataformats
 
 #endif

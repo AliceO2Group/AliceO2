@@ -116,6 +116,18 @@ void SecondaryVertexingSpec::run(ProcessingContext& pc)
   storeConfigs(pc);
   mVertexer.process(recoData, pc);
 
+  // pool rejection info (map is empty unless SVertexer was compiled with _FILL_SV_POOL_REJECTIONS_)
+  const auto& rejMap = mVertexer.getPoolRejections();
+  auto& poolRej = pc.outputs().make<std::vector<o2d::PoolRejRecord>>(Output{"GLO", "SVREJPOOL", 0}, rejMap.size());
+  size_t irec = 0;
+  for (const auto& [key, rej] : rejMap) {
+    auto [gid, iv] = o2::vertexing::SVertexer::rejectionKey2GidIv(key);
+    auto& rec = poolRej[irec++];
+    rec.gid = gid;
+    rec.vtID = iv;
+    rec.rej = rej;
+  }
+
   mTimer.Stop();
   auto calls = mVertexer.getNFitterCalls();
   LOGP(info, "Found {} V0s ({} fits), {} cascades ({} fits), {} 3-body decays ({} fits), {} strange tracks. Timing: CPU: {:.2f} Real: {:.2f} s",
@@ -312,6 +324,7 @@ DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCas
       LOG(info) << "Strangeness tracker will use MC";
     }
   }
+  outputs.emplace_back("GLO", "SVREJPOOL", 0, Lifetime::Timeframe); // track pool rejection records (filled only if SVertexer is built with _FILL_SV_POOL_REJECTIONS_)
   outputs.emplace_back("META", "SVERTEXER", 0, Lifetime::Sporadic);
 
   return DataProcessorSpec{
