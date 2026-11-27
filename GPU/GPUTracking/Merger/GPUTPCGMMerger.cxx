@@ -2260,6 +2260,42 @@ GPUd() void GPUTPCGMMerger::PrepareHitWeights(int32_t nBlocks, int32_t nThreads,
         }
       }
     }
+    if (trk.CCE() && !trk.Looper()) { // CE crossing track: the candidates may cross the CE only once, at a border row, the candidates on the wrong side of the border are removed
+      const uint8_t nMaxCandidates = Param().rec.tpc.rebuildTrackInFitClusterCandidates;
+      const uint32_t jFirst = RebuildFirstRow(i), jLast = RebuildLastRow(i);
+      auto side = [&](uint32_t j) -> int8_t { // CE side of the best candidate, -1 for no hit
+        const auto& c = ClusterCandidates(i, j)[0];
+        return c.hasCluster() ? (c.getSector() >= GPUTPCGeometry::NSECTORS / 2) : -1;
+      };
+      int8_t startSide = -1, lastSide = -1;
+      uint32_t border = jLast + 1; // First row on the other side
+      for (uint32_t j = jFirst; j <= jLast; j++) {
+        const int8_t s = side(j);
+        if (startSide < 0) { // Start side: of the first two consecutive hits on the same side, the hits before are dropped
+          startSide = s >= 0 && s == lastSide ? s : -1;
+          lastSide = s >= 0 ? s : lastSide;
+        } else if (s >= 0 && s != startSide && (j == jLast || side(j + 1) != startSide)) { // Switch sides, unless the next row continues on the current side
+          border = j;
+          break;
+        }
+      }
+      for (uint32_t j = jFirst; startSide >= 0 && j <= jLast; j++) {
+        auto* c = ClusterCandidates(i, j);
+        const int8_t allowedSide = startSide ^ (j >= border);
+        uint8_t n = 0, k = 0;
+        for (; k < nMaxCandidates && c[k].hasCluster(); k++) {
+          if ((int8_t)(c[k].getSector() >= GPUTPCGeometry::NSECTORS / 2) == allowedSide) {
+            c[n++] = c[k];
+          }
+        }
+        for (uint8_t l = n; l < k; l++) {
+          c[l].setValue(0);
+        }
+        if (n == 0 && k) {
+          c[0].setNoCandidate();
+        }
+      }
+    }
   }
 }
 
@@ -2364,7 +2400,7 @@ GPUd() void GPUTPCGMMerger::ResolveHitWeights2(int32_t nBlocks, int32_t nThreads
     trk.SetNClusters(nHits);
     trk.SetFirstClusterRef(iOut);
     uint32_t written = 0;
-    const bool reverse = mTrackRebuildHelper[i].reverse; // TODO: CE tracks may have clusters on both sides in the rows around the crossing: make sure the track crosses the CE only once, by cutting at the best row and removing the clusters on the wrong side of the cut
+    const bool reverse = mTrackRebuildHelper[i].reverse;
     for (uint32_t j = RebuildFirstRow(i), jLast = RebuildLastRow(i); j <= jLast; j++) {
       const auto& candidates = ClusterCandidates(i, j);
       if (TrackRebuildHelperRow(i, j).getBest() > 0 && TrackRebuildHelperRow(i, j).getBest() < trackRebuildHelperRow::bestRowRemoved) {
