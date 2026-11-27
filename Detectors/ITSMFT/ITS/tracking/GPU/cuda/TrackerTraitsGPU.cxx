@@ -289,37 +289,28 @@ void TrackerTraitsGPU<NLayers>::computeVertexCandidates(const int iteration)
 
   const auto& tp = this->mTrkParams[iteration];
   const float zWindow = 0.5f * tp.VtxClusterCut;
+  // every line gets its own z window, sized by the density of time-compatible lines around it
   TrackingKernels<NLayers>::scanDensityHandler(static_cast<int>(nLines),
                                                mTimeFrameGPU->getLineProjSortedSoA(),
                                                mTimeFrameGPU->getDeviceRofLineOffsets(),
-                                               mTimeFrameGPU->getDeviceLineDensity(),
                                                mTimeFrameGPU->getDeviceLineWin(),
+                                               mTimeFrameGPU->getDeviceLineWinPeak(),
+                                               mTimeFrameGPU->getDeviceLineDensity(),
+                                               mTimeFrameGPU->getDeviceLineHalfWidth(),
+                                               mTimeFrameGPU->getDeviceLineWinSeed(),
                                                zWindow,
+                                               tp.VtxAdaptiveZWindowAlpha,
+                                               std::min(tp.VtxAdaptiveZWindowMin, zWindow),
                                                mTimeFrameGPU->getStream(0));
-
-  const float fineZWindow = tp.VtxFineZWindow;
-  const bool doFine = fineZWindow > 0.f && fineZWindow < zWindow;
-  if (doFine) {
-    TrackingKernels<NLayers>::scanDensityHandler(static_cast<int>(nLines),
-                                                 mTimeFrameGPU->getLineProjSortedSoA(),
-                                                 mTimeFrameGPU->getDeviceRofLineOffsets(),
-                                                 mTimeFrameGPU->getDeviceLineDensityFine(),
-                                                 mTimeFrameGPU->getDeviceLineWinFine(),
-                                                 fineZWindow,
-                                                 mTimeFrameGPU->getStream(0));
-  }
 
   TrackingKernels<NLayers>::findPeaksHandler(nLines,
                                              mTimeFrameGPU->getNrof(1),
                                              mTimeFrameGPU->getLineProjSortedSoA(),
                                              mTimeFrameGPU->getDeviceRofLineOffsets(),
                                              mTimeFrameGPU->getDeviceLineDensity(),
-                                             mTimeFrameGPU->getDeviceLineWin(),
+                                             mTimeFrameGPU->getDeviceLineWinPeak(),
+                                             mTimeFrameGPU->getDeviceLineHalfWidth(),
                                              mTimeFrameGPU->getDeviceLineIsPeak(),
-                                             doFine ? mTimeFrameGPU->getDeviceLineDensityFine() : nullptr,
-                                             doFine ? mTimeFrameGPU->getDeviceLineWinFine() : nullptr,
-                                             tp.VtxFineMinDensity,
-                                             doFine ? mTimeFrameGPU->getDeviceLineIsPeakFine() : nullptr,
                                              mTimeFrameGPU->getDevicePeakScan(),
                                              mTimeFrameGPU->getDevicePeakLineIdx(),
                                              mTimeFrameGPU->getDevicePeakOffsets(),
@@ -329,7 +320,8 @@ void TrackerTraitsGPU<NLayers>::computeVertexCandidates(const int iteration)
   const float goodLinePtCut = std::abs(mTimeFrameGPU->getBz()) > 0.01f ? tp.VtxGoodLinePtCut : -1.f;
   TrackingKernels<NLayers>::fitPeaksHandler(mTimeFrameGPU->getDeviceNPeaks(),
                                             mTimeFrameGPU->getDevicePeakLineIdx(),
-                                            mTimeFrameGPU->getDeviceLineWin(),
+                                            mTimeFrameGPU->getDeviceLineWin(), // members from +-zWindow
+                                            mTimeFrameGPU->getDeviceLineWinSeed(),
                                             mTimeFrameGPU->getLineProjSortedSoA(),
                                             mTimeFrameGPU->getDeviceLines(),
                                             mTimeFrameGPU->getDeviceLineChi2(),
@@ -341,8 +333,6 @@ void TrackerTraitsGPU<NLayers>::computeVertexCandidates(const int iteration)
                                             tp.VtxClusterContributorsCut,
                                             mTimeFrameGPU->getBeamX(),
                                             mTimeFrameGPU->getBeamY(),
-                                            doFine ? mTimeFrameGPU->getDeviceLineIsPeakFine() : nullptr,
-                                            tp.VtxFineMaxDrift,
                                             mTimeFrameGPU->getDeviceVertexCands(),
                                             mTimeFrameGPU->getStream(0));
 
@@ -448,7 +438,7 @@ void TrackerTraitsGPU<NLayers>::computeVertices(const int iteration)
     double rofLoad = 0.;
     if (goodSig > 0.f) { // compute the number of contributors in this ROF
       for (int p = peakOffsets[rofId]; p < peakOffsets[rofId + 1]; ++p) {
-        if (cands[p].ok && !cands[p].fine) {
+        if (cands[p].ok) {
           rofLoad += cands[p].size;
         }
       }
@@ -703,7 +693,6 @@ void TrackerTraitsGPU<NLayers>::findRoads(const int iteration)
                                                                mTimeFrameGPU->getDeviceROFrameClusters(),
                                                                mTimeFrameGPU->getDeviceTrackITSExt(),
                                                                mTimeFrameGPU->getDeviceTrackIndices(),
-                                                               mTimeFrameGPU->getDeviceTrackSeedIndices(),
                                                                mTimeFrameGPU->getDeviceTrackCounter(),
                                                                capacity,
                                                                extendTracks ? mTimeFrameGPU->getDeviceActiveTrackExtensionHypotheses() : nullptr,

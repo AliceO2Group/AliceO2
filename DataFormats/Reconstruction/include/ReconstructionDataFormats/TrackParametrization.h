@@ -159,9 +159,9 @@ class TrackParametrization
   GPUd() void set(value_t x, value_t alpha, const params_t& par, int charge = 1, const PID pid = PID::Pion);
   GPUd() void set(value_t x, value_t alpha, const value_t* par, int charge = 1, const PID pid = PID::Pion);
   GPUd() const value_t* getParams() const;
-  GPUd() value_t getParam(int i) const;
-  GPUd() value_t getX() const;
-  GPUd() value_t getAlpha() const;
+  GPUhd() value_t getParam(int i) const;
+  GPUhd() value_t getX() const;
+  GPUhd() value_t getAlpha() const;
   GPUd() value_t getY() const;
   GPUd() value_t getZ() const;
   GPUd() value_t getSnp() const;
@@ -330,21 +330,21 @@ GPUdi() auto TrackParametrization<value_T>::getParams() const -> const value_t*
 
 //____________________________________________________________
 template <typename value_T>
-GPUdi() auto TrackParametrization<value_T>::getParam(int i) const -> value_t
+GPUhdi() auto TrackParametrization<value_T>::getParam(int i) const -> value_t
 {
   return mP[i];
 }
 
 //____________________________________________________________
 template <typename value_T>
-GPUdi() auto TrackParametrization<value_T>::getX() const -> value_t
+GPUhdi() auto TrackParametrization<value_T>::getX() const -> value_t
 {
   return mX;
 }
 
 //____________________________________________________________
 template <typename value_T>
-GPUdi() auto TrackParametrization<value_T>::getAlpha() const -> value_t
+GPUhdi() auto TrackParametrization<value_T>::getAlpha() const -> value_t
 {
   return mAlpha;
 }

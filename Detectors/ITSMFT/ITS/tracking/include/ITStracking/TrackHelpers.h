@@ -40,6 +40,29 @@ GPUhdi() bool isBetter(const auto& a, const auto& b)
   return isBetter(a.getNumberOfClusters(), a.getChi2(), b.getNumberOfClusters(), b.getChi2());
 }
 
+/// isBetter made a total order: exact ties (same clusters count and chi2) are broken by the cluster indices, then the
+/// parameters, so the order and the cluster sharing do not depend on threads or on the device
+GPUhdi() bool isBetterOrdered(const TrackITSExt& a, const TrackITSExt& b)
+{
+  if (isBetter(a, b)) {
+    return true;
+  }
+  if (isBetter(b, a)) {
+    return false;
+  }
+  for (int i = 0; i < TrackITSExt::MaxClusters; ++i) {
+    if (a.getClusterIndex(i) != b.getClusterIndex(i)) {
+      return a.getClusterIndex(i) < b.getClusterIndex(i);
+    }
+  }
+  for (int i = 0; i < 5; ++i) {
+    if (a.getParam(i) != b.getParam(i)) {
+      return a.getParam(i) < b.getParam(i);
+    }
+  }
+  return a.getX() != b.getX() ? a.getX() < b.getX() : a.getAlpha() < b.getAlpha();
+}
+
 template <int NLayers>
 struct TrackSeedSelector {
   float maxQ2Pt;

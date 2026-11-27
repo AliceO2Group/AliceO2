@@ -42,13 +42,12 @@ struct VertexerParamConfig : public o2::conf::ConfigurableParamHelper<VertexerPa
   float maxZPositionAllowed = 25.f; // 4x sZ of the beam
 
   // Artefacts selections
-  int clusterContributorsCut = 2;  // minimum number of contributors for an accepted final vertex
-  int suppressLowMultDebris = 16;  // suppress all vertices below this threshold if a vertex was already found in a rof
-  float lineMinPt = 0.10f;         // drop soft lines before the density scan
-  float lineCurvatureScale = 0.5f; // q/pT scale when propagating a seeding line to its xy-DCA to the beam
-  float fineZWindow = 0.010f;      // second, narrow density pass (dip search); <=0 disables
-  int fineMinDensity = 8;
-  float fineMaxDrift = 0.005f; // |z_fit - z_seed| cap on fine-only candidates; <=0 disables
+  int clusterContributorsCut = 2;     // minimum number of contributors for an accepted final vertex
+  int suppressLowMultDebris = 16;     // suppress all vertices below this threshold if a vertex was already found in a rof
+  float lineMinPt = 0.10f;            // drop soft lines before the density scan
+  float lineCurvatureScale = 0.5f;    // q/pT scale when propagating a seeding line to its xy-DCA to the beam
+  float adaptiveZWindowAlpha = 0.3f;  // z window per line: h = (clusterCut/2) (n/4)^-adaptiveZWindowAlpha where n is the number of time-compatible lines within +-clusterCut/2
+  float adaptiveZWindowMin = 0.0075f; // z windows is clamped to [adaptiveZWindowMin, clusterCut/2]
   float goodLineChi2Cut = 5.f;
   float goodLinePtCut = 0.5f;
   float goodContributorsSignificance = 0.070f; // emit threshold k, scaled by sqrt(ROF load) and clamped to [constants::VtxMinGoodThreshold (2), suppressLowMultDebris], bounds included; <=0 disables

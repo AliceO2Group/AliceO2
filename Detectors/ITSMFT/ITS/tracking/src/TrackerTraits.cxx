@@ -245,6 +245,9 @@ void TrackerTraits<NLayers>::computeLayerTracklets(const int iteration, int iVer
     const bool trackletsAlreadyGrouped = seedingPass && mTaskArena->max_concurrency() > 1;
     tbb::parallel_for(0, static_cast<int>(topology.nLinks), [&](const int linkId) {
       if (trackletsAlreadyGrouped) {
+#ifdef GPUCA_DETERMINISTIC_MODE // the grouped emit keeps the search order within a cluster: sort it as with one thread
+        tbb::parallel_sort(mTimeFrame->getTracklets()[linkId].begin(), mTimeFrame->getTracklets()[linkId].end());
+#endif
         return;
       }
       /// Sort tracklets & remove duplicates
@@ -425,34 +428,18 @@ namespace
 void computeDensities(const bounded_vector<float>& Z,
                       const bounded_vector<TimeEstBC>& T,
                       const float zWindow,
-                      const float fineZWindow,
+                      const float alpha,
+                      const float hMin,
                       std::pmr::memory_resource* pool,
                       bounded_vector<LineWindow>& win,
+                      bounded_vector<LineWindow>& winPeak,
                       bounded_vector<int>& density,
-                      bounded_vector<LineWindow>& winFine,
-                      bounded_vector<int>& densityFine)
+                      bounded_vector<float>& halfWidth,
+                      bounded_vector<LineWindow>& winSeed)
 {
   const int m = static_cast<int>(Z.size());
-  // Z is sorted, so the window bounds advance monotonically with k
-  int lo{0}, hi{0}, loF{0}, hiF{0};
-  for (int k = 0; k < m; ++k) {
-    const float zk = Z[k];
-    while (lo < m && Z[lo] < zk - zWindow) {
-      ++lo;
-    }
-    while (hi < m && Z[hi] <= zk + zWindow) {
-      ++hi;
-    }
-    while (loF < m && Z[loF] < zk - fineZWindow) {
-      ++loF;
-    }
-    while (hiF < m && Z[hiF] <= zk + fineZWindow) {
-      ++hiF;
-    }
-    win[k] = LineWindow{lo, hi};
-    winFine[k] = LineWindow{loF, hiF};
-  }
-
+  // Lines with the same time interval form a bucket, z-sorted, so counting the compatible lines in a z range
+  // takes one binary search per compatible bucket instead of a scan of the window.
   bounded_vector<int> byTime(m, pool);
   std::iota(byTime.begin(), byTime.end(), 0);
   std::sort(byTime.begin(), byTime.end(), [&](const int a, const int b) {
@@ -469,46 +456,68 @@ void computeDensities(const bounded_vector<float>& Z,
     }
   }
   bucketStart.push_back(m);
-
-  // How many values of the sorted range [first, last) lie in [lo, hi]
-  const auto countBetween = [](auto first, auto last, auto lo, auto hi) { return static_cast<int>(std::upper_bound(first, last, hi) - std::lower_bound(first, last, lo)); };
+  const auto count = [&](const int k, const float h) {
+    int n{0};
+    for (size_t b = 0; b + 1 < bucketStart.size(); ++b) {
+      if (T[k].isCompatible(T[byTime[bucketStart[b]]])) {
+        const auto first = zByTime.cbegin() + bucketStart[b], last = zByTime.cbegin() + bucketStart[b + 1];
+        n += static_cast<int>(std::upper_bound(first, last, Z[k] + h) - std::lower_bound(first, last, Z[k] - h));
+      }
+    }
+    return n;
+  };
+  const auto bounds = [&](const int k, const float h) {
+    return LineWindow{static_cast<int>(std::lower_bound(Z.begin(), Z.end(), Z[k] - h) - Z.begin()),
+                      static_cast<int>(std::upper_bound(Z.begin(), Z.end(), Z[k] + h) - Z.begin())};
+  };
 
   for (int k = 0; k < m; ++k) {
-    const float zk = Z[k];
-    int count{0}, countFine{0};
-    for (size_t b = 0; b + 1 < bucketStart.size(); ++b) {
-      if (!T[k].isCompatible(T[byTime[bucketStart[b]]])) {
-        continue;
-      }
-      const auto first = zByTime.cbegin() + bucketStart[b], last = zByTime.cbegin() + bucketStart[b + 1];
-      count += countBetween(first, last, zk - zWindow, zk + zWindow);
-      countFine += countBetween(first, last, zk - fineZWindow, zk + fineZWindow);
-    }
-    density[k] = count;
-    densityFine[k] = countFine;
+    const float h = computeAdaptiveZWindow(count(k, zWindow), alpha, hMin, zWindow);
+    halfWidth[k] = h;
+    density[k] = count(k, h);
+    win[k] = bounds(k, zWindow);
+    winPeak[k] = bounds(k, h);
+    winSeed[k] = bounds(k, std::min(AdaptiveSeedWindowScale * h, zWindow));
   }
 }
 
-void markLeftmostMaxima(const bounded_vector<int>& density,
-                        const bounded_vector<LineWindow>& win,
-                        std::pmr::memory_resource* pool,
-                        bounded_vector<uint8_t>& isMax)
+// Line k is a peak if density[k] >= 2 and no line in its own window has a higher density/halfWidth
+void markPeaks(const bounded_vector<int>& density,
+               const bounded_vector<float>& halfWidth,
+               const bounded_vector<float>& Z,
+               const bounded_vector<LineWindow>& winPeak,
+               std::pmr::memory_resource* pool,
+               bounded_vector<uint8_t>& isPeak)
 {
-  const int m = static_cast<int>(density.size());
-  // Monotonic deque over the (monotonically advancing) windowsDetectors/ITSMFT/ITS/tracking/src/TrackingInterface.cxx
-  bounded_vector<int> maxDeque(m, pool);
-  int front{0}, back{0}, next{0};
+  const int m = static_cast<int>(Z.size());
+  const auto best = [&](const int a, const int b) {
+    return isDenser(density[b], halfWidth[b], Z[b], density[a], halfWidth[a], Z[a]) ? b : a;
+  };
+  int nLevels = 1;
+  while ((1 << nLevels) <= m) {
+    ++nLevels;
+  }
+  // sparse[j * m + i] = best line in [i, i + 2^j)
+  bounded_vector<int> sparse(static_cast<size_t>(nLevels) * m, pool);
+  std::iota(sparse.begin(), sparse.begin() + m, 0);
+  for (int j = 1; j < nLevels; ++j) {
+    const int half = 1 << (j - 1);
+    for (int i = 0; i + (1 << j) <= m; ++i) {
+      sparse[j * m + i] = best(sparse[(j - 1) * m + i], sparse[(j - 1) * m + i + half]);
+    }
+  }
   for (int k = 0; k < m; ++k) {
-    while (next < win[k].hi) {
-      while (back > front && density[maxDeque[back - 1]] < density[next]) {
-        --back;
-      }
-      maxDeque[back++] = next++;
+    isPeak[k] = 0;
+    if (density[k] < 2) {
+      continue;
     }
-    while (front < back && maxDeque[front] < win[k].lo) {
-      ++front;
+    const int lo = winPeak[k].lo, hi = winPeak[k].hi; // always contains k
+    int j = 0;
+    while ((2 << j) <= hi - lo) {
+      ++j;
     }
-    isMax[k] = maxDeque[front] == k; // the window always contains k itself, so the deque is non-empty
+    const int top = best(sparse[j * m + lo], sparse[j * m + hi - (1 << j)]);
+    isPeak[k] = !isDenser(density[top], halfWidth[top], Z[top], density[k], halfWidth[k], Z[k]);
   }
 }
 } // namespace
@@ -551,7 +560,6 @@ void TrackerTraits<NLayers>::computeVertices(const int iteration)
   const float beamX = mTimeFrame->getBeamX();
   const float beamY = mTimeFrame->getBeamY();
   const auto& tp = mTrkParams[iteration];
-  const float maxZ = tp.VtxMaxZPositionAllowed;
   const float clusterCut = tp.VtxClusterCut;
   const float pairCut2 = tp.VtxPairCut * tp.VtxPairCut;
   const float zWindow = 0.5f * clusterCut;
@@ -561,10 +569,8 @@ void TrackerTraits<NLayers>::computeVertices(const int iteration)
                                 : std::max(4.f * tp.VtxPairCut, 0.5f * clusterCut);
   const int minContributors = tp.VtxClusterContributorsCut;
   const int suppressLowMultDebris = tp.VtxSuppressLowMultDebris;
-  const bool doFine = tp.VtxFineZWindow > 0.f && tp.VtxFineZWindow < zWindow;
-  const float fineZWindow = doFine ? tp.VtxFineZWindow : zWindow;
-  const int fineMinDensity = tp.VtxFineMinDensity;
-  const float fineMaxDrift = tp.VtxFineMaxDrift;
+  const float zWindowAlpha = tp.VtxAdaptiveZWindowAlpha;
+  const float zWindowMin = std::min(tp.VtxAdaptiveZWindowMin, zWindow);
   const float goodSig = tp.VtxGoodContributorsSignificance;
   const float duplicateZScale = tp.VtxDuplicateZScale;
   const float goodLineChi2Cut = tp.VtxGoodLineChi2Cut;
@@ -579,69 +585,40 @@ void TrackerTraits<NLayers>::computeVertices(const int iteration)
     if (n < 2) {
       return;
     }
-    const auto lineSpan = gsl::span<const Line>(lines.data(), lines.size());
 
-    // project every line onto the beam line
-    bounded_vector<float> zc(mMemoryPool.get());
-    bounded_vector<TimeEstBC> tc(mMemoryPool.get());
-    bounded_vector<int> lic(mMemoryPool.get());
-    zc.reserve(n);
-    tc.reserve(n);
-    lic.reserve(n);
+    // project every line onto the beam line, as linearizeCellsKernel (the |z| < maxZ cut was applied per cell)
+    bounded_vector<float> zc(n, mMemoryPool.get());
     for (int i = 0; i < n; ++i) {
-      const auto& line = lines[i];
-      float z;
-      if (!Line::getZAtBeam(line, beamX, beamY, z)) {
-        continue;
+      if (!Line::getZAtBeam(lines[i], beamX, beamY, zc[i])) {
+        zc[i] = lines[i].originPoint[2];
       }
-      if (!(o2::gpu::CAMath::Abs(z) < maxZ)) {
-        continue;
-      }
-      zc.push_back(z);
-      tc.push_back(line.mTime);
-      lic.push_back(i);
-    }
-    const int m = static_cast<int>(zc.size());
-    if (m < 2) {
-      return;
     }
 
-    // sort by z
-    bounded_vector<int> order(m, mMemoryPool.get());
-    std::iota(order.begin(), order.end(), 0);
-    std::sort(order.begin(), order.end(), [&](const int a, const int b) { return zc[a] < zc[b]; });
-    bounded_vector<float> Z(m, mMemoryPool.get());
-    bounded_vector<TimeEstBC> T(m, mMemoryPool.get());
-    bounded_vector<int> LI(m, mMemoryPool.get());
-    for (int i = 0; i < m; ++i) {
-      Z[i] = zc[order[i]];
-      T[i] = tc[order[i]];
-      LI[i] = lic[order[i]];
+    // sort by z, ties by line index as RofZLess
+    bounded_vector<int> LI(n, mMemoryPool.get());
+    std::iota(LI.begin(), LI.end(), 0);
+    std::sort(LI.begin(), LI.end(), [&](const int a, const int b) { return zc[a] != zc[b] ? zc[a] < zc[b] : a < b; });
+    bounded_vector<float> Z(n, mMemoryPool.get());
+    bounded_vector<TimeEstBC> T(n, mMemoryPool.get());
+    for (int i = 0; i < n; ++i) {
+      Z[i] = zc[LI[i]];
+      T[i] = lines[LI[i]].mTime;
     }
 
-    // density of time-compatible neighbours in a z window
-    bounded_vector<int> density(m, mMemoryPool.get());
-    bounded_vector<LineWindow> win(m, mMemoryPool.get());
-    bounded_vector<int> densityFine(m, mMemoryPool.get());
-    bounded_vector<LineWindow> winFine(m, mMemoryPool.get());
-    computeDensities(Z, T, zWindow, fineZWindow, mMemoryPool.get(), win, density, winFine, densityFine);
+    // every line gets its own z window, sized by the density of time-compatible lines around it
+    bounded_vector<LineWindow> win(n, mMemoryPool.get());     // +-zWindow: where the members are collected
+    bounded_vector<LineWindow> winPeak(n, mMemoryPool.get()); // +-h: the peak search
+    bounded_vector<LineWindow> winSeed(n, mMemoryPool.get()); // +-2h: the seed fit
+    bounded_vector<int> density(n, mMemoryPool.get());        // time-compatible lines in +-h
+    bounded_vector<float> halfWidth(n, mMemoryPool.get());    // h
+    computeDensities(Z, T, zWindow, zWindowAlpha, zWindowMin, mMemoryPool.get(), win, winPeak, density, halfWidth, winSeed);
 
-    // peaks: leftmost density maxima
-    bounded_vector<uint8_t> isMax(m, mMemoryPool.get());
-    markLeftmostMaxima(density, win, mMemoryPool.get(), isMax);
-    bounded_vector<uint8_t> isMaxFine(doFine ? m : 0, mMemoryPool.get());
-    if (doFine) {
-      markLeftmostMaxima(densityFine, winFine, mMemoryPool.get(), isMaxFine);
-    }
+    // peaks: lines with the highest density per unit length in their own window
+    bounded_vector<uint8_t> isPeak(n, mMemoryPool.get());
+    markPeaks(density, halfWidth, Z, winPeak, mMemoryPool.get(), isPeak);
     bounded_vector<int> peaks(mMemoryPool.get());
-    bounded_vector<uint8_t> isPeakFine(m, 0, mMemoryPool.get());
-    for (int k = 0; k < m; ++k) {
-      bool peak = density[k] >= 2 && isMax[k];
-      if (!peak && doFine && densityFine[k] >= fineMinDensity && isMaxFine[k]) {
-        peak = true;
-        isPeakFine[k] = 1;
-      }
-      if (peak) {
+    for (int k = 0; k < n; ++k) {
+      if (isPeak[k]) {
         peaks.push_back(k);
       }
     }
@@ -650,38 +627,35 @@ void TrackerTraits<NLayers>::computeVertices(const int iteration)
       return;
     }
 
-    // one candidate per peak: seed fit over the window, prune outliers, refit, apply the cuts
-    bounded_vector<ClusterLines> cand(np, mMemoryPool.get());
+    // one candidate per peak: seed fit over the window, prune outliers, refit, apply the cuts. LaneFit sums the lines
+    // like fitPeaksKernel (lane = offset in the window), so CPU and GPU candidates are bit-identical
+    bounded_vector<LineFit> cand(np, mMemoryPool.get());
     bounded_vector<uint8_t> ok(np, mMemoryPool.get());
     bounded_vector<int> nGoodCand(np, 0, mMemoryPool.get());
-    bounded_vector<uint8_t> fineCand(np, 0, mMemoryPool.get());
     bounded_vector<bounded_vector<int>> candMembers(withMC ? np : 0, bounded_vector<int>(mMemoryPool.get()), mMemoryPool.get());
     const auto& linesQuality = mTimeFrame->getLinesQuality(rofId);
     const int nQual = static_cast<int>(linesQuality.size());
     for (int p = 0; p < np; p++) {
       const int k = peaks[p];
-      fineCand[p] = isPeakFine[k];
-      bounded_vector<int> members(mMemoryPool.get());
-      members.reserve(density[k]);
-      for (int j = win[k].lo; j < win[k].hi; ++j) {
+      // the seed is fitted on the narrower seed window (inside +-zWindow, so 2 seed lines imply 2 members)
+      LaneFit<> seed;
+      int nSeedLines = 0;
+      for (int j = winSeed[k].lo; j < winSeed[k].hi; ++j) {
         if (T[k].isCompatible(T[j])) {
-          members.push_back(LI[j]);
+          seed.add(lines[LI[j]], j - winSeed[k].lo);
+          ++nSeedLines;
         }
       }
-      if (members.size() < 2) {
+      seed.reduce();
+      seed.computeClusterCentroid();
+      if (nSeedLines < 2 || !seed.isValid()) {
         ok[p] = 0;
         continue;
       }
-      ClusterLines seed{gsl::span<const int>{members.data(), members.size()}, lineSpan};
-      if (!seed.isValid()) {
-        ok[p] = 0;
-        continue;
-      }
-      bounded_vector<int> kept(mMemoryPool.get());
-      kept.reserve(members.size());
-      for (const int idx : members) {
-        if (Line::getDistance2FromPoint(lines[idx], seed.getVertex()) < pairCut2) {
-          kept.push_back(idx);
+      bounded_vector<int> kept(mMemoryPool.get()); // z-sorted positions; the line is LI[j], its lane slot j - win[k].lo
+      for (int j = win[k].lo; j < win[k].hi; ++j) {
+        if (T[k].isCompatible(T[j]) && Line::getDistance2FromPoint(lines[LI[j]], seed.getVertex()) < pairCut2) {
+          kept.push_back(j);
         }
       }
       if (kept.size() < 2) {
@@ -692,7 +666,8 @@ void TrackerTraits<NLayers>::computeVertices(const int iteration)
       if (nQual == 0) {
         nGood = static_cast<int>(kept.size());
       } else {
-        for (const int idx : kept) {
+        for (const int j : kept) {
+          const int idx = LI[j];
           const float chi2 = idx < nQual ? linesQuality[idx].chi2 : -1.f;
           const float pt = idx < nQual ? linesQuality[idx].pt : -1.f;
           const bool okChi2 = goodLineChi2Cut <= 0.f || chi2 <= goodLineChi2Cut;
@@ -701,20 +676,31 @@ void TrackerTraits<NLayers>::computeVertices(const int iteration)
         }
       }
       nGoodCand[p] = nGood;
-      ClusterLines fit{gsl::span<const int>{kept.data(), kept.size()}, lineSpan};
+      LaneFit<> fit;
+      for (const int j : kept) {
+        fit.add(lines[LI[j]], j - win[k].lo);
+      }
+      fit.reduce();
+      fit.computeClusterCentroid();
+      if (!fit.isValid()) {
+        ok[p] = 0;
+        continue;
+      }
       const float bd2 = (beamX - fit.getVertex()[0]) * (beamX - fit.getVertex()[0]) +
                         (beamY - fit.getVertex()[1]) * (beamY - fit.getVertex()[1]);
-      if (!fit.isValid() || static_cast<int>(fit.getSize()) < minContributors || !(bd2 < nSigmaCut)) {
+      if (static_cast<int>(fit.getSize()) < minContributors || !(bd2 < nSigmaCut)) {
         ok[p] = 0;
         continue;
       }
-      if (fineMaxDrift > 0.f && fineCand[p] && std::abs(fit.getVertex()[2] - seed.getVertex()[2]) > fineMaxDrift) {
-        ok[p] = 0;
-        continue;
+      for (const int j : kept) {
+        fit.addResidual(lines[LI[j]], fit.getVertex(), j - win[k].lo);
       }
-      cand[p] = std::move(fit);
+      fit.reduceResiduals(static_cast<int>(kept.size()));
+      cand[p] = fit;
       if (withMC) {
-        candMembers[p] = std::move(kept);
+        for (const int j : kept) {
+          candMembers[p].push_back(LI[j]);
+        }
       }
       ok[p] = 1;
     }
@@ -761,7 +747,7 @@ void TrackerTraits<NLayers>::computeVertices(const int iteration)
     double rofLoad = 0.;
     if (goodSig > 0.f) {
       for (int p = 0; p < np; ++p) {
-        if (ok[p] && !fineCand[p]) {
+        if (ok[p]) {
           rofLoad += cand[p].getSize();
         }
       }
@@ -1547,7 +1533,7 @@ void TrackerTraits<NLayers>::findRoads(const int iteration)
     bounded_vector<int> trackIndices(tracks.size(), mMemoryPool.get());
     std::iota(trackIndices.begin(), trackIndices.end(), 0);
     std::sort(trackIndices.begin(), trackIndices.end(), [&tracks](int a, int b) {
-      return track::isBetter(tracks[a], tracks[b]);
+      return track::isBetterOrdered(tracks[a], tracks[b]);
     });
 
     acceptTracks(iteration, tracks, trackIndices, firstClusters);

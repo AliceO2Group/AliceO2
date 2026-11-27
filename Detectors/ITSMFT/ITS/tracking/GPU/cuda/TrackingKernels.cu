@@ -72,17 +72,10 @@ namespace gpu
 
 struct compare_track_index_chi2 {
   const TrackITSExt* tracks;
-  const int* seedIndices;
 
   GPUhd() bool operator()(const int a, const int b) const
   {
-    if (o2::its::track::isBetter(tracks[a], tracks[b])) {
-      return true;
-    }
-    if (o2::its::track::isBetter(tracks[b], tracks[a])) {
-      return false;
-    }
-    return seedIndices[a] < seedIndices[b];
+    return o2::its::track::isBetterOrdered(tracks[a], tracks[b]);
   }
 };
 
@@ -119,7 +112,6 @@ GPUg() void __launch_bounds__(GPUThreads, (ExtendTracks ? MinBlocks.fitTrackSeed
   const int** clustersIndexTables,
   const int** ROFClusters,
   o2::its::TrackITSExt* tracks,
-  int* trackSeedIndices,
   int* outputCounter,
   const int trackCapacity,
   TrackExtensionHypothesis<NLayers>* activeHypothesesScratch,
@@ -187,7 +179,6 @@ GPUg() void __launch_bounds__(GPUThreads, (ExtendTracks ? MinBlocks.fitTrackSeed
     if (bestDiff) {
       tracks[slot].setExtendedLayerPattern<NLayers>(bestDiff);
     }
-    trackSeedIndices[slot] = iCurrentTrackSeedIndex;
   }
 }
 
@@ -721,7 +712,7 @@ GPUg() void __launch_bounds__(GPUThreads, (std::is_same_v<CurrentSeed, CellSeed>
   TrackSeed<NLayers>* updatedCellSeeds,
   int* updatedCellsIds,
   int* updatedCellTopologyIds,
-  int* updatedSourceSeeds,
+  uint64_t* updatedSortKeys, // (source seed, neighbour entry): a total order of the outputs, deterministic mode only
   int* outputCounter,
   const int outputCapacity,
   const TrackingFrameInfo** foundTrackingFrameInfo,
@@ -782,8 +773,8 @@ GPUg() void __launch_bounds__(GPUThreads, (std::is_same_v<CurrentSeed, CellSeed>
         updatedCellsIds[outputIndex] = neighbourCellId;
         updatedCellTopologyIds[outputIndex] = neighbourCellTopologyId;
         updatedCellSeeds[outputIndex] = seed;
-        if (updatedSourceSeeds != nullptr) {
-          updatedSourceSeeds[outputIndex] = static_cast<int>(iCurrentCell);
+        if (updatedSortKeys != nullptr) {
+          updatedSortKeys[outputIndex] = (static_cast<uint64_t>(iCurrentCell) << 32) | static_cast<uint32_t>(candidate.neighbourEntry);
         }
       }
     }
@@ -955,8 +946,22 @@ GPUg() void gatherSortedLinesKernel(const int nLines, LineProjSoA lineProj, Line
   }
 }
 
+// Time-compatible lines of one ROF slice with z in [zk - h, zk + h]; w receives the [lo, hi) slot bounds
+GPUdi() int countCompatibleInZWindow(const float* z, const o2::its::TimeEstBC* t, const int rofOffset, const int nextRofOffset, const float zk, const o2::its::TimeEstBC ti, const float h, LineWindow& w)
+{
+  w.lo = deviceLowerBound(z, rofOffset, nextRofOffset, zk - h); // first line with z >= zk - h
+  w.hi = deviceUpperBound(z, rofOffset, nextRofOffset, zk + h); // first line with z  > zk + h
+  int count = 0;
+  for (int j = w.lo; j < w.hi; ++j) {
+    count += ti.isCompatible(t[j]); // includes self
+  }
+  return count;
+}
+
 template <int NLayers>
-GPUg() void scanDensityKernel(int* zDensity, LineWindow* win, const int nLines, const int* offsets, const LineProjSoA lineProjSorted, const float zWindow)
+GPUg() void scanDensityKernel(LineWindow* win, LineWindow* winPeak, int* density, float* halfWidth, LineWindow* winSeed,
+                              const int nLines, const int* offsets, const LineProjSoA lineProjSorted,
+                              const float zWindow, const float alpha, const float hMin)
 {
   const float* z = lineProjSorted.z;
   const o2::its::TimeEstBC* t = lineProjSorted.t;
@@ -966,18 +971,17 @@ GPUg() void scanDensityKernel(int* zDensity, LineWindow* win, const int nLines, 
     const int rofOffset = offsets[rofId];
     const int nextRofOffset = offsets[rofId + 1];
     const float zk = z[iLine];
-    const int lo = deviceLowerBound(z, rofOffset, nextRofOffset, zk - zWindow); // first line with z >= zk - zWindow
-    const int hi = deviceUpperBound(z, rofOffset, nextRofOffset, zk + zWindow); // first line with z  > zk + zWindow
-    win[iLine] = LineWindow{lo, hi};
     const auto ti = t[iLine];
-    int count = 0;
-    for (int j = lo; j < hi; ++j) {
-      const auto tj = t[j];
-      if (ti.isCompatible(tj)) { // count only if time compatible (includes self)
-        ++count;
-      }
-    }
-    zDensity[iLine] = count;
+    LineWindow w;
+    const int n = countCompatibleInZWindow(z, t, rofOffset, nextRofOffset, zk, ti, zWindow, w);
+    win[iLine] = w;
+    const float h = o2::its::computeAdaptiveZWindow(n, alpha, hMin, zWindow);
+    density[iLine] = countCompatibleInZWindow(z, t, rofOffset, nextRofOffset, zk, ti, h, w);
+    winPeak[iLine] = w;
+    halfWidth[iLine] = h;
+    const float hSeed = o2::gpu::CAMath::Min(o2::its::AdaptiveSeedWindowScale * h, zWindow);
+    winSeed[iLine] = LineWindow{deviceLowerBound(z, rofOffset, nextRofOffset, zk - hSeed),
+                                deviceUpperBound(z, rofOffset, nextRofOffset, zk + hSeed)};
   }
 }
 
@@ -985,6 +989,7 @@ template <int NLayers>
 GPUg() void fitPeaksKernel(const int* nPeaksDevice,
                            const int* peakLineIdx,
                            const gpu::LineWindow* win,
+                           const gpu::LineWindow* seedWin, // per line: the narrower window the seed is fitted on
                            const LineProjSoA lineProjSorted,
                            const o2::its::Line* lines,
                            const float* lineChi2,       // global-indexed, same indexing as lines[]
@@ -996,8 +1001,6 @@ GPUg() void fitPeaksKernel(const int* nPeaksDevice,
                            const int minContributors,
                            const float beamX,
                            const float beamY,
-                           const uint8_t* isZPeakFine, // null when the fine pass is off
-                           const float fineMaxDrift,   // <= 0 disables; see VertexerParamConfig::fineMaxDrift
                            VertexCand* cands)
 {
   const int nPeaks = *nPeaksDevice;
@@ -1011,13 +1014,13 @@ GPUg() void fitPeaksKernel(const int* nPeaksDevice,
     if (lane == 0) {
       cands[iPeak].ok = 0;
       cands[iPeak].nGood = 0;
-      cands[iPeak].fine = isZPeakFine != nullptr ? isZPeakFine[k] : 0;
     }
     const auto tk = t[k];
     const LineWindow wk = win[k];
+    const LineWindow ws = seedWin[k];
     int nMembers = 0;
     WarpFit seed;
-    for (int iLine = wk.lo + lane; iLine < wk.hi; iLine += gpu::WarpSize) {
+    for (int iLine = ws.lo + lane; iLine < ws.hi; iLine += gpu::WarpSize) {
       const auto tj = t[iLine];
       if (!tk.isCompatible(tj)) {
         continue;
@@ -1072,10 +1075,6 @@ GPUg() void fitPeaksKernel(const int* nPeaksDevice,
     if (fit.getNContributors() < minContributors || !(bd2 < nSigmaCut)) {
       continue;
     }
-    if (fineMaxDrift > 0.f && (isZPeakFine != nullptr ? isZPeakFine[k] : 0) &&
-        o2::gpu::GPUCommonMath::Abs(vertex[2] - seedVertex[2]) > fineMaxDrift) {
-      continue;
-    }
 
     for (int iLine = wk.lo + lane; iLine < wk.hi; iLine += gpu::WarpSize) {
       const auto tj = t[iLine];
@@ -1106,14 +1105,13 @@ GPUg() void fitPeaksKernel(const int* nPeaksDevice,
   }
 }
 
-// Strict local maximum of the density over a line's own z-window, ties broken by smaller z
-GPUdi() bool isDensityPeak(const int* density, const float* z, const LineWindow w, const int iLine)
+GPUdi() bool isDensityPeak(const int* density, const float* halfWidth, const float* z, const LineWindow w, const int iLine)
 {
   const int di = density[iLine];
+  const float hi = halfWidth[iLine];
   const float zi = z[iLine];
   for (int j = w.lo; j < w.hi; ++j) {
-    const int dj = density[j];
-    if (dj > di || (dj == di && z[j] < zi)) {
+    if (o2::its::isDenser(density[j], halfWidth[j], z[j], di, hi, zi)) {
       return false;
     }
   }
@@ -1121,24 +1119,12 @@ GPUdi() bool isDensityPeak(const int* density, const float* z, const LineWindow 
 }
 
 template <int NLayers>
-GPUg() void findPeaksKernel(const int* zDensity, const LineWindow* win, const int nLines, const LineProjSoA lineProjSorted, uint8_t* isZPeak,
-                            const int* zDensityFine, const LineWindow* winFine,
-                            const int fineMinDensity, uint8_t* isZPeakFine)
+GPUg() void findPeaksKernel(const int* density, const LineWindow* win, const float* halfWidth, const int nLines,
+                            const LineProjSoA lineProjSorted, uint8_t* isPeak)
 {
   const float* z = lineProjSorted.z;
   for (int iLine = blockIdx.x * blockDim.x + threadIdx.x; iLine < nLines; iLine += blockDim.x * gridDim.x) {
-    uint8_t peak = zDensity[iLine] >= 2 && isDensityPeak(zDensity, z, win[iLine], iLine);
-
-    // fine pass: if the coarse pass did not find a peak, check if the fine density is above threshold and is a peak
-    uint8_t fine = 0;
-    if (!peak && zDensityFine != nullptr) {
-      fine = zDensityFine[iLine] >= fineMinDensity && isDensityPeak(zDensityFine, z, winFine[iLine], iLine);
-      peak = fine;
-    }
-    isZPeak[iLine] = peak;
-    if (isZPeakFine != nullptr) {
-      isZPeakFine[iLine] = fine;
-    }
+    isPeak[iLine] = density[iLine] >= 2 && isDensityPeak(density, halfWidth, z, win[iLine], iLine);
   }
 }
 
@@ -1647,13 +1633,16 @@ void TrackingKernels<NLayers>::linearizeCellsToLinesHandler(const int nCells,
     linePt);
 }
 
-// Orders lines by (ROF, z): primary key the ROF, secondary the projected z within the ROF.
+// Orders lines by (ROF, z, line index): a total order, so equal z keep the line order as on the CPU
 struct RofZLess {
   const int* rof;
   const float* z;
   GPUhdi() bool operator()(const int a, const int b) const
   {
-    return rof[a] != rof[b] ? rof[a] < rof[b] : z[a] < z[b];
+    if (rof[a] != rof[b]) {
+      return rof[a] < rof[b];
+    }
+    return z[a] != z[b] ? z[a] < z[b] : a < b;
   }
 };
 
@@ -1684,15 +1673,21 @@ template <int NLayers>
 void TrackingKernels<NLayers>::scanDensityHandler(const int nLines,
                                                   const gpu::LineProjSoA sortedSoa,
                                                   const int* rofOffsets,
-                                                  int* density,
                                                   gpu::LineWindow* win,
+                                                  gpu::LineWindow* winPeak,
+                                                  int* density,
+                                                  float* halfWidth,
+                                                  gpu::LineWindow* winSeed,
                                                   const float zWindow,
+                                                  const float alpha,
+                                                  const float hMin,
                                                   gpu::Stream& stream)
 {
   if (nLines < 2) {
     return;
   }
-  gpu::scanDensityKernel<NLayers><<<gpu::gridBlocks(gpu::DefaultBlocksPerComputeUnit), gpu::GPUThreads, 0, stream.get()>>>(density, win, nLines, rofOffsets, sortedSoa, zWindow);
+  gpu::scanDensityKernel<NLayers><<<gpu::gridBlocks(gpu::DefaultBlocksPerComputeUnit), gpu::GPUThreads, 0, stream.get()>>>(
+    win, winPeak, density, halfWidth, winSeed, nLines, rofOffsets, sortedSoa, zWindow, alpha, hMin);
 }
 
 template <int NLayers>
@@ -1702,11 +1697,8 @@ void TrackingKernels<NLayers>::findPeaksHandler(const int nLines,
                                                 const int* rofOffsets,
                                                 const int* density,
                                                 const gpu::LineWindow* win,
+                                                const float* halfWidth,
                                                 uint8_t* isPeak,
-                                                const int* densityFine,
-                                                const gpu::LineWindow* winFine,
-                                                const int fineMinDensity,
-                                                uint8_t* isPeakFine,
                                                 int* peakScan,
                                                 int* peakLineIdx,
                                                 int* peakOffsets,
@@ -1716,8 +1708,7 @@ void TrackingKernels<NLayers>::findPeaksHandler(const int nLines,
   if (nLines < 2) {
     return;
   }
-  gpu::findPeaksKernel<NLayers><<<gpu::gridBlocks(gpu::DefaultBlocksPerComputeUnit), gpu::GPUThreads, 0, stream.get()>>>(density, win, nLines, sortedSoa, isPeak,
-                                                                                                                         densityFine, winFine, fineMinDensity, isPeakFine);
+  gpu::findPeaksKernel<NLayers><<<gpu::gridBlocks(gpu::DefaultBlocksPerComputeUnit), gpu::GPUThreads, 0, stream.get()>>>(density, win, halfWidth, nLines, sortedSoa, isPeak);
   auto nosync_policy = THRUST_NAMESPACE::par_nosync(gpu::TypedAllocator<char>(alloc)).on(stream.get());
   thrust::exclusive_scan(nosync_policy, isPeak, isPeak + nLines + 1, peakScan, 0, thrust::plus<int>());
   thrust::scatter_if(nosync_policy, thrust::make_counting_iterator(0), thrust::make_counting_iterator(nLines),
@@ -1729,6 +1720,7 @@ template <int NLayers>
 void TrackingKernels<NLayers>::fitPeaksHandler(const int* nPeaksDevice,
                                                const int* peakLineIdx,
                                                const gpu::LineWindow* win,
+                                               const gpu::LineWindow* seedWin,
                                                const gpu::LineProjSoA sortedSoa,
                                                const o2::its::Line* lines,
                                                const float* lineChi2,
@@ -1740,8 +1732,6 @@ void TrackingKernels<NLayers>::fitPeaksHandler(const int* nPeaksDevice,
                                                const int minContributors,
                                                const float beamX,
                                                const float beamY,
-                                               const uint8_t* isPeakFine,
-                                               const float fineMaxDrift,
                                                gpu::VertexCand* cands,
                                                gpu::Stream& stream)
 {
@@ -1753,7 +1743,7 @@ void TrackingKernels<NLayers>::fitPeaksHandler(const int* nPeaksDevice,
     LOGP(fatal, "fitPeaksKernel compiled for warp size {} but the device runs {}", gpu::WarpSize, warpSize);
   }
   gpu::fitPeaksKernel<NLayers><<<gpu::gridBlocks(gpu::DefaultBlocksPerComputeUnit), gpu::GPUThreads, 0, stream.get()>>>(
-    nPeaksDevice, peakLineIdx, win, sortedSoa, lines, lineChi2, linePt, goodLineChi2Cut, goodLinePtCut, pairCut2, nSigmaCut, minContributors, beamX, beamY, isPeakFine, fineMaxDrift, cands);
+    nPeaksDevice, peakLineIdx, win, seedWin, sortedSoa, lines, lineChi2, linePt, goodLineChi2Cut, goodLinePtCut, pairCut2, nSigmaCut, minContributors, beamX, beamY, cands);
 }
 
 template <int NLayers>
@@ -1844,6 +1834,7 @@ void TrackingKernels<NLayers>::processNeighboursHandler(const int startLevel,
   alloc->pushTagOnStack(Tag);
   auto allocInt = gpu::TypedAllocator<int>(alloc);
   auto allocTrackSeed = gpu::TypedAllocator<TrackSeed<NLayers>>(alloc);
+  auto allocKey = gpu::TypedAllocator<uint64_t>(alloc);
   auto nosync_policy = THRUST_NAMESPACE::par_nosync(gpu::TypedAllocator<char>(alloc)).on(gpu::Stream::DefaultStream);
   auto outputCounter = allocInt.allocate(1);
 
@@ -1894,7 +1885,8 @@ void TrackingKernels<NLayers>::processNeighboursHandler(const int startLevel,
     const int outIdx = filled == 0 ? 1 : 0;
     Slab& out = slabs[outIdx];
     thrust::device_ptr<TrackSeed<NLayers>> staged{};
-    thrust::device_ptr<int> stagedCellIds{}, stagedCellTopologyIds{}, sourceSeeds{};
+    thrust::device_ptr<int> stagedCellIds{}, stagedCellTopologyIds{};
+    thrust::device_ptr<uint64_t> sortKeys{};
     const int emitted = runOnSlab(
       estimator, roadKey(level), static_cast<double>(nLevelSeeds), [&](const int capacity) {
         ensureCapacity(out, capacity);
@@ -1902,7 +1894,7 @@ void TrackingKernels<NLayers>::processNeighboursHandler(const int startLevel,
         staged = allocTrackSeed.allocate(out.capacity);
         stagedCellIds = allocInt.allocate(out.capacity);
         stagedCellTopologyIds = allocInt.allocate(out.capacity);
-        sourceSeeds = allocInt.allocate(out.capacity);
+        sortKeys = allocKey.allocate(out.capacity);
 #else
         staged = out.seeds;
         stagedCellIds = out.cellIds;
@@ -1947,7 +1939,7 @@ void TrackingKernels<NLayers>::processNeighboursHandler(const int startLevel,
             thrust::raw_pointer_cast(staged),
             thrust::raw_pointer_cast(stagedCellIds),
             thrust::raw_pointer_cast(stagedCellTopologyIds),
-            thrust::raw_pointer_cast(sourceSeeds),
+            thrust::raw_pointer_cast(sortKeys),
             thrust::raw_pointer_cast(outputCounter),
             out.capacity,
             foundTrackingFrameInfo, layerxX0, bz, maxChi2ClusterAttachment, propagator, matCorrType);
@@ -1966,7 +1958,7 @@ void TrackingKernels<NLayers>::processNeighboursHandler(const int startLevel,
     if (emitted > 0) {
       auto permutation = allocInt.allocate(emitted);
       thrust::sequence(nosync_policy, permutation, permutation + emitted);
-      thrust::stable_sort_by_key(nosync_policy, sourceSeeds, sourceSeeds + emitted, permutation);
+      thrust::sort_by_key(nosync_policy, sortKeys, sortKeys + emitted, permutation);
       thrust::gather(nosync_policy, permutation, permutation + emitted, staged, out.seeds);
       thrust::gather(nosync_policy, permutation, permutation + emitted, stagedCellIds, out.cellIds);
       thrust::gather(nosync_policy, permutation, permutation + emitted, stagedCellTopologyIds, out.cellTopologyIds);
@@ -2016,7 +2008,6 @@ int TrackingKernels<NLayers>::computeTrackSeedHandler(TrackSeed<NLayers>* trackS
                                                       const int** ROFClusters,
                                                       o2::its::TrackITSExt* tracks,
                                                       int* trackIndices,
-                                                      int* trackSeedIndices,
                                                       int* outputCounter,
                                                       const int trackCapacity,
                                                       TrackExtensionHypothesis<NLayers>* activeHypotheses,
@@ -2079,7 +2070,6 @@ int TrackingKernels<NLayers>::computeTrackSeedHandler(TrackSeed<NLayers>* trackS
                                                                                           clustersIndexTables,      // int**
                                                                                           ROFClusters,              // int**
                                                                                           tracks,                   // TrackITSExt*
-                                                                                          trackSeedIndices,         // int*
                                                                                           outputCounter,            // int*
                                                                                           trackCapacity,            // const int
                                                                                           activeHypotheses,         // TrackExtensionHypothesis*
@@ -2120,7 +2110,7 @@ int TrackingKernels<NLayers>::computeTrackSeedHandler(TrackSeed<NLayers>* trackS
   auto sync_policy = THRUST_NAMESPACE::par(gpu::TypedAllocator<char>(alloc));
   thrust::device_ptr<int> trackIndicesPtr(trackIndices);
   thrust::sequence(sync_policy, trackIndicesPtr, trackIndicesPtr + emitted);
-  thrust::sort(sync_policy, trackIndicesPtr, trackIndicesPtr + emitted, gpu::compare_track_index_chi2{tracks, trackSeedIndices});
+  thrust::sort(sync_policy, trackIndicesPtr, trackIndicesPtr + emitted, gpu::compare_track_index_chi2{tracks});
 
   if (emitted > 0) {
     auto allocTrack = gpu::TypedAllocator<o2::its::TrackITSExt>(alloc);
