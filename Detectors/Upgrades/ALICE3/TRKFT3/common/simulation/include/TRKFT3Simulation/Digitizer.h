@@ -45,6 +45,7 @@ class Digitizer
   static_assert(DetID == o2::detectors::DetID::TRK || DetID == o2::detectors::DetID::FT3, "only TRK and FT3 digitizers are supported");
   using GeometryTGeo = std::conditional_t<DetID == o2::detectors::DetID::TRK, o2::trk::GeometryTGeo, o2::ft3::GeometryTGeo>;
   using ExtraDig = std::vector<trkft3::PreDigitContribution>; ///< container for extra contributions to PreDigits
+
  public:
   void setDigits(std::vector<o2::trkft3::Digit>* dig) { mDigits = dig; }
   void setMCLabels(o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mclb) { mMCLabels = mclb; }
@@ -161,10 +162,9 @@ class Digitizer
 
   static constexpr float sec2ns = 1e9;
 
-  // TMPLOG: temporary counters for the edge-detection development
-  long mTmpNBelowThr = 0, mTmpNNewDigit = 0, mTmpNMerged = 0, mTmpNMergedSameLabel = 0, mTmpNLateROF = 0; // TMPLOG
-  int mTmpMaxROFRel = 0;                                                                                  // TMPLOG
-  long mTmpNPreCharged = 0, mTmpNLEAfterEnd = 0, mTmpNSameROF = 0, mTmpNMovedROF = 0;                     // TMPLOG
+  // edge-detection statistics of the layer, printed at the final flush (LOG(debug))
+  long mNDigits = 0;
+  long mNPreCharged = 0, mNLEAfterEnd = 0, mNSameROF = 0, mNMovedROF = 0, mNDeadTime = 0;
 
   o2::trkft3::DigiParams<DetID> mParams;   ///< digitization parameters
   o2::InteractionTimeRecord mEventTime;    ///< global event time and interaction record

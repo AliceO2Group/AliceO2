@@ -60,8 +60,9 @@ class ChipDigitsContainer
 
   o2::trkft3::PreDigit* findDigit(ULong64_t key);
   void addDigit(ULong64_t key, UInt_t roframe, UShort_t row, UShort_t col, int charge, o2::MCCompLabel lbl, float toa = 0.f);
+  void addContribution(ULong64_t key, UInt_t roframe, UShort_t row, UShort_t col, int charge, o2::MCCompLabel lbl, float toa, std::vector<o2::trkft3::PreDigitContribution>& extra);
   template <int DetID>
-  void addNoise(UInt_t rofMin, UInt_t rofMax, const o2::trkft3::DigiParams<DetID>* params, int subDetID, int layer, float rofLengthNS);
+  void addNoise(UInt_t rof, const o2::trkft3::DigiParams<DetID>* params, int subDetID, int layer, float rofLengthNS, std::vector<o2::trkft3::PreDigitContribution>& extra);
 
   /// Get global ordering key made of readout frame, column and row
   static ULong64_t getOrderingKey(UInt_t roframe, UShort_t row, UShort_t col)
@@ -102,10 +103,28 @@ inline void ChipDigitsContainer::addDigit(ULong64_t key, UInt_t roframe, UShort_
   mDigits.emplace(key, o2::trkft3::PreDigit(roframe, row, col, charge, lbl, toa));
 }
 
+//_______________________________________________________________________
+inline void ChipDigitsContainer::addContribution(ULong64_t key, UInt_t roframe, UShort_t row, UShort_t col, int charge, o2::MCCompLabel lbl, float toa, std::vector<o2::trkft3::PreDigitContribution>& extra)
+{
+  // add a contribution to the pixel in the given ROF: the first one is stored in the PreDigit,
+  // the following ones at the end of its chain in the extra buffer of that ROF
+  auto* pd = findDigit(key);
+  if (!pd) {
+    addDigit(key, roframe, row, col, charge, lbl, toa);
+    return;
+  }
+  int* nxt = &pd->contrib.next; // "next" index of the last element of the chain
+  while (*nxt >= 0) {
+    nxt = &extra[*nxt].next;
+  }
+  *nxt = extra.size(); // index set before emplace_back, which may reallocate the vector
+  extra.emplace_back(lbl, toa, charge);
+}
+
 } // namespace o2::trkft3
 
 template <int DetID>
-void o2::trkft3::ChipDigitsContainer::addNoise(UInt_t rofMin, UInt_t rofMax, const o2::trkft3::DigiParams<DetID>* params, int subDetID, int layer, float rofLengthNS)
+void o2::trkft3::ChipDigitsContainer::addNoise(UInt_t rof, const o2::trkft3::DigiParams<DetID>* params, int subDetID, int layer, float rofLengthNS, std::vector<o2::trkft3::PreDigitContribution>& extra)
 {
   UInt_t row = 0;
   UInt_t col = 0;
@@ -127,24 +146,22 @@ void o2::trkft3::ChipDigitsContainer::addNoise(UInt_t rofMin, UInt_t rofMax, con
 
   LOG(debug) << "Adding noise for chip " << mChipIndex << " with mean " << mean << " and charge " << nel;
 
-  for (UInt_t rof = rofMin; rof <= rofMax; rof++) {
-    nhits = gRandom->Poisson(mean);
-    for (Int_t i = 0; i < nhits; ++i) {
-      row = gRandom->Integer(maxRows);
-      col = gRandom->Integer(maxCols);
-      LOG(debug) << "Generated noise hit at ROF " << rof << ", row " << row << ", col " << col;
-      if (mNoiseMap && mNoiseMap->isNoisy(mChipIndex, row, col)) {
-        continue;
-      }
-      if (mDeadChanMap && mDeadChanMap->isNoisy(mChipIndex, row, col)) {
-        continue;
-      }
-      auto key = getOrderingKey(rof, row, col);
-      if (!findDigit(key)) {
-        float toa = gRandom->Uniform(0.f, rofLengthNS); // noise fires uniformly in the ROF
-        addDigit(key, rof, row, col, nel, o2::MCCompLabel(true), toa);
-      }
+  nhits = gRandom->Poisson(mean);
+  for (Int_t i = 0; i < nhits; ++i) {
+    row = gRandom->Integer(maxRows);
+    col = gRandom->Integer(maxCols);
+    LOG(debug) << "Generated noise hit at ROF " << rof << ", row " << row << ", col " << col;
+    if (mNoiseMap && mNoiseMap->isNoisy(mChipIndex, row, col)) {
+      continue;
     }
+    if (mDeadChanMap && mDeadChanMap->isNoisy(mChipIndex, row, col)) {
+      continue;
+    }
+    auto key = getOrderingKey(rof, row, col);
+    // provisional noise model (to be revised with the ALMIRA noise model): noise hits are ordinary
+    // contributions with charge 1.1 x threshold, going through the same TW/ToT/pixel-state logic as particles
+    float toa = gRandom->Uniform(0.f, rofLengthNS); // noise arrives uniformly in the ROF
+    addContribution(key, rof, row, col, nel, o2::MCCompLabel(true), toa, extra);
   }
 }
 
