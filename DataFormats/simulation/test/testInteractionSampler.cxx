@@ -22,9 +22,11 @@
 #include "TGrid.h"
 #include "TRandom.h"
 #include <TH1F.h>
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <map>
+#include <set>
 #include <vector>
 
 namespace o2
@@ -88,7 +90,139 @@ double poissonMultiGivenOccupied(double mu)
   const double p0 = std::exp(-mu);
   return (1. - p0 - mu * p0) / (1. - p0);
 }
+
+// Collisions per occupied crossing of a sampler, in time order
+struct CrossingSequence {
+  std::vector<int> mult; // collisions per occupied crossing
+  int64_t slots = 0;     // colliding BCs passed over
+  std::set<float> times; // distinct collision times within the BC
+};
+
+template <typename Sampler>
+CrossingSequence sequenceOfCrossings(Sampler& sampler, int nColl)
+{
+  std::vector<o2::InteractionTimeRecord> samples;
+  samples.reserve(nColl);
+  sampler.generateCollisionTimes(samples);
+
+  const auto& filling = sampler.getBunchFilling();
+  std::vector<int> indexOfBC(o2::constants::lhc::LHCMaxBunches, -1);
+  int nColliding = 0;
+  for (int bc = 0; bc < o2::constants::lhc::LHCMaxBunches; ++bc) {
+    if (filling.testBC(bc)) {
+      indexOfBC[bc] = nColliding++;
+    }
+  }
+
+  CrossingSequence seq;
+  int64_t firstKey = -1, prevKey = -1;
+  for (const auto& ir : samples) {
+    BOOST_REQUIRE(ir.bc < o2::constants::lhc::LHCMaxBunches && indexOfBC[ir.bc] >= 0);
+    const int64_t key = int64_t(ir.orbit) * nColliding + indexOfBC[ir.bc];
+    BOOST_REQUIRE(key >= prevKey);
+    if (key != prevKey) {
+      seq.mult.push_back(0);
+    }
+    if (firstKey < 0) {
+      firstKey = key;
+    }
+    seq.mult.back()++;
+    seq.times.insert(ir.timeInBCNS);
+    prevKey = key;
+  }
+  seq.slots = prevKey - firstKey + 1;
+  return seq;
+}
+
+// Poisson probability of k collisions in a crossing, given at least one
+double poissonGivenOccupied(double mu, int k)
+{
+  return std::exp(-mu) * std::pow(mu, k) / std::tgamma(k + 1.) / (1. - std::exp(-mu));
+}
+
+// Checks that the uniform sampler gives Poisson crossing multiplicities without periodic patterns
+void checkUniformSamplerIsPoisson(double muBC, unsigned int seed, const std::vector<double>& tolPercent)
+{
+  const int nColl = 500000;
+  gRandom->SetSeed(seed);
+  o2::steer::InteractionSampler sampler;
+  sampler.setMuPerBC(muBC);
+  sampler.init();
+  auto seq = sequenceOfCrossings(sampler, nColl);
+  const double mu = sampler.getMuPerBC();
+  const double nOcc = seq.mult.size();
+
+  std::vector<double> nK(4, 0.);
+  std::set<int> residues; // positions modulo 1000 of the crossings with at least two collisions
+  for (size_t i = 0; i < seq.mult.size(); ++i) {
+    nK[std::min(seq.mult[i], 3)] += 1;
+    if (seq.mult[i] > 1) {
+      residues.insert(int(i % 1000));
+    }
+  }
+  for (int k = 1; k <= 3; ++k) {
+    const double expK = k < 3 ? poissonGivenOccupied(mu, k) : 1. - poissonGivenOccupied(mu, 1) - poissonGivenOccupied(mu, 2);
+    BOOST_TEST_MESSAGE("mu " << mu << " k" << (k < 3 ? "=" : ">=") << k << " observed " << nK[k] << " expected " << expK * nOcc);
+    BOOST_CHECK(nK[k] > 0);
+    BOOST_CHECK_CLOSE(nK[k] / nOcc, expK, tolPercent[k - 1]);
+  }
+  BOOST_CHECK_CLOSE(nOcc / seq.slots, 1. - std::exp(-mu), 1.);
+  BOOST_TEST_MESSAGE("mu " << mu << " residues mod 1000 of k>=2 crossings " << residues.size()
+                           << ", distinct times in BC " << seq.times.size());
+  // pre-generated rings of 1000 values repeat the same multiplicities and times every 1000 draws
+  BOOST_CHECK(residues.size() > 900);
+  BOOST_CHECK(seq.times.size() > 10000);
+}
 } // namespace
+
+// Uniform sampler at small mu must reproduce Poisson statistics, including triple collisions
+BOOST_AUTO_TEST_CASE(UniformSamplerIsPoissonSmallMu)
+{
+  checkUniformSamplerIsPoisson(0.05, 13579, {0.5, 5., 25.});
+}
+
+// Uniform sampler at large mu must reproduce Poisson statistics
+BOOST_AUTO_TEST_CASE(UniformSamplerIsPoissonLargeMu)
+{
+  checkUniformSamplerIsPoisson(0.3, 24680, {0.5, 3., 7.});
+}
+
+// Zero-truncated Poisson draw must reproduce its distribution, mean and variance from very small to large mu
+BOOST_AUTO_TEST_CASE(ZeroTruncatedPoissonDraw)
+{
+  gRandom->SetSeed(4321);
+  const int n = 1000000;
+  for (double mu : {2e-4, 2e-3, 0.1, 2., 6.5, 20., 29.9, 30.1, 100.}) {
+    std::map<int, int> counts;
+    double sum = 0., sum2 = 0.;
+    for (int i = 0; i < n; ++i) {
+      const int k = o2::steer::InteractionSampler::drawZeroTruncatedPoisson(mu);
+      BOOST_REQUIRE(k >= 1);
+      counts[k]++;
+      sum += k;
+      sum2 += double(k) * k;
+    }
+    const double expMean = mu / -std::expm1(-mu);
+    const double expVar = expMean * (1. + mu - expMean);
+    const double mean = sum / n;
+    const double var = sum2 / n - mean * mean;
+    BOOST_TEST_MESSAGE("mu " << mu << " mean " << mean << " expected " << expMean << " variance " << var << " expected " << expVar);
+    BOOST_CHECK(std::abs(mean - expMean) < 5. * std::sqrt(expVar / n) + 1e-12);
+    double m4 = 0.; // fourth central moment, for the standard error of the variance
+    for (const auto& [k, c] : counts) {
+      m4 += c * std::pow(k - mean, 4) / n;
+    }
+    BOOST_CHECK(std::abs(var - expVar) < 5. * std::sqrt(std::max(m4 - var * var, 0.) / n) + 1e-9);
+    double p = mu * std::exp(-mu) / -std::expm1(-mu);
+    for (int k = 1; k <= 4; ++k) {
+      const double expected = n * p;
+      const double tolerance = 5. * std::sqrt(expected) + 1.;
+      BOOST_TEST_MESSAGE("mu " << mu << " k=" << k << " observed " << counts[k] << " expected " << expected);
+      BOOST_CHECK(std::abs(counts[k] - expected) < tolerance);
+      p *= mu / (k + 1);
+    }
+  }
+}
 
 // Non-uniform sampler with uniform scales must reproduce Poisson statistics
 BOOST_AUTO_TEST_CASE(NonUniformSamplerUniformScalesIsPoisson)
