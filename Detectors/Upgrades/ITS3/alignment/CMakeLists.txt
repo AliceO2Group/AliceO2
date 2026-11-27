@@ -31,7 +31,8 @@ o2_add_library(ITS3Align
                                      O2::DataFormatsGlobalTracking
                                      O2::DetectorsVertexing
                                      nlohmann_json::nlohmann_json
-                                     GBL::GBL)
+                                     GBL::GBL
+                                     Mille::Mille2)
 if (OpenMP_CXX_FOUND)
     target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
     target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
