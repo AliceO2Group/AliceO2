@@ -32,6 +32,10 @@ struct ProcessingPolicies {
   enum TerminationPolicy termination;
   enum TerminationPolicy error;
   enum EarlyForwardPolicy earlyForward;
+  /// When termination policy is QUIT, optionally wait this many seconds before
+  /// actually quitting (0 means quit immediately). Set via --completion-policy
+  /// with a duration string, e.g. --completion-policy 10s.
+  int terminationTimeout = 0;
 };
 
 /// The mode in which the driver is running. Should be MASTER when running locally,
