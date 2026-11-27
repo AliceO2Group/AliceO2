@@ -54,7 +54,7 @@ TEST_CASE("TestInputRecord")
     nullptr,
     0};
   ServiceRegistry registry;
-  InputRecord emptyRecord(schema, span, registry);
+  InputRecord emptyRecord(schema, span, ServiceRegistryRef{registry});
 
   REQUIRE_THROWS_AS(emptyRecord.get("x"), RuntimeErrorRef);
   REQUIRE_THROWS_AS(emptyRecord.get("y"), RuntimeErrorRef);
@@ -102,7 +102,7 @@ TEST_CASE("TestInputRecord")
     [](size_t, DataRefIndices) -> DataRefIndices { return {size_t(-1), size_t(-1)}; },
     nullptr,
     inputs.size() / 2};
-  InputRecord record{schema, span2, registry};
+  InputRecord record{schema, span2, ServiceRegistryRef{registry}};
 
   // Checking we can get the whole ref by name
   REQUIRE_NOTHROW(record.get("x"));
