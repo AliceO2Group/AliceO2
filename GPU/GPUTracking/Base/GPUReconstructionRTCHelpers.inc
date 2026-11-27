@@ -232,7 +232,7 @@ class Cache // RTC cache file <cacheFolder>/rtc.<backend>.cache.<id> (no id with
     bool retVal = read(fp, filename, binExtension, nCompile);
     fclose(fp);
     if (retVal) {
-      GPUInfo("Using RTC cache file");
+      GPUInfo("Using RTC cache file %s", mFileName.c_str());
       std::error_code ec;
       std::filesystem::last_write_time(mFile, std::filesystem::file_time_type::clock::now(), ec); // Mark as recently used for removeOldFiles()
     }
@@ -248,7 +248,7 @@ class Cache // RTC cache file <cacheFolder>/rtc.<backend>.cache.<id> (no id with
     if (fp == nullptr) {
       throw std::runtime_error("Cannot open cache file for writing");
     }
-    GPUInfo("Storing RTC compilation result in cache file");
+    GPUInfo("Storing RTC compilation result in cache file %s", mFileName.c_str());
     for (uint32_t i = 0; i < N_SHA; i++) {
       if (fwrite(mSHA[i], 1, 20, fp) != 20) {
         throw std::runtime_error("Error writing cache file");
