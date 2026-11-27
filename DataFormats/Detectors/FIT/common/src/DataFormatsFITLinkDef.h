@@ -25,6 +25,10 @@
 
 #pragma link C++ std::vector < std::pair < uint64_t, int>> + ;
 #pragma link C++ struct o2::fit::DCSDPValues + ;
+
+#pragma link C++ struct o2::fit::TcmConfig + ;
+#pragma link C++ struct o2::fit::PmConfig + ;
+#pragma link C++ struct o2::fit::DeadChannelMap + ;
 /*
 #include "DetectorsCommonDataFormats/DetID.h"
 #pragma link C++ struct o2::fit::ChannelData<o2::detectors::DetID::FDD> + ;
