@@ -344,10 +344,11 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, GPUTPC
       deltaZ = 0.f;
     }
 
+    const bool upwards = (clusters[0].row < clusters[maxN - 1].row) ^ (iWay & 1);
     if (param.rec.tpc.rebuildTrackInFit && !rebuilt && !(param.rec.tpc.disableRebuildAttachment & 16) && param.rec.tpc.rebuildTrackMaxNonIntCov > 0 && iWay >= wayRebuildStart && !(fitBroken && iWay == wayRebuildStart + 1) && CAMath::Abs(mP[2]) < maxSinForUpdate && lastUpdateRow != 255 && mNDF > (int32_t)param.rec.tpc.rebuildTrackNonIntMinNDF) {
-      const int8_t up = ((clusters[0].row < clusters[maxN - 1].row) ^ (iWay & 1)) ? 1 : -1;
+      const int8_t up = upwards ? 1 : -1;
       int8_t sector = lastSector;
-      CADEBUG(if (merger.MergedTrackMC()) printf("Extrapolate Start Track %d - sector %2d row %3d %s - fake %d\n", iTrk, sector, (int32_t)lastPropagateRow, up == 1 ? "upwards" : "downwards", (int)merger.MergedTrackMC()[iTrk].isFake()));
+      CADEBUG(if (merger.MergedTrackMC()) printf("Extrapolate Start Track %d - sector %2d row %3d %s - fake %d\n", iTrk, sector, (int32_t)lastPropagateRow, upwards ? "upwards" : "downwards", (int)merger.MergedTrackMC()[iTrk].isFake()));
       ExtrapolationState es;
       es.lastGoodRow = es.lastExtrapolateRow = es.lastFoundRow = lastPropagateRow;
       es.consecGoodRows = ihitStart == ((iWay & 1) ? 0 : maxN - 1) ? param.rec.tpc.rebuildTrackExtrMinConsecGoodRows : 0; // Continue the track directly only if its last hit was accepted in the fit
@@ -363,7 +364,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, GPUTPC
       const float lastFoundX = es.lastFoundX, lastFoundAlpha = es.lastFoundAlpha;
       const bool revert = es.revert;
       if (finalOutInFit && !(param.rec.tpc.disableMarkAdjacent & 8) && iExtrapolatedRow < GPUTPCGeometry::NROWS) { // Continue the looper following from where the extrapolation stopped
-        StoreLoopPropagation(merger, sector, iExtrapolatedRow, iTrk, up == 1, prop.GetAlpha());
+        StoreLoopPropagation(merger, sector, iExtrapolatedRow, iTrk, up == 1, inFlyDirection, prop.GetAlpha());
         CADEBUG(printf("\t\tSTORING %d extrapolated row %d sector %d out %d\n", iTrk, (int)iExtrapolatedRow, sector, up == 1));
       }
       const int16_t rowsMoved = CAMath::Abs((int32_t)(iExtrapolatedRow < GPUTPCGeometry::NROWS ? iExtrapolatedRow : (uint8_t)(iExtrapolatedRow - up)) - (int32_t)lastGoodRow); // 255 after row 0 with up = -1
@@ -374,11 +375,11 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, GPUTPC
     } else if (finalOutInFit && lastUpdateRow != 255 && !retryAttempt) {
       int8_t loopStored = -1; // Not attempted: handle like no looper
       if (!(param.rec.tpc.disableMarkAdjacent & 8)) {
-        loopStored = StoreLoopPropagation(merger, lastSector, lastUpdateRow, iTrk, lastUpdateRow > clusters[(iWay & 1) ? (maxN - 1) : 0].row, prop.GetAlpha());
+        loopStored = StoreLoopPropagation(merger, lastSector, lastUpdateRow, iTrk, lastUpdateRow > clusters[(iWay & 1) ? (maxN - 1) : 0].row, inFlyDirection, prop.GetAlpha());
         CADEBUG(printf("\t\tSTORING %d lastUpdateRow %d row %d out %d\n", iTrk, (int)lastUpdateRow, (int)clusters[(iWay & 1) ? (maxN - 1) : 0].row, lastUpdateRow > clusters[(iWay & 1) ? (maxN - 1) : 0].row));
       }
       if (loopStored == -1 && GPUTPCGMMerger::FollowExtrapolationEnabled(param) && !fitBroken && CAMath::Abs(mP[2]) < maxSinForUpdate && mNDF > (int32_t)param.rec.tpc.rebuildTrackNonIntMinNDF && (!GPUTPCGMMerger::FollowExtrapolationAfterRebuild(param) || (track.Leg() == 0 && CAMath::Abs(GetQPt() * param.qptB5Scaler) <= param.rec.tpc.rejectQPtB5))) {
-        StoreFollowExtrapolation(merger, lastSector, lastPropagateRow, iTrk, (clusters[0].row < clusters[maxN - 1].row) ^ (iWay & 1), inFlyDirection, prop.GetAlpha()); // Follow the track beyond its end for adjacent clusters (same conditions as for the extrapolation), in the 5-way fit only to protect clusters, i.e. for good legs of tracks not rejected by rejectQPtB5
+        StoreFollowExtrapolation(merger, lastSector, lastPropagateRow, iTrk, upwards, inFlyDirection, prop.GetAlpha()); // Follow the track beyond its end for adjacent clusters (same conditions as for the extrapolation), in the 5-way fit only to protect clusters, i.e. for good legs of tracks not rejected by rejectQPtB5
       }
     }
 
@@ -1288,7 +1289,7 @@ GPUdii() void GPUTPCGMTrackParam::StoreOuter(gputpcgmmergertypes::GPUTPCOuterPar
   outerParam->alpha = alpha;
 }
 
-GPUdic(0, 1) int32_t GPUTPCGMTrackParam::StoreLoopPropagation(const GPUTPCGMMerger& GPUrestrict() merger, int32_t sector, int32_t iRow, int32_t iTrack, bool outwards, float alpha)
+GPUdic(0, 1) int32_t GPUTPCGMTrackParam::StoreLoopPropagation(const GPUTPCGMMerger& GPUrestrict() merger, int32_t sector, int32_t iRow, int32_t iTrack, bool outwards, bool inFlyDirection, float alpha)
 {
   if (iRow == 0 || iRow == GPUTPCGeometry::NROWS - 1) {
     return 0;
@@ -1315,7 +1316,7 @@ GPUdic(0, 1) int32_t GPUTPCGMTrackParam::StoreLoopPropagation(const GPUTPCGMMerg
   data.alpha = alpha;
   data.sector = sector;
   data.row = iRow;
-  data.outwards = outwards;
+  data.outwards = (uint8_t)outwards | ((uint8_t)inFlyDirection << 1);
   merger.LoopAndExtData()[n] = data;
   return 1;
 }
@@ -1386,16 +1387,15 @@ GPUdii() void GPUTPCGMTrackParam::PropagateLooper(const GPUTPCGMMerger& GPUrestr
   GPUTPCGMTrackParam t = data.param; // Work on a local copy, not in global memory
   prop.SetTrack(&t, data.alpha);
   if (merger.Param().rec.tpc.looperFollowMode == 1) {
-    t.FindAdjacentClustersLooperFollow(merger, prop, data.sector, data.track, data.outwards);
+    t.FindAdjacentClustersLooperFollow(merger, prop, data.sector, data.track, data.outwards & 1, data.outwards & 2);
   } else {
-    t.FindAdjacentClustersLooperMirror(merger, data.sector, data.row, data.track, data.outwards, prop);
+    t.FindAdjacentClustersLooperMirror(merger, data.sector, data.row, data.track, data.outwards & 1, prop);
   }
 }
 
-GPUdi() void GPUTPCGMTrackParam::FindAdjacentClustersLooperFollow(const GPUTPCGMMerger& GPUrestrict() merger, GPUTPCGMPropagator& GPUrestrict() prop, int8_t sector, const int32_t iTrack, const bool up)
+GPUdi() void GPUTPCGMTrackParam::FindAdjacentClustersLooperFollow(const GPUTPCGMMerger& GPUrestrict() merger, GPUTPCGMPropagator& GPUrestrict() prop, int8_t sector, const int32_t iTrack, const bool up, const bool inFlyDirection)
 {
   float toX = mX;
-  bool inFlyDirection = (merger.MergedTracks()[iTrack].Leg() & 1) ^ up;
 
   const GPUParam& GPUrestrict() param = merger.Param();
   bool right = (mP[2] < 0) ^ up;
