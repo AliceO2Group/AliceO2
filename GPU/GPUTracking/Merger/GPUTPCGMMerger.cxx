@@ -1448,15 +1448,17 @@ GPUd() void GPUTPCGMMerger::MergeCE(int32_t nBlocks, int32_t nThreads, int32_t i
       if (!trk[1]->OK() || trk[1]->CCE()) {
         continue;
       }
-      bool celooper = (trk[0]->GetParam().GetQPt() * Param().qptB5Scaler > 1 && trk[0]->GetParam().GetQPt() * trk[1]->GetParam().GetQPt() < 0);
+      bool celooper = (CAMath::Abs(trk[0]->GetParam().GetQPt() * Param().qptB5Scaler) > 1 && trk[0]->GetParam().GetQPt() * trk[1]->GetParam().GetQPt() < 0);
       celooper |= trk[0]->PrevSegment() != -1 && trk[1]->PrevSegment() != -1;
       if (!celooper && trk[0]->GetParam().GetPar(3) * trk[1]->GetParam().GetPar(3) < 0) {
         continue;
       }
 
       bool needswap = false;
-      if (trk[0]->PrevSegment() == -1 && trk[1]->PrevSegment() >= 0) {
+      if (trk[0]->PrevSegment() >= 0 && trk[1]->PrevSegment() == -1) {
         needswap = true;
+      } else if (trk[0]->PrevSegment() == -1 && trk[1]->PrevSegment() >= 0) {
+        needswap = false;
       } else if (celooper) {
         const float z0max = -CAMath::Min(cls[mClusters[trk[0]->FirstClusterRef()].num].getTime(), cls[mClusters[trk[0]->FirstClusterRef() + trk[0]->NClusters() - 1].num].getTime());
         const float z1max = -CAMath::Min(cls[mClusters[trk[1]->FirstClusterRef()].num].getTime(), cls[mClusters[trk[1]->FirstClusterRef() + trk[1]->NClusters() - 1].num].getTime());
