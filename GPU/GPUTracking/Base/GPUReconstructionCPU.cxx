@@ -99,11 +99,6 @@ inline void GPUReconstructionCPU::runKernelBackend(const krnlSetupTime& _xyz, co
   }
 }
 
-void GPUReconstructionCPU::runKernelOnHost(const int num, const void* args)
-{
-  GPUReconstructionCPU::runKernelVirtual(num, args);
-}
-
 const void* GPUReconstructionCPU::HostPointer(const void* ptr) const
 {
   const size_t offset = (const char*)ptr - (const char*)mDeviceMemoryBase;
