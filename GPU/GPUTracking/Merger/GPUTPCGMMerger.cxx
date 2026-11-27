@@ -969,7 +969,14 @@ GPUd() void GPUTPCGMMerger::MergeBorderTracks<2>(int32_t nBlocks, int32_t nThrea
       }
       // do check
 
-      const GPUTPCGMBorderTrack& b2 = B2[r2.fId];
+      const GPUTPCGMBorderTrack& b2orig = B2[r2.fId];
+      GPUTPCGMBorderTrack b2flip;
+      const bool flip = (mergeMode & mergeModes::mergeAcrossCE) && CAMath::Abs(b1.Par()[4]) * Param().qptB5Scaler > 1.f && b1.Par()[4] * b2orig.Par()[4] < 0 && b1.Par()[2] * b2orig.Par()[2] < 0 && b1.Par()[3] * b2orig.Par()[3] < 0;
+      if (flip) {
+        b2flip = b2orig;
+        b2flip.SetFlipped();
+      }
+      const GPUTPCGMBorderTrack& b2 = flip ? b2flip : b2orig;
 #if defined(GPUCA_MERGER_BY_MC_LABEL) && !defined(GPUCA_GPUCODE)
       int64_t label1 = GetTrackLabel(b1);
       int64_t label2 = GetTrackLabel(b2);
@@ -1455,16 +1462,16 @@ GPUd() void GPUTPCGMMerger::MergeCE(int32_t nBlocks, int32_t nThreads, int32_t i
       }
 
       bool needswap = false;
-      if (trk[0]->PrevSegment() >= 0 && trk[1]->PrevSegment() == -1) {
+      if (celooper) {
+        auto lastSegmentMinT = [&](const GPUTPCGMMergedTrack* t) {
+          t = t->GetFirstSegment(mMergedTracks, Param().rec.enableCyclicGraphWorkarounds);
+          return CAMath::Min(cls[mClusters[t->FirstClusterRef()].num].getTime(), cls[mClusters[t->FirstClusterRef() + t->NClusters() - 1].num].getTime());
+        };
+        needswap = lastSegmentMinT(trk[1]) > lastSegmentMinT(trk[0]);
+      } else if (trk[0]->PrevSegment() >= 0 && trk[1]->PrevSegment() == -1) {
         needswap = true;
       } else if (trk[0]->PrevSegment() == -1 && trk[1]->PrevSegment() >= 0) {
         needswap = false;
-      } else if (celooper) {
-        const float z0max = -CAMath::Min(cls[mClusters[trk[0]->FirstClusterRef()].num].getTime(), cls[mClusters[trk[0]->FirstClusterRef() + trk[0]->NClusters() - 1].num].getTime());
-        const float z1max = -CAMath::Min(cls[mClusters[trk[1]->FirstClusterRef()].num].getTime(), cls[mClusters[trk[1]->FirstClusterRef() + trk[1]->NClusters() - 1].num].getTime());
-        if (z1max < z0max) {
-          needswap = true;
-        }
       } else {
         if (mClusters[trk[0]->FirstClusterRef()].row > mClusters[trk[1]->FirstClusterRef()].row) {
           needswap = true;
@@ -1481,19 +1488,28 @@ GPUd() void GPUTPCGMMerger::MergeCE(int32_t nBlocks, int32_t nThreads, int32_t i
                                               &mClusters[trk[0]->FirstClusterRef()], &mClusters[trk[0]->FirstClusterRef() + trk[0]->NClusters() - 1],
                                               &mClusters[trk[1]->FirstClusterRef()], &mClusters[trk[1]->FirstClusterRef() + trk[1]->NClusters() - 1], clsmax);
         const float offset = CAMath::Max(tmax - mConstantMem->calibObjects.fastTransform->getMaxDriftTime(clsmax->sector, clsmax->row, cls[clsmax->num].getPad()), 0.f);
-        trk[1]->Param().Z() += mConstantMem->calibObjects.fastTransform->convDeltaTimeToDeltaZinTimeFrame(trk[1]->CSide() * NSECTORS / 2, trk[1]->Param().TOffset() - offset);
-        trk[1]->Param().TOffset() = offset;
+        auto shiftZ = [&](GPUTPCGMMergedTrack* t) { // Shift the track and its following segments, PrepareForFit1 does not propagate the time offset of CE tracks
+          for (GPUTPCGMMergedTrack* seg = t;;) {
+            seg->Param().Z() += mConstantMem->calibObjects.fastTransform->convDeltaTimeToDeltaZinTimeFrame(seg->CSide() * NSECTORS / 2, seg->Param().TOffset() - offset);
+            seg->Param().TOffset() = offset;
+            if (seg->PrevSegment() < 0) {
+              break;
+            }
+            seg = &mMergedTracks[seg->PrevSegment()];
+            if (Param().rec.enableCyclicGraphWorkarounds && seg == t) {
+              break;
+            }
+          }
+        };
+        shiftZ(trk[1]);
         if (celooper) {
-          trk[0]->Param().Z() += mConstantMem->calibObjects.fastTransform->convDeltaTimeToDeltaZinTimeFrame(trk[0]->CSide() * NSECTORS / 2, trk[0]->Param().TOffset() - offset);
-          trk[0]->Param().TOffset() = offset;
+          shiftZ(trk[0]);
         }
       }
 
-      if (celooper) { // TODO: Need propper handling, avoid falsely flagging the primary leg as looper
-        trk[0]->SetMergedLooperConnected(true);
+      if (celooper) { // TODO: Could inverse the order of the clusters of the secondary track and merge them in the future, for now both stay in output
         trk[0]->SetCCE(true);
         trk[0]->SetLooper(true);
-        trk[1]->SetMergedLooperConnected(true);
         trk[1]->SetCCE(true);
         trk[1]->SetLooper(true);
         continue;

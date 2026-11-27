@@ -45,6 +45,14 @@ class GPUTPCGMBorderTrack
   GPUd() void SetZOffsetLinear(float v) { mZOffsetLinear = v; }
   GPUd() void SetCov(int32_t i, float x) { mC[i] = x; }
   GPUd() void SetCovD(int32_t i, float x) { mD[i] = x; }
+  GPUd() void SetFlipped()
+  {
+    mP[2] = -mP[2];
+    mP[3] = -mP[3];
+    mP[4] = -mP[4];
+    mD[0] = -mD[0];
+    mD[1] = -mD[1];
+  }
 
   GPUd() static bool CheckChi2(float x1, float y1, float cx1, float cxy1, float cy1, float x2, float y2, float cx2, float cxy2, float cy2, float chi2cut)
   {
