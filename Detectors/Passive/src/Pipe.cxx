@@ -874,8 +874,9 @@ void Pipe::ConstructGeometry()
   ///
   //
   // Bellow Section
+  // field-free like its mothers RB24B1BellowM and RB24VMABBEBellowM
   TGeoVolume* voRB24B1Bellow = MakeBellow("RB24B1", kRB24B1NumberOfPlies, kRB24B1BellowRi, kRB24B1BellowRo,
-                                          kRB24B1BellowUndL, kRB24B1PlieRadius, kRB24B1PlieThickness);
+                                          kRB24B1BellowUndL, kRB24B1PlieRadius, kRB24B1PlieThickness, kMedVacNF, kMedSteelNF);
   voRB24B1Bellow->SetVisibility(0);
   Float_t newRB24B1BellowUndL = 2 * (static_cast<TGeoTube*>(voRB24B1Bellow->GetShape()))->GetDz();
 
@@ -3000,7 +3001,7 @@ TGeoPcon* Pipe::MakeInsulationFromTemplate(TGeoPcon* shape)
 }
 
 TGeoVolume* Pipe::MakeBellow(const char* ext, Int_t nc, Float_t rMin, Float_t rMax, Float_t dU, Float_t rPlie,
-                             Float_t dPlie)
+                             Float_t dPlie, const TGeoMedium* medVac, const TGeoMedium* medSteel)
 {
   // nc     Number of convolution
   // rMin   Inner radius of the bellow
@@ -3008,9 +3009,11 @@ TGeoVolume* Pipe::MakeBellow(const char* ext, Int_t nc, Float_t rMin, Float_t rM
   // dU     Undulation length
   // rPlie  Plie radius
   // dPlie  Plie thickness
+  // medVac   Medium of the bellow vacuum, default PIPE_VACUUM
+  // medSteel Medium of the plies, default PIPE_INOX
   auto& matmgr = o2::base::MaterialManager::Instance();
-  const TGeoMedium* kMedVac = matmgr.getTGeoMedium("PIPE_VACUUM");
-  const TGeoMedium* kMedSteel = matmgr.getTGeoMedium("PIPE_INOX");
+  const TGeoMedium* kMedVac = medVac ? medVac : matmgr.getTGeoMedium("PIPE_VACUUM");
+  const TGeoMedium* kMedSteel = medSteel ? medSteel : matmgr.getTGeoMedium("PIPE_INOX");
   //
   //  Upper part of the undulation
   //

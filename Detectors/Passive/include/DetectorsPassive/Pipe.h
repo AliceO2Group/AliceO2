@@ -16,6 +16,7 @@
 #include "Rtypes.h"     // for Pipe::Class, ClassDef, Pipe::Streamer
 
 class TGeoPcon;
+class TGeoMedium;
 
 namespace o2
 {
@@ -47,7 +48,7 @@ class Pipe : public PassiveBase
                                    Int_t nz = -1);
   TGeoPcon* MakeInsulationFromTemplate(TGeoPcon* shape);
   TGeoVolume* MakeBellow(const char* ext, Int_t nc, Float_t rMin, Float_t rMax, Float_t dU, Float_t rPlie,
-                         Float_t dPlie);
+                         Float_t dPlie, const TGeoMedium* medVac = nullptr, const TGeoMedium* medSteel = nullptr);
   TGeoVolume* MakeBellowCside(const char* ext, Int_t nc, Float_t rMin, Float_t rMax, Float_t rPlie, Float_t dPlie);
 
   float mBePipeRmax = 0.;  // outer diameter of the Be section
