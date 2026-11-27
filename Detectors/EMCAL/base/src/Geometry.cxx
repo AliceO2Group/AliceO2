@@ -290,6 +290,9 @@ void Geometry::DefineSamplingFraction(const std::string_view mcname, const std::
       samplingFactorTranportModel = 0.821;
     } else if (physicslist == "FTFP_BERT_EMV+optical+biasing" || physicslist == "FTFP_INCLXX_EMV+optical") {
       samplingFactorTranportModel = 0.81;
+    } else if (physicslist == "FTFP_BERT_EMV_HEP+optical") {
+      // e-, e+ and gamma with G4HepEm; same energy per primary as FTFP_BERT_EMV+optical with 0.821 (O2-7210)
+      samplingFactorTranportModel = 0.808;
     }
   }
 

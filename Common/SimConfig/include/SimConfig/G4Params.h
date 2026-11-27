@@ -54,6 +54,7 @@ struct G4Params : public o2::conf::ConfigurableParamHelper<G4Params> {
 
   std::string configMacroFile = ""; // a user provided g4Config.in file (otherwise standard one fill be taken)
   std::string userPhysicsList = ""; // possibility to directly give physics list as string
+  bool useG4HepEm = false;          // transport e-, e+ and gamma with G4HepEm (needs geant4_vmc built with G4HepEm)
 
   EG4Nav navmode = EG4Nav::kTGeo; // geometry navigation mode (default TGeo)
 
@@ -79,7 +80,9 @@ struct G4Params : public o2::conf::ConfigurableParamHelper<G4Params> {
                                         // their placements
 
   std::string fluenceWeightFile = ""; // file containing the scoring weights (pdg, ekin, weight)
-  std::string const& getPhysicsConfigString() const;
+  std::string getPhysicsConfigString() const;
+  /// whether the physics list in use transports e-, e+ and gamma with G4HepEm (suffix _HEP)
+  bool isG4HepEmActive() const { return getPhysicsConfigString().find("_HEP") != std::string::npos; }
 
   bool g4scoring = false;
   bool g4fluenceweight = false;

@@ -50,7 +50,7 @@ int main(int argc, char** argv)
   // need a dummy VMC App
   new o2::mc::O2TrivialMCApplication();
   // setup G4 as we usually do
-  auto& physicsSetup = ::o2::conf::G4Params::Instance().getPhysicsConfigString();
+  auto physicsSetup = ::o2::conf::G4Params::Instance().getPhysicsConfigString();
   auto runConfiguration = new TG4RunConfiguration("geomRoot", physicsSetup);
   auto vmc = new TGeant4("TGeant4", "The Geant4 Monte Carlo", runConfiguration);
   // needs to be initialised to have particle and ion tables / physics entirely ready

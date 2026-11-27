@@ -19,6 +19,7 @@
 
 #include "CommonUtils/ShmAllocator.h"
 #include "DetectorsBase/MaterialManager.h"
+#include "SimConfig/G4Params.h"
 #include "DetectorsBase/Stack.h"
 #include "FairVolume.h"
 #include "FairRootManager.h"
@@ -124,15 +125,20 @@ void Detector::InitializeParams()
   mMaxMCStepDef = TRDSimParams::Instance().maxMCStepSize;
 
   const auto& simParams = TRDSimParams::Instance();
-  if (simParams.ionisationModel == 1) {
+  const bool g4HepEm = o2::conf::G4Params::Instance().isG4HepEmActive();
+  const int ionisationModel = simParams.activeIonisationModel(g4HepEm);
+  if (g4HepEm && ionisationModel == 0) {
+    LOG(warning) << "TRD: energy-deposit charge with G4HepEm, which has no PAI model for e-/e+ in the gas";
+  }
+  if (ionisationModel == 1) {
     mIonisation = std::make_unique<IonisationModel>(simParams.gas);
     // the tables start at minBetaGamma; below it the energy deposit is used
     mIonMinBetaGamma = std::max<double>(simParams.ionisationMinBetaGamma, IonisationModel::minBetaGamma());
     mIonMinEkin = simParams.ionisationMinEkin;
     LOG(info) << "TRD: ionisation from collision tables, energy deposit below beta*gamma " << mIonMinBetaGamma
               << " or kinetic energy " << mIonMinEkin << " eV";
-  } else if (simParams.ionisationModel != 0) {
-    LOG(fatal) << "TRD: unknown ionisationModel " << simParams.ionisationModel;
+  } else if (ionisationModel != 0) {
+    LOG(fatal) << "TRD: unknown ionisationModel " << ionisationModel;
   }
 }
 

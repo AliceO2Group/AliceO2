@@ -17,6 +17,11 @@ if(NOT Geant4_FOUND)
   return()
 endif()
 
+# already set up, eg. when found again as a dependency of G4HepEm
+if(TARGET geant4)
+  return()
+endif()
+
 add_library(geant4 IMPORTED INTERFACE)
 
 set_target_properties(geant4
