@@ -1814,6 +1814,29 @@ void addSpecialParticles()
   TVirtualMC::GetMC()->DefineParticle(-4120000, "AntiMonopole_asymm", kPTUndefined, monopoleMass, 0.0, 1e10, "BSM", 0.0, 0, 0, 0, 0, 0, 0, 0, 0, kTRUE);
 }
 
+void O2MCApplicationBase::AddIons()
+{
+  // dispatch first to function in FairRoot
+  FairMCApplication::AddIons();
+
+  // Geant4 VMC looks a primary up in Geant4's particle table, which holds d, t, 3He and alpha from
+  // the start but a heavier ion only once it is created (by Z and A); an unknown primary is
+  // skipped. These are the stable ions beyond alpha that generators make (coalescence,
+  // injection). Only for Geant4: Geant3's DefineIon gives an ion already in TDatabasePDG a new
+  // isomer code.
+  if (std::strcmp(TVirtualMC::GetMC()->GetName(), "TGeant4") != 0) {
+    return;
+  }
+  struct Ion {
+    const char* name; // TDatabasePDG's: Geant4 VMC finds the ion's charge by the particle's name
+    int z;
+    int a;
+  };
+  for (const auto& ion : {Ion{"Li6", 3, 6}, Ion{"Li7", 3, 7}}) {
+    TVirtualMC::GetMC()->DefineIon(ion.name, ion.z, ion.a, ion.z, 0., 0.);
+  }
+}
+
 void O2MCApplicationBase::AddParticles()
 {
   // dispatch first to function in FairRoot

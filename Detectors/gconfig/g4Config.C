@@ -80,6 +80,7 @@ R__LOAD_LIBRARY(libgeant4vmc)
 #include "G4UImanager.hh"
 #include "G4RegionStore.hh"
 #include "G4ProductionCuts.hh"
+#include "G4HadronicParameters.hh"
 #endif
 #include "commonConfig.C"
 
@@ -184,6 +185,11 @@ void Config()
     const char* nthreads = getenv("ALICE_NSIMWORKERS");
     setenv("G4FORCENUMBEROFTHREADS", nthreads ? nthreads : "1", 1);
   }
+  // Geant4 gives its light hypernuclei and their antiparticles (3LH, 4LH, 4LHe, 5LHe, ...)
+  // ionisation, multiple scattering and hadronic interactions only when enabled; otherwise they
+  // cross the detectors without depositing energy. It must be set before the physics is built.
+  G4HadronicParameters::Instance()->SetEnableHyperNuclei(true);
+
   /// Create the G4 VMC
   TGeant4* geant4 = new TGeant4("TGeant4", "The Geant4 Monte Carlo", runConfiguration);
   std::cout << "Geant4 has been created." << std::endl;
