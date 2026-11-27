@@ -16,6 +16,7 @@
 #include "Rtypes.h" // for PipeRun4::Class, ClassDef, PipeRun4::Streamer
 
 class TGeoPcon;
+class TGeoMedium;
 
 namespace o2
 {
@@ -47,7 +48,7 @@ class PipeRun4 : public PassiveBase
                                    int nz = -1);
   TGeoPcon* makeInsulationFromTemplate(TGeoPcon* shape);
   TGeoVolume* makeBellow(const char* ext, int nc, float rMin, float rMax, float rPlie,
-                         float dPlie);
+                         float dPlie, const TGeoMedium* medVac = nullptr, const TGeoMedium* medSteel = nullptr);
   TGeoVolume* makeBellowCside(const char* ext, int nc, float rMin, float rMax, float rPlie, float dPlie);
 
   TGeoVolume* makeSupportBar(const char* tag, float Rin, float Rout, float length, float skinLength);
