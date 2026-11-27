@@ -688,6 +688,17 @@ void Stack::addHit(int iDet)
   mCurrentParticle.SetBit(ParticleStatus::kHasHits, 1);
   mHitCounter++;
 }
+void Stack::addHitFromPrimary(int iDet, int iPrimary)
+{
+  // primaries are the first entries of mTracks, in the same order as mPrimaryParticles
+  if (iPrimary < 0 || iPrimary >= mNumberOfPrimaryParticles) {
+    LOG(error) << "Stack::addHitFromPrimary: invalid primary index " << iPrimary << " (" << mNumberOfPrimaryParticles << " primaries)";
+    return;
+  }
+  const auto bitID = o2::base::Detector::getDetId2HitBitIndex()[iDet];
+  mTracks->at(iPrimary).setHit(bitID);
+  mHitCounter++;
+}
 void Stack::modifiesHit(int iDet)
 {
   // flag only; hit mask, kHasHits and hit counter stay untouched

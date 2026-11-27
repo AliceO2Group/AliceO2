@@ -23,33 +23,13 @@
 #include "TParticle.h"
 #include <utility>
 #include "ZDCBase/Constants.h"
-
-// inclusions and forward decl for fast sim
-#ifdef ZDC_FASTSIM_ONNX
-
-#if __has_include(<onnxruntime/core/session/onnxruntime_cxx_api.h>)
-#include <onnxruntime/core/session/onnxruntime_cxx_api.h>
-#else
-#include <onnxruntime_cxx_api.h>
-#endif
-
-namespace o2::zdc
-{
-namespace fastsim
-{
-class NeuralFastSimulation;
-namespace processors
-{
-class StandardScaler;
-}
-} // namespace fastsim
-} // namespace o2::zdc
-#endif
+#include <memory>
 
 class FairVolume;
 
 namespace o2::zdc
 {
+class FastSim;
 
 class Detector : public o2::base::DetImpl<Detector>
 {
@@ -73,13 +53,7 @@ class Detector : public o2::base::DetImpl<Detector>
 
   Detector(Bool_t active = true);
 
-// if building fastsim non trivial destructor is required
-#ifdef ZDC_FASTSIM_ONNX
-  ~Detector() override;
-#endif
-#ifndef ZDC_FASTSIM_ONNX
-  ~Detector() override = default;
-#endif
+  ~Detector() override; // not inline: needs the complete type of the fast simulation
 
   void InitializeO2Detector() final;
   bool isMTSafe() const override { return true; }
@@ -104,6 +78,17 @@ class Detector : public o2::base::DetImpl<Detector>
   void FinishPrimary() final;
 
   void BeginPrimary() final;
+
+  /// hook called once all primaries of the (sub-)event were processed and before hits are shipped:
+  /// used by the fast simulation, which turns primaries directly into hits
+  void finishEventHook(const std::vector<TParticle>& primaries) final;
+  bool hasFinishEventHook() const final { return mUseFastSim; }
+
+  /// is the detector response obtained from the fast simulation model (no geometry, no transport)
+  bool isFastSim() const { return mUseFastSim; }
+
+  /// fast simulation: create the hits of ZN and ZP for the supported primaries (everything else is ignored)
+  void processFastSim(const std::vector<TParticle>& primaries);
 
   void ConstructGeometry() final;
 
@@ -142,7 +127,6 @@ class Detector : public o2::base::DetImpl<Detector>
   void resetHitIndices();
 
   /// Builds the fast simulation models, if they are enabled
-  void setupFastSim();
 
   // common function for hit creation (can be called from multiple interfaces)
   bool createOrAddHit(int detector,
@@ -252,36 +236,13 @@ class Detector : public o2::base::DetImpl<Detector>
   ParticlePhotonResponse mResponses;
   ParticlePhotonResponse* mResponsesPtr = &mResponses;
 
-// fastsim model wrapper
-#ifdef ZDC_FASTSIM_ONNX
-  fastsim::NeuralFastSimulation* mFastSimClassifier = nullptr;   //! no ROOT serialization
-  fastsim::NeuralFastSimulation* mFastSimModelNeutron = nullptr; //!
-  fastsim::NeuralFastSimulation* mFastSimModelProton = nullptr;  //!
-
-  // Scalers for models inputs
-  fastsim::processors::StandardScaler* mClassifierScaler = nullptr;   //!
-  fastsim::processors::StandardScaler* mModelScalerNeutron = nullptr; //!
-  fastsim::processors::StandardScaler* mModelScalerProton = nullptr;  //!
-
-  // container for fastsim model responses
-  using FastSimResults = std::vector<std::array<long, 5>>; //!
-  FastSimResults mFastSimResults;                          //!
-
-  // converts FastSim model results to Hit
-  bool FastSimToHits(const Ort::Value& response, const TParticle& particle, int detector);
-
-  // determines detector geometry "pixel sizes"
-  constexpr std::pair<const int, const int> determineDetectorSize(int detector)
-  {
-    if (detector == ZNA || detector == ZNC) {
-      return {Geometry::ZNDIVISION[0] * Geometry::ZNSECTORS[0] * 2, Geometry::ZNDIVISION[1] * Geometry::ZNSECTORS[1] * 2};
-    } else if (detector == ZPA || detector == ZPC) {
-      return {Geometry::ZPDIVISION[0] * Geometry::ZPSECTORS[0] * 2, Geometry::ZPDIVISION[1] * Geometry::ZPSECTORS[1] * 2};
-    } else {
-      return {-1, -1};
-    }
-  }
-#endif
+  // fast simulation (replaces geometry + transport when enabled via ZDCSimParam.useZDCFastSim)
+  bool mUseFastSim = false;          //!
+  std::unique_ptr<FastSim> mFastSim; //!
+  std::vector<int> mFastSimIndices;  //! indices of the primaries given to the model
+  std::vector<float> mFastSimInput;  //! flat input of the model
+  std::vector<float> mFastSimOutput; //! flat output of the model
+  size_t mFastSimNInvalid = 0;       //! number of primaries with an invalid model output
 
   template <typename Det>
   friend class o2::base::DetImpl;

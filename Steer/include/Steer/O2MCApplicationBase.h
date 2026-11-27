@@ -23,9 +23,14 @@
 #include "Rtypes.h" // for Int_t, Bool_t, Double_t, etc
 #include <TVirtualMC.h>
 #include "SimConfig/SimParams.h"
+#include <vector>
 
 namespace o2
 {
+namespace base
+{
+class Detector;
+}
 namespace steer
 {
 
@@ -86,6 +91,9 @@ class O2MCApplicationBase : public FairMCApplication
 
   double mLongestTrackTime = 0;
   bool mTrackSeedWarned{false}; // whether we already complained that seeding never fired
+
+  std::vector<o2::base::Detector*> mFinishEventHookDetectors; //! active detectors asking for finishEventHook
+  bool mFinishEventHookDetectorsSet{false};                   //! whether the list above was built
 
   /// whether this engine needs per-track seeding in PreTrack (Geant3 seeds at
   /// stack-pop time instead, see O2MCApplicationBase::seedsInPreTrack)

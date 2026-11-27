@@ -25,6 +25,7 @@
 
 #pragma link C++ class o2::zdc::ChannelSimCondition + ;
 #pragma link C++ class o2::zdc::SimCondition + ;
+#pragma link C++ class o2::zdc::FastSimModel + ;
 
 #pragma link C++ class o2::zdc::ZDCSimParam + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::zdc::ZDCSimParam> + ;
