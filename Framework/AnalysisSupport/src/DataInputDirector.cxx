@@ -275,6 +275,17 @@ bool DataInputDescriptor::setFile(int counter, int wantedParentLevel, std::strin
 
     mfilenames[counter].alreadyRead.resize(mfilenames[counter].alreadyRead.size() + mfilenames[counter].listOfTimeFrameNumbers.size(), false);
     mfilenames[counter].numberOfTimeFrames = mfilenames[counter].listOfTimeFrameNumbers.size();
+
+    // An AO2D without any DF folder is what is left when the data was lost upstream (e.g. an
+    // AO2D merged from one which was not closed). Report it as a file which cannot be opened,
+    // so that it is either skipped and counted (--skip-invalid-reads) or stops the processing.
+    if (mfilenames[counter].numberOfTimeFrames == 0) {
+      mCurrentFileID = counter; // for the statistics reported on closing it
+      mCurrentFileStartedAt = uv_hrtime();
+      mIOTime = 0;
+      closeInputFile();
+      throw AODReadError(AODReadError::Kind::FileOpen, fmt::format("File \"{}\" has no DF folder!", filename));
+    }
   }
   std::vector<std::string> readOrder;
   for (auto number : mfilenames[counter].listOfTimeFrameNumbers) {
@@ -297,8 +308,8 @@ uint64_t DataInputDescriptor::getTimeFrameNumber(int counter, int numTF, int wan
     return 0ul;
   }
 
-  // no TF left
-  if (mfilenames[counter].numberOfTimeFrames > 0 && numTF >= mfilenames[counter].numberOfTimeFrames) {
+  // no TF left, or none at all: setFile() has counted them, an empty AO2D has 0
+  if (numTF < 0 || numTF >= mfilenames[counter].numberOfTimeFrames) {
     return 0ul;
   }
 
@@ -338,8 +349,8 @@ arrow::dataset::FileSource DataInputDescriptor::getFileFolder(int counter, int n
     return {};
   }
 
-  // no TF left
-  if ((mfilenames[counter].numberOfTimeFrames > 0) && (numTF >= mfilenames[counter].numberOfTimeFrames)) {
+  // no TF left, or none at all: setFile() has counted them, an empty AO2D has 0
+  if (numTF < 0 || numTF >= mfilenames[counter].numberOfTimeFrames) {
     return {};
   }
 
