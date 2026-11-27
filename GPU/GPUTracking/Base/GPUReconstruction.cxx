@@ -159,6 +159,7 @@ int32_t GPUReconstruction::Init()
   }
   for (uint32_t i = 0; i < mSlaves.size(); i++) {
     mSlaves[i]->mDeviceMemoryBase = mDeviceMemoryPermanent;
+    mSlaves[i]->mDeviceMemoryHostView = mDeviceMemoryHostView ? (char*)mDeviceMemoryHostView + ptrDiff(mSlaves[i]->mDeviceMemoryBase, mDeviceMemoryBase) : nullptr;
     mSlaves[i]->mHostMemoryBase = mHostMemoryPermanent;
     mSlaves[i]->mDeviceMemorySize = mDeviceMemorySize - ptrDiff(mSlaves[i]->mDeviceMemoryBase, mDeviceMemoryBase);
     mSlaves[i]->mHostMemorySize = mHostMemorySize - ptrDiff(mSlaves[i]->mHostMemoryBase, mHostMemoryBase);

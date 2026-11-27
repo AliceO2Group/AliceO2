@@ -101,7 +101,7 @@ int32_t GPUReconstructionCPUDevice::InitDevice_Runtime()
       GPUError("CPUDevice memory allocation error (trying %ld bytes device / %ld bytes host memory)", (int64_t)mDeviceMemorySize, (int64_t)mHostMemorySize);
       return 1;
     }
-    mDeviceMemoryBase = mInternals->deviceMemory;
+    mDeviceMemoryBase = mDeviceMemoryHostView = mInternals->deviceMemory;
     mHostMemoryBase = mInternals->hostMemory;
     mDeviceConstantMem = (GPUConstantMem*)mInternals->constantMemory;
     if (GetProcessingSettings().debugLevel >= 1) {
@@ -158,7 +158,7 @@ int32_t GPUReconstructionCPUDevice::ExitDevice_Runtime()
     mInternals->deviceMemory = mInternals->hostMemory = mInternals->constantMemory = nullptr;
     GPUInfo("CPUDevice Uninitialized");
   }
-  mDeviceMemoryBase = nullptr;
+  mDeviceMemoryBase = mDeviceMemoryHostView = nullptr;
   mHostMemoryBase = nullptr;
   mDeviceConstantMem = nullptr;
 

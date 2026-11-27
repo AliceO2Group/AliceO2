@@ -65,8 +65,9 @@ inline void GPUReconstructionCPU::runKernelBackend(const krnlSetupTime& _xyz, co
     throw std::runtime_error("Cannot run device kernel on host with nThreads != 1");
   }
   int32_t nThreads = getNKernelHostThreads(false);
-  const auto deviceProcessors = IsGPU() && x.device == krnlDeviceType::HostOnDeviceMemory ? DeviceProcessorOnHostView(_xyz) : nullptr;
-  GPUConstantMem& mem = deviceProcessors ? *(GPUConstantMem*)deviceProcessors.get() : *mHostConstantMem;
+  std::unique_ptr<char[]> deviceProcessorsCopy;
+  GPUConstantMem* const deviceProcessors = IsGPU() && x.device == krnlDeviceType::HostOnDeviceMemory ? DeviceProcessorOnHostView(_xyz, deviceProcessorsCopy) : nullptr;
+  GPUConstantMem& mem = deviceProcessors ? *deviceProcessors : *mHostConstantMem;
   auto arg = [&](const auto& a) -> decltype(auto) {
     if constexpr (std::is_pointer_v<std::decay_t<decltype(a)>>) {
       return deviceProcessors ? static_cast<std::decay_t<decltype(a)>>(HostPointer(a)) : a;
@@ -107,17 +108,25 @@ const void* GPUReconstructionCPU::HostPointer(const void* ptr) const
 
 // A kernel run with krnlDeviceType::HostOnDeviceMemory, on a GPU sharing its memory with the host
 // (UNIFIED_MEM_SORT_ON_HOST), runs the CPU code on the device processors, once the work before it in
-// the stream is done: on a copy of them pointing at the host view of the device memory, with the
-// host's parameters and calibration objects. The copy is their constant memory.
-std::unique_ptr<char[]> GPUReconstructionCPU::DeviceProcessorOnHostView(const krnlSetupTime& _xyz)
+// the stream is done. If the whole device address space is valid on the host (see mDeviceMemoryHostView),
+// directly on the constant memory of the device. Otherwise on a copy of the device processors pointing
+// at the host view of the device memory, with the host's parameters and calibration objects. The copy
+// is their constant memory.
+GPUConstantMem* GPUReconstructionCPU::DeviceProcessorOnHostView(const krnlSetupTime& _xyz, std::unique_ptr<char[]>& copy)
 {
+  if (mDeviceMemoryHostView == nullptr) {
+    throw std::runtime_error("Cannot run kernel on the host on device memory (UNIFIED_MEM_SORT_ON_HOST / UNIFIED_MEM_MERGE_BORDERS_ON_HOST), the backend does not share its memory with the host");
+  }
   if (_xyz.z.evList) {
     StreamWaitForEvents(_xyz.x.stream, _xyz.z.evList, _xyz.z.nEvents);
   }
   SynchronizeStream(_xyz.x.stream);
+  if (mDeviceMemoryHostView == mDeviceMemoryBase) {
+    return mDeviceConstantMem;
+  }
   static_assert(alignof(GPUConstantMem) <= __STDCPP_DEFAULT_NEW_ALIGNMENT__);
-  auto buffer = std::make_unique<char[]>(sizeof(GPUConstantMem));
-  GPUConstantMem* mem = (GPUConstantMem*)buffer.get();
+  copy = std::make_unique<char[]>(sizeof(GPUConstantMem));
+  GPUConstantMem* mem = (GPUConstantMem*)copy.get();
   memcpy((void*)mem, (const void*)mProcessorsShadow, sizeof(GPUConstantMem));
   auto onHost = [&](const GPUProcessor* p) {
     const size_t offset = (const char*)p - (const char*)mProcessorsShadow;
@@ -136,7 +145,7 @@ std::unique_ptr<char[]> GPUReconstructionCPU::DeviceProcessorOnHostView(const kr
   mem->param = param();
   mem->calibObjects = processors()->calibObjects;
   mem->errorCodes.setMemory(static_cast<uint32_t*>(HostPointer(mem->errorCodes.getErrorPtr() - 1)));
-  return buffer;
+  return mem;
 }
 
 template <>

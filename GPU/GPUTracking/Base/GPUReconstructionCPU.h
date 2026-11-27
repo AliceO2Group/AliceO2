@@ -73,7 +73,7 @@ class GPUReconstructionCPU : public GPUReconstructionProcessing::KernelInterface
   virtual void ReleaseEvent(deviceEvent ev) {}
   const void* HostPointer(const void* ptr) const;
   void* HostPointer(void* ptr) const { return const_cast<void*>(HostPointer(static_cast<const void*>(ptr))); }
-  std::unique_ptr<char[]> DeviceProcessorOnHostView(const krnlSetupTime& _xyz);
+  GPUConstantMem* DeviceProcessorOnHostView(const krnlSetupTime& _xyz, std::unique_ptr<char[]>& copy);
 
   size_t TransferMemoryResourceToGPU(GPUMemoryResource* res, int32_t stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int32_t nEvents = 1) { return TransferMemoryInternal(res, stream, ev, evList, nEvents, true, res->Ptr(), res->PtrDevice()); }
   size_t TransferMemoryResourceToHost(GPUMemoryResource* res, int32_t stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int32_t nEvents = 1) { return TransferMemoryInternal(res, stream, ev, evList, nEvents, false, res->PtrDevice(), res->Ptr()); }
