@@ -87,6 +87,7 @@ class GPUTPCGMMerger : public GPUProcessor
     uint32_t id;
     uint8_t row;
     uint8_t sector;
+    uint16_t idx; // Position in the track before sorting
   };
 
   struct trackRebuildHelperCandidate;

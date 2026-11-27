@@ -1535,17 +1535,14 @@ namespace o2::gpu::internal
 namespace // anonymous
 {
 struct GPUTPCGMMerger_CompareClusterIds {
-  const GPUTPCGMMerger::trackCluster* const mCmp;
   const bool revert;
-  GPUd() GPUTPCGMMerger_CompareClusterIds(const GPUTPCGMMerger::trackCluster* cmp, bool r) : mCmp(cmp), revert(r) {}
-  GPUd() bool operator()(const int16_t aa, const int16_t bb)
+  GPUd() GPUTPCGMMerger_CompareClusterIds(bool r) : revert(r) {}
+  GPUd() bool operator()(const GPUTPCGMMerger::trackCluster& a, const GPUTPCGMMerger::trackCluster& b) const
   {
-    const GPUTPCGMMerger::trackCluster& a = mCmp[aa];
-    const GPUTPCGMMerger::trackCluster& b = mCmp[bb];
     if (a.row != b.row) {
       return (a.row > b.row) ^ revert;
     }
-    return GPUCA_DETERMINISTIC_CODE((a.id != b.id) ? (a.id > b.id) : (aa > bb), a.id > b.id);
+    return GPUCA_DETERMINISTIC_CODE((a.id != b.id) ? (a.id > b.id) : (a.idx > b.idx), a.id > b.id);
   }
 };
 } // anonymous namespace
@@ -1732,7 +1729,7 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int32_t nBlocks, int32_t nThread
           const GPUTPCTracker& trk = GetConstantMem()->tpcTrackers[t->Sector()];
           const GPUTPCHitId& ic = trk.TrackHits()[t->OrigTrack(this)->FirstHitID() + i];
           uint32_t id = trk.Data().ClusterDataIndex(trk.Data().Row(ic.RowIndex()), ic.HitIndex()) + GetConstantMem()->ioPtrs.clustersNative->clusterOffset[t->Sector()][0];
-          *c2 = trackCluster{id, (uint8_t)ic.RowIndex(), t->Sector()};
+          *c2 = trackCluster{id, (uint8_t)ic.RowIndex(), t->Sector(), (uint16_t)(c2 - trackClusters)};
         }
         nHits += nTrackHits;
       }
@@ -1753,38 +1750,26 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int32_t nBlocks, int32_t nThread
       int8_t firstTrackIndex = 0;
       int8_t lastTrackIndex = nParts - 1;
       if (ordered == 0) {
+        GPUCommonAlgorithm::sort(trackClusters, trackClusters + nHits, GPUTPCGMMerger_CompareClusterIds(mustReverse));
+
         int16_t nTmpHits = 0;
-        trackCluster trackClustersUnsorted[kMaxClusters];
-        int16_t clusterIndices[kMaxClusters];
-        for (uint32_t i = 0; i < nHits; i++) {
-          trackClustersUnsorted[i] = trackClusters[i];
-          clusterIndices[i] = i;
-        }
-
-        GPUCommonAlgorithm::sort(clusterIndices, clusterIndices + nHits, GPUTPCGMMerger_CompareClusterIds(trackClusters, mustReverse));
-
-        nTmpHits = 0;
         firstTrackIndex = lastTrackIndex = -1;
         for (int32_t i = 0; i < nParts; i++) {
           nTmpHits += trackParts[i]->NClusters();
-          if (nTmpHits > clusterIndices[0] && firstTrackIndex == -1) {
+          if (nTmpHits > trackClusters[0].idx && firstTrackIndex == -1) {
             firstTrackIndex = i;
           }
-          if (nTmpHits > clusterIndices[nHits - 1] && lastTrackIndex == -1) {
+          if (nTmpHits > trackClusters[nHits - 1].idx && lastTrackIndex == -1) {
             lastTrackIndex = i;
           }
         }
 
         int16_t nFilteredHits = 0;
-        int16_t indPrev = -1;
-        for (uint32_t i = 0; i < nHits; i++) {
-          const int16_t ind = clusterIndices[i];
-          if (indPrev >= 0 && trackClustersUnsorted[ind].id == trackClustersUnsorted[indPrev].id) {
+        for (uint32_t i = 0; i < nHits; i++) { // Remove duplicates in place, they are adjacent after sorting
+          if (nFilteredHits > 0 && trackClusters[i].id == trackClusters[nFilteredHits - 1].id) {
             continue;
           }
-          indPrev = ind;
-          trackClusters[nFilteredHits] = trackClustersUnsorted[ind];
-          nFilteredHits++;
+          trackClusters[nFilteredHits++] = trackClusters[i];
         }
         nHits = nFilteredHits;
       }
