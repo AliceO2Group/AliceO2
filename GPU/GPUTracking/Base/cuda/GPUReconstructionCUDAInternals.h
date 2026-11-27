@@ -31,6 +31,7 @@ struct GPUReconstructionCUDAInternals {
   std::vector<std::unique_ptr<CUmodule>> kernelModules;     // module for RTC compilation
   std::vector<std::unique_ptr<CUfunction>> kernelFunctions; // vector of ptrs to RTC kernels
   cudaStream_t Streams[constants::GPU_MAX_STREAMS];         // Pointer to array of CUDA Streams
+  size_t stackSizeInit = 0;                                 // Stack size limit after initialization, to detect increases by the driver at runtime
 
   static void getArgPtrs(const void** pArgs) {}
   template <typename T, typename... Args>

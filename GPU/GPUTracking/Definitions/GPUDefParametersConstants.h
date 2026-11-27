@@ -43,7 +43,7 @@ static GPUglobalconstexpr() size_t GPU_MEM_MAX_TPC_CLUSTERS =         1024 * 102
 static GPUglobalconstexpr() size_t GPU_MEM_MAX_TRD_TRACKLETS =                128 * 1024ull; // Maximum number of TRD tracklets
 static GPUglobalconstexpr() size_t GPU_DEFAULT_MEMORY_SIZE =      6 * 1024 * 1024 * 1024ull; // Size of memory allocated on Device
 static GPUglobalconstexpr() size_t GPU_DEFAULT_HOST_MEMORY_SIZE = 1 * 1024 * 1024 * 1024ull; // Size of memory allocated on Host
-static GPUglobalconstexpr() size_t GPU_STACK_SIZE =                             8 * 1024ull; // Stack size per GPU thread
+static GPUglobalconstexpr() size_t GPU_STACK_SIZE =                            24 * 1024ull; // Stack size per GPU thread
 static GPUglobalconstexpr() size_t GPU_HEAP_SIZE =                      16 * 1025 * 1024ull; // Stack size per GPU thread
 } // namespace o2::gpu::constants
 
