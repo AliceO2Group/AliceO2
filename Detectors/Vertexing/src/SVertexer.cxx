@@ -830,9 +830,11 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   }
 
   if (nV0Used) { // need to fix the index of V0 for the cascades using this v0
+    // it is added below, after the clones of it which checkCascades added for cascades at other vertices
+    const int v0ID = mV0sIdxTmp[ithread].size();
     for (unsigned int ic = nCascIni; ic < mCascadesIdxTmp[ithread].size(); ic++) {
       if (mCascadesIdxTmp[ithread][ic].getV0ID() == -1) {
-        mCascadesIdxTmp[ithread][ic].setV0ID(nV0Ini);
+        mCascadesIdxTmp[ithread][ic].setV0ID(v0ID);
       }
     }
   }
@@ -1005,7 +1007,7 @@ int SVertexer::checkCascades(const V0Index& v0Idx, const V0& v0, float rv0, std:
       } else {                          // add V0 clone for this cascade (may be used also by other cascades)
         const auto& pv = mPVertices[cascVtxID];
         cascIdx.setV0ID(mV0sIdxTmp[ithread].size()); // set the new V0 index in the cascade
-        pvMap[cascVtxID] = mV0sTmp[ithread].size();  // add the new V0 index to the map
+        pvMap[cascVtxID] = mV0sIdxTmp[ithread].size(); // add the new V0 index to the map (mV0sTmp is filled only with createFullV0s)
         mV0sIdxTmp[ithread].emplace_back(cascVtxID, v0Idx.getProngs());
         if (mSVParams->createFullV0s) {
           mV0sTmp[ithread].push_back(v0);
