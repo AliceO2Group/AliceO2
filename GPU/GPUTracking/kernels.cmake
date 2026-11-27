@@ -151,6 +151,7 @@ o2_gpu_kernel_add_parameter(NEIGHBOURS_FINDER_MAX_NNEIGHUP            # Number o
                             ALTERNATE_BORDER_SORT                     # Use alternative border sort approach [0/1]
                             SORT_BEFORE_FIT                           # Sort tracks after length to reduce warp serialization [0/1]
                             UNIFIED_MEM_SORT_ON_HOST                  # Run the sorts on the host, on the memory shared with the GPU [0/1]
+                            UNIFIED_MEM_MERGE_BORDERS_ON_HOST         # Run the candidate search of the border merging on the host, on the memory shared with the GPU [0/1]
                             NO_ATOMIC_PRECHECK                        # Skip atomic precheck to reduce posterior synchronization [0/1]
                             COMP_GATHER_KERNEL                        # Default kernel to use for Compression Gather Operation [0 - 4]
                             COMP_GATHER_MODE                          # TPC Compression Gather Mode [0 - 3]
