@@ -12,6 +12,7 @@
 #include "GlobalTrackingWorkflow/SecondaryVertexingSpec.h"
 #include "GlobalTrackingWorkflow/SecondaryVertexWriterSpec.h"
 #include "GlobalTrackingWorkflow/StrangenessTrackingWriterSpec.h"
+#include "StrangenessTracking/StrangenessTrackingConfigParam.h"
 #include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/PrimaryVertexReaderSpec.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
@@ -101,6 +102,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
       src = src | GID::getSourcesMask("CTP");
     }
   }
+  const auto& trackingConf = o2::strangeness_tracking::StrangenessTrackingParamConfig::Instance();
+  const bool enableNewTracks = enableStrTr && (trackingConf.enableDecayFollowing || trackingConf.enableShortIB);
   WorkflowSpec specs;
   if (!configcontext.options().get<bool>("disable-root-input")) {
     specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt));
@@ -109,7 +112,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   // only TOF clusters are needed if TOF is involved, no clusters MC needed
   WorkflowSpec inputspecs;
-  o2::globaltracking::InputHelper::addInputSpecs(configcontext, inputspecs, srcClus, src, src, useMC, srcClus);
+  o2::globaltracking::InputHelper::addInputSpecs(configcontext, inputspecs, srcClus, src, src, useMC, srcClus, GID::getSourcesMask(GID::ALL), false, enableNewTracks && !trackingConf.itsOnly);
   o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, inputspecs, useMC); // P-vertex is always needed
 
   if (configcontext.options().get<bool>("combine-source-devices")) {
@@ -131,7 +134,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (!disableRootOut) {
     specs.emplace_back(o2::vertexing::getSecondaryVertexWriterSpec());
     if (enableStrTr) {
-      specs.emplace_back(o2::strangeness_tracking::getStrangenessTrackingWriterSpec(useMC));
+      specs.emplace_back(o2::strangeness_tracking::getStrangenessTrackingWriterSpec(useMC, trackingConf.enableDecayFollowing, trackingConf.enableShortIB));
     }
   }
 

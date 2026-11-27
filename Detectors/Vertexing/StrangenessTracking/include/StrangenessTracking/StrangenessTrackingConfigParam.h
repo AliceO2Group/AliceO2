@@ -35,6 +35,16 @@ struct StrangenessTrackingParamConfig : public o2::conf::ConfigurableParamHelper
   bool mSkipTPC = true;        // Flag to enable/disable TPC only tracks
   bool mSkip3Body = false;     // Flag to enable/disable Decay3Body tracking
 
+  // Opt-in decay extensions and inner-barrel short tracks. Preserve the legacy path when off.
+  bool enableDecayFollowing = false;
+  bool enableShortIB = false;
+  bool itsOnly = false; // explicit input profile without an ITS-TPC afterburner
+  int extensionMinHits = 2;
+  int extensionMaxMissing = 1;
+  float clusterSearchNSigma = 5.f;
+  float extensionMaxHitChi2 = 25.f;
+  int extensionMaxBranches = 4;    // per-seed cap on live decay-following hypotheses after each layer
+  bool decayFollowingOnly = false; // Skip legacy matching and let decay following use all ITS clusters.
   O2ParamDef(StrangenessTrackingParamConfig, "strtracker");
 };
 

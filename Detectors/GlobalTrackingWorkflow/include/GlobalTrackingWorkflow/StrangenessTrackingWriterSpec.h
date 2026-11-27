@@ -25,7 +25,7 @@ namespace strangeness_tracking
 
 /// create a processor spec
 /// write ITS tracks to ROOT file
-o2::framework::DataProcessorSpec getStrangenessTrackingWriterSpec(bool useMC);
+o2::framework::DataProcessorSpec getStrangenessTrackingWriterSpec(bool useMC, bool enableExtensions = false, bool enableShortTracks = false);
 
 } // namespace strangeness_tracking
 } // namespace o2

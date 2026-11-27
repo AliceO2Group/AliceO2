@@ -58,7 +58,7 @@ using GID = o2::dataformats::GlobalTrackID;
 int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec& specs,
                                GID::mask_t maskClusters, GID::mask_t maskMatches, GID::mask_t maskTracks,
                                bool useMC, GID::mask_t maskClustersMC, GID::mask_t maskTracksMC,
-                               bool subSpecStrict)
+                               bool subSpecStrict, bool requestITSABUsage)
 {
   if (configcontext.options().get<bool>("disable-root-input")) {
     return 0;
@@ -111,6 +111,8 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
   }
   if (maskMatches[GID::ITSTPC] || maskMatches[GID::ITSTPCTOF] || maskTracks[GID::ITSTPC] || maskTracks[GID::ITSTPCTOF]) {
     specs.emplace_back(o2::globaltracking::getTrackTPCITSReaderSpec(maskTracksMC[GID::ITSTPC] || maskTracksMC[GID::ITSTPCTOF]));
+  } else if (requestITSABUsage) {
+    specs.emplace_back(o2::globaltracking::getTrackTPCITSReaderSpec(false, true));
   }
   if (maskMatches[GID::ITSTPCTOF] || maskTracks[GID::ITSTPCTOF]) {
     specs.emplace_back(o2::tof::getTOFMatchedReaderSpec(maskTracksMC[GID::ITSTPCTOF], 1, /*maskTracks[GID::ITSTPCTOF]*/ false)); // ITSTPCTOF does not provide tracks, only matchInfo
@@ -207,12 +209,12 @@ int InputHelper::addInputSpecsSVertex(const o2::framework::ConfigContext& config
 }
 
 // attach strangeness tracking reader
-int InputHelper::addInputSpecsStrangeTrack(const o2::framework::ConfigContext& configcontext, o2::framework::WorkflowSpec& specs, bool mc)
+int InputHelper::addInputSpecsStrangeTrack(const o2::framework::ConfigContext& configcontext, o2::framework::WorkflowSpec& specs, bool mc, bool enableExtensions, bool enableShortTracks)
 {
   if (configcontext.options().get<bool>("disable-root-input")) {
     return 0;
   }
-  specs.emplace_back(o2::strangeness_tracking::getStrangenessTrackingReaderSpec(mc));
+  specs.emplace_back(o2::strangeness_tracking::getStrangenessTrackingReaderSpec(mc, enableExtensions, enableShortTracks));
   return 0;
 }
 

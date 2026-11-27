@@ -17,6 +17,7 @@
 #define _ALICEO2_STRANGENESS_TRACKER_
 
 #include <gsl/gsl>
+#include "ReconstructionDataFormats/StrangenessTrackingStats.h"
 
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsITSMFT/ClustersPerLayer.h"
@@ -89,9 +90,22 @@ class StrangenessTracker
   bool matchDecayToITStrack(float decayR, StrangeTrack& strangeTrack, ClusAttachments& structClus, const TrackITS& itsTrack, std::vector<o2::track::TrackParCovF>& daughterTracks, int iThread = 0);
   void prepareITStracks();
   void process();
-  void processV0(int iv0, const V0& v0, const V0Index& v0Idx, int iThread = 0);
-  void processCascade(int icasc, const Cascade& casc, const CascadeIndex& cascIdx, const V0& cascV0, int iThread = 0);
+  void processV0(int iv0, const V0& v0, const V0Index& v0Idx, int iThread = 0, int extensionPV = -1);
+  void processCascade(int icasc, const Cascade& casc, const CascadeIndex& cascIdx, const V0& cascV0, int iThread = 0, const V0Index* cascV0Idx = nullptr);
   void process3Body(int i3body, const Decay3Body& dec3body, const Decay3BodyIndex& dec3bodyIdx, int iThread = 0);
+  bool clusterTrackingEnabled() const { return mStrParams->enableDecayFollowing || mStrParams->enableShortIB; }
+  void setPVTimeMargin(float margin) { mPVTimeMargin = margin; }
+  void finishClusterTracking(); // called once, after all workers and final decay-index remapping
+  void remapExtensionSeeds(int thread, const std::vector<int>& v0, const std::vector<int>& casc, const std::vector<int>& three);
+  using ExtensionTime = o2::its::TimeStamp;
+  const auto& getExtendedStrangeTracks() const { return mExtendedStrangeTracks; }
+  const auto& getExtendedStrangeTrackLabels() const { return mExtendedStrangeLabels; }
+  const auto& getExtendedStrangeTrackTimes() const { return mExtendedStrangeTimes; }
+  const auto& getITSShortTracks() const { return mITSShortTracks; }
+  const auto& getITSShortTrackLabels() const { return mITSShortLabels; }
+  const auto& getITSShortTrackPVRefs() const { return mITSShortPVRefs; }
+  const auto& getITSShortTrackClusterRefs() const { return mITSShortClusterRefs; }
+  const auto& getStrangenessTrackingStats() const { return mStrangenessTrackingStats; }
   bool updateTrack(const ITSCluster& clus, o2::track::TrackParCov& track);
 
   std::vector<ClusAttachments>& getClusAttachments(int iThread = 0) { return mClusAttachments[iThread]; };
@@ -124,6 +138,19 @@ class StrangenessTracker
         mStrangeTrackLabels[i].clear();
       }
     }
+    for (auto& seeds : mExtensionSeeds) {
+      seeds.clear();
+    }
+    mExtendedStrangeTracks.clear();
+    mExtendedStrangeLabels.clear();
+    mExtendedStrangeTimes.clear();
+    mITSShortTracks.clear();
+    mITSShortLabels.clear();
+    mITSShortPVRefs.clear();
+    mITSShortClusterRefs.clear();
+    mStrangenessTrackingStats = {};
+    mClusterTrackingFinished = false;
+    mExtensionSeedsRemapped = false;
     mTracksIdxTable.clear();
     mSortedITStracks.clear();
     mSortedITSindexes.clear();
@@ -142,6 +169,7 @@ class StrangenessTracker
     mClusAttachments.resize(nThreads);
     mStrangeTrackLabels.resize(nThreads);
     mDaughterTracks.resize(nThreads);
+    mExtensionSeeds.resize(nThreads);
   }
 
   void setupFitters()
@@ -321,6 +349,25 @@ class StrangenessTracker
   }
 
  protected:
+  struct ExtensionSeed {
+    StrangeTrack source{};
+    int pv = -1;
+    std::array<uint32_t, 4> key{}; // role-aware original daughter IDs followed by decay type
+    bool matched = false;
+  };
+  std::vector<std::vector<ExtensionSeed>> mExtensionSeeds; // worker-local, no cluster claims
+  std::vector<StrangeTrack> mExtendedStrangeTracks;
+  std::vector<o2::MCCompLabel> mExtendedStrangeLabels;
+  std::vector<ExtensionTime> mExtendedStrangeTimes;
+  std::vector<TrackITS> mITSShortTracks;
+  std::vector<o2::MCCompLabel> mITSShortLabels;
+  std::vector<int> mITSShortPVRefs;
+  std::vector<int> mITSShortClusterRefs;
+  o2::dataformats::StrangenessTrackingStats mStrangenessTrackingStats;
+  const o2::globaltracking::RecoContainer* mClusterTrackingData = nullptr; //! current TF, not owned
+  bool mClusterTrackingFinished = false;
+  bool mExtensionSeedsRemapped = false;
+  float mPVTimeMargin = 0.f;
   bool mMCTruthON = false;                             /// flag availability of MC truth
   int mNThreads = 1;                                   /// number of threads (externally driven)
   float mGlobalChi2 = -1;                              /// global topology matching chi2

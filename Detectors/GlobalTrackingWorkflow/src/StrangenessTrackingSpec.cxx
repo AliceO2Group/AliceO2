@@ -28,6 +28,8 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
+#include "ReconstructionDataFormats/StrangenessTrackingStats.h"
+#include "DetectorsVertexing/PVertexerParams.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "ITStracking/IOUtils.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
@@ -57,6 +59,7 @@ void StrangenessTrackerSpec::init(framework::InitContext& ic)
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   mTracker.setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT);
   mTracker.setConfigParams(&StrangenessTrackingParamConfig::Instance());
+  mTracker.setPVTimeMargin(o2::vertexing::PVertexerParams::Instance().timeMarginVertexTime);
   mTracker.setupThreads(1);
   mTracker.setupFitters();
 
@@ -78,6 +81,25 @@ void StrangenessTrackerSpec::run(framework::ProcessingContext& pc)
   mTracker.process();
   pc.outputs().snapshot(Output{"GLO", "STRANGETRACKS", 0}, mTracker.getStrangeTrackVec());
   pc.outputs().snapshot(Output{"GLO", "CLUSUPDATES", 0}, mTracker.getClusAttachments());
+  const auto& conf = StrangenessTrackingParamConfig::Instance();
+  if (conf.enableDecayFollowing) {
+    pc.outputs().snapshot(Output{"GLO", "EXTSTRTRACKS", 0}, mTracker.getExtendedStrangeTracks());
+    pc.outputs().snapshot(Output{"GLO", "EXTSTRTIMES", 0}, mTracker.getExtendedStrangeTrackTimes());
+    if (mUseMC) {
+      pc.outputs().snapshot(Output{"GLO", "EXTSTRTRACKS_MC", 0}, mTracker.getExtendedStrangeTrackLabels());
+    }
+  }
+  if (conf.enableShortIB) {
+    pc.outputs().snapshot(Output{"GLO", "ITSSHORTTRACKS", 0}, mTracker.getITSShortTracks());
+    pc.outputs().snapshot(Output{"GLO", "ITSSHORTPV", 0}, mTracker.getITSShortTrackPVRefs());
+    pc.outputs().snapshot(Output{"GLO", "ITSSHORTCLREF", 0}, mTracker.getITSShortTrackClusterRefs());
+    if (mUseMC) {
+      pc.outputs().snapshot(Output{"GLO", "ITSSHORTMC", 0}, mTracker.getITSShortTrackLabels());
+    }
+  }
+  if (conf.enableDecayFollowing || conf.enableShortIB) {
+    pc.outputs().snapshot(Output{"GLO", "STRTRACKSTATS", 0}, mTracker.getStrangenessTrackingStats());
+  }
 
   if (mUseMC) {
     pc.outputs().snapshot(Output{"GLO", "STRANGETRACKS_MC", 0}, mTracker.getStrangeTrackLabels());
@@ -161,6 +183,11 @@ DataProcessorSpec getStrangenessTrackerSpec(o2::dataformats::GlobalTrackID::mask
   dataRequest->setITSPerLayer(itsStag);
   dataRequest->requestITSClusters(useMC);
   dataRequest->requestTracks(src, useMC);
+  const auto& conf = StrangenessTrackingParamConfig::Instance();
+  const bool enableNewTracks = conf.enableDecayFollowing || conf.enableShortIB;
+  if (enableNewTracks && !conf.itsOnly) {
+    dataRequest->requestITSABClusterUsage();
+  }
   dataRequest->requestPrimaryVertices(useMC);
   dataRequest->requestSecondaryVertices(useMC);
 
@@ -181,6 +208,24 @@ DataProcessorSpec getStrangenessTrackerSpec(o2::dataformats::GlobalTrackID::mask
   if (useMC) {
     outputs.emplace_back("GLO", "STRANGETRACKS_MC", 0, Lifetime::Timeframe);
     LOG(info) << "Strangeness tracker will use MC";
+  }
+  if (conf.enableDecayFollowing) {
+    outputs.emplace_back("GLO", "EXTSTRTRACKS", 0, Lifetime::Timeframe);
+    outputs.emplace_back("GLO", "EXTSTRTIMES", 0, Lifetime::Timeframe);
+    if (useMC) {
+      outputs.emplace_back("GLO", "EXTSTRTRACKS_MC", 0, Lifetime::Timeframe);
+    }
+  }
+  if (conf.enableShortIB) {
+    outputs.emplace_back("GLO", "ITSSHORTTRACKS", 0, Lifetime::Timeframe);
+    outputs.emplace_back("GLO", "ITSSHORTPV", 0, Lifetime::Timeframe);
+    outputs.emplace_back("GLO", "ITSSHORTCLREF", 0, Lifetime::Timeframe);
+    if (useMC) {
+      outputs.emplace_back("GLO", "ITSSHORTMC", 0, Lifetime::Timeframe);
+    }
+  }
+  if (enableNewTracks) {
+    outputs.emplace_back("GLO", "STRTRACKSTATS", 0, Lifetime::Timeframe);
   }
   outputs.emplace_back("META", "STRTRACKER", 0, Lifetime::Sporadic);
 

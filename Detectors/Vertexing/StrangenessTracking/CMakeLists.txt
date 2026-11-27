@@ -13,6 +13,7 @@
 
 o2_add_library(StrangenessTracking
                SOURCES src/StrangenessTracker.cxx
+                       src/StrangenessTrackerClusters.cxx
                        src/StrangenessTrackingConfigParam.cxx
                PUBLIC_LINK_LIBRARIES O2::MathUtils
                                              O2::ITSBase
@@ -34,3 +35,10 @@ o2_target_root_dictionary(StrangenessTracking
 
 
                LINKDEF src/StrangenessTrackingLinkDef.h)
+
+# Fundamental periodic-bin termination and boundary-support invariant.
+o2_add_test(its-cluster-bin-range
+            SOURCES test/testITSClusterBinRange.cxx
+            COMPONENT_NAME strangeness-tracking
+            LABELS "vertexing;strangeness-tracking"
+            PUBLIC_LINK_LIBRARIES O2::StrangenessTracking)

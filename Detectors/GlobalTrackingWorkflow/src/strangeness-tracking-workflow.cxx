@@ -70,14 +70,16 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::writeINI("o2strangeness_tracking_workflow_configuration.ini");
   GID::mask_t itsSource = GID::getSourceMask(GID::ITS); // ITS tracks and clusters
 
+  const auto& trackingConf = StrangenessTrackingParamConfig::Instance();
+  const bool enableNewTracks = trackingConf.enableDecayFollowing || trackingConf.enableShortIB;
   WorkflowSpec specs;
   specs.emplace_back(o2::strangeness_tracking::getStrangenessTrackerSpec(itsSource, useMC, useGeom, doStag));
-  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, itsSource, itsSource, itsSource, useMC, itsSource);
+  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, itsSource, itsSource, itsSource, useMC, itsSource, GID::getSourcesMask(GID::ALL), false, enableNewTracks && !trackingConf.itsOnly);
   o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC); // P-vertex is always needed
   o2::globaltracking::InputHelper::addInputSpecsSVertex(configcontext, specs);        // S-vertex is always needed
 
   if (!disableRootOut) {
-    specs.emplace_back(getStrangenessTrackingWriterSpec(useMC));
+    specs.emplace_back(getStrangenessTrackingWriterSpec(useMC, trackingConf.enableDecayFollowing, trackingConf.enableShortIB));
   }
 
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit

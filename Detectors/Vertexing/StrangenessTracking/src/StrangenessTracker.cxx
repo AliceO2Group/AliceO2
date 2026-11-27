@@ -24,10 +24,27 @@ namespace o2
 {
 namespace strangeness_tracking
 {
+namespace
+{
+dataformats::StrangeTrack makeExtensionSource(const track::TrackParCov& decay, dataformats::kPartType type, int ref)
+{
+  dataformats::StrangeTrack source{};
+  source.mMother = decay;
+  source.mPartType = type;
+  source.mDecayRef = ref;
+  decay.getXYZGlo(source.mDecayVtx);
+  decay.getPxPyPzGlo(source.mDecayMom);
+  return source;
+}
+} // namespace
 
 bool StrangenessTracker::loadData(const o2::globaltracking::RecoContainer& recoData)
 {
+  if (mStrParams->decayFollowingOnly && !mStrParams->enableDecayFollowing) {
+    throw std::runtime_error("strtracker.decayFollowingOnly requires strtracker.enableDecayFollowing");
+  }
   clear();
+  mClusterTrackingData = &recoData;
 
   mInputV0tracks = recoData.getV0s();
   mInputV0Indices = recoData.getV0sIdx();
@@ -69,16 +86,13 @@ bool StrangenessTracker::loadData(const o2::globaltracking::RecoContainer& recoD
   }
   mInputITSclusters.finalize();
 
-  mITSvtxBrackets.resize(mInputITStracks.size());
-  for (int i = 0; i < mInputITStracks.size(); i++) {
-    mITSvtxBrackets[i] = {-1, -1};
-  }
+  mITSvtxBrackets.assign(mStrParams->decayFollowingOnly ? 0 : mInputITStracks.size(), {-1, -1});
 
   // build time bracket for each ITS track
   auto trackIndex = recoData.getPrimaryVertexMatchedTracks(); // Global ID's for associated tracks
   auto vtxRefs = recoData.getPrimaryVertexMatchedTrackRefs(); // references from vertex to these track IDs
 
-  if (mStrParams->mVertexMatching) {
+  if (mStrParams->mVertexMatching && !mStrParams->decayFollowingOnly) {
     int nv = vtxRefs.size();
     for (int iv = 0; iv < nv; iv++) {
       const auto& vtref = vtxRefs[iv];
@@ -116,6 +130,9 @@ bool StrangenessTracker::loadData(const o2::globaltracking::RecoContainer& recoD
 
 void StrangenessTracker::prepareITStracks() // sort tracks by eta and phi and select only tracks with vertex matching
 {
+  if (mStrParams->decayFollowingOnly) {
+    return;
+  }
 
   for (int iTrack{0}; iTrack < mInputITStracks.size(); iTrack++) {
     if (mStrParams->mVertexMatching && mITSvtxBrackets[iTrack].getMin() == -1) {
@@ -136,7 +153,7 @@ void StrangenessTracker::prepareITStracks() // sort tracks by eta and phi and se
   mTracksIdxTable[mUtils.mPhiBins * mUtils.mEtaBins] = mSortedITStracks.size();
 }
 
-void StrangenessTracker::processV0(int iv0, const V0& v0, const V0Index& v0Idx, int iThread)
+void StrangenessTracker::processV0(int iv0, const V0& v0, const V0Index& v0Idx, int iThread, int extensionPV)
 {
   if (mStrParams->mSkipTPC && ((v0Idx.getProngID(kV0DauNeg).getSource() == GIndex::TPC) || (v0Idx.getProngID(kV0DauPos).getSource() == GIndex::TPC))) {
     return;
@@ -158,6 +175,18 @@ void StrangenessTracker::processV0(int iv0, const V0& v0, const V0Index& v0Idx, 
   }
   V0 correctedV0; // recompute V0 for Hypertriton
   if (!recreateV0(posTrack, negTrack, correctedV0, iThread)) {
+    return;
+  }
+  if (mStrParams->enableDecayFollowing) {
+    auto source = makeExtensionSource(v0, dataformats::kStrkV0, iv0);
+    source.mMother = correctedV0;
+    std::array<float, 3> posMom, negMom;
+    correctedV0.getProng(0).getPxPyPzGlo(posMom);
+    correctedV0.getProng(1).getPxPyPzGlo(negMom);
+    source.mMasses = alphaV0 > 0 ? std::array<float, 2>{float(calcMotherMass(posMom, negMom, PID::Helium3, PID::Pion)), float(calcMotherMass(posMom, negMom, PID::Alpha, PID::Pion))} : std::array<float, 2>{float(calcMotherMass(posMom, negMom, PID::Pion, PID::Helium3)), float(calcMotherMass(posMom, negMom, PID::Pion, PID::Alpha))};
+    mExtensionSeeds[iThread].push_back({source, extensionPV >= 0 ? extensionPV : v0Idx.getVertexID(), {v0Idx.getProngID(0).getRawWOFlags(), v0Idx.getProngID(1).getRawWOFlags(), 0, uint32_t(source.mPartType)}});
+  }
+  if (mStrParams->decayFollowingOnly) {
     return;
   }
   StrangeTrack strangeTrack;
@@ -208,8 +237,19 @@ void StrangenessTracker::processV0(int iv0, const V0& v0, const V0Index& v0Idx, 
   }
 }
 
-void StrangenessTracker::processCascade(int iCasc, const Cascade& casc, const CascadeIndex& cascIdx, const V0& cascV0, int iThread)
+void StrangenessTracker::processCascade(int iCasc, const Cascade& casc, const CascadeIndex& cascIdx, const V0& cascV0, int iThread, const V0Index* cascV0Idx)
 {
+  if (mStrParams->enableDecayFollowing) {
+    if (!cascV0Idx) {
+      throw std::runtime_error("Decay extension needs the cascade V0 daughter identities");
+    }
+    auto source = makeExtensionSource(casc, dataformats::kStrkCascade, iCasc);
+    source.mMasses = {std::sqrt(casc.calcMass2AsXiMinus()), std::sqrt(casc.calcMass2AsOmegaMinus())};
+    mExtensionSeeds[iThread].push_back({source, cascIdx.getVertexID(), {cascV0Idx->getProngID(0).getRawWOFlags(), cascV0Idx->getProngID(1).getRawWOFlags(), cascIdx.getBachelorID().getRawWOFlags(), uint32_t(source.mPartType)}});
+  }
+  if (mStrParams->decayFollowingOnly) {
+    return;
+  }
   ClusAttachments structClus;
   auto& daughterTracks = mDaughterTracks[iThread];
   daughterTracks.resize(3); // resize to 3 prongs: first bachelor, second V0 pos, third V0 neg
@@ -270,6 +310,20 @@ void StrangenessTracker::process3Body(int i3Body, const Decay3Body& dec3body, co
     auto& daughterTracks = mDaughterTracks[iThread];
     daughterTracks.resize(3); // resize to 3 prongs
 
+    if (mStrParams->enableDecayFollowing) {
+      auto source = makeExtensionSource(dec3body, dataformats::kStrkThreeBody, i3Body);
+      std::array<float, 3> p0, p1, p2;
+      dec3body.getProng(kV0DauPos).getPxPyPzGlo(p0);
+      dec3body.getProng(kV0DauNeg).getPxPyPzGlo(p1);
+      dec3body.getProng(kBach).getPxPyPzGlo(p2);
+      // Preserve the existing matching flow's p/pi/d mass interpretation at
+      // the source seed; do not invoke a shared mass helper with other semantics.
+      source.mMasses = {float(dec3body.getProng(kBach).getCharge() > 0 ? calcMotherMass3body(p0, p1, p2, PID::Proton, PID::Pion, PID::Deuteron) : calcMotherMass3body(p0, p1, p2, PID::Pion, PID::Proton, PID::Deuteron)), 0.f};
+      mExtensionSeeds[iThread].push_back({source, dec3bodyIdx.getVertexID(), {dec3bodyIdx.getProngID(0).getRawWOFlags(), dec3bodyIdx.getProngID(1).getRawWOFlags(), dec3bodyIdx.getProngID(2).getRawWOFlags(), uint32_t(source.mPartType)}});
+    }
+    if (mStrParams->decayFollowingOnly) {
+      return;
+    }
     StrangeTrack strangeTrack;
     strangeTrack.mPartType = dataformats::kStrkThreeBody;
     auto dec3bodyR = std::sqrt(dec3body.calcR2());
@@ -335,7 +389,7 @@ void StrangenessTracker::process()
   // Loop over Cascades
   for (int iCasc{0}; iCasc < mInputCascadeTracks.size(); iCasc++) {
     LOG(debug) << "Analysing Cascade: " << iCasc + 1 << "/" << mInputCascadeTracks.size();
-    processCascade(iCasc, mInputCascadeTracks[iCasc], mInputCascadeIndices[iCasc], mInputV0tracks[mInputCascadeIndices[iCasc].getV0ID()]);
+    processCascade(iCasc, mInputCascadeTracks[iCasc], mInputCascadeIndices[iCasc], mInputV0tracks[mInputCascadeIndices[iCasc].getV0ID()], 0, &mInputV0Indices[mInputCascadeIndices[iCasc].getV0ID()]);
   }
 
   // Loop over 3bodys
@@ -345,6 +399,7 @@ void StrangenessTracker::process()
       process3Body(i3Body, mInput3BodyTracks[i3Body], mInput3BodyIndices[i3Body]);
     }
   }
+  finishClusterTracking();
 }
 
 bool StrangenessTracker::matchDecayToITStrack(float decayR, StrangeTrack& strangeTrack, ClusAttachments& structClus, const TrackITS& itsTrack, std::vector<o2::track::TrackParCovF>& daughterTracks, int iThread)

@@ -147,6 +147,34 @@ void DataRequest::requestTPCTracks(bool mc)
   requestMap["trackTPC"] = mc;
 }
 
+void DataRequest::requestITSABClusterUsage()
+{
+  addInput({"trackITSTPCABREFS", "GLO", "TPCITSAB_REFS", 0, Lifetime::Timeframe});
+  addInput({"trackITSTPCABCLID", "GLO", "TPCITSAB_CLID", 0, Lifetime::Timeframe});
+  requestMap["ITSABClusterUsage"] = false;
+}
+
+void DataRequest::requestStrangenessTrackingExtensions(bool mc)
+{
+  addInput({"extendedstracks", "GLO", "EXTSTRTRACKS", 0, Lifetime::Timeframe});
+  addInput({"extendedstracktimes", "GLO", "EXTSTRTIMES", 0, Lifetime::Timeframe});
+  if (mc) {
+    addInput({"extendedstrack_mc", "GLO", "EXTSTRTRACKS_MC", 0, Lifetime::Timeframe});
+  }
+  requestMap["STrackerExtensions"] = mc;
+}
+
+void DataRequest::requestITSShortTracks(bool mc)
+{
+  addInput({"itsshorttracks", "GLO", "ITSSHORTTRACKS", 0, Lifetime::Timeframe});
+  addInput({"itsshortpv", "GLO", "ITSSHORTPV", 0, Lifetime::Timeframe});
+  addInput({"itsshortclref", "GLO", "ITSSHORTCLREF", 0, Lifetime::Timeframe});
+  if (mc) {
+    addInput({"itsshort_mc", "GLO", "ITSSHORTMC", 0, Lifetime::Timeframe});
+  }
+  requestMap["ITSShortTracks"] = mc;
+}
+
 void DataRequest::requestITSTPCTracks(bool mc)
 {
   addInput({"trackITSTPC", "GLO", "TPCITS", 0, Lifetime::Timeframe});
@@ -856,6 +884,19 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
     addSVertices(pc, req->second);
   }
 
+  req = reqMap.find("ITSABClusterUsage");
+  if (req != reqMap.end() && reqMap.find("trackITSTPC") == reqMap.end()) {
+    addITSABClusterUsage(pc);
+  }
+  req = reqMap.find("STrackerExtensions");
+  if (req != reqMap.end()) {
+    addStrangenessTrackingExtensions(pc, req->second);
+  }
+  req = reqMap.find("ITSShortTracks");
+  if (req != reqMap.end()) {
+    addITSShortTracks(pc, req->second);
+  }
+
   req = reqMap.find("STracker");
   if (req != reqMap.end()) {
     addStrangeTracks(pc, req->second);
@@ -899,6 +940,31 @@ void RecoContainer::addPVertices(ProcessingContext& pc, bool mc)
 }
 
 //____________________________________________________________
+void RecoContainer::addITSABClusterUsage(ProcessingContext& pc)
+{
+  commonPool[GTrackID::ITSAB].registerContainer(pc.inputs().get<gsl::span<o2::itsmft::TrkClusRef>>("trackITSTPCABREFS"), TRACKREFS);
+  commonPool[GTrackID::ITSAB].registerContainer(pc.inputs().get<gsl::span<int>>("trackITSTPCABCLID"), INDICES);
+}
+
+void RecoContainer::addStrangenessTrackingExtensions(ProcessingContext& pc, bool mc)
+{
+  strkPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::StrangeTrack>>("extendedstracks"), EXTSTRACK);
+  strkPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::TimeStampWithError<float, float>>>("extendedstracktimes"), EXTSTRACK_TIME);
+  if (mc) {
+    strkPool.registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("extendedstrack_mc"), EXTSTRACK_MC);
+  }
+}
+
+void RecoContainer::addITSShortTracks(ProcessingContext& pc, bool mc)
+{
+  strkPool.registerContainer(pc.inputs().get<gsl::span<o2::its::TrackITS>>("itsshorttracks"), ITSSHORT);
+  strkPool.registerContainer(pc.inputs().get<gsl::span<int>>("itsshortpv"), ITSSHORT_PV);
+  strkPool.registerContainer(pc.inputs().get<gsl::span<int>>("itsshortclref"), ITSSHORT_CLREF);
+  if (mc) {
+    strkPool.registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("itsshort_mc"), ITSSHORT_MC);
+  }
+}
+
 void RecoContainer::addStrangeTracks(ProcessingContext& pc, bool mc)
 {
   strkPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::StrangeTrack>>("strangetracks"), STRACK);
