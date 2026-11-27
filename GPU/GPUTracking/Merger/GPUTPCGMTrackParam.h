@@ -180,7 +180,7 @@ class GPUTPCGMTrackParam
   GPUd() void FindAdjacentClustersLooperMirror(const GPUTPCGMMerger& GPUrestrict() merger, int32_t sector, int32_t iRow, const int32_t iTrack, const bool up, const GPUTPCGMPropagator& prop);
   GPUd() void FindAdjacentClustersLooperFollow(const GPUTPCGMMerger& GPUrestrict() merger, GPUTPCGMPropagator& prop, int8_t sector, const int32_t iTrack, const bool up);
   GPUd() int32_t StoreLoopPropagation(const GPUTPCGMMerger& GPUrestrict() merger, int32_t sector, int32_t iRow, int32_t iTrack, bool outwards, float alpha);
-  GPUd() void StoreFollowExtrapolation(const GPUTPCGMMerger& GPUrestrict() merger, int32_t sector, int32_t iRow, int32_t iTrack, bool outwards, float alpha);
+  GPUd() void StoreFollowExtrapolation(const GPUTPCGMMerger& GPUrestrict() merger, int32_t sector, int32_t iRow, int32_t iTrack, bool outwards, bool inFlyDirection, float alpha);
   GPUd() static void FollowExtrapolation(GPUTPCGMMerger& merger, int32_t idx);
   GPUd() void StoreOuter(gputpcgmmergertypes::GPUTPCOuterParam* outerParam, float alpha);
   GPUd() static void PropagateLooper(const GPUTPCGMMerger& merger, int32_t loopIdx);
@@ -255,7 +255,7 @@ struct GPUTPCGMLoopAndExtData { // Track end for FollowLoopers (stored from the 
   float alpha;
   uint8_t sector;
   uint8_t row;
-  uint8_t outwards;
+  uint8_t outwards; // FollowExtrapolation entries: bit 1 = inFlyDirection
 };
 
 GPUdi() void GPUTPCGMTrackParam::ResetCovariance()

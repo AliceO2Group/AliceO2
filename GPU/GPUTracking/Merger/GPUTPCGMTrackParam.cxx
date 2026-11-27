@@ -136,6 +136,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, GPUTPC
     float lastUpdateX = -1;
     const bool inFlyDirection = iWay & 1;
     const int8_t wayDirection = (iWay & 1) ? -1 : 1;
+    const bool searchSkippedHits = param.rec.tpc.rebuildTrackInFit && iWay == wayRebuildStart + 1 && (param.rec.tpc.rebuildTrackMaxNonIntCov > 0 ? !(param.rec.tpc.disableRebuildAttachment & 4) : adjacentInRebuild); // Search at the interpolated position for hits the fit skips or stops at. With maxNonIntCov 0 no one-sided candidates, only the adjacent search
 
     if (param.rec.tpc.mergerInterpolateErrors && iWay == nWays - 2) {
       ihitStartInterpolateReject = ihitStart;
@@ -225,7 +226,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, GPUTPC
         nMissedHard++;
         NTolerated++;
         MarkAdjacentSearch(param, iWay, inter);
-        if (param.rec.tpc.rebuildTrackInFit && iWay == wayRebuildStart + 1 && (param.rec.tpc.rebuildTrackMaxNonIntCov > 0 ? !(param.rec.tpc.disableRebuildAttachment & 4) : adjacentInRebuild)) { // With maxNonIntCov 0 no one-sided candidates, only the adjacent search at the interpolated position
+        if (searchSkippedHits) {
           FindBestInterpolatedHit(merger, tmpRows, inter, cluster.sector, cluster.row, deltaZ, sumInvSqrtCharge, nAvgCharge, prop, iTrk, true, adjacentInRebuild && !(param.rec.tpc.disableMarkAdjacent & 1) ? adjacentLeg : 0);
         }
         continue;
@@ -235,7 +236,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, GPUTPC
       CADEBUG(printf("\t%21sPropaga Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f)   ---   Res %8.3f %8.3f   ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f   -   PErr %d\n", "", prop.GetAlpha(), mX, mP[0], mP[1], mP[4], prop.GetQPt0(), mP[2], prop.GetSinPhi0(), mP[0] - yy, mP[1] - zz, sqrtf(CAMath::Max(0.f, mC[0])), sqrtf(CAMath::Max(0.f, mC[2])), sqrtf(CAMath::Max(0.f, mC[5])), sqrtf(CAMath::Max(0.f, mC[14])), mC[10], retValProp));
       // clang-format on
       if (mNDF >= 0 && (mC[0] > param.rec.tpc.trackFitCovLimit || mC[2] > param.rec.tpc.trackFitCovLimit)) {
-        if (param.rec.tpc.rebuildTrackInFit && iWay == wayRebuildStart + 1 && (param.rec.tpc.rebuildTrackMaxNonIntCov > 0 ? !(param.rec.tpc.disableRebuildAttachment & 4) : adjacentInRebuild)) { // With maxNonIntCov 0 no one-sided candidates, only the adjacent search at the interpolated position
+        if (searchSkippedHits) {
           InterpolateMissingRows(merger, tmpRows, interpolation, clusters, ihit, interpolationIndex, cluster.row, deltaZ, sumInvSqrtCharge, nAvgCharge, prop, iTrk, adjacentInRebuild && !(param.rec.tpc.disableMarkAdjacent & 1) ? adjacentLeg : 0);
         }
         MarkAdjacentSearch(param, iWay, inter);
@@ -327,7 +328,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, GPUTPC
           }
         }
       } else if (retValHit == 1) {
-        if (param.rec.tpc.rebuildTrackInFit && iWay == wayRebuildStart + 1 && (param.rec.tpc.rebuildTrackMaxNonIntCov > 0 ? !(param.rec.tpc.disableRebuildAttachment & 4) : adjacentInRebuild)) { // With maxNonIntCov 0 no one-sided candidates, only the adjacent search at the interpolated position
+        if (searchSkippedHits) {
           InterpolateMissingRows(merger, tmpRows, interpolation, clusters, ihit + wayDirection, interpolationIndex + wayDirection, cluster.row, deltaZ, sumInvSqrtCharge, nAvgCharge, prop, iTrk, adjacentInRebuild && !(param.rec.tpc.disableMarkAdjacent & 1) ? adjacentLeg : 0);
         }
         fitBroken = true;
@@ -377,7 +378,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger& GPUrestrict() merger, GPUTPC
         CADEBUG(printf("\t\tSTORING %d lastUpdateRow %d row %d out %d\n", iTrk, (int)lastUpdateRow, (int)clusters[(iWay & 1) ? (maxN - 1) : 0].row, lastUpdateRow > clusters[(iWay & 1) ? (maxN - 1) : 0].row));
       }
       if (loopStored == -1 && GPUTPCGMMerger::FollowExtrapolationEnabled(param) && !fitBroken && CAMath::Abs(mP[2]) < maxSinForUpdate && mNDF > (int32_t)param.rec.tpc.rebuildTrackNonIntMinNDF && (!GPUTPCGMMerger::FollowExtrapolationAfterRebuild(param) || (track.Leg() == 0 && CAMath::Abs(GetQPt() * param.qptB5Scaler) <= param.rec.tpc.rejectQPtB5))) {
-        StoreFollowExtrapolation(merger, lastSector, lastPropagateRow, iTrk, (clusters[0].row < clusters[maxN - 1].row) ^ (iWay & 1), prop.GetAlpha()); // Follow the track beyond its end for adjacent clusters (same conditions as for the extrapolation), in the 5-way fit only to protect clusters, i.e. for good legs of tracks not rejected by rejectQPtB5
+        StoreFollowExtrapolation(merger, lastSector, lastPropagateRow, iTrk, (clusters[0].row < clusters[maxN - 1].row) ^ (iWay & 1), inFlyDirection, prop.GetAlpha()); // Follow the track beyond its end for adjacent clusters (same conditions as for the extrapolation), in the 5-way fit only to protect clusters, i.e. for good legs of tracks not rejected by rejectQPtB5
       }
     }
 
@@ -793,9 +794,9 @@ GPUdi() uint8_t GPUTPCGMTrackParam::ExtrapolateRows(GPUTPCGMMerger& GPUrestrict(
   if (iExtrapolatedRow >= GPUTPCGeometry::NROWS && consecGoodRows >= param.rec.tpc.rebuildTrackExtrMinConsecGoodRowsEdge && (param.rec.tpc.rebuildTrackExtrMaxAvgChi2 <= 0 || mChi2 - segmentStartChi2 <= param.rec.tpc.rebuildTrackExtrMaxAvgChi2 * segmentRows)) { // Reached the inner / outer end of the TPC, a shorter last segment is sufficient
     lastGoodRow = lastFoundRow;
   }
-  if (lastGoodRow != lastExtrapolateRow) {
-    for (int32_t iRow = lastGoodRow + up; iRow != lastExtrapolateRow + up; iRow += up) {
-      if constexpr (!followOnly) {
+  if constexpr (!followOnly) {
+    if (lastGoodRow != lastExtrapolateRow) {
+      for (int32_t iRow = lastGoodRow + up; iRow != lastExtrapolateRow + up; iRow += up) {
         merger.TrackRebuildHelperRow(iTrk, iRow, tmpRows).setBest(GPUTPCGMMerger::trackRebuildHelperRow::bestRowRemoved);
       }
     }
@@ -1319,7 +1320,7 @@ GPUdic(0, 1) int32_t GPUTPCGMTrackParam::StoreLoopPropagation(const GPUTPCGMMerg
   return 1;
 }
 
-GPUd() void GPUTPCGMTrackParam::StoreFollowExtrapolation(const GPUTPCGMMerger& GPUrestrict() merger, int32_t sector, int32_t iRow, int32_t iTrack, bool outwards, float alpha)
+GPUd() void GPUTPCGMTrackParam::StoreFollowExtrapolation(const GPUTPCGMMerger& GPUrestrict() merger, int32_t sector, int32_t iRow, int32_t iTrack, bool outwards, bool inFlyDirection, float alpha)
 {
   const uint32_t n = CAMath::AtomicAdd(&merger.Memory()->nFollowExtrapolationData, 1u);
   if (n >= merger.NMaxLoopExtrData()) {
@@ -1333,7 +1334,7 @@ GPUd() void GPUTPCGMTrackParam::StoreFollowExtrapolation(const GPUTPCGMMerger& G
   data.alpha = alpha;
   data.sector = sector;
   data.row = iRow;
-  data.outwards = outwards;
+  data.outwards = (uint8_t)outwards | ((uint8_t)inFlyDirection << 1);
 }
 
 GPUdii() void GPUTPCGMTrackParam::FollowExtrapolation(GPUTPCGMMerger& GPUrestrict() merger, int32_t idx)
@@ -1364,7 +1365,7 @@ GPUdii() void GPUTPCGMTrackParam::FollowExtrapolation(GPUTPCGMMerger& GPUrestric
   int8_t sector = data.sector;
   int16_t nAvgCharge = 0;
   float sumInvSqrtCharge = 0.f; // Not used by ExtrapolateRows<true>
-  t.ExtrapolateRows<true>(merger, nullptr, prop, es, sector, data.row, data.outwards ? 1 : -1, (track.Leg() & 1) ^ data.outwards, true, sumInvSqrtCharge, nAvgCharge, 0.f, data.track, 1 + (track.Leg() == 0), param.rec.tpc.followExtrapolationMaxCov, t.mP[4]);
+  t.ExtrapolateRows<true>(merger, nullptr, prop, es, sector, data.row, (data.outwards & 1) ? 1 : -1, data.outwards & 2, true, sumInvSqrtCharge, nAvgCharge, 0.f, data.track, 1 + (track.Leg() == 0), param.rec.tpc.followExtrapolationMaxCov, t.mP[4]);
 }
 
 GPUdii() void GPUTPCGMTrackParam::PropagateLooper(const GPUTPCGMMerger& GPUrestrict() merger, int32_t loopIdx)

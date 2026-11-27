@@ -104,7 +104,7 @@ AddOptionRTC(trackFitMinHitsMaxQPtIncrease, float, 0.2f, "", 0, "For the QPt-dep
 AddOptionRTC(rebuildTrackMaxSharedFraction, float, 0.1f, "", 0, "Max fraction of shared clusters for rebuilt tracks")
 AddOptionRTC(rebuildTrackMaxNonIntCov, float, 4.f, "", 0, "Max Err2 allowed for non-interpolated cluster attachment during rebuild")
 AddOptionRTC(followExtrapolationMaxCov, float, 4.f, "", 0, "Max Err2 for following (not during rebuild) the track beyond its ends for adjacent clusters")
-AddOptionRTC(followExtrapolationChi2Factor, float, 0.f, "", 0, "> 1: follow track once more after rebuild, sets factor by which chi2 window is reduced for marking adjcacent clusters")
+AddOptionRTC(followExtrapolationChi2Factor, float, 0.f, "", 0, "> 0: follow track once more after extrapolated rebuild to mark adjacent clusters, the chi2 of the cluster candidates is scaled by this factor (> 1 reduces the chi2 window)")
 AddOptionRTC(rebuildErrorWeightFactor, float, 5.f, "", 0, "Factor for the error (distance^2) of a cluster candidate in its hit weight 1 / (1 + factor * error) during rebuild")
 AddOptionRTC(maxSinPhiForFitUpdate, float, 0.9396926f, "", 0, "Max abs(sinPhi) of the track to update it with a cluster in the track fit)") // default sin(70 deg = 0.9396926
 AddOptionRTC(rebuildTrackMaxQPtDrift, float, 0.5f, "", 0, "Stop the track extrapolation during rebuild when QPt changed by more than this fraction of max(1, abs(QPt)) compared to before the extrapolation (0 = disabled)")
@@ -357,7 +357,7 @@ BeginSubConfig(GPUSettingsProcessingDebug, debug, configStandalone.proc, "DEBUG"
 AddOption(memoryScalingFuzz, uint64_t, 0, "", 0, "Fuzz the memoryScalingFactor (0 disable, 1 enable, >1 set seed", def(1))
 AddOption(mergerMCLabels, bool, false, "", 0, "Create MC labels for merged tracks before refit for debugging")
 AddOption(mergerDumpTrackNCl, bool, false, "", 0, "Dump file with nCl per merged track fit")
-AddOption(tpcMergerFitOnCPUSingleThread, bool, false, "", 0, "Run the TPC merger kernels from the track fit on with 1 CPU thread, for ordered GPUCA_CADEBUG output (CPU only)")
+AddOption(tpcMergerFitOnCPUSingleThread, bool, false, "", 0, "Run the TPC merger kernels starting from the track fit with 1 CPU thread, for ordered GPUCA_CADEBUG output (CPU only)")
 AddHelp("help", 0)
 EndConfig()
 
@@ -388,7 +388,7 @@ AddOption(debugCSV, std::string, "", "", 0, "CSV filename to append the benchmar
 AddOption(debugMarkdown, bool, false, "", 0, "Print the results of standalone benchmarks in markdown format")
 AddOption(serializeGPU, int8_t, 0, "", 0, "Synchronize after each kernel call (bit 1) and DMA transfer (bit 2) and identify failures")
 AddOption(recoTaskTiming, bool, 0, "", 0, "Perform summary timing after whole reconstruction tasks")
-AddOption(deterministicGPUReconstruction, int32_t, -1, "", 0, "Make CPU and GPU debug output comparable (sort / skip concurrent parts), -1 = automatic if debugLevel >= 6 or deterministic compile flag set", def(1))
+AddOption(deterministicGPUReconstruction, int32_t, -1, "", 0, "Make CPU and GPU debug output comparable (sort / skip concurrent parts), -1 = automatic if debugLevel >= 6, debugDumpFinal, or deterministic compile flag set", def(1))
 AddOption(showOutputStat, bool, false, "", 0, "Print some track output statistics")
 AddOption(runCompressionStatistics, int8_t, 0, "compressionStat", 0, "Run statistics and verification for cluster compression, 2 to dump clusters and entropy-reduced clusters to CSV", def(1))
 AddOption(resetTimers, int8_t, 1, "", 0, "Reset timers every event")

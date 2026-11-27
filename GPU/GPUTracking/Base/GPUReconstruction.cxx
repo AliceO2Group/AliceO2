@@ -269,7 +269,7 @@ int32_t GPUReconstruction::InitPhaseBeforeDevice()
   detMode = true;
 #endif
   if (GetProcessingSettings().deterministicGPUReconstruction == -1) {
-    mProcessingSettings->deterministicGPUReconstruction = detMode ? 1 : (GetProcessingSettings().debugLevel >= 6);
+    mProcessingSettings->deterministicGPUReconstruction = detMode ? 1 : (GetProcessingSettings().debugLevel >= 6 || GetProcessingSettings().debugDumpFinal);
   }
   if (GetProcessingSettings().deterministicGPUReconstruction) {
     if (!detMode) {
