@@ -15,6 +15,7 @@
 #include "TRDCalibration/PulseHeight.h"
 #include "DataFormatsTRD/Constants.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "FT0Reconstruction/InteractionTag.h"
 #include <fairlogger/Logger.h>
 
 using namespace o2::trd;
@@ -71,6 +72,9 @@ void PulseHeight::setInput(const o2::globaltracking::RecoContainer& input, gsl::
   mTriggerRecords = input.getTRDTriggerRecords();
   mTrackTriggerRecordsTPCTRD = input.getTPCTRDTriggers();
   mTrackTriggerRecordsITSTPCTRD = input.getITSTPCTRDTriggers();
+  if (mTrkMask[o2::dataformats::GlobalTrackID::FT0]) {
+    mFT0RecPoints = input.getFT0RecPoints();
+  }
   mDigits = digits;
 }
 
@@ -83,6 +87,9 @@ void PulseHeight::process()
   }
   size_t nTrkTrig[2] = {mTrackTriggerRecordsITSTPCTRD.size(), mTrackTriggerRecordsTPCTRD.size()};
   int lastTrkTrig[2] = {0};
+
+  int currentFT0[2] = {0};
+
   for (const auto& trig : mTriggerRecords) {
     if (trig.getNumberOfDigits() == 0) {
       continue;
@@ -103,10 +110,26 @@ void PulseHeight::process()
           ++lastTrkTrig[iTrackType];
           continue;
         }
-        if ((*tracks)[trigTrack.getFirstTrack()].hasPileUpInfo() && (*tracks)[trigTrack.getFirstTrack()].getPileUpTimeShiftMUS() < mParams.pileupCut) {
-          // rejecting triggers which are close to other collisions (avoid pile-up)
+        // find closest interacting bc after the trigger record
+        uint8_t nClosestBC = 0;
+        if (mTrkMask[o2::dataformats::GlobalTrackID::FT0]) {
+          for (size_t ft0id = currentFT0[iTrackType]; ft0id < mFT0RecPoints.size(); ft0id++) {
+            const auto& f0rec = mFT0RecPoints[ft0id];
+            if (o2::ft0::InteractionTag::Instance().isSelected(f0rec)) {
+              int64_t bcdiff = f0rec.getInteractionRecord().differenceInBC(trigTrack.getBCData());
+              if (bcdiff > 0) {
+                nClosestBC = bcdiff;
+                currentFT0[iTrackType] = ft0id;
+                break;
+              }
+            }
+          }
+        }
+        if (((*tracks)[trigTrack.getFirstTrack()].getPileUpDistanceBwd() > 0) || ((!mTrkMask[o2::dataformats::GlobalTrackID::FT0] || mFT0RecPoints.size() == 0) && (*tracks)[trigTrack.getFirstTrack()].getPileUpTimeShiftMUS() < mParams.pileupCut) || (nClosestBC > 0 && nClosestBC * o2::constants::lhc::LHCBunchSpacingMUS < mParams.pileupCut)) {
+          // rejecting triggers with a collision closely after (needs the full colliding BC history because track only keeps the furthest BC within window)
+          // or with a collision before (avoid pile-up)
           ++lastTrkTrig[iTrackType];
-          LOGP(debug, "Rececting trigger due to pileup of {}", (*tracks)[trigTrack.getFirstTrack()].getPileUpTimeShiftMUS());
+          LOGP(debug, "Rejecting trigger due to pileup of {}", (*tracks)[trigTrack.getFirstTrack()].getPileUpTimeShiftMUS());
           break;
         }
         for (int iTrk = trigTrack.getFirstTrack(); iTrk < trigTrack.getFirstTrack() + trigTrack.getNumberOfTracks(); iTrk++) {
@@ -137,7 +160,7 @@ void PulseHeight::findDigitsForTracklet(const Tracklet64& trklt, const TriggerRe
     if (digit.isSharedDigit()) {
       continue; // avoid double-counting of the same digit
     }
-    if (digit.getDetector() != trkltDet || digit.getPadRow() != trklt.getPadRow() || digit.getPadCol() != trklt.getPadCol(mApplyShift)) {
+    if (digit.getDetector() != trkltDet || digit.getPadRow() != trklt.getPadRow() || digit.getPadCol() != trklt.getPadCol(false)) {
       // for now we loose charge information from padrow-crossing tracklets (~15% of all tracklets)
       continue;
     }
@@ -167,6 +190,16 @@ void PulseHeight::findDigitsForTracklet(const Tracklet64& trklt, const TriggerRe
       right = true;
     }
     if (nNeighbours > 0) {
+      // pile-up removal: if we have several consecutive digits with very small value for the first time bins, this is likely to come from pile-up
+      int nOverThreshold = 0;
+      for (int iTb = 0; iTb < ((int)(mParams.pileupCut * 10)); iTb++) {
+        if (digit.getADC()[iTb] > mParams.digitsThreshold) {
+          nOverThreshold++;
+        }
+      }
+      if (nOverThreshold <= 2) {
+        continue;
+      }
       int digitTrackletDistance = 0;
       auto adcSumMax = digit.getADCsum();
       if (left && digitLeft->getADCsum() > adcSumMax) {

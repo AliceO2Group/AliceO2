@@ -36,7 +36,7 @@ namespace trd
 class PuseHeightDevice : public o2::framework::Task
 {
  public:
-  PuseHeightDevice(std::shared_ptr<DataRequest> dr) : mDataRequest(dr) {}
+  PuseHeightDevice(std::shared_ptr<DataRequest> dr, o2::dataformats::GlobalTrackID::mask_t src) : mDataRequest(dr), mTrkMask(src) {}
   void init(o2::framework::InitContext& ic) final
   {
     mPulseHeight = std::make_unique<PulseHeight>();
@@ -47,6 +47,7 @@ class PuseHeightDevice : public o2::framework::Task
       // apply artificial pad shift in case non-ideal alignment is used to compensate for shift in current alignment from real data
       mPulseHeight->setApplyShift(false);
     }
+    mPulseHeight->setTrkMask(mTrkMask);
   }
 
   void run(o2::framework::ProcessingContext& pc) final
@@ -92,6 +93,7 @@ class PuseHeightDevice : public o2::framework::Task
   std::shared_ptr<DataRequest> mDataRequest;
   std::unique_ptr<o2::trd::PulseHeight> mPulseHeight;
   bool mRunStopRequested = false; // flag that run was stopped (and the last output is sent)
+  o2::dataformats::GlobalTrackID::mask_t mTrkMask;
 };
 
 } // namespace trd
@@ -127,7 +129,7 @@ DataProcessorSpec getTRDPulseHeightSpec(GID::mask_t src, bool digitsFromReader)
     "trd-pulseheight",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<o2::trd::PuseHeightDevice>(dataRequest)},
+    AlgorithmSpec{adaptFromTask<o2::trd::PuseHeightDevice>(dataRequest, src)},
     Options{
       {"enable-root-output", VariantType::Bool, false, {"output PH and debug data to root file"}}}};
 }
