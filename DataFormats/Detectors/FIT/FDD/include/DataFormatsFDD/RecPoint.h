@@ -53,15 +53,22 @@ class RecPoint
  public:
   enum TimeTypeIndex : int { TimeA,
                              TimeC };
+  enum ETriggerBits { kSwOrTrgSideA = 5,
+                      kSwOrTrgSideC = 6,
+                      kSwVtxTrg = 7 };
+  enum ETechnicalBits { kLaser = 0,             // laser was triggered in this BC
+                        kOutputsAreBlocked = 1, // trigger outputs are blocked in this BC
+                        kDataIsValid = 2 };     // data is valid for processing
   RecPoint() = default;
   RecPoint(const std::array<int, 2>& collisiontime, int first, int ne,
-           o2::InteractionRecord iRec, o2::fdd::Triggers triggers)
+           o2::InteractionRecord iRec, o2::fdd::Triggers triggers, bool swOrTrgSideA, bool swOrTrgSideC, bool swVtxTrg)
     : mCollisionTimePs(collisiontime)
   {
     mRef.setFirstEntry(first);
     mRef.setEntries(ne);
     mIntRecord = iRec;
     mTriggers = triggers;
+    updateTriggers(swOrTrgSideA, swOrTrgSideC, swVtxTrg);
   }
   ~RecPoint() = default;
 
@@ -72,6 +79,7 @@ class RecPoint
   void setCollisionTime(Float_t time, TimeTypeIndex type) { mCollisionTimePs[type] = time; }
 
   const o2::fdd::Triggers getTrigger() const { return mTriggers; }
+  uint8_t getTechnicalWord() const { return mTechnicalWords; }
   o2::InteractionRecord getInteractionRecord() const { return mIntRecord; };
   gsl::span<const ChannelDataFloat> getBunchChannelData(const gsl::span<const ChannelDataFloat> tfdata) const
   {
@@ -82,16 +90,28 @@ class RecPoint
   int getFirstEntry() const { return mRef.getFirstEntry(); }
   int getEntriesInCurrentBC() const { return mRef.getEntries(); }
 
+  bool getSwOrA() const { return (1u << kSwOrTrgSideA) & mTriggers.getTriggersignals(); }
+  bool getSwOrC() const { return (1u << kSwOrTrgSideC) & mTriggers.getTriggersignals(); }
+  bool getSwVtx() const { return (1u << kSwVtxTrg) & mTriggers.getTriggersignals(); }
+
   void print() const;
   bool operator==(const RecPoint&) const = default;
 
  private:
+  void updateTriggers(bool swOrTrgSideA, bool swOrTrgSideC, bool swVertexTrigger)
+  {
+    auto [triggerBits, technicalWords] = o2::fit::Triggers::parseDigitTriggerWord(mTriggers.getTriggersignals(), true);
+    triggerBits |= (uint8_t(swVertexTrigger) << kSwVtxTrg) | (uint8_t(swOrTrgSideA) << kSwOrTrgSideA) | (uint8_t(swOrTrgSideC) << kSwOrTrgSideC);
+    mTriggers.setTriggers(triggerBits);
+    mTechnicalWords = technicalWords;
+  }
   o2::dataformats::RangeReference<int, int> mRef;
   o2::InteractionRecord mIntRecord;
-  o2::fdd::Triggers mTriggers;                                                        // pattern of triggers  in this BC
+  o2::fdd::Triggers mTriggers; // pattern of triggers  in this BC
+  uint8_t mTechnicalWords{0};
   std::array<int, 2> mCollisionTimePs = {sDummyCollissionTime, sDummyCollissionTime}; // in picoseconds
 
-  ClassDefNV(RecPoint, 3);
+  ClassDefNV(RecPoint, 4);
 };
 } // namespace fdd
 } // namespace o2
