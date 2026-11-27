@@ -55,7 +55,7 @@ static void BM_InputRecordGenericGetters(benchmark::State& state)
     nullptr,
     0};
   ServiceRegistry registry;
-  InputRecord emptyRecord(schema, span, registry);
+  InputRecord emptyRecord(schema, span, ServiceRegistryRef{registry});
 
   std::vector<void*> inputs;
 
@@ -95,7 +95,7 @@ static void BM_InputRecordGenericGetters(benchmark::State& state)
     [](size_t, DataRefIndices) -> DataRefIndices { return {size_t(-1), size_t(-1)}; },
     nullptr,
     inputs.size() / 2};
-  InputRecord record{schema, span2, registry};
+  InputRecord record{schema, span2, ServiceRegistryRef{registry}};
 
   for (auto _ : state) {
     // Checking we can get the whole ref by name

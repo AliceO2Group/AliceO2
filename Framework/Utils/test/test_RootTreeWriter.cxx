@@ -237,7 +237,7 @@ TEST_CASE("test_RootTreeWriter")
   InputRecord inputs{
     schema,
     span,
-    registry};
+    ServiceRegistryRef{registry}};
 
   writer(inputs);
   writer.close();

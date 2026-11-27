@@ -386,7 +386,7 @@ void DataProcessingDevice::Init()
   context.error = spec.algorithm.onError;
   context.initError = spec.algorithm.onInitError;
 
-  auto configStore = DeviceConfigurationHelpers::getConfiguration(mServiceRegistry, spec.name.c_str(), spec.options);
+  auto configStore = DeviceConfigurationHelpers::getConfiguration(ServiceRegistryRef{mServiceRegistry}, spec.name.c_str(), spec.options);
   if (configStore == nullptr) {
     std::vector<std::unique_ptr<ParamRetriever>> retrievers;
     retrievers.emplace_back(std::make_unique<FairOptionsRetriever>(GetConfig()));
@@ -450,7 +450,7 @@ void DataProcessingDevice::Init()
   context.init = spec.algorithm.onInit;
   if (context.init) {
     static bool noCatch = getenv("O2_NO_CATCHALL_EXCEPTIONS") && strcmp(getenv("O2_NO_CATCHALL_EXCEPTIONS"), "0");
-    InitContext initContext{*mConfigRegistry, mServiceRegistry};
+    InitContext initContext{*mConfigRegistry, ServiceRegistryRef{mServiceRegistry}};
 
     if (noCatch) {
       try {
@@ -493,7 +493,7 @@ void DataProcessingDevice::Init()
 
   // Invoke the callback policy for this device.
   if (spec.callbacksPolicy.policy != nullptr) {
-    InitContext initContext{*mConfigRegistry, mServiceRegistry};
+    InitContext initContext{*mConfigRegistry, ServiceRegistryRef{mServiceRegistry}};
     spec.callbacksPolicy.policy(mServiceRegistry.get<CallbackService>(ServiceRegistry::globalDeviceSalt()), initContext);
   }
 
@@ -873,7 +873,7 @@ void DataProcessingDevice::InitTask()
 
   O2_SIGNPOST_ID_FROM_POINTER(cid, device, &context);
   O2_SIGNPOST_START(device, cid, "InitTask", "Entering InitTask callback.");
-  auto& spec = getRunningDevice(mRunningDevice, mServiceRegistry);
+  auto& spec = getRunningDevice(mRunningDevice, ServiceRegistryRef{mServiceRegistry});
   auto distinct = DataRelayerHelpers::createDistinctRouteIndex(spec.inputs);
   auto& state = ref.get<DeviceState>();
   int i = 0;
@@ -887,7 +887,7 @@ void DataProcessingDevice::InitTask()
       .name = route.configurator->name,
       .routeIndex = RouteIndex{i++},
       .lifetime = route.matcher.lifetime,
-      .creator = route.configurator->creatorConfigurator(state, mServiceRegistry, *mConfigRegistry),
+      .creator = route.configurator->creatorConfigurator(state, ServiceRegistryRef{mServiceRegistry}, *mConfigRegistry),
       .checker = route.configurator->danglingConfigurator(state, *mConfigRegistry),
       .handler = route.configurator->expirationConfigurator(state, *mConfigRegistry)};
     context.expirationHandlers.emplace_back(std::move(handler));
@@ -981,7 +981,7 @@ void DataProcessingDevice::InitTask()
     {
       O2_SIGNPOST_EVENT_EMIT(device, cid, "InitTask", "Memory registration event received.");
       std::lock_guard<std::mutex> lock(mRegionInfoMutex);
-      handleRegionCallbacks(mServiceRegistry, mPendingRegionInfos);
+      handleRegionCallbacks(ServiceRegistryRef{mServiceRegistry}, mPendingRegionInfos);
     }
   }
   O2_SIGNPOST_END(device, cid, "InitTask", "Done waiting for registration events.");
@@ -1225,7 +1225,7 @@ void DataProcessingDevice::Run()
     // no callback is issued if there is something still processing.
     {
       std::lock_guard<std::mutex> lock(mRegionInfoMutex);
-      handleRegionCallbacks(mServiceRegistry, mPendingRegionInfos);
+      handleRegionCallbacks(ServiceRegistryRef{mServiceRegistry}, mPendingRegionInfos);
     }
     // This will block for the correct delay (or until we get data
     // on a socket). We also do not block on the first iteration
@@ -1233,7 +1233,7 @@ void DataProcessingDevice::Run()
     // enumeration.
     {
       ServiceRegistryRef ref{mServiceRegistry};
-      ref.get<DriverClient>().flushPending(mServiceRegistry);
+      ref.get<DriverClient>().flushPending(ServiceRegistryRef{mServiceRegistry});
       DataProcessorContext* lastActive = state.lastActiveDataProcessor.load();
       // Reset to zero unless some other DataPorcessorContext completed in the meanwhile.
       // In such case we will take care of it at next iteration.
@@ -1286,7 +1286,7 @@ void DataProcessingDevice::Run()
         // Get the current timeslice for the slot.
         auto& variables = ref.get<TimesliceIndex>().getVariablesForSlot(slot);
         VariableContextHelpers::getTimeslice(variables);
-        forwardInputs(registry, slot, dropped, oldestOutputInfo, false, true);
+        forwardInputs(ref, slot, dropped, oldestOutputInfo, false, true);
       };
       auto& relayer = ref.get<DataRelayer>();
       relayer.prunePending(onDrop);
@@ -1328,7 +1328,7 @@ void DataProcessingDevice::Run()
     // fast to transition from Init to Run.
     {
       std::lock_guard<std::mutex> lock(mRegionInfoMutex);
-      handleRegionCallbacks(mServiceRegistry, mPendingRegionInfos);
+      handleRegionCallbacks(ServiceRegistryRef{mServiceRegistry}, mPendingRegionInfos);
     }
 
     // Receive and relay incoming data on the main thread so that I/O
@@ -1693,13 +1693,13 @@ void DataProcessingDevice::doRun(ServiceRegistryRef ref)
   if (DataProcessingDevice::tryDispatchComputation(ref, streamContext.completed)) {
     state.lastActiveDataProcessor.store(&context);
   }
-  DanglingContext danglingContext{*context.registry};
+  DanglingContext danglingContext{ref};
 
   context.preDanglingCallbacks(danglingContext);
   if (state.lastActiveDataProcessor.load() == nullptr) {
     ref.get<CallbackService>().call<CallbackService::Id::Idle>();
   }
-  auto activity = ref.get<DataRelayer>().processDanglingInputs(context.expirationHandlers, *context.registry, true);
+  auto activity = ref.get<DataRelayer>().processDanglingInputs(context.expirationHandlers, ServiceRegistryRef{*context.registry}, true);
   if (activity.expiredSlots > 0) {
     state.lastActiveDataProcessor = &context;
   }
@@ -1732,7 +1732,7 @@ void DataProcessingDevice::doRun(ServiceRegistryRef ref)
     bool shouldProcess = DataProcessingHelpers::hasOnlyGenerated(spec) == false;
 
     while (DataProcessingDevice::tryDispatchComputation(ref, streamContext.completed) && shouldProcess) {
-      relayer.processDanglingInputs(context.expirationHandlers, *context.registry, false);
+      relayer.processDanglingInputs(context.expirationHandlers, ServiceRegistryRef{*context.registry}, false);
     }
 
     auto& timingInfo = ref.get<TimingInfo>();
@@ -1747,7 +1747,7 @@ void DataProcessingDevice::doRun(ServiceRegistryRef ref)
     timingInfo.creation = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
     O2_SIGNPOST_EVENT_EMIT(calibration, dpid, "calibration", "TimingInfo.keepAtEndOfStream %d", timingInfo.keepAtEndOfStream);
 
-    EndOfStreamContext eosContext{*context.registry, ref.get<DataAllocator>()};
+    EndOfStreamContext eosContext{ref, ref.get<DataAllocator>()};
 
     context.preEOSCallbacks(eosContext);
     auto& streamContext = ref.get<StreamContext>();
@@ -2111,7 +2111,7 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
     if (oldestPossibleTimeslice != (size_t)-1) {
       info.oldestForChannel = {oldestPossibleTimeslice};
       auto& context = ref.get<DataProcessorContext>();
-      context.domainInfoUpdatedCallback(*context.registry, oldestPossibleTimeslice, info.id);
+      context.domainInfoUpdatedCallback(ref, oldestPossibleTimeslice, info.id);
       ref.get<CallbackService>().call<CallbackService::Id::DomainInfoUpdated>((ServiceRegistryRef)*context.registry, (size_t)oldestPossibleTimeslice, (ChannelIndex)info.id);
       state.lastActiveDataProcessor = &context;
     }
@@ -2446,7 +2446,7 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
     auto& spec = ref.get<DeviceSpec const>();
     InputRecord record{spec.inputs,
                        span,
-                       *context.registry};
+                       ServiceRegistryRef{*context.registry}};
     ProcessingContext processContext{record, ref, ref.get<DataAllocator>()};
     {
       // Notice this should be thread safe and reentrant

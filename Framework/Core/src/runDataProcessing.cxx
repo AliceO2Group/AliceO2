@@ -1092,7 +1092,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
                                      &deviceContext,
                                      &driverConfig,
                                      &loop](fair::mq::DeviceRunner& r) {
-    ServiceRegistryRef serviceRef = {serviceRegistry};
+    ServiceRegistryRef serviceRef{serviceRegistry};
     simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(nullptr, spec);
     serviceRef.registerService(ServiceRegistryHelpers::handleForService<RawDeviceService>(simpleRawDeviceService.get()));
 
@@ -1136,7 +1136,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
   runner.AddHook<fair::mq::hooks::InstantiateDevice>(afterConfigParsingCallback);
 
   auto result = runner.Run();
-  ServiceRegistryRef serviceRef = {serviceRegistry};
+  ServiceRegistryRef serviceRef{serviceRegistry};
   auto& context = serviceRef.get<DataProcessorContext>();
   DataProcessorContext::preExitCallbacks(context.preExitHandles, serviceRef);
   return result;
@@ -1498,7 +1498,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
     if (service.driverStartup == nullptr) {
       continue;
     }
-    service.driverStartup(serviceRegistry, DeviceConfig{varmap});
+    service.driverStartup(ServiceRegistryRef{serviceRegistry}, DeviceConfig{varmap});
   }
 
   ServiceRegistryRef ref{serviceRegistry};
@@ -1516,7 +1516,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   // This is to make sure we can process metrics, commands, configuration
   // changes coming from websocket (or even via any standard uv_stream_t, I guess).
   DriverServerContext serverContext{
-    .registry = {serviceRegistry},
+    .registry = ServiceRegistryRef{serviceRegistry},
     .loop = loop,
     .controls = &controls,
     .infos = &infos,
@@ -1626,7 +1626,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         /// would be that we start an application and then we wait for
         /// resource offers from DDS or whatever resource manager we use.
         for (auto& callback : driverInitCallbacks) {
-          callback(serviceRegistry, {varmap});
+          callback(ServiceRegistryRef{serviceRegistry}, {varmap});
         }
         driverInfo.states.push_back(DriverState::RUNNING);
         //        driverInfo.states.push_back(DriverState::REDEPLOY_GUI);
@@ -1715,7 +1715,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
 
             LOGP(debug, "Adjusting device {}", device.name.c_str());
 
-            auto configStore = DeviceConfigurationHelpers::getConfiguration(serviceRegistry, device.name.c_str(), device.options);
+            auto configStore = DeviceConfigurationHelpers::getConfiguration(ServiceRegistryRef{serviceRegistry}, device.name.c_str(), device.options);
             if (configStore != nullptr) {
               auto reg = std::make_unique<ConfigParamRegistry>(std::move(configStore));
               for (auto& input : device.inputs) {
@@ -1897,7 +1897,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             if (device.name.find("internal") != std::string::npos) {
               continue;
             }
-            auto configStore = DeviceConfigurationHelpers::getConfiguration(serviceRegistry, device.name.c_str(), device.options);
+            auto configStore = DeviceConfigurationHelpers::getConfiguration(ServiceRegistryRef{serviceRegistry}, device.name.c_str(), device.options);
             if (configStore != nullptr) {
               auto reg = std::make_unique<ConfigParamRegistry>(std::move(configStore));
               for (auto& option : device.options) {
@@ -2047,7 +2047,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             callback();
             for (auto& service : driverServices) {
               if (service.postRenderGUI) {
-                service.postRenderGUI(serviceRegistry);
+                service.postRenderGUI(ServiceRegistryRef{serviceRegistry});
               }
             }
           };
@@ -2153,7 +2153,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         GETCPU(parentCPU);
 #endif
         for (auto& callback : preScheduleCallbacks) {
-          callback(serviceRegistry, {varmap});
+          callback(ServiceRegistryRef{serviceRegistry}, {varmap});
         }
         childFds.resize(runningWorkflow.devices.size());
         for (int di = 0; di < (int)runningWorkflow.devices.size(); ++di) {
@@ -2170,14 +2170,14 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                         runningWorkflow.devices, driverInfo,
                         controls, deviceExecutions, infos,
                         allStates,
-                        serviceRegistry, varmap,
+                        ServiceRegistryRef{serviceRegistry}, varmap,
                         childFds, parentCPU, parentNode);
           }
         }
         handleSignals();
         handleChildrenStdio(&serverContext, forwardedStdin.str(), childFds, pollHandles);
         for (auto& callback : postScheduleCallbacks) {
-          callback(serviceRegistry, {varmap});
+          callback(ServiceRegistryRef{serviceRegistry}, {varmap});
         }
         assert(infos.empty() == false);
 

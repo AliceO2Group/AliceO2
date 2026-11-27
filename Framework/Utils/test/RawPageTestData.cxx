@@ -97,7 +97,7 @@ DataSet createData(std::vector<InputSpec> const& inputspecs, std::vector<DataHea
   }
 
   static ServiceRegistry registry;
-  return {std::move(schema), std::move(messages), std::move(checkValues), {registry}};
+  return {std::move(schema), std::move(messages), std::move(checkValues), ServiceRegistryRef{registry}};
 }
 
-} // namespace o2::framework
+} // namespace o2::framework::test

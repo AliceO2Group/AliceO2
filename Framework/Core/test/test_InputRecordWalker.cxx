@@ -130,7 +130,7 @@ DataSet createData()
   createMessage(dh3);
   createMessage(dh4);
 
-  return {std::move(schema), std::move(messages), std::move(checkValues), registry};
+  return {std::move(schema), std::move(messages), std::move(checkValues), ServiceRegistryRef{registry}};
 }
 
 TEST_CASE("test_DPLRawParser")

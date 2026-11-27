@@ -109,7 +109,7 @@ void ServiceRegistry::declareService(ServiceSpec const& spec, DeviceState& state
   mSpecs.push_back(spec);
   // Services which are not stream must have a single instance created upfront.
   if (spec.kind != ServiceKind::Stream) {
-    ServiceHandle handle = spec.init({*this}, state, options);
+    ServiceHandle handle = spec.init(ServiceRegistryRef{*this}, state, options);
     this->registerService({handle.hash}, handle.instance, handle.kind, salt, handle.name.c_str());
     this->bindService(salt, spec, handle.instance);
   } else if (spec.kind == ServiceKind::Stream) {
@@ -134,7 +134,7 @@ void ServiceRegistry::lateBindStreamServices(DeviceState& state, fair::mq::ProgO
     if (spec.kind != ServiceKind::Stream) {
       continue;
     }
-    ServiceHandle handle = spec.init({*this, salt}, state, options);
+    ServiceHandle handle = spec.init(ServiceRegistryRef{*this, salt}, state, options);
     // Do we need to register it again? Maybe not.
     this->registerService({handle.hash}, handle.instance, handle.kind, salt, handle.name.c_str());
     this->bindService(salt, spec, handle.instance);
@@ -144,7 +144,7 @@ void ServiceRegistry::lateBindStreamServices(DeviceState& state, fair::mq::ProgO
 void ServiceRegistry::postRenderGUICallbacks()
 {
   for (auto& handle : mPostRenderGUIHandles) {
-    handle.callback(*this);
+    handle.callback(ServiceRegistryRef{*this});
   }
 }
 
@@ -251,7 +251,7 @@ void* ServiceRegistry::get(ServiceTypeHash typeHash, Salt salt, ServiceKind kind
     auto& rawDeviceService = this->get<RawDeviceService>(globalDeviceSalt());
     auto& registry = const_cast<ServiceRegistry&>(*this);
     // Call init for the proper ServiceRegistryRef
-    ServiceHandle handle = spec.init({registry, salt}, deviceState, *rawDeviceService.device()->fConfig);
+    ServiceHandle handle = spec.init(ServiceRegistryRef{registry, salt}, deviceState, *rawDeviceService.device()->fConfig);
     this->registerService({handle.hash}, handle.instance, handle.kind, salt, handle.name.c_str());
     this->bindService(salt, spec, handle.instance);
 
