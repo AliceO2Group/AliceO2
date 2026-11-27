@@ -591,10 +591,11 @@ void GPUReconstructionCUDA::PrintKernelOccupancies()
   int32_t maxBlocks = 0, threads = 0, suggestedBlocks = 0, nRegs = 0, sMem = 0;
   GPUChkErr(cudaSetDevice(mDeviceId));
   for (uint32_t i = 0; i < mInternals->kernelFunctions.size(); i++) {
-#if !defined(__HIPCC__) || (defined(__clang_major__) && __clang_major__ < 23) // CUDA
-    GPUChkErr(cuOccupancyMaxPotentialBlockSize(&suggestedBlocks, &threads, *mInternals->kernelFunctions[i], 0, 0, 0));
+#ifdef __HIPCC__
+    CUresult (*occupancyMaxPotentialBlockSize)(int*, int*, CUfunction, size_t, int) = cuOccupancyMaxPotentialBlockSize;
+    GPUChkErr(occupancyMaxPotentialBlockSize(&suggestedBlocks, &threads, *mInternals->kernelFunctions[i], 0, 0));
 #else
-    GPUChkErr(cuOccupancyMaxPotentialBlockSize(&suggestedBlocks, &threads, *mInternals->kernelFunctions[i], 0, 0));
+    GPUChkErr(cuOccupancyMaxPotentialBlockSize(&suggestedBlocks, &threads, *mInternals->kernelFunctions[i], 0, 0, 0));
 #endif
     GPUChkErr(cuOccupancyMaxActiveBlocksPerMultiprocessor(&maxBlocks, *mInternals->kernelFunctions[i], threads, 0));
     GPUChkErr(cuFuncGetAttribute(&nRegs, CU_FUNC_ATTRIBUTE_NUM_REGS, *mInternals->kernelFunctions[i]));
