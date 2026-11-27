@@ -11,6 +11,7 @@
 #include "Framework/Plugins.h"
 #include "Framework/AlgorithmSpec.h"
 #include "AODReaderHelpers.h"
+#include "AODSliceHelpers.h"
 
 struct ExtendedTableSpawner : o2::framework::AlgorithmPlugin {
   o2::framework::AlgorithmSpec create(o2::framework::ConfigContext const& config) override
@@ -26,7 +27,15 @@ struct IndexTableBuilder : o2::framework::AlgorithmPlugin {
   }
 };
 
+struct ArrowTableSlicer : o2::framework::AlgorithmPlugin {
+  o2::framework::AlgorithmSpec create(o2::framework::ConfigContext const& config) override
+  {
+    return o2::framework::helpers::AODSliceHelpers::arrowTablesSlicerCallback(config);
+  }
+};
+
 DEFINE_DPL_PLUGINS_BEGIN
 DEFINE_DPL_PLUGIN_INSTANCE(ExtendedTableSpawner, CustomAlgorithm);
 DEFINE_DPL_PLUGIN_INSTANCE(IndexTableBuilder, CustomAlgorithm);
+DEFINE_DPL_PLUGIN_INSTANCE(ArrowTableSlicer, CustomAlgorithm);
 DEFINE_DPL_PLUGINS_END
