@@ -19,6 +19,8 @@
 #include <TFile.h>
 #include <TBufferFile.h>
 #include <TDirectoryFile.h>
+#include <TROOT.h>
+#include <TVirtualMutex.h>
 #include <arrow/type.h>
 #include <arrow/type_fwd.h>
 #include <arrow/dataset/file_base.h>
@@ -47,6 +49,12 @@ TFileFileSystem::~TFileFileSystem()
 {
   if (mOwnsFile) {
     mFile->Close();
+    {
+      // TFile::Close() returns early when !IsOpen() (e.g. TNetXNGFile after a fatal xrootd error) and ~TFile doesn't
+      // clean up either, so the file stays in gROOT's list of files. Remove it so the list doesn't keep a dangling pointer.
+      R__LOCKGUARD(gROOTMutex);
+      gROOT->GetListOfFiles()->Remove(mFile);
+    }
     delete mFile;
   }
 }
