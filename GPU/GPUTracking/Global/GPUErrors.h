@@ -42,6 +42,7 @@ class GPUErrors
 #endif
   uint32_t getNErrors() const;
   const uint32_t* getErrorPtr() const;
+  uint32_t* getErrorPtr();
   static uint32_t getMaxErrors();
 
  private:

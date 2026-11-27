@@ -132,7 +132,8 @@ class GPUReconstruction
 
   enum class krnlDeviceType : int32_t { CPU = 0,
                                         Device = 1,
-                                        Auto = -1 };
+                                        Auto = -1,
+                                        HostOnDeviceMemory = 2 }; // CPU code on the host, on the device memory (UNIFIED_MEM_SORT_ON_HOST)
 
   struct deviceEvent;
   struct threadContext;
@@ -352,6 +353,7 @@ class GPUReconstruction
   size_t mHostMemoryUSSMax = 0;             // Maximum USS of the process seen by QueryHostMemoryUSS
   std::string mHostMemoryUSSMaxWhere;       // and where it was seen
   void* mDeviceMemoryBase = nullptr;        // Same for device ...
+  void* mDeviceMemoryHostView = nullptr;    // Host address of the device memory, if shared with the host at another address
   void* mDeviceMemoryPermanent = nullptr;   // ...
   void* mDeviceMemoryPool = nullptr;        // ...
   void* mDeviceMemoryPoolEnd = nullptr;     // ...

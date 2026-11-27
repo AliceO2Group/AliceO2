@@ -65,6 +65,15 @@ inline void GPUReconstructionCPU::runKernelBackend(const krnlSetupTime& _xyz, co
     throw std::runtime_error("Cannot run device kernel on host with nThreads != 1");
   }
   int32_t nThreads = getNKernelHostThreads(false);
+  const auto deviceProcessors = IsGPU() && x.device == krnlDeviceType::HostOnDeviceMemory ? DeviceProcessorOnHostView(_xyz) : nullptr;
+  GPUConstantMem& mem = deviceProcessors ? *(GPUConstantMem*)deviceProcessors.get() : *mHostConstantMem;
+  auto arg = [&](const auto& a) -> decltype(auto) {
+    if constexpr (std::is_pointer_v<std::decay_t<decltype(a)>>) {
+      return deviceProcessors ? static_cast<std::decay_t<decltype(a)>>(HostPointer(a)) : a;
+    } else {
+      return a;
+    }
+  };
   if (nThreads > 1) {
     if (GetProcessingSettings().debugLevel >= 5) {
       GPUInfo("Running %d Threads", mThreading->activeThreads->max_concurrency());
@@ -74,7 +83,7 @@ inline void GPUReconstructionCPU::runKernelBackend(const krnlSetupTime& _xyz, co
         tbb::parallel_for(tbb::blocked_range<uint32_t>(0, x.nBlocks, 1), [&](const tbb::blocked_range<uint32_t>& r) {
           typename T::GPUSharedMemory smem;
           for (uint32_t iB = r.begin(); iB < r.end(); iB++) {
-            T::template Thread<I>(x.nBlocks, 1, iB, 0, smem, T::Processor(*mHostConstantMem)[y.index], args...);
+            T::template Thread<I>(x.nBlocks, 1, iB, 0, smem, T::Processor(mem)[y.index], arg(args)...);
           }
         });
       });
@@ -82,9 +91,57 @@ inline void GPUReconstructionCPU::runKernelBackend(const krnlSetupTime& _xyz, co
   } else {
     for (uint32_t iB = 0; iB < x.nBlocks; iB++) {
       typename T::GPUSharedMemory smem;
-      T::template Thread<I>(x.nBlocks, 1, iB, 0, smem, T::Processor(*mHostConstantMem)[y.index], args...);
+      T::template Thread<I>(x.nBlocks, 1, iB, 0, smem, T::Processor(mem)[y.index], arg(args)...);
     }
   }
+  if (deviceProcessors && _xyz.z.ev) {
+    RecordMarker(_xyz.z.ev, x.stream);
+  }
+}
+
+void GPUReconstructionCPU::runKernelOnHost(const int num, const void* args)
+{
+  GPUReconstructionCPU::runKernelVirtual(num, args);
+}
+
+const void* GPUReconstructionCPU::HostPointer(const void* ptr) const
+{
+  const size_t offset = (const char*)ptr - (const char*)mDeviceMemoryBase;
+  return mDeviceMemoryHostView && offset < mDeviceMemorySize ? (const char*)mDeviceMemoryHostView + offset : ptr;
+}
+
+// A kernel run with krnlDeviceType::HostOnDeviceMemory, on a GPU sharing its memory with the host
+// (UNIFIED_MEM_SORT_ON_HOST), runs the CPU code on the device processors, once the work before it in
+// the stream is done: on a copy of them pointing at the host view of the device memory, with the
+// host's parameters and calibration objects. The copy is their constant memory.
+std::unique_ptr<char[]> GPUReconstructionCPU::DeviceProcessorOnHostView(const krnlSetupTime& _xyz)
+{
+  if (_xyz.z.evList) {
+    StreamWaitForEvents(_xyz.x.stream, _xyz.z.evList, _xyz.z.nEvents);
+  }
+  SynchronizeStream(_xyz.x.stream);
+  static_assert(alignof(GPUConstantMem) <= __STDCPP_DEFAULT_NEW_ALIGNMENT__);
+  auto buffer = std::make_unique<char[]>(sizeof(GPUConstantMem));
+  GPUConstantMem* mem = (GPUConstantMem*)buffer.get();
+  memcpy((void*)mem, (const void*)mProcessorsShadow, sizeof(GPUConstantMem));
+  auto onHost = [&](const GPUProcessor* p) {
+    const size_t offset = (const char*)p - (const char*)mProcessorsShadow;
+    return offset < sizeof(GPUConstantMem) ? (GPUProcessor*)((char*)mem + offset) : nullptr;
+  };
+  for (const auto& res : mMemoryResources) {
+    if (GPUProcessor* p = res.PtrDevice() ? onHost(res.mProcessor->mLinkedProcessor) : nullptr) {
+      (p->*res.mSetPointers)(HostPointer(res.PtrDevice()));
+    }
+  }
+  for (const auto& proc : mProcessors) {
+    if (GPUProcessor* p = onHost(proc.proc->mLinkedProcessor)) {
+      p->mConstantMem = mem;
+    }
+  }
+  mem->param = param();
+  mem->calibObjects = processors()->calibObjects;
+  mem->errorCodes.setMemory(static_cast<uint32_t*>(HostPointer(mem->errorCodes.getErrorPtr() - 1)));
+  return buffer;
 }
 
 template <>

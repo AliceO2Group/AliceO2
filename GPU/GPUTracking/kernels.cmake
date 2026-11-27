@@ -150,6 +150,7 @@ o2_gpu_kernel_add_parameter(NEIGHBOURS_FINDER_MAX_NNEIGHUP            # Number o
                             TRACKLET_SELECTOR_HITS_REG_SIZE           # Number of hits to cache in shared memory in tracklet selector
                             ALTERNATE_BORDER_SORT                     # Use alternative border sort approach [0/1]
                             SORT_BEFORE_FIT                           # Sort tracks after length to reduce warp serialization [0/1]
+                            UNIFIED_MEM_SORT_ON_HOST                  # Run the sorts on the host, on the memory shared with the GPU [0/1]
                             NO_ATOMIC_PRECHECK                        # Skip atomic precheck to reduce posterior synchronization [0/1]
                             COMP_GATHER_KERNEL                        # Default kernel to use for Compression Gather Operation [0 - 4]
                             COMP_GATHER_MODE                          # TPC Compression Gather Mode [0 - 3]

@@ -98,4 +98,9 @@ const uint32_t* GPUErrors::getErrorPtr() const
   return mErrors + 1;
 }
 
+uint32_t* GPUErrors::getErrorPtr()
+{
+  return mErrors + 1;
+}
+
 #endif
