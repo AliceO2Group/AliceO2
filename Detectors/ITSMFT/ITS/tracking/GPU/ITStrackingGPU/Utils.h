@@ -27,6 +27,7 @@
 #include "GPUCommonHelpers.h"
 #include "GPUCommonLogger.h"
 #include "GPUCommonDefAPI.h"
+#include "ITStrackingGPU/DeviceSpan.h"
 
 #ifdef GPUCA_GPUCODE
 #include <thrust/device_ptr.h>
@@ -66,49 +67,6 @@ using gpuPair = std::pair<T1, T2>;
 
 namespace gpu
 {
-
-template <typename T>
-struct gpuSpan {
-  using value_type = T;
-  using ptr = T*;
-  using ref = T&;
-
-  GPUd() gpuSpan() : _data(nullptr), _size(0) {}
-  GPUd() gpuSpan(ptr data, unsigned int dim) : _data(data), _size(dim) {}
-  GPUd() ref operator[](unsigned int idx) const { return _data[idx]; }
-  GPUd() unsigned int size() const { return _size; }
-  GPUd() bool empty() const { return _size == 0; }
-  GPUd() ref front() const { return _data[0]; }
-  GPUd() ref back() const { return _data[_size - 1]; }
-  GPUd() ptr begin() const { return _data; }
-  GPUd() ptr end() const { return _data + _size; }
-
- protected:
-  ptr _data;
-  unsigned int _size;
-};
-
-template <typename T>
-struct gpuSpan<const T> {
-  using value_type = T;
-  using ptr = const T*;
-  using ref = const T&;
-
-  GPUd() gpuSpan() : _data(nullptr), _size(0) {}
-  GPUd() gpuSpan(ptr data, unsigned int dim) : _data(data), _size(dim) {}
-  GPUd() gpuSpan(const gpuSpan<T>& other) : _data(other._data), _size(other._size) {}
-  GPUd() ref operator[](unsigned int idx) const { return _data[idx]; }
-  GPUd() unsigned int size() const { return _size; }
-  GPUd() bool empty() const { return _size == 0; }
-  GPUd() ref front() const { return _data[0]; }
-  GPUd() ref back() const { return _data[_size - 1]; }
-  GPUd() ptr begin() const { return _data; }
-  GPUd() ptr end() const { return _data + _size; }
-
- protected:
-  ptr _data;
-  unsigned int _size;
-};
 
 // Abstract stream class
 class Stream
@@ -378,21 +336,6 @@ GPUdii() int deviceUpperBound(const T* a, int beg, int end, const T key)
     }
   }
   return beg;
-}
-
-GPUdii() gpuSpan<const Cluster> getClustersOnLayer(const int rof,
-                                                   const int totROFs,
-                                                   const int layer,
-                                                   const int** roframesClus,
-                                                   const Cluster** clusters)
-{
-  if (rof < 0 || rof >= totROFs) {
-    return gpuSpan<const Cluster>();
-  }
-  const int start_clus_id{roframesClus[layer][rof]};
-  const int stop_rof = rof >= totROFs - 1 ? totROFs : rof + 1;
-  const unsigned int delta = roframesClus[layer][stop_rof] - start_clus_id;
-  return gpuSpan<const Cluster>(&(clusters[layer][start_clus_id]), delta);
 }
 
 #endif
