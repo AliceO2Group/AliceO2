@@ -44,7 +44,7 @@ class Digitizer
 {
   static_assert(DetID == o2::detectors::DetID::TRK || DetID == o2::detectors::DetID::FT3, "only TRK and FT3 digitizers are supported");
   using GeometryTGeo = std::conditional_t<DetID == o2::detectors::DetID::TRK, o2::trk::GeometryTGeo, o2::ft3::GeometryTGeo>;
-  using ExtraDig = std::vector<trkft3::PreDigitLabelRef>; ///< container for extra contributions to PreDigits
+  using ExtraDig = std::vector<trkft3::PreDigitContribution>; ///< container for extra contributions to PreDigits
 
  public:
   void setDigits(std::vector<o2::trkft3::Digit>* dig) { mDigits = dig; }
@@ -72,6 +72,9 @@ class Digitizer
     mNewROFrame = 0;
     mROFsWrtFirstRO = 0;
     mExtraBuff.clear();
+    for (auto& chip : mChips) {
+      chip.getPixelStates().clear(); // signal times are relative to the TF start: states do not survive a new TF
+    }
   }
 
   const o2::trkft3::DigiParams<DetID>& getDigitParams() const { return mParams; }
@@ -94,8 +97,10 @@ class Digitizer
 
  private:
   void processHit(const o2::trkft3::Hit& hit, uint32_t& maxFr, int evID, int srcID, int rofLayer, std::vector<float>& respMatrix);
-  void registerDigits(o2::trkft3::ChipDigitsContainer& chip, uint32_t roFrame, float toaInROF, int nROF,
+  void registerDigits(o2::trkft3::ChipDigitsContainer& chip, uint32_t roFrame, float toaInROF,
                       uint16_t row, uint16_t col, int nEle, o2::MCCompLabel& lbl, int layer);
+  void writeDigit(o2::trkft3::ChipDigitsContainer& chip, uint16_t row, uint16_t col, int charge, float toaInROF,
+                  o2::trkft3::PixelState& state, int layer);
 
   ExtraDig* getExtraDigBuffer(uint32_t roFrame)
   {
@@ -156,6 +161,10 @@ class Digitizer
   }
 
   static constexpr float sec2ns = 1e9;
+
+  // edge-detection statistics of the layer, printed at the final flush (LOG(debug))
+  long mNDigits = 0;
+  long mNPreCharged = 0, mNLEAfterEnd = 0, mNSameROF = 0, mNMovedROF = 0, mNDeadTime = 0;
 
   o2::trkft3::DigiParams<DetID> mParams;   ///< digitization parameters
   o2::InteractionTimeRecord mEventTime;    ///< global event time and interaction record

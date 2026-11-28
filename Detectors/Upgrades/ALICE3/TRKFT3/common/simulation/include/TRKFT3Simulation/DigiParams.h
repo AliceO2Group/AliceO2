@@ -21,9 +21,9 @@
 
 #include <Rtypes.h>
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "ITSMFTSimulation/AlpideSignalTrapezoid.h"
 #include "ITSMFTSimulation/AlpideSimResponse.h"
 #include "TRKBase/AlmiraParam.h"
+#include "TRKFT3Simulation/AlmiraSignal.h"
 
 ////////////////////////////////////////////////////////////
 //                                                        //
@@ -63,7 +63,6 @@ class DigiParams
 {
   static_assert(DetIDV == o2::detectors::DetID::TRK || DetIDV == o2::detectors::DetID::FT3, "only TRK and FT3 digit parameters are supported");
 
-  using SignalShape = o2::itsmft::AlpideSignalTrapezoid;
   static constexpr size_t MaxLayers = detail::DigiParamsLayerTraits<DetIDV>::MaxLayers;
 
  public:
@@ -81,12 +80,6 @@ class DigiParams
   void setROFrameLength(float ns, int layer);
   float getROFrameLength(int layer) const { return mROFrameLayerLength[layer]; }
   float getROFrameLengthInv(int layer) const { return mROFrameLayerLengthInv[layer]; }
-
-  void setStrobeDelay(float ns, int layer) { mStrobeLayerDelay[layer] = ns; }
-  float getStrobeDelay(int layer) const { return mStrobeLayerDelay[layer]; }
-
-  void setStrobeLength(float ns, int layer) { mStrobeLayerLength[layer] = ns; }
-  float getStrobeLength(int layer) const { return mStrobeLayerLength[layer]; }
 
   void setTimeOffset(double sec) { mTimeOffset = sec; }
   double getTimeOffset() const { return mTimeOffset; }
@@ -117,8 +110,7 @@ class DigiParams
   const o2::trkft3::ChipSimResponse* getResponse() const { return mResponse.get(); }
   void setResponse(const o2::itsmft::AlpideSimResponse*);
 
-  const SignalShape& getSignalShape() const { return mSignalShape; }
-  SignalShape& getSignalShape() { return (SignalShape&)mSignalShape; }
+  const AlmiraSignal& getAlmiraSignal() const { return mAlmiraSignal; }
 
   virtual void print() const;
 
@@ -153,10 +145,8 @@ class DigiParams
   std::array<int, MaxLayers> mROFrameLayerLengthInBC; ///< staggering ROF length in BC for continuous mode per layer
   std::array<int, MaxLayers> mROFrameLayerBiasInBC;   ///< staggering ROF bias in BC for continuous mode per layer
   std::array<float, MaxLayers> mROFrameLayerLength;   ///< staggering ROF length in ns for continuous mode per layer
-  std::array<float, MaxLayers> mStrobeLayerLength;    ///< staggering strobe length in ns per layer
-  std::array<float, MaxLayers> mStrobeLayerDelay;     ///< staggering strobe delay in ns per layer
 
-  o2::itsmft::AlpideSignalTrapezoid mSignalShape; ///< signal timeshape parameterization
+  AlmiraSignal mAlmiraSignal; ///< ALMIRA front-end signal: time walk and time over threshold
 
   std::unique_ptr<o2::trkft3::ChipSimResponse> mResponse; //!< pointer on external response
 

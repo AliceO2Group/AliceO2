@@ -301,9 +301,6 @@ class TRKFT3DPLDigitizerTask : BaseDPLDigitizer
         digipar.setROFrameLengthInBC(roFrameLengthInBC, iLayer);
         // ROF delay is treated as an additional bias from the digitizer point of view.
         digipar.setROFrameBiasInBC(aopt.getROFBiasInBC(parLayer) + aopt.getROFDelayInBC(parLayer), iLayer);
-        digipar.setStrobeDelay(aopt.getStrobeDelay(parLayer), iLayer);
-        const auto strobeLengthCont = aopt.getStrobeLengthCont(parLayer);
-        digipar.setStrobeLength(strobeLengthCont > 0 ? strobeLengthCont : frameNS - aopt.getStrobeDelay(parLayer), iLayer);
         digipar.setROFrameLength(frameNS, iLayer);
         digipar.setClockPeriod(aopt.getClockPeriod(parLayer), iLayer); // after setROFrameLengthInBC: computes and sets the clock cycles per ROF
 
@@ -325,8 +322,6 @@ class TRKFT3DPLDigitizerTask : BaseDPLDigitizer
           LOGP(fatal, "{} layer {}: {} clock cycles per ROF do not fit in the {} fine bits of the timestamp. Possible values: 16 BC for VD; 16,32,64 BC for MLOT/FT3.", ID.getName(), iLayer, nCycles, aopt.nFineBits);
         }
       }
-      // parameters of signal time response: flat-top duration, max rise time and q @ which rise time is 0
-      digipar.getSignalShape().setParameters(dopt.strobeFlatTop, dopt.strobeMaxRiseTime, dopt.strobeQRiseTime0);
       digipar.setChargeThreshold(dopt.chargeThreshold); // charge threshold in electrons
       digipar.setNoisePerPixel(dopt.noisePerPixel);     // noise rate in hits/pixel/s
       digipar.setTimeOffset(dopt.timeOffset);

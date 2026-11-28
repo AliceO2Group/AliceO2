@@ -20,9 +20,24 @@
 #include "TRKFT3Simulation/DigiParams.h"
 #include <fairlogger/Logger.h>
 #include <TRandom.h>
+#include <unordered_map>
+#include <vector>
 
 namespace o2::trkft3
 {
+
+/// State of the analog signal of a pixel, surviving the flush of the ROFs (edge detection)
+struct PixelState {
+  double tStart = 0.;                  ///< signal start (first contribution), absolute time in ns
+  double tEnd = 0.;                    ///< tStart + ToT(charge), absolute time in ns
+  int charge = 0;                      ///< total charge of the signal (N electrons)
+  std::vector<o2::MCCompLabel> labels; ///< labels of the contributions up to the threshold crossing
+  uint32_t lastDigitROF = ~0u;         ///< ROF of the last digit written (one digit per pixel per ROF)
+  bool pending = false;                ///< a digit is waiting to be written in a later ROF
+  uint32_t pendingROF = 0;             ///< ROF of the pending digit (ROF of its leading edge)
+  float pendingToA = 0.f;              ///< leading edge of the pending digit w.r.t. pendingROF start (ns)
+  int pendingCharge = 0;               ///< charge of the pending digit
+};
 
 /// @class ChipDigitsContainer
 /// @brief Container for simulated points connected to a given chip
@@ -45,8 +60,9 @@ class ChipDigitsContainer
 
   o2::trkft3::PreDigit* findDigit(ULong64_t key);
   void addDigit(ULong64_t key, UInt_t roframe, UShort_t row, UShort_t col, int charge, o2::MCCompLabel lbl, float toa = 0.f);
+  void addContribution(ULong64_t key, UInt_t roframe, UShort_t row, UShort_t col, int charge, o2::MCCompLabel lbl, float toa, std::vector<o2::trkft3::PreDigitContribution>& extra);
   template <int DetID>
-  void addNoise(UInt_t rofMin, UInt_t rofMax, const o2::trkft3::DigiParams<DetID>* params, int subDetID, int layer, float rofLengthNS);
+  void addNoise(UInt_t rof, const o2::trkft3::DigiParams<DetID>* params, int subDetID, int layer, float rofLengthNS, std::vector<o2::trkft3::PreDigitContribution>& extra);
 
   /// Get global ordering key made of readout frame, column and row
   static ULong64_t getOrderingKey(UInt_t roframe, UShort_t row, UShort_t col)
@@ -57,12 +73,17 @@ class ChipDigitsContainer
   bool isDisabled() const { return mDisabled; }
   void disable(bool v) { mDisabled = v; }
 
+  std::unordered_map<uint32_t, PixelState>& getPixelStates() { return mPixelStates; }
+  /// Key of the pixel in the pixel state map
+  static uint32_t getPixelKey(UShort_t row, UShort_t col) { return (static_cast<uint32_t>(col) << 16) | row; }
+
  protected:
   UShort_t mChipIndex = 0; ///< chip index
   bool mDisabled = false;
   const o2::itsmft::NoiseMap* mNoiseMap = nullptr;
   const o2::itsmft::NoiseMap* mDeadChanMap = nullptr;
-  std::map<ULong64_t, o2::trkft3::PreDigit> mDigits; ///< Map of fired pixels, possibly in multiple frames
+  std::map<ULong64_t, o2::trkft3::PreDigit> mDigits;     ///< Map of fired pixels, possibly in multiple frames
+  std::unordered_map<uint32_t, PixelState> mPixelStates; //! pixel signal states, surviving the flush
 
   ClassDefNV(ChipDigitsContainer, 2);
 };
@@ -82,10 +103,28 @@ inline void ChipDigitsContainer::addDigit(ULong64_t key, UInt_t roframe, UShort_
   mDigits.emplace(key, o2::trkft3::PreDigit(roframe, row, col, charge, lbl, toa));
 }
 
+//_______________________________________________________________________
+inline void ChipDigitsContainer::addContribution(ULong64_t key, UInt_t roframe, UShort_t row, UShort_t col, int charge, o2::MCCompLabel lbl, float toa, std::vector<o2::trkft3::PreDigitContribution>& extra)
+{
+  // add a contribution to the pixel in the given ROF: the first one is stored in the PreDigit,
+  // the following ones at the end of its chain in the extra buffer of that ROF
+  auto* pd = findDigit(key);
+  if (!pd) {
+    addDigit(key, roframe, row, col, charge, lbl, toa);
+    return;
+  }
+  int* nxt = &pd->contrib.next; // "next" index of the last element of the chain
+  while (*nxt >= 0) {
+    nxt = &extra[*nxt].next;
+  }
+  *nxt = extra.size(); // index set before emplace_back, which may reallocate the vector
+  extra.emplace_back(lbl, toa, charge);
+}
+
 } // namespace o2::trkft3
 
 template <int DetID>
-void o2::trkft3::ChipDigitsContainer::addNoise(UInt_t rofMin, UInt_t rofMax, const o2::trkft3::DigiParams<DetID>* params, int subDetID, int layer, float rofLengthNS)
+void o2::trkft3::ChipDigitsContainer::addNoise(UInt_t rof, const o2::trkft3::DigiParams<DetID>* params, int subDetID, int layer, float rofLengthNS, std::vector<o2::trkft3::PreDigitContribution>& extra)
 {
   UInt_t row = 0;
   UInt_t col = 0;
@@ -107,24 +146,22 @@ void o2::trkft3::ChipDigitsContainer::addNoise(UInt_t rofMin, UInt_t rofMax, con
 
   LOG(debug) << "Adding noise for chip " << mChipIndex << " with mean " << mean << " and charge " << nel;
 
-  for (UInt_t rof = rofMin; rof <= rofMax; rof++) {
-    nhits = gRandom->Poisson(mean);
-    for (Int_t i = 0; i < nhits; ++i) {
-      row = gRandom->Integer(maxRows);
-      col = gRandom->Integer(maxCols);
-      LOG(debug) << "Generated noise hit at ROF " << rof << ", row " << row << ", col " << col;
-      if (mNoiseMap && mNoiseMap->isNoisy(mChipIndex, row, col)) {
-        continue;
-      }
-      if (mDeadChanMap && mDeadChanMap->isNoisy(mChipIndex, row, col)) {
-        continue;
-      }
-      auto key = getOrderingKey(rof, row, col);
-      if (!findDigit(key)) {
-        float toa = gRandom->Uniform(0.f, rofLengthNS); // noise fires uniformly in the ROF
-        addDigit(key, rof, row, col, nel, o2::MCCompLabel(true), toa);
-      }
+  nhits = gRandom->Poisson(mean);
+  for (Int_t i = 0; i < nhits; ++i) {
+    row = gRandom->Integer(maxRows);
+    col = gRandom->Integer(maxCols);
+    LOG(debug) << "Generated noise hit at ROF " << rof << ", row " << row << ", col " << col;
+    if (mNoiseMap && mNoiseMap->isNoisy(mChipIndex, row, col)) {
+      continue;
     }
+    if (mDeadChanMap && mDeadChanMap->isNoisy(mChipIndex, row, col)) {
+      continue;
+    }
+    auto key = getOrderingKey(rof, row, col);
+    // provisional noise model (to be revised with the ALMIRA noise model): noise hits are ordinary
+    // contributions with charge 1.1 x threshold, going through the same TW/ToT/pixel-state logic as particles
+    float toa = gRandom->Uniform(0.f, rofLengthNS); // noise arrives uniformly in the ROF
+    addContribution(key, rof, row, col, nel, o2::MCCompLabel(true), toa, extra);
   }
 }
 

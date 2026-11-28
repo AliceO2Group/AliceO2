@@ -24,6 +24,8 @@
 #include <numeric>
 #include <ranges>
 #include <fairlogger/Logger.h> // for LOG
+#include <algorithm>
+#include <cmath>
 
 using o2::trkft3::Digit;
 using o2::trkft3::Hit;
@@ -193,6 +195,8 @@ void Digitizer<DetID>::setEventTime(const o2::InteractionTimeRecord& irt, int la
 template <int DetID>
 void Digitizer<DetID>::fillOutputContainer(uint32_t frameLast, int layer)
 {
+  const bool finalFlush = (frameLast == 0xffffffff);
+
   // // fill output with digits from min.cached up to requested frame, generating the noise beforehand
   if (frameLast > mROFrameMax) {
     frameLast = mROFrameMax;
@@ -204,6 +208,7 @@ void Digitizer<DetID>::fillOutputContainer(uint32_t frameLast, int layer)
 
   o2::trkft3::ROFRecord rcROF; /// using temporarly trkft3::ROFRecord
 
+  std::vector<o2::trkft3::PreDigitContribution> contribs; // contributions to a pixel in a ROF, reused
   // we have to write chips in RO increasing order, therefore have to loop over the frames here
   for (; mROFrameMin <= frameLast; mROFrameMin++) {
     rcROF.setROFrame(mROFrameMin);
@@ -214,28 +219,96 @@ void Digitizer<DetID>::fillOutputContainer(uint32_t frameLast, int layer)
       if (chip.isDisabled() || (layer >= 0 && getROFLayer(chip.getChipIndex()) != layer)) {
         continue;
       }
-      chip.addNoise(mROFrameMin, mROFrameMin, &mParams, mGeometry->getSubDetID(chip.getChipIndex()), mGeometry->getLayer(chip.getChipIndex()), mParams.getROFrameLength(getROFLayer(chip.getChipIndex())));
+      chip.addNoise(mROFrameMin, &mParams, mGeometry->getSubDetID(chip.getChipIndex()), mGeometry->getLayer(chip.getChipIndex()), mParams.getROFrameLength(getROFLayer(chip.getChipIndex())), extra);
+      const double rofLength = mParams.getROFrameLength(getROFLayer(chip.getChipIndex())); // ns
+      const double rofStart = mROFrameMin * rofLength;                                     // absolute start time of the ROF (ns)
+      auto& states = chip.getPixelStates();
+      // write the digits waiting for this ROF and drop the states of the signals already over
+      for (auto it = states.begin(); it != states.end();) {
+        auto& st = it->second;
+        if (st.pending && st.pendingROF == mROFrameMin) {
+          const uint16_t row = it->first & 0xffff, col = it->first >> 16; // inverse of getPixelKey
+          writeDigit(chip, row, col, st.pendingCharge, st.pendingToA, st, layer);
+          st.pending = false;
+        }
+        if (!st.pending && st.tEnd <= rofStart) {
+          it = states.erase(it);
+        } else {
+          ++it;
+        }
+      }
       auto& buffer = chip.getPreDigits();
       if (buffer.empty()) {
         continue;
       }
+      const int thr = mParams.getChargeThreshold();
+      const auto& signal = mParams.getAlmiraSignal();
+
       auto itBeg = buffer.begin();
       auto iter = itBeg;
-      ULong64_t maxKey = chip.getOrderingKey(mROFrameMin + 1, 0, 0) - 1; // fetch digits with key below that
+      ULong64_t maxKey = chip.getOrderingKey(mROFrameMin + 1, 0, 0) - 1; // fetch pre-digits with key below that
       for (; iter != buffer.end(); ++iter) {
         if (iter->first > maxKey) {
           break; // is the digit ROFrame from the key > the max requested frame
         }
         auto& preDig = iter->second; // preDigit
-        if (preDig.charge >= mParams.getChargeThreshold()) {
-          int digID = mDigits->size();
-          mDigits->emplace_back(chip.getChipIndex(), preDig.row, preDig.col, preDig.charge, mParams.encodeTimestamp(preDig.toa, mROFrameMin, layer));
-          LOG(debug) << "Adding digit ID: " << digID << " with chipID: " << chip.getChipIndex() << ", row: " << preDig.row << ", col: " << preDig.col << ", charge: " << preDig.charge << ", ToA: " << preDig.toa;
-          mMCLabels->addElement(digID, preDig.labelRef.label);
-          auto& nextRef = preDig.labelRef; // extra contributors are in extra array
-          while (nextRef.next >= 0) {
-            nextRef = extra[nextRef.next];
-            mMCLabels->addElement(digID, nextRef.label);
+
+        // collect the contributions to the pixel in this ROF and sort them in time
+        contribs.clear();
+        contribs.push_back(preDig.contrib);
+        for (int nxt = preDig.contrib.next; nxt >= 0; nxt = extra[nxt].next) {
+          contribs.push_back(extra[nxt]);
+        }
+        std::sort(contribs.begin(), contribs.end(), [](const auto& a, const auto& b) { return a.toa < b.toa; });
+
+        // process them in time order together with the state of the pixel signal
+        auto& state = states[chip.getPixelKey(preDig.row, preDig.col)]; // created if not existing
+        for (const auto& c : contribs) {
+          const double t = rofStart + c.toa; // absolute arrival time
+          if (t >= state.tEnd) {             // previous signal over (or no signal): a new signal starts
+            state.tStart = t;
+            state.charge = 0;
+            state.labels.clear();
+          }
+          const int qPrev = state.charge;
+          state.charge += c.charge;
+          state.tEnd = state.tStart + signal.getToT(state.charge);
+          if (qPrev >= thr) {
+            ++mNDeadTime; // contribution in the dead time: adds charge (extends t_end), no edge, no label
+            continue;     // pile-up on a signal already above threshold: no new edge, no label
+          }
+          state.labels.push_back(c.label);
+          if (state.charge < thr) {
+            continue; // still below threshold
+          }
+          // upward threshold crossing: leading edge delayed by the time walk of the total charge
+          if (qPrev > 0) {
+            ++mNPreCharged;
+          }
+          const double tLE = t + signal.getTimeWalk(state.charge);
+          if (tLE >= state.tEnd) { // the signal ends before the leading edge: no digit (approximation)
+            ++mNLEAfterEnd;
+            state.labels.clear();
+            continue;
+          }
+          const uint32_t rofLE = uint32_t(tLE / rofLength);
+          float toaLE = float(tLE - rofLE * rofLength); // leading edge w.r.t. the start of its ROF
+          if (toaLE >= float(rofLength)) {              // float rounding at the end of the ROF: keep the LE in its ROF
+            toaLE = std::nextafter(float(rofLength), 0.f);
+          }
+          if (rofLE == state.lastDigitROF) { // one digit per pixel per ROF: keep the first
+            ++mNSameROF;
+            state.labels.clear();
+            continue;
+          }
+          if (rofLE == mROFrameMin) {
+            writeDigit(chip, preDig.row, preDig.col, state.charge, toaLE, state, layer);
+          } else { // the leading edge falls in a later ROF: the digit waits in the pixel state
+            state.pending = true;
+            state.pendingROF = rofLE;
+            state.pendingToA = toaLE;
+            state.pendingCharge = state.charge;
+            ++mNMovedROF;
           }
         }
       }
@@ -251,6 +324,29 @@ void Digitizer<DetID>::fillOutputContainer(uint32_t frameLast, int layer)
                    // and move it as a new slot in the end
     mExtraBuff.emplace_back(mExtraBuff.front().release());
     mExtraBuff.pop_front();
+  }
+  if (finalFlush) { // only for logging
+    // pending digits never written: leading edge in a ROF which was not flushed. Expected only for the
+    // noise of the last flushed ROF, since noise is generated only in the flushed ROFs
+    long nPendingParticle = 0, nPendingNoise = 0;
+    for (auto& chip : mChips) {
+      if (layer >= 0 && getROFLayer(chip.getChipIndex()) != layer) {
+        continue;
+      }
+      for (const auto& [key, st] : chip.getPixelStates()) {
+        if (!st.pending) {
+          continue;
+        }
+        const bool onlyNoise = std::all_of(st.labels.begin(), st.labels.end(), [](const auto& l) { return l.isNoise() && !l.isQED(); });
+        onlyNoise ? ++nPendingNoise : ++nPendingParticle;
+      }
+    }
+    LOGP(debug, "{} layer {}: digits {}, moved to a later ROF by the time walk {}, threshold crossings on a pre-charged pixel {}, contributions in the dead time {} | edges discarded: leading edge after signal end {}, second edge in the same ROF {} | pending noise digits not written {}",
+         mGeometry->getName(), layer, mNDigits, mNMovedROF, mNPreCharged, mNDeadTime, mNLEAfterEnd, mNSameROF, nPendingNoise);
+    if (nPendingParticle > 0) {
+      LOGP(warning, "{} layer {}: {} pending digits from particles never written (leading edge in a ROF which was not flushed)", mGeometry->getName(), layer, nPendingParticle);
+    }
+    mNDigits = mNPreCharged = mNLEAfterEnd = mNSameROF = mNMovedROF = mNDeadTime = 0;
   }
 }
 
@@ -297,18 +393,17 @@ void Digitizer<DetID>::processHit(const o2::trkft3::Hit& hit, uint32_t& maxFr, i
   if (timeInROF < 0) {
     timeInROF = 0.;
   }
-  float tTot = mParams.getSignalShape().getMaxDuration();
-  // frame of the hit signal start wrt event ROFrame
+  // frame of the leading edge of the signal wrt event ROFrame (edge detection: the hit is read only in this ROF)
   int roFrameRel = int(timeInROF * mParams.getROFrameLengthInv(rofLayer));
   // Time of Arrival w.r.t. the start of the ROF where the signal starts (= w.r.t. roFrameAbs)
   float toaInROF = timeInROF - roFrameRel * mParams.getROFrameLength(rofLayer);
-
-  // frame of the hit signal end  wrt event ROFrame: in the triggered mode we read just 1 frame
-  uint32_t roFrameRelMax = (timeInROF + tTot) * mParams.getROFrameLengthInv(rofLayer);
-  int nFrames = roFrameRelMax + 1 - roFrameRel;
-  uint32_t roFrameMax = mNewROFrame + roFrameRelMax;
-  if (roFrameMax > maxFr) {
-    maxFr = roFrameMax; // if signal extends beyond current maxFrame, increase the latter
+  uint32_t roFrameAbs = mNewROFrame + roFrameRel;
+  // the leading edge can be delayed by the time walk, at most TW(threshold) since the charge at the
+  // threshold crossing is >= threshold: make sure the ROFs it can reach are flushed
+  const float twMax = mParams.getAlmiraSignal().getTimeWalk(mParams.getChargeThreshold());
+  uint32_t roFrameMaxLE = mNewROFrame + uint32_t((timeInROF + twMax) * mParams.getROFrameLengthInv(rofLayer));
+  if (roFrameMaxLE > maxFr) {
+    maxFr = roFrameMaxLE;
   }
 
   // here we start stepping in the depth of the sensor to generate charge diffusion
@@ -472,11 +567,10 @@ void Digitizer<DetID>::processHit(const o2::trkft3::Hit& hit, uint32_t& maxFr, i
   LOG(debug) << "Response done; adding labels; making digits";
   // fire the pixels assuming Poisson(n_response_electrons)
   o2::MCCompLabel lbl(hit.GetTrackID(), evID, srcID, false);
-  auto roFrameAbs = mNewROFrame + roFrameRel;
   LOG(debug) << "\nSpanning through rows and columns; rowspan = " << rowSpan << " colspan = " << colSpan << " = " << colE << " - " << colS << " +1 ";
-  for (int irow = rowSpan; irow--;) {          // irow ranging from 4 to 0
-    uint16_t rowIS = irow + rowS;              // row distant irow from the row of the hit start
-    for (int icol = colSpan; icol--;) {        // icol ranging from 4 to 0
+  for (int irow = rowSpan; irow--;) {                     // irow ranging from 4 to 0
+    uint16_t rowIS = irow + rowS;                         // row distant irow from the row of the hit start
+    for (int icol = colSpan; icol--;) {                   // icol ranging from 4 to 0
       float nEleResp = respMatrix[irow * colSpan + icol]; // value of the probability of the response in this pixel
       if (nEleResp <= 1.e-36) {
         continue;
@@ -484,8 +578,8 @@ void Digitizer<DetID>::processHit(const o2::trkft3::Hit& hit, uint32_t& maxFr, i
       LOG(debug) << "nEleResp: value " << nEleResp << " for pixel " << irow << " " << icol;
       int nEle = gRandom->Poisson(nElectrons * nEleResp); // total charge in given pixel = number of electrons generated in the hit multiplied by the probability of being detected in their position
       LOG(debug) << "Charge detected in the pixel: " << nEle << " for pixel " << irow << " " << icol;
-      // ignore charge which have no chance to fire the pixel
-      if (nEle < mParams.getMinChargeToAccount()) { /// TODO: substitute with the threshold?
+      // ignore contributions too small to matter, even when summed with others on the same pixel
+      if (nEle < mParams.getMinChargeToAccount()) {
         LOG(debug) << "Ignoring pixel with nEle = " << nEle << " < min charge to account "
                    << mParams.getMinChargeToAccount() << " for pixel " << irow << " " << icol;
         continue;
@@ -498,68 +592,51 @@ void Digitizer<DetID>::processHit(const o2::trkft3::Hit& hit, uint32_t& maxFr, i
       if (mDeadChanMap && mDeadChanMap->isNoisy(chipID, rowIS, colIS)) {
         continue;
       }
-      registerDigits(chip, roFrameAbs, toaInROF, nFrames, rowIS, colIS, nEle, lbl, rofLayer);
+      registerDigits(chip, roFrameAbs, toaInROF, rowIS, colIS, nEle, lbl, rofLayer);
     }
   }
 }
 
 //________________________________________________________________________________
 template <int DetID>
-void Digitizer<DetID>::registerDigits(o2::trkft3::ChipDigitsContainer& chip, uint32_t roFrame, float toaInROF, int nROF,
+void Digitizer<DetID>::registerDigits(o2::trkft3::ChipDigitsContainer& chip, uint32_t roFrame, float toaInROF,
                                       uint16_t row, uint16_t col, int nEle, o2::MCCompLabel& lbl, int layer)
 {
-  // Register digits for given pixel, accounting for the possible signal contribution to
-  // multiple ROFrame. The signal starts at time toaInROF wrt the start of provided roFrame
-  // In every ROFrame we check the collected signal during strobe
+  // Register the contribution (label, arrival time, charge) of a hit to the given pixel in the ROF
+  // of arrival. No summing here: the digit is built at the flush (fillOutputContainer), processing
+  // the contributions in time order together with the pixel state (edge detection)
   LOG(debug) << "Registering digits for chip " << chip.getChipIndex() << " at ROFrame " << roFrame
              << " row " << row << " col " << col << " nEle " << nEle << " label " << lbl << " layer " << layer << " toa " << toaInROF;
-  float tStrobe = mParams.getStrobeDelay(layer) - toaInROF; // strobe start wrt signal start
-  for (int i = 0; i < nROF; i++) {                          // loop on all the ROFs occupied by the same signal to calculate the charge accumulated in that ROF
-    uint32_t roFr = roFrame + i;
-    float toaROF = toaInROF - i * mParams.getROFrameLength(layer); // ToA w.r.t. start of ROF
-    int nEleROF = mParams.getSignalShape().getCollectedCharge(nEle, tStrobe, tStrobe + mParams.getStrobeLength(layer));
-    tStrobe += mParams.getROFrameLength(layer); // for the next ROF
+  if (roFrame > mEventROFrameMax) {
+    mEventROFrameMax = roFrame;
+  }
+  if (roFrame < mEventROFrameMin) {
+    mEventROFrameMin = roFrame;
+  }
+  auto key = chip.getOrderingKey(roFrame, row, col);
+  chip.addContribution(key, roFrame, row, col, nEle, lbl, toaInROF, *getExtraDigBuffer(roFrame));
+  LOG(debug) << "Added contribution with key: " << key << "  ROF: " << roFrame << "  row: " << row << "  col: " << col << "  charge: " << nEle;
+}
 
-    // discard too small contributions, they have no chance to produce a digit
-    if (nEleROF < mParams.getMinChargeToAccount()) { /// use threshold instead?
-      continue;
-    }
-    if (roFr > mEventROFrameMax) {
-      mEventROFrameMax = roFr;
-    }
-    if (roFr < mEventROFrameMin) {
-      mEventROFrameMin = roFr;
-    }
-    auto key = chip.getOrderingKey(roFr, row, col);
-    o2::trkft3::PreDigit* pd = chip.findDigit(key);
-    if (!pd) {
-      chip.addDigit(key, roFr, row, col, nEleROF, lbl, toaROF);
-      LOG(debug) << "Added digit with key: " << key << "  ROF: " << roFr << "  row: " << row << "  col: " << col << "  charge: " << nEleROF;
-    } else { // there is already a digit at this slot, account as PreDigitExtra contribution
-      LOG(debug) << "Added to pre-digit with key: " << key << "  ROF: " << roFr << "  row: " << row << "  col: " << col << "  charge: " << nEleROF;
-      pd->charge += nEleROF;
-      pd->toa = std::min(pd->toa, toaROF); /// in case of two hits on the same digit in the same ROF, get the first ToA
-      if (pd->labelRef.label == lbl) {     // don't store the same label twice
-        continue;
-      }
-      ExtraDig* extra = getExtraDigBuffer(roFr);
-      int& nxt = pd->labelRef.next;
-      bool skip = false;
-      while (nxt >= 0) {
-        if ((*extra)[nxt].label == lbl) { // don't store the same label twice
-          skip = true;
-          break;
-        }
-        nxt = (*extra)[nxt].next;
-      }
-      if (skip) {
-        continue;
-      }
-      // new predigit will be added in the end of the chain
-      nxt = extra->size();
-      extra->emplace_back(lbl);
+//________________________________________________________________________________
+template <int DetID>
+void Digitizer<DetID>::writeDigit(o2::trkft3::ChipDigitsContainer& chip, uint16_t row, uint16_t col, int charge, float toaInROF,
+                                  o2::trkft3::PixelState& state, int layer)
+{
+  // Write the digit of the pixel in the ROF being flushed (mROFrameMin), with the labels of the
+  // contributions up to the threshold crossing, each label written once
+  int digID = mDigits->size();
+  mDigits->emplace_back(chip.getChipIndex(), row, col, charge, mParams.encodeTimestamp(toaInROF, mROFrameMin, layer));
+  ++mNDigits;
+  LOG(debug) << "Adding digit ID: " << digID << " with chipID: " << chip.getChipIndex() << ", row: " << row << ", col: " << col << ", charge: " << charge << ", ToA: " << toaInROF;
+  const auto& lbls = state.labels;
+  for (size_t i = 0; i < lbls.size(); ++i) {
+    if (std::find(lbls.begin(), lbls.begin() + i, lbls[i]) == lbls.begin() + i) { // not already written
+      mMCLabels->addElement(digID, lbls[i]);
     }
   }
+  state.labels.clear();
+  state.lastDigitROF = mROFrameMin;
 }
 
 template class o2::trkft3::Digitizer<o2::detectors::DetID::TRK>;
