@@ -285,6 +285,7 @@ int32_t GPUReconstructionCUDA::InitDevice_Runtime()
       return (1);
     }
 #endif
+    GPUChkErr(cudaDeviceGetLimit(&mInternals->stackSizeInit, cudaLimitStackSize));
 
     if (mDeviceMemorySize == 1 || mDeviceMemorySize == 2) {
       mDeviceMemorySize = std::max<int64_t>(0, devMemory[mDeviceId] - REQUIRE_FREE_MEMORY_RESERVED_PER_SM * deviceProp.multiProcessorCount); // Take all GPU memory but some reserve
@@ -456,6 +457,10 @@ int32_t GPUReconstructionCUDA::ExitDevice_Runtime()
       GPUChkErr(cuModuleUnload(*mInternals->kernelModules[i]));
     }
 
+    size_t stackSize = 0;
+    if (GPUChkErrI(cudaDeviceGetLimit(&stackSize, cudaLimitStackSize)) == 0 && stackSize > mInternals->stackSizeInit) {
+      GPUError("CUDA stack size was increased at runtime from %zu to %zu, please increase GPU_STACK_SIZE", mInternals->stackSizeInit, stackSize);
+    }
     GPUChkErrI(cudaDeviceReset());
     GPUInfo("CUDA Uninitialized");
   }

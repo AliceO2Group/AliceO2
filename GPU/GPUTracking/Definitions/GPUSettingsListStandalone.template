@@ -76,7 +76,7 @@ AddOption(overrideMaxTimebin, bool, false, "", 0, "Override max time bin setting
 AddOption(encodeZS, int32_t, -1, "", 0, "Zero-Suppress TPC data", def(1))
 AddOption(zsFilter, int32_t, -1, "", 0, "Apply Zero-Suppression when loading digits and remove those below threshold", def(1))
 AddOption(zsVersion, int32_t, 2, "", 0, "ZS Version: 1 = 10-bit ADC row based, 2 = 12-bit ADC row based, 3 = improved link based, 4 = dense link based")
-AddOption(dumpEvents, uint8_t, 0, "", 0, "Dump events (1 = input after transformation such as encodeZS, 2 = input of the asynchronous phase with --syncAsync)")
+AddOption(dumpEvents, uint8_t, 0, "", 0, "Dump events (1 = input after transformation such as encodeZS, 2 = input of the asynchronous phase with --syncAsync)", def(1))
 AddOption(stripDumpedEvents, bool, false, "", 0, "Remove redundant inputs (e.g. digits and ZS) before dumping")
 AddOption(printSettings, int32_t, 0, "", 0, "Print all settings", def(1))
 AddOption(testSyncAsync, bool, false, "syncAsync", 0, "Test first synchronous and then asynchronous processing")

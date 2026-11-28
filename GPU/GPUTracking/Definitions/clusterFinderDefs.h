@@ -54,6 +54,7 @@ static GPUglobalconstexpr() uint32_t SCRATCH_PAD_NOISE_N = 16;
 // rows are always aligned along cache lines. Likewise for TPC_CLUSTERER_ROW_PAD_CAPACITY.
 static GPUglobalconstexpr() int32_t GPUCF_PADDING_PAD = 8;
 static GPUglobalconstexpr() int32_t GPUCF_PADDING_TIME = 4;
+static GPUglobalconstexpr() int32_t INVALID_TIME_BIN = -GPUCF_PADDING_TIME - 1;
 // Largest possible number of pads in a TPC row
 static GPUglobalconstexpr() int32_t TPC_CLUSTERER_ROW_PAD_CAPACITY = 144;
 

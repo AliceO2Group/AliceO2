@@ -22,8 +22,6 @@
 namespace o2::gpu
 {
 
-#define INVALID_TIME_BIN (-o2::gpu::tpccf::GPUCF_PADDING_TIME - 1)
-
 struct CfChargePos {
   tpccf::GlobalPad gpad;
   tpccf::TPCFragmentTime timePadded;
@@ -61,7 +59,7 @@ struct CfChargePos {
   }
 };
 
-inline GPUglobalconstexpr() CfChargePos INVALID_CHARGE_POS{255, 255, INVALID_TIME_BIN};
+inline GPUglobalconstexpr() CfChargePos INVALID_CHARGE_POS{255, 255, tpccf::INVALID_TIME_BIN};
 
 } // namespace o2::gpu
 
