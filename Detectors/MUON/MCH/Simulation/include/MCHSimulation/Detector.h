@@ -45,6 +45,9 @@ class Detector : public o2::base::DetImpl<Detector>
   /// Add alignable top volumes
   void addAlignableVolumes() const override;
 
+  /// Add the gas volumes of every detection element to the parallel world
+  void fillParallelWorld() const override;
+
   std::vector<o2::mch::Hit>* getHits(int);
 
   void EndOfEvent() override;
