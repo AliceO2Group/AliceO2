@@ -228,8 +228,6 @@ std::vector<painter::PadCoordinates> painter::getFECCoordinatesSector()
 
 std::vector<painter::PadCoordinates> painter::getSCDY2XCoordinatesSector(std::string binningStr)
 {
-  const float deadZone = 1.5;
-  const float secPhi = 20.0 * TMath::DegToRad();
   std::vector<painter::PadCoordinates> padCoords;
   const Mapper& mapper = Mapper::instance();
   const auto nPadRows = Mapper::PADROWS;
@@ -274,8 +272,10 @@ std::vector<painter::PadCoordinates> painter::getSCDY2XCoordinatesSector(std::st
 
   for (int irow = 0; irow < nPadRows; ++irow) {
     const auto x = mapper.getPadCentre(PadPos(irow, 0)).X();
-    maxY2X[irow] = std::tan(.5f * secPhi) - deadZone / x;
     const auto region = Mapper::REGION[irow];
+    // y/x edge = the pad plane's edge in the row, as the TrackResiduals voxel grid
+    const float halfWidth = 0.5f * mapper.getNumberOfPadsInRowSector(irow) * mapper.getPadRegionInfo(region).getPadWidth();
+    maxY2X[irow] = halfWidth / x;
     const auto ph = mapper.getPadRegionInfo(region).getPadHeight();
     const auto xPadBottom = x - ph / 2;
     const auto xPadTop = x + ph / 2;
