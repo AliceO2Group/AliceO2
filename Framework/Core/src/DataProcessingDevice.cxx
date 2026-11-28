@@ -1688,7 +1688,6 @@ void DataProcessingDevice::doRun(ServiceRegistryRef ref)
     return;
   }
 
-  streamContext.completed.clear();
   streamContext.completed.reserve(16);
   if (DataProcessingDevice::tryDispatchComputation(ref, streamContext.completed)) {
     state.lastActiveDataProcessor.store(&context);
@@ -1704,7 +1703,6 @@ void DataProcessingDevice::doRun(ServiceRegistryRef ref)
     state.lastActiveDataProcessor = &context;
   }
 
-  streamContext.completed.clear();
   if (DataProcessingDevice::tryDispatchComputation(ref, streamContext.completed)) {
     state.lastActiveDataProcessor = &context;
   }
@@ -2347,6 +2345,9 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
     }
   };
 
+  // Only what is ready now: the end-of-stream drain calls this in a loop with the
+  // same vector, and whatever the last call dispatched has been consumed since.
+  completed.clear();
   ref.get<DataRelayer>().getReadyToProcess(completed);
   if (completed.empty() == true) {
     LOGP(debug, "No computations available for dispatching.");
