@@ -23,6 +23,55 @@ using namespace o2::gpu;
 
 static_assert(GPUTPCGeometry::NROWS >= GPUCA_PAR_TRACKLET_SELECTOR_HITS_REG_SIZE);
 
+namespace
+{
+
+GPUdi() void AtomicAddExtrapolationCandidate(GPUglobalref() int32_t* extrapolationCandidates, GPUglobalref() int32_t* extrapolationCandidatesDirection, GPUglobalref() GPUAtomic(uint32_t) * NExtrapolationCandidates, int32_t localTrackId, int32_t direction)
+{
+  const uint32_t pos = CAMath::AtomicAdd(NExtrapolationCandidates, 1u);
+  extrapolationCandidates[pos] = localTrackId;
+  extrapolationCandidatesDirection[pos] = direction;
+}
+
+GPUdi() void MemorizeExtrapolationCandidates(GPUTPCTracker& GPUrestrict() tracker, int32_t localTrackId)
+{
+  {
+    const int32_t tmpHit = tracker.Tracks()[localTrackId].FirstHitID();
+    if (tracker.TrackHits()[tmpHit].RowIndex() >= tracker.Param().rec.tpc.extrapolationTrackingMinRows && tracker.TrackHits()[tmpHit].RowIndex() < tracker.Param().rec.tpc.extrapolationTrackingRowRange) {
+      int32_t rowIndex = tracker.TrackHits()[tmpHit].RowIndex();
+      const GPUTPCRow& GPUrestrict() row = tracker.Row(rowIndex);
+      float Y = (float)tracker.Data().HitDataY(row, tracker.TrackHits()[tmpHit].HitIndex()) * row.HstepY() + row.Grid().YMin();
+      if (Y < -row.MaxY() * tracker.Param().rec.tpc.extrapolationTrackingYRangeLower) {
+        // GPUInfo("Sector %d, Track %d, lower row %d, left border (%f of %f)", tracker.ISector(), localTrackId, rowIndex, Y, -row.MaxY());
+        AtomicAddExtrapolationCandidate(tracker.ExtrapolationCandidatesLeft(), tracker.ExtrapolationCandidatesLeftDirection(), tracker.NExtrapolationCandidatesLeft(), localTrackId, -1);
+      }
+      if (Y > row.MaxY() * tracker.Param().rec.tpc.extrapolationTrackingYRangeLower) {
+        // GPUInfo("Sector %d, Track %d, lower row %d, right border (%f of %f)", tracker.ISector(), localTrackId, rowIndex, Y, row.MaxY());
+        AtomicAddExtrapolationCandidate(tracker.ExtrapolationCandidatesRight(), tracker.ExtrapolationCandidatesRightDirection(), tracker.NExtrapolationCandidatesRight(), localTrackId, -1);
+      }
+    }
+  }
+
+  {
+    const int32_t tmpHit = tracker.Tracks()[localTrackId].FirstHitID() + tracker.Tracks()[localTrackId].NHits() - 1;
+    if (tracker.TrackHits()[tmpHit].RowIndex() < GPUTPCGeometry::NROWS - tracker.Param().rec.tpc.extrapolationTrackingMinRows && tracker.TrackHits()[tmpHit].RowIndex() >= GPUTPCGeometry::NROWS - tracker.Param().rec.tpc.extrapolationTrackingRowRange) {
+      int32_t rowIndex = tracker.TrackHits()[tmpHit].RowIndex();
+      const GPUTPCRow& GPUrestrict() row = tracker.Row(rowIndex);
+      float Y = (float)tracker.Data().HitDataY(row, tracker.TrackHits()[tmpHit].HitIndex()) * row.HstepY() + row.Grid().YMin();
+      if (Y < -row.MaxY() * tracker.Param().rec.tpc.extrapolationTrackingYRangeUpper) {
+        // GPUInfo("Sector %d, Track %d, upper row %d, left border (%f of %f)", tracker.ISector(), localTrackId, rowIndex, Y, -row.MaxY());
+        AtomicAddExtrapolationCandidate(tracker.ExtrapolationCandidatesLeft(), tracker.ExtrapolationCandidatesLeftDirection(), tracker.NExtrapolationCandidatesLeft(), localTrackId, 1);
+      }
+      if (Y > row.MaxY() * tracker.Param().rec.tpc.extrapolationTrackingYRangeUpper) {
+        // GPUInfo("Sector %d, Track %d, upper row %d, right border (%f of %f)", tracker.ISector(), localTrackId, rowIndex, Y, row.MaxY());
+        AtomicAddExtrapolationCandidate(tracker.ExtrapolationCandidatesRight(), tracker.ExtrapolationCandidatesRightDirection(), tracker.NExtrapolationCandidatesRight(), localTrackId, 1);
+      }
+    }
+  }
+}
+
+} // namespace
+
 template <>
 GPUdii() void GPUTPCTrackletSelector::Thread<0>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& s, processorType& GPUrestrict() tracker)
 {
@@ -120,6 +169,7 @@ GPUdii() void GPUTPCTrackletSelector::Thread<0>(int32_t nBlocks, int32_t nThread
               tracker.TrackHits()[nFirstTrackHit + nHits - 1 - jh] = trackHits[jh - GPUCA_PAR_TRACKLET_SELECTOR_HITS_REG_SIZE];
             }
           }
+          ::MemorizeExtrapolationCandidates(tracker, itrout);
         }
         nHits = 0;
         gap = 0;

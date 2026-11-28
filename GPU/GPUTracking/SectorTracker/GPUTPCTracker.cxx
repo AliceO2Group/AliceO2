@@ -90,12 +90,12 @@ void GPUTPCTracker::RegisterMemoryAllocation()
 {
   AllocateAndInitializeLate();
   bool reuseCondition = MemoryReuseAllowed();
-  GPUMemoryReuse reLinks{reuseCondition, GPUMemoryReuse::REUSE_1TO1, GPUMemoryReuse::TrackerDataLinks, (uint16_t)(mISector % mRec->GetProcessingSettings().nStreams)};
+  GPUMemoryReuse reLinks{reuseCondition, GPUMemoryReuse::REUSE_1TO1, GPUMemoryReuse::TrackerDataLinks, (uint16_t)mRec->StreamForSector(mISector)};
   mMemoryResLinks = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersDataLinks, GPUMemoryResource::MEMORY_SCRATCH | GPUMemoryResource::MEMORY_STACK, "TPCSectorLinks", reLinks);
   mMemoryResSectorScratch = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersDataScratch, GPUMemoryResource::MEMORY_SCRATCH | GPUMemoryResource::MEMORY_STACK | GPUMemoryResource::MEMORY_CUSTOM, "TPCSectorScratch");
-  GPUMemoryReuse reWeights{reuseCondition, GPUMemoryReuse::REUSE_1TO1, GPUMemoryReuse::TrackerDataWeights, (uint16_t)(mISector % mRec->GetProcessingSettings().nStreams)};
+  GPUMemoryReuse reWeights{reuseCondition, GPUMemoryReuse::REUSE_1TO1, GPUMemoryReuse::TrackerDataWeights, (uint16_t)mRec->StreamForSector(mISector)};
   mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersDataWeights, GPUMemoryResource::MEMORY_SCRATCH | GPUMemoryResource::MEMORY_STACK, "TPCSectorWeights", reWeights);
-  GPUMemoryReuse reScratch{reuseCondition, GPUMemoryReuse::REUSE_1TO1, GPUMemoryReuse::TrackerScratch, (uint16_t)(mISector % mRec->GetProcessingSettings().nStreams)};
+  GPUMemoryReuse reScratch{reuseCondition, GPUMemoryReuse::REUSE_1TO1, GPUMemoryReuse::TrackerScratch, (uint16_t)mRec->StreamForSector(mISector)};
   mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersScratch, GPUMemoryResource::MEMORY_SCRATCH | GPUMemoryResource::MEMORY_STACK, "TPCTrackerScratch", reScratch);
   mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersScratchHost, GPUMemoryResource::MEMORY_SCRATCH_HOST, "TPCTrackerHost");
   mMemoryResCommon = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersCommon, GPUMemoryResource::MEMORY_PERMANENT, "TPCTrackerCommon");
@@ -120,6 +120,13 @@ GPUhd() void* GPUTPCTracker::SetPointersOutput(void* mem)
 {
   computePointerWithAlignment(mem, mTracks, mNMaxTracks);
   computePointerWithAlignment(mem, mTrackHits, mNMaxTrackHits);
+  if (mRec->GetProcessingSettings().deterministicGPUReconstruction) {
+    computePointerWithAlignment(mem, mDebugSortedIndex, mNMaxTracks);
+  }
+  computePointerWithAlignment(mem, mExtrapolationCandidatesLeft, 2 * mNMaxTracks);
+  computePointerWithAlignment(mem, mExtrapolationCandidatesRight, 2 * mNMaxTracks);
+  computePointerWithAlignment(mem, mExtrapolationCandidatesLeftDirection, 2 * mNMaxTracks);
+  computePointerWithAlignment(mem, mExtrapolationCandidatesRightDirection, 2 * mNMaxTracks);
   return mem;
 }
 

@@ -225,6 +225,7 @@ class GPUReconstruction
   void SetInputControl(void* ptr, size_t size);
   GPUOutputControl& OutputControl() { return mOutputControl; }
   uint32_t NStreams() const { return mNStreams; }
+  uint32_t StreamForSector(uint32_t sector) const;
   const void* DeviceMemoryBase() const { return mDeviceMemoryBase; }
   virtual const GPUDefParameters& getGPUParameters(bool doGPU) const = 0;
 

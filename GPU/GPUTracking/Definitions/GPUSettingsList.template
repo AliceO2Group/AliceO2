@@ -407,7 +407,7 @@ AddOption(nHostThreads, int32_t, -1, "nThreads", 't', "Number of host threads to
 AddOption(ompThreads, int32_t, -1, "", 0, "Deprecated synonym for nHostThreads")
 AddOption(inKernelParallel, uint8_t, 2, "", 0, "Parallelize with multi-threading inside kernels on the host instead of over TPC sectors: 0 disable, 1 full and exclusive in-kernel parallelization, 2 for nested parallelization over TPC sectors (nTPCClustererLanes thread-groups) and inside kernels")
 AddOption(autoAdjustHostThreads, bool, true, "", 0, "Auto-adjust number of OMP threads, decreasing the number for small input data")
-AddOption(nStreams, int8_t, 8, "", 0, "Number of GPU streams / command queues")
+AddOption(nStreams, int8_t, 6, "", 0, "Number of GPU streams / command queues")
 AddOption(nTPCClustererLanes, int8_t, -1, "", 0, "Number of TPC clusterers that can run in parallel (-1 = autoset)")
 AddOption(overrideClusterizerFragmentLen, int32_t, -1, "", 0, "Force the cluster max fragment len to a certain value (-1 = autodetect)")
 AddOption(delayedOutput, bool, true, "", 0, "Delay output to be parallel to track fit")

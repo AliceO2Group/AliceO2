@@ -67,6 +67,8 @@ class GPUTPCTracker : public GPUProcessor
     int32_t nLocalTracks = 0;           // number of reconstructed tracks before extrapolation tracking
     GPUAtomic(uint32_t) nTrackHits = 0; // number of track hits
     int32_t nLocalTrackHits = 0;        // see above
+    GPUAtomic(uint32_t) nExtrapolationCandidatesLeft = 0;  // number of extrapolation candidates for left sector
+    GPUAtomic(uint32_t) nExtrapolationCandidatesRight = 0; // number of extrapolation candidates for right sector
   };
 
   GPUhdi() const GPUTPCRow& Row(const GPUTPCHitId& HitId) const { return mData.Row(HitId.RowIndex()); }
@@ -191,6 +193,14 @@ class GPUTPCTracker : public GPUProcessor
   GPUhd() GPUglobalref() GPUTPCTrack* Tracks() const { return mTracks; }
   GPUhd() GPUglobalref() GPUAtomic(uint32_t) * NTrackHits() const { return &mCommonMem->nTrackHits; }
   GPUhd() GPUglobalref() GPUTPCHitId* TrackHits() const { return mTrackHits; }
+  GPUhd() GPUglobalref() int32_t* DebugSortedIndex() const { return mDebugSortedIndex; }
+
+  GPUhd() GPUglobalref() GPUAtomic(uint32_t) * NExtrapolationCandidatesLeft() const { return &mCommonMem->nExtrapolationCandidatesLeft; }
+  GPUhd() GPUglobalref() GPUAtomic(uint32_t) * NExtrapolationCandidatesRight() const { return &mCommonMem->nExtrapolationCandidatesRight; }
+  GPUhd() GPUglobalref() int32_t* ExtrapolationCandidatesLeft() const { return mExtrapolationCandidatesLeft; }
+  GPUhd() GPUglobalref() int32_t* ExtrapolationCandidatesRight() const { return mExtrapolationCandidatesRight; }
+  GPUhd() GPUglobalref() int32_t* ExtrapolationCandidatesLeftDirection() const { return mExtrapolationCandidatesLeftDirection; }
+  GPUhd() GPUglobalref() int32_t* ExtrapolationCandidatesRightDirection() const { return mExtrapolationCandidatesRightDirection; }
 
   GPUhd() GPUglobalref() GPUTPCRow* TrackingDataRows() const { return (mData.Rows()); }
   GPUhd() GPUglobalref() int32_t* RowStartHitCountOffset() const { return (mRowStartHitCountOffset); }
@@ -242,6 +252,11 @@ class GPUTPCTracker : public GPUProcessor
   GPUglobalref() calink* mTrackletRowHits = nullptr;        // Hits for each Tracklet in each row
   GPUglobalref() GPUTPCTrack* mTracks = nullptr;            // reconstructed tracks
   GPUglobalref() GPUTPCHitId* mTrackHits = nullptr;         // array of track hit numbers
+  GPUglobalref() int32_t* mDebugSortedIndex = nullptr;      // array of the original indices before debugSort
+  GPUglobalref() int32_t* mExtrapolationCandidatesLeft = nullptr;           // array of extrapolation candidates for left sector
+  GPUglobalref() int32_t* mExtrapolationCandidatesRight = nullptr;          // array of extrapolation candidates for right sector
+  GPUglobalref() int32_t* mExtrapolationCandidatesLeftDirection = nullptr;  // array of directions for extrapolation candidates
+  GPUglobalref() int32_t* mExtrapolationCandidatesRightDirection = nullptr; // array of directions for extrapolation candidates
 
   static int32_t StarthitSortComparison(const void* a, const void* b);
 };
