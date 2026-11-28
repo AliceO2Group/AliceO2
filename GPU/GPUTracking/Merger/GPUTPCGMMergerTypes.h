@@ -55,9 +55,9 @@ struct InterpolationErrors {
   InterpolationErrorHit hit[size];
 };
 
-struct GPUResolveSharedMemory : public GPUKernelTemplate::GPUSharedMemoryScan64<int16_t, GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCGMMergerResolve_step3)> {
-  int32_t iTrack1[GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCGMMergerResolve_step3)];
-  int32_t iTrack2[GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCGMMergerResolve_step3)];
+struct GPUResolveSharedMemory : public GPUKernelTemplate::GPUSharedMemoryScan64<int16_t, GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCGMMergerResolve_step4)> {
+  int32_t iTrack1[GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCGMMergerResolve_step4)];
+  int32_t iTrack2[GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCGMMergerResolve_step4)];
 };
 
 struct GPUTPCGMBorderRange {
